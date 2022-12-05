@@ -8,8 +8,8 @@
 @muladd begin
 
 
-# 2D caches
-function create_cache(mesh::TreeMesh{2}, equations,
+# 3D caches
+function create_cache(mesh::TreeMesh{3}, equations,
                       volume_integral::VolumeIntegralStrongForm, dg, uEltype)
 
   prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(
@@ -19,7 +19,7 @@ function create_cache(mesh::TreeMesh{2}, equations,
   return (; f_threaded,)
 end
 
-function create_cache(mesh::TreeMesh{2}, equations,
+function create_cache(mesh::TreeMesh{3}, equations,
                       volume_integral::VolumeIntegralUpwind, dg, uEltype)
 
   u_node = SVector{nvariables(equations), uEltype}(ntuple(_ -> zero(uEltype), Val{nvariables(equations)}()))
@@ -39,9 +39,9 @@ function create_cache(mesh::TreeMesh{2}, equations,
 end
 
 
-# 2D volume integral contributions for `VolumeIntegralStrongForm`
+# 3D volume integral contributions for `VolumeIntegralStrongForm`
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{2},
+                               mesh::TreeMesh{3},
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralStrongForm,
                                dg::FDSBP, cache)
@@ -55,9 +55,9 @@ function calc_volume_integral!(du, u,
     # `reinterpret(reshape, ...)` removes the leading dimension only if more
     # than one variable is used.
     u_vectors  = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
-                         nnodes(dg), nnodes(dg), nelements(dg, cache))
+                         nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache))
     du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
-                         nnodes(dg), nnodes(dg), nelements(dg, cache))
+                         nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache))
   else
     u_vectors  = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
     du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du)
@@ -67,19 +67,26 @@ function calc_volume_integral!(du, u,
   # the fluxes line-by-line and add them to `du` for each element.
   @threaded for element in eachelement(dg, cache)
     f_element = f_threaded[Threads.threadid()]
-    u_element = view(u_vectors,  :, :, element)
+    u_element = view(u_vectors, :, :, :, element)
 
     # x direction
     @. f_element = flux(u_element, 1, equations)
-    for j in eachnode(dg)
-      mul!(view(du_vectors, :, j, element), D, view(f_element, :, j),
+    for j in eachnode(dg), k in eachnode(dg)
+      mul!(view(du_vectors, :, j, k, element), D, view(f_element, :, j, k),
            one(eltype(du)), one(eltype(du)))
     end
 
     # y direction
     @. f_element = flux(u_element, 2, equations)
-    for i in eachnode(dg)
-      mul!(view(du_vectors, i, :, element), D, view(f_element, i, :),
+    for i in eachnode(dg), k in eachnode(dg)
+      mul!(view(du_vectors, i, :, k, element), D, view(f_element, i, :, k),
+           one(eltype(du)), one(eltype(du)))
+    end
+
+    # z direction
+    @. f_element = flux(u_element, 3, equations)
+    for i in eachnode(dg), j in eachnode(dg)
+      mul!(view(du_vectors, i, j, :, element), D, view(f_element, i, j, :),
            one(eltype(du)), one(eltype(du)))
     end
   end
@@ -88,7 +95,7 @@ function calc_volume_integral!(du, u,
 end
 
 
-# 2D volume integral contributions for `VolumeIntegralUpwind`.
+# 3D volume integral contributions for `VolumeIntegralUpwind`.
 # Note that the plus / minus notation of the operators does not refer to the
 # upwind / downwind directions of the fluxes.
 # Instead, the plus / minus refers to the direction of the biasing within
@@ -96,7 +103,7 @@ end
 # part of the flux splitting f^+ and the D^+ operator acts on the negative part
 # of the flux splitting f^-.
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{2},
+                               mesh::TreeMesh{3},
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralUpwind,
                                dg::FDSBP, cache)
@@ -114,9 +121,9 @@ function calc_volume_integral!(du, u,
     # `reinterpret(reshape, ...)` removes the leading dimension only if more
     # than one variable is used.
     u_vectors  = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
-                         nnodes(dg), nnodes(dg), nelements(dg, cache))
+                         nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache))
     du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
-                         nnodes(dg), nnodes(dg), nelements(dg, cache))
+                         nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache))
   else
     u_vectors  = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
     du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du)
@@ -132,23 +139,32 @@ function calc_volume_integral!(du, u,
     f_minus_plus_element = f_minus_plus_threaded[Threads.threadid()]
     f_minus_element = f_minus_threaded[Threads.threadid()]
     f_plus_element = f_plus_threaded[Threads.threadid()]
-    u_element = view(u_vectors, :, :, element)
+    u_element = view(u_vectors, :, :, :, element)
 
     # x direction
     @. f_minus_plus_element = splitting(u_element, 1, equations)
-    for j in eachnode(dg)
-      mul!(view(du_vectors, :, j, element), D_minus, view(f_plus_element, :, j),
+    for j in eachnode(dg), k in eachnode(dg)
+      mul!(view(du_vectors, :, j, k, element), D_minus, view(f_plus_element, :, j, k),
            one(eltype(du)), one(eltype(du)))
-      mul!(view(du_vectors, :, j, element), D_plus, view(f_minus_element, :, j),
+      mul!(view(du_vectors, :, j, k, element), D_plus, view(f_minus_element, :, j, k),
            one(eltype(du)), one(eltype(du)))
     end
 
     # y direction
     @. f_minus_plus_element = splitting(u_element, 2, equations)
-    for i in eachnode(dg)
-      mul!(view(du_vectors, i, :, element), D_minus, view(f_plus_element, i, :),
+    for i in eachnode(dg), k in eachnode(dg)
+      mul!(view(du_vectors, i, :, k, element), D_minus, view(f_plus_element, i, :, k),
            one(eltype(du)), one(eltype(du)))
-      mul!(view(du_vectors, i, :, element), D_plus, view(f_minus_element, i, :),
+      mul!(view(du_vectors, i, :, k, element), D_plus, view(f_minus_element, i, :, k),
+           one(eltype(du)), one(eltype(du)))
+    end
+
+    # z direction
+    @. f_minus_plus_element = splitting(u_element, 3, equations)
+    for i in eachnode(dg), j in eachnode(dg)
+      mul!(view(du_vectors, i, j, :, element), D_minus, view(f_plus_element, i, j, :),
+           one(eltype(du)), one(eltype(du)))
+      mul!(view(du_vectors, i, j, :, element), D_plus, view(f_minus_element, i, j, :),
            one(eltype(du)), one(eltype(du)))
     end
   end
@@ -157,7 +173,7 @@ function calc_volume_integral!(du, u,
 end
 
 
-function calc_surface_integral!(du, u, mesh::TreeMesh{2},
+function calc_surface_integral!(du, u, mesh::TreeMesh{3},
                                 equations, surface_integral::SurfaceIntegralStrongForm,
                                 dg::DG, cache)
   inv_weight_left  = inv(left_boundary_weight(dg.basis))
@@ -165,34 +181,48 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
   @unpack surface_flux_values = cache.elements
 
   @threaded for element in eachelement(dg, cache)
-    for l in eachnode(dg)
+    for m in eachnode(dg), l in eachnode(dg)
       # surface at -x
-      u_node = get_node_vars(u, equations, dg, 1, l, element)
+      u_node = get_node_vars(u, equations, dg, 1, l, m, element)
       f_node = flux(u_node, 1, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 1, element)
+      f_num  = get_node_vars(surface_flux_values, equations, dg, l, m, 1, element)
       multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
-                                 equations, dg, 1, l, element)
+                                 equations, dg, 1, l, m, element)
 
       # surface at +x
-      u_node = get_node_vars(u, equations, dg, nnodes(dg), l, element)
+      u_node = get_node_vars(u, equations, dg, nnodes(dg), l, m, element)
       f_node = flux(u_node, 1, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 2, element)
+      f_num  = get_node_vars(surface_flux_values, equations, dg, l, m, 2, element)
       multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
-                                 equations, dg, nnodes(dg), l, element)
+                                 equations, dg, nnodes(dg), l, m, element)
 
       # surface at -y
-      u_node = get_node_vars(u, equations, dg, l, 1, element)
+      u_node = get_node_vars(u, equations, dg, l, 1, m, element)
       f_node = flux(u_node, 2, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 3, element)
+      f_num  = get_node_vars(surface_flux_values, equations, dg, l, m, 3, element)
       multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
-                                 equations, dg, l, 1, element)
+                                 equations, dg, l, 1, m, element)
 
       # surface at +y
-      u_node = get_node_vars(u, equations, dg, l, nnodes(dg), element)
+      u_node = get_node_vars(u, equations, dg, l, nnodes(dg), m, element)
       f_node = flux(u_node, 2, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
+      f_num  = get_node_vars(surface_flux_values, equations, dg, l, m, 4, element)
       multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
-                                 equations, dg, l, nnodes(dg), element)
+                                 equations, dg, l, nnodes(dg), m, element)
+
+      # surface at -z
+      u_node = get_node_vars(u, equations, dg, l, m, 1, element)
+      f_node = flux(u_node, 3, equations)
+      f_num  = get_node_vars(surface_flux_values, equations, dg, l, m, 5, element)
+      multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
+                                 equations, dg, l, m, 1, element)
+
+      # surface at +z
+      u_node = get_node_vars(u, equations, dg, l, m, nnodes(dg), element)
+      f_node = flux(u_node, 3, equations)
+      f_num  = get_node_vars(surface_flux_values, equations, dg, l, m, 6, element)
+      multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
+                                 equations, dg, l, m ,nnodes(dg), element)
     end
   end
 
@@ -206,7 +236,7 @@ end
 # left-traveling information. So we only need to compute the appropriate
 # flux information at each side of an interface.
 function calc_interface_flux!(surface_flux_values,
-                              mesh::TreeMesh{2},
+                              mesh::TreeMesh{3},
                               nonconservative_terms::Val{false}, equations,
                               surface_integral::SurfaceIntegralUpwind,
                               dg::FDSBP, cache)
@@ -221,12 +251,13 @@ function calc_interface_flux!(surface_flux_values,
     # Determine interface direction with respect to elements:
     # orientation = 1: left -> 2, right -> 1
     # orientation = 2: left -> 4, right -> 3
+    # orientation = 3: left -> 6, right -> 5
     left_direction  = 2 * orientations[interface]
     right_direction = 2 * orientations[interface] - 1
 
-    for i in eachnode(dg)
+    for j in eachnode(dg), i in eachnode(dg)
       # Pull the left and right solution data
-      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
 
       # Compute the upwind coupling terms where right-traveling
       # information comes from the left and left-traveling information
@@ -236,8 +267,8 @@ function calc_interface_flux!(surface_flux_values,
 
       # Save the upwind coupling into the appropriate side of the elements
       for v in eachvariable(equations)
-        surface_flux_values[v, i, left_direction,  left_id]  = flux_minus_rr[v]
-        surface_flux_values[v, i, right_direction, right_id] = flux_plus_ll[v]
+        surface_flux_values[v, i, j, left_direction,  left_id]  = flux_minus_rr[v]
+        surface_flux_values[v, i, j, right_direction, right_id] = flux_plus_ll[v]
       end
     end
   end
@@ -250,7 +281,7 @@ end
 # in the specialized `calc_interface_flux` routine. These SATs are still of
 # a strong form penalty type, except that the interior flux at a particular
 # side of the element are computed in the upwind direction.
-function calc_surface_integral!(du, u, mesh::TreeMesh{2},
+function calc_surface_integral!(du, u, mesh::TreeMesh{3},
                                 equations, surface_integral::SurfaceIntegralUpwind,
                                 dg::FDSBP, cache)
   inv_weight_left  = inv(left_boundary_weight(dg.basis))
@@ -260,34 +291,48 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
 
 
   @threaded for element in eachelement(dg, cache)
-    for l in eachnode(dg)
+    for m in eachnode(dg), l in eachnode(dg)
       # surface at -x
-      u_node = get_node_vars(u, equations, dg, 1, l, element)
+      u_node = get_node_vars(u, equations, dg, 1, l, m, element)
       f_node = splitting(u_node, Val{:plus}(), 1, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 1, element)
+      f_num  = get_node_vars(surface_flux_values, equations, dg, l, m, 1, element)
       multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
-                                 equations, dg, 1, l, element)
+                                 equations, dg, 1, l, m, element)
 
       # surface at +x
-      u_node = get_node_vars(u, equations, dg, nnodes(dg), l, element)
+      u_node = get_node_vars(u, equations, dg, nnodes(dg), l, m, element)
       f_node = splitting(u_node, Val{:minus}(), 1, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 2, element)
+      f_num  = get_node_vars(surface_flux_values, equations, dg, l, m, 2, element)
       multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
-                                 equations, dg, nnodes(dg), l, element)
+                                 equations, dg, nnodes(dg), l, m, element)
 
       # surface at -y
-      u_node = get_node_vars(u, equations, dg, l, 1, element)
+      u_node = get_node_vars(u, equations, dg, l, 1, m, element)
       f_node = splitting(u_node, Val{:plus}(), 2, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 3, element)
+      f_num  = get_node_vars(surface_flux_values, equations, dg, l, m, 3, element)
       multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
-                                 equations, dg, l, 1, element)
+                                 equations, dg, l, 1, m, element)
 
       # surface at +y
-      u_node = get_node_vars(u, equations, dg, l, nnodes(dg), element)
+      u_node = get_node_vars(u, equations, dg, l, nnodes(dg), m, element)
       f_node = splitting(u_node, Val{:minus}(), 2, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
+      f_num  = get_node_vars(surface_flux_values, equations, dg, l, m, 4, element)
       multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
-                                 equations, dg, l, nnodes(dg), element)
+                                 equations, dg, l, nnodes(dg), m, element)
+
+      # surface at -z
+      u_node = get_node_vars(u, equations, dg, l, m, 1, element)
+      f_node = splitting(u_node, Val{:plus}(), 3, equations)
+      f_num  = get_node_vars(surface_flux_values, equations, dg, l, m, 5, element)
+      multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
+                                 equations, dg, l, m, 1, element)
+
+      # surface at +z
+      u_node = get_node_vars(u, equations, dg, l, m, nnodes(dg), element)
+      f_node = splitting(u_node, Val{:minus}(), 3, equations)
+      f_num  = get_node_vars(surface_flux_values, equations, dg, l, m, 6, element)
+      multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
+                                 equations, dg, l, m, nnodes(dg), element)
     end
   end
 
@@ -296,20 +341,21 @@ end
 
 
 # AnalysisCallback
+
 function integrate_via_indices(func::Func, u,
-                               mesh::TreeMesh{2}, equations,
+                               mesh::TreeMesh{3}, equations,
                                dg::FDSBP, cache, args...; normalize=true) where {Func}
   # TODO: FD. This is rather inefficient right now and allocates...
   weights = diag(SummationByPartsOperators.mass_matrix(dg.basis))
 
   # Initialize integral with zeros of the right shape
-  integral = zero(func(u, 1, 1, 1, equations, dg, args...))
+  integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
 
   # Use quadrature to numerically integrate over entire domain
   for element in eachelement(dg, cache)
     volume_jacobian_ = volume_jacobian(element, mesh, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      integral += volume_jacobian_ * weights[i] * weights[j] * func(u, i, j, element, equations, dg, args...)
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+      integral += volume_jacobian_ * weights[i] * weights[j] * weights[k] * func(u, i, j, k, element, equations, dg, args...)
     end
   end
 
@@ -322,14 +368,14 @@ function integrate_via_indices(func::Func, u,
 end
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::TreeMesh{2}, equations, initial_condition,
+                          mesh::TreeMesh{3}, equations, initial_condition,
                           dg::FDSBP, cache, cache_analysis)
   # TODO: FD. This is rather inefficient right now and allocates...
   weights = diag(SummationByPartsOperators.mass_matrix(dg.basis))
   @unpack node_coordinates = cache.elements
 
   # Set up data structures
-  l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
+  l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), equations))
   linf_error = copy(l2_error)
 
   # Iterate over all elements for error calculations
@@ -337,12 +383,12 @@ function calc_error_norms(func, u, t, analyzer,
     # Calculate errors at each node
     volume_jacobian_ = volume_jacobian(element, mesh, cache)
 
-    for j in eachnode(analyzer), i in eachnode(analyzer)
+    for k in eachnode(analyzer), j in eachnode(analyzer), i in eachnode(analyzer)
       u_exact = initial_condition(
-        get_node_coords(node_coordinates, equations, dg, i, j, element), t, equations)
+        get_node_coords(node_coordinates, equations, dg, i, j, k, element), t, equations)
       diff = func(u_exact, equations) - func(
-        get_node_vars(u, equations, dg, i, j, element), equations)
-      l2_error += diff.^2 * (weights[i] * weights[j] * volume_jacobian_)
+        get_node_vars(u, equations, dg, i, j, k, element), equations)
+      l2_error += diff.^2 * (weights[i] * weights[j] * weights[k] * volume_jacobian_)
       linf_error = @. max(linf_error, abs(diff))
     end
   end

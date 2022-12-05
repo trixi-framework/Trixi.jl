@@ -9,6 +9,9 @@ for human readability.
 
 #### Added
 
+- Experimental support for upwind finite difference summation by parts (FDSBP)
+  has been added in Trixi.jl v0.4.55. The first implementation requires a `TreeMesh` and comes
+  with several examples in the `examples_dir()` of Trixi.jl.
 - Experimental support for 2D parabolic diffusion terms has been added.
   * `LaplaceDiffusion2D` and `CompressibleNavierStokesDiffusion2D` can be used to add
   diffusion to systems. `LaplaceDiffusion2D` can be used to add scalar diffusion to each
@@ -42,6 +45,10 @@ for human readability.
 #### Changed
 
 - The required Julia version is updated to v1.7.
+- The isentropic vortex setups contained a bug that was fixed in Trixi.jl v0.4.54.
+  Moreover, the setup was made a bit more challenging. See
+  https://github.com/trixi-framework/Trixi.jl/issues/1269 for further
+  information.
 
 #### Deprecated
 

@@ -19,9 +19,24 @@ end
 
 
 """
-    IndicatorHennemannGassner
+    IndicatorHennemannGassner(equations::AbstractEquations, basis;
+                              alpha_max=0.5,
+                              alpha_min=0.001,
+                              alpha_smooth=true,
+                              variable)
+    IndicatorHennemannGassner(semi::AbstractSemidiscretization;
+                              alpha_max=0.5,
+                              alpha_min=0.001,
+                              alpha_smooth=true,
+                              variable)
 
-Indicator used for shock-capturing or AMR used by
+Indicator used for shock-capturing (when passing the `equations` and the `basis`)
+or adaptive mesh refinement (AMR, when passing the `semi`).
+
+See also [`VolumeIntegralShockCapturingHG`](@ref).
+
+## References
+
 - Hennemann, Gassner (2020)
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
@@ -91,9 +106,20 @@ end
 """
     IndicatorLöhner (equivalent to IndicatorLoehner)
 
+    IndicatorLöhner(equations::AbstractEquations, basis;
+                    f_wave=0.2, variable)
+    IndicatorLöhner(semi::AbstractSemidiscretization;
+                    f_wave=0.2, variable)
+
 AMR indicator adapted from a FEM indicator by Löhner (1987), also used in the
 FLASH code as standard AMR indicator.
 The indicator estimates a weighted second derivative of a specified variable locally.
+
+When constructed to be used for AMR, pass the `semi`. Pass the `equations`,
+and `basis` if this indicator should be used for shock capturing.
+
+## References
+
 - Löhner (1987)
   "An adaptive finite element scheme for transient problems in CFD"
   [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
@@ -152,6 +178,14 @@ end
 
 
 
+"""
+    IndicatorMax(equations::AbstractEquations, basis; variable)
+    IndicatorMax(semi::AbstractSemidiscretization; variable)
+
+A simple indicator returning the maximum of `variable` in an element.
+When constructed to be used for AMR, pass the `semi`. Pass the `equations`,
+and `basis` if this indicator should be used for shock capturing.
+"""
 struct IndicatorMax{Variable, Cache<:NamedTuple} <: AbstractIndicator
   variable::Variable
   cache::Cache
@@ -216,9 +250,9 @@ Depending on the indicator_type, different input values and corresponding traine
 - Based on convolutional neural network.
 - 2d Input: Interpolation of the nodal values of the `indicator.variable` to the 4x4 LGL nodes.
 
-If `alpha_continuous == true` the continuous network output for troubled cells (`alpha > 0.5`) is considered. 
+If `alpha_continuous == true` the continuous network output for troubled cells (`alpha > 0.5`) is considered.
 If the cells are good (`alpha < 0.5`), `alpha` is set to `0`.
-If `alpha_continuous == false`, the blending factor is set to `alpha = 0` for good cells and 
+If `alpha_continuous == false`, the blending factor is set to `alpha = 0` for good cells and
 `alpha = 1` for troubled cells.
 
 !!! warning "Experimental implementation"

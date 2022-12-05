@@ -146,27 +146,30 @@ The classical isentropic vortex test case of
   [NASA/CR-97-206253](https://ntrs.nasa.gov/citations/19980007543)
 """
 function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
-  inicenter = SVector(0.0, 0.0) # size and strength of the vortex
-  iniamplitude = 0.2
+  inicenter = SVector(0.0, 0.0) # initial center of the vortex
+  iniamplitude = 5.0            # size and strength of the vortex
 
-  rho = 1.0 # base flow
+  rho = 1.0  # base flow
   v1 = 1.0
   v2 = 1.0
   vel = SVector(v1, v2)
-  p = 10.0
+  p = 25.0
 
-  rt = p / rho                  # ideal gas equation
-  cent = inicenter + vel*t      # advection of center
-  cent = x - cent               # distance to centerpoint
+  rt = p / rho                      # ideal gas equation
+  t_loc = 0.0
+
+  cent = inicenter + vel*t_loc      # shift advection of center to handle periodic BC, but only for v1 = v2 = 1.0
+  cent = x - cent                   # distance to center point
   cent = SVector(-cent[2], cent[1])
-  r2 = cent[1]^2 + cent[2]^2
-  du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
-  dtemp = -(equations.gamma-1)/(2*equations.gamma*rt)*du^2 # isentrop
 
-  rho = rho * (1+dtemp)^(1\(equations.gamma-1))
-  vel = vel + du*cent
+  r2 = cent[1]^2 + cent[2]^2
+  du = iniamplitude / (2*π) * exp(0.5 * (1 - r2)) # vel. perturbation
+  dtemp = -(equations.gamma - 1) / (2 * equations.gamma * rt) * du^2 # isentropic
+
+  rho = rho * (1 + dtemp)^(1 / (equations.gamma - 1))
+  vel = vel + du * cent
   v1, v2 = vel
-  p = p * (1+dtemp)^(equations.gamma/(equations.gamma-1))
+  p = p * (1 + dtemp)^(equations.gamma / (equations.gamma - 1))
 
   prim = SVector(rho, v1, v2, p)
   return prim2cons(prim, equations)
@@ -191,7 +194,7 @@ J = ForwardDiff.jacobian((du_ode, γ) -> begin
 end, similar(u0_ode), [1.4]); # γ needs to be an `AbstractArray`
 
 round.(extrema(J), sigdigits=2)
-@test round.(extrema(J), sigdigits=2) == (-5.6, 5.6) #src
+@test round.(extrema(J), sigdigits=2) == (-220.0, 220.0) #src
 
 # Note that we create a semidiscretization `semi` at first to determine the state `u0_ode` around
 # which we want to perform the linearization. Next, we wrap the RHS evaluation inside a closure
