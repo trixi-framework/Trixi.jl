@@ -203,7 +203,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
                 " run time:       " * @sprintf("%10.8e s", runtime_absolute))
     mpi_println(" Δt:             " * @sprintf("%10.8e", dt) *
                 "               " *
-                " └── GC time:    " * @sprintf("%10.8e s (%4.2f%%)", gc_time_absolute, gc_time_percentage))
+                " └── GC time:    " * @sprintf("%10.8e s (%5.3f%%)", gc_time_absolute, gc_time_percentage))
     mpi_println(" sim. time:      " * @sprintf("%10.8e", t) *
                 "               " *
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
