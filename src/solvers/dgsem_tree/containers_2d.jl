@@ -1373,7 +1373,7 @@ mutable struct ContainerShockCapturingIndicatorMCL{uEltype<:Real}
   bar_states2::Array{uEltype, 4}            # [variable, i, j, element]
   var_min::Array{uEltype, 4}                # [variable, i, j, element]
   var_max::Array{uEltype, 4}                # [variable, i, j, element]
-  volume_flux_difference::Array{uEltype, 4} # [variable, i, j, element]
+  alpha::Array{uEltype, 4}                  # [variable, i, j, element]
   alpha_pressure::Array{uEltype, 3}         # [i, j, element]
   lambda1::Array{uEltype, 3}                # [i, j, element]
   lambda2::Array{uEltype, 3}                # [i, j, element]
@@ -1384,7 +1384,7 @@ mutable struct ContainerShockCapturingIndicatorMCL{uEltype<:Real}
   _bar_states2::Vector{uEltype}
   _var_min::Vector{uEltype}
   _var_max::Vector{uEltype}
-  _volume_flux_difference::Vector{uEltype}
+  _alpha::Vector{uEltype}
   _alpha_pressure::Vector{uEltype}
   _lambda1::Vector{uEltype}
   _lambda2::Vector{uEltype}
@@ -1407,8 +1407,8 @@ function ContainerShockCapturingIndicatorMCL{uEltype}(capacity::Integer, n_varia
   _var_max = Vector{uEltype}(undef, n_variables*n_nodes^2*capacity)
   var_max  = unsafe_wrap(Array, pointer(_var_max), (n_variables, n_nodes, n_nodes, capacity))
 
-  _volume_flux_difference = fill(nan_uEltype, n_variables * n_nodes * n_nodes * capacity)
-  volume_flux_difference = unsafe_wrap(Array, pointer(_volume_flux_difference), (n_variables, n_nodes, n_nodes, capacity))
+  _alpha = fill(nan_uEltype, n_variables * n_nodes * n_nodes * capacity)
+  alpha = unsafe_wrap(Array, pointer(_alpha), (n_variables, n_nodes, n_nodes, capacity))
 
   _alpha_pressure = fill(nan_uEltype, n_nodes * n_nodes * capacity)
   alpha_pressure = unsafe_wrap(Array, pointer(_alpha_pressure), (n_nodes, n_nodes, capacity))
@@ -1427,10 +1427,10 @@ function ContainerShockCapturingIndicatorMCL{uEltype}(capacity::Integer, n_varia
                                         (n_variables - 2, n_nodes, n_nodes - 1, capacity))
 
   return ContainerShockCapturingIndicatorMCL{uEltype}(bar_states1, bar_states2, var_min, var_max,
-                                                      volume_flux_difference, alpha_pressure, lambda1, lambda2,
+                                                      alpha, alpha_pressure, lambda1, lambda2,
                                                       normal_direction_xi, normal_direction_eta,
                                                       _bar_states1, _bar_states2, _var_min, _var_max,
-                                                      _volume_flux_difference, _alpha_pressure, _lambda1, _lambda2,
+                                                      _alpha, _alpha_pressure, _lambda1, _lambda2,
                                                       _normal_direction_xi, _normal_direction_eta)
 end
 
@@ -1458,9 +1458,9 @@ function Base.resize!(container::ContainerShockCapturingIndicatorMCL, capacity)
   resize!(_var_max, n_variables * n_nodes * n_nodes * capacity)
   container.var_max = unsafe_wrap(Array, pointer(_var_max), (n_variables, n_nodes, n_nodes, capacity))
 
-  @unpack _volume_flux_difference = container
-  resize!(_volume_flux_difference, n_variables * n_nodes * n_nodes * capacity)
-  container.volume_flux_difference = unsafe_wrap(Array, pointer(_volume_flux_difference), (n_variables, n_nodes, n_nodes, capacity))
+  @unpack _alpha = container
+  resize!(_alpha, n_variables * n_nodes * n_nodes * capacity)
+  container.alpha = unsafe_wrap(Array, pointer(_alpha), (n_variables, n_nodes, n_nodes, capacity))
 
   @unpack _alpha_pressure = container
   resize!(_alpha_pressure, n_nodes * n_nodes * capacity)

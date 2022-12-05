@@ -301,11 +301,11 @@ function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIn
   if !indicator.Plotting
     return nothing
   end
-  @unpack volume_flux_difference = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
   variables = varnames(cons2cons, equations)
   for v in eachvariable(equations)
     s = Symbol("shock_capturing_delta_volume_flux_", variables[v])
-    node_variables[s] = volume_flux_difference[v, ntuple(_ -> :, nvariables(equations) + 1)...]
+    node_variables[s] = alpha[v, ntuple(_ -> :, nvariables(equations) + 1)...]
   end
 
   if indicator.IDPPressureTVD

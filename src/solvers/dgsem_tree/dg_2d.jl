@@ -662,17 +662,6 @@ end
     end
   end
 
-  if indicator.Plotting
-    @unpack volume_flux_difference = indicator.cache.ContainerShockCapturingIndicator
-    for j in eachnode(dg), i in eachnode(dg)
-      for v in eachvariable(equations)
-        volume_flux_difference[v, i, j, element] = abs(du[v, i, j, element] -
-                                                       (inverse_weights[i] * (fhat1[v, i+1, j] - fhat1[v, i, j]) +
-                                                        inverse_weights[j] * (fhat2[v, i, j+1] - fhat2[v, i, j])))
-      end
-    end
-  end
-
   return nothing
 end
 
@@ -1004,7 +993,7 @@ end
   # The antidiffuse flux can have very small absolute values. This can lead to values of f_min which are zero up to machine accuracy.
   # To avoid further calculations with these values, we replace them by 0.
   # It can also happen that the limited flux changes its sign (for instance to -1e-13).
-  # This does not really make sense in the theory and causes problems for the visualization.
+  # This does not really make sense in theory and causes problems for the visualization.
   # Therefore we make sure that the flux keeps its sign during limiting.
 
   for j in eachnode(dg), i in 2:nnodes(dg)
@@ -1030,6 +1019,16 @@ end
     #             bar_state_rho - lambda * var_min[1, i-1, j, element])
     # flux_limited = max(f_min, min(antidiffusive_flux1[1, i, j, element], f_max))
 
+    if indicator.Plotting
+      @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+      if isapprox(antidiffusive_flux1[1, i, j, element], 0.0, atol=eps())
+        coefficient = 1.0  # flux_limited is zero as well
+      else
+        coefficient = flux_limited / antidiffusive_flux1[1, i, j, element]
+      end
+      alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
+      alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
+    end
     antidiffusive_flux1[1, i, j, element] = flux_limited
 
     # Limit velocity and total energy
@@ -1053,6 +1052,15 @@ end
         g_limited = max(0.0, min(g_max, max(g, g_min)))
       else
         g_limited = min(0.0, max(g_min, min(g, g_max)))
+      end
+      if indicator.Plotting
+        if isapprox(g, 0.0, atol=eps())
+          coefficient = isapprox(g_limited, 0.0, atol=eps()) ? 1.0 : 0.0
+        else
+          coefficient = g_limited / g
+        end
+        alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
+        alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
       end
 
       antidiffusive_flux1[v, i, j, element] = rho_limited_i * phi - bar_states_phi + g_limited
@@ -1082,6 +1090,16 @@ end
     #             bar_state_rho - lambda * var_min[1, i, j-1, element])
     # flux_limited = max(f_min, min(antidiffusive_flux2[1, i, j, element], f_max))
 
+    if indicator.Plotting
+      @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+      if isapprox(antidiffusive_flux2[1, i, j, element], 0.0, atol=eps())
+        coefficient = 1.0  # flux_limited is zero as well
+      else
+        coefficient = flux_limited / antidiffusive_flux2[1, i, j, element]
+      end
+      alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
+      alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
+    end
     antidiffusive_flux2[1, i, j, element] = flux_limited
 
     # Limit velocity and total energy
@@ -1105,6 +1123,15 @@ end
         g_limited = max(0.0, min(g_max, max(g, g_min)))
       else
         g_limited = min(0.0, max(g_min, min(g, g_max)))
+      end
+      if indicator.Plotting
+        if isapprox(g, 0.0, atol=eps())
+          coefficient = isapprox(g_limited, 0.0, atol=eps()) ? 1.0 : 0.0
+        else
+          coefficient = g_limited / g
+        end
+        alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
+        alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
       end
 
       antidiffusive_flux2[v, i, j, element] = rho_limited_j * phi - bar_state_phi + g_limited

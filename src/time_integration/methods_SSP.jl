@@ -148,6 +148,17 @@ function solve!(integrator::SimpleIntegratorSSP)
       terminate!(integrator)
     end
 
+    # Reset alphas for PLotting of MCL
+    @unpack indicator = integrator.p.solver.volume_integral
+    if indicator isa IndicatorMCL && indicator.Plotting
+      @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+      @threaded for element in eachelement(integrator.p.solver, integrator.p.cache)
+        for j in eachnode(integrator.p.solver), i in eachnode(integrator.p.solver)
+          alpha[:, i, j, element] .= 1.0
+        end
+      end
+    end
+
     @. integrator.u_safe = integrator.u
     for stage in eachindex(alg.c)
       t_stage = integrator.t + integrator.dt * alg.c[stage]
