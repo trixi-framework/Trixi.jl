@@ -28,6 +28,7 @@ information on how to create custom analysis quantities.
 """
 mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
+  start_gc_time::Float64
   interval::Int
   save_analysis::Bool
   output_directory::String
@@ -101,7 +102,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
   analyzer = SolutionAnalyzer(solver; kwargs...)
   cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache, RealT, uEltype)
 
-  analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
+  analysis_callback = AnalysisCallback(0.0, 0.0, interval, save_analysis, output_directory, analysis_filename,
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
@@ -171,6 +172,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   end
 
   analysis_callback.start_time = time_ns()
+  analysis_callback.start_gc_time = Base.gc_time_ns()
   analysis_callback(integrator)
   return nothing
 end
@@ -185,6 +187,9 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
+  gc_time_absolute = 1.0e-9 * (Base.gc_time_ns() - analysis_callback.start_gc_time)
+  gc_time_percentage = gc_time_absolute / runtime_absolute
+  memory_use = Base.gc_live_bytes() / 2^20 # bytes -> MiB
 
   @trixi_timeit timer() "analyze solution" begin
     # General information
@@ -198,9 +203,13 @@ function (analysis_callback::AnalysisCallback)(integrator)
                 " run time:       " * @sprintf("%10.8e s", runtime_absolute))
     mpi_println(" Δt:             " * @sprintf("%10.8e", dt) *
                 "               " *
+                " └── GC time:    " * @sprintf("%10.8e s (%4.2f%%)", gc_time_absolute, gc_time_percentage))
+    mpi_println(" sim. time:      " * @sprintf("%10.8e", t) *
+                "               " *
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
-    mpi_println(" sim. time:      " * @sprintf("%10.8e", t))
-    mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
+    mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)) *
+                "               " *
+                " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
     mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)))
 
     # Level information (only show for AMR)
