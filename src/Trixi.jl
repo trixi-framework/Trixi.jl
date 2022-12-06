@@ -72,7 +72,8 @@ using SummationByPartsOperators: AbstractDerivativeOperator,
 import SummationByPartsOperators: integrate, semidiscretize,
                                   left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
-  SummationByPartsOperators, derivative_operator, periodic_derivative_operator
+  SummationByPartsOperators, derivative_operator, periodic_derivative_operator,
+  upwind_operators
 
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
@@ -153,7 +154,11 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, 
        FluxLMARS, flux_LMARS,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
-       FluxHydrostaticReconstruction
+       FluxHydrostaticReconstruction,
+       FluxUpwind
+
+export splitting_steger_warming, splitting_vanleer_haenel,
+       splitting_coirier_vanleer, splitting_lax_friedrichs
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -195,11 +200,14 @@ export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
+       FDSBP,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
+       SurfaceIntegralUpwind,
        MortarL2
 
 export nelements, nnodes, nvariables,

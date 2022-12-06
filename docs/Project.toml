@@ -12,7 +12,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Trixi2Vtk = "bc1476a1-1ca6-4cc3-950b-c312b255ff95"
 
 [compat]
-CairoMakie = "0.6, 0.7, 0.8, 0.9"
+CairoMakie = "0.6, 0.7, 0.8, 0.9, 0.10"
 Documenter = "0.27"
 ForwardDiff = "0.10"
 HOHQMesh = "0.1, 0.2"
