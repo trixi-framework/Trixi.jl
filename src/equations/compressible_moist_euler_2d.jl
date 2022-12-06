@@ -48,11 +48,8 @@ varnames(::typeof(cons2aeqpot), ::CompressibleMoistEulerEquations2D) = ("rho", "
 # Calculate 1D flux for a single point.
 @inline function flux(u, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
-  v1 = rho_v1 / rho
-  v2 = rho_v2 / rho
-  qv = rho_qv / rho
-  ql = rho_ql / rho
-  p, T = get_current_condition(u, equations)
+  _, v1, v2, p, qv, ql = cons2prim(u, equation)
+
   if orientation == 1
     f1 = rho_v1 
     f2 = rho_v1 * v1 + p
@@ -75,11 +72,8 @@ end
 # Note, this directional vector is not normalized.
 @inline function flux(u, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
-  v1 = rho_v1 / rho
-  v2 = rho_v2 / rho
-  qv = rho_qv / rho
-  ql = rho_ql / rho
-  p, T = get_current_condition(u, equations)
+  _, v1, v2, p, qv, ql = cons2prim(u, equation)
+
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
   rho_v_normal = rho * v_normal 
   f1 = rho_v_normal 
@@ -376,34 +370,12 @@ end
 end
 
 
-# Calculate pressure and temperature from a state u.
-@inline function get_current_condition(u, equations::CompressibleMoistEulerEquations2D)
-  @unpack c_vd, R_d, c_vv, c_pv, R_v, c_pl, L_00 = equations
-  rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
-  rho_qd = rho - rho_qv - rho_ql
-
-  v1 = rho_v1 / rho
-  v2 = rho_v2 / rho
-  
-  # Inner energy
-  rho_e = (rho_E - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
-
-  # Absolute temperature
-  T = (rho_e - L_00 * rho_qv) / (rho_qd * c_vd + rho_qv * c_vv + rho_ql * c_pl)  
-      
-  # Pressure
-  p = (rho_qd * R_d + rho_qv * R_v) * T
-
-  return SVector(p, T)
-end
-
-
 # Calculate Q_ph for a state u.
 # This source term models the phase chance between could water and vapor.
 @inline function phase_change_term(u, equations::CompressibleMoistEulerEquations2D)
   @unpack R_v = equations
   rho, _ , _, _, rho_qv, rho_ql = u
-  _, T = get_current_condition(u, equations)
+  T = temperature(u, equations)
   rho_qd = rho - rho_qv - rho_ql
 
   T_C = T - 273.15
@@ -446,12 +418,8 @@ end
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, rho_qv_ll, rho_ql_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, rho_qv_rr, rho_ql_rr = u_rr
-  p_ll, T_ll = get_current_condition(u_ll, equations)
-  p_rr, T_rr = get_current_condition(u_rr, equations)
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
+  _, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
+  _, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
 
   v_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] 
   v_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
@@ -486,7 +454,7 @@ end
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
-  p = get_current_condition(u, equations)[1]
+  p = pressure(u, equations)
   qv = rho_qv / rho
   ql = rho_ql / rho
 
@@ -501,7 +469,7 @@ end
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
-  p, T = get_current_condition(u, equations)
+  T = temperature(u, equations)
   v_square = v1^2 + v2^2
   rho_qd =rho-rho_qv-rho_ql
 
@@ -540,12 +508,15 @@ end
 
 # Convert primitive to conservative variables.
 @inline function prim2cons(prim, equations::CompressibleMoistEulerEquations2D)
+  @unpack c_vd, R_d, c_vv, R_v, c_pl, L_00 = equations
   rho, v1, v2, p, qv, ql = prim
   rho_v1 = rho * v1
   rho_v2 = rho * v2
   rho_qv = rho * qv
   rho_ql = rho * ql
-  rho_E  = p * equations.inv_gamma_minus_one + 0.5 * (rho_v1 * v1 + rho_v2 * v2)
+  T = p * inv(rho_d * R_d + rho_v * R_v)
+  rho_e = (rho_d * c_vd + rho_v * c_vv + rho_l * c_pl) * T + rho_l * L_00
+  rho_E = rho_e + 1/2 * rho * (v1^2 + v2^2) 
   return SVector(rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql)
 end
 
@@ -592,7 +563,6 @@ end
 end
 
 
-
 @inline function density(u, equations::CompressibleMoistEulerEquations2D)
  rho = u[1]
  return rho
@@ -631,7 +601,7 @@ end
 @inline function saturation_pressure(u, equations::CompressibleMoistEulerEquations2D)
   @unpack R_v = equations
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
-  T = get_current_condition(u, equations)[2]
+  T = temperature(u, equation)
   p_v = rho_qv * R_v * T
   T_C = T - 273.15
   p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
@@ -684,7 +654,8 @@ end
 
 @inline function density_pressure(u, equations::CompressibleMoistEulerEquations2D)
   rho = u[1]
- rho_times_p = rho * get_current_condition(u, equations)[1]
+  p = pressure(u, equations)
+  rho_times_p = rho * p
  return rho_times_p
 end
 
@@ -694,7 +665,7 @@ end
 @inline function entropy_thermodynamic(cons, equations::CompressibleMoistEulerEquations2D)
   @unpack c_vd, c_vv, c_pl, R_d, R_v = equations
   # Pressure
-  p, T = get_current_condition(cons, equations)
+  T = temperature(cons, equations)
   rho_qd =cons[1]-cons[5]-cons[6]
   rho_qv =cons[5]
   rho_ql =cons[6]
@@ -743,7 +714,7 @@ end
 @inline function dry_pottemp_thermodynamic(cons, equations::CompressibleMoistEulerEquations2D)
   @unpack R_d, p_0, kappa = equations
   # Pressure
-  p = get_current_condition(cons, equations)[1]
+  p = pressure(cons, equations)
   # Potential temperature
   pot = p_0 * (p / p_0)^(1 - kappa) / (R_d * cons[1])
 
@@ -754,8 +725,9 @@ end
 # Calculate the moist potential temperature for a conservative state `cons`.
 @inline function moist_pottemp_thermodynamic(cons, equations::CompressibleMoistEulerEquations2D)
   @unpack R_d, R_v, c_pd, c_pv, c_pl, p_0 = equations
-  # Pressure
-  p, T = get_current_condition(cons, equations)
+  # Temperature & Pressure
+  T = temperature(cons, equations)
+  p = (rho_d * R_d + rho_v * R_v) * T
   rho_d = cons[1] - (cons[5] + cons[6])
   r_v = inv(rho_d) * cons[5]
   r_l = inv(rho_d) * cons[6]
@@ -774,7 +746,7 @@ end
   @unpack c_pd, c_pv, c_pl, R_d, R_v, p_0, kappa, L_00 = equations
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = cons
   rho_d = rho - rho_qv - rho_ql
-  p, T = get_current_condition(cons, equations)
+  T = temperature(cons, equations)
   p_v = rho_qv * R_v * T
   p_d = p - p_v
   T_C = T - 273.15
@@ -801,9 +773,9 @@ end
   @unpack c_pd, c_pv, c_pl, R_d, R_v, p_0, L_00 = equations
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = cons
   rho_d = rho - rho_qv - rho_ql
-  p, T = get_current_condition(cons, equations)
+  T = temperature(cons, equations)
   p_v = rho_qv * R_v * T
-  p_d = p - p_v
+  p_d = rho_d * R_d * T
   T_C = T - 273.15
   p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
   H = p_v / p_vs
