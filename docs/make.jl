@@ -36,6 +36,7 @@ files = [
     "Non-periodic boundaries" => "non_periodic_boundaries.jl",
     "DG schemes via `DGMulti` solver" => "DGMulti_1.jl",
     "Other SBP schemes (FD, CGSEM) via `DGMulti` solver" => "DGMulti_2.jl",
+    "Upwind FD SBP schemes" => "upwind_fdsbp.jl",
     # Topic: equations
     "Adding a new scalar conservation law" => "adding_new_scalar_equations.jl",
     "Adding a non-conservative equation" => "adding_nonconservative_equation.jl",

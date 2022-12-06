@@ -360,6 +360,275 @@ end
 end
 
 
+"""
+    splitting_steger_warming(u, orientation::Integer,
+                             equations::CompressibleEulerEquations1D)
+    splitting_steger_warming(u, which::Union{Val{:minus}, Val{:plus}}
+                             orientation::Integer,
+                             equations::CompressibleEulerEquations1D)
+
+Splitting of the compressible Euler flux of Steger and Warming.
+
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+
+## References
+
+- Joseph L. Steger and R. F. Warming (1979)
+  Flux Vector Splitting of the Inviscid Gasdynamic Equations
+  With Application to Finite Difference Methods
+  [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
+"""
+@inline function splitting_steger_warming(u, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+  fm = splitting_steger_warming(u, Val{:minus}(), orientation, equations)
+  fp = splitting_steger_warming(u, Val{:plus}(),  orientation, equations)
+  return fm, fp
+end
+
+@inline function splitting_steger_warming(u, ::Val{:plus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+  rho, rho_v1, rho_e = u
+  v1 = rho_v1 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
+  a = sqrt(equations.gamma * p / rho)
+
+  lambda1 = v1
+  lambda2 = v1 + a
+  lambda3 = v1 - a
+
+  lambda1_p = positive_part(lambda1) # Same as (lambda_i + abs(lambda_i)) / 2, but faster :)
+  lambda2_p = positive_part(lambda2)
+  lambda3_p = positive_part(lambda3)
+
+  alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
+
+  rho_2gamma = 0.5 * rho / equations.gamma
+  f1p = rho_2gamma * alpha_p
+  f2p = rho_2gamma * (alpha_p * v1 + a * (lambda2_p - lambda3_p))
+  f3p = rho_2gamma * (alpha_p * 0.5 * v1^2 + a * v1 * (lambda2_p - lambda3_p)
+                      + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
+
+  return SVector(f1p, f2p, f3p)
+end
+
+@inline function splitting_steger_warming(u, ::Val{:minus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+  rho, rho_v1, rho_e = u
+  v1 = rho_v1 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
+  a = sqrt(equations.gamma * p / rho)
+
+    lambda1 = v1
+    lambda2 = v1 + a
+    lambda3 = v1 - a
+
+    lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
+    lambda2_m = negative_part(lambda2)
+    lambda3_m = negative_part(lambda3)
+
+    alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1m = rho_2gamma * alpha_m
+    f2m = rho_2gamma * (alpha_m * v1 + a * (lambda2_m - lambda3_m))
+    f3m = rho_2gamma * (alpha_m * 0.5 * v1^2 + a * v1 * (lambda2_m - lambda3_m)
+                        + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
+
+  return SVector(f1m, f2m, f3m)
+end
+
+
+"""
+    splitting_vanleer_haenel(u, orientation::Integer,
+                             equations::CompressibleEulerEquations1D)
+    splitting_vanleer_haenel(u, which::Union{Val{:minus}, Val{:plus}}
+                             orientation::Integer,
+                             equations::CompressibleEulerEquations1D)
+
+Splitting of the compressible Euler flux from van Leer. This splitting further
+contains a reformulation due to Hänel et al. where the energy flux uses the
+enthalpy. The pressure splitting is independent from the splitting of the
+convective terms. As such there are many pressure splittings suggested across
+the literature. We implement the 'p4' variant suggested by Liou and Steffen as
+it proved the most robust in practice.
+
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+
+## References
+
+- Bram van Leer (1982)
+  Flux-Vector Splitting for the Euler Equation
+  [DOI: 10.1007/978-3-642-60543-7_5](https://doi.org/10.1007/978-3-642-60543-7_5)
+- D. Hänel, R. Schwane and G. Seider (1987)
+  On the accuracy of upwind schemes for the solution of the Navier-Stokes equations
+  [DOI: 10.2514/6.1987-1105](https://doi.org/10.2514/6.1987-1105)
+- Meng-Sing Liou and Chris J. Steffen, Jr. (1991)
+  High-Order Polynomial Expansions (HOPE) for Flux-Vector Splitting
+  [NASA Technical Memorandum](https://ntrs.nasa.gov/citations/19910016425)
+"""
+@inline function splitting_vanleer_haenel(u, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+  fm = splitting_vanleer_haenel(u, Val{:minus}(), orientation, equations)
+  fp = splitting_vanleer_haenel(u, Val{:plus}(),  orientation, equations)
+  return fm, fp
+end
+
+@inline function splitting_vanleer_haenel(u, ::Val{:plus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+  rho, rho_v1, rho_e = u
+  v1 = rho_v1 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
+
+  # sound speed and enthalpy
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
+
+  # signed Mach number
+  M = v1 / a
+
+  p_plus = 0.5 * (1 + equations.gamma * M) * p
+
+  f1p = 0.25 * rho * a * (M + 1)^2
+  f2p = f1p * v1 + p_plus
+  f3p = f1p * H
+
+  return SVector(f1p, f2p, f3p)
+end
+
+@inline function splitting_vanleer_haenel(u, ::Val{:minus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+  rho, rho_v1, rho_e = u
+  v1 = rho_v1 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
+
+  # sound speed and enthalpy
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
+
+  # signed Mach number
+  M = v1 / a
+
+  p_minus = 0.5 * (1 - equations.gamma * M) * p
+
+  f1m= -0.25 * rho * a * (M - 1)^2
+  f2m = f1m * v1 + p_minus
+  f3m = f1m * H
+
+  return SVector(f1m, f2m, f3m)
+end
+
+
+# TODO: FD
+# This splitting is interesting because it can handle the "el diablo" wave
+# for long time runs. Computing the eigenvalues of the operator we see
+#   J = jacobian_ad_forward(semi);
+#   lamb = eigvals(J);
+#   maximum(real.(lamb))
+#     2.1411031631522748e-6
+# So the instability of this splitting is very weak. However, the 2D variant
+# of this splitting on "el diablo" still crashes early. Can we learn anything
+# from the design of this splitting?
+"""
+    splitting_coirier_vanleer(u, orientation::Integer,
+                              equations::CompressibleEulerEquations1D)
+    splitting_coirier_vanleer(u, which::Union{Val{:minus}, Val{:plus}}
+                              orientation::Integer,
+                              equations::CompressibleEulerEquations1D)
+
+Splitting of the compressible Euler flux from Coirier and van Leer.
+The splitting has correction terms in the pressure splitting as well as
+the mass and energy flux components. The motivation for these corrections
+are to handle flows at the low Mach number limit.
+
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+
+## References
+
+- William Coirier and Bram van Leer (1991)
+  Numerical flux formulas for the Euler and Navier-Stokes equations.
+  II - Progress in flux-vector splitting
+  [DOI: 10.2514/6.1991-1566](https://doi.org/10.2514/6.1991-1566)
+"""
+@inline function splitting_coirier_vanleer(u, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+  fm = splitting_coirier_vanleer(u, Val{:minus}(), orientation, equations)
+  fp = splitting_coirier_vanleer(u, Val{:plus}(),  orientation, equations)
+  return fm, fp
+end
+
+@inline function splitting_coirier_vanleer(u, ::Val{:plus}, orientation::Integer,
+                                            equations::CompressibleEulerEquations1D)
+  rho, rho_v1, rho_e = u
+  v1 = rho_v1 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
+
+  # sound speed and enthalpy
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
+
+  # signed Mach number
+  M = v1 / a
+
+  P = 2
+  mu = 1.0
+  nu = 0.75
+  omega = 2.0 # adjusted from suggested value of 1.5
+
+  p_plus = 0.25 * ((M + 1)^2 * (2 - M) - nu * M * (M^2 - 1)^P) * p
+
+  f1p = 0.25 * rho * a * ((M + 1)^2 - mu * (M^2 - 1)^P)
+  f2p = f1p * v1 + p_plus
+  f3p = f1p * H - omega * rho * a^3 * M^2 * (M^2 - 1)^2
+
+  return SVector(f1p, f2p, f3p)
+end
+
+@inline function splitting_coirier_vanleer(u, ::Val{:minus}, orientation::Integer,
+                                            equations::CompressibleEulerEquations1D)
+  rho, rho_v1, rho_e = u
+  v1 = rho_v1 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
+
+  # sound speed and enthalpy
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
+
+  # signed Mach number
+  M = v1 / a
+
+  P = 2
+  mu = 1.0
+  nu = 0.75
+  omega = 2.0 # adjusted from suggested value of 1.5
+
+  p_minus = 0.25 * ((M - 1)^2 * (2 + M) + nu * M * (M^2 - 1)^P) * p
+
+  f1m = -0.25 * rho * a * ((M - 1)^2 - mu * (M^2 - 1)^P)
+  f2m = f1m * v1 + p_minus
+  f3m = f1m * H + omega * rho * a^3 * M^2 * (M^2 - 1)^2
+
+  return SVector(f1m, f2m, f3m)
+end
+
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
@@ -470,8 +739,6 @@ function flux_hllc(u_ll, u_rr, orientation::Integer, equations::CompressibleEule
   end
   return SVector(f1, f2, f3)
 end
-
-
 
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations1D)

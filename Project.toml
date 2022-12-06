@@ -1,7 +1,7 @@
 name = "Trixi"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 authors = ["Michael Schlottke-Lakemper <m.schlottke-lakemper@hlrs.de>", "Gregor Gassner <ggassner@uni-koeln.de>", "Hendrik Ranocha <mail@ranocha.de>", "Andrew R. Winters <andrew.ross.winters@liu.se>", "Jesse Chan <jesse.chan@rice.edu>"]
-version = "0.4.55-pre"
+version = "0.4.57-pre"
 
 [deps]
 CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
@@ -69,7 +69,7 @@ Static = "0.3, 0.4, 0.5, 0.6, 0.7, 0.8"
 StaticArrays = "1"
 StrideArrays = "0.1.18"
 StructArrays = "0.6"
-SummationByPartsOperators = "0.5.10"
+SummationByPartsOperators = "0.5.25"
 TimerOutputs = "0.5"
 Triangulate = "2.0"
 TriplotBase = "0.1"
