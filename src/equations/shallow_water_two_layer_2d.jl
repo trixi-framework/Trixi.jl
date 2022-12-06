@@ -83,11 +83,11 @@ A smooth initial condition used for convergence tests in combination with
 """
 function initial_condition_convergence_test(x, t, equations::TwoLayerShallowWaterEquations2D)
   # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2]
-  ω = 2 * pi * sqrt(2.0)
+  ω = 2.0 * pi * sqrt(2.0)  
 
   H2 = 2 + 0.1sin(ω*x[1]+t)*cos(ω*x[2]+t)
   H1 = 4 + 0.1cos(ω*x[1]+t)*sin(ω*x[2]+t)
-  v2 = 1
+  v2 = 1.0
   v1 = 0.9
   w2 = 0.9
   w1 = 1.0
@@ -107,7 +107,8 @@ Source terms used for convergence tests in combination with
   # this manufactured solution velocities are taken to be constant
 
   # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2]
-  ω = 2 * pi * sqrt(2)
+  ω = 2.0 * pi * sqrt(2.0)
+
 
   # Source terms obtained with SymPy
   du1 = (0.009999999999999995ω*cos(t + ω*x[1])*cos(t + ω*x[2]) + 0.009999999999999995ω*sin(t +
@@ -123,30 +124,71 @@ Source terms used for convergence tests in combination with
         ω*x[1])*sin(t + ω*x[2]) - 0.1ω*(20.0 + cos(t + ω*x[1])*sin(t + ω*x[2]) - sin(t +
         ω*x[1])*cos(t + ω*x[2]))*sin(t + ω*x[1])*sin(t + ω*x[2]))
   du4 = (0.1cos(t + ω*x[1])*cos(t + ω*x[2]) + 0.1ω*cos(t + ω*x[1])*cos(t + ω*x[2]) +
-        0.05ω*sin(0.5ω*x[1])*sin(0.5ω*x[2]) - 0.1sin(t + ω*x[1])*sin(t + ω*x[2]) -
-        0.045000000000000005ω*cos(0.5ω*x[1])*cos(0.5ω*x[2]) - 0.09000000000000001ω*sin(t +
+        0.05ω*sin(0.5ω*x[1])*sin(0.5ω*x[2]) - 0.1sin(t + ω*x[1])*sin(t + ω*x[2]) +
+        -0.045000000000000005ω*cos(0.5ω*x[1])*cos(0.5ω*x[2]) - 0.09000000000000001ω*sin(t +
         ω*x[1])*sin(t + ω*x[2]))
   du5 = ((10.0 + sin(t + ω*x[1])*cos(t + ω*x[2]) -
-        cos(0.5ω*x[1])*sin(0.5ω*x[2]))*(-0.09000000000000001ω*cos(t + ω*x[1])*cos(t + ω*x[2]) -
-        0.09000000000000001ω*sin(t + ω*x[1])*sin(t + ω*x[2]) -
+        cos(0.5ω*x[1])*sin(0.5ω*x[2]))*(-0.09000000000000001ω*cos(t + ω*x[1])*cos(t + ω*x[2]) +
+        -0.09000000000000001ω*sin(t + ω*x[1])*sin(t + ω*x[2]) -
         0.05ω*sin(0.5ω*x[1])*sin(0.5ω*x[2])) + 5.0(0.1ω*cos(t + ω*x[1])*cos(t + ω*x[2]) +
-        0.05ω*sin(0.5ω*x[1])*sin(0.5ω*x[2]))*(2.0 + 0.2sin(t + ω*x[1])*cos(t + ω*x[2]) -
-        0.2cos(0.5ω*x[1])*sin(0.5ω*x[2])) + 0.1cos(t + ω*x[1])*cos(t + ω*x[2]) + 0.1ω*cos(t +
+        0.05ω*sin(0.5ω*x[1])*sin(0.5ω*x[2]))*(2.0 + 0.2sin(t + ω*x[1])*cos(t + ω*x[2]) +
+        -0.2cos(0.5ω*x[1])*sin(0.5ω*x[2])) + 0.1cos(t + ω*x[1])*cos(t + ω*x[2]) + 0.1ω*cos(t +
         ω*x[1])*cos(t + ω*x[2]) + 0.05ω*sin(0.5ω*x[1])*sin(0.5ω*x[2]) - 0.1sin(t + ω*x[1])*sin(t +
         ω*x[2]) - 0.045000000000000005ω*cos(0.5ω*x[1])*cos(0.5ω*x[2]) - 0.09000000000000001ω*sin(t +
         ω*x[1])*sin(t + ω*x[2]))
-  du6 = ((10.0 + sin(t + ω*x[1])*cos(t + ω*x[2]) -
-        cos(0.5ω*x[1])*sin(0.5ω*x[2]))*(0.05ω*cos(0.5ω*x[1])*cos(0.5ω*x[2]) +
+  du6 = ((10.0 + sin(t + ω*x[1])*cos(t + ω*x[2]) +
+        -cos(0.5ω*x[1])*sin(0.5ω*x[2]))*(0.05ω*cos(0.5ω*x[1])*cos(0.5ω*x[2]) +
         0.09000000000000001ω*cos(t + ω*x[1])*cos(t + ω*x[2]) + 0.09000000000000001ω*sin(t +
         ω*x[1])*sin(t + ω*x[2])) + 5.0(-0.05ω*cos(0.5ω*x[1])*cos(0.5ω*x[2]) - 0.1ω*sin(t +
-        ω*x[1])*sin(t + ω*x[2]))*(2.0 + 0.2sin(t + ω*x[1])*cos(t + ω*x[2]) -
-        0.2cos(0.5ω*x[1])*sin(0.5ω*x[2])) + 0.09000000000000001cos(t + ω*x[1])*cos(t + ω*x[2]) +
+        ω*x[1])*sin(t + ω*x[2]))*(2.0 + 0.2sin(t + ω*x[1])*cos(t + ω*x[2]) +
+        -0.2cos(0.5ω*x[1])*sin(0.5ω*x[2])) + 0.09000000000000001cos(t + ω*x[1])*cos(t + ω*x[2]) +
         0.09000000000000001ω*cos(t + ω*x[1])*cos(t + ω*x[2]) +
         0.045000000000000005ω*sin(0.5ω*x[1])*sin(0.5ω*x[2]) - 0.09000000000000001sin(t +
-        ω*x[1])*sin(t + ω*x[2]) - 0.04050000000000001ω*cos(0.5ω*x[1])*cos(0.5ω*x[2]) -
-        0.08100000000000002ω*sin(t + ω*x[1])*sin(t + ω*x[2]))
+        ω*x[1])*sin(t + ω*x[2]) - 0.04050000000000001ω*cos(0.5ω*x[1])*cos(0.5ω*x[2]) +
+        -0.08100000000000002ω*sin(t + ω*x[1])*sin(t + ω*x[2]))
 
   return SVector(du1, du2, du3, du4, du5, du6, 0.0)
+end
+
+
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+                                 equations::ShallowWaterEquations2D)
+
+Create a boundary state by reflecting the normal velocity component and keep
+the tangential velocity component unchanged. The boundary water height is taken from
+the internal value.
+
+For details see Section 9.2.5 of the book:
+- Eleuterio F. Toro (2001)
+  Shock-Capturing Methods for Free-Surface Shallow Flows
+  1st edition
+  ISBN 0471987662
+"""
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              x, t,
+                                              surface_flux_function,
+                                              equations::TwoLayerShallowWaterEquations2D)
+  # normalize the outward pointing direction
+  normal = normal_direction / norm(normal_direction)
+
+  # compute the normal velocity
+  u1_normal = normal[1] * u_inner[2] + normal[2] * u_inner[3]
+  u2_normal = normal[1] * u_inner[5] + normal[2] * u_inner[6]
+
+  # create the "external" boundary solution state
+  u_boundary = SVector(u_inner[1],
+                       u_inner[2] - 2.0 * u1_normal * normal[1],
+                       u_inner[3] - 2.0 * u1_normal * normal[2],
+                       u_inner[4],
+                       u_inner[5] - 2.0 * u2_normal * normal[1],
+                       u_inner[6] - 2.0 * u2_normal * normal[2],
+                       u_inner[7])
+
+  # calculate the boundary flux
+  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+  return flux
 end
 
 
@@ -181,28 +223,28 @@ end
 end
 
 
-# # Calculate 1D flux for a single point in the normal direction
-# # Note, this directional vector is not normalized and the bottom topography has no flux
-# @inline function flux(u, normal_direction::AbstractVector, equations::TwoLayerShallowWaterEquations2D)
-#   h1, h2 = waterheight(u, equations)
-#   v1, w1, v2, w2 = velocity(u, equations)
+# Calculate 1D flux for a single point in the normal direction
+# Note, this directional vector is not normalized and the bottom topography has no flux
+@inline function flux(u, normal_direction::AbstractVector, equations::TwoLayerShallowWaterEquations2D)
+  h1, h2 = waterheight(u, equations)
+  v1, w1, v2, w2 = velocity(u, equations)
 
-#   v1_normal = v1 * normal_direction[1] + w1 * normal_direction[2]
-#   v2_normal = v2 * normal_direction[1] + w2 * normal_direction[2]
-#   h1_v1_normal = h1 * v1_normal
-#   h2_v2_normal = h2 * v2_normal
+  v1_normal = v1 * normal_direction[1] + w1 * normal_direction[2]
+  v2_normal = v2 * normal_direction[1] + w2 * normal_direction[2]
+  h1_v1_normal = h1 * v1_normal
+  h2_v2_normal = h2 * v2_normal
 
-#   p1 = 0.5 * equations.gravity * h1^2
-#   p2 = 0.5 * equations.gravity * h2^2
+  p1 = 0.5 * equations.gravity * h1^2
+  p2 = 0.5 * equations.gravity * h2^2
 
-#   f1 = h1_v1_normal
-#   f2 = h1_v1_normal * v1 + p1 * normal_direction[1]
-#   f3 = h1_v1_normal * w1 + p1 * normal_direction[2]
-#   f4 = h2_v2_normal
-#   f5 = h2_v2_normal * v2 + p2 * normal_direction[1]
-#   f6 = h2_v2_normal * w2 + p2 * normal_direction[2]
-#   return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u)))
-# end
+  f1 = h1_v1_normal
+  f2 = h1_v1_normal * v1 + p1 * normal_direction[1]
+  f3 = h1_v1_normal * w1 + p1 * normal_direction[2]
+  f4 = h2_v2_normal
+  f5 = h2_v2_normal * v2 + p2 * normal_direction[1]
+  f6 = h2_v2_normal * w2 + p2 * normal_direction[2]
+  return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u)))
+end
 
 
 """
@@ -247,26 +289,27 @@ Further details are available in the paper:
 end
 
 
-# @inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
-#   normal_direction_ll::AbstractVector,
-#   normal_direction_average::AbstractVector,
-#   equations::TwoLayerShallowWaterEquations2D)
-# # Pull the necessary left and right state information
-# h1_ll, h2_ll = waterheight(u_ll, equations)
-# h1_rr, h2_rr = waterheight(u_rr, equations)
-# b_rr = u_rr[7]
+@inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
+  normal_direction_ll::AbstractVector,
+  normal_direction_average::AbstractVector,
+  equations::TwoLayerShallowWaterEquations2D)
+  # Pull the necessary left and right state information
+  h1_ll, h2_ll = waterheight(u_ll, equations)
+  h1_rr, h2_rr = waterheight(u_rr, equations)
+  b_rr = u_rr[7]
 
-# # Note this routine only uses the `normal_direction_average` and the average of the
-# # bottom topography to get a quadratic split form DG gradient on curved elements
-# # return SVector(zero(eltype(u_ll)),
-# # normal_direction_average[1] * equations.gravity * h1_ll * (b_rr +  h2_rr),
-# # normal_direction_average[2] * equations.gravity * h1_ll * (b_rr +  h2_rr),
-# # zero(eltype(u_ll)),
-# # normal_direction_average[1] * equations.gravity * h2_ll * (b_rr + equations.rho1/equations.rho2 * h1_rr),
-# # normal_direction_average[2] * equations.gravity * h2_ll * (b_rr + equations.rho1/equations.rho2 * h1_rr),
-# # zero(eltype(u_ll)))
-
-# end
+  # Note this routine only uses the `normal_direction_average` and the average of the
+  # bottom topography to get a quadratic split form DG gradient on curved elements
+  return SVector(zero(eltype(u_ll)),
+                normal_direction_average[1] * equations.gravity * h1_ll * (b_rr +  h2_rr),
+                normal_direction_average[2] * equations.gravity * h1_ll * (b_rr +  h2_rr),
+                zero(eltype(u_ll)),
+                normal_direction_average[1] * equations.gravity * h2_ll * (b_rr + 
+                                                             equations.rho1/equations.rho2 * h1_rr),
+                normal_direction_average[2] * equations.gravity * h2_ll * (b_rr +
+                                                             equations.rho1/equations.rho2 * h1_rr),
+                zero(eltype(u_ll)))
+  end
 
 
 """
@@ -324,44 +367,42 @@ Further details are available in the paper:
 end
 
 
-# @inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
-#   normal_direction_ll::AbstractVector,
-#   normal_direction_average::AbstractVector,
-#   equations::TwoLayerShallowWaterEquations2D)
-#   # Pull the necessary left and right state information
-#   h1_ll, h1_v1_ll, h1_w1_ll, h2_ll, h2_v2_ll, h2_w2_ll, b_ll = u
-#   h1_rr, h1_v1_rr, h1_w1_rr, h2_rr, h2_v2_rr, h2_w2_rr, b_rr = u
+@inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
+  normal_direction_ll::AbstractVector,
+  normal_direction_average::AbstractVector,
+  equations::TwoLayerShallowWaterEquations2D)
+  # Pull the necessary left and right state information
+  h1_ll, h1_v1_ll, h1_w1_ll, h2_ll, h2_v2_ll, h2_w2_ll, b_ll = u_ll
+  h1_rr, h1_v1_rr, h1_w1_rr, h2_rr, h2_v2_rr, h2_w2_rr, b_rr = u_rr
 
-#   r = equations.rho1 / equations.rho2
+  r = equations.rho1 / equations.rho2
 
-#   # Comes in two parts:
-#   #   (i)  Diagonal (consistent) term from the volume flux that uses `normal_direction_average`
-#   #        but we use `b_ll` to avoid cross-averaging across a discontinuous bottom topography
+  # Comes in two parts:
+  #   (i)  Diagonal (consistent) term from the volume flux that uses `normal_direction_average`
+  #        but we use `b_ll` to avoid cross-averaging across a discontinuous bottom topography
 
-#   f2 = normal_direction_average[1] * g*h1_ll*(b_ll +     h2_ll)
-#   f3 = normal_direction_average[2] * g*h1_ll*(b_ll +     h2_ll)
-#   f5 = normal_direction_average[1] * g*h2_ll*(b_ll + r * h1_ll)
-#   f6 = normal_direction_average[2] * g*h2_ll*(b_ll + r * h1_ll)
-#   #   (ii) True surface part that uses `normal_direction_ll`, `h_average` and `b_jump`
-#   #        to handle discontinuous bathymetry
-#   h1_average = 0.5 * (h1_ll + h1_rr)
-#   h2_average = 0.5 * (h2_ll + h2_rr)
-#   h1_jump    = h1_rr - h1_ll
-#   h2_jump    = h2_rr - h2_ll
-#   b_jump = b_rr - b_ll
+  f2 = normal_direction_average[1] * equations.gravity*h1_ll*(b_ll +     h2_ll)
+  f3 = normal_direction_average[2] * equations.gravity*h1_ll*(b_ll +     h2_ll)
+  f5 = normal_direction_average[1] * equations.gravity*h2_ll*(b_ll + r * h1_ll)
+  f6 = normal_direction_average[2] * equations.gravity*h2_ll*(b_ll + r * h1_ll)
+  #   (ii) True surface part that uses `normal_direction_ll`, `h_average` and `b_jump`
+  #        to handle discontinuous bathymetry
+  h1_average = 0.5 * (h1_ll + h1_rr)
+  h2_average = 0.5 * (h2_ll + h2_rr)
+  h1_jump    = h1_rr - h1_ll
+  h2_jump    = h2_rr - h2_ll
+  b_jump = b_rr - b_ll
 
-#   f2 += normal_direction_ll[1]      * g*h1_average*(b_jump +     h2_jump)
-#   f3 += normal_direction_ll[2]      * g*h1_average*(b_jump +     h2_jump)
-#   f5 += normal_direction_average[1] * g*h2_average*(b_jump + r * h1_jump)
-#   f6 += normal_direction_average[2] * g*h2_average*(b_jump + r * h1_jump)
+  f2 += normal_direction_ll[1] * equations.gravity*h1_average*(b_jump +     h2_jump)
+  f3 += normal_direction_ll[2] * equations.gravity*h1_average*(b_jump +     h2_jump)
+  f5 += normal_direction_ll[1] * equations.gravity*h2_average*(b_jump + r * h1_jump)
+  f6 += normal_direction_ll[2] * equations.gravity*h2_average*(b_jump + r * h1_jump)
 
-#   # First two and last equations do not have a nonconservative flux
-#   f1 = f4 = f7 = zero(eltype(u_ll))
-#     # set nonconservative to zero for debugging
-#   f2 = f3 = f5 = f6 = zero(eltype(u_ll))
+  # First two and last equations do not have a nonconservative flux
+  f1 = f4 = zero(eltype(u_ll))
 
-# return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
-# end
+return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
+end
 
 
 """
@@ -419,40 +460,40 @@ and the application to two layers is shown in the paper:
 end
 
 
-# @inline function flux_fjordholm_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::TwoLayerShallowWaterEquations2D)
-#   # Unpack left and right state
-#   h1_ll, h2_ll = waterheight(u_ll, equations)
-#   v1_ll, w1_ll, v2_ll, w2_ll = velocity(u_ll, equations)
-#   h1_rr, h2_rr = waterheight(u_rr, equations)
-#   v1_rr, w1_rr, v2_rr, w2_rr = velocity(u_rr, equations)
+@inline function flux_fjordholm_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::TwoLayerShallowWaterEquations2D)
+  # Unpack left and right state
+  h1_ll, h2_ll = waterheight(u_ll, equations)
+  v1_ll, w1_ll, v2_ll, w2_ll = velocity(u_ll, equations)
+  h1_rr, h2_rr = waterheight(u_rr, equations)
+  v1_rr, w1_rr, v2_rr, w2_rr = velocity(u_rr, equations)
 
-#   v1_dot_n_ll = v1_ll * normal_direction[1] + w1_ll * normal_direction[2]
-#   v1_dot_n_rr = v1_rr * normal_direction[1] + w1_rr * normal_direction[2]
-#   v2_dot_n_ll = v2_ll * normal_direction[1] + w2_ll * normal_direction[2]
-#   v2_dot_n_rr = v2_rr * normal_direction[1] + w2_rr * normal_direction[2]
+  v1_dot_n_ll = v1_ll * normal_direction[1] + w1_ll * normal_direction[2]
+  v1_dot_n_rr = v1_rr * normal_direction[1] + w1_rr * normal_direction[2]
+  v2_dot_n_ll = v2_ll * normal_direction[1] + w2_ll * normal_direction[2]
+  v2_dot_n_rr = v2_rr * normal_direction[1] + w2_rr * normal_direction[2]
 
-#   # Average each factor of products in flux
-#   h1_avg = 0.5 * (h1_ll   + h1_rr )
-#   h2_avg = 0.5 * (h2_ll   + h2_rr )
-#   v1_avg = 0.5 * (v1_ll   + v1_rr )
-#   v2_avg = 0.5 * (v2_ll   + v2_rr )
-#   w1_avg = 0.5 * (w1_ll   + w1_rr )
-#   w2_avg = 0.5 * (w2_ll   + w2_rr )
-#   p1_avg = 0.25* equations.gravity * (h1_ll^2 + h1_rr^2)
-#   p2_avg = 0.25* equations.gravity * (h2_ll^2 + h2_rr^2)
-#   v1_dot_n_avg = 0.5 * (v1_dot_n_ll + v1_dot_n_rr)
-#   v2_dot_n_avg = 0.5 * (v2_dot_n_ll + v2_dot_n_rr)
+  # Average each factor of products in flux
+  h1_avg = 0.5 * (h1_ll   + h1_rr )
+  h2_avg = 0.5 * (h2_ll   + h2_rr )
+  v1_avg = 0.5 * (v1_ll   + v1_rr )
+  v2_avg = 0.5 * (v2_ll   + v2_rr )
+  w1_avg = 0.5 * (w1_ll   + w1_rr )
+  w2_avg = 0.5 * (w2_ll   + w2_rr )
+  p1_avg = 0.25* equations.gravity * (h1_ll^2 + h1_rr^2)
+  p2_avg = 0.25* equations.gravity * (h2_ll^2 + h2_rr^2)
+  v1_dot_n_avg = 0.5 * (v1_dot_n_ll + v1_dot_n_rr)
+  v2_dot_n_avg = 0.5 * (v2_dot_n_ll + v2_dot_n_rr)
 
-#   # Calculate fluxes depending on normal_direction
-#   f1 = h1_avg * v1_dot_n_avg
-#   f2 = f1 * v1_avg + p1_avg * normal_direction[1]
-#   f3 = f1 * w1_avg + p1_avg * normal_direction[2]
-#   f4 = h2_avg * v2_dot_n_avg
-#   f5 = f4 * v2_avg + p2_avg * normal_direction[1]
-#   f6 = f4 * w2_avg + p2_avg * normal_direction[2]
+  # Calculate fluxes depending on normal_direction
+  f1 = h1_avg * v1_dot_n_avg
+  f2 = f1 * v1_avg + p1_avg * normal_direction[1]
+  f3 = f1 * w1_avg + p1_avg * normal_direction[2]
+  f4 = h2_avg * v2_dot_n_avg
+  f5 = f4 * v2_avg + p2_avg * normal_direction[1]
+  f6 = f4 * w2_avg + p2_avg * normal_direction[2]
 
-#   return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
-# end
+  return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
+end
 
 
 """
@@ -485,7 +526,6 @@ Further details are available in Theorem 1 of the paper:
   v2_avg = 0.5 * (v2_ll + v2_rr )
   w1_avg = 0.5 * (w1_ll + w1_rr )
   w2_avg = 0.5 * (w2_ll + w2_rr )
-  #p1_avg = 0.5 * equations.gravity * h1_ll * h1_rr
   p1_avg = 0.5 * equations.gravity * h1_ll * h1_rr
   p2_avg = 0.5 * equations.gravity * h2_ll * h2_rr
 
@@ -509,74 +549,99 @@ Further details are available in Theorem 1 of the paper:
   return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
 end
 
-# @inline function flux_wintermeyer_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::TwoLayerShallowWaterEquations2D)
-#   # Unpack left and right state
-#   h1_ll, h1_v1_ll, h1_w1_ll, h2_ll, h2_v2_ll, h2_w2_ll, _ = u_ll
-#   h1_rr, h1_v1_rr, h1_w1_rr, h2_rr, h2_v2_rr, h2_w2_rr, _ = u_rr
 
-#   # Get the velocities on either side
-#   v1_ll, w1_ll, v2_ll, w2_ll = velocity(u_ll, equations)
-#   v1_rr, w1_rr, v2_rr, w2_rr = velocity(u_rr, equations)
+@inline function flux_wintermeyer_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                                         equations::TwoLayerShallowWaterEquations2D)
+  # Unpack left and right state
+  h1_ll, h1_v1_ll, h1_w1_ll, h2_ll, h2_v2_ll, h2_w2_ll, _ = u_ll
+  h1_rr, h1_v1_rr, h1_w1_rr, h2_rr, h2_v2_rr, h2_w2_rr, _ = u_rr
 
-#   # Average each factor of products in flux
-#   v1_avg = 0.5 * (v1_ll + v1_rr )
-#   v2_avg = 0.5 * (v2_ll + v2_rr )
-#   w1_avg = 0.5 * (w1_ll + w1_rr )
-#   w2_avg = 0.5 * (w2_ll + w2_rr )
-#   p1_avg = 0.25* equations.gravity * (h1_ll^2 + h1_rr^2)
-#   p2_avg = 0.25* equations.gravity * (h2_ll^2 + h2_rr^2)
-#   h1_v1_avg = 0.5 * (h1_v1_ll + h1_v1_rr )
-#   h1_w1_avg = 0.5 * (h1_w1_ll + h1_w1_rr )
-#   h2_v2_avg = 0.5 * (h2_v2_ll + h2_v2_rr )
-#   h2_w2_avg = 0.5 * (h2_w2_ll + h2_w2_rr )
+  # Get the velocities on either side
+  v1_ll, w1_ll, v2_ll, w2_ll = velocity(u_ll, equations)
+  v1_rr, w1_rr, v2_rr, w2_rr = velocity(u_rr, equations)
 
-#   # Calculate fluxes depending on normal_direction
-#   f1 = h1_v1_avg * normal_direction[1] + h1_w1_avg * normal_direction[2]
-#   f2 = f1 * v1_avg + p1_avg * normal_direction[1]
-#   f3 = f1 * w2_avg + p1_avg * normal_direction[2]
-#   f4 = h2_v2_avg * normal_direction[1] + h2_w2_avg * normal_direction[2]
-#   f5 = f4 * v2_avg + p2_avg * normal_direction[1]
-#   f6 = f4 * w2_avg + p2_avg * normal_direction[2]
+  # Average each factor of products in flux
+  v1_avg = 0.5 * (v1_ll + v1_rr )
+  v2_avg = 0.5 * (v2_ll + v2_rr )
+  w1_avg = 0.5 * (w1_ll + w1_rr )
+  w2_avg = 0.5 * (w2_ll + w2_rr )
+  p1_avg = 0.5* equations.gravity * h1_ll * h1_rr
+  p2_avg = 0.5* equations.gravity * h2_ll * h2_rr
+  h1_v1_avg = 0.5 * (h1_v1_ll + h1_v1_rr )
+  h1_w1_avg = 0.5 * (h1_w1_ll + h1_w1_rr )
+  h2_v2_avg = 0.5 * (h2_v2_ll + h2_v2_rr )
+  h2_w2_avg = 0.5 * (h2_w2_ll + h2_w2_rr )
 
-#   return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
-# end
+  # Calculate fluxes depending on normal_direction
+  f1 = h1_v1_avg * normal_direction[1] + h1_w1_avg * normal_direction[2]
+  f2 = f1 * v1_avg + p1_avg * normal_direction[1]
+  f3 = f1 * w1_avg + p1_avg * normal_direction[2]
+  f4 = h2_v2_avg * normal_direction[1] + h2_w2_avg * normal_direction[2]
+  f5 = f4 * v2_avg + p2_avg * normal_direction[1]
+  f6 = f4 * w2_avg + p2_avg * normal_direction[2]
+
+  return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
+end
 
 
-# # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
-# # maximum velocity magnitude plus the maximum speed of sound as approximated by fjordholm
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# maximum velocity magnitude plus the maximum speed of sound as approximated by fjordholm
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, 
   equations::TwoLayerShallowWaterEquations2D)
 
-v1_ll, w1_ll, v2_ll, w2_ll = velocity(u_ll, equations)
-v1_rr, w1_rr, v2_rr, w2_rr = velocity(u_rr, equations)
+  v1_ll, w1_ll, v2_ll, w2_ll = velocity(u_ll, equations)
+  v1_rr, w1_rr, v2_rr, w2_rr = velocity(u_rr, equations)
 
+  if orientation == 1
+    Um_ll = (u_ll[2] + u_ll[5]) / (u_ll[1] + u_ll[4])
+    Um_rr = (u_rr[2] + u_rr[5]) / (u_rr[1] + u_rr[4])
+  else
+    Um_ll = (u_ll[3] + u_ll[6]) / (u_ll[1] + u_ll[4])
+    Um_rr = (u_rr[3] + u_rr[6]) / (u_rr[1] + u_rr[4])
+  end
 
-if orientation == 1
-  Um_ll = (u_ll[2] + u_ll[5]) / (u_ll[1] + u_ll[4])
-  Um_rr = (u_rr[2] + u_rr[5]) / (u_rr[1] + u_rr[4])
-else
-  Um_ll = (u_ll[3] + u_ll[6]) / (u_ll[1] + u_ll[4])
-  Um_rr = (u_rr[3] + u_rr[6]) / (u_rr[1] + u_rr[4])
+  # Calculate the wave celerity on the left and right
+  h1_ll, h2_ll = waterheight(u_ll, equations)
+  h1_rr, h2_rr = waterheight(u_rr, equations)
+
+  c_ll = sqrt(equations.gravity * (h1_ll + h2_ll) )
+  c_rr = sqrt(equations.gravity * (h1_rr + h2_rr))
+
+  return (max(abs(Um_ll),abs(Um_rr)) + max(c_ll,c_rr))
 end
 
-# Calculate the wave celerity on the left and right
-h1_ll, h2_ll = waterheight(u_ll, equations)
-h1_rr, h2_rr = waterheight(u_rr, equations)
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::TwoLayerShallowWaterEquations2D)
+  # Extract and compute the velocities in the normal direction
+  v1_ll, w1_ll, v2_ll, w2_ll = velocity(u_ll, equations)
+  v1_rr, w1_rr, v2_rr, w2_rr = velocity(u_rr, equations)
 
-c_ll = sqrt(equations.gravity * (h1_ll + h2_ll) )
-c_rr = sqrt(equations.gravity * (h1_rr + h2_rr))
+  vel1_ll = v1_ll * normal_direction[1] + w1_ll * normal_direction[2]
+  vel1_rr = v1_rr * normal_direction[1] + w1_rr * normal_direction[2]
+  vel2_ll = v2_ll * normal_direction[1] + w2_ll * normal_direction[2]
+  vel2_rr = v2_rr * normal_direction[1] + w2_rr * normal_direction[2]
+  
+  Um_ll = (vel1_ll+vel2_ll)/(u_ll[1]+u_ll[4])
+  Um_rr = (vel1_rr+vel2_rr)/(u_rr[1]+u_rr[4])
 
-return (max(abs(Um_ll),abs(Um_rr)) + max(c_ll,c_rr))
+  # Compute the wave celerity on the left and right
+  h1_ll, h2_ll = waterheight(u_ll, equations)
+  h1_rr, h2_rr = waterheight(u_rr, equations)
+
+  c_ll = sqrt(equations.gravity * (h1_ll + h2_ll) )
+  c_rr = sqrt(equations.gravity * (h1_rr + h2_rr))
+
+  # The normal velocities are already scaled by the norm
+  return max(abs(Um_ll),abs(Um_rr)) + max(c_ll,c_rr)*norm(normal_direction)
 end
 
 
-# # # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography
-@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, 
-                        orientation_or_normal_direction, equations::TwoLayerShallowWaterEquations2D)
-  λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
-  diss = -0.5 * λ * (u_rr - u_ll)
-  return SVector(diss[1], diss[2], diss[3], diss[4], diss[5], diss[6], zero(eltype(u_ll)))
-end
+   # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography
+   @inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
+    orientation_or_normal_direction, equations::TwoLayerShallowWaterEquations2D)
+    λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
+    diss = -0.5 * λ * (u_rr - u_ll)
+    return SVector(diss[1], diss[2], diss[3], diss[4], diss[5], diss[6], zero(eltype(u_ll)))
+  end
 
 
 # Absolute speed according to Fjordholm
