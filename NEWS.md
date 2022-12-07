@@ -9,6 +9,7 @@ for human readability.
 
 #### Added
 
+- Implementation of linearized euler equations in 2D
 - Experimental support for upwind finite difference summation by parts (FDSBP)
   has been added in Trixi.jl v0.4.55. The first implementation requires a `TreeMesh` and comes
   with several examples in the `examples_dir()` of Trixi.jl.

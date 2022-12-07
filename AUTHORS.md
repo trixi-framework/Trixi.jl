@@ -36,4 +36,5 @@ are listed in alphabetical order:
 * Andrés M. Rueda-Ramírez
 * Felipe Santillan
 * Michael Schlottke-Lakemper
+* Toskan Theine
 * Andrew Winters
