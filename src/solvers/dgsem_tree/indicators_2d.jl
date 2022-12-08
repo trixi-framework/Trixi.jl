@@ -290,28 +290,21 @@ end
 
     orientation = cache.interfaces.orientations[interface]
 
-    if orientation == 1
-      for j in eachnode(dg)
-        var_left  = variable(get_node_vars(u, equations, dg, nnodes(dg), j, left),  equations)
-        var_right = variable(get_node_vars(u, equations, dg, 1,          j, right), equations)
-
-        var_min[1, j, right] = min(var_min[1, j, right], var_left)
-        var_max[1, j, right] = max(var_max[1, j, right], var_left)
-
-        var_min[nnodes(dg), j, left] = min(var_min[nnodes(dg), j, left], var_right)
-        var_max[nnodes(dg), j, left] = max(var_max[nnodes(dg), j, left], var_right)
+    for i in eachnode(dg)
+      index_left  = (nnodes(dg), i)
+      index_right = (1, i)
+      if orientation == 2
+        index_left = reverse(index_left)
+        index_right = reverse(index_right)
       end
-    else # orientation == 2
-      for i in eachnode(dg)
-        var_left  = variable(get_node_vars(u, equations, dg, i, nnodes(dg), left),  equations)
-        var_right = variable(get_node_vars(u, equations, dg, i,          1, right), equations)
+      var_left  = variable(get_node_vars(u, equations, dg, index_left...,  left),  equations)
+      var_right = variable(get_node_vars(u, equations, dg, index_right..., right), equations)
 
-        var_min[i, 1, right] = min(var_min[i, 1, right], var_left)
-        var_max[i, 1, right] = max(var_max[i, 1, right], var_left)
+      var_min[index_right..., right] = min(var_min[index_right..., right], var_left)
+      var_max[index_right..., right] = max(var_max[index_right..., right], var_left)
 
-        var_min[i, nnodes(dg), left] = min(var_min[i, nnodes(dg), left], var_right)
-        var_max[i, nnodes(dg), left] = max(var_max[i, nnodes(dg), left], var_right)
-      end
+      var_min[index_left..., left] = min(var_min[index_left..., left], var_right)
+      var_max[index_left..., left] = max(var_max[index_left..., left], var_right)
     end
   end
 
@@ -321,50 +314,25 @@ end
     orientation = cache.boundaries.orientations[boundary]
     neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
-    if orientation == 1
-      if neighbor_side == 2 # boundary_side == 1
-        for j in eachnode(dg)
-          u_inner = get_node_vars(u, equations, dg, 1, j, element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
-                                             equations, dg, 1, j, element)
-          var_outer = variable(u_outer, equations)
-
-          var_min[1, j, element] = min(var_min[1, j, element], var_outer)
-          var_max[1, j, element] = max(var_max[1, j, element], var_outer)
-        end
-      else # boundary_side == 2
-        for j in eachnode(dg)
-          u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
-                                             equations, dg, nnodes(dg), j, element)
-          var_outer = variable(u_outer, equations)
-
-          var_min[nnodes(dg), j, element] = min(var_min[nnodes(dg), j, element], var_outer)
-          var_max[nnodes(dg), j, element] = max(var_max[nnodes(dg), j, element], var_outer)
-        end
+    for i in eachnode(dg)
+      if neighbor_side == 2 # Element is on the right, boundary on the left
+        index = (1, i)
+        boundary_index = 1
+      else # Element is on the left, boundary on the right
+        index = (nnodes(dg), i)
+        boundary_index = 2
       end
-    else # orientation == 2
-      if neighbor_side == 2 # boundary_side == 1
-        for i in eachnode(dg)
-          u_inner = get_node_vars(u, equations, dg, i, 1, element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
-                                             equations, dg, i, 1, element)
-          var_outer = variable(u_outer, equations)
-
-          var_min[i, 1, element] = min(var_min[i, 1, element], var_outer)
-          var_max[i, 1, element] = max(var_max[i, 1, element], var_outer)
-        end
-      else # boundary_side == 2
-        for i in eachnode(dg)
-          u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
-                                             equations, dg, i, nnodes(dg), element)
-          var_outer = variable(u_outer, equations)
-
-          var_min[i, nnodes(dg), element] = min(var_min[i, nnodes(dg), element], var_outer)
-          var_max[i, nnodes(dg), element] = max(var_max[i, nnodes(dg), element], var_outer)
-        end
+      if orientation == 2
+        index = reverse(index)
+        boundary_index += 2
       end
+      u_inner = get_node_vars(u, equations, dg, index..., element)
+      u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[boundary_index],
+                                         equations, dg, index..., element)
+      var_outer = variable(u_outer, equations)
+
+      var_min[index..., element] = min(var_min[index..., element], var_outer)
+      var_max[index..., element] = max(var_max[index..., element], var_outer)
     end
   end
 
@@ -544,7 +512,7 @@ end
       end
 
       # Calculate alpha at nodes
-      alpha[i, j, element]  = 1 - min(1.0, Qp, Qm)
+      alpha[i, j, element] = 1 - min(1.0, Qp, Qm)
     end
   end
 

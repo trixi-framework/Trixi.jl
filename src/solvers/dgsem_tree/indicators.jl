@@ -273,7 +273,7 @@ function IndicatorMCL(equations::AbstractEquations, basis;
                       indicator_smooth=false,
                       thr_smooth=0.1,
                       variable_smooth=density_pressure,
-                      Plotting=false)
+                      Plotting=true)
 
   cache = create_cache(IndicatorMCL, equations, basis, 2*nvariables(equations)+IDPPressureTVD)
   if indicator_smooth
