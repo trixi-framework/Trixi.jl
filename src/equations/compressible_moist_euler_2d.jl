@@ -79,85 +79,6 @@ varnames(::typeof(cons2moistpot), ::CompressibleMoistEulerEquations2D) = ("rho",
 varnames(::typeof(cons2aeqpot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "aeqpottemp", "rv", "rt")
 
 
-# Slip-wall boundary condition 
-# Determine the boundary numerical surface flux for a slip wall condition.
-# Imposes a zero normal velocity at the wall.
-@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
-  surface_flux_function, equations::CompressibleMoistEulerEquations2D)
-  @unpack c_pd, c_pv, c_pl, c_vd, c_vv = equations
-  norm_ = norm(normal_direction)
-  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-  normal = normal_direction / norm_
-  
-  # rotate the internal solution state
-  u_local = rotate_to_x(u_inner, normal, equations)
-
-  # compute the primitive variables
-  rho_local, v_normal, v_tangent, p_local, qv_local, ql_local = cons2prim(u_local, equations)
-  qd_local =  1 - qv_local - ql_local
-  gamma = (qd_local * c_pd + qv_local * c_pv + ql_local * c_pl ) * inv(qd_local * c_vd + qv_local * c_vv + ql_local * c_pl)
-  # Get the solution of the pressure Riemann problem
-  # See Section 6.3.3 of
-  # Eleuterio F. Toro (2009)
-  # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
-  # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
-  if v_normal <= 0.0
-  sound_speed = sqrt(gamma * p_local / rho_local) # local sound speed
-  p_star = p_local * (1.0 + 0.5 * (gamma - 1) * v_normal / sound_speed)^(2.0 * gamma * inv(gamma-1))
-  else # v_normal > 0.0
-  A = 2.0 / ((gamma + 1) * rho_local)
-  B = p_local * (gamma - 1) / (gamma + 1)
-  p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
-  end
-
-  # For the slip wall we directly set the flux as the normal velocity is zero
-  return SVector(zero(eltype(u_inner)),
-  p_star * normal[1],
-  p_star * normal[2],
-  zero(eltype(u_inner)),
-  zero(eltype(u_inner)),
-  zero(eltype(u_inner))) * norm_
-end
-
-
-# Fix sign for structured mesh. 
-@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
-  surface_flux_function, equations::CompressibleMoistEulerEquations2D)
-  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
-  # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
-  if isodd(direction)
-    boundary_flux = -boundary_condition_slip_wall(u_inner, -normal_direction,
-              x, t, surface_flux_function, equations)
-  else
-    boundary_flux = boundary_condition_slip_wall(u_inner, normal_direction,
-             x, t, surface_flux_function, equations)
-  end
-
-  return boundary_flux
-end
-
-
-# Rotate momentum flux. The same as in compressible Euler.
-@inline function rotate_to_x(u, normal_vector::AbstractVector, equations::CompressibleMoistEulerEquations2D)
-  # cos and sin of the angle between the x-axis and the normalized normal_vector are
-  # the normalized vector's x and y coordinates respectively (see unit circle).
-  c = normal_vector[1]
-  s = normal_vector[2]
-
-  # Apply the 2D rotation matrix with normal and tangent directions of the form
-  # [ 1    0    0   0;
-  #   0   n_1  n_2  0;
-  #   0   t_1  t_2  0;
-  #   0    0    0   1 ]
-  # where t_1 = -n_2 and t_2 = n_1
-
-  return SVector(u[1],
-                  c * u[2] + s * u[3],
-                 -s * u[2] + c * u[3],
-                 u[4], u[5], u[6])
-end
-
-
 # Recreates the convergence test initial condition from compressible euler 2D.
 function initial_condition_convergence_test_dry(x, t, equations::CompressibleMoistEulerEquations2D)
   @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
@@ -332,9 +253,9 @@ end
 
 
 # Raylight damping sponge source term form A. Sridhar et al., 
-#Large-eddy simulations with ClimateMachine: a new open-sourcecode for
-#atmospheric simulations on GPUs and CPUs, 2 Oct 2021, doi: 10.5194/gmd-15-6259-2022,
-#https://arxiv.org/abs/2110.00853 [physics.ao-ph] .
+# Large-eddy simulations with ClimateMachine: a new open-sourcecode for
+# atmospheric simulations on GPUs and CPUs, 2 Oct 2021, doi: 10.5194/gmd-15-6259-2022,
+# https://arxiv.org/abs/2110.00853 [physics.ao-ph] .
 @inline function source_terms_nonhydrostatic_raylight_sponge(u, x, t, equations::CompressibleMoistEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
   v1 = rho_v1 / rho
@@ -406,6 +327,64 @@ end
   
   return SVector(zero(eltype(u)), zero(eltype(u)), zero(eltype(u)),
                  zero(eltype(u)) , Q_ph, -Q_ph)
+end
+
+
+# Slip-wall boundary condition 
+# Determine the boundary numerical surface flux for a slip wall condition.
+# Imposes a zero normal velocity at the wall.
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
+  surface_flux_function, equations::CompressibleMoistEulerEquations2D)
+  @unpack c_pd, c_pv, c_pl, c_vd, c_vv = equations
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal = normal_direction / norm_
+  
+  # rotate the internal solution state
+  u_local = rotate_to_x(u_inner, normal, equations)
+
+  # compute the primitive variables
+  rho_local, v_normal, v_tangent, p_local, qv_local, ql_local = cons2prim(u_local, equations)
+  qd_local =  1 - qv_local - ql_local
+  gamma = (qd_local * c_pd + qv_local * c_pv + ql_local * c_pl ) * inv(qd_local * c_vd + qv_local * c_vv + ql_local * c_pl)
+  # Get the solution of the pressure Riemann problem
+  # See Section 6.3.3 of
+  # Eleuterio F. Toro (2009)
+  # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
+  # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+  if v_normal <= 0.0
+  sound_speed = sqrt(gamma * p_local / rho_local) # local sound speed
+  p_star = p_local * (1.0 + 0.5 * (gamma - 1) * v_normal / sound_speed)^(2.0 * gamma * inv(gamma-1))
+  else # v_normal > 0.0
+  A = 2.0 / ((gamma + 1) * rho_local)
+  B = p_local * (gamma - 1) / (gamma + 1)
+  p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
+  end
+
+  # For the slip wall we directly set the flux as the normal velocity is zero
+  return SVector(zero(eltype(u_inner)),
+  p_star * normal[1],
+  p_star * normal[2],
+  zero(eltype(u_inner)),
+  zero(eltype(u_inner)),
+  zero(eltype(u_inner))) * norm_
+end
+
+
+# Fix sign for structured mesh. 
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
+  surface_flux_function, equations::CompressibleMoistEulerEquations2D)
+  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
+  # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
+  if isodd(direction)
+    boundary_flux = -boundary_condition_slip_wall(u_inner, -normal_direction,
+              x, t, surface_flux_function, equations)
+  else
+    boundary_flux = boundary_condition_slip_wall(u_inner, normal_direction,
+             x, t, surface_flux_function, equations)
+  end
+
+  return boundary_flux
 end
 
 
@@ -606,6 +585,27 @@ end
           (c_pl*inv_T_mean - K_avg) * f_1l + v1_avg*f2 + v2_avg*f3 )
 
   return SVector(f1, f2, f3, f4, f_1v, f_1l)
+end
+
+
+# Rotate momentum flux. The same as in compressible Euler.
+@inline function rotate_to_x(u, normal_vector::AbstractVector, equations::CompressibleMoistEulerEquations2D)
+  # cos and sin of the angle between the x-axis and the normalized normal_vector are
+  # the normalized vector's x and y coordinates respectively (see unit circle).
+  c = normal_vector[1]
+  s = normal_vector[2]
+
+  # Apply the 2D rotation matrix with normal and tangent directions of the form
+  # [ 1    0    0   0;
+  #   0   n_1  n_2  0;
+  #   0   t_1  t_2  0;
+  #   0    0    0   1 ]
+  # where t_1 = -n_2 and t_2 = n_1
+
+  return SVector(u[1],
+                  c * u[2] + s * u[3],
+                 -s * u[2] + c * u[3],
+                 u[4], u[5], u[6])
 end
 
 
@@ -915,10 +915,10 @@ end
 # Calculate the moist potential temperature for a conservative state `cons`.
 @inline function moist_pottemp_thermodynamic(cons, equations::CompressibleMoistEulerEquations2D)
   @unpack R_d, R_v, c_pd, c_pv, c_pl, p_0 = equations
+  rho_d = cons[1] - (cons[5] + cons[6])
   # Temperature & Pressure
   T = temperature(cons, equations)
   p = (rho_d * R_d + rho_v * R_v) * T
-  rho_d = cons[1] - (cons[5] + cons[6])
   r_v = inv(rho_d) * cons[5]
   r_l = inv(rho_d) * cons[6]
 
