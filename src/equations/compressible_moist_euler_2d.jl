@@ -430,8 +430,11 @@ end
 end
 
 
-
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+# Adjusted version of LLF dissipation from compressible euler.
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# maximum velocity magnitude plus the maximum speed of sound
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+  equations::CompressibleMoistEulerEquations2D)
   @unpack c_pd, c_pv, c_pl, c_vd, c_vv = equations
   rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
   rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
@@ -441,14 +444,19 @@ end
   gamma_ll = (qd_ll * c_pd + qv_ll * c_pv + ql_ll * c_pl) * inv(qd_ll * c_vd + qv_ll * c_vv + ql_ll * c_pl)
   gamma_rr = (qd_rr * c_pd + qv_rr * c_pv + ql_rr * c_pl) * inv(qd_rr * c_vd + qv_rr * c_vv + ql_rr * c_pl)
 
-
-  # Compute the sound speeds on the left and right
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
+  # Get the velocity value in the appropriate direction
+  if orientation == 1
+    v_ll = v1_ll
+    v_rr = v1_rr
+  else # orientation == 2
+    v_ll = v2_ll
+    v_rr = v2_rr
+  end
+  # Calculate sound speeds
   c_ll = sqrt(gamma_ll * p_ll / rho_ll)
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
   c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
-  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+  return λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 
@@ -918,7 +926,7 @@ end
   rho_d = cons[1] - (cons[5] + cons[6])
   # Temperature & Pressure
   T = temperature(cons, equations)
-  p = (rho_d * R_d + rho_v * R_v) * T
+  p = (rho_d * R_d + cons[5] * R_v) * T
   r_v = inv(rho_d) * cons[5]
   r_l = inv(rho_d) * cons[6]
 
@@ -938,7 +946,7 @@ end
   rho_d = rho - rho_qv - rho_ql
   T = temperature(cons, equations)
   p_v = rho_qv * R_v * T
-  p_d = p - p_v
+  p_d = rho_d * R_d * T
   T_C = T - 273.15
   p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
   H = p_v / p_vs
