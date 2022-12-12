@@ -499,17 +499,10 @@ end
       Pp = inverse_jacobian * Pp
       Pm = inverse_jacobian * Pm
 
-      # Calculate alpha_plus and alpha_minus
-      if Pp == 0.0
-        Qp = 1.0
-      else
-        Qp =  Qp / Pp
-      end
-      if Pm == 0.0
-        Qm = 1.0
-      else
-        Qm =  Qm / Pm
-      end
+      # Compute blending coefficient avoiding division by zero
+      # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+      Qp = abs(Qp) / (abs(Pp) + eps() * 100 * abs(rho_max[i, j, element]))
+      Qm = abs(Qm) / (abs(Pm) + eps() * 100 * abs(rho_max[i, j, element]))
 
       # Calculate alpha at nodes
       alpha[i, j, element] = 1 - min(1.0, Qp, Qm)
@@ -575,17 +568,10 @@ end
       Pp = inverse_jacobian * Pp
       Pm = inverse_jacobian * Pm
 
-      # Calculate alpha_plus and alpha_minus
-      if Pp == 0.0
-        Qp = 1.0
-      else
-        Qp = Qp / Pp
-      end
-      if Pm == 0.0
-        Qm = 1.0
-      else
-        Qm =  Qm / Pm
-      end
+      # Compute blending coefficient avoiding division by zero
+      # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+      Qp = abs(Qp) / (abs(Pp) + eps() * 100 * abs(p_max[i, j, element]))
+      Qm = abs(Qm) / (abs(Pm) + eps() * 100 * abs(p_max[i, j, element]))
 
       # Calculate alpha at nodes
       alpha[i, j, element]  = max(alpha[i, j, element], 1 - min(1.0, Qp, Qm))
@@ -711,11 +697,9 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
            min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
       Pm = inverse_jacobian * Pm
 
-      if Pm < 0.0
-        Qm = min(1.0, Qm / Pm)
-      else
-        Qm = 1.0
-      end
+      # Compute blending coefficient avoiding division by zero
+      # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+      Qm = abs(Qm) / (abs(Pm) + eps() * 100)
 
       # Calculate alpha
       alpha[i, j, element]  = max(alpha[i, j, element], 1 - Qm)
@@ -914,9 +898,9 @@ end
 function create_cache(indicator::Type{IndicatorMCL}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length)
   ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorMCL{real(basis)}(0, nvariables(equations), nnodes(basis))
 
-  idp_bounds_delta_threaded = [zeros(real(basis), length) for _ in 1:Threads.nthreads()]
+  idp_bounds_delta = zeros(real(basis), length)
 
-  return (; ContainerShockCapturingIndicator, idp_bounds_delta_threaded)
+  return (; ContainerShockCapturingIndicator, idp_bounds_delta)
 end
 
 @inline function update_alpha_per_timestep!(indicator::IndicatorMCL, timestep, n_stages, semi, mesh)
