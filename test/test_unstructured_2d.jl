@@ -155,6 +155,21 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [2.7639232436274392, 3.3985508653311767, 3.3330308209196224, 2.052861364219655],
       tspan = (0.0, 0.25))
   end
+
+  # TODO: FD; for now put the unstructured tests for the 2D FDSBP here.
+  @trixi_testset "FDSBP (central): elixir_euler_free_stream.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_fdsbp", "elixir_euler_free_stream.jl"),
+      l2   = [1.0782928209546407e-14, 7.961856579424368e-14, 5.54300886580838e-14, 1.160015193708739e-13],
+      linf = [3.410882687404637e-11, 1.5696624555694427e-11, 9.794248745365053e-12, 2.504663143554353e-11],
+      tspan=(0.0, 0.2))
+  end
+
+  @trixi_testset "FDSBP (central): elixir_euler_convergence.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_fdsbp", "elixir_euler_convergence.jl"),
+      l2   = [3.372206837157435e-5, 6.001247046050437e-5, 6.0012470460493534e-5, 0.00018518205373473714],
+      linf = [0.00015638063264633573, 0.0003329723828695563, 0.00033297238286467135, 0.0009179128246792345],
+      tspan=(0.0, 0.025))
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory
