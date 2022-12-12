@@ -51,7 +51,6 @@ struct CompressibleMoistEulerEquations2D{RealT<:Real} <: AbstractCompressibleMoi
   kappa::RealT # ratio of the gas constand R_d
   gamma::RealT # = inv(kappa- 1); can be used to write slow divisions as fast multiplications
   L_00::RealT # latent heat of evaporation  at 0 K
-  a::RealT
 end
 
 
@@ -67,8 +66,7 @@ function CompressibleMoistEulerEquations2D(;g= 9.81, RealT=Float64)
    gamma = c_pd / c_vd # = 1/(1 - kappa)
    kappa = 1 - inv(gamma)
    L_00 = 3147620.0
-   a = 360.0
-   return CompressibleMoistEulerEquations2D{RealT}(p_0, c_pd, c_vd, R_d, c_pv, c_vv, R_v, c_pl,  g, kappa, gamma, L_00, a)
+   return CompressibleMoistEulerEquations2D{RealT}(p_0, c_pd, c_vd, R_d, c_pv, c_vv, R_v, c_pl,  g, kappa, gamma, L_00)
   end
 
 
@@ -138,7 +136,7 @@ end
   dp = xi * (T * rho_x + rho * dT)
   # Note that d/dt rho = -d/dx rho = -d/dy rho.
 
-  du1, du2, du3, du4, du5, du6 = source_terms_moist_bubble(u, x, t, equations)
+  du1, du2, du3, du4, du5, du6 = source_terms_moist_air(u, x, t, equations)
 
 
   du1 += rho_x
@@ -213,8 +211,8 @@ end
   #Calculate Error in Sources with exact solution and u
   u_exact = SVector(rho, rho, rho, rho*E, rho*qv, rho*ql) 
 
-  du1, du2, du3, du4, du5, du6 = ( source_terms_moist_bubble(u, x, t, equations) -
-                                   source_terms_moist_bubble(u_exact, x, t, equations))  
+  du1, du2, du3, du4, du5, du6 = ( source_terms_moist_air(u, x, t, equations) -
+                                   source_terms_moist_air(u_exact, x, t, equations))  
   #du1, du2, du3, du4, du5, du6 = zeros(Float64, 6)                              
   # Note that d/dt rho = -d/dx rho = -d/dy rho.
 
@@ -231,17 +229,6 @@ end
 
 # Gravity source term
 @inline function source_terms_geopotential(u, x, t, equations::CompressibleMoistEulerEquations2D)
-  @unpack g = equations
-  rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
-  tmp = rho_v2
-
-  return SVector(zero(eltype(u)), zero(eltype(u)),
-                 -g * rho, -g * tmp, 
-                 zero(eltype(u)), zero(eltype(u)))
-end
-
-
-@inline function source_terms_geopotential(u, equations::CompressibleMoistEulerEquations2D)
   @unpack g = equations
   rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
   tmp = rho_v2
@@ -285,13 +272,6 @@ end
 end
 
 
-# Source term with gravity and phase change
-@inline function source_terms_moist_bubble(u, x, t, equations::CompressibleMoistEulerEquations2D)
-
-  return source_terms_geopotential(u, equations) + source_terms_phase_change(u, equations)
-end
-
-
 # Calculate Q_ph for a state u.
 # This source term models the phase chance between could water and vapor.
 @inline function phase_change_term(u, equations::CompressibleMoistEulerEquations2D)
@@ -321,12 +301,20 @@ end
 
 
 # Add the source containing Q_ph
-@inline function source_terms_phase_change(u, equations::CompressibleMoistEulerEquations2D)
+@inline function source_terms_phase_change(u, x, t, equations::CompressibleMoistEulerEquations2D)
 
   Q_ph = phase_change_term(u, equations)
   
   return SVector(zero(eltype(u)), zero(eltype(u)), zero(eltype(u)),
                  zero(eltype(u)) , Q_ph, -Q_ph)
+end
+
+
+# Source term with gravity and phase change
+@inline function source_terms_moist_air(u, x, t, equations::CompressibleMoistEulerEquations2D)
+
+  return (source_terms_geopotential(u, x, t, equations) + 
+          source_terms_phase_change(u, x, t, equations))
 end
 
 

@@ -222,7 +222,7 @@ boundary_condition = (x_neg=boundary_condition_slip_wall,
                       y_neg=boundary_condition_slip_wall,
                       y_pos=boundary_condition_slip_wall)
 
-source_term = source_terms_moist_bubble
+source_term = source_terms_moist_air
 
 ###############################################################################
 # Get the DG approximation space

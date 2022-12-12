@@ -164,10 +164,7 @@ export splitting_steger_warming, splitting_vanleer_haenel,
 export initial_condition_constant,
        initial_condition_gauss,
        initial_condition_density_wave,
-       initial_condition_weak_blast_wave,
-       initial_condition_gaussian_bubble, source_terms_warm_bubble,
-       initial_condition_warm_bubble, source_terms_moist_bubble,
-       initial_condition_moist_bubble, source_terms_rain
+       initial_condition_weak_blast_wave
 
 export boundary_condition_do_nothing,
        boundary_condition_periodic,
@@ -185,7 +182,7 @@ export initial_condition_convergence_test_dry, source_terms_convergence_test_dry
 export source_terms_harmonic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
-export source_terms_geopotential
+export source_terms_geopotential, source_terms_phase_change, source_terms_nonhydrostatic_raylight_sponge, source_terms_moist_air
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons, cons2drypot, cons2moistpot, cons2aeqpot

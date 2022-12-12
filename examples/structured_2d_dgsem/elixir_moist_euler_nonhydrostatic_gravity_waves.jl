@@ -35,9 +35,9 @@ equations = CompressibleMoistEulerEquations2D()
 initial_condition = initial_condition_nonhydrostatic_gravity_wave
 
 function source(u, x, t, equations::CompressibleMoistEulerEquations2D)
-  return (Trixi.source_terms_geopotential(u, equations) +
-          Trixi.source_terms_phase_change(u, equations::CompressibleMoistEulerEquations2D) +
-          Trixi.source_terms_nonhydrostatic_raylight_sponge(u, x, t, equations::CompressibleMoistEulerEquations2D))
+  return (source_terms_geopotential(u, x, t, equations) +
+          source_terms_phase_change(u, x, t, equations::CompressibleMoistEulerEquations2D) +
+          source_terms_nonhydrostatic_raylight_sponge(u, x, t, equations::CompressibleMoistEulerEquations2D))
 end
 
 source_term=source
