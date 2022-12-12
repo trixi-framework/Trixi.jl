@@ -230,7 +230,7 @@ source_term = source_terms_moist_air
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 
-surface_flux = flux_LMARS
+surface_flux = FluxLMARS(360.0)
 volume_flux = flux_chandrashekar
 
 

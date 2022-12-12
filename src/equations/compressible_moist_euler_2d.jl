@@ -476,13 +476,12 @@ end
 # Lin, A Control-Volume Model of the Compressible Euler Equations with a Vertical Lagrangian
 # Coordinate Monthly Weather Review Vol. 141.7, pages 2526–2544, 2013, 
 # https://journals.ametsoc.org/view/journals/mwre/141/7/mwr-d-12-00129.1.xml.
-@inline function flux_LMARS(u_ll, u_rr, normal_direction::AbstractVector ,equations::CompressibleMoistEulerEquations2D)
-  @unpack a = equations
+@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, normal_direction::AbstractVector, 
+  equations::CompressibleMoistEulerEquations2D)
+  a = flux_lmars.speed_of_sound
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, rho_qv_ll, rho_ql_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, rho_qv_rr, rho_ql_rr = u_rr
-  _, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
-  _, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
+  rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
 
   v_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] 
   v_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
