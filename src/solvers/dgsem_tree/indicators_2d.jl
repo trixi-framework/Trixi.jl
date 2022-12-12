@@ -198,10 +198,10 @@ function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquation
   alpha_mean_per_timestep = zeros(real(basis), 200)
   time_per_timestep = zeros(real(basis), 200)
 
-  idp_bounds_delta_threaded = [zeros(real(basis), length) for _ in 1:Threads.nthreads()]
+  idp_bounds_delta = zeros(real(basis), length)
 
   return (; alpha_max_per_timestep, alpha_mean_per_timestep, time_per_timestep,
-            ContainerShockCapturingIndicator, idp_bounds_delta_threaded)
+            ContainerShockCapturingIndicator, idp_bounds_delta)
 end
 
 function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::AbstractArray{<:Any,4},
@@ -410,7 +410,7 @@ end
     neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
     if orientation == 1
-      if neighbor_side == 2 # boundary_side == 1
+      if neighbor_side == 2 # Element is on the right, boundary on the left
         for j in eachnode(dg)
           u_inner = get_node_vars(u, equations, dg, 1, j, element)
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
@@ -419,7 +419,7 @@ end
 
           var_minmax[1, j, element] = minmax(var_minmax[1, j, element], var_outer)
         end
-      else # boundary_side == 2
+      else # Element is on the left, boundary on the right
         for j in eachnode(dg)
           u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
@@ -430,7 +430,7 @@ end
         end
       end
     else # orientation == 2
-      if neighbor_side == 2 # boundary_side == 1
+      if neighbor_side == 2 # Element is on the right, boundary on the left
         for i in eachnode(dg)
           u_inner = get_node_vars(u, equations, dg, i, 1, element)
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
@@ -439,7 +439,7 @@ end
 
           var_minmax[i, 1, element] = minmax(var_minmax[i, 1, element], var_outer)
         end
-      else # boundary_side == 2
+      else # Element is on the left, boundary on the right
         for i in eachnode(dg)
           u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
