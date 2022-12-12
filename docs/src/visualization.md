@@ -151,7 +151,7 @@ can visualize vorticity for a compressible version of the
 ```jldoctest brown_minion_vortex
 julia> using Trixi, Plots
 
-julia> redirect_stdout(devnull) do
+julia> redirect_stdio(stdout=devnull, stderr=devnull) do
          # runs the elixir without any output
          trixi_include(@__MODULE__,
            joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_brown_minion_vortex.jl"))
@@ -209,7 +209,7 @@ following code plots two surfaces:
 ```jldoctest iplot_with_ScalarPlotData2D
 julia> using Trixi, CairoMakie
 
-julia> redirect_stdout(devnull) do
+julia> redirect_stdio(stdout=devnull, stderr=devnull) do
          # runs the elixir without any output
          trixi_include(@__MODULE__,
            joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
