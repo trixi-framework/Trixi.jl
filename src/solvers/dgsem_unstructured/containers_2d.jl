@@ -62,7 +62,7 @@ function init_elements(mesh::UnstructuredMesh2D, equations, basis, RealT, uEltyp
 end
 
 
-function init_elements!(elements::UnstructuredElementContainer2D, mesh, basis)
+function init_elements!(elements::UnstructuredElementContainer2D, mesh, basis::LobattoLegendreBasis)
   four_corners = zeros(eltype(mesh.corners), 4, 2)
 
   # loop through elements and call the correct constructor based on whether the element is curved
@@ -80,7 +80,7 @@ function init_elements!(elements::UnstructuredElementContainer2D, mesh, basis)
 end
 
 
-# initialize all the values in the container of a general element (either straight sided or curved)
+# initialize all the values in the container of a general DG element (either straight sided or curved)
 function init_element!(elements, element, nodes, corners_or_surface_curves)
 
   calc_node_coordinates!(elements.node_coordinates, element, nodes, corners_or_surface_curves)
