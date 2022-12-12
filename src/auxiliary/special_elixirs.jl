@@ -34,6 +34,7 @@ julia> redirect_stdout(devnull) do
 ```
 """
 function trixi_include(mod::Module, elixir::AbstractString; kwargs...)
+  @info "You just called `trixi_include`. Julia may now compile the code, please be patient."
   Base.include(ex -> replace_assignments(insert_maxiters(ex); kwargs...), mod, elixir)
 end
 
