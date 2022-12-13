@@ -767,15 +767,13 @@ end
   return nothing
 end
 
-@inline function calc_lambdas_bar_states!(u, t, mesh,
-    nonconservative_terms, equations, indicator::IndicatorIDP, dg, cache, boundary_conditions)
-
-  return nothing
-end
-
 @inline function calc_lambdas_bar_states!(u, t, mesh::TreeMesh,
-    nonconservative_terms, equations, indicator::IndicatorMCL, dg, cache, boundary_conditions)
-  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerShockCapturingIndicator
+    nonconservative_terms, equations, indicator, dg, cache, boundary_conditions)
+
+  if indicator isa IndicatorIDP && !indicator.BarStates
+    return nothing
+  end
+  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerBarStates
 
   # Calc lambdas and bar states inside elements
   @threaded for element in eachelement(dg, cache)
@@ -929,13 +927,130 @@ end
   return nothing
 end
 
-@inline function calc_var_bounds!(u, mesh, nonconservative_terms, equations, indicator, dg, cache)
+@inline function calc_var_bounds!(u, mesh, nonconservative_terms, equations, indicator::IndicatorIDP, dg, cache)
+  if !indicator.BarStates
+    return nothing
+  end
+  @unpack var_bounds = indicator.cache.ContainerShockCapturingIndicator
+  @unpack bar_states1, bar_states2 = indicator.cache.ContainerBarStates
+
+  counter = 1
+  # Density
+  if indicator.IDPDensityTVD
+    rho_min = var_bounds[1]
+    rho_max = var_bounds[2]
+    @threaded for element in eachelement(dg, cache)
+      rho_min[:, :, element] .= typemax(eltype(rho_min))
+      rho_max[:, :, element] .= typemin(eltype(rho_max))
+      for j in eachnode(dg), i in eachnode(dg)
+        rho_min[i, j, element] = min(rho_min[i, j, element], u[1, i, j, element])
+        rho_max[i, j, element] = max(rho_max[i, j, element], u[1, i, j, element])
+        # TODO: Add source term!
+        # - xi direction
+        rho_min[i, j, element] = min(rho_min[i, j, element], bar_states1[1, i, j, element])
+        rho_max[i, j, element] = max(rho_max[i, j, element], bar_states1[1, i, j, element])
+        # + xi direction
+        rho_min[i, j, element] = min(rho_min[i, j, element], bar_states1[1, i+1, j, element])
+        rho_max[i, j, element] = max(rho_max[i, j, element], bar_states1[1, i+1, j, element])
+        # - eta direction
+        rho_min[i, j, element] = min(rho_min[i, j, element], bar_states2[1, i, j, element])
+        rho_max[i, j, element] = max(rho_max[i, j, element], bar_states2[1, i, j, element])
+        # + eta direction
+        rho_min[i, j, element] = min(rho_min[i, j, element], bar_states2[1, i, j+1, element])
+        rho_max[i, j, element] = max(rho_max[i, j, element], bar_states2[1, i, j+1, element])
+      end
+    end
+    counter += 2
+  end
+  # Pressure
+  if indicator.IDPPressureTVD
+    p_min = var_bounds[counter]
+    p_max = var_bounds[counter+1]
+    @threaded for element in eachelement(dg, cache)
+      p_min[:, :, element] .= typemax(eltype(p_min))
+      p_max[:, :, element] .= typemin(eltype(p_max))
+      for j in eachnode(dg), i in eachnode(dg)
+        p = pressure(get_node_vars(u, equations, dg, i, j, element), equations)
+        p_min[i, j, element] = min(p_min[i, j, element], p)
+        p_max[i, j, element] = max(p_max[i, j, element], p)
+        # - xi direction
+        p = pressure(get_node_vars(bar_states1, equations, dg, i, j, element), equations)
+        p_min[i, j, element] = min(p_min[i, j, element], p)
+        p_max[i, j, element] = max(p_max[i, j, element], p)
+        # + xi direction
+        p = pressure(get_node_vars(bar_states1, equations, dg, i+1, j, element), equations)
+        p_min[i, j, element] = min(p_min[i, j, element], p)
+        p_max[i, j, element] = max(p_max[i, j, element], p)
+        # - eta direction
+        p = pressure(get_node_vars(bar_states2, equations, dg, i, j, element), equations)
+        p_min[i, j, element] = min(p_min[i, j, element], p)
+        p_max[i, j, element] = max(p_max[i, j, element], p)
+        # + eta direction
+        p = pressure(get_node_vars(bar_states2, equations, dg, i, j+1, element), equations)
+        p_min[i, j, element] = min(p_min[i, j, element], p)
+        p_max[i, j, element] = max(p_max[i, j, element], p)
+      end
+    end
+    counter += 2
+  end
+  if indicator.IDPPositivity
+    counter += !indicator.IDPDensityTVD + !indicator.IDPPressureTVD
+  end
+  # Specific Entropy
+  if indicator.IDPSpecEntropy
+    s_min = var_bounds[counter]
+    @threaded for element in eachelement(dg, cache)
+      s_min[:, :, element] .= typemax(eltype(s_min))
+      for j in eachnode(dg), i in eachnode(dg)
+        s = entropy_spec(get_node_vars(u, equations, dg, i, j, element), equations)
+        s_min[i, j, element] = min(s_min[i, j, element], s)
+        # TODO: Add source?
+        # - xi direction
+        s = entropy_spec(get_node_vars(bar_states1, equations, dg, i, j, element), equations)
+        s_min[i, j, element] = min(s_min[i, j, element], s)
+        # + xi direction
+        s = entropy_spec(get_node_vars(bar_states1, equations, dg, i+1, j, element), equations)
+        s_min[i, j, element] = min(s_min[i, j, element], s)
+        # - eta direction
+        s = entropy_spec(get_node_vars(bar_states2, equations, dg, i, j, element), equations)
+        s_min[i, j, element] = min(s_min[i, j, element], s)
+        # + eta direction
+        s = entropy_spec(get_node_vars(bar_states2, equations, dg, i, j+1, element), equations)
+        s_min[i, j, element] = min(s_min[i, j, element], s)
+      end
+    end
+    counter += 1
+  end
+  # Mathematical entropy
+  if indicator.IDPMathEntropy
+    s_max = var_bounds[counter]
+    @threaded for element in eachelement(dg, cache)
+      s_max[:, :, element] .= typemin(eltype(s_max))
+      for j in eachnode(dg), i in eachnode(dg)
+        s = entropy_math(get_node_vars(u, equations, dg, i, j, element), equations)
+        s_max[i, j, element] = max(s_max[i, j, element], s)
+        # - xi direction
+        s = entropy_math(get_node_vars(bar_states1, equations, dg, i, j, element), equations)
+        s_max[i, j, element] = max(s_max[i, j, element], s)
+        # + xi direction
+        s = entropy_math(get_node_vars(bar_states1, equations, dg, i+1, j, element), equations)
+        s_max[i, j, element] = max(s_max[i, j, element], s)
+        # - eta direction
+        s = entropy_math(get_node_vars(bar_states2, equations, dg, i, j, element), equations)
+        s_max[i, j, element] = max(s_max[i, j, element], s)
+        # + eta direction
+        s = entropy_math(get_node_vars(bar_states2, equations, dg, i, j+1, element), equations)
+        s_max[i, j, element] = max(s_max[i, j, element], s)
+      end
+    end
+  end
 
   return nothing
 end
 
 @inline function calc_var_bounds!(u, mesh, nonconservative_terms, equations, indicator::IndicatorMCL, dg, cache)
-  @unpack var_min, var_max, bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
+  @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
+  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
 
   @threaded for element in eachelement(dg, cache)
     for v in eachvariable(equations)
@@ -988,7 +1103,8 @@ end
 
 @inline function calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms, equations, indicator, dg, element, cache)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
-  @unpack var_min, var_max, lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerShockCapturingIndicator
+  @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
+  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
 
   # The antidiffuse flux can have very small absolute values. This can lead to values of f_min which are zero up to machine accuracy.
   # To avoid further calculations with these values, we replace them by 0.
@@ -1220,13 +1336,11 @@ end
   return nothing
 end
 
-@inline function calc_lambda!(u::AbstractArray{<:Any,4}, mesh, equations, dg, cache, indicator)
-
-  return nothing
-end
-
-@inline function calc_lambda!(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh2D, equations, dg, cache, indicator::IndicatorMCL, boundary_conditions)
-  @unpack lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
+@inline function calc_lambda!(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh2D, equations, dg, cache, indicator, boundary_conditions)
+  if indicator isa IndicatorIDP && !indicator.BarStates
+    return nothing
+  end
+  @unpack lambda1, lambda2 = indicator.cache.ContainerBarStates
 
   # Calc lambdas inside the elements
   @threaded for element in eachelement(dg, cache)
@@ -1448,7 +1562,8 @@ end
 
 # 2d, IndicatorMCL
 @inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, mesh, equations, solver, cache, indicator::IndicatorMCL)
-  @unpack var_min, var_max, bar_states1, bar_states2, lambda1, lambda2 = solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
+  @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
+  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
   @unpack idp_bounds_delta = solver.volume_integral.indicator.cache
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
 

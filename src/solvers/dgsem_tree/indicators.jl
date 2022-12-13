@@ -174,6 +174,7 @@ struct IndicatorIDP{RealT<:Real, Cache, Indicator} <: AbstractIndicator
   IDPPositivity::Bool
   IDPSpecEntropy::Bool
   IDPMathEntropy::Bool
+  BarStates::Bool
   cache::Cache
   positCorrFactor::RealT          # Correction factor for IDPPositivity
   IDPMaxIter::Int                 # Maximal number of iterations for Newton's method
@@ -193,6 +194,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
                       IDPPositivity=false,
                       IDPSpecEntropy=false,
                       IDPMathEntropy=false,
+                      BarStates=false,
                       positCorrFactor=0.1, IDPMaxIter=10,
                       newton_tol=(1.0e-12, 1.0e-14), IDP_gamma=2*ndims(equations),
                       IDPCheckBounds=false,
@@ -207,7 +209,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
   length = 2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
               min(IDPPositivity, !IDPDensityTVD) + min(IDPPositivity, !IDPPressureTVD)
 
-  cache = create_cache(IndicatorIDP, equations, basis, length)
+  cache = create_cache(IndicatorIDP, equations, basis, length, BarStates)
 
   if indicator_smooth
     IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_max=1.0, alpha_smooth=false,
@@ -216,7 +218,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     IndicatorHG = nothing
   end
   IndicatorIDP{typeof(positCorrFactor), typeof(cache), typeof(IndicatorHG)}(IDPDensityTVD, IDPPressureTVD,
-      IDPPositivity, IDPSpecEntropy, IDPMathEntropy, cache, positCorrFactor, IDPMaxIter,
+      IDPPositivity, IDPSpecEntropy, IDPMathEntropy, BarStates, cache, positCorrFactor, IDPMaxIter,
       newton_tol, IDP_gamma, IDPCheckBounds, indicator_smooth, thr_smooth, IndicatorHG)
 end
 
@@ -239,6 +241,12 @@ function Base.show(io::IO, indicator::IndicatorIDP)
   end
   indicator.indicator_smooth && print(io, ", Smoothness indicator: ", indicator.IndicatorHG,
     " with threshold ", indicator.thr_smooth, "), ")
+  print(io, "Local bounds with ")
+  if indicator.BarStates
+    print(io, "Bar States")
+  else
+    print(io, "FV solution")
+  end
   print(io, ")")
 end
 

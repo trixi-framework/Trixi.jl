@@ -191,8 +191,14 @@ end
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length)
+function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length, BarStates)
   ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorIDP{real(basis)}(0, nnodes(basis), length)
+
+  cache = (; )
+  if BarStates
+    ContainerBarStates = Trixi.ContainerBarStates{real(basis)}(0, nvariables(equations), nnodes(basis))
+    cache = (; cache..., ContainerBarStates)
+  end
 
   alpha_max_per_timestep  = zeros(real(basis), 200)
   alpha_mean_per_timestep = zeros(real(basis), 200)
@@ -200,8 +206,8 @@ function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquation
 
   idp_bounds_delta = zeros(real(basis), length)
 
-  return (; alpha_max_per_timestep, alpha_mean_per_timestep, time_per_timestep,
-            ContainerShockCapturingIndicator, idp_bounds_delta)
+  return (; cache..., alpha_max_per_timestep, alpha_mean_per_timestep, time_per_timestep,
+          ContainerShockCapturingIndicator, idp_bounds_delta)
 end
 
 function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::AbstractArray{<:Any,4},
@@ -400,9 +406,6 @@ end
     end
   end
 
-  if boundary_conditions isa BoundaryConditionPeriodic
-    return nothing
-  end
   # Calc bounds at physical boundaries
   for boundary in eachboundary(dg, cache)
     element = cache.boundaries.neighbor_ids[boundary]
@@ -462,7 +465,9 @@ end
 
   rho_min = var_bounds[1]
   rho_max = var_bounds[2]
-  calc_bounds_2sided!(rho_min, rho_max, density, u_safe, mesh, equations, dg, cache)
+  if !indicator_IDP.BarStates
+    calc_bounds_2sided!(rho_min, rho_max, density, u_safe, t, semi)
+  end
 
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
@@ -522,7 +527,9 @@ end
   offset = 2 * indicator_IDP.IDPDensityTVD
   p_min = var_bounds[1 + offset]
   p_max = var_bounds[2 + offset]
-  calc_bounds_2sided!(p_min, p_max, pressure, u_safe, mesh, equations, dg, cache)
+  if !indicator_IDP.BarStates
+    calc_bounds_2sided!(p_min, p_max, pressure, u_safe, t, semi)
+  end
 
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
@@ -589,7 +596,9 @@ end
 
   offset = 2 * (IDPDensityTVD + IDPPressureTVD) + min(IDPPositivity, !IDPDensityTVD) + min(IDPPositivity, !IDPPressureTVD)
   s_min = var_bounds[offset + 1]
-  calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u_old, mesh, equations, dg, cache)
+  if !indicator_IDP.BarStates
+    calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u_old, t, semi)
+  end
 
   # Perform Newton's bisection method to find new alpha
   @threaded for element in elements
@@ -617,7 +626,9 @@ specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol
   offset = 2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy +
            min(IDPPositivity, !IDPDensityTVD)+ min(IDPPositivity, !IDPPressureTVD)
   s_max = var_bounds[offset + 1]
-  calc_bounds_1sided!(s_max, max, typemin, entropy_math, u_old, mesh, equations, dg, cache)
+  if !indicator_IDP.BarStates
+    calc_bounds_1sided!(s_max, max, typemin, entropy_math, u_old, t, semi)
+  end
 
   # Perform Newton's bisection method to find new alpha
   @threaded for element in elements
@@ -897,10 +908,11 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(indicator::Type{IndicatorMCL}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length)
   ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorMCL{real(basis)}(0, nvariables(equations), nnodes(basis))
+  ContainerBarStates = Trixi.ContainerBarStates{real(basis)}(0, nvariables(equations), nnodes(basis))
 
   idp_bounds_delta = zeros(real(basis), length)
 
-  return (; ContainerShockCapturingIndicator, idp_bounds_delta)
+  return (; ContainerShockCapturingIndicator, ContainerBarStates, idp_bounds_delta)
 end
 
 @inline function update_alpha_per_timestep!(indicator::IndicatorMCL, timestep, n_stages, semi, mesh)

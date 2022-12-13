@@ -108,12 +108,6 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
   # Resize container
   resize!(integrator.p, nelements(integrator.p.solver, integrator.p.cache))
 
-  # Calc subcell normal directions before StepsizeCallback
-  @unpack indicator = integrator.p.solver.volume_integral
-  if indicator isa IndicatorMCL
-    calc_normal_directions!(indicator.cache.ContainerShockCapturingIndicator, mesh_equations_solver_cache(integrator.p)...)
-  end
-
   # initialize callbacks
   if callback isa CallbackSet
     for cb in callback.continuous_callbacks
@@ -275,21 +269,22 @@ function Base.resize!(semi::AbstractSemidiscretization, new_size)
   resize!(semi.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)
   # Calc subcell normal directions before StepsizeCallback
   @unpack indicator = semi.solver.volume_integral
-  if indicator isa IndicatorMCL
-    calc_normal_directions!(indicator.cache.ContainerShockCapturingIndicator, mesh_equations_solver_cache(semi)...)
+  if indicator isa IndicatorMCL || (indicator isa IndicatorIDP && indicator.BarStates)
+    resize!(semi.solver.volume_integral.indicator.cache.ContainerBarStates, new_size)
+    calc_normal_directions!(indicator.cache.ContainerBarStates, mesh_equations_solver_cache(semi)...)
   end
 end
 
-function calc_normal_directions!(ContainerShockCapturingIndicator, mesh::TreeMesh, equations, dg, cache)
+function calc_normal_directions!(ContainerBarStates, mesh::TreeMesh, equations, dg, cache)
 
   return nothing
 end
 
-function calc_normal_directions!(ContainerShockCapturingIndicator, mesh::StructuredMesh, equations, dg, cache)
+function calc_normal_directions!(ContainerBarStates, mesh::StructuredMesh, equations, dg, cache)
   @unpack weights, derivative_matrix = dg.basis
   @unpack contravariant_vectors = cache.elements
 
-  @unpack normal_direction_xi, normal_direction_eta = ContainerShockCapturingIndicator
+  @unpack normal_direction_xi, normal_direction_eta = ContainerBarStates
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg)
       normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, element)

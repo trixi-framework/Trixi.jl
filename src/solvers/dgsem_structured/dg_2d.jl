@@ -417,12 +417,16 @@ end
 
 
 @inline function calc_lambdas_bar_states!(u, t, mesh::StructuredMesh,
-    nonconservative_terms, equations, indicator::IndicatorMCL, dg, cache, boundary_conditions)
-  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerShockCapturingIndicator
+    nonconservative_terms, equations, indicator, dg, cache, boundary_conditions)
+
+  if indicator isa IndicatorIDP && !indicator.BarStates
+    return nothing
+  end
+  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerBarStates
   @unpack weights, derivative_matrix = dg.basis
   @unpack contravariant_vectors = cache.elements
 
-  @unpack normal_direction_xi, normal_direction_eta = indicator.cache.ContainerShockCapturingIndicator
+  @unpack normal_direction_xi, normal_direction_eta = indicator.cache.ContainerBarStates
 
   # Calc lambdas and bar states inside elements
   @threaded for element in eachelement(dg, cache)
@@ -594,12 +598,15 @@ end
 end
 
 
-@inline function calc_lambda!(u::AbstractArray{<:Any,4}, t, mesh::StructuredMesh, equations, dg, cache, indicator::IndicatorMCL, boundary_conditions)
-  @unpack lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
+@inline function calc_lambda!(u::AbstractArray{<:Any,4}, t, mesh::StructuredMesh, equations, dg, cache, indicator, boundary_conditions)
+  if indicator isa IndicatorIDP && !indicator.BarStates
+    return nothing
+  end
+  @unpack lambda1, lambda2 = indicator.cache.ContainerBarStates
   @unpack weights, derivative_matrix = dg.basis
   @unpack contravariant_vectors = cache.elements
 
-  @unpack normal_direction_xi, normal_direction_eta = indicator.cache.ContainerShockCapturingIndicator
+  @unpack normal_direction_xi, normal_direction_eta = indicator.cache.ContainerBarStates
 
   # Calc lambdas inside the elements
   @threaded for element in eachelement(dg, cache)
