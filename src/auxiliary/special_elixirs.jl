@@ -25,11 +25,12 @@ for ODEs, see https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscella
 # Examples
 
 ```jldoctest
-julia> redirect_stdio(stdout=devnull, stderr=devnull) do
+julia> redirect_stdout(devnull) do
          trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_1d_dgsem", "elixir_advection_extended.jl"),
                        tspan=(0.0, 0.1))
          sol.t[end]
        end
+[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.
 0.1
 ```
 """
