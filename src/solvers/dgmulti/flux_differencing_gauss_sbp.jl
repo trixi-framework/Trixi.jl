@@ -28,7 +28,7 @@ end
 # type parameters for `TensorProductFaceOperator`.
 abstract type AbstractGaussOperator end
 struct Interpolation <: AbstractGaussOperator end
-# - `Projection{ScaleByFaceWeights=Static.False()}` corresponds to the operator `Pf = M \ Vf'`,
+# - `Projection{ScaleByFaceWeights=Static.False()}` corresponds to the operator `projection_matrix_gauss_to_face = M \ Vf'`,
 #   which is used in `VolumeIntegralFluxDifferencing`.
 # - `Projection{ScaleByFaceWeights=Static.True()}` corresponds to the quadrature-based lifting
 #   operator `LIFT = M \ (Vf' * diagm(rd.wf))`, which is used in `SurfaceIntegralWeakForm`
@@ -386,9 +386,9 @@ function create_cache(mesh::DGMultiMesh, equations,
 
   # specialized operators to perform tensor product interpolation to faces for Gauss nodes
   interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
-  Pf = TensorProductGaussFaceOperator(Projection{Static.False()}(), dg)
+  projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{Static.False()}(), dg)
 
-  # `LIFT` matrix for Gauss nodes - this is equivalent to `Pf` scaled by `diagm(rd.wf)`,
+  # `LIFT` matrix for Gauss nodes - this is equivalent to `projection_matrix_gauss_to_face` scaled by `diagm(rd.wf)`,
   # where `rd.wf` are Gauss node face quadrature weights.
   gauss_LIFT = TensorProductGaussFaceOperator(Projection{Static.True()}(), dg)
 
@@ -396,7 +396,7 @@ function create_cache(mesh::DGMultiMesh, equations,
   rhs_volume_local_threaded   = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
   gauss_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
 
-  return (; cache..., Pf, gauss_LIFT, inv_gauss_weights,
+  return (; cache..., projection_matrix_gauss_to_face, gauss_LIFT, inv_gauss_weights,
          rhs_volume_local_threaded, gauss_volume_local_threaded,
          interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
          interp_matrix_gauss_to_face)
@@ -475,7 +475,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
   # After computing the volume integral, we transform back to Lobatto nodes.
   # This allows us to reuse the other DGMulti routines as-is.
   @unpack interp_matrix_gauss_to_lobatto = cache
-  @unpack Ph, Pf, inv_gauss_weights = cache
+  @unpack projection_matrix_gauss_to_face, inv_gauss_weights = cache
 
   rd = dg.basis
   volume_indices = Base.OneTo(rd.Nq)
@@ -502,12 +502,12 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
 
     # Here, we exploit that under a Gauss nodal basis the structure of the projection
-    # matrix `Ph = [diagm(1 ./ wq), Pf]` such that `Ph * [u; uf] = (u ./ wq) + Pf * uf`.
+    # matrix `Ph = [diagm(1 ./ wq), projection_matrix_gauss_to_face]` such that `Ph * [u; uf] = (u ./ wq) + projection_matrix_gauss_to_face * uf`.
     local_volume_flux = view(rhs_local, volume_indices)
     local_face_flux = view(rhs_local, face_indices)
 
-    # initialize rhs_volume_local = Pf * local_face_flux
-    apply_to_each_field(mul_by!(Pf), rhs_volume_local, local_face_flux)
+    # initialize rhs_volume_local = projection_matrix_gauss_to_face * local_face_flux
+    apply_to_each_field(mul_by!(projection_matrix_gauss_to_face), rhs_volume_local, local_face_flux)
 
     # accumulate volume contributions
     for i in eachindex(rhs_volume_local)
