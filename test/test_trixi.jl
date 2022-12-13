@@ -169,6 +169,8 @@ macro test_nowarn_mod(expr, additional_ignore_content=String[])
         ignore_content = Any[
           # We need to ignore steady state information reported by our callbacks
           r"┌ Info:   Steady state tolerance reached\n│   steady_state_callback .+\n└   t = .+\n",
+          # We also ignore our own compilation messages
+          "[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.\n",
           # TODO: Upstream (PlotUtils). This should be removed again once the
           #       deprecated stuff is fixed upstream.
           "WARNING: importing deprecated binding Colors.RGB1 into PlotUtils.\n",
