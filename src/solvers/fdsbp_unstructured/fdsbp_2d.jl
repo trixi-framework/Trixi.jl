@@ -60,21 +60,21 @@ end
     u_element = view(u_vectors,  :, :, element)
 
     # x direction
-    for j in eachnode(dg), i in eachnode(dg)
-      Ja1 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
-      f_element[i, j] = flux(u_element[i, j], Ja1, equations)
-    end
     for j in eachnode(dg)
+      for i in eachnode(dg)
+        Ja1 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+        f_element[i, j] = flux(u_element[i, j], Ja1, equations)
+      end
       mul!(view(du_vectors, :, j, element), D, view(f_element, :, j),
            one(eltype(du)), one(eltype(du)))
     end
 
     # y direction
-    for j in eachnode(dg), i in eachnode(dg)
-      Ja2 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
-      f_element[i, j] = flux(u_element[i, j], Ja2, equations)
-    end
     for i in eachnode(dg)
+      for j in eachnode(dg)
+        Ja2 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+        f_element[i, j] = flux(u_element[i, j], Ja2, equations)
+      end
       mul!(view(du_vectors, i, :, element), D, view(f_element, i, :),
            one(eltype(du)), one(eltype(du)))
     end
