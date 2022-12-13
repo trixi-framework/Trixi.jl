@@ -34,11 +34,14 @@ struct Interpolation <: AbstractGaussOperator end
 #   operator `LIFT = M \ (Vf' * diagm(rd.wf))`, which is used in `SurfaceIntegralWeakForm`
 struct Projection{ScaleByFaceWeights}  <: AbstractGaussOperator end
 
+# used to dispatch for different Gauss interpolation operators
+abstract type AbstractTensorProductGaussOperator end
+
 #   TensorProductGaussFaceOperator{Tmat, Ti}
 #
 # Data for performing tensor product interpolation from volume nodes to face nodes.
 struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperator,
-                                      Tmat, Tweights, Tfweights, Tindices}
+                                      Tmat, Tweights, Tfweights, Tindices} <: AbstractTensorProductGaussOperator
   interp_matrix_gauss_to_face_1d::Tmat
   inv_volume_weights_1d::Tweights
   face_weights::Tfweights
@@ -106,13 +109,13 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
                                                                  nnodes_1d, rd.Nfaces)
 end
 
-# specialize behavior of `mul_by!(A::TensorProductGaussFaceOperator)`
-@inline function mul_by!(A::TensorProductGaussFaceOperator)
+# specialize behavior of `mul_by!(A)` where `A isa TensorProductGaussFaceOperator)`
+@inline function mul_by!(A::AbstractTensorProductGaussOperator)
   return (out, x) -> tensor_product_gauss_face_operator!(out, A, x)
 end
 
 @inline function tensor_product_gauss_face_operator!(out::AbstractMatrix,
-                                                     A::TensorProductGaussFaceOperator,
+                                                     A::AbstractTensorProductGaussOperator,
                                                      x::AbstractMatrix)
   @threaded for col in Base.OneTo(size(out, 2))
     tensor_product_gauss_face_operator!(view(out, :, col), A, view(x, :, col))
@@ -441,7 +444,7 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
 end
 
 # Assumes cache.flux_face_values is already computed.
-# Enables tensor product evaluation of `LIFT::TensorProductGaussFaceOperator`.
+# Enables tensor product evaluation of `LIFT isa TensorProductGaussFaceOperator`.
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
                                 mesh::DGMultiMesh, equations,
                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache)
