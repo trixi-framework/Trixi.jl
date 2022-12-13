@@ -96,7 +96,7 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
       # surface at -x
       u_node = get_node_vars(u, equations, dg, 1, l, element)
       # compute internal flux in normal direction on side 4
-      outward_direction = normal_directions[:, l, 4, element]
+      outward_direction = get_node_coords(normal_directions, equations, dg, l, 4, element)
       f_node = flux(u_node, outward_direction, equations)
       f_num  = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
       multiply_add_to_node_vars!(du, inv_weight_left, (f_num - f_node),
@@ -105,7 +105,7 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
       # surface at +x
       u_node = get_node_vars(u, equations, dg, nnodes(dg), l, element)
       # compute internal flux in normal direction on side 2
-      outward_direction = normal_directions[:, l, 2, element]
+      outward_direction = get_node_coords(normal_directions, equations, dg, l, 2, element)
       f_node = flux(u_node, outward_direction, equations)
       f_num  = get_node_vars(surface_flux_values, equations, dg, l, 2, element)
       multiply_add_to_node_vars!(du, inv_weight_right, (f_num - f_node),
@@ -114,7 +114,7 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
       # surface at -y
       u_node = get_node_vars(u, equations, dg, l, 1, element)
       # compute internal flux in normal direction on side 1
-      outward_direction = normal_directions[:, l, 1, element]
+      outward_direction = get_node_coords(normal_directions, equations, dg, l, 1, element)
       f_node = flux(u_node, outward_direction, equations)
       f_num  = get_node_vars(surface_flux_values, equations, dg, l, 1, element)
       multiply_add_to_node_vars!(du, inv_weight_left, (f_num - f_node),
@@ -123,7 +123,7 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
       # surface at +y
       u_node = get_node_vars(u, equations, dg, l, nnodes(dg), element)
       # compute internal flux in normal direction on side 3
-      outward_direction = normal_directions[:, l, 3, element]
+      outward_direction = get_node_coords(normal_directions, equations, dg, l, 3, element)
       f_node = flux(u_node, outward_direction, equations)
       f_num  = get_node_vars(surface_flux_values, equations, dg, l, 3, element)
       multiply_add_to_node_vars!(du, inv_weight_right, (f_num - f_node),
