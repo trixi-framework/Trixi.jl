@@ -47,9 +47,8 @@ end
 
 # construct the metric terms for a FDSBP element "block". Directly use the derivative matrix
 # applied to the node coordinates.
-# TODO: FD performance; this is slow and allocates. Rewrite to use `mul!`
 # TODO: FD; How to make this work for the upwind solver because basis has three available derivative matrices
-function calc_metric_terms!(jacobian_matrix, element, basis::AbstractDerivativeOperator, node_coordinates)
+function calc_metric_terms!(jacobian_matrix, element, D_SBP::AbstractDerivativeOperator, node_coordinates)
 
   # storage format:
   #   jacobian_matrix[1,1,:,:,:] <- X_xi
@@ -58,12 +57,30 @@ function calc_metric_terms!(jacobian_matrix, element, basis::AbstractDerivativeO
   #   jacobian_matrix[2,2,:,:,:] <- Y_eta
 
   # Compute the xi derivatives by applying D on the left
-  jacobian_matrix[1, 1, :, :, element] = Matrix(basis) * node_coordinates[1, :, :, element]
-  jacobian_matrix[2, 1, :, :, element] = Matrix(basis) * node_coordinates[2, :, :, element]
+  # This is basically the same as
+  # jacobian_matrix[1, 1, :, :, element] = Matrix(D_SBP) * node_coordinates[1, :, :, element]
+  # but uses only matrix-vector products instead of a matrix-matrix product.
+  for j in eachnode(D_SBP)
+    mul!(view(jacobian_matrix, 1, 1, :, j, element), D_SBP,
+         view(node_coordinates, 1, :, j, element))
+  end
+  # jacobian_matrix[2, 1, :, :, element] = Matrix(D_SBP) * node_coordinates[2, :, :, element]
+  for j in eachnode(D_SBP)
+    mul!(view(jacobian_matrix, 2, 1, :, j, element), D_SBP,
+         view(node_coordinates, 2, :, j, element))
+  end
 
   # Compute the eta derivatives by applying tranpose of D on the right
-  jacobian_matrix[1, 2, :, :, element] = node_coordinates[1, :, :, element] * Matrix(basis)'
-  jacobian_matrix[2, 2, :, :, element] = node_coordinates[2, :, :, element] * Matrix(basis)'
+  # jacobian_matrix[1, 2, :, :, element] = node_coordinates[1, :, :, element] * Matrix(D_SBP)'
+  for i in eachnode(D_SBP)
+    mul!(view(jacobian_matrix, 1, 2, i, :, element), D_SBP,
+         view(node_coordinates, 1, i, :, element))
+  end
+  # jacobian_matrix[2, 2, :, :, element] = node_coordinates[2, :, :, element] * Matrix(D_SBP)'
+  for i in eachnode(D_SBP)
+    mul!(view(jacobian_matrix, 2, 2, i, :, element), D_SBP,
+         view(node_coordinates, 2, i, :, element))
+  end
 
   return jacobian_matrix
 end
