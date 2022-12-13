@@ -468,7 +468,6 @@ end
   end
 
   # Calc lambdas and bar states at interfaces and periodic boundaries
-  # TODO: Speed this for loop up with mesh.periodicity?
   @threaded for element in eachelement(dg, cache)
     # Get neighboring element ids
     left  = cache.elements.left_neighbors[1, element]
@@ -517,22 +516,18 @@ end
   end
 
   # Calc lambdas and bar states at physical boundaries
-  # TODO: Speed this for loop up with mesh.periodicity?
-  if boundary_conditions isa BoundaryConditionPeriodic
+  if all(mesh.periodicity)
     return nothing
   end
   linear_indices = LinearIndices(size(mesh))
-  # x-direction
-  for cell_y in axes(mesh, 2)
-    element     = linear_indices[begin, cell_y]
-    element_opp = linear_indices[end,   cell_y]
-    left = cache.elements.left_neighbors[1, element]
-    if left == 0 # element is at boundary
+  if !mesh.periodicity[1]
+    # - xi direction
+    for cell_y in axes(mesh, 2)
+      element  = linear_indices[begin, cell_y]
       for j in eachnode(dg)
-        # left side of the domain
         u_inner = get_node_vars(u, equations, dg, 1, j, element)
         u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
-                                            equations, dg, 1, j, element)
+                                           equations, dg, 1, j, element)
         Ja1 = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
         lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, Ja1, equations)
 
@@ -541,34 +536,34 @@ end
         for v in eachvariable(equations)
           bar_states1[v, 1, j, element] = 0.5 * (u_inner[v] + u_outer[v]) - 0.5 * (flux_inner[v] - flux_outer[v]) / lambda1[1, j, element]
         end
-
-        # right side of the domain
-        u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element_opp)
+      end
+    end
+    # + xi direction
+    for cell_y in axes(mesh, 2)
+      element = linear_indices[end, cell_y]
+      for j in eachnode(dg)
+        u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
         u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
-                                            equations, dg, nnodes(dg), j, element_opp)
-        Ja1 = get_contravariant_vector(1, contravariant_vectors, nnodes(dg), j, element_opp)
-        lambda1[nnodes(dg)+1, j, element_opp] = max_abs_speed_naive(u_inner, u_outer, Ja1, equations)
+                                           equations, dg, nnodes(dg), j, element)
+        Ja1 = get_contravariant_vector(1, contravariant_vectors, nnodes(dg), j, element)
+        lambda1[nnodes(dg)+1, j, element] = max_abs_speed_naive(u_inner, u_outer, Ja1, equations)
 
         flux_inner = flux(u_inner, Ja1, equations)
         flux_outer = flux(u_outer, Ja1, equations)
         for v in eachvariable(equations)
-          # TODO: Or change the order of the fluxes? Right - Left
-          bar_states1[v, nnodes(dg), j, element] = 0.5 * (u_inner[v] + u_outer[v]) - 0.5 * (flux_outer[v] - flux_inner[v]) / lambda1[nnodes(dg)+1, j, element_opp]
+          bar_states1[v, nnodes(dg), j, element] = 0.5 * (u_inner[v] + u_outer[v]) - 0.5 * (flux_outer[v] - flux_inner[v]) / lambda1[nnodes(dg)+1, j, element]
         end
       end
     end
   end
-  # y-direction
-  for cell_x in axes(mesh, 1)
-    element     = linear_indices[cell_x, begin]
-    element_opp = linear_indices[cell_x, end]
-    lower = cache.elements.left_neighbors[2, element]
-    if lower == 0 # element is at boundary
+  if !mesh.periodicity[2]
+    # - eta direction
+    for cell_x in axes(mesh, 1)
+      element = linear_indices[cell_x, begin]
       for i in eachnode(dg)
-        # bottom side of the domain
         u_inner = get_node_vars(u, equations, dg, i, 1, element)
         u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
-                                            equations, dg, i, 1, element)
+                                           equations, dg, i, 1, element)
         Ja2 = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
         lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, Ja2, equations)
 
@@ -577,18 +572,22 @@ end
         for v in eachvariable(equations)
           bar_states2[v, i, 1, element] = 0.5 * (u_inner[v] + u_outer[v]) - 0.5 * (flux_inner[v] - flux_outer[v]) / lambda2[i, 1, element]
         end
-
-        # top side of the domain
-        u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element_opp)
+      end
+    end
+    # + eta direction
+    for cell_x in axes(mesh, 1)
+      element = linear_indices[cell_x, end]
+      for i in eachnode(dg)
+        u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
         u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
-                                            equations, dg, i, nnodes(dg), element_opp)
-        Ja2 = get_contravariant_vector(2, contravariant_vectors, i, nnodes(dg), element_opp)
-        lambda2[i, nnodes(dg)+1, element_opp] = max_abs_speed_naive(u_inner, u_outer, Ja2, equations)
+                                            equations, dg, i, nnodes(dg), element)
+        Ja2 = get_contravariant_vector(2, contravariant_vectors, i, nnodes(dg), element)
+        lambda2[i, nnodes(dg)+1, element] = max_abs_speed_naive(u_inner, u_outer, Ja2, equations)
 
         flux_inner = flux(u_inner, Ja2, equations)
         flux_outer = flux(u_outer, Ja2, equations)
         for v in eachvariable(equations)
-          bar_states2[v, i, nnodes(dg), element] = 0.5 * (u_outer[v] + u_inner[v]) - 0.5 * (flux_inner[v] - flux_outer[v]) / lambda2[i, nnodes(dg)+1, element_opp]
+          bar_states2[v, i, nnodes(dg), element] = 0.5 * (u_outer[v] + u_inner[v]) - 0.5 * (flux_outer[v] - flux_inner[v]) / lambda2[i, nnodes(dg)+1, element]
         end
       end
     end
@@ -636,7 +635,6 @@ end
   end
 
   # Calc lambdas at interfaces and periodic boundaries
-  # TODO: Speed this for loop up with mesh.periodicity?
   @threaded for element in eachelement(dg, cache)
     # Get neighboring element ids
     left  = cache.elements.left_neighbors[1, element]
@@ -669,54 +667,55 @@ end
   end
 
   # Calc lambdas at physical boundaries
-  # TODO: Speed this for loop up with mesh.periodicity?
-  if boundary_conditions isa BoundaryConditionPeriodic
+  if all(mesh.periodicity)
     return nothing
   end
   linear_indices = LinearIndices(size(mesh))
-  # x-direction
-  for cell_y in axes(mesh, 2)
-    element     = linear_indices[begin, cell_y]
-    element_opp = linear_indices[end,   cell_y]
-    left = cache.elements.left_neighbors[1, element]
-    if left == 0 # element is at boundary
+  if !mesh.periodicity[1]
+    # - xi direction
+    for cell_y in axes(mesh, 2)
+      element  = linear_indices[begin, cell_y]
       for j in eachnode(dg)
-        # left side of the domain
         u_inner = get_node_vars(u, equations, dg, 1, j, element)
         u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
                                            equations, dg, 1, j, element)
         Ja1 = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
         lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, Ja1, equations)
-
-        # right side of the domain
-        u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element_opp)
+      end
+    end
+    # + xi direction
+    for cell_y in axes(mesh, 2)
+      element = linear_indices[end, cell_y]
+      for j in eachnode(dg)
+        u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
         u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
-                                           equations, dg, nnodes(dg), j, element_opp)
-        Ja1 = get_contravariant_vector(1, contravariant_vectors, nnodes(dg), j, element_opp)
-        lambda1[nnodes(dg)+1, j, element_opp] = max_abs_speed_naive(u_inner, u_outer, Ja1, equations)
+                                           equations, dg, nnodes(dg), j, element)
+        Ja1 = get_contravariant_vector(1, contravariant_vectors, nnodes(dg), j, element)
+        lambda1[nnodes(dg)+1, j, element] = max_abs_speed_naive(u_inner, u_outer, Ja1, equations)
       end
     end
   end
-  # y-direction
-  for cell_x in axes(mesh, 1)
-    element     = linear_indices[cell_x, begin]
-    element_opp = linear_indices[cell_x, end]
-    lower = cache.elements.left_neighbors[2, element]
-    if lower == 0 # element is at boundary
+  if !mesh.periodicity[2]
+    # - eta direction
+    for cell_x in axes(mesh, 1)
+      element = linear_indices[cell_x, begin]
       for i in eachnode(dg)
-        # bottom side of the domain
         u_inner = get_node_vars(u, equations, dg, i, 1, element)
         u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
                                            equations, dg, i, 1, element)
         Ja2 = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
         lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, Ja2, equations)
-
-        # top side of the domain
-        u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element_opp)
+      end
+    end
+    # + eta direction
+    for cell_x in axes(mesh, 1)
+      element = linear_indices[cell_x, end]
+      for i in eachnode(dg)
+        u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
         u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
-                                           equations, dg, i, nnodes(dg), element_opp)
-        Ja2 = get_contravariant_vector(2, contravariant_vectors, i, nnodes(dg), element_opp)
-        lambda2[i, nnodes(dg)+1, element_opp] = max_abs_speed_naive(u_inner, u_outer, Ja2, equations)
+                                           equations, dg, i, nnodes(dg), element)
+        Ja2 = get_contravariant_vector(2, contravariant_vectors, i, nnodes(dg), element)
+        lambda2[i, nnodes(dg)+1, element] = max_abs_speed_naive(u_inner, u_outer, Ja2, equations)
       end
     end
   end
