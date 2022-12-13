@@ -36,6 +36,8 @@ end
 nnodes(D::AbstractDerivativeOperator) = size(D, 1)
 eachnode(D::AbstractDerivativeOperator) = Base.OneTo(nnodes(D))
 get_nodes(D::AbstractDerivativeOperator) = grid(D)
+get_derivative_matrix(D::DerivativeOperator) = D
+get_derivative_matrix(D::SummationByPartsOperators.UpwindOperators) = D.central
 
 # TODO: This is hack to enable the FDSBP solver to use the
 #       `SaveSolutionCallback`.

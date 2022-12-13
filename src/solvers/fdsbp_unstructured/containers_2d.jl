@@ -48,7 +48,7 @@ end
 # construct the metric terms for a FDSBP element "block". Directly use the derivative matrix
 # applied to the node coordinates.
 # TODO: FD; How to make this work for the upwind solver because basis has three available derivative matrices
-function calc_metric_terms!(jacobian_matrix, element, D_SBP::AbstractDerivativeOperator, node_coordinates)
+function calc_metric_terms!(jacobian_matrix, element, basis::AbstractDerivativeOperator, node_coordinates)
 
   # storage format:
   #   jacobian_matrix[1,1,:,:,:] <- X_xi
@@ -56,6 +56,7 @@ function calc_metric_terms!(jacobian_matrix, element, D_SBP::AbstractDerivativeO
   #   jacobian_matrix[2,1,:,:,:] <- Y_xi
   #   jacobian_matrix[2,2,:,:,:] <- Y_eta
 
+  D_SBP = get_derivative_matrix(basis)
   # Compute the xi derivatives by applying D on the left
   # This is basically the same as
   # jacobian_matrix[1, 1, :, :, element] = Matrix(D_SBP) * node_coordinates[1, :, :, element]
