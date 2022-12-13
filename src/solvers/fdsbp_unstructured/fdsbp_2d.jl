@@ -34,6 +34,47 @@ end
                                        nonconservative_terms::Val{false}, equations,
                                        volume_integral::VolumeIntegralStrongForm,
                                        dg::FDSBP, cache)
+  # D = dg.basis # SBP derivative operator
+  # @unpack f_threaded = cache
+
+  # # SBP operators from SummationByPartsOperators.jl implement the basic interface
+  # # of matrix-vector multiplication. Thus, we pass an "array of structures",
+  # # packing all variables per node in an `SVector`.
+  # if nvariables(equations) == 1
+  #   # `reinterpret(reshape, ...)` removes the leading dimension only if more
+  #   # than one variable is used.
+  #   u_vectors  = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
+  #                        nnodes(dg), nnodes(dg), nelements(dg, cache))
+  #   du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
+  #                        nnodes(dg), nnodes(dg), nelements(dg, cache))
+  # else
+  #   u_vectors  = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
+  #   du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du)
+  # end
+
+  # # Use the tensor product structure to compute the discrete derivatives of
+  # # the contravariant fluxes line-by-line and add them to `du` for each element.
+  # @threaded for element in eachelement(dg, cache)
+  #   f_element = f_threaded[Threads.threadid()]
+  #   u_element = view(u_vectors,  :, :, element)
+
+  #   # x direction
+  #   @. f_element = flux(u_element, 1, equations)
+  #   for j in eachnode(dg)
+  #     mul!(view(du_vectors, :, j, element), D, view(f_element, :, j),
+  #          one(eltype(du)), one(eltype(du)))
+  #   end
+
+  #   # y direction
+  #   @. f_element = flux(u_element, 2, equations)
+  #   for i in eachnode(dg)
+  #     mul!(view(du_vectors, i, :, element), D, view(f_element, i, :),
+  #          one(eltype(du)), one(eltype(du)))
+  #   end
+  # end
+
+
+
   # Pull the derivative matrix
   # TODO: FD, improve performance to use `mul!`. Current version is slow and allocates
   D = Matrix(dg.basis) # SBP derivative operator
