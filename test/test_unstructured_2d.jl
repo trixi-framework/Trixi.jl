@@ -155,6 +155,36 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [2.7639232436274392, 3.3985508653311767, 3.3330308209196224, 2.052861364219655],
       tspan = (0.0, 0.25))
   end
+
+  @trixi_testset "elixir_shallowwater_twolayer_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_twolayer_convergence.jl"),
+      l2    = [0.0007953969898161991, 0.00882074628714633, 0.0024322572528892934,
+               0.0007597425017400447, 0.004501238950166439, 0.0015784803573661104,
+               6.849532064729749e-6], 
+      linf  = [0.00592559068081977, 0.08072451118697077, 0.0344854497419107, 0.005892196680485795,
+               0.04262651217675306, 0.014006223513881366, 2.5829318284764646e-5],
+      tspan = (0.0, 0.25))
+  end
+
+  @trixi_testset "elixir_shallowwater_twolayer_well_balaneced.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_twolayer_well_balanced.jl"),
+      l2    = [4.706532184998499e-16, 1.1215950712872183e-15, 6.7822712922421565e-16, 
+               0.002192812926266047, 5.506855295923691e-15, 3.3105180099689275e-15, 
+               0.0021928129262660085],
+      linf  = [4.468647674116255e-15, 1.3607872120431166e-14, 9.557155049520056e-15,
+               0.024280130945632084, 6.68910907640583e-14, 4.7000983997100496e-14,
+               0.024280130945632732],
+      tspan = (0.0, 0.25))
+  end
+
+  @trixi_testset "elixir_shallowwater_twolayer_dam_break.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_twolayer_dam_break.jl"),
+      l2    = [0.01134184331012092, 0.011883197594154408, 0.00011180467236824915, 
+               0.06524144260183219, 0.016317131554366447, 0.00014247470964017937, 0.0],
+      linf  = [0.026537725168125192, 0.024868745448623667, 0.0008969682558990791,
+               0.10551352047348622, 0.03690904440687801, 0.0010708225878796427, 0.0],
+      tspan = (0.0, 0.25))
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory

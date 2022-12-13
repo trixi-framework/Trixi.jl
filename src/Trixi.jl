@@ -129,12 +129,13 @@ export AcousticPerturbationEquations2D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
-       ShallowWaterEquations1D, ShallowWaterEquations2D, TwoLayerShallowWaterEquations1D, TwoLayerShallowWaterEquations2D
+       ShallowWaterEquations1D, ShallowWaterEquations2D, 
+       TwoLayerShallowWaterEquations1D, TwoLayerShallowWaterEquations2D
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
        flux_nonconservative_powell,
-       flux_kennedy_gruber, flux_shima_etal, flux_ec,
+       flux_kennedy_gruber, flux_shima_etal, flux_ec, flux_es,
        flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
