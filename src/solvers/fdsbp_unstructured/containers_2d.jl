@@ -70,7 +70,7 @@ function calc_metric_terms!(jacobian_matrix, element, D_SBP::AbstractDerivativeO
          view(node_coordinates, 2, :, j, element))
   end
 
-  # Compute the eta derivatives by applying tranpose of D on the right
+  # Compute the eta derivatives by applying transpose of D on the right
   # jacobian_matrix[1, 2, :, :, element] = node_coordinates[1, :, :, element] * Matrix(D_SBP)'
   for i in eachnode(D_SBP)
     mul!(view(jacobian_matrix, 1, 2, i, :, element), D_SBP,
