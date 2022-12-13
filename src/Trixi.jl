@@ -26,7 +26,8 @@ using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, dropt
 using Reexport: @reexport
 
 using SciMLBase: CallbackSet, DiscreteCallback,
-                 ODEProblem, ODESolution, ODEFunction
+                 ODEProblem, ODESolution, ODEFunction,
+                 SplitODEProblem
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
                   AbstractODEIntegrator, init, step!, check_error,
                   get_proposed_dt, set_proposed_dt!,
@@ -71,7 +72,8 @@ using SummationByPartsOperators: AbstractDerivativeOperator,
 import SummationByPartsOperators: integrate, semidiscretize,
                                   left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
-  SummationByPartsOperators, derivative_operator, periodic_derivative_operator
+  SummationByPartsOperators, derivative_operator, periodic_derivative_operator,
+  upwind_operators
 
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
@@ -104,8 +106,10 @@ include("auxiliary/p4est.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
+include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
+include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
@@ -130,7 +134,13 @@ export AcousticPerturbationEquations2D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D, 
-       TwoLayerShallowWaterEquations1D, TwoLayerShallowWaterEquations2D
+       TwoLayerShallowWaterEquations1D, TwoLayerShallowWaterEquations2D,
+       LinearizedEulerEquations2D
+
+export LaplaceDiffusion2D,
+       CompressibleNavierStokesDiffusion2D
+
+export GradientVariablesPrimitive, GradientVariablesEntropy
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
@@ -145,18 +155,25 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, 
        FluxLMARS,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
-       FluxHydrostaticReconstruction
+       FluxHydrostaticReconstruction,
+       FluxUpwind
+
+export splitting_steger_warming, splitting_vanleer_haenel,
+       splitting_coirier_vanleer, splitting_lax_friedrichs
 
 export initial_condition_constant,
        initial_condition_gauss,
        initial_condition_density_wave,
        initial_condition_weak_blast_wave
 
-export boundary_condition_periodic,
+export boundary_condition_do_nothing,
+       boundary_condition_periodic,
        BoundaryConditionDirichlet,
+       BoundaryConditionNeumann,
        boundary_condition_noslip_wall,
        boundary_condition_slip_wall,
-       boundary_condition_wall
+       boundary_condition_wall,
+       BoundaryConditionNavierStokesWall, NoSlip, Adiabatic, Isothermal
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export source_terms_harmonic
@@ -174,17 +191,22 @@ export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
+       FDSBP,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
+       SurfaceIntegralUpwind,
        MortarL2
 
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
+
+export SemidiscretizationHyperbolicParabolic
 
 export SemidiscretizationEulerAcoustics
 
@@ -215,6 +237,8 @@ export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
 export VertexMappedMesh # TODO: DGMulti, v0.5. Remove deprecated VertexMappedMesh in next release
+
+export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level

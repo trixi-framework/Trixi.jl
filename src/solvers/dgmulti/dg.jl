@@ -31,33 +31,32 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
 # solution storage formats.
 @inline apply_to_each_field(f::MulByUniformScaling, out, x, args...) = copy!(out, x)
 @inline function apply_to_each_field(f::MulByAccumUniformScaling, out, x, args...)
-  # TODO: DGMulti speed up using threads
-  for (i, x_i) in enumerate(x)
-    out[i] = out[i] + x_i
+  @threaded for i in eachindex(x)
+    out[i] = out[i] + x[i]
   end
 end
 
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
 
 # iteration over all elements in a mesh
-@inline ndofs(mesh::DGMultiMesh, dg::DGMulti, cache) = dg.basis.Np * mesh.md.num_elements
-@inline eachelement(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(mesh.md.num_elements)
+@inline ndofs(mesh::DGMultiMesh, dg::DGMulti, other_args...) = dg.basis.Np * mesh.md.num_elements
+@inline eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(mesh.md.num_elements)
 
 # iteration over quantities in a single element
 @inline nnodes(basis::RefElemData) = basis.Np
-@inline each_face_node(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nfq)
-@inline each_quad_node(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nq)
+@inline each_face_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq)
+@inline each_quad_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq)
 
 # iteration over quantities over the entire mesh (dofs, quad nodes, face nodes).
-@inline each_dof_global(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(ndofs(mesh, dg, cache))
-@inline each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
-@inline each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
+@inline each_dof_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(ndofs(mesh, dg, other_args...))
+@inline each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
+@inline each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
 wrap_array_native(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::DGMultiMesh,
-                                    dg::DGMulti, cache) where {Keys,ValueTypes<:NTuple{N,Any}} where {N}
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes}, mesh::DGMultiMesh,
+                                    dg::DGMulti, cache) where {Keys, ValueTypes<:NTuple{N, Any}} where {N}
   return boundary_conditions
 end
 
@@ -67,7 +66,7 @@ function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
   return StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, array_dimensions...), nvars))
 end
 
-function reset_du!(du, dg::DGMulti, cache)
+function reset_du!(du, dg::DGMulti, other_args...)
   @threaded for i in eachindex(du)
       du[i] = zero(eltype(du))
   end
@@ -92,7 +91,7 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT, 
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
   flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-  if typeof(rd.approximationType) <: Union{SBP, AbstractNonperiodicDerivativeOperator}
+  if typeof(rd.approximation_type) <: Union{SBP, AbstractNonperiodicDerivativeOperator}
     lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
   else
     lift_scalings = nothing
@@ -182,6 +181,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 # interpolates from solution coefficients to face quadrature points
+# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
                              surface_integral, dg::DGMulti)
   rd = dg.basis
@@ -231,13 +231,9 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
     # inner (idM -> minus) and outer (idP -> plus) indices
     idM, idP = mapM[face_node_index], mapP[face_node_index]
     uM = u_face_values[idM]
-
-    # compute flux if node is not a boundary node
-    if idM != idP
-      uP = u_face_values[idP]
-      normal = SVector{NDIMS}(getindex.(nxyzJ, idM)) / Jf[idM]
-      flux_face_values[idM] = surface_flux(uM, uP, normal, equations) * Jf[idM]
-    end
+    uP = u_face_values[idP]
+    normal = SVector{NDIMS}(getindex.(nxyzJ, idM)) / Jf[idM]
+    flux_face_values[idM] = surface_flux(uM, uP, normal, equations) * Jf[idM]
   end
 end
 
@@ -287,6 +283,7 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
 end
 
 # Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:]
+# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations, surface_integral,
                              dg::DGMultiSBP)
   rd = dg.basis
@@ -376,9 +373,10 @@ end
 
 
 # Todo: DGMulti. Specialize for modal DG on curved meshes using WADG
-function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache)
+# inverts Jacobian and scales by -1.0
+function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache; scaling=-1)
   @threaded for i in each_dof_global(mesh, dg, cache)
-    du[i] *= -cache.invJ[i]
+    du[i] *= scaling * cache.invJ[i]
   end
 end
 

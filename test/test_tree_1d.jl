@@ -25,7 +25,6 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Hyperbolic diffusion
   include("test_tree_1d_hypdiff.jl")
 
-
   # Compressible Euler
   include("test_tree_1d_euler.jl")
 
@@ -41,11 +40,13 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Compressible Euler with self-gravity
   include("test_tree_1d_eulergravity.jl")
 
-  # Shallow water 
+  # Shallow water
   include("test_tree_1d_shallowwater.jl")
-
   # Two-layer Shallow Water
   include("test_tree_1d_shallowwater_twolayer.jl")
+
+  # FDSBP methods on the TreeMesh
+  include("test_tree_1d_fdsbp.jl")
 end
 
 # Coverage test for all initial conditions

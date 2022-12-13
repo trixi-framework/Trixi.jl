@@ -297,17 +297,17 @@ end
 function Base.show(io::IO, mime::MIME"text/plain", rd::RefElemData{NDIMS, ElementType, ApproximationType}) where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:AbstractDerivativeOperator}
   @nospecialize rd
   print(io, "RefElemData for an approximation using an ")
-  show(IOContext(io, :compact => true), rd.approximationType)
-  print(io, " on $(rd.elementType) element")
+  show(IOContext(io, :compact => true), rd.approximation_type)
+  print(io, " on $(rd.element_type) element")
 end
 
 function Base.show(io::IO, rd::RefElemData{NDIMS, ElementType, ApproximationType}) where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:AbstractDerivativeOperator}
   @nospecialize rd
-  print(io, "RefElemData{", summary(rd.approximationType), ", ", rd.elementType, "}")
+  print(io, "RefElemData{", summary(rd.approximation_type), ", ", rd.element_type, "}")
 end
 
 function StartUpDG.inverse_trace_constant(rd::RefElemData{NDIMS, ElementType, ApproximationType})  where {NDIMS, ElementType<:Union{Line, Quad, Hex}, ApproximationType<:AbstractDerivativeOperator}
-  D = rd.approximationType
+  D = rd.approximation_type
 
   # the inverse trace constant is the maximum eigenvalue corresponding to
   #       M_f * v = λ * M * v
@@ -393,12 +393,14 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
 
   periodicity = ntuple(_ -> true, NDIMS)
 
-  md = MeshData(VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
+  mesh_type = rd.approximation_type
+
+  md = MeshData(mesh_type, VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
                 mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
                 periodicity)
 
   boundary_faces = []
-  return DGMultiMesh{NDIMS, rd.elementType, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, rd.element_type, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
@@ -412,7 +414,7 @@ end
 # based on the reference grid provided by SummationByPartsOperators.jl and information about the domain size
 # provided by `md::MeshData``.
 function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md::MeshData)  where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator}
-  D = rd.approximationType
+  D = rd.approximation_type
   x = grid(D)
 
   # we assume all SummationByPartsOperators.jl reference grids are rescaled to [-1, 1]
@@ -433,6 +435,7 @@ function estimate_dt(mesh::DGMultiMesh, dg::DGMultiPeriodicFDSBP)
 end
 
 # do nothing for interface terms if using a periodic operator
+# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
                              surface_integral, dg::DGMultiPeriodicFDSBP)
   @assert nelements(mesh, dg, cache) == 1

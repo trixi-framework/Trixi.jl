@@ -10,22 +10,22 @@
 
 The compressible Euler equations
 ```math
-\partial t
+\frac{\partial}{\partial t}
 \begin{pmatrix}
 \rho \\ \rho v_1 \\ \rho v_2 \\ \rho v_3 \\  \rho e
 \end{pmatrix}
 +
-\partial x
+\frac{\partial}{\partial x}
 \begin{pmatrix}
  \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ \rho v_1 v_3 \\ ( \rho e +p) v_1
 \end{pmatrix}
 +
-\partial y
+\frac{\partial}{\partial y}
 \begin{pmatrix}
 \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ \rho v_1 v_3 \\ ( \rho e +p) v_2
 \end{pmatrix}
 +
-\partial z
+\frac{\partial}{\partial z}
 \begin{pmatrix}
 \rho v_3 \\ \rho v_1 v_3 \\ \rho v_2 v_3 \\ \rho v_3^2 + p \\ ( \rho e +p) v_3
 \end{pmatrix}
@@ -308,11 +308,11 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
   if v_normal <= 0.0
     sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
-    p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)
+    p_star = p_local * (1 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2 * equations.gamma * equations.inv_gamma_minus_one)
   else # v_normal > 0.0
-    A = 2.0 / ((equations.gamma + 1) * rho_local)
+    A = 2 / ((equations.gamma + 1) * rho_local)
     B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
-    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
+    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4 * A * (p_local + B)))
   end
 
   # For the slip wall we directly set the flux as the normal velocity is zero
@@ -677,6 +677,172 @@ end
       + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
 
   return SVector(f1, f2, f3, f4, f5)
+end
+
+
+"""
+    splitting_steger_warming(u, orientation::Integer,
+                             equations::CompressibleEulerEquations3D)
+    splitting_steger_warming(u, which::Union{Val{:minus}, Val{:plus}}
+                             orientation::Integer,
+                             equations::CompressibleEulerEquations3D)
+
+Splitting of the compressible Euler flux of Steger and Warming.
+
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+
+## References
+
+- Joseph L. Steger and R. F. Warming (1979)
+  Flux Vector Splitting of the Inviscid Gasdynamic Equations
+  With Application to Finite Difference Methods
+  [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
+"""
+@inline function splitting_steger_warming(u, orientation::Integer,
+                                          equations::CompressibleEulerEquations3D)
+  fm = splitting_steger_warming(u, Val{:minus}(), orientation, equations)
+  fp = splitting_steger_warming(u, Val{:plus}(),  orientation, equations)
+  return fm, fp
+end
+
+@inline function splitting_steger_warming(u, ::Val{:plus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
+  a = sqrt(equations.gamma * p / rho)
+
+  if orientation == 1
+    lambda1 = v1
+    lambda2 = v1 + a
+    lambda3 = v1 - a
+
+    lambda1_p = positive_part(lambda1) # Same as (lambda_i + abs(lambda_i)) / 2, but faster :)
+    lambda2_p = positive_part(lambda2)
+    lambda3_p = positive_part(lambda3)
+
+    alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1p = rho_2gamma * alpha_p
+    f2p = rho_2gamma * (alpha_p * v1 + a * (lambda2_p - lambda3_p))
+    f3p = rho_2gamma * alpha_p * v2
+    f4p = rho_2gamma * alpha_p * v3
+    f5p = rho_2gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v1 * (lambda2_p - lambda3_p)
+                        + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
+  elseif orientation == 2
+    lambda1 = v2
+    lambda2 = v2 + a
+    lambda3 = v2 - a
+
+    lambda1_p = positive_part(lambda1) # Same as (lambda_i + abs(lambda_i)) / 2, but faster :)
+    lambda2_p = positive_part(lambda2)
+    lambda3_p = positive_part(lambda3)
+
+    alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1p = rho_2gamma * alpha_p
+    f2p = rho_2gamma * alpha_p * v1
+    f3p = rho_2gamma * (alpha_p * v2 + a * (lambda2_p - lambda3_p))
+    f4p = rho_2gamma * alpha_p * v3
+    f5p = rho_2gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v2 * (lambda2_p - lambda3_p)
+                        + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
+  else # orientation == 3
+    lambda1 = v3
+    lambda2 = v3 + a
+    lambda3 = v3 - a
+
+    lambda1_p = positive_part(lambda1) # Same as (lambda_i + abs(lambda_i)) / 2, but faster :)
+    lambda2_p = positive_part(lambda2)
+    lambda3_p = positive_part(lambda3)
+
+    alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1p = rho_2gamma * alpha_p
+    f2p = rho_2gamma * alpha_p * v1
+    f3p = rho_2gamma * alpha_p * v2
+    f4p = rho_2gamma * (alpha_p * v3 + a * (lambda2_p - lambda3_p))
+    f5p = rho_2gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v3 * (lambda2_p - lambda3_p)
+                        + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
+  end
+  return SVector(f1p, f2p, f3p, f4p, f5p)
+end
+
+@inline function splitting_steger_warming(u, ::Val{:minus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
+  a = sqrt(equations.gamma * p / rho)
+
+  if orientation == 1
+    lambda1 = v1
+    lambda2 = v1 + a
+    lambda3 = v1 - a
+
+    lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
+    lambda2_m = negative_part(lambda2)
+    lambda3_m = negative_part(lambda3)
+
+    alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1m = rho_2gamma * alpha_m
+    f2m = rho_2gamma * (alpha_m * v1 + a * (lambda2_m - lambda3_m))
+    f3m = rho_2gamma * alpha_m * v2
+    f4m = rho_2gamma * alpha_m * v3
+    f5m = rho_2gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v1 * (lambda2_m - lambda3_m)
+                        + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
+  elseif orientation == 2
+    lambda1 = v2
+    lambda2 = v2 + a
+    lambda3 = v2 - a
+
+    lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
+    lambda2_m = negative_part(lambda2)
+    lambda3_m = negative_part(lambda3)
+
+    alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1m = rho_2gamma * alpha_m
+    f2m = rho_2gamma * alpha_m * v1
+    f3m = rho_2gamma * (alpha_m * v2 + a * (lambda2_m - lambda3_m))
+    f4m = rho_2gamma * alpha_m * v3
+    f5m = rho_2gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v2 * (lambda2_m - lambda3_m)
+                        + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
+  else # orientation == 3
+    lambda1 = v3
+    lambda2 = v3 + a
+    lambda3 = v3 - a
+
+    lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
+    lambda2_m = negative_part(lambda2)
+    lambda3_m = negative_part(lambda3)
+
+    alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1m = rho_2gamma * alpha_m
+    f2m = rho_2gamma * alpha_m * v1
+    f3m = rho_2gamma * alpha_m * v2
+    f4m = rho_2gamma * (alpha_m * v3 + a * (lambda2_m - lambda3_m))
+    f5m = rho_2gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v3 * (lambda2_m - lambda3_m)
+                        + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
+  end
+  return SVector(f1m, f2m, f3m, f4m, f5m)
 end
 
 

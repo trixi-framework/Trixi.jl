@@ -1,6 +1,5 @@
-# TODO: FD
-# !!! warning "Experimental feature"
-#     This is an experimental feature and may change in any future releases.
+# !!! warning "Experimental implementation (upwind SBP)"
+#     This is an experimental feature and may change in future releases.
 
 using OrdinaryDiffEq
 using Trixi
@@ -16,9 +15,9 @@ initial_condition = initial_condition_convergence_test
 D_SBP = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                             derivative_order=1, accuracy_order=4,
                             xmin=0.0, xmax=1.0, N=100)
-solver = DG(D_SBP, nothing #= mortar =#,
-            SurfaceIntegralStrongForm(flux_lax_friedrichs),
-            VolumeIntegralStrongForm())
+solver = FDSBP(D_SBP,
+               surface_integral=SurfaceIntegralStrongForm(flux_lax_friedrichs),
+               volume_integral=VolumeIntegralStrongForm())
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = ( 1.0,  1.0)
