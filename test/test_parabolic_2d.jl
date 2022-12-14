@@ -28,9 +28,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     equations_parabolic = LaplaceDiffusion2D(1.0, equations)
 
     semi = SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic, initial_condition, dg)
-    @test_nowarn_debug show(stdout, semi)
-    @test_nowarn_debug show(stdout, MIME"text/plain"(), semi)
-    @test_nowarn_debug show(stdout, boundary_condition_do_nothing)
+    @test_nowarn_mod show(stdout, semi)
+    @test_nowarn_mod show(stdout, MIME"text/plain"(), semi)
+    @test_nowarn_mod show(stdout, boundary_condition_do_nothing)
 
     @test nvariables(semi)==nvariables(equations)
     @test Base.ndims(semi)==Base.ndims(mesh)
