@@ -13,9 +13,7 @@ This function will check if `p4est` is already initialized
 and if yes, do nothing, thus it is safe to call it multiple times.
 """
 function init_p4est()
-  p4est_package_id = unsafe_load(
-    cglobal((:p4est_package_id, P4est.LibP4est.libp4est), Cint)
-  )
+  p4est_package_id = P4est.package_id()
   if p4est_package_id >= 0
     return nothing
   end
