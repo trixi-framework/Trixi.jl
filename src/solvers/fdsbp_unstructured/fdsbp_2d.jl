@@ -34,33 +34,49 @@ end
                                        nonconservative_terms::Val{false}, equations,
                                        volume_integral::VolumeIntegralStrongForm,
                                        dg::FDSBP, cache)
-  # Pull the derivative matrix
-  # TODO: FD, improve performance to use `mul!`. Current version is slow and allocates
-  D = Matrix(dg.basis) # SBP derivative operator
+  D = dg.basis # SBP derivative operator
+  @unpack f_threaded = cache
   @unpack contravariant_vectors = cache.elements
 
+  # SBP operators from SummationByPartsOperators.jl implement the basic interface
+  # of matrix-vector multiplication. Thus, we pass an "array of structures",
+  # packing all variables per node in an `SVector`.
+  if nvariables(equations) == 1
+    # `reinterpret(reshape, ...)` removes the leading dimension only if more
+    # than one variable is used.
+    u_vectors  = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
+                         nnodes(dg), nnodes(dg), nelements(dg, cache))
+    du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
+                         nnodes(dg), nnodes(dg), nelements(dg, cache))
+  else
+    u_vectors  = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
+    du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du)
+  end
+
+  # Use the tensor product structure to compute the discrete derivatives of
+  # the contravariant fluxes line-by-line and add them to `du` for each element.
   @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      u_node = get_node_vars(u, equations, dg, i, j, element)
+    f_element = f_threaded[Threads.threadid()]
+    u_element = view(u_vectors,  :, :, element)
 
-      flux1 = flux(u_node, 1, equations)
-      flux2 = flux(u_node, 2, equations)
-
-      # Compute the contravariant flux by taking the scalar product of the
-      # first contravariant vector Ja^1 and the flux vector
-      Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
-      contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
-      for ii in eachnode(dg)
-        multiply_add_to_node_vars!(du, D[ii, i], contravariant_flux1, equations, dg, ii, j, element)
+    # x direction
+    for j in eachnode(dg)
+      for i in eachnode(dg)
+        Ja1 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+        f_element[i, j] = flux(u_element[i, j], Ja1, equations)
       end
+      mul!(view(du_vectors, :, j, element), D, view(f_element, :, j),
+           one(eltype(du)), one(eltype(du)))
+    end
 
-      # Compute the contravariant flux by taking the scalar product of the
-      # second contravariant vector Ja^2 and the flux vector
-      Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
-      contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
-      for jj in eachnode(dg)
-        multiply_add_to_node_vars!(du, D[jj, j], contravariant_flux2, equations, dg, i, jj, element)
+    # y direction
+    for i in eachnode(dg)
+      for j in eachnode(dg)
+        Ja2 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+        f_element[i, j] = flux(u_element[i, j], Ja2, equations)
       end
+      mul!(view(du_vectors, i, :, element), D, view(f_element, i, :),
+           one(eltype(du)), one(eltype(du)))
     end
   end
 
