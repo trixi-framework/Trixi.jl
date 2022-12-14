@@ -55,10 +55,10 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
     else
       # Without coverage, just run simple convergence tests to cover
       # the convergence test logic
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 2, initial_refinement_level=0, tspan=(0.0, 0.1))
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 2, cells_per_dimension=(1, 1), tspan=(0.0, 0.1))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 2, initial_refinement_level=0, tspan=(0.0, 0.1))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 2, cells_per_dimension=(1, 1), tspan=(0.0, 0.1))
     end
   end
 
