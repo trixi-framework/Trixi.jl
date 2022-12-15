@@ -5,7 +5,14 @@
 # for more details.
 
 # GaussSBP ApproximationType: e.g., Gauss nodes on quads/hexes
-struct GaussSBP end
+# `use_positivity_blending` toggles the use of a convex blending procedure to
+# ensure the positivity of the entropy projection used to evaluate face nodes.
+struct GaussSBP
+  use_positivity_blending::Bool
+end
+
+# do not use blending by default
+GaussSBP() = GaussSBP(false)
 
 function tensor_product_quadrature(element_type::Line, r1D, w1D)
   return r1D, w1D
@@ -434,6 +441,8 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
   # `projected_entropy_var_values = [vol pts; face pts]`).
   entropy_var_face_values = view(projected_entropy_var_values, face_indices, :)
   apply_to_each_field(mul_by!(interp_matrix_gauss_to_face), entropy_var_face_values, entropy_var_values)
+
+  # TODO: add computation of blending coefficients here
 
   # directly copy over volume values (no entropy projection required)
   entropy_projected_volume_values = view(entropy_projected_u_values, volume_indices, :)
