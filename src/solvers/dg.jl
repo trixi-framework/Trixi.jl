@@ -349,7 +349,7 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
     summary_line(io, "surface integral", dg.surface_integral |> typeof |> nameof)
     show(increment_indent(io), mime, dg.surface_integral)
     summary_line(io, "volume integral", dg.volume_integral |> typeof |> nameof)
-    if !(dg.volume_integral isa VolumeIntegralWeakForm)
+    if !(dg.volume_integral isa VolumeIntegralWeakForm) && !(dg.volume_integral isa VolumeIntegralStrongForm)
       show(increment_indent(io), mime, dg.volume_integral)
     end
     summary_footer(io)
