@@ -768,7 +768,7 @@ end
 end
 
 @inline function calc_lambdas_bar_states!(u, t, mesh::TreeMesh,
-    nonconservative_terms, equations, indicator, dg, cache, boundary_conditions)
+    nonconservative_terms, equations, indicator, dg, cache, boundary_conditions; calcBarStates=true)
 
   if indicator isa IndicatorIDP && !indicator.BarStates
     return nothing
@@ -782,6 +782,8 @@ end
       u_node_im1 = get_node_vars(u, equations, dg, i-1, j, element)
       lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node, 1, equations)
 
+      !calcBarStates && continue
+
       flux1     = flux(u_node,     1, equations)
       flux1_im1 = flux(u_node_im1, 1, equations)
 
@@ -794,6 +796,8 @@ end
       u_node     = get_node_vars(u, equations, dg, i, j  , element)
       u_node_jm1 = get_node_vars(u, equations, dg, i, j-1, element)
       lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node, 2, equations)
+
+      !calcBarStates && continue
 
       flux2     = flux(u_node,     2, equations)
       flux2_jm1 = flux(u_node_jm1, 2, equations)
@@ -821,6 +825,8 @@ end
         lambda1[nnodes(dg)+1, j, left_id]  = lambda
         lambda1[1,            j, right_id] = lambda
 
+        !calcBarStates && continue
+
         flux_left  = flux(u_left,  orientation, equations)
         flux_right = flux(u_right, orientation, equations)
 
@@ -838,6 +844,8 @@ end
 
         lambda2[i, nnodes(dg)+1, left_id]  = lambda
         lambda2[i,            1, right_id] = lambda
+
+        !calcBarStates && continue
 
         flux_left  = flux(u_left,  orientation, equations)
         flux_right = flux(u_right, orientation, equations)
@@ -865,6 +873,8 @@ end
                                              equations, dg, 1, j, element)
           lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
 
+          !calcBarStates && continue
+
           flux_inner = flux(u_inner, orientation, equations)
           flux_outer = flux(u_outer, orientation, equations)
 
@@ -879,6 +889,8 @@ end
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
                                              equations, dg, nnodes(dg), j, element)
           lambda1[nnodes(dg)+1, j, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
+
+          !calcBarStates && continue
 
           flux_inner = flux(u_inner, orientation, equations)
           flux_outer = flux(u_outer, orientation, equations)
@@ -897,6 +909,8 @@ end
                                              equations, dg, i, 1, element)
           lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
 
+          !calcBarStates && continue
+
           flux_inner = flux(u_inner, orientation, equations)
           flux_outer = flux(u_outer, orientation, equations)
 
@@ -911,6 +925,8 @@ end
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
                                              equations, dg, i, nnodes(dg), element)
           lambda2[i, nnodes(dg)+1, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
+
+          !calcBarStates && continue
 
           flux_inner = flux(u_inner, orientation, equations)
           flux_outer = flux(u_outer, orientation, equations)
@@ -1328,99 +1344,6 @@ end
         end
         for v in eachvariable(equations)
           antidiffusive_flux2[v, i, j, element] *= alpha
-        end
-      end
-    end
-  end
-
-  return nothing
-end
-
-@inline function calc_lambda!(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh2D, equations, dg, cache, indicator, boundary_conditions)
-  if indicator isa IndicatorIDP && !indicator.BarStates
-    return nothing
-  end
-  @unpack lambda1, lambda2 = indicator.cache.ContainerBarStates
-
-  # Calc lambdas inside the elements
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in 2:nnodes(dg)
-      u_node     = get_node_vars(u, equations, dg, i,   j, element)
-      u_node_im1 = get_node_vars(u, equations, dg, i-1, j, element)
-      lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node, 1, equations)
-    end
-
-    for j in 2:nnodes(dg), i in eachnode(dg)
-      u_node     = get_node_vars(u, equations, dg, i,   j, element)
-      u_node_jm1 = get_node_vars(u, equations, dg, i, j-1, element)
-      lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node, 2, equations)
-    end
-  end
-
-  # Calc lambdas at interfaces and periodic boundaries
-  @threaded for interface in eachinterface(dg, cache)
-    left_id  = cache.interfaces.neighbor_ids[1, interface]
-    right_id = cache.interfaces.neighbor_ids[2, interface]
-
-    orientation = cache.interfaces.orientations[interface]
-
-    if orientation == 1
-      for j in eachnode(dg)
-        u_left  = get_node_vars(u, equations, dg, nnodes(dg), j, left_id)
-        u_right = get_node_vars(u, equations, dg, 1,          j, right_id)
-        lambda = max_abs_speed_naive(u_left, u_right, orientation, equations)
-
-        lambda1[nnodes(dg)+1, j, left_id]  = lambda
-        lambda1[1,            j, right_id] = lambda
-      end
-    else # orientation == 2
-      for i in eachnode(dg)
-        u_left  = get_node_vars(u, equations, dg, i, nnodes(dg), left_id)
-        u_right = get_node_vars(u, equations, dg, i, 1,          right_id)
-        lambda = max_abs_speed_naive(u_left, u_right, orientation, equations)
-
-        lambda2[i, nnodes(dg)+1, left_id]  = lambda
-        lambda2[i,            1, right_id] = lambda
-      end
-    end
-  end
-
-  # Calc lambdas at physical boundaries
-  @threaded for boundary in eachboundary(dg, cache)
-    element = cache.boundaries.neighbor_ids[boundary]
-    orientation = cache.boundaries.orientations[boundary]
-    neighbor_side = cache.boundaries.neighbor_sides[boundary]
-
-    if orientation == 1
-      if neighbor_side == 2 # Element is on the right, boundary on the left
-        for j in eachnode(dg)
-          u_inner = get_node_vars(u, equations, dg, 1, j, element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
-                                             equations, dg, 1, j, element)
-          lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
-        end
-      else # Element is on the left, boundary on the right
-        for j in eachnode(dg)
-          u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
-                                             equations, dg, nnodes(dg), j, element)
-          lambda1[nnodes(dg)+1, j, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
-        end
-      end
-    else # orientation == 2
-      if neighbor_side == 2 # Element is on the right, boundary on the left
-        for i in eachnode(dg)
-          u_inner = get_node_vars(u, equations, dg, i, 1, element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
-                                             equations, dg, i, 1, element)
-          lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
-        end
-      else # Element is on the left, boundary on the right
-        for i in eachnode(dg)
-          u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
-                                             equations, dg, i, nnodes(dg), element)
-          lambda2[i, nnodes(dg)+1, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
         end
       end
     end

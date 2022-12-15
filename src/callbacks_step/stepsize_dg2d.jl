@@ -45,7 +45,9 @@ end
 @inline function max_dt(u, t, mesh::Union{TreeMesh,StructuredMesh},
                         constant_speed::Val{false}, equations, semi, dg::DG, cache, indicator::Union{IndicatorIDP, IndicatorMCL})
   @unpack inverse_weights = dg.basis
-  @trixi_timeit timer() "calc_lambda!" calc_lambda!(u, t, mesh, equations, dg, cache, indicator, semi.boundary_conditions)
+  @trixi_timeit timer() "calc_lambda!" calc_lambdas_bar_states!(u, t, mesh, have_nonconservative_terms(equations), equations,
+                                                                indicator, dg, cache, semi.boundary_conditions;
+                                                                calcBarStates=false)
   @unpack lambda1, lambda2 = indicator.cache.ContainerBarStates
 
   maxdt = typemax(eltype(u))
