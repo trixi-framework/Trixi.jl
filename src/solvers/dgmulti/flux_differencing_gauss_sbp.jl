@@ -113,10 +113,10 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
   Tw = typeof(inv.(wq1D))
   Tf = typeof(rd.wf)
   Ti = typeof(face_indices_tensor_product)
-  return TensorProductGaussFaceOperator{3, T_op, Tm, Tw, Tf, Tblend, Ti}(interp_matrix_gauss_to_face_1d,
-                                                                         inv.(wq1D), rd.wf,
-                                                                         face_indices_tensor_product,
-                                                                         nnodes_1d, rd.Nfaces)
+  return TensorProductGaussFaceOperator{3, T_op, Tm, Tw, Tf, Ti}(interp_matrix_gauss_to_face_1d,
+                                                                 inv.(wq1D), rd.wf,
+                                                                 face_indices_tensor_product,
+                                                                 nnodes_1d, rd.Nfaces)
 end
 
 # specialize behavior of `mul_by!(A)` where `A isa TensorProductGaussFaceOperator)`
