@@ -423,46 +423,39 @@ end
     return nothing
   end
   @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerBarStates
-  @unpack weights, derivative_matrix = dg.basis
   @unpack contravariant_vectors = cache.elements
 
   @unpack normal_direction_xi, normal_direction_eta = indicator.cache.ContainerBarStates
 
   # Calc lambdas and bar states inside elements
   @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg)
-      normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
-      for i in 2:nnodes(dg)
-        u_node     = get_node_vars(u, equations, dg, i,   j, element)
-        u_node_im1 = get_node_vars(u, equations, dg, i-1, j, element)
+    for j in eachnode(dg), i in 2:nnodes(dg)
+      u_node     = get_node_vars(u, equations, dg, i,   j, element)
+      u_node_im1 = get_node_vars(u, equations, dg, i-1, j, element)
 
-        normal_direction = get_node_coords(normal_direction_xi, equations, dg, i-1, j, element)
+      normal_direction = get_node_coords(normal_direction_xi, equations, dg, i-1, j, element)
 
-        lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node, normal_direction, equations)
-        flux1     = flux(u_node,     normal_direction, equations)
-        flux1_im1 = flux(u_node_im1, normal_direction, equations)
+      lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node, normal_direction, equations)
+      flux1     = flux(u_node,     normal_direction, equations)
+      flux1_im1 = flux(u_node_im1, normal_direction, equations)
 
-        for v in eachvariable(equations)
-          bar_states1[v, i, j, element] = 0.5 * (u_node[v] + u_node_im1[v]) - 0.5 * (flux1[v] - flux1_im1[v]) / lambda1[i, j, element]
-        end
+      for v in eachvariable(equations)
+        bar_states1[v, i, j, element] = 0.5 * (u_node[v] + u_node_im1[v]) - 0.5 * (flux1[v] - flux1_im1[v]) / lambda1[i, j, element]
       end
     end
 
-    for i in eachnode(dg)
-      normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
-      for j in 2:nnodes(dg)
-        u_node     = get_node_vars(u, equations, dg, i,   j, element)
-        u_node_jm1 = get_node_vars(u, equations, dg, i, j-1, element)
+    for i in eachnode(dg), j in 2:nnodes(dg)
+      u_node     = get_node_vars(u, equations, dg, i,   j, element)
+      u_node_jm1 = get_node_vars(u, equations, dg, i, j-1, element)
 
-        normal_direction = get_node_coords(normal_direction_eta, equations, dg, i, j-1, element)
+      normal_direction = get_node_coords(normal_direction_eta, equations, dg, i, j-1, element)
 
-        lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node, normal_direction, equations)
-        flux2     = flux(u_node,     normal_direction, equations)
-        flux2_jm1 = flux(u_node_jm1, normal_direction, equations)
+      lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node, normal_direction, equations)
+      flux2     = flux(u_node,     normal_direction, equations)
+      flux2_jm1 = flux(u_node_jm1, normal_direction, equations)
 
-        for v in eachvariable(equations)
-          bar_states2[v, i, j, element] = 0.5 * (u_node[v] + u_node_jm1[v]) - 0.5 * (flux2[v] - flux2_jm1[v]) / lambda2[i, j, element]
-        end
+      for v in eachvariable(equations)
+        bar_states2[v, i, j, element] = 0.5 * (u_node[v] + u_node_jm1[v]) - 0.5 * (flux2[v] - flux2_jm1[v]) / lambda2[i, j, element]
       end
     end
   end
@@ -602,35 +595,28 @@ end
     return nothing
   end
   @unpack lambda1, lambda2 = indicator.cache.ContainerBarStates
-  @unpack weights, derivative_matrix = dg.basis
   @unpack contravariant_vectors = cache.elements
 
   @unpack normal_direction_xi, normal_direction_eta = indicator.cache.ContainerBarStates
 
   # Calc lambdas inside the elements
   @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg)
-      normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
-      for i in 2:nnodes(dg)
-        u_node     = get_node_vars(u, equations, dg, i,   j, element)
-        u_node_im1 = get_node_vars(u, equations, dg, i-1, j, element)
+    for j in eachnode(dg), i in 2:nnodes(dg)
+      u_node     = get_node_vars(u, equations, dg, i,   j, element)
+      u_node_im1 = get_node_vars(u, equations, dg, i-1, j, element)
 
-        normal_direction = get_node_coords(normal_direction_xi, equations, dg, i-1, j, element)
+      normal_direction = get_node_coords(normal_direction_xi, equations, dg, i-1, j, element)
 
-        lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node, normal_direction, equations)
-      end
+      lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node, normal_direction, equations)
     end
 
-    for i in eachnode(dg)
-      normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
-      for j in 2:nnodes(dg)
-        u_node     = get_node_vars(u, equations, dg, i,   j, element)
-        u_node_jm1 = get_node_vars(u, equations, dg, i, j-1, element)
+    for i in eachnode(dg), j in 2:nnodes(dg)
+      u_node     = get_node_vars(u, equations, dg, i,   j, element)
+      u_node_jm1 = get_node_vars(u, equations, dg, i, j-1, element)
 
-        normal_direction = get_node_coords(normal_direction_eta, equations, dg, i, j-1, element)
+      normal_direction = get_node_coords(normal_direction_eta, equations, dg, i, j-1, element)
 
-        lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node, normal_direction, equations)
-      end
+      lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node, normal_direction, equations)
     end
   end
 
