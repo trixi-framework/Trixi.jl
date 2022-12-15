@@ -39,82 +39,10 @@ abstract type AbstractTensorProductGaussOperator end
 
 #   TensorProductGaussFaceOperator{Tmat, Ti}
 #
-# Data for performing tensor product interpolation from volume nodes to face nodes.
-struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperator,
-                                      Tmat, Tweights, Tfweights, Tindices} <: AbstractTensorProductGaussOperator
-  interp_matrix_gauss_to_face_1d::Tmat
-  inv_volume_weights_1d::Tweights
-  face_weights::Tfweights
-  face_indices_tensor_product::Tindices
-  nnodes_1d::Int
-  nfaces::Int
-end
-
-# constructor for a 2D operator
-function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
-                                        dg::DGMulti{2, Quad, GaussSBP})
-  rd = dg.basis
-
-  rq1D, wq1D = StartUpDG.gauss_quad(0, 0, polydeg(dg))
-  interp_matrix_gauss_to_face_1d = polynomial_interpolation_matrix(rq1D, [-1; 1])
-
-  nnodes_1d = length(rq1D)
-
-  # Permutation of indices in a tensor product form
-  indices = reshape(1:length(rd.rf), nnodes_1d, rd.Nfaces)
-  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, ndims(rd.element_type))
-  for i in 1:nnodes_1d # loop over nodes in one face
-    face_indices_tensor_product[:, i, 1] .= indices[i, 1:2]
-    face_indices_tensor_product[:, i, 2] .= indices[i, 3:4]
-  end
-
-  T_op = typeof(operator)
-  Tm = typeof(interp_matrix_gauss_to_face_1d)
-  Tw = typeof(inv.(wq1D))
-  Tf = typeof(rd.wf)
-  Ti = typeof(face_indices_tensor_product)
-  return TensorProductGaussFaceOperator{2, T_op, Tm, Tw, Tf, Ti}(interp_matrix_gauss_to_face_1d,
-                                                                 inv.(wq1D), rd.wf,
-                                                                 face_indices_tensor_product,
-                                                                 nnodes_1d, rd.Nfaces)
-end
-
-# constructor for a 3D operator
-function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
-                                        dg::DGMulti{3, Hex, GaussSBP})
-  rd = dg.basis
-
-  rq1D, wq1D = StartUpDG.gauss_quad(0, 0, polydeg(dg))
-  interp_matrix_gauss_to_face_1d = polynomial_interpolation_matrix(rq1D, [-1; 1])
-
-  nnodes_1d = length(rq1D)
-
-  # Permutation of indices in a tensor product form
-  indices = reshape(1:length(rd.rf), nnodes_1d, nnodes_1d, rd.Nfaces)
-  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, nnodes_1d, ndims(rd.element_type))
-  for j in 1:nnodes_1d, i in 1:nnodes_1d # loop over nodes in one face
-    face_indices_tensor_product[:, i, j, 1] .= indices[i, j, 1:2]
-    face_indices_tensor_product[:, i, j, 2] .= indices[i, j, 3:4]
-    face_indices_tensor_product[:, i, j, 3] .= indices[i, j, 5:6]
-  end
-
-  T_op = typeof(operator)
-  Tm = typeof(interp_matrix_gauss_to_face_1d)
-  Tw = typeof(inv.(wq1D))
-  Tf = typeof(rd.wf)
-  Ti = typeof(face_indices_tensor_product)
-  return TensorProductGaussFaceOperator{3, T_op, Tm, Tw, Tf, Ti}(interp_matrix_gauss_to_face_1d,
-                                                                 inv.(wq1D), rd.wf,
-                                                                 face_indices_tensor_product,
-                                                                 nnodes_1d, rd.Nfaces)
-end
-
-#   BlendedTensorProductGaussFaceOperator{Tmat, Ti}
-#
 # Data for performing blended tensor product interpolation from volume nodes to face nodes.
 # At each node, the face interpolation operator is a convex blending of a high order Gauss
 # face interpolation operator and a low order interpolation operator.
-struct BlendedTensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperator, Tmat, Tweights,
+struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperator, Tmat, Tweights,
                                              Tfweights, Tblend, Tindices} <: AbstractTensorProductGaussOperator
   interp_matrix_gauss_to_face_1d::Tmat
   inv_volume_weights_1d::Tweights
@@ -126,7 +54,7 @@ struct BlendedTensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaus
 end
 
 # constructor for a 2D operator
-function BlendedTensorProductGaussFaceOperator(operator::AbstractGaussOperator,
+function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
                                                dg::DGMulti{2, Quad, GaussSBP})
   rd = dg.basis
 
@@ -156,7 +84,7 @@ function BlendedTensorProductGaussFaceOperator(operator::AbstractGaussOperator,
 end
 
 # constructor for a 3D operator
-function BlendedTensorProductGaussFaceOperator(operator::AbstractGaussOperator,
+function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
                                         dg::DGMulti{3, Hex, GaussSBP})
   rd = dg.basis
 
@@ -411,7 +339,7 @@ function DGMulti(element_type::Line,
   return DG(rd_gauss, nothing #= mortar =#, surface_integral, volume_integral)
 end
 
-# Specialized constructor for GaussSBP approximation type on quad elements.
+# Specialized constructor for GaussSBP approximation type on quad/hex elements.
 # TODO: I believe this is restricted to `VolumeIntegralFluxDifferencing` for now
 # since there isn't a way to exploit this structure for VolumeIntegralWeakForm yet.
 
