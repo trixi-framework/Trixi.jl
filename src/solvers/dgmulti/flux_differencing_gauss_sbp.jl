@@ -4,9 +4,10 @@
 # inside the @muladd block is edited. See https://github.com/trixi-framework/Trixi.jl/issues/801
 # for more details.
 
-# GaussSBP ApproximationType: e.g., Gauss nodes on quads/hexes
+# `GaussSBP` approximation type: e.g., Gauss nodes on quads/hexes
 # `use_positivity_blending` toggles the use of a convex blending procedure to
 # ensure the positivity of the entropy projection used to evaluate face nodes.
+# This is specific to flux differencing discretizations.
 struct GaussSBP
   use_positivity_blending::Bool
 end
@@ -50,11 +51,10 @@ abstract type AbstractTensorProductGaussOperator end
 # At each node, the face interpolation operator is a convex blending of a high order Gauss
 # face interpolation operator and a low order interpolation operator.
 struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperator, Tmat, Tweights,
-                                             Tfweights, Tblend, Tindices} <: AbstractTensorProductGaussOperator
+                                             Tfweights, Tindices} <: AbstractTensorProductGaussOperator
   interp_matrix_gauss_to_face_1d::Tmat
   inv_volume_weights_1d::Tweights
   face_weights::Tfweights
-  blending_coefficients::Tblend
   face_indices_tensor_product::Tindices
   nnodes_1d::Int
   nfaces::Int
@@ -62,7 +62,7 @@ end
 
 # constructor for a 2D operator
 function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
-                                               dg::DGMulti{2, Quad, GaussSBP})
+                                        dg::DGMulti{2, Quad, GaussSBP})
   rd = dg.basis
 
   rq1D, wq1D = StartUpDG.gauss_quad(0, 0, polydeg(dg))
@@ -82,10 +82,9 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
   Tm = typeof(interp_matrix_gauss_to_face_1d)
   Tw = typeof(inv.(wq1D))
   Tf = typeof(rd.wf)
-  Tblend = Tf
   Ti = typeof(face_indices_tensor_product)
-  return TensorProductGaussFaceOperator{2, T_op, Tm, Tw, Tf, Tblend, Ti}(interp_matrix_gauss_to_face_1d,
-                                                                         inv.(wq1D), rd.wf, similar(rd.wf),
+  return TensorProductGaussFaceOperator{2, T_op, Tm, Tw, Tf, Ti}(interp_matrix_gauss_to_face_1d,
+                                                                         inv.(wq1D), rd.wf,
                                                                          face_indices_tensor_product,
                                                                          nnodes_1d, rd.Nfaces)
 end
@@ -113,10 +112,9 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
   Tm = typeof(interp_matrix_gauss_to_face_1d)
   Tw = typeof(inv.(wq1D))
   Tf = typeof(rd.wf)
-  Tblend = Tf
   Ti = typeof(face_indices_tensor_product)
   return TensorProductGaussFaceOperator{3, T_op, Tm, Tw, Tf, Tblend, Ti}(interp_matrix_gauss_to_face_1d,
-                                                                         inv.(wq1D), rd.wf, similar(rd.wf),
+                                                                         inv.(wq1D), rd.wf,
                                                                          face_indices_tensor_product,
                                                                          nnodes_1d, rd.Nfaces)
 end
@@ -386,7 +384,8 @@ function create_cache(mesh::DGMultiMesh, equations,
   rd = dg.basis
   @unpack md = mesh
 
-  cache = invoke(create_cache, Tuple{typeof(mesh), typeof(equations), DGMultiFluxDiff, typeof(RealT), typeof(uEltype)},
+  cache = invoke(create_cache, Tuple{typeof(mesh), typeof(equations),
+                 DGMultiFluxDiff, typeof(RealT), typeof(uEltype)},
                  mesh, equations, dg, RealT, uEltype)
 
   # for change of basis prior to the volume integral and entropy projection
@@ -411,10 +410,13 @@ function create_cache(mesh::DGMultiMesh, equations,
   rhs_volume_local_threaded   = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
   gauss_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
 
+  # coefficients to ensure positivity of the entropy projection
+  positivity_blending_coefficients = similar(mesh.md.xf)
+
   return (; cache..., projection_matrix_gauss_to_face, gauss_LIFT, inv_gauss_weights,
-         rhs_volume_local_threaded, gauss_volume_local_threaded,
-         interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
-         interp_matrix_gauss_to_face)
+            rhs_volume_local_threaded, gauss_volume_local_threaded,
+            interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
+            interp_matrix_gauss_to_face, positivity_blending_coefficients)
 end
 
 
@@ -442,8 +444,10 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
   entropy_var_face_values = view(projected_entropy_var_values, face_indices, :)
   apply_to_each_field(mul_by!(interp_matrix_gauss_to_face), entropy_var_face_values, entropy_var_values)
 
+  # ensure that the entropy projected face values are positive
   (; use_positivity_blending) = dg.basis.approximation_type
   if use_positivity_blending
+    (; positivity_blending_coefficients) = cache
     # TODO: add computation of blending coefficients here
   end
 
