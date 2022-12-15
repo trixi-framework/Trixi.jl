@@ -442,7 +442,10 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
   entropy_var_face_values = view(projected_entropy_var_values, face_indices, :)
   apply_to_each_field(mul_by!(interp_matrix_gauss_to_face), entropy_var_face_values, entropy_var_values)
 
-  # TODO: add computation of blending coefficients here
+  (; use_positivity_blending) = dg.basis.approximation_type
+  if use_positivity_blending
+    # TODO: add computation of blending coefficients here
+  end
 
   # directly copy over volume values (no entropy projection required)
   entropy_projected_volume_values = view(entropy_projected_u_values, volume_indices, :)
