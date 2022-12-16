@@ -140,7 +140,7 @@ end
 # quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredMesh2D,
-                              nonconservative_terms::Val{false}, equations,
+                              nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
   @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
@@ -193,7 +193,7 @@ end
 # on an unstructured quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredMesh2D,
-                              nonconservative_terms::Val{true}, equations,
+                              nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
   surface_flux, nonconservative_flux = surface_integral.surface_flux
   @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
@@ -371,7 +371,7 @@ end
 # boundary flux values are set according to a particular `boundary_condition` function
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::UnstructuredMesh2D,
-                                     nonconservative_terms::Val{false}, equations,
+                                     nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index, boundary_index)
   @unpack normal_directions = cache.elements
@@ -403,7 +403,7 @@ end
 # `derivative_split` from `dg.basis` in [`split_form_kernel!`](@ref)
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::UnstructuredMesh2D,
-                                     nonconservative_terms::Val{true}, equations,
+                                     nonconservative_terms::True, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index, boundary_index)
   surface_flux, nonconservative_flux = surface_integral.surface_flux

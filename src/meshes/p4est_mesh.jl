@@ -35,9 +35,9 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, Ghost, NDIMSP2, NNOD
       if !P4est.uses_mpi()
         error("p4est library does not support MPI")
       end
-      is_parallel = Val(true)
+      is_parallel = True()
     else
-      is_parallel = Val(false)
+      is_parallel = False()
     end
 
     ghost = ghost_new_p4est(p4est)
@@ -52,11 +52,11 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, Ghost, NDIMSP2, NNOD
   end
 end
 
-const SerialP4estMesh{NDIMS}   = P4estMesh{NDIMS, <:Real, <:Val{false}}
-const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:Val{true}}
+const SerialP4estMesh{NDIMS}   = P4estMesh{NDIMS, <:Real, <:False}
+const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:True}
 
-@inline mpi_parallel(mesh::SerialP4estMesh) = Val(false)
-@inline mpi_parallel(mesh::ParallelP4estMesh) = Val(true)
+@inline mpi_parallel(mesh::SerialP4estMesh) = False()
+@inline mpi_parallel(mesh::ParallelP4estMesh) = True()
 
 
 function destroy_mesh(mesh::P4estMesh{2})

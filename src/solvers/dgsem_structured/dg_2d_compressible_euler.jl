@@ -21,7 +21,7 @@
 @inline function split_form_kernel!(_du::PtrArray, u_cons::PtrArray,
                                     element,
                                     mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
-                                    nonconservative_terms::Val{false},
+                                    nonconservative_terms::False,
                                     equations::CompressibleEulerEquations2D,
                                     volume_flux::typeof(flux_shima_etal_turbo),
                                     dg::DGSEM, cache, alpha)
@@ -223,7 +223,7 @@ end
 @inline function split_form_kernel!(_du::PtrArray, u_cons::PtrArray,
                                     element,
                                     mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
-                                    nonconservative_terms::Val{false},
+                                    nonconservative_terms::False,
                                     equations::CompressibleEulerEquations2D,
                                     volume_flux::typeof(flux_ranocha_turbo),
                                     dg::DGSEM, cache, alpha)

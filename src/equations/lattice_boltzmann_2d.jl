@@ -360,7 +360,7 @@ end
 
 
 
-@inline have_constant_speed(::LatticeBoltzmannEquations2D) = Val(true)
+@inline have_constant_speed(::LatticeBoltzmannEquations2D) = True()
 
 @inline function max_abs_speeds(equations::LatticeBoltzmannEquations2D)
   @unpack c = equations

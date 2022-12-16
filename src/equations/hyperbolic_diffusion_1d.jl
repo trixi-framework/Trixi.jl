@@ -166,7 +166,7 @@ end
 end
 
 
-@inline have_constant_speed(::HyperbolicDiffusionEquations1D) = Val(true)
+@inline have_constant_speed(::HyperbolicDiffusionEquations1D) = True()
 
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations1D)
   return sqrt(eq.nu * eq.inv_Tr)

@@ -20,7 +20,7 @@
 # works efficiently here.
 @inline function split_form_kernel!(_du::PtrArray, u_cons::PtrArray,
                                     element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                                    nonconservative_terms::Val{false},
+                                    nonconservative_terms::False,
                                     equations::CompressibleEulerEquations3D,
                                     volume_flux::typeof(flux_shima_etal_turbo),
                                     dg::DGSEM, cache, alpha)
@@ -334,7 +334,7 @@ end
 
 @inline function split_form_kernel!(_du::PtrArray, u_cons::PtrArray,
                                     element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                                    nonconservative_terms::Val{false},
+                                    nonconservative_terms::False,
                                     equations::CompressibleEulerEquations3D,
                                     volume_flux::typeof(flux_ranocha_turbo),
                                     dg::DGSEM, cache, alpha)

@@ -142,7 +142,7 @@ end
 
 
 function init_interfaces!(interfaces, edge_information, boundary_names, n_elements,
-                          periodic::Val{false})
+                          periodic::False)
 
   n_nodes = nnodes(interfaces)
   n_surfaces = size(edge_information, 2)
@@ -173,7 +173,7 @@ end
 
 
 function init_interfaces!(interfaces, edge_information, boundary_names, n_elements,
-                          periodic::Val{true})
+                          periodic::True)
 
   n_nodes = nnodes(interfaces)
   n_surfaces = size(edge_information, 2)

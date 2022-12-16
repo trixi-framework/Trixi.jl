@@ -171,7 +171,7 @@ end
 
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::TreeMesh{2},
-                                   nonconservative_terms::Val{false}, equations,
+                                   nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
@@ -213,7 +213,7 @@ end
 
 @inline function split_form_kernel!(du, u,
                                     element, mesh::TreeMesh{2},
-                                    nonconservative_terms::Val{false}, equations,
+                                    nonconservative_terms::False, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
@@ -248,7 +248,7 @@ end
 
 @inline function split_form_kernel!(du, u,
                                     element, mesh::TreeMesh{2},
-                                    nonconservative_terms::Val{true}, equations,
+                                    nonconservative_terms::True, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
@@ -256,7 +256,7 @@ end
   symmetric_flux, nonconservative_flux = volume_flux
 
   # Apply the symmetric flux as usual
-  split_form_kernel!(du, u, element, mesh, Val(false), equations, symmetric_flux, dg, cache, alpha)
+  split_form_kernel!(du, u, element, mesh, False(), equations, symmetric_flux, dg, cache, alpha)
 
   # Calculate the remaining volume terms using the nonsymmetric generalized flux
   for j in eachnode(dg), i in eachnode(dg)
@@ -375,7 +375,7 @@ end
 
 
 #     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-#                  nonconservative_terms::Val{false}, equations,
+#                  nonconservative_terms::False, equations,
 #                  volume_flux_fv, dg, element)
 #
 # Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
@@ -386,7 +386,7 @@ end
 # - `fstar2_L::AbstractArray{<:Real, 3}`
 # - `fstar2_R::AbstractArray{<:Real, 3}`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
-                              mesh::TreeMesh{2}, nonconservative_terms::Val{false}, equations,
+                              mesh::TreeMesh{2}, nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
 
   fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
@@ -419,7 +419,7 @@ end
 end
 
 #     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-#                  nonconservative_terms::Val{true}, equations,
+#                  nonconservative_terms::True, equations,
 #                  volume_flux_fv, dg, element)
 #
 # Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
@@ -431,7 +431,7 @@ end
 # - `fstar2_R::AbstractArray{<:Real, 3}`:
 # - `u_leftright::AbstractArray{<:Real, 4}`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
-                              mesh::TreeMesh{2}, nonconservative_terms::Val{true}, equations,
+                              mesh::TreeMesh{2}, nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
   volume_flux, nonconservative_flux = volume_flux_fv
 
@@ -519,7 +519,7 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{2},
-                              nonconservative_terms::Val{false}, equations,
+                              nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
   @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -553,7 +553,7 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{2},
-                              nonconservative_terms::Val{true}, equations,
+                              nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
   surface_flux, nonconservative_flux = surface_integral.surface_flux
   @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -668,7 +668,7 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
 end
 
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, t,
-                                          boundary_condition, nonconservative_terms::Val{false}, equations,
+                                          boundary_condition, nonconservative_terms::False, equations,
                                           surface_integral ,dg::DG, cache,
                                           direction, first_boundary, last_boundary)
   @unpack surface_flux = surface_integral
@@ -701,7 +701,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
 end
 
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, t,
-                                          boundary_condition, nonconservative_terms::Val{true}, equations,
+                                          boundary_condition, nonconservative_terms::True, equations,
                                           surface_integral ,dg::DG, cache,
                                           direction, first_boundary, last_boundary)
   surface_flux, nonconservative_flux = surface_integral.surface_flux
@@ -824,7 +824,7 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{2},
-                           nonconservative_terms::Val{false}, equations,
+                           nonconservative_terms::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
@@ -851,7 +851,7 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{2},
-                           nonconservative_terms::Val{true}, equations,
+                           nonconservative_terms::True, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
   surface_flux, nonconservative_flux = surface_integral.surface_flux

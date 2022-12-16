@@ -11,7 +11,7 @@ function save_mesh_file(mesh::Union{TreeMesh, P4estMesh}, output_directory, time
 end
 
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
-                        mpi_parallel::Val{false})
+                        mpi_parallel::False)
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -49,7 +49,7 @@ end
 
 # Save current mesh with some context information as an HDF5 file.
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
-                        mpi_parallel::Val{true})
+                        mpi_parallel::True)
   # Create output directory (if it does not exist)
   mpi_isroot() && mkpath(output_directory)
 
@@ -142,7 +142,7 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_parallel::Val{false})
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_parallel::False)
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -177,7 +177,7 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
   return filename
 end
 
-function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_parallel::Val{true})
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_parallel::True)
   # Create output directory (if it does not exist)
   mpi_isroot() && mkpath(output_directory)
 
