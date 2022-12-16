@@ -430,7 +430,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
 
     if mpi_isparallel() && amr_callback.dynamic_load_balancing
       @trixi_timeit timer() "dynamic load balancing" begin
-        global_first_quadrant = unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
+        global_first_quadrant = unsafe_wrap(Array, unsafe_load(mesh.p4est).global_first_quadrant, mpi_nranks() + 1)
         old_global_first_quadrant = copy(global_first_quadrant)
         partition!(mesh)
         rebalance_solver!(u_ode, mesh, equations, dg, cache, old_global_first_quadrant)

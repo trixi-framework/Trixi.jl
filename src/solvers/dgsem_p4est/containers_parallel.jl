@@ -273,7 +273,7 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
   # surfaces at once or any subset of them, some of the unpacked values above may be `nothing` if
   # they're not supposed to be initialized during this call. That is why we need additional
   # `!== nothing` checks below before initializing individual faces.
-  if info.sides.elem_count == 2
+  if unsafe_load(info).sides.elem_count == 2
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
@@ -317,7 +317,7 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
         init_mortars_iter_face_inner(info, sides, user_data)
       end
     end
-  elseif info.sides.elem_count == 1
+  elseif unsafe_load(info).sides.elem_count == 1
     # One neighboring elements => boundary
     if boundaries !== nothing
       init_boundaries_iter_face_inner(info, user_data)
@@ -369,7 +369,8 @@ function init_mpi_interfaces_iter_face_inner(info, sides, user_data)
   faces = (sides[1].face, sides[2].face)
 
   # Save mpi_interfaces.node_indices dimension specific in containers_[23]d_parallel.jl
-  init_mpi_interface_node_indices!(mpi_interfaces, faces, local_side, info.orientation,
+  init_mpi_interface_node_indices!(mpi_interfaces, faces, local_side,
+                                   unsafe_load(info).orientation,
                                    mpi_interface_id)
 
   return nothing
@@ -429,7 +430,7 @@ function init_mpi_mortars_iter_face_inner(info, sides, user_data)
 
   # init_mortar_node_indices! expects side 1 to contain small elements
   faces = (sides[hanging_side].face, sides[full_side].face)
-  init_mortar_node_indices!(mpi_mortars, faces, info.orientation, mpi_mortar_id)
+  init_mortar_node_indices!(mpi_mortars, faces, unsafe_load(info).orientation, mpi_mortar_id)
 
   return nothing
 end
@@ -443,7 +444,7 @@ end
 # - (MPI) mortars at subdomain boundaries
 # and collect the numbers in `user_data` in this order.
 function count_surfaces_iter_face_parallel(info, user_data)
-  if info.sides.elem_count == 2
+  if unsafe_load(info).sides.elem_count == 2
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
@@ -494,7 +495,7 @@ function count_surfaces_iter_face_parallel(info, user_data)
         unsafe_store!(ptr, id + 1, 2)
       end
     end
-  elseif info.sides.elem_count == 1
+  elseif unsafe_load(info).sides.elem_count == 1
     # One neighboring elements => boundary
 
     # Unpack user_data = [boundary_count] and increment boundary_count
