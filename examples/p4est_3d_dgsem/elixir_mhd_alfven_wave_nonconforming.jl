@@ -26,7 +26,7 @@ mesh = P4estMesh(trees_per_dimension,
 # OBS! Workaround to add a refinement patch after mesh is constructed
 # Refine bottom left quadrant of each tree to level 4
 function refine_fn(p8est, which_tree, quadrant)
-  quadrant_obj = unsafe_load(quadrant_obj)
+  quadrant_obj = unsafe_load(quadrant)
   if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 && quadrant_obj.level < 4
     # return true (refine)
     return Cint(1)
