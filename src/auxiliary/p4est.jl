@@ -27,13 +27,13 @@ end
 
 # Convert sc_array of type T to Julia array
 function unsafe_wrap_sc(::Type{T}, sc_array::Ptr{sc_array}) where T
-  sc_array_plain = unsafe_load(sc_array)
-  return unsafe_wrap_sc(T, sc_array_plain)
+  sc_array_obj = unsafe_load(sc_array)
+  return unsafe_wrap_sc(T, sc_array_obj)
 end
 
-function unsafe_wrap_sc(::Type{T}, sc_array_plain::sc_array) where T
-  elem_count = sc_array_plain.elem_count
-  array = sc_array_plain.array
+function unsafe_wrap_sc(::Type{T}, sc_array_obj::sc_array) where T
+  elem_count = sc_array_obj.elem_count
+  array = sc_array_obj.array
 
   return unsafe_wrap(Array, Ptr{T}(array), elem_count)
 end
@@ -41,24 +41,24 @@ end
 
 # Load the ith element (1-indexed) of an sc array of type T
 function unsafe_load_sc(::Type{T}, sc_array::Ptr{sc_array}, i=1) where T
-  sc_array_plain = unsafe_load(sc_array)
-  return unsafe_load_sc(T, sc_array_plain, i)
+  sc_array_obj = unsafe_load(sc_array)
+  return unsafe_load_sc(T, sc_array_obj, i)
 end
 
-function unsafe_load_sc(::Type{T}, sc_array_plain::sc_array, i=1) where T
-  element_size = sc_array_plain.elem_size
+function unsafe_load_sc(::Type{T}, sc_array_obj::sc_array, i=1) where T
+  element_size = sc_array_obj.elem_size
   @assert element_size == sizeof(T)
 
-  return unsafe_load(Ptr{T}(sc_array_plain.array), i)
+  return unsafe_load(Ptr{T}(sc_array_obj.array), i)
 end
 
 
 # Create new `p4est` from a p4est_connectivity
 # 2D
-function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
+function new_p4est(connectivity::Ptr{p4est_connectivity_t}, initial_refinement_level)
   comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi's MPI communicator if p4est supports MPI
   p4est_new_ext(comm,
-                conn,
+                connectivity,
                 0, # No minimum initial qudrants per processor
                 initial_refinement_level,
                 true, # Refine uniformly
@@ -68,9 +68,9 @@ function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
 end
 
 # 3D
-function new_p4est(conn::Ptr{p8est_connectivity_t}, initial_refinement_level)
+function new_p4est(connectivity::Ptr{p8est_connectivity_t}, initial_refinement_level)
   comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi's MPI communicator if p4est supports MPI
-  p8est_new_ext(comm, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
+  p8est_new_ext(comm, connectivity, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
 end
 
 

@@ -57,8 +57,8 @@ mesh = P4estMesh{3}(mesh_file, polydeg=2,
 
 # Refine bottom left quadrant of each second tree to level 2
 function refine_fn(p8est, which_tree, quadrant)
-  quadrant_plain = unsafe_load(quadrant)
-  if iseven(convert(Int, which_tree)) && quadrant_plain.x == 0 && quadrant_plain.y == 0 && quadrant_plain.z == 0 && quadrant_plain.level < 2
+  quadrant_obj = unsafe_load(quadrant)
+  if iseven(convert(Int, which_tree)) && quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 && quadrant_obj.level < 2
     # return true (refine)
     return Cint(1)
   else

@@ -60,17 +60,17 @@ const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:Val{true}}
 
 
 function destroy_mesh(mesh::P4estMesh{2})
-  conn = unsafe_load(mesh.p4est).connectivity
+  connectivity = unsafe_load(mesh.p4est).connectivity
   p4est_ghost_destroy(mesh.ghost)
   p4est_destroy(mesh.p4est)
-  p4est_connectivity_destroy(conn)
+  p4est_connectivity_destroy(connectivity)
 end
 
 function destroy_mesh(mesh::P4estMesh{3})
-  conn = unsafe_load(mesh.p4est).connectivity
+  connectivity = unsafe_load(mesh.p4est).connectivity
   p8est_ghost_destroy(mesh.ghost)
   p8est_destroy(mesh.p4est)
-  p8est_connectivity_destroy(conn)
+  p8est_connectivity_destroy(connectivity)
 end
 
 
@@ -188,9 +188,9 @@ function P4estMesh(trees_per_dimension; polydeg,
   calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, trees_per_dimension)
 
   # p4est_connectivity_new_brick has trees in Z-order, so use our own function for this
-  conn = connectivity_structured(trees_per_dimension..., periodicity)
+  connectivity = connectivity_structured(trees_per_dimension..., periodicity)
 
-  p4est = new_p4est(conn, initial_refinement_level)
+  p4est = new_p4est(connectivity, initial_refinement_level)
 
   # Non-periodic boundaries
   boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
@@ -359,15 +359,15 @@ end
 # [`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl).
 function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_dimensions, RealT)
   # Create the mesh connectivity using `p4est`
-  conn = read_inp_p4est(meshfile, Val(n_dimensions))
-  conn_plain = unsafe_load(conn)
+  connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
+  connectivity_obj = unsafe_load(connectivity)
 
   # These need to be of the type Int for unsafe_wrap below to work
-  n_trees::Int = conn_plain.num_trees
-  n_vertices::Int = conn_plain.num_vertices
+  n_trees::Int = connectivity_obj.num_trees
+  n_vertices::Int = connectivity_obj.num_vertices
 
   # Extract a copy of the element vertices to compute the tree node coordinates
-  vertices = unsafe_wrap(Array, conn_plain.vertices, (3, n_vertices))
+  vertices = unsafe_wrap(Array, connectivity_obj.vertices, (3, n_vertices))
 
   # Readin all the information from the mesh file into a string array
   file_lines = readlines(open(meshfile))
@@ -403,7 +403,7 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_d
     file_idx += 1
   end
 
-  p4est = new_p4est(conn, initial_refinement_level)
+  p4est = new_p4est(connectivity, initial_refinement_level)
 
   return p4est, tree_node_coordinates, nodes, boundary_names
 end
@@ -415,15 +415,15 @@ end
 # names are given the name `:all`.
 function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg, initial_refinement_level, n_dimensions, RealT)
   # Create the mesh connectivity using `p4est`
-  conn = read_inp_p4est(meshfile, Val(n_dimensions))
-  conn_plain = unsafe_load(conn)
+  connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
+  connectivity_obj = unsafe_load(connectivity)
 
   # These need to be of the type Int for unsafe_wrap below to work
-  n_trees::Int = conn_plain.num_trees
-  n_vertices::Int = conn_plain.num_vertices
+  n_trees::Int = connectivity_obj.num_trees
+  n_vertices::Int = connectivity_obj.num_vertices
 
-  vertices       = unsafe_wrap(Array, conn_plain.vertices, (3, n_vertices))
-  tree_to_vertex = unsafe_wrap(Array, conn_plain.tree_to_vertex, (2^n_dimensions, n_trees))
+  vertices       = unsafe_wrap(Array, connectivity_obj.vertices, (3, n_vertices))
+  tree_to_vertex = unsafe_wrap(Array, connectivity_obj.tree_to_vertex, (2^n_dimensions, n_trees))
 
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes
@@ -433,7 +433,7 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg, initial_ref
                                                        n_trees)
   calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices, tree_to_vertex)
 
-  p4est = new_p4est(conn, initial_refinement_level)
+  p4est = new_p4est(connectivity, initial_refinement_level)
 
   # There's no simple and generic way to distinguish boundaries. Name all of them :all.
   boundary_names = fill(:all, 2 * n_dimensions, n_trees)
@@ -469,7 +469,7 @@ The mesh will have two boundaries, `:inside` and `:outside`.
 function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
                               polydeg, RealT=Float64,
                               initial_refinement_level=0, unsaved_changes=true)
-  conn = connectivity_cubed_sphere(trees_per_face_dimension, layers)
+  connectivity = connectivity_cubed_sphere(trees_per_face_dimension, layers)
 
   n_trees = 6 * trees_per_face_dimension^2 * layers
 
@@ -482,7 +482,7 @@ function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, th
   calc_tree_node_coordinates!(tree_node_coordinates, nodes, trees_per_face_dimension, layers,
                               inner_radius, thickness)
 
-  p4est = new_p4est(conn, initial_refinement_level)
+  p4est = new_p4est(connectivity, initial_refinement_level)
 
   boundary_names = fill(Symbol("---"), 2 * 3, n_trees)
   boundary_names[5, :] .= Symbol("inside")
@@ -575,15 +575,15 @@ function connectivity_structured(n_cells_x, n_cells_y, periodicity)
   corner_to_tree = C_NULL
   corner_to_corner = C_NULL
 
-  conn = p4est_connectivity_new_copy(n_vertices, n_trees, n_corners,
+  connectivity = p4est_connectivity_new_copy(n_vertices, n_trees, n_corners,
                                      vertices, tree_to_vertex,
                                      tree_to_tree, tree_to_face,
                                      tree_to_corner, ctt_offset,
                                      corner_to_tree, corner_to_corner)
 
-  @assert p4est_connectivity_is_valid(conn) == 1
+  @assert p4est_connectivity_is_valid(connectivity) == 1
 
-  return conn
+  return connectivity
 end
 
 # 3D version
@@ -697,7 +697,7 @@ function connectivity_structured(n_cells_x, n_cells_y, n_cells_z, periodicity)
   corner_to_tree = C_NULL
   corner_to_corner = C_NULL
 
-  conn = p8est_connectivity_new_copy(n_vertices, n_trees, n_corners, n_edges,
+  connectivity = p8est_connectivity_new_copy(n_vertices, n_trees, n_corners, n_edges,
                                      vertices, tree_to_vertex,
                                      tree_to_tree, tree_to_face,
                                      tree_to_edge, ett_offset,
@@ -705,9 +705,9 @@ function connectivity_structured(n_cells_x, n_cells_y, n_cells_z, periodicity)
                                      tree_to_corner, ctt_offset,
                                      corner_to_tree, corner_to_corner)
 
-  @assert p8est_connectivity_is_valid(conn) == 1
+  @assert p8est_connectivity_is_valid(connectivity) == 1
 
-  return conn
+  return connectivity
 end
 
 
@@ -933,7 +933,7 @@ function connectivity_cubed_sphere(trees_per_face_dimension, layers)
   corner_to_tree = C_NULL
   corner_to_corner = C_NULL
 
-  conn = p8est_connectivity_new_copy(n_vertices, n_trees, n_corners, n_edges,
+  connectivity = p8est_connectivity_new_copy(n_vertices, n_trees, n_corners, n_edges,
                                      vertices, tree_to_vertex,
                                      tree_to_tree, tree_to_face,
                                      tree_to_edge, ett_offset,
@@ -941,9 +941,9 @@ function connectivity_cubed_sphere(trees_per_face_dimension, layers)
                                      tree_to_corner, ctt_offset,
                                      corner_to_tree, corner_to_corner)
 
-  @assert p8est_connectivity_is_valid(conn) == 1
+  @assert p8est_connectivity_is_valid(connectivity) == 1
 
-  return conn
+  return connectivity
 end
 
 
@@ -1576,17 +1576,17 @@ end
 
 # Copy global quad ID to quad's user data storage, will be called below
 function save_original_id_iter_volume(info, user_data)
-  info_plain = unsafe_load(info)
+  info_obj = unsafe_load(info)
 
   # Load tree from global trees array, one-based indexing
-  tree = unsafe_load_tree(info_plain.p4est, info_plain.treeid + 1)
+  tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
-  quad_id = offset + info_plain.quadid
+  quad_id = offset + info_obj.quadid
 
   # Unpack quadrant's user data ([global quad ID, controller_value])
-  ptr = Ptr{Int}(unsafe_load(info_plain.quad.p.user_data))
+  ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
   # Save global quad ID
   unsafe_store!(ptr, quad_id, 1)
 
@@ -1608,11 +1608,11 @@ end
 
 # Extract information about which cells have been changed
 function collect_changed_iter_volume(info, user_data)
-  info_plain = unsafe_load(info)
+  info_obj = unsafe_load(info)
 
   # The original element ID has been saved to user_data before.
   # Load original quad ID from quad's user data ([global quad ID, controller_value]).
-  quad_data_ptr = Ptr{Int}(unsafe_load(info_plain.quad.p.user_data))
+  quad_data_ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
   original_id = unsafe_load(quad_data_ptr, 1)
 
   # original_id of cells that have been newly created is -1
@@ -1651,21 +1651,21 @@ end
 
 # Extract newly created cells
 function collect_new_iter_volume(info, user_data)
-  info_plain = unsafe_load(info)
+  info_obj = unsafe_load(info)
 
   # The original element ID has been saved to user_data before.
   # Unpack quadrant's user data ([global quad ID, controller_value]).
-  quad_data_ptr = Ptr{Int}(unsafe_load(info_plain.quad.p.user_data))
+  quad_data_ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
   original_id = unsafe_load(quad_data_ptr, 1)
 
   # original_id of cells that have been newly created is -1
   if original_id < 0
     # Load tree from global trees array, one-based indexing
-    tree = unsafe_load_tree(info_plain.p4est, info_plain.treeid + 1)
+    tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
     # Quadrant numbering offset of this quadrant
     offset = tree.quadrants_offset
     # Global quad ID
-    quad_id = offset + info_plain.quadid
+    quad_id = offset + info_obj.quadid
 
     # Unpack user_data = original_cells
     user_data_ptr = Ptr{Int}(user_data)
