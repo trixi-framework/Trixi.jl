@@ -554,7 +554,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @timed_testset "TimeSeriesCallback" begin
-    @test_nowarn_debug trixi_include(@__MODULE__,
+    @test_nowarn_mod trixi_include(@__MODULE__,
                                      joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"),
                                      tspan=(0, 0.05))
 
@@ -581,7 +581,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "Consistency check for Godunov flux" begin
     # Set up equations and dummy conservative variables state
-    # Burger's Equation 
+    # Burger's Equation
 
     equation = InviscidBurgersEquation1D()
     u_values = [SVector(42.0), SVector(-42.0)]
@@ -617,7 +617,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     for normal_direction in normal_directions
       @test flux_godunov(u, u, normal_direction, equation) ≈ flux(u, normal_direction, equation)
     end
-    
+
     # Linear Advection 3D
     equation = LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
     u = SVector(3.14159)
@@ -635,7 +635,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     for normal_direction in normal_directions
       @test flux_godunov(u, u, normal_direction, equation) ≈ flux(u, normal_direction, equation)
-    end   
+    end
   end
 
   @timed_testset "Consistency check for Engquist-Osher flux" begin
@@ -659,7 +659,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @testset "Equivalent Fluxes" begin
     # Set up equations and dummy conservative variables state
-    # Burger's Equation 
+    # Burger's Equation
 
     equation = InviscidBurgersEquation1D()
     u_values = [SVector(42.0), SVector(-42.0)]
@@ -696,7 +696,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     for normal_direction in normal_directions
       @test flux_godunov(3*u, u, normal_direction, equation) ≈ flux_lax_friedrichs(3*u, u, normal_direction, equation)
     end
-    
+
     # Linear Advection 3D
     equation = LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
     u = SVector(3.14159)
@@ -714,7 +714,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     for normal_direction in normal_directions
       @test flux_godunov(1.3*u, u, normal_direction, equation) ≈ flux_lax_friedrichs(1.3*u, u, normal_direction, equation)
-    end   
+    end
   end
 
   @testset "FluxRotated vs. direct implementation" begin
