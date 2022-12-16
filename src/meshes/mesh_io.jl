@@ -224,14 +224,13 @@ end
 Load the mesh from the `restart_file`.
 """
 function load_mesh(restart_file::AbstractString; n_cells_max=0, RealT=Float64)
-  # Determine mesh filename
-  mesh_file = get_restart_mesh_filename(restart_file, Val(mpi_isparallel()))
-
   if mpi_isparallel()
+    mesh_file = get_restart_mesh_filename(restart_file, True())
     return load_mesh_parallel(mesh_file; n_cells_max=n_cells_max, RealT=RealT)
+  else
+    mesh_file = get_restart_mesh_filename(restart_file, False())
+    load_mesh_serial(mesh_file; n_cells_max=n_cells_max, RealT=RealT)
   end
-
-  load_mesh_serial(mesh_file; n_cells_max=n_cells_max, RealT=RealT)
 end
 
 function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
