@@ -80,10 +80,10 @@ end
 end
 
 
-@inline function split_form_kernel!(du, u,
-                                    element, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
-                                    nonconservative_terms::False, equations,
-                                    volume_flux, dg::DGSEM, cache, alpha=true)
+@inline function flux_differencing_kernel!(du, u,
+                                           element, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
+                                           nonconservative_terms::False, equations,
+                                           volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
 
@@ -128,16 +128,16 @@ end
   end
 end
 
-@inline function split_form_kernel!(du, u,
-                                    element, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
-                                    nonconservative_terms::True, equations,
-                                    volume_flux, dg::DGSEM, cache, alpha=true)
+@inline function flux_differencing_kernel!(du, u,
+                                           element, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
+                                           nonconservative_terms::True, equations,
+                                           volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
   symmetric_flux, nonconservative_flux = volume_flux
 
   # Apply the symmetric flux as usual
-  split_form_kernel!(du, u, element, mesh, False(), equations, symmetric_flux, dg, cache, alpha)
+  flux_differencing_kernel!(du, u, element, mesh, False(), equations, symmetric_flux, dg, cache, alpha)
 
   # Calculate the remaining volume terms using the nonsymmetric generalized flux
   for j in eachnode(dg), i in eachnode(dg)

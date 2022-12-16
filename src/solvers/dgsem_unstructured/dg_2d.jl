@@ -400,7 +400,7 @@ end
 # are set according to a particular `boundary_condition` function
 # Note, it is necessary to set and add in the nonconservative values because
 # the upper left/lower right diagonal terms have been peeled off due to the use of
-# `derivative_split` from `dg.basis` in [`split_form_kernel!`](@ref)
+# `derivative_split` from `dg.basis` in [`flux_differencing_kernel!`](@ref)
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::UnstructuredMesh2D,
                                      nonconservative_terms::True, equations,

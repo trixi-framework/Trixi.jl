@@ -92,10 +92,10 @@ end
 # flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
-@inline function split_form_kernel!(du, u,
-                                    element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                                    nonconservative_terms::False, equations,
-                                    volume_flux, dg::DGSEM, cache, alpha=true)
+@inline function flux_differencing_kernel!(du, u,
+                                           element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                           nonconservative_terms::False, equations,
+                                           volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
@@ -159,16 +159,16 @@ end
   end
 end
 
-@inline function split_form_kernel!(du, u,
-                                    element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                                    nonconservative_terms::True, equations,
-                                    volume_flux, dg::DGSEM, cache, alpha=true)
+@inline function flux_differencing_kernel!(du, u,
+                                           element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                           nonconservative_terms::True, equations,
+                                           volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
   symmetric_flux, nonconservative_flux = volume_flux
 
   # Apply the symmetric flux as usual
-  split_form_kernel!(du, u, element, mesh, False(), equations, symmetric_flux, dg, cache, alpha)
+  flux_differencing_kernel!(du, u, element, mesh, False(), equations, symmetric_flux, dg, cache, alpha)
 
   # Calculate the remaining volume terms using the nonsymmetric generalized flux
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
