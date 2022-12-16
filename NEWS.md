@@ -20,6 +20,8 @@ for human readability.
 
 #### Removed
 
+- Everything deprecated in Trixi.jl v0.4.x has been removed.
+
 
 ## Changes in the v0.4 lifecycle
 
