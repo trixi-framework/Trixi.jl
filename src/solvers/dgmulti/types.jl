@@ -117,6 +117,40 @@ GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffi
 # other potential constructor types to add later: Bilinear, Isoparametric{polydeg_geo}, Rational/Exact?
 # other potential mesh types to add later: Polynomial{polydeg_geo}?
 
+# TODO: DGMulti v0.5. Standardize order of arguments, pass in `dg` first
+"""
+  DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS};
+              is_on_boundary=nothing,
+              periodicity=ntuple(_->false, NDIMS)) where {NDIMS, Tv}
+
+- `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
+- `EToV` is a 2D array containing element-to-vertex connectivities for each element
+- `dg::DGMulti` contains information associated with to the reference element (e.g., quadrature,
+  basis evaluation, differentiation, etc).
+- `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
+- `periodicity` is a tuple of booleans specifying if the domain is periodic `true`/`false` in the
+  (x,y,z) direction.
+"""
+function DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS};
+                     is_on_boundary=nothing,
+                     periodicity=ntuple(_->false, NDIMS), kwargs...) where {NDIMS}
+  if haskey(kwargs, :is_periodic)
+    # TODO: DGMulti, v0.5. Remove deprecated keyword
+    Base.depwarn("keyword argument `is_periodic` is now `periodicity`.", :DGMultiMesh)
+    periodicity=kwargs[:is_periodic]
+  end
+
+  md = MeshData(vertex_coordinates, EToV, dg.basis)
+  if NDIMS == 1
+    md = StartUpDG.make_periodic(md, periodicity...)
+  else
+    md = StartUpDG.make_periodic(md, periodicity)
+  end
+  boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
+  return DGMultiMesh(dg, GeometricTermsType(VertexMapped(), dg), md, boundary_faces)
+end
+
+# TODO: DGMulti v0.5, standardize order of arguments (`dg` first)
 """
     DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int})
 
@@ -126,7 +160,6 @@ GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffi
 - `boundary_dict` is a `Dict{Symbol, Int}` which associates each integer `TriangulateIO` boundary
   tag with a `Symbol`.
 """
-# TODO: DGMulti v0.5, standardize order of arguments (`dg` first)
 function DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int};
                      periodicity=(false, false))
   vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
