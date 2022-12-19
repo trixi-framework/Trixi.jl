@@ -49,7 +49,13 @@ const MPI_IS_ROOT = Ref(true)
 # and it's not used in performance-critical parts. The alternative we used before,
 # calling something like `eval(:(mpi_parallel() = True()))` in `init_mpi()`,
 # causes invalidations and slows down the first call to Trixi.
-mpi_parallel()::Union{True, False} = Val(mpi_isparallel())
+function mpi_parallel()
+  if mpi_isparallel()
+    return True()
+  else
+    return False()
+  end
+end
 
 @inline mpi_isroot() = MPI_IS_ROOT[]
 
