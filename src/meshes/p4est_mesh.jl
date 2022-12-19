@@ -438,9 +438,9 @@ end
 
 
 """
-    P4estMesh(trees_per_face_dimension, layers, inner_radius, thickness;
-              polydeg, RealT=Float64,
-              initial_refinement_level=0, unsaved_changes=true)
+    P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
+                         polydeg, RealT=Float64,
+                         initial_refinement_level=0, unsaved_changes=true)
 
 Build a "Cubed Sphere" mesh as `P4estMesh` with
 `6 * trees_per_face_dimension^2 * layers` trees.
