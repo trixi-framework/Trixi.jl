@@ -786,7 +786,6 @@ end
 
       flux1     = flux(u_node,     1, equations)
       flux1_im1 = flux(u_node_im1, 1, equations)
-
       for v in eachvariable(equations)
         bar_states1[v, i, j, element] = 0.5 * (u_node[v] + u_node_im1[v]) - 0.5 * (flux1[v] - flux1_im1[v]) / lambda1[i, j, element]
       end
@@ -801,7 +800,6 @@ end
 
       flux2     = flux(u_node,     2, equations)
       flux2_jm1 = flux(u_node_jm1, 2, equations)
-
       for v in eachvariable(equations)
         bar_states2[v, i, j, element] = 0.5 * (u_node[v] + u_node_jm1[v]) - 0.5 * (flux2[v] - flux2_jm1[v]) / lambda2[i, j, element]
       end
@@ -829,7 +827,6 @@ end
 
         flux_left  = flux(u_left,  orientation, equations)
         flux_right = flux(u_right, orientation, equations)
-
         bar_state = 0.5 * (u_left + u_right) - 0.5 * (flux_right - flux_left) / lambda
         for v in eachvariable(equations)
           bar_states1[v, nnodes(dg)+1, j, left_id]  = bar_state[v]
@@ -849,7 +846,6 @@ end
 
         flux_left  = flux(u_left,  orientation, equations)
         flux_right = flux(u_right, orientation, equations)
-
         bar_state = 0.5 * (u_left + u_right) - 0.5 * (flux_right - flux_left) / lambda
         for v in eachvariable(equations)
           bar_states2[v, i, nnodes(dg)+1, left_id]  = bar_state[v]
@@ -877,7 +873,6 @@ end
 
           flux_inner = flux(u_inner, orientation, equations)
           flux_outer = flux(u_outer, orientation, equations)
-
           bar_state = 0.5 * (u_inner + u_outer) - 0.5 * (flux_inner - flux_outer) / lambda1[1, j, element]
           for v in eachvariable(equations)
             bar_states1[v, 1, j, element] = bar_state[v]
@@ -894,7 +889,6 @@ end
 
           flux_inner = flux(u_inner, orientation, equations)
           flux_outer = flux(u_outer, orientation, equations)
-
           bar_state = 0.5 * (u_inner + u_outer) - 0.5 * (flux_outer - flux_inner) / lambda1[nnodes(dg)+1, j, element]
           for v in eachvariable(equations)
             bar_states1[v, nnodes(dg)+1, j, element] = bar_state[v]
@@ -913,7 +907,6 @@ end
 
           flux_inner = flux(u_inner, orientation, equations)
           flux_outer = flux(u_outer, orientation, equations)
-
           bar_state = 0.5 * (u_inner + u_outer) - 0.5 * (flux_inner - flux_outer) / lambda2[i, 1, element]
           for v in eachvariable(equations)
             bar_states2[v, i, 1, element] = bar_state[v]
@@ -930,7 +923,6 @@ end
 
           flux_inner = flux(u_inner, orientation, equations)
           flux_outer = flux(u_outer, orientation, equations)
-
           bar_state = 0.5 * (u_inner + u_outer) - 0.5 * (flux_outer - flux_inner) / lambda2[i, nnodes(dg)+1, element]
           for v in eachvariable(equations)
             bar_states2[v, i, nnodes(dg)+1, element] = bar_state[v]
@@ -1364,13 +1356,12 @@ get_boundary_outer_state(u_inner, cache, t, boundary_condition, equations, dg, i
 end
 
 
-@inline function antidiffusive_stage!(u_ode, u_old_ode, t, dt, semi, indicator::IndicatorIDP)
+@inline function antidiffusive_stage!(u_ode, t, dt, semi, indicator::IndicatorIDP)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
-  u_old = wrap_array(u_old_ode, mesh, equations, solver, cache)
-  u     = wrap_array(u_ode,     mesh, equations, solver, cache)
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  @trixi_timeit timer() "alpha calculation" semi.solver.volume_integral.indicator(u, u_old, semi, solver, t, dt)
+  @trixi_timeit timer() "alpha calculation" semi.solver.volume_integral.indicator(u, semi, solver, t, dt)
 
   perform_IDP_correction(u, dt, mesh, equations, solver, cache)
 
@@ -1408,7 +1399,7 @@ end
   return nothing
 end
 
-@inline function antidiffusive_stage!(u_ode, u_old_ode, t, dt, semi, indicator::IndicatorMCL)
+@inline function antidiffusive_stage!(u_ode, t, dt, semi, indicator::IndicatorMCL)
 
   return nothing
 end

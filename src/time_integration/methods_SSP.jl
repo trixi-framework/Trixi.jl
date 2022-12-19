@@ -24,7 +24,7 @@ struct SimpleSSPRK33 <: SimpleAlgorithmSSP
   c::SVector{3, Float64}
 
   function SimpleSSPRK33()
-    a = SVector(1.0, 1/4, 2/3)
+    a = SVector(0.0, 3/4, 1/3)
     b = SVector(1.0, 1/4, 2/3)
     c = SVector(0.0, 1.0, 1/2)
 
@@ -155,15 +155,13 @@ function solve!(integrator::SimpleIntegratorSSP)
 
     @. integrator.u_safe = integrator.u
     for stage in eachindex(alg.c)
-      t_stage = integrator.t + integrator.dt * alg.c[stage]
-      integrator.f(integrator.du, integrator.u_safe, integrator.p, t_stage)
-
       @trixi_timeit timer() "Runge-Kutta stage" begin
-        @. integrator.u_old = (1.0 - alg.a[stage]) * integrator.u + alg.a[stage] * integrator.u_safe
-        @. integrator.u_safe = integrator.u_old + alg.b[stage] * integrator.dt * integrator.du
+        t_stage = integrator.t + integrator.dt * alg.c[stage]
+        integrator.f(integrator.du, integrator.u_safe, integrator.p, t_stage)
+
+        @. integrator.u_safe = integrator.u_safe + integrator.dt * integrator.du
       end
-      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old,
-        integrator.t, alg.b[stage] * integrator.dt, integrator.p, indicator)
+      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, t_stage, integrator.dt, integrator.p, indicator)
 
       @trixi_timeit timer() "update_alpha_per_timestep!" update_alpha_per_timestep!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
 
@@ -171,6 +169,8 @@ function solve!(integrator::SimpleIntegratorSSP)
       if indicator.IDPCheckBounds
         @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u_safe, integrator.p)
       end
+
+      @. integrator.u_safe = alg.a[stage] * integrator.u + alg.b[stage] * integrator.u_safe
     end
     @. integrator.u = integrator.u_safe
 

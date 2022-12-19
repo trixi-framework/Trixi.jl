@@ -446,7 +446,7 @@ end
       end
     end
 
-    for i in eachnode(dg), j in 2:nnodes(dg)
+    for j in 2:nnodes(dg), i in eachnode(dg)
       u_node     = get_node_vars(u, equations, dg, i,   j, element)
       u_node_jm1 = get_node_vars(u, equations, dg, i, j-1, element)
 

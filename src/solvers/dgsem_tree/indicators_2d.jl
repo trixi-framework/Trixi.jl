@@ -210,9 +210,7 @@ function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquation
           ContainerShockCapturingIndicator, idp_bounds_delta)
 end
 
-function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::AbstractArray{<:Any,4},
-                                       semi, dg::DGSEM, t, dt;
-                                       kwargs...)
+function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, semi, dg::DGSEM, t, dt; kwargs...)
   @unpack alpha = indicator_IDP.cache.ContainerShockCapturingIndicator
   alpha .= 0.0
   if indicator_IDP.indicator_smooth
@@ -222,15 +220,15 @@ function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::Ab
   end
 
   indicator_IDP.IDPDensityTVD  &&
-    @trixi_timeit timer() "IDPDensityTVD"  IDP_densityTVD!( alpha, indicator_IDP, u_safe,         t, dt, semi, elements)
+    @trixi_timeit timer() "IDPDensityTVD"  IDP_densityTVD!( alpha, indicator_IDP, u_safe, t, dt, semi, elements)
   indicator_IDP.IDPPressureTVD &&
-    @trixi_timeit timer() "IDPPressureTVD" IDP_pressureTVD!(alpha, indicator_IDP, u_safe,         t, dt, semi, elements)
+    @trixi_timeit timer() "IDPPressureTVD" IDP_pressureTVD!(alpha, indicator_IDP, u_safe, t, dt, semi, elements)
   indicator_IDP.IDPPositivity  &&
-    @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, indicator_IDP, u_safe,            dt, semi, elements)
+    @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, indicator_IDP, u_safe,    dt, semi, elements)
   indicator_IDP.IDPSpecEntropy &&
-    @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_safe, t, dt, semi, elements)
+    @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, indicator_IDP, u_safe, t, dt, semi, elements)
   indicator_IDP.IDPMathEntropy &&
-    @trixi_timeit timer() "IDPMathEntropy" IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_safe, t, dt, semi, elements)
+    @trixi_timeit timer() "IDPMathEntropy" IDP_mathEntropy!(alpha, indicator_IDP, u_safe, t, dt, semi, elements)
 
   # Calculate alpha1 and alpha2
   @unpack alpha1, alpha2 = indicator_IDP.cache.ContainerShockCapturingIndicator
@@ -588,7 +586,7 @@ end
   return nothing
 end
 
-@inline function IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_old, t, dt, semi, elements)
+@inline function IDP_specEntropy!(alpha, indicator_IDP, u_safe, t, dt, semi, elements)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack boundary_conditions = semi
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity = indicator_IDP
@@ -597,7 +595,7 @@ end
   offset = 2 * (IDPDensityTVD + IDPPressureTVD) + min(IDPPositivity, !IDPDensityTVD) + min(IDPPositivity, !IDPPressureTVD)
   s_min = var_bounds[offset + 1]
   if !indicator_IDP.BarStates
-    calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u_old, t, semi)
+    calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u_safe, t, semi)
   end
 
   # Perform Newton's bisection method to find new alpha
@@ -617,7 +615,7 @@ specEntropy_goal(bound, u, equations) = bound - entropy_spec(u, equations)
 specEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entropy_spec(u, equations), dt * antidiffusive_flux)
 specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol, abs(bound) * newton_abstol)
 
-@inline function IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_old, t, dt, semi, elements)
+@inline function IDP_mathEntropy!(alpha, indicator_IDP, u_safe, t, dt, semi, elements)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack boundary_conditions = semi
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy = indicator_IDP
@@ -627,7 +625,7 @@ specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol
            min(IDPPositivity, !IDPDensityTVD)+ min(IDPPositivity, !IDPPressureTVD)
   s_max = var_bounds[offset + 1]
   if !indicator_IDP.BarStates
-    calc_bounds_1sided!(s_max, max, typemin, entropy_math, u_old, t, semi)
+    calc_bounds_1sided!(s_max, max, typemin, entropy_math, u_safe, t, semi)
   end
 
   # Perform Newton's bisection method to find new alpha
