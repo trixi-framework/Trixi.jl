@@ -112,7 +112,7 @@ GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffi
 """
   DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV;
               is_on_boundary=nothing,
-              periodicity=ntuple(_->false, NDIMS)) where {NDIMS, Tv}
+              periodicity=ntuple(_->false, NDIMS)) where {NDIMS}
 
 - `dg::DGMulti` contains information associated with to the reference element (e.g., quadrature,
   basis evaluation, differentiation, etc).
@@ -136,6 +136,9 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV::AbstractArray
   return DGMultiMesh(dg, GeometricTermsType(VertexMapped(), dg), md, boundary_faces)
 end
 
+@deprecate DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS}; kwargs...) where {NDIMS} =
+  DGMultiMesh(dg, vertex_coordinates, EToV; kwargs...)
+
 """
     DGMultiMesh(dg::DGMulti{2, Tri}, triangulateIO, boundary_dict::Dict{Symbol, Int})
 
@@ -153,6 +156,9 @@ function DGMultiMesh(dg::DGMulti{2, Tri}, triangulateIO, boundary_dict::Dict{Sym
   boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, dg.basis, md, boundary_dict)
   return DGMultiMesh(dg, GeometricTermsType(TriangulateIO(), dg), md, boundary_faces)
 end
+
+@deprecate DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int}; kwargs...) =
+  DGMultiMesh(dg, triangulateIO, boundary_dict; kwargs...)
 
 # TODO: DGMulti. Make `cells_per_dimension` a non-keyword argument for easier dispatch.
 """
