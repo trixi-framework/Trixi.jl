@@ -18,6 +18,9 @@ for human readability.
 
 #### Deprecated
 
+- The signature of the `DGMultiMesh` constructors has changed - the `dg::DGMulti`
+  argument now comes first.
+
 #### Removed
 
 - Everything deprecated in Trixi.jl v0.4.x has been removed.
