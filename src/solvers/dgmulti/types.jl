@@ -88,14 +88,6 @@ function DGMultiMesh(dg::DGMulti, geometric_term_type, md::MeshData{NDIMS}, boun
   return DGMultiMesh{NDIMS, geometric_term_type, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
-function DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
-
-  vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
-  md = MeshData(vertex_coordinates, EToV, rd)
-  boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)
-  return DGMultiMesh{2, typeof(rd.element_type), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
-end
-
 # Mesh types used internally for trait dispatch
 struct Cartesian end
 struct VertexMapped end # where element geometry is determined by vertices.
