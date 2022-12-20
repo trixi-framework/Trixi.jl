@@ -20,6 +20,9 @@ for human readability.
 
 - The signature of the `DGMultiMesh` constructors has changed - the `dg::DGMulti`
   argument now comes first.
+- The undocumented and unused
+`DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})`
+constructor was removed.
 
 #### Removed
 
