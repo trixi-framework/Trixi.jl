@@ -136,9 +136,6 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV::AbstractArray
   return DGMultiMesh(dg, GeometricTermsType(VertexMapped(), dg), md, boundary_faces)
 end
 
-@deprecate DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS}; kwargs...) where {NDIMS} =
-  DGMultiMesh(dg, vertex_coordinates, EToV; kwargs...)
-
 """
     DGMultiMesh(dg::DGMulti{2, Tri}, triangulateIO, boundary_dict::Dict{Symbol, Int})
 
@@ -156,9 +153,6 @@ function DGMultiMesh(dg::DGMulti{2, Tri}, triangulateIO, boundary_dict::Dict{Sym
   boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, dg.basis, md, boundary_dict)
   return DGMultiMesh(dg, GeometricTermsType(TriangulateIO(), dg), md, boundary_faces)
 end
-
-@deprecate DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int}; kwargs...) =
-  DGMultiMesh(dg, triangulateIO, boundary_dict; kwargs...)
 
 # TODO: DGMulti. Make `cells_per_dimension` a non-keyword argument for easier dispatch.
 """
@@ -350,6 +344,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
   return nothing
 end
 
-
-
 end # @muladd
+
+@deprecate DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS}; kwargs...) where {NDIMS} DGMultiMesh(dg, vertex_coordinates, EToV; kwargs...)
+@deprecate DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int}; kwargs...) DGMultiMesh(dg, triangulateIO, boundary_dict; kwargs...)
