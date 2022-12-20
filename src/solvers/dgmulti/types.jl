@@ -85,7 +85,7 @@ end
 # now that `DGMulti` is defined, we can define constructors for `DGMultiMesh` which use `dg::DGMulti`
 
 function DGMultiMesh(dg::DGMulti, geometric_term_type, md::MeshData{NDIMS}, boundary_faces) where {NDIMS}
-  return DGMultiMesh{NDIMS, geometric_term_type, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, typeof(geometric_term_type), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # Mesh types used internally for trait dispatch
