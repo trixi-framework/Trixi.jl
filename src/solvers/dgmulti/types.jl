@@ -122,7 +122,7 @@ GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffi
 - `periodicity` is a tuple of booleans specifying if the domain is periodic `true`/`false` in the
   (x,y,z) direction.
 """
-function DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV;
+function DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV::AbstractArray;
                      is_on_boundary=nothing,
                      periodicity=ntuple(_->false, NDIMS), kwargs...) where {NDIMS}
 
