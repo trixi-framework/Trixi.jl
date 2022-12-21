@@ -321,6 +321,14 @@ end
   end
 end
 
+# Since GaussSBP uses Gauss quadrature which is exact for polynomials of degree N, the
+# inverse trace constants for GaussSBP are identical to polynomial inverse trace constants
+# in StartUpDG.jl, which have explicit formulas. These inverse trace constants are used in
+# CFL-based control of the time-step size.
+import StartUpDG: inverse_trace_constant
+inverse_trace_constant(rd::RefElemData{2, Quad, <:GaussSBP}) = (rd.N + 1) * (rd.N + 2)
+inverse_trace_constant(rd::RefElemData{3, Hex, <:GaussSBP}) = 3 * (rd.N + 1) * (rd.N + 2) / 2
+
 function DGMulti(element_type::Line,
                  approximation_type::GaussSBP,
                  volume_integral, surface_integral;
