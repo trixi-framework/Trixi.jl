@@ -316,7 +316,7 @@ end
 # in StartUpDG.jl, which have explicit formulas. These inverse trace constants are used in
 # CFL-based control of the time-step size.
 import StartUpDG: inverse_trace_constant
-inverse_trace_constant(rd::RefElemData{2, Quad, <:GaussSBP}) = (rd.N+1) * (rd.N + 2)
+inverse_trace_constant(rd::RefElemData{2, Quad, <:GaussSBP}) = (rd.N + 1) * (rd.N + 2)
 inverse_trace_constant(rd::RefElemData{3, Hex, <:GaussSBP}) = 3 * (rd.N + 1) * (rd.N + 2) / 2
 
 function DGMulti(element_type::Line,
