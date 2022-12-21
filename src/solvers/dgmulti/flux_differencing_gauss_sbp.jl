@@ -325,7 +325,6 @@ function DGMulti(element_type::Line,
                  approximation_type::GaussSBP,
                  volume_integral, surface_integral;
                  polydeg::Integer,
-                 surface_flux=flux_central,
                  kwargs...)
 
   # explicitly specify Gauss quadrature rule with polydeg+1 points
@@ -352,7 +351,6 @@ function DGMulti(element_type::Union{Quad, Hex},
                  approximation_type::GaussSBP,
                  volume_integral, surface_integral;
                  polydeg::Integer,
-                 surface_flux=flux_central,
                  kwargs...)
 
   # explicitly create tensor product Gauss quadrature rule with polydeg+1 points
@@ -371,8 +369,6 @@ function DGMulti(element_type::Union{Quad, Hex},
   # This uses the Setfield @set macro, which behaves similarly to `Trixi.remake`.
   rd_gauss = @set rd.approximation_type = GaussSBP()
 
-  # We will modify the face interpolation operator of rd_gauss later, but want to do so only after
-  # the mesh is initialized, since the face interpolation operator is used for that.
   return DG(rd_gauss, nothing #= mortar =#, surface_integral, volume_integral)
 end
 
