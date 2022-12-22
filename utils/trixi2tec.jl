@@ -1,10 +1,7 @@
 using Trixi
 
-# Note: The `trixi2tec` function was originally implemented by Andrew R. Winters and later
-#       generalized by Michael Schlottke-Lakemper.
-
 """
-    function trixi2tec(u, semi, filename; title=basename(filename), solution_variables=cons2cons)
+    trixi2tec(u, semi, filename; title=basename(filename), solution_variables=cons2cons)
 
 Convert a Trixi.jl solution array `u` for a given semidiscretization `semi` into a point-based
 Tecplot ASCII file and store it as `filename`. Instead of manually extracting `u` and `semi`, you
@@ -27,6 +24,11 @@ julia> trixi2tec(sol, "mydata_primitive.tec", solution_variables=cons2prim)
 ```
 
 !!! warning "Experimental implementation"
+    This only works for the `TreeMesh`, the `StructuredMesh`, the `UnstructuredMesh2D`,
+    and the `P4estMesh`. In particular, it does not work for the `DGMulti` solver using the
+    `DGMultiMesh`.
+
+!!! warning "Experimental implementation"
     This is an experimental feature and *not* part of the official Trixi.jl API. Specifically,
     this function may change (or even be removed) in future releases without warning.
 """
@@ -38,25 +40,25 @@ function trixi2tec(u, semi, filename; title=basename(filename), solution_variabl
   # Collect variable names and size information
   ndims = Trixi.ndims(semi)
   if ndims == 1
-    variables =  ["x"]
-    ndofs_x = size(u)[2]
+    variables = ["x"]
+    ndofs_x = size(u, 2)
     indices = CartesianIndices((ndofs_x,))
     zone_info = "ZONE I=$ndofs_x, F=POINT\n"
   elseif ndims == 2
-    variables =  ["x", "y"]
-    ndofs_x = size(u)[2]
-    ndofs_y = size(u)[3]
+    variables = ["x", "y"]
+    ndofs_x = size(u, 2)
+    ndofs_y = size(u, 3)
     indices = CartesianIndices((ndofs_x, ndofs_y))
     zone_info = "ZONE I=$ndofs_x, J=$ndofs_y, F=POINT\n"
   elseif ndims == 3
-    variables =  ["x", "y", "z"]
-    ndofs_x = size(u)[2]
-    ndofs_y = size(u)[3]
-    ndofs_z = size(u)[4]
+    variables = ["x", "y", "z"]
+    ndofs_x = size(u, 2)
+    ndofs_y = size(u, 3)
+    ndofs_z = size(u, 4)
     indices = CartesianIndices((ndofs_x, ndofs_y, ndofs_z))
     zone_info = "ZONE I=$ndofs_x, J=$ndofs_y, K=$ndofs_z, F=POINT\n"
   else
-    error("Wait, what?!")
+    error("Unsupported number of dimensions (must be 1, 2, or 3)")
   end
   push!(variables, Trixi.varnames(solution_variables, equations)...)
   variables_list = join(variables, "\", \"")
