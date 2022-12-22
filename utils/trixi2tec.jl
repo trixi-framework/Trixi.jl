@@ -25,6 +25,10 @@ julia> trixi2tec(sol, "mydata.tec")
 
 julia> trixi2tec(sol, "mydata_primitive.tec", solution_variables=cons2prim)
 ```
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and *not* part of the official Trixi.jl API. Specifically,
+    this function may change (or even be removed) in future releases without warning.
 """
 function trixi2tec(u, semi, filename; title=basename(filename), solution_variables=cons2cons)
   # Extract fundamental building blocks and auxiliary data
