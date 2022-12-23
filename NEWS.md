@@ -15,7 +15,7 @@ for human readability.
   with nonconservative terms are created. Change
   `Trixi.has_nonconservative_terms(::YourEquations) = Val{true}()` to
   `Trixi.has_nonconservative_terms(::YourEquations) = Trixi.True()`.
-
+- The (non-exported) DGSEM function `split_form_kernel!` has been renamed to `flux_differencing_kernel!`
 #### Deprecated
 
 - The signature of the `DGMultiMesh` constructors has changed - the `dg::DGMulti`
