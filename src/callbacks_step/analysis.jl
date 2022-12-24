@@ -28,7 +28,8 @@ information on how to create custom analysis quantities.
 
 In addition, the analysis callback records and outputs a number of quantitites that are useful for
 evaluating the computational performance, such as the total runtime, the performance index
-(time/DOF/rhs!), or the current memory usage (alloc'd memory).
+(time/DOF/rhs!), the time spent in garbage collection (GC), or the current memory usage (alloc'd
+memory).
 """
 mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
