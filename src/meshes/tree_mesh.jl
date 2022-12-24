@@ -70,8 +70,8 @@ const TreeMesh3D = TreeMesh{3, TreeType} where {TreeType <: AbstractTree{3}}
 const SerialTreeMesh{NDIMS}   = TreeMesh{NDIMS, <:SerialTree{NDIMS}}
 const ParallelTreeMesh{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
 
-@inline mpi_parallel(mesh::SerialTreeMesh) = Val(false)
-@inline mpi_parallel(mesh::ParallelTreeMesh) = Val(true)
+@inline mpi_parallel(mesh::SerialTreeMesh) = False()
+@inline mpi_parallel(mesh::ParallelTreeMesh) = True()
 
 partition!(mesh::SerialTreeMesh) = nothing
 
@@ -188,7 +188,7 @@ end
 
 
 # Obtain the mesh filename from a restart file
-function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{false})
+function get_restart_mesh_filename(restart_filename, mpi_parallel::False)
   # Get directory name
   dirname, _ = splitdir(restart_filename)
 

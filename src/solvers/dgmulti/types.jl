@@ -85,42 +85,8 @@ end
 # now that `DGMulti` is defined, we can define constructors for `DGMultiMesh` which use `dg::DGMulti`
 
 function DGMultiMesh(dg::DGMulti, geometric_term_type, md::MeshData{NDIMS}, boundary_faces) where {NDIMS}
-  return DGMultiMesh{NDIMS, geometric_term_type, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, typeof(geometric_term_type), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
-
-# TODO: DGMulti, v0.5. These constructors which use `rd::RefElemData` are now redundant and can be removed.
-function DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
-                     is_on_boundary = nothing,
-                     periodicity=ntuple(_->false, NDIMS), kwargs...) where {NDIMS, Tv, Ti}
-
-  Base.depwarn("`DGMultiMesh` constructor with `rd::RefElemData` is deprecated. Use the constructor with `dg::DGMulti` instead.",
-               :DGMultiMesh)
-  if haskey(kwargs, :is_periodic)
-    # TODO: DGMulti, v0.5. Remove deprecated keyword
-    Base.depwarn("keyword argument `is_periodic` is now `periodicity`.", :DGMultiMesh)
-    periodicity=kwargs[:is_periodic]
-  end
-
-  md = MeshData(vertex_coordinates, EToV, rd)
-  if NDIMS==1
-    md = StartUpDG.make_periodic(md, periodicity...)
-  else
-    md = StartUpDG.make_periodic(md, periodicity)
-  end
-  boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return DGMultiMesh{NDIMS, typeof(rd.element_type), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
-end
-
-function DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
-
-  vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
-  md = MeshData(vertex_coordinates, EToV, rd)
-  boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)
-  return DGMultiMesh{2, typeof(rd.element_type), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
-end
-
-# TODO: DGMulti, v0.5. Remove deprecated constructor
-@deprecate VertexMappedMesh(args...; kwargs...) DGMultiMesh(args...; kwargs...)
 
 # Mesh types used internally for trait dispatch
 struct Cartesian end
@@ -144,27 +110,21 @@ GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffi
 # other potential mesh types to add later: Polynomial{polydeg_geo}?
 
 """
-  DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS};
+  DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV;
               is_on_boundary=nothing,
-              periodicity=ntuple(_->false, NDIMS)) where {NDIMS, Tv}
+              periodicity=ntuple(_->false, NDIMS)) where {NDIMS}
 
-- `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
-- `EToV` is a 2D array containing element-to-vertex connectivities for each element
 - `dg::DGMulti` contains information associated with to the reference element (e.g., quadrature,
   basis evaluation, differentiation, etc).
+- `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
+- `EToV` is a 2D array containing element-to-vertex connectivities for each element
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
 - `periodicity` is a tuple of booleans specifying if the domain is periodic `true`/`false` in the
   (x,y,z) direction.
 """
-# TODO: DGMulti v0.5. Standardize order of arguments, pass in `dg` first
-function DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS};
+function DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV::AbstractArray;
                      is_on_boundary=nothing,
                      periodicity=ntuple(_->false, NDIMS), kwargs...) where {NDIMS}
-  if haskey(kwargs, :is_periodic)
-    # TODO: DGMulti, v0.5. Remove deprecated keyword
-    Base.depwarn("keyword argument `is_periodic` is now `periodicity`.", :DGMultiMesh)
-    periodicity=kwargs[:is_periodic]
-  end
 
   md = MeshData(vertex_coordinates, EToV, dg.basis)
   if NDIMS == 1
@@ -177,16 +137,15 @@ function DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS};
 end
 
 """
-    DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int})
+    DGMultiMesh(dg::DGMulti{2, Tri}, triangulateIO, boundary_dict::Dict{Symbol, Int})
 
-- `triangulateIO` is a `TriangulateIO` mesh representation
 - `dg::DGMulti` contains information associated with to the reference element (e.g., quadrature,
   basis evaluation, differentiation, etc).
+- `triangulateIO` is a `TriangulateIO` mesh representation
 - `boundary_dict` is a `Dict{Symbol, Int}` which associates each integer `TriangulateIO` boundary
   tag with a `Symbol`.
 """
-# TODO: DGMulti v0.5, standardize order of arguments (`dg` first)
-function DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int};
+function DGMultiMesh(dg::DGMulti{2, Tri}, triangulateIO, boundary_dict::Dict{Symbol, Int};
                      periodicity=(false, false))
   vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
   md = MeshData(vertex_coordinates, EToV, dg.basis)
@@ -212,12 +171,6 @@ function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
                      coordinates_max=ntuple(_ -> one(real(dg)), NDIMS),
                      is_on_boundary=nothing,
                      periodicity=ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
-
-  if haskey(kwargs, :is_periodic)
-    # TODO: DGMulti. Deprecate `is_periodic` in version 0.5
-    Base.depwarn("keyword argument `is_periodic` is now `periodicity`.", :DGMultiMesh)
-    periodicity=kwargs[:is_periodic]
-  end
 
   vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.element_type, cells_per_dimension...)
   domain_lengths = coordinates_max .- coordinates_min
@@ -391,6 +344,8 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
   return nothing
 end
 
-
-
 end # @muladd
+
+# TODO: deprecations introduced in Trixi.jl v0.5
+@deprecate DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS}; kwargs...) where {NDIMS} DGMultiMesh(dg, vertex_coordinates, EToV; kwargs...)
+@deprecate DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int}; kwargs...) DGMultiMesh(dg, triangulateIO, boundary_dict; kwargs...)

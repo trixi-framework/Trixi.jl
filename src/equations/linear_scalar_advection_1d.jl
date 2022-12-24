@@ -151,10 +151,10 @@ function flux_godunov(u_ll, u_rr, orientation::Int, equation::LinearScalarAdvect
   u_L = u_ll[1]
   u_R = u_rr[1]
 
-  v_normal = equation.advection_velocity[orientation] 
+  v_normal = equation.advection_velocity[orientation]
   if v_normal >= 0
     return SVector(v_normal * u_L)
-  else 
+  else
     return SVector(v_normal * u_R)
   end
 end
@@ -166,12 +166,12 @@ function flux_engquist_osher(u_ll, u_rr, orientation::Int, equation::LinearScala
   u_L = u_ll[1]
   u_R = u_rr[1]
 
-  return SVector(0.5 * (flux(u_L, orientation, equation) + flux(u_R, orientation, equation) - 
+  return SVector(0.5 * (flux(u_L, orientation, equation) + flux(u_R, orientation, equation) -
                         abs(equation.advection_velocity[orientation]) * (u_R - u_L)))
 end
 
 
-@inline have_constant_speed(::LinearScalarAdvectionEquation1D) = Val(true)
+@inline have_constant_speed(::LinearScalarAdvectionEquation1D) = True()
 
 @inline function max_abs_speeds(equation::LinearScalarAdvectionEquation1D)
   return abs.(equation.advection_velocity)

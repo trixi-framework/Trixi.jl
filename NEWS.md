@@ -4,6 +4,31 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.5 from v0.4.x
+
+#### Added
+
+#### Changed
+
+- Compile-time boolean indicators have been changed from `Val{true}`/`Val{false}`
+  to `Trixi.True`/`Trixi.False`. This affects user code only if new equations
+  with nonconservative terms are created. Change
+  `Trixi.has_nonconservative_terms(::YourEquations) = Val{true}()` to
+  `Trixi.has_nonconservative_terms(::YourEquations) = Trixi.True()`.
+- The (non-exported) DGSEM function `split_form_kernel!` has been renamed to `flux_differencing_kernel!`
+
+#### Deprecated
+
+- The signature of the `DGMultiMesh` constructors has changed - the `dg::DGMulti`
+  argument now comes first.
+- The undocumented and unused
+  `DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})`
+  constructor was removed.
+
+#### Removed
+
+- Everything deprecated in Trixi.jl v0.4.x has been removed.
+
 
 ## Changes when updating to v0.5 from v0.4.x
 
