@@ -171,8 +171,13 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
 
   end
 
+  # Record current time using a high-resolution clock
   analysis_callback.start_time = time_ns()
+
+  # Record total time spent in garbage collection so far using a high-resolution clock
+  # Note: For details see the actual callback function below
   analysis_callback.start_gc_time = Base.gc_time_ns()
+
   analysis_callback(integrator)
   return nothing
 end
@@ -185,10 +190,29 @@ function (analysis_callback::AnalysisCallback)(integrator)
   @unpack dt, t = integrator
   iter = integrator.destats.naccept
 
+  # Compute the total runtime since the analysis callback has been initialized, in seconds
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
+
+  # Compute the local PID (performance index)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
+
+  # Compute the total time spent in garbage collection since the analysis callback has been
+  # initialized, in seconds
+  # Note: `Base.gc_time_ns()` is not part of the public Julia API but has been available at least
+  #        since Julia 1.6. Should this function be removed without replacement in a future Julia
+  #        release, just delete this analysis quantity from the callback.
+  # Source: https://github.com/JuliaLang/julia/blob/b540315cb4bd91e6f3a3e4ab8129a58556947628/base/timing.jl#L83-L84
   gc_time_absolute = 1.0e-9 * (Base.gc_time_ns() - analysis_callback.start_gc_time)
+
+  # Compute the percentage of total time that was spent in garbage collection
   gc_time_percentage = gc_time_absolute / runtime_absolute
+
+  # Obtain the current memory usage of the Julia garbage collector, in MiB, i.e., the total size of
+  # objects in memory that have been allocated by the JIT compiler or the user code.
+  # Note: `Base.gc_live_bytes()` is not part of the public Julia API but has been available at least
+  #        since Julia 1.6. Should this function be removed without replacement in a future Julia
+  #        release, just delete this analysis quantity from the callback.
+  # Source: https://github.com/JuliaLang/julia/blob/b540315cb4bd91e6f3a3e4ab8129a58556947628/base/timing.jl#L86-L97
   memory_use = Base.gc_live_bytes() / 2^20 # bytes -> MiB
 
   @trixi_timeit timer() "analyze solution" begin
