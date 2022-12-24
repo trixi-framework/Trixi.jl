@@ -167,10 +167,10 @@ function flux_godunov(u_ll, u_rr, orientation::Integer, equation::LinearScalarAd
   u_L = u_ll[1]
   u_R = u_rr[1]
 
-  v_normal = equation.advection_velocity[orientation] 
+  v_normal = equation.advection_velocity[orientation]
   if v_normal >= 0
     return SVector(v_normal * u_L)
-  else 
+  else
     return SVector(v_normal * u_R)
   end
 end
@@ -184,13 +184,13 @@ function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector, equation::Li
   a_normal = dot(equation.advection_velocity, normal_direction)
   if a_normal >= 0
     return SVector(a_normal * u_L)
-  else 
+  else
     return SVector(a_normal * u_R)
   end
 end
 
 
-@inline have_constant_speed(::LinearScalarAdvectionEquation3D) = Val(true)
+@inline have_constant_speed(::LinearScalarAdvectionEquation3D) = True()
 
 @inline function max_abs_speeds(equation::LinearScalarAdvectionEquation3D)
   return abs.(equation.advection_velocity)

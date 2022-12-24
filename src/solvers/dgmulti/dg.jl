@@ -134,7 +134,7 @@ end
 
 # for the stepsize callback
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_speed::Val{false}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+                constant_speed::False, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
 
   @unpack md = mesh
   rd = dg.basis
@@ -158,7 +158,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_speed::Val{true}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+                constant_speed::True, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
 
   @unpack md = mesh
   rd = dg.basis
@@ -190,7 +190,7 @@ function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
 end
 
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms::Val{false}, equations,
+                               have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
                                cache)
 
@@ -218,7 +218,7 @@ end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
                               mesh::DGMultiMesh,
-                              have_nonconservative_terms::Val{false}, equations,
+                              have_nonconservative_terms::False, equations,
                               dg::DGMulti{NDIMS}) where {NDIMS}
 
   @unpack surface_flux = surface_integral
@@ -239,7 +239,7 @@ end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
                               mesh::DGMultiMesh,
-                              have_nonconservative_terms::Val{true}, equations,
+                              have_nonconservative_terms::True, equations,
                               dg::DGMulti{NDIMS}) where {NDIMS}
 
   flux_conservative, flux_nonconservative = surface_integral.surface_flux

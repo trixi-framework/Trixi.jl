@@ -444,7 +444,7 @@ end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
                               mesh::DGMultiMesh,
-                              have_nonconservative_terms::Val{false}, equations,
+                              have_nonconservative_terms::False, equations,
                               dg::DGMultiPeriodicFDSBP)
   @assert nelements(mesh, dg, cache) == 1
   nothing
@@ -470,7 +470,7 @@ end
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms::Val{false}, equations,
+                               have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGMultiFluxDiffPeriodicFDSBP, cache)
 
@@ -490,7 +490,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
       #       `= ∑_j (1 / M[i,i] * Q[i,j]) * volume_flux(u[i], u[j])`
       #       `= ∑_j        D[i,j]         * volume_flux(u[i], u[j])`
       # TODO: DGMulti.
-      # This would have to be changed if `has_nonconservative_terms = Val{false}()`
+      # This would have to be changed if `has_nonconservative_terms = False()`
       # because then `volume_flux` is non-symmetric.
       A = dg.basis.Drst[dim]
 
@@ -523,9 +523,9 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
       A = dg.basis.Drst[dim]
 
-      # since has_nonconservative_terms::Val{false},
+      # since has_nonconservative_terms::False,
       # the volume flux is symmetric.
-      flux_is_symmetric = Val{true}()
+      flux_is_symmetric = True()
       hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
                     normal_direction, u, equations)
     end
