@@ -30,10 +30,12 @@ julia> redirect_stdout(devnull) do
                        tspan=(0.0, 0.1))
          sol.t[end]
        end
+[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.
 0.1
 ```
 """
 function trixi_include(mod::Module, elixir::AbstractString; kwargs...)
+  @info "You just called `trixi_include`. Julia may now compile the code, please be patient."
   Base.include(ex -> replace_assignments(insert_maxiters(ex); kwargs...), mod, elixir)
 end
 
