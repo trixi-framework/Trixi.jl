@@ -334,12 +334,14 @@ end
 
 # Copy controller values to quad user data storage, will be called below
 function copy_to_quad_iter_volume(info, user_data)
+  info_obj = unsafe_load(info)
+
   # Load tree from global trees array, one-based indexing
-  tree = unsafe_load_tree(info.p4est, info.treeid + 1)
+  tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
-  quad_id = offset + info.quadid
+  quad_id = offset + info_obj.quadid
 
   # Access user_data = lambda
   user_data_ptr = Ptr{Int}(user_data)
@@ -347,7 +349,7 @@ function copy_to_quad_iter_volume(info, user_data)
   controller_value = unsafe_load(user_data_ptr, quad_id + 1)
 
   # Access quadrant's user data ([global quad ID, controller_value])
-  quad_data_ptr = Ptr{Int}(info.quad.p.user_data)
+  quad_data_ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
   # Save controller value to quadrant's user data.
   unsafe_store!(quad_data_ptr, controller_value, 2)
 
@@ -428,7 +430,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
 
     if mpi_isparallel() && amr_callback.dynamic_load_balancing
       @trixi_timeit timer() "dynamic load balancing" begin
-        global_first_quadrant = unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
+        global_first_quadrant = unsafe_wrap(Array, unsafe_load(mesh.p4est).global_first_quadrant, mpi_nranks() + 1)
         old_global_first_quadrant = copy(global_first_quadrant)
         partition!(mesh)
         rebalance_solver!(u_ode, mesh, equations, dg, cache, old_global_first_quadrant)
@@ -567,16 +569,18 @@ end
 
 
 function extract_levels_iter_volume(info, user_data)
+  info_obj = unsafe_load(info)
+
   # Load tree from global trees array, one-based indexing
-  tree = unsafe_load_tree(info.p4est, info.treeid + 1)
+  tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
-  quad_id = offset + info.quadid
+  quad_id = offset + info_obj.quadid
   # Julia element ID
   element_id = quad_id + 1
 
-  current_level = info.quad.level
+  current_level = unsafe_load(info_obj.quad.level)
 
   # Unpack user_data = current_levels and save current element level
   ptr = Ptr{Int}(user_data)

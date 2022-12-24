@@ -402,7 +402,7 @@ function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
 
   elements_per_level = zeros(P4EST_MAXLEVEL + 1)
 
-  for tree in unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
+  for tree in unsafe_wrap_sc(p4est_tree_t, unsafe_load(mesh.p4est).trees)
     elements_per_level .+= tree.quadrants_per_level
   end
 
@@ -503,12 +503,13 @@ pretty_form_ascii(::Val{:linf_divb}) = "linf_divb"
 pretty_form_utf(::typeof(lake_at_rest_error)) = "∑|H₀-(h+b)|"
 pretty_form_ascii(::typeof(lake_at_rest_error)) = "|H0-(h+b)|"
 
+
+end # @muladd
+
+
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
-
-
-end # @muladd
