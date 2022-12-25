@@ -35,7 +35,10 @@ julia> redirect_stdout(devnull) do
 ```
 """
 function trixi_include(mod::Module, elixir::AbstractString; kwargs...)
-  @info "You just called `trixi_include`. Julia may now compile the code, please be patient."
+  # Print information on possible wait time only in non-parallel case
+  if !mpi_isparallel()
+    @info "You just called `trixi_include`. Julia may now compile the code, please be patient."
+  end
   Base.include(ex -> replace_assignments(insert_maxiters(ex); kwargs...), mod, elixir)
 end
 
