@@ -377,6 +377,7 @@ const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMes
 # This is used in some more general analysis code and needs to dispatch on the
 # `mesh` for some combinations of mesh/solver.
 @inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
+@inline nelementsglobal(mesh, dg::DG, cache) = nelements(dg, cache)
 
 @inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(dg, cache))
 @inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(dg, cache))
