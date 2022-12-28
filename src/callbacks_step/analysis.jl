@@ -28,6 +28,8 @@ information on how to create custom analysis quantities.
 """
 mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
+  start_time_last_analysis::Float64
+  ncalls_rhs_last_analysis::Int64
   interval::Int
   save_analysis::Bool
   output_directory::String
@@ -101,7 +103,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
   analyzer = SolutionAnalyzer(solver; kwargs...)
   cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache, RealT, uEltype)
 
-  analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
+  analysis_callback = AnalysisCallback(0.0, 0.0, 0, interval, save_analysis, output_directory, analysis_filename,
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
@@ -170,7 +172,8 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
 
   end
 
-  analysis_callback.start_time = time_ns()
+  analysis_callback.start_time = analysis_callback.start_time_last_analysis = time_ns()
+  ncalls_rhs_last_analysis = semi.performance_counter.ncalls_since_readout
   analysis_callback(integrator)
   return nothing
 end
@@ -183,6 +186,10 @@ function (analysis_callback::AnalysisCallback)(integrator)
   @unpack dt, t = integrator
   iter = integrator.destats.naccept
 
+  # Record performance measurements
+  runtime_since_last_analysis = 1.0e-9 * (time_ns() - analysis_callback.start_time_last_analysis)
+  ncalls_rhs_since_last_analysis = (semi.performance_counter.ncalls_since_readout -
+                                    analysis_callback.ncalls_rhs_last_analysis)
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
 
@@ -243,6 +250,10 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
   # avoid re-evaluating possible FSAL stages
   u_modified!(integrator, false)
+
+  # Reset performance measurements
+  analysis_callback.start_time_last_analysis = time_ns()
+  ncalls_rhs_last_analysis = semi.performance_counter.ncalls_since_readout
 
   # Return errors for EOC analysis
   return l2_error, linf_error
