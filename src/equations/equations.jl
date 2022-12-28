@@ -204,10 +204,10 @@ with or without nonconservative terms. Classical conservation laws such as the
 [`CompressibleEulerEquations2D`](@ref) do not have nonconservative terms. The
 [`ShallowWaterEquations2D`](@ref) with non-constant bottom topography are an
 example of equations with nonconservative terms.
-The return value will be `Val(true)` or `Val(false)` to allow dispatching on the return type.
+The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
-have_nonconservative_terms(::AbstractEquations) = Val(false)
-have_constant_speed(::AbstractEquations) = Val(false)
+have_nonconservative_terms(::AbstractEquations) = False()
+have_constant_speed(::AbstractEquations) = False()
 
 default_analysis_errors(::AbstractEquations)     = (:l2_error, :linf_error)
 """
@@ -225,7 +225,7 @@ Return the conserved variables `u`. While this function is as trivial as `identi
 it is also as useful.
 """
 @inline cons2cons(u, ::AbstractEquations) = u
-                                                                            
+
 @inline Base.first(u, ::AbstractEquations) = first(u)
 
 """

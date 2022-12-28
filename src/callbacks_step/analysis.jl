@@ -25,11 +25,17 @@ Further scalar functions `func` in `extra_analysis_integrals` are applied to the
 solution and integrated over the computational domain.
 See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
 information on how to create custom analysis quantities.
+
+In addition, the analysis callback records and outputs a number of quantitites that are useful for
+evaluating the computational performance, such as the total runtime, the performance index
+(time/DOF/rhs!), the time spent in garbage collection (GC), or the current memory usage (alloc'd
+memory).
 """
 mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
   start_time_last_analysis::Float64
   ncalls_rhs_last_analysis::Int64
+  start_gc_time::Float64
   interval::Int
   save_analysis::Bool
   output_directory::String
@@ -103,7 +109,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
   analyzer = SolutionAnalyzer(solver; kwargs...)
   cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache, RealT, uEltype)
 
-  analysis_callback = AnalysisCallback(0.0, 0.0, 0, interval, save_analysis, output_directory, analysis_filename,
+  analysis_callback = AnalysisCallback(0.0, 0.0, 0, 0.0, interval, save_analysis, output_directory, analysis_filename,
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
@@ -172,8 +178,17 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
 
   end
 
-  analysis_callback.start_time = analysis_callback.start_time_last_analysis = time_ns()
+  # Record current time using a high-resolution clock
+  analysis_callback.start_time = time_ns()
+
+  # Record current time and number of rhs! calls for performance index computation
+  analysis_callback.start_time_last_analysis = time_ns()
   ncalls_rhs_last_analysis = semi.performance_counter.ncalls_since_readout
+
+  # Record total time spent in garbage collection so far using a high-resolution clock
+  # Note: For details see the actual callback function below
+  analysis_callback.start_gc_time = Base.gc_time_ns()
+
   analysis_callback(integrator)
   return nothing
 end
@@ -186,12 +201,38 @@ function (analysis_callback::AnalysisCallback)(integrator)
   @unpack dt, t = integrator
   iter = integrator.destats.naccept
 
-  # Record performance measurements
+  # Record performance measurements and compute walltime/coretime PID
   runtime_since_last_analysis = 1.0e-9 * (time_ns() - analysis_callback.start_time_last_analysis)
   ncalls_rhs_since_last_analysis = (semi.performance_counter.ncalls_since_readout -
                                     analysis_callback.ncalls_rhs_last_analysis)
+  ndofsglobal = div(ndofs(semi), nelements(solver, cache)) * nelementsglobal(solver, cache)
+  pid_walltime = runtime_since_last_analysis / (ndofsglobal * ncalls_rhs_since_last_analysis)
+  pid_coretime = pid_walltime * mpi_nranks()
+
+  # Compute the total runtime since the analysis callback has been initialized, in seconds
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
+
+  # Compute the local PID (performance index)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
+
+  # Compute the total time spent in garbage collection since the analysis callback has been
+  # initialized, in seconds
+  # Note: `Base.gc_time_ns()` is not part of the public Julia API but has been available at least
+  #        since Julia 1.6. Should this function be removed without replacement in a future Julia
+  #        release, just delete this analysis quantity from the callback.
+  # Source: https://github.com/JuliaLang/julia/blob/b540315cb4bd91e6f3a3e4ab8129a58556947628/base/timing.jl#L83-L84
+  gc_time_absolute = 1.0e-9 * (Base.gc_time_ns() - analysis_callback.start_gc_time)
+
+  # Compute the percentage of total time that was spent in garbage collection
+  gc_time_percentage = gc_time_absolute / runtime_absolute
+
+  # Obtain the current memory usage of the Julia garbage collector, in MiB, i.e., the total size of
+  # objects in memory that have been allocated by the JIT compiler or the user code.
+  # Note: `Base.gc_live_bytes()` is not part of the public Julia API but has been available at least
+  #        since Julia 1.6. Should this function be removed without replacement in a future Julia
+  #        release, just delete this analysis quantity from the callback.
+  # Source: https://github.com/JuliaLang/julia/blob/b540315cb4bd91e6f3a3e4ab8129a58556947628/base/timing.jl#L86-L97
+  memory_use = Base.gc_live_bytes() / 2^20 # bytes -> MiB
 
   @trixi_timeit timer() "analyze solution" begin
     # General information
@@ -205,10 +246,19 @@ function (analysis_callback::AnalysisCallback)(integrator)
                 " run time:       " * @sprintf("%10.8e s", runtime_absolute))
     mpi_println(" Δt:             " * @sprintf("%10.8e", dt) *
                 "               " *
+                " └── GC time:    " * @sprintf("%10.8e s (%5.3f%%)", gc_time_absolute, gc_time_percentage))
+    mpi_println(" sim. time:      " * @sprintf("%10.8e", t) *
+                "               " *
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
-    mpi_println(" sim. time:      " * @sprintf("%10.8e", t))
-    mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
-    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)))
+    mpi_println("                 " * "              " *
+                "               " *
+                " PID/walltime:   " * @sprintf("%10.8e s", pid_walltime))
+    mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)) *
+                "               " *
+                " PID/coretime:   " * @sprintf("%10.8e s", pid_coretime))
+    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)) *
+                "               " *
+                " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
 
     # Level information (only show for AMR)
     print_amr_information(integrator.opts.callback, mesh, solver, cache)
@@ -413,7 +463,7 @@ function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
 
   elements_per_level = zeros(P4EST_MAXLEVEL + 1)
 
-  for tree in unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
+  for tree in unsafe_wrap_sc(p4est_tree_t, unsafe_load(mesh.p4est).trees)
     elements_per_level .+= tree.quadrants_per_level
   end
 
@@ -514,12 +564,13 @@ pretty_form_ascii(::Val{:linf_divb}) = "linf_divb"
 pretty_form_utf(::typeof(lake_at_rest_error)) = "∑|H₀-(h+b)|"
 pretty_form_ascii(::typeof(lake_at_rest_error)) = "|H0-(h+b)|"
 
+
+end # @muladd
+
+
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
-
-
-end # @muladd
