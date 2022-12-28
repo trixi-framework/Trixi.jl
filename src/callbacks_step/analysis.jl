@@ -205,8 +205,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
   runtime_since_last_analysis = 1.0e-9 * (time_ns() - analysis_callback.start_time_last_analysis)
   ncalls_rhs_since_last_analysis = (semi.performance_counter.ncalls_since_readout -
                                     analysis_callback.ncalls_rhs_last_analysis)
-  ndofsglobal = div(ndofs(semi), nelements(mesh, solver, cache)) * nelementsglobal(mesh, solver, cache)
-  pid_walltime = runtime_since_last_analysis / (ndofsglobal * ncalls_rhs_since_last_analysis)
+  pid_walltime = runtime_since_last_analysis / (ndofsglobal(mesh, solver, cache) * ncalls_rhs_since_last_analysis)
   pid_coretime = pid_walltime * mpi_nranks()
 
   # Compute the total runtime since the analysis callback has been initialized, in seconds
