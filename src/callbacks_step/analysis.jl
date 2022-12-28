@@ -251,10 +251,10 @@ function (analysis_callback::AnalysisCallback)(integrator)
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
     mpi_println("                 " * "              " *
                 "               " *
-                " PID/walltime:   " * @sprintf("%10.8e s", pid_walltime))
+                " PID (walltime): " * @sprintf("%10.8e s", pid_walltime))
     mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)) *
                 "               " *
-                " PID/coretime:   " * @sprintf("%10.8e s", pid_coretime))
+                " PID (coretime): " * @sprintf("%10.8e s", pid_coretime))
     mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)) *
                 "               " *
                 " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
