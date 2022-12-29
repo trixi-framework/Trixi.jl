@@ -188,7 +188,7 @@ total number of DOFs would be
 ```math
 n_\text{DOFs,DGSEM} = \{\text{number of elements}\} \cdot \{\text{number of nodes per element}\} = 8 \cdot 5 \cdot 5 = 200.
 ```
-Similarly, for a finite volume-type scheme on a mesh with 8 elements, the total number of
+In contrast, for a finite volume-type scheme on a mesh with 8 elements, the total number of
 DOFs would be (independent of the number of spatial dimensions)
 ```math
 n_\text{DOFs,FV} = \{\text{number of elements}\} = 8,
@@ -196,7 +196,7 @@ n_\text{DOFs,FV} = \{\text{number of elements}\} = 8,
 since for standard finite volume methods you store a single state vector in each
 element. Note that we specifically count the number of state *vectors* and not
 the number of state *variables* for the DOFs. That is, in the previous example
-``n_\text{DOFs,FV} = 8`` independent of whether this is a compressible Euler
+``n_\text{DOFs,FV}`` is equal to 8 independent of whether this is a compressible Euler
 setup with 5 state variables or a linear scalar advection setup with one state
 variable.
 
