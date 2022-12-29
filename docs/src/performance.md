@@ -7,9 +7,10 @@ simultaneously.
 The usual development workflow in Julia is
 
 1. Make it work.
-2. Make it fast.
+2. Make it nice.
+3. Make it fast.
 
-To achieve the second step, you should be familiar with (at least) the section on
+To achieve the third step, you should be familiar with (at least) the section on
 [performance tips in the Julia manual](https://docs.julialang.org/en/v1/manual/performance-tips/).
 Here, we just list some important aspects you should consider when developing Trixi.
 
@@ -167,3 +168,89 @@ As a rule of thumb:
 - Do not use `@nospecialize` in performance-critical parts, in particular not for methods involved
   in computing `Trixi.rhs!`.
 - Consider using `@nospecialize` for methods like custom implementations of `Base.show`.
+
+
+## Performance metrics of the `AnalysisCallback`
+The [`AnalysisCallback`](@ref) computes several values that you can use to
+evaluate the serial and parallel performance of Trixi. Since they represent
+measured run times that are normalized by the number of `rhs!` evaluations and
+the number of degrees of freedom of the problem setup, we refer to them
+as "performance indices" or "PIDs". The normalization ensures that we can
+compare different measurements for each type of PID independent of the number of
+time steps or mesh size. All PIDs have in common that they are still in units of
+time, thus *lower is better* for each of them.
+
+Here, the term "degrees of freedom" (DOFs) refers to the number of *independent*
+state vectors that are used to represent the numerical solution. For example, if
+you use a DGSEM-type scheme in 2D on a mesh with 8 elements and with
+5-by-5 Gauss-Lobatto nodes in each element (i.e., a polynomial degree of 4), the
+total number of DOFs would be
+```math
+n_\text{DOFs,DGSEM} = \{number of elements\} \cdot \{number of nodes per element\} = 8 \cdot 5 \cdot 5 = 200.
+```
+Similarly, for a finite volume-type schemewith 64 elements, the total number of
+DOFs would be (independent of the number of spatial dimensions)
+```math
+n_\text{DOFs,FV} = \{number of elements\} = 64,
+```
+since for standard finite volume methods you store a single state vector in each
+element. Note that we specifically count the number of state *vectors* and not
+the number of state *variables* for the DOFs. That is, in the previous example
+``n_\text{DOFs,FV} = 64`` independent of whether this is a compressible Euler
+setup with 5 state variables or a linear scalar advection setup with one state
+variable.
+
+For each PID, the measurements are always since the last invocation of the
+`AnalysisCallback`. That is, if the analysis callback is called multiple times,
+the PIDs are repeatedly computed and can thus also be used to track the
+performance over the course of a longer simulation, e.g., to analyze setups with varying performance
+characteristics. Note that the time spent in the `AnalysisCallback` itself is always
+*excluded*, i.e., the performance measurements are not distorted by potentially
+expensive solution analysis computations. All other parts of a Trixi simulation
+are included, however, thus make sure that you disable everything you do *not*
+want to be measured (such as I/O callbacks, visualization etc.).
+
+### Local, `rhs!`-only PID
+The *local, `rhs!`-only PID* is computed as
+```math
+\text{PID}_\text{local,\texttt{rhs!}} = \frac{\{\text{accumulated time spent in \texttt{rhs!}}\}}{n_\text{DOFs,local} \cdot n_\text{calls,\texttt{rhs!}}},
+```
+where ``n_\text{DOFs,local}`` is the *local* number of DOFs (i.e., on the
+current MPI rank; if doing a serial run, you can just think of this as *the*
+number of DOFs) and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
+`rhs!` function has been evaluated. Note that for this PID, we measure *only*
+the time spent in `rhs!`, i.e., by definition all computations outside of `rhs!`
+- specifically all other callbacks - are not taken into account.
+
+The local, `rhs!`-only PID is usually most useful if you do serial
+measurements and are interested in the performance of the implementation of your
+core numerical methods (e.g., when doing performance tuning).
+
+### Walltime PID
+The *walltime PID* is computed as
+```math
+\text{PID}_\text{walltime} = \frac{\{\text{time since last call to \texttt{AnalysisCallback}\}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
+```
+where ``n_\text{DOFs,global}`` is the *global* number of DOFs (i.e., the sum of
+DOFs over all MPI ranks; if doing a serial run, you can just think of this as *the*
+number of DOFs) and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
+`rhs!` function has been evaluated.
+
+The walltime PID is usually most useful if you are doing a parallel strong scaling and
+are interested in how much faster your simulation is when you increase the
+number of resources (i.e., MPI ranks) used to compute a problem of fixed size.
+
+### Coretime PID
+The *coretime PID* is computed as
+```math
+\text{PID}_\text{coretime} = \text{PID}_\text{walltime} \cdot n_\text{ranks,MPI},
+```
+where ``n_\text{ranks,MPI}`` is the number of MPI ranks used.
+
+The coretime PID is usually most useful if you would like to compare the
+parallel performance of your code to its serial performance. Specifically, it
+allows you to evaluate the parallelization overhead of your code by giving you a
+measure of the resources that are necessary to solve a given simulation setup. The
+name "coretime" is inspired by the "core hours" metric that is often used by
+supercomputer centers to measure how many resources a particular compute job
+requires. It can thus be seen as a proxy for "energy used" and, as an extension, "monetary cost".
