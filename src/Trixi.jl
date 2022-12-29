@@ -52,7 +52,7 @@ using P4est
 using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
-using Static: Static, One
+using Static: Static, One, True, False
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
@@ -236,7 +236,6 @@ export ode_norm, ode_unstable_check
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
-export VertexMappedMesh # TODO: DGMulti, v0.5. Remove deprecated VertexMappedMesh in next release
 
 export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
 

@@ -45,7 +45,7 @@ end
 
 @inline Base.real(::IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT}) where {NVARS, NCOMP, RealT} = RealT
 
-have_nonconservative_terms(::IdealGlmMhdMulticomponentEquations1D) = Val(false)
+have_nonconservative_terms(::IdealGlmMhdMulticomponentEquations1D) = False()
 
 function varnames(::typeof(cons2cons), equations::IdealGlmMhdMulticomponentEquations1D)
 

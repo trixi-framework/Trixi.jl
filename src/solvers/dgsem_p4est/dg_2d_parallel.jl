@@ -100,7 +100,7 @@ end
 # Inlined version of the interface flux computation for conservation laws
 @inline function calc_mpi_interface_flux!(surface_flux_values,
                                           mesh::P4estMesh{2},
-                                          nonconservative_terms::Val{false}, equations,
+                                          nonconservative_terms::False, equations,
                                           surface_integral, dg::DG, cache,
                                           interface_index, normal_direction,
                                           interface_node_index, local_side,
@@ -239,7 +239,7 @@ end
 # Inlined version of the mortar flux computation on small elements for conservation laws
 @inline function calc_mpi_mortar_flux!(fstar,
                                        mesh::ParallelP4estMesh{2},
-                                       nonconservative_terms::Val{false}, equations,
+                                       nonconservative_terms::False, equations,
                                        surface_integral, dg::DG, cache,
                                        mortar_index, position_index, normal_direction,
                                        node_index)

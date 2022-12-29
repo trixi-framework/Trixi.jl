@@ -220,7 +220,7 @@ end
 
 
   # We use nonconservative terms
-  Trixi.have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
+  Trixi.have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.True()
 
   function flux_nonconservative(u_mine, u_other, orientation,
                                 equations::NonconservativeLinearAdvectionEquation)

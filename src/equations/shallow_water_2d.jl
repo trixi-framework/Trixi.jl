@@ -61,7 +61,7 @@ function ShallowWaterEquations2D(; gravity_constant, H0=0.0)
 end
 
 
-have_nonconservative_terms(::ShallowWaterEquations2D) = Val(true)
+have_nonconservative_terms(::ShallowWaterEquations2D) = True()
 varnames(::typeof(cons2cons), ::ShallowWaterEquations2D) = ("h", "h_v1", "h_v2", "b")
 # Note, we use the total water height, H = h + b, as the first primitive variable for easier
 # visualization and setting initial conditions
@@ -576,7 +576,7 @@ end
   v1_avg = 0.5 * (v1_ll  + v1_rr )
   v2_avg = 0.5 * (v2_ll  + v2_rr )
   h2_avg = 0.5 * (h_ll^2 + h_rr^2)
-  p_avg  = 0.5 * equations.gravity * h2_avg 
+  p_avg  = 0.5 * equations.gravity * h2_avg
   v_dot_n_avg = 0.5 * (v_dot_n_ll + v_dot_n_rr)
 
   # Calculate fluxes depending on normal_direction

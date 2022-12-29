@@ -46,7 +46,7 @@ end
 
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                                   nonconservative_terms::Val{false}, equations,
+                                   nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
@@ -92,10 +92,10 @@ end
 # flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
-@inline function split_form_kernel!(du, u,
-                                    element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                                    nonconservative_terms::Val{false}, equations,
-                                    volume_flux, dg::DGSEM, cache, alpha=true)
+@inline function flux_differencing_kernel!(du, u,
+                                           element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                           nonconservative_terms::False, equations,
+                                           volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
@@ -159,16 +159,16 @@ end
   end
 end
 
-@inline function split_form_kernel!(du, u,
-                                    element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                                    nonconservative_terms::Val{true}, equations,
-                                    volume_flux, dg::DGSEM, cache, alpha=true)
+@inline function flux_differencing_kernel!(du, u,
+                                           element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                           nonconservative_terms::True, equations,
+                                           volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
   symmetric_flux, nonconservative_flux = volume_flux
 
   # Apply the symmetric flux as usual
-  split_form_kernel!(du, u, element, mesh, Val(false), equations, symmetric_flux, dg, cache, alpha)
+  flux_differencing_kernel!(du, u, element, mesh, False(), equations, symmetric_flux, dg, cache, alpha)
 
   # Calculate the remaining volume terms using the nonsymmetric generalized flux
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -234,7 +234,7 @@ end
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                              mesh::Union{StructuredMesh{3}, P4estMesh{3}}, nonconservative_terms::Val{false},
+                              mesh::Union{StructuredMesh{3}, P4estMesh{3}}, nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
   @unpack contravariant_vectors = cache.elements
   @unpack weights, derivative_matrix = dg.basis
@@ -318,7 +318,7 @@ end
 
 # # Calculate the finite volume fluxes inside curvilinear elements (**with non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                              mesh::Union{StructuredMesh{3}, P4estMesh{3}}, nonconservative_terms::Val{true},
+                              mesh::Union{StructuredMesh{3}, P4estMesh{3}}, nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
   @unpack contravariant_vectors = cache.elements
   @unpack weights, derivative_matrix = dg.basis
@@ -425,7 +425,7 @@ end
 
 
 function calc_interface_flux!(cache, u, mesh::StructuredMesh{3},
-                              nonconservative_terms, # can be Val{true}/Val{false}
+                              nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG)
   @unpack elements = cache
 
@@ -462,7 +462,7 @@ end
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
                                       mesh::StructuredMesh{3},
-                                      nonconservative_terms::Val{false}, equations,
+                                      nonconservative_terms::False, equations,
                                       surface_integral, dg::DG, cache)
   # This is slow for LSA, but for some reason faster for Euler (see #519)
   if left_element <= 0 # left_element = 0 at boundaries
@@ -527,9 +527,9 @@ end
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
                                       mesh::StructuredMesh{3},
-                                      nonconservative_terms::Val{true}, equations,
+                                      nonconservative_terms::True, equations,
                                       surface_integral, dg::DG, cache)
-  # See comment on `calc_interface_flux!` with `nonconservative_terms::Val{false}`
+  # See comment on `calc_interface_flux!` with `nonconservative_terms::False`
   if left_element <= 0 # left_element = 0 at boundaries
     return surface_flux_values
   end
