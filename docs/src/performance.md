@@ -186,7 +186,7 @@ you use a DGSEM-type scheme in 2D on a mesh with 8 elements and with
 5-by-5 Gauss-Lobatto nodes in each element (i.e., a polynomial degree of 4), the
 total number of DOFs would be
 ```math
-n_\text{DOFs,DGSEM} = \{\text{number of elements}\} \cdot \{\text{number of nodes per element}\} = 8 \cdot 5 \cdot 5 = 200.
+n_\text{DOFs,DGSEM} = \{\text{number of elements}\} \cdot \{\text{number of nodes per element}\} = 8 \cdot (5 \cdot 5) = 200.
 ```
 In contrast, for a finite volume-type scheme on a mesh with 8 elements, the total number of
 DOFs would be (independent of the number of spatial dimensions)
@@ -210,6 +210,13 @@ expensive solution analysis computations. All other parts of a Trixi simulation
 are included, however, thus make sure that you disable everything you do *not*
 want to be measured (such as I/O callbacks, visualization etc.).
 
+!!! note "Performance index and adaptive mesh refinement"
+    Currently it is not possible to compute a meaningful PID for a simulation
+    with arbitrary adaptive mesh refinement, since this would require to
+    explicitly keep track of the number of DOF updates due to the mesh size
+    changing repeatedly. The only way to do this at the moment is by setting the
+    analysis interval to the same value as the AMR interval.
+
 ### Local, `rhs!`-only PID
 The *local, `rhs!`-only PID* is computed as
 ```math
@@ -229,12 +236,12 @@ core numerical methods (e.g., when doing performance tuning).
 ### Walltime PID
 The *walltime PID* is computed as
 ```math
-\text{PID}_\text{walltime} = \frac{\{\text{time since last call to \texttt{AnalysisCallback}}\}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{PID}_\text{walltime} = \frac{\{\text{walltime since last call to \texttt{AnalysisCallback}}\}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
 ```
 where ``n_\text{DOFs,global}`` is the *global* number of DOFs (i.e., the sum of
 DOFs over all MPI ranks; if doing a serial run, you can just think of this as *the*
 number of DOFs) and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
-`rhs!` function has been evaluated.
+`rhs!` function has been evaluated since the last call to the `AnalysisCallback`.
 
 The walltime PID is usually most useful if you are doing a parallel strong scaling and
 are interested in how much faster your simulation is when you increase the
