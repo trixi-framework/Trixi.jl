@@ -7,26 +7,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-# Alternative constructor to reuse the element container from `UnstructuredMesh2D`
-# OBS! New element constructors require the derivative operator to compute the metric terms.
-function init_elements!(elements::UnstructuredElementContainer2D, mesh, basis::AbstractDerivativeOperator)
-  four_corners = zeros(eltype(mesh.corners), 4, 2)
-
-  # loop through elements and call the correct constructor based on whether the element is curved
-  for element in eachelement(elements)
-    if mesh.element_is_curved[element]
-      init_element!(elements, element, basis, view(mesh.surface_curves, :, element))
-    else # straight sided element
-      for i in 1:4, j in 1:2
-        # pull the (x,y) values of these corners out of the global corners array
-        four_corners[i, j] = mesh.corners[j, mesh.element_node_ids[i, element]]
-      end
-      init_element!(elements, element, basis, four_corners)
-    end
-  end
-end
-
-
 # initialize all the values in the container of a general FD block (either straight sided or curved)
 # OBS! Requires the SBP derivative matrix in order to compute metric terms that are free-stream preserving
 function init_element!(elements, element, basis::AbstractDerivativeOperator, corners_or_surface_curves)
