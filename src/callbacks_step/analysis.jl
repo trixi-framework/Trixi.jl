@@ -34,7 +34,6 @@ memory).
 mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
   start_time_last_analysis::Float64
-  ncalls_rhs_last_analysis::Int64
   start_gc_time::Float64
   interval::Int
   save_analysis::Bool
@@ -109,7 +108,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
   analyzer = SolutionAnalyzer(solver; kwargs...)
   cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache, RealT, uEltype)
 
-  analysis_callback = AnalysisCallback(0.0, 0.0, 0, 0.0, interval, save_analysis, output_directory, analysis_filename,
+  analysis_callback = AnalysisCallback(0.0, 0.0, 0.0, interval, save_analysis, output_directory, analysis_filename,
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
@@ -181,9 +180,8 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   # Record current time using a high-resolution clock
   analysis_callback.start_time = time_ns()
 
-  # Record current time and number of rhs! calls for performance index computation
+  # Record current time for performance index computation
   analysis_callback.start_time_last_analysis = time_ns()
-  ncalls_rhs_last_analysis = semi.performance_counter.ncalls_since_readout
 
   # Record total time spent in garbage collection so far using a high-resolution clock
   # Note: For details see the actual callback function below
@@ -203,15 +201,15 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
   # Record performance measurements and compute walltime/coretime PID
   runtime_since_last_analysis = 1.0e-9 * (time_ns() - analysis_callback.start_time_last_analysis)
-  ncalls_rhs_since_last_analysis = (semi.performance_counter.ncalls_since_readout -
-                                    analysis_callback.ncalls_rhs_last_analysis)
-  pid_walltime = runtime_since_last_analysis / (ndofsglobal(mesh, solver, cache) * ncalls_rhs_since_last_analysis)
+  pid_walltime = runtime_since_last_analysis / (ndofsglobal(mesh, solver, cache) * ncalls(semi.performance_counter))
   pid_coretime = pid_walltime * mpi_nranks()
 
   # Compute the total runtime since the analysis callback has been initialized, in seconds
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
 
-  # Compute the local PID (performance index)
+  # Compute the local, rhs!-only PID (performance index)
+  # OBS! This computation must happen *after* the walltime PID computation above, since `take!(...)`
+  #      will reset the number of calls to `rhs!`
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
 
   # Compute the total time spent in garbage collection since the analysis callback has been
@@ -302,7 +300,6 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
   # Reset performance measurements
   analysis_callback.start_time_last_analysis = time_ns()
-  ncalls_rhs_last_analysis = semi.performance_counter.ncalls_since_readout
 
   # Return errors for EOC analysis
   return l2_error, linf_error

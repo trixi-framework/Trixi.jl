@@ -38,17 +38,19 @@ end
 
 PerformanceCounter() = PerformanceCounter(0, 0.0)
 
-function Base.take!(counter::PerformanceCounter)
+@inline function Base.take!(counter::PerformanceCounter)
   time_per_call = counter.runtime / counter.ncalls_since_readout
   counter.ncalls_since_readout = 0
   counter.runtime = 0.0
   return time_per_call
 end
 
-function Base.put!(counter::PerformanceCounter, runtime::Real)
+@inline function Base.put!(counter::PerformanceCounter, runtime::Real)
   counter.ncalls_since_readout += 1
   counter.runtime += runtime
 end
+
+@inline ncalls(counter::PerformanceCounter) = counter.ncalls_since_readout
 
 
 """
