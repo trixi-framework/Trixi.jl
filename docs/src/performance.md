@@ -229,7 +229,7 @@ core numerical methods (e.g., when doing performance tuning).
 ### Walltime PID
 The *walltime PID* is computed as
 ```math
-\text{PID}_\text{walltime} = \frac{\{\text{time since last call to \texttt{AnalysisCallback}\}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{PID}_\text{walltime} = \frac{\{\text{time since last call to \texttt{AnalysisCallback}}\}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
 ```
 where ``n_\text{DOFs,global}`` is the *global* number of DOFs (i.e., the sum of
 DOFs over all MPI ranks; if doing a serial run, you can just think of this as *the*
