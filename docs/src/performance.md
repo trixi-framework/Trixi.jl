@@ -186,17 +186,17 @@ you use a DGSEM-type scheme in 2D on a mesh with 8 elements and with
 5-by-5 Gauss-Lobatto nodes in each element (i.e., a polynomial degree of 4), the
 total number of DOFs would be
 ```math
-n_\text{DOFs,DGSEM} = \{number of elements\} \cdot \{number of nodes per element\} = 8 \cdot 5 \cdot 5 = 200.
+n_\text{DOFs,DGSEM} = \{\text{number of elements}\} \cdot \{\text{number of nodes per element}\} = 8 \cdot 5 \cdot 5 = 200.
 ```
-Similarly, for a finite volume-type schemewith 64 elements, the total number of
+Similarly, for a finite volume-type scheme on a mesh with 8 elements, the total number of
 DOFs would be (independent of the number of spatial dimensions)
 ```math
-n_\text{DOFs,FV} = \{number of elements\} = 64,
+n_\text{DOFs,FV} = \{\text{number of elements}\} = 8,
 ```
 since for standard finite volume methods you store a single state vector in each
 element. Note that we specifically count the number of state *vectors* and not
 the number of state *variables* for the DOFs. That is, in the previous example
-``n_\text{DOFs,FV} = 64`` independent of whether this is a compressible Euler
+``n_\text{DOFs,FV} = 8`` independent of whether this is a compressible Euler
 setup with 5 state variables or a linear scalar advection setup with one state
 variable.
 
@@ -219,8 +219,8 @@ where ``n_\text{DOFs,local}`` is the *local* number of DOFs (i.e., on the
 current MPI rank; if doing a serial run, you can just think of this as *the*
 number of DOFs) and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
 `rhs!` function has been evaluated. Note that for this PID, we measure *only*
-the time spent in `rhs!`, i.e., by definition all computations outside of `rhs!`
-- specifically all other callbacks - are not taken into account.
+the time spent in `rhs!`, i.e., by definition all computations outside of `rhs!` - specifically
+all other callbacks and the time integration method - are not taken into account.
 
 The local, `rhs!`-only PID is usually most useful if you do serial
 measurements and are interested in the performance of the implementation of your
