@@ -101,7 +101,7 @@ In particular, not the quad_nodes themselves are returned.
     each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the face_nodes in `mesh`. 
+for the face nodes in `mesh`. 
 In particular, not the face_nodes themselves are returned.
 """
 @inline each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
