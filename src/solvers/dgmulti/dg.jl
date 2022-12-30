@@ -72,7 +72,7 @@ In particular, not the face_nodes themselves are returned.
     each_quad_node(mesh::DGMultiMesh, dg::DGMulti, other_args...)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the quad_nodes in `dg.basis`. 
+for the quadrature nodes in `dg`. 
 In particular, not the quad_nodes themselves are returned.
 """
 @inline each_quad_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq)
