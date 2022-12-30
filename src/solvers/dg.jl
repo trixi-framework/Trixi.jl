@@ -434,7 +434,7 @@ In particular, not the interfaces themselves are returned.
     eachmpimortar(dg::DG, cache)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the mortars in `cache`. 
+for the MPI mortars in `cache`. 
 In particular, not the mortars themselves are returned.
 """
 @inline eachmpimortar(dg::DG, cache) = Base.OneTo(nmpimortars(dg, cache))
