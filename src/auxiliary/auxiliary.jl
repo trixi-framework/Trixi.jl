@@ -71,7 +71,7 @@ function PerformanceCounterList{N}() where {N}
   return PerformanceCounterList{N}(counters)
 end
 
-@function function Base.take!(counter_list::PerformanceCounterList)
+@inline function Base.take!(counter_list::PerformanceCounterList)
   time_per_call = 0.0
   for c in counter_list.counters
     time_per_call += take!(c)
