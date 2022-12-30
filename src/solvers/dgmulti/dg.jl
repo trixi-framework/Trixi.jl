@@ -83,7 +83,7 @@ In particular, not the quad_nodes themselves are returned.
 
 Return an iterator over the indices that specify the location in relevant data structures
 for the degrees of freedom (DOF) in `dg`. 
-In particular, not the dofs themselves are returned.
+In particular, not the DOFs themselves are returned.
 """
 @inline each_dof_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(ndofs(mesh, dg, other_args...))
 
