@@ -63,7 +63,7 @@ In particular, not the elements themselves are returned.
     each_face_node(mesh::DGMultiMesh, dg::DGMulti, other_args...)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the face_nodes in `dg.basis`. 
+for the face nodes in `dg`. 
 In particular, not the face_nodes themselves are returned.
 """
 @inline each_face_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq)
