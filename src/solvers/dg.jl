@@ -425,7 +425,7 @@ In particular, not the mortars themselves are returned.
     eachmpiinterface(dg::DG, cache)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the interfaces in `cache`. 
+for the MPI interfaces in `cache`. 
 In particular, not the interfaces themselves are returned.
 """
 @inline eachmpiinterface(dg::DG, cache) = Base.OneTo(nmpiinterfaces(dg, cache))
