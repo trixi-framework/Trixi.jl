@@ -92,7 +92,7 @@ In particular, not the DOFs themselves are returned.
     each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the quad_nodes in `mesh`. 
+for the global quadrature nodes in `mesh`. 
 In particular, not the quad_nodes themselves are returned.
 """
 @inline each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
