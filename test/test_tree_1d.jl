@@ -25,7 +25,6 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Hyperbolic diffusion
   include("test_tree_1d_hypdiff.jl")
 
-
   # Compressible Euler
   include("test_tree_1d_euler.jl")
 
@@ -41,8 +40,11 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Compressible Euler with self-gravity
   include("test_tree_1d_eulergravity.jl")
 
-  # Shallow water 
+  # Shallow water
   include("test_tree_1d_shallowwater.jl")
+
+  # FDSBP methods on the TreeMesh
+  include("test_tree_1d_fdsbp.jl")
 end
 
 # Coverage test for all initial conditions
@@ -161,7 +163,9 @@ end
                         alive_callback=TrivialCallback())
         end
       end
-      @test isempty(read(fname, String))
+      output = read(fname, String)
+      output = replace(output, "[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.\n" => "")
+      @test isempty(output)
     finally
       rm(fname, force=true)
     end
@@ -214,7 +218,7 @@ end
 
 
   # We use nonconservative terms
-  Trixi.have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
+  Trixi.have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.True()
 
   function flux_nonconservative(u_mine, u_other, orientation,
                                 equations::NonconservativeLinearAdvectionEquation)

@@ -22,6 +22,13 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
       tspan = (0.0, 0.25))
   end
 
+  @trixi_testset "elixir_shallowwater_well_balanced_wall.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced_wall.jl"),
+      l2   = [0.9130579602987144, 1.0602847041965408e-14, 1.082225645390032e-14, 0.9130579602987147],
+      linf = [2.113062037615659, 4.6613606802974e-14, 5.4225772771633196e-14, 2.1130620376156584],
+      tspan = (0.0, 0.25))
+  end
+
   @trixi_testset "elixir_shallowwater_well_balanced.jl with FluxHydrostaticReconstruction" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
       l2   = [0.9130579602987147, 9.68729463970494e-15, 9.694538537436981e-15, 0.9130579602987147],
@@ -34,6 +41,13 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.001868474306068482, 0.01731687445878443, 0.017649083171490863, 6.274146767717023e-5],
       linf = [0.016962486402209986, 0.08768628853889782, 0.09038488750767648, 0.0001819675955490041],
+      tspan = (0.0, 0.025))
+  end
+
+  @trixi_testset "elixir_shallowwater_source_terms_dirichlet.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms_dirichlet.jl"),
+      l2   = [0.0018746929418489125, 0.017332321628469628, 0.01634953679145536, 6.274146767717023e-5],
+      linf = [0.016262353691956388, 0.08726160620859424, 0.09043621801418844, 0.0001819675955490041],
       tspan = (0.0, 0.025))
   end
 

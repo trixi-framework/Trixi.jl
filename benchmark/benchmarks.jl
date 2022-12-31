@@ -26,9 +26,9 @@ for elixir in [joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_exten
                joinpath(examples_dir(), "tree_3d_dgsem", "elixir_euler_mortar.jl"),
                joinpath(examples_dir(), "tree_3d_dgsem", "elixir_euler_shockcapturing.jl"),
                joinpath(examples_dir(), "tree_3d_dgsem", "elixir_mhd_ec.jl"),
-               joinpath(examples_dir(), "structured_3d_dgsem", "elixir_advection_nonperiodic.jl"),
+               joinpath(examples_dir(), "structured_3d_dgsem", "elixir_advection_nonperiodic_curved.jl"),
                joinpath(examples_dir(), "structured_3d_dgsem", "elixir_euler_ec.jl"),
-               joinpath(examples_dir(), "structured_3d_dgsem", "elixir_euler_source_terms_nonperiodic.jl"),
+               joinpath(examples_dir(), "structured_3d_dgsem", "elixir_euler_source_terms_nonperiodic_curved.jl"),
                joinpath(examples_dir(), "structured_3d_dgsem", "elixir_mhd_ec.jl"),
                joinpath(examples_dir(), "p4est_3d_dgsem", "elixir_advection_basic.jl"),]
   benchname = basename(dirname(elixir)) * "/" * basename(elixir)
@@ -49,4 +49,8 @@ let
     command = "using Trixi; trixi_include(joinpath(examples_dir(), \"tree_2d_dgsem\", \"elixir_advection_extended.jl\"), tspan=(0.0, 1.0e-10), polydeg=$(polydeg), save_restart=TrivialCallback(), save_solution=TrivialCallback())"
     SUITE["latency"]["polydeg_$polydeg"] = @benchmarkable run($`$(Base.julia_cmd()) -e $command`) seconds=60
   end
+  SUITE["latency"]["euler_2d"] = @benchmarkable run(
+    `$(Base.julia_cmd()) -e 'using Trixi; trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_kelvin_helmholtz_instability.jl"), tspan=(0.0, 1.0e-10), save_restart=TrivialCallback(), save_solution=TrivialCallback())'`) seconds=60
+  SUITE["latency"]["mhd_2d"] = @benchmarkable run(
+    `$(Base.julia_cmd()) -e 'using Trixi; trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_mhd_blast_wave.jl"), tspan=(0.0, 1.0e-10), save_restart=TrivialCallback(), save_solution=TrivialCallback())'`) seconds=60
 end

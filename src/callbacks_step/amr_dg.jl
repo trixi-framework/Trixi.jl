@@ -9,7 +9,7 @@
 function rebalance_solver!(u_ode::AbstractVector, mesh::ParallelP4estMesh, equations,
                            dg::DGSEM, cache, old_global_first_quadrant)
   # mpi ranks are 0-based, this array uses 1-based indices
-  global_first_quadrant = unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
+  global_first_quadrant = unsafe_wrap(Array, unsafe_load(mesh.p4est).global_first_quadrant, mpi_nranks() + 1)
   if global_first_quadrant[mpi_rank()+1] == old_global_first_quadrant[mpi_rank()+1] &&
      global_first_quadrant[mpi_rank()+2] == old_global_first_quadrant[mpi_rank()+2]
     # Global ids of first and last local quadrants are the same for newly partitioned mesh so the
@@ -68,7 +68,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::ParallelP4estMesh, equat
       end
 
       # Wait for all non-blocking MPI send/receive operations to finish
-      MPI.Waitall!(requests)
+      MPI.Waitall(requests, MPI.Status)
     end
   end # GC.@preserve old_u_ode
 end

@@ -182,7 +182,6 @@ end
 
 Base.show(io::IO, f::FluxLaxFriedrichs) = print(io, "FluxLaxFriedrichs(", f.dissipation.max_abs_speed, ")")
 
-# TODO: Shall we deprecate `flux_lax_friedrichs`?
 """
     flux_lax_friedrichs
 
@@ -238,7 +237,6 @@ end
 
 Base.show(io::IO, numflux::FluxHLL) = print(io, "FluxHLL(", numflux.min_max_speed, ")")
 
-# TODO: Shall we deprecate `flux_hll`?
 """
     flux_hll
 
@@ -316,6 +314,33 @@ end
   # Use the reconstructed states to compute the numerical surface flux
   return numerical_flux(u_ll_star, u_rr_star, orientation_or_normal_direction, equations)
 end
+
+
+"""
+    FluxUpwind(splitting)
+
+A numerical flux `f(u_left, u_right) = f⁺(u_left) + f⁻(u_right)` based on
+flux vector splitting.
+
+The [`SurfaceIntegralUpwind`](@ref) with a given `splitting` is equivalent to
+the [`SurfaceIntegralStrongForm`](@ref) with `FluxUpwind(splitting)`
+as numerical flux (up to floating point differences).
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+"""
+struct FluxUpwind{Splitting}
+  splitting::Splitting
+end
+
+@inline function (numflux::FluxUpwind)(u_ll, u_rr, orientation::Int, equations)
+  @unpack splitting = numflux
+  fm = splitting(u_rr, Val{:minus}(), orientation, equations)
+  fp = splitting(u_ll, Val{:plus}(),  orientation, equations)
+  return fm + fp
+end
+
+Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(",  f.splitting, ")")
 
 
 end # @muladd

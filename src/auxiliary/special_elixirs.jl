@@ -30,10 +30,15 @@ julia> redirect_stdout(devnull) do
                        tspan=(0.0, 0.1))
          sol.t[end]
        end
+[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.
 0.1
 ```
 """
 function trixi_include(mod::Module, elixir::AbstractString; kwargs...)
+  # Print information on potential wait time only in non-parallel case
+  if !mpi_isparallel()
+    @info "You just called `trixi_include`. Julia may now compile the code, please be patient."
+  end
   Base.include(ex -> replace_assignments(insert_maxiters(ex); kwargs...), mod, elixir)
 end
 
@@ -222,7 +227,7 @@ end
 # searches the parameter that specifies the mesh reslution in the elixir
 function extract_initial_resolution(elixir, kwargs)
   code = read(elixir, String)
-  expr = Meta.parse("begin $code end")
+  expr = Meta.parse("begin \n$code \nend")
 
   try
     # get the initial_refinement_level from the elixir

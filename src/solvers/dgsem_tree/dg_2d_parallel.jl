@@ -142,7 +142,7 @@ end
 
 # TODO: MPI dimension agnostic
 function finish_mpi_send!(mpi_cache::MPICache)
-  MPI.Waitall!(mpi_cache.mpi_send_requests)
+  MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
 end
 
 
@@ -151,8 +151,8 @@ function finish_mpi_receive!(mpi_cache::MPICache, mesh, equations, dg, cache)
   data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
   # Start receiving and unpack received data until all communication is finished
-  d, _ = MPI.Waitany!(mpi_cache.mpi_recv_requests)
-  while d != 0
+  d = MPI.Waitany(mpi_cache.mpi_recv_requests)
+  while d !== nothing
     recv_buffer = mpi_cache.mpi_recv_buffers[d]
 
     for (index, interface) in enumerate(mpi_cache.mpi_neighbor_interfaces[d])
@@ -221,7 +221,7 @@ function finish_mpi_receive!(mpi_cache::MPICache, mesh, equations, dg, cache)
       end
     end
 
-    d, _ = MPI.Waitany!(mpi_cache.mpi_recv_requests)
+    d = MPI.Waitany(mpi_cache.mpi_recv_requests)
   end
 
   return nothing
@@ -681,7 +681,7 @@ end
 
 function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::ParallelTreeMesh{2},
-                                  nonconservative_terms::Val{false}, equations,
+                                  nonconservative_terms::False, equations,
                                   surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
   @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
@@ -723,7 +723,7 @@ end
 
 function calc_mpi_mortar_flux!(surface_flux_values,
                                mesh::ParallelTreeMesh{2},
-                               nonconservative_terms::Val{false}, equations,
+                               nonconservative_terms::False, equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral

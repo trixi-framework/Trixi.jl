@@ -12,7 +12,7 @@ get_element_variables!(element_variables, u, mesh, equations,
 
 
 """
-    VolumeIntegralStrongForm
+    VolumeIntegralStrongForm()
 
 The classical strong form volume integral type for FD/DG methods.
 """
@@ -20,14 +20,21 @@ struct VolumeIntegralStrongForm <: AbstractVolumeIntegral end
 
 
 """
-    VolumeIntegralWeakForm
+    VolumeIntegralWeakForm()
 
-The classical weak form volume integral type for DG methods as explained in standard
-textbooks such as
+The classical weak form volume integral type for DG methods as explained in
+standard textbooks.
+
+## References
+
 - Kopriva (2009)
   Implementing Spectral Methods for Partial Differential Equations:
   Algorithms for Scientists and Engineers
   [doi: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+- Hesthaven, Warburton (2007)
+  Nodal Discontinuous Galerkin Methods: Algorithms, Analysis, and
+  Applications
+  [doi: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
@@ -35,10 +42,14 @@ create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTupl
 
 
 """
-    VolumeIntegralFluxDifferencing
+    VolumeIntegralFluxDifferencing(volume_flux)
 
-Volume integral type for DG methods based on SBP operators and flux differencing using
-symmetric two-point volume fluxes. Based upon the theory developed by
+Volume integral type for DG methods based on SBP operators and flux differencing
+using a symmetric two-point `volume_flux`. This `volume_flux` needs to satisfy
+the interface of numerical fluxes in Trixi.jl.
+
+## References
+
 - LeFloch, Mercier, Rohde (2002)
   Fully Discrete, Entropy Conservative Schemes of Arbitrary Order
   [doi: 10.1137/S003614290240069X](https://doi.org/10.1137/S003614290240069X)
@@ -74,9 +85,17 @@ end
 
 
 """
-    VolumeIntegralShockCapturingHG
+    VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
+                                              volume_flux_fv=flux_lax_friedrichs)
 
-Shock-capturing volume integral type for DG methods proposed by
+Shock-capturing volume integral type for DG methods using a convex blending of
+the finite volume method with numerical flux `volume_flux_fv` and the
+[`VolumeIntegralFluxDifferencing`](@ref) with volume flux `volume_flux_dg`.
+The amount of blending is determined by the `indicator`, e.g.,
+[`IndicatorHennemannGassner`](@ref).
+
+## References
+
 - Hennemann, Gassner (2020)
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
@@ -108,20 +127,31 @@ function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShock
   end
 end
 
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralShockCapturingHG, dg, cache)
+  # call the indicator to get up-to-date values for IO
+  volume_integral.indicator(u, mesh, equations, dg, cache)
+  get_element_variables!(element_variables, volume_integral.indicator, volume_integral)
+end
+
 
 """
-    VolumeIntegralPureLGLFiniteVolume
+    VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
 
-A volume integral that only uses the subcell finite volume scheme from the paper
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+A volume integral that only uses the subcell finite volume schemes of the
+[`VolumeIntegralShockCapturingHG`](@ref).
 
 This gives a formally O(1)-accurate finite volume scheme on an LGL-type subcell
 mesh (LGL = Legendre-Gauss-Lobatto).
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
+
+## References
+
+- Hennemann, Gassner (2020)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
 struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <: AbstractVolumeIntegral
   volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
@@ -142,13 +172,44 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFi
 end
 
 
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralShockCapturingHG, dg, cache)
-  # call the indicator to get up-to-date values for IO
-  volume_integral.indicator(u, mesh, equations, dg, cache)
-  get_element_variables!(element_variables, volume_integral.indicator, volume_integral)
+# TODO: FD. Should this definition live in a different file because it is
+# not strictly a DG method?
+"""
+    VolumeIntegralUpwind(splitting)
+
+Specialized volume integral for finite difference summation-by-parts (FDSBP)
+solvers. Can be used together with the upwind SBP operators of Mattsson (2017)
+implemented in SummationByPartsOperators.jl. The `splitting` controls the
+discretization.
+
+See also [`splitting_steger_warming`](@ref), [`splitting_lax_friedrichs`](@ref),
+[`splitting_vanleer_haenel`](@ref).
+
+## References
+
+- Mattsson (2017)
+  Diagonal-norm upwind SBP operators
+  [doi: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+"""
+struct VolumeIntegralUpwind{FluxSplitting} <: AbstractVolumeIntegral
+  splitting::FluxSplitting
 end
 
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralUpwind)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "flux splitting" => integral.splitting
+            ]
+    summary_box(io, "VolumeIntegralUpwind", setup)
+  end
+end
 
 
 abstract type AbstractSurfaceIntegral end
@@ -157,13 +218,20 @@ abstract type AbstractSurfaceIntegral end
     SurfaceIntegralWeakForm(surface_flux=flux_central)
 
 The classical weak form surface integral type for DG methods as explained in standard
-textbooks such as
+textbooks.
+
+See also [`VolumeIntegralWeakForm`](@ref).
+
+## References
+
 - Kopriva (2009)
   Implementing Spectral Methods for Partial Differential Equations:
   Algorithms for Scientists and Engineers
   [doi: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
-
-See also [`VolumeIntegralWeakForm`](@ref).
+- Hesthaven, Warburton (2007)
+  Nodal Discontinuous Galerkin Methods: Algorithms, Analysis, and
+  Applications
+  [doi: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
 """
 struct SurfaceIntegralWeakForm{SurfaceFlux} <: AbstractSurfaceIntegral
   surface_flux::SurfaceFlux
@@ -211,6 +279,37 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongFo
   end
 end
 
+
+# TODO: FD. Should this definition live in a different file because it is
+# not strictly a DG method?
+"""
+    SurfaceIntegralUpwind(splitting)
+
+Couple elements with upwind simultaneous approximation terms (SATs)
+that use a particular flux `splitting`, e.g.,
+[`splitting_steger_warming`](@ref).
+
+See also [`VolumeIntegralUpwind`](@ref).
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+"""
+struct SurfaceIntegralUpwind{FluxSplitting} <: AbstractSurfaceIntegral
+  splitting::FluxSplitting
+end
+
+function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralUpwind)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "flux splitting" => integral.splitting
+            ]
+    summary_box(io, "SurfaceIntegralUpwind", setup)
+  end
+end
 
 
 """
@@ -272,6 +371,13 @@ const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMes
 @inline ndofs(mesh::MeshesDGSEM, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 # TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM
+"""
+    eachnode(dg::DG)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the nodes in `dg`. 
+In particular, not the nodes themselves are returned.
+"""
 @inline eachnode(dg::DG) = Base.OneTo(nnodes(dg))
 @inline nnodes(dg::DG)   = nnodes(dg.basis)
 
@@ -279,11 +385,58 @@ const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMes
 # `mesh` for some combinations of mesh/solver.
 @inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
 
+"""
+    eachelement(dg::DG, cache)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the elements in `cache`. 
+In particular, not the elements themselves are returned.
+"""
 @inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(dg, cache))
+
+"""
+    eachinterface(dg::DG, cache)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the interfaces in `cache`. 
+In particular, not the interfaces themselves are returned.
+"""
 @inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(dg, cache))
+
+"""
+    eachboundary(dg::DG, cache)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the boundaries in `cache`. 
+In particular, not the boundaries themselves are returned.
+"""
 @inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(dg, cache))
+
+"""
+    eachmortar(dg::DG, cache)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the mortars in `cache`. 
+In particular, not the mortars themselves are returned.
+"""
 @inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(dg, cache))
+
+"""
+    eachmpiinterface(dg::DG, cache)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the MPI interfaces in `cache`. 
+In particular, not the interfaces themselves are returned.
+"""
 @inline eachmpiinterface(dg::DG, cache) = Base.OneTo(nmpiinterfaces(dg, cache))
+
+"""
+    eachmpimortar(dg::DG, cache)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the MPI mortars in `cache`. 
+In particular, not the mortars themselves are returned.
+"""
 @inline eachmpimortar(dg::DG, cache) = Base.OneTo(nmpimortars(dg, cache))
 
 @inline nelements(dg::DG, cache)   = nelements(cache.elements)
@@ -484,7 +637,7 @@ include("dgsem_p4est/dg.jl")
 # These methods are very similar to DG methods since they also impose interface
 # and boundary conditions weakly. Thus, these methods can re-use a lot of
 # functionality implemented for DGSEM.
-include("fdsbp_tree/fdsbp_2d.jl")
+include("fdsbp_tree/fdsbp.jl")
 
 
 end # @muladd

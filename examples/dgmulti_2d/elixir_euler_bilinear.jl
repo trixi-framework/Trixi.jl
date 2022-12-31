@@ -20,13 +20,13 @@ function mapping(xi, eta)
   return SVector(x, y)
 end
 cells_per_dimension = (16, 16)
-vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
+vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.element_type, cells_per_dimension...)
 for i in eachindex(vertex_coordinates[1])
   vx, vy = getindex.(vertex_coordinates, i)
   setindex!.(vertex_coordinates, mapping(vx, vy), i)
 end
 
-mesh = DGMultiMesh(vertex_coordinates, EToV, dg, is_on_boundary=is_on_boundary)
+mesh = DGMultiMesh(dg, vertex_coordinates, EToV, is_on_boundary=is_on_boundary)
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :top => boundary_condition_convergence_test,

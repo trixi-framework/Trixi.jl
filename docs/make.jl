@@ -36,9 +36,12 @@ files = [
     "Non-periodic boundaries" => "non_periodic_boundaries.jl",
     "DG schemes via `DGMulti` solver" => "DGMulti_1.jl",
     "Other SBP schemes (FD, CGSEM) via `DGMulti` solver" => "DGMulti_2.jl",
+    "Upwind FD SBP schemes" => "upwind_fdsbp.jl",
     # Topic: equations
     "Adding a new scalar conservation law" => "adding_new_scalar_equations.jl",
     "Adding a non-conservative equation" => "adding_nonconservative_equation.jl",
+    "Parabolic terms" => "parabolic_terms.jl",
+    "Adding new parabolic terms" => "adding_new_parabolic_terms.jl",
     # Topic: meshes
     "Adaptive mesh refinement" => "adaptive_mesh_refinement.jl",
     "Structured mesh with curvilinear mapping" => "structured_mesh_mapping.jl",
