@@ -166,10 +166,71 @@ function integrate_via_indices(func::Func, u,
 end
 
 
+function integrate_element_via_indices(func::Func, u, element, 
+                                       mesh::StructuredMesh{1}, equations, dg::DGSEM, cache,
+                                       args...; normalize=true) where {Func}
+  @unpack weights = dg.basis
+
+  # Initialize integral with zeros of the right shape
+  integral = zero(func(u, 1, 1, equations, dg, args...))
+  cell_volume = zero(real(mesh))
+
+  # Use quadrature to numerically integrate over one element
+  for i in eachnode(dg)
+    jacobian_volume = abs(inv(cache.elements.inverse_jacobian[i, element]))
+    integral += jacobian_volume * weights[i] * func(u, i, element, equations, dg, args...)
+    cell_volume += jacobian_volume * weights[i]
+  end
+
+  # Normalize with cell volume
+  if normalize
+    integral = integral / cell_volume
+  end
+
+  return integral
+end
+
+
+
+function integrate_element_via_indices(func::Func, u, element,
+                                       mesh::TreeMesh{1}, equations, dg::DGSEM, cache,
+                                       args...; normalize=true) where {Func}
+  @unpack weights = dg.basis
+
+  # Initialize integral with zeros of the right shape
+  integral = zero(func(u, 1, 1, equations, dg, args...))
+
+  # Use quadrature to numerically integrate over one element
+  volume_jacobian_ = volume_jacobian(element, mesh, cache)
+  cell_volume = 0
+  for i in eachnode(dg)
+    integral += volume_jacobian_ * weights[i] * func(u, i, element, equations, dg, args...)
+    cell_volume += volume_jacobian_ * weights[i]
+  end
+
+  # Normalize with cell volume
+  if normalize
+    integral = integral / cell_volume
+  end
+
+  return integral
+end
+
+
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{1},StructuredMesh{1}},
                    equations, dg::DG, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, element, equations, dg
+    u_local = get_node_vars(u, equations, dg, i, element)
+    return func(u_local, equations)
+  end
+end
+
+
+function integrate_element(func::Func, u, element,
+                           mesh::Union{TreeMesh{1},StructuredMesh{1}},
+                           equations, dg::DGSEM, cache; normalize=true) where {Func}
+  integrate_element_via_indices(u, element, mesh, equations, dg, cache; normalize=normalize) do u, i, dummy, equations, dg
     u_local = get_node_vars(u, equations, dg, i, element)
     return func(u_local, equations)
   end

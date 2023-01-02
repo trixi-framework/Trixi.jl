@@ -46,10 +46,20 @@ function integrate(func::Func, u_ode, semi::AbstractSemidiscretization; normaliz
   integrate(func, u, mesh, equations, solver, cache, normalize=normalize)
 end
 
-function integrate(u, semi::AbstractSemidiscretization; normalize=true)
-  integrate(cons2cons, u, semi; normalize=normalize)
+function integrate(u_ode, semi::AbstractSemidiscretization; normalize=true)
+  integrate(cons2cons, u_ode, semi; normalize=normalize)
 end
 
+function integrate_element(func::Func, u_ode, element, semi::AbstractSemidiscretization; normalize=true) where {Func}
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
+  integrate_element(func, u, element, mesh, equations, solver, cache, normalize=normalize)
+end
+
+function integrate_element(u_ode, element, semi::AbstractSemidiscretization; normalize=true)
+  integrate_element(cons2cons, u_ode, element, semi; normalize=normalize)
+end
 
 """
     calc_error_norms([func=(u_node,equations)->u_node,] u_ode, t, analyzer, semi::AbstractSemidiscretization, cache_analysis)

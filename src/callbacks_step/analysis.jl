@@ -166,6 +166,11 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
           @printf(io, "   %-14s", "linf_" * v)
         end
       end
+      if :total_variation in analysis_errors
+        for v in varnames(cons2prim, equations)
+          @printf(io, "   %-14s", "TV_" * v)
+        end
+      end
 
       for quantity in analysis_integrals
         @printf(io, "   %-14s", pretty_form_ascii(quantity))
@@ -297,7 +302,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
   # Calculate and print derived quantities (error norms, entropy etc.)
   # Variable names required for L2 error, Linf error, and conservation error
   if any(q in analysis_errors for q in
-         (:l2_error, :linf_error, :conservation_error, :residual)) && mpi_isroot()
+         (:l2_error, :linf_error, :conservation_error, :residual, :total_variation)) && mpi_isroot()
     print(" Variable:    ")
     for v in eachvariable(equations)
       @printf("   %-14s", varnames(cons2cons, equations)[v])
@@ -398,6 +403,34 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
         end
         println()
       end
+    end
+  end
+
+  # Total Variation
+  if :total_variation in analysis_errors
+    if mpi_isroot()
+      print(" TV(U):  ")
+      @assert ndims(equations) == 1 "Total Variation is only applicable for 1D"
+      @assert semi.boundary_conditions == 
+              boundary_condition_periodic "Total Variation is currently implemented for periodic B.C. only"
+
+      @assert nvariables(equations) == 1 "Total Variation is currently implemented for scalars only"
+      # TODO: Non-scalar implementation!
+      for v in eachvariable(equations)
+        TV = 0
+        for element_index in 1:nelements(semi.cache.elements) - 1
+          TV += abs(integrate_element(cons2cons, u_ode, element_index + 1, semi)[v] - 
+                    integrate_element(cons2cons, u_ode, element_index,     semi)[v])
+        end
+
+        # Due to periodicity:
+        TV += abs(integrate_element(cons2cons, u_ode, 1,                              semi)[v] - 
+                  integrate_element(cons2cons, u_ode, nelements(semi.cache.elements), semi)[v])
+
+        @printf("       % 10.8e", TV)
+        @printf(io, "       % 10.8e", TV)
+      end
+      println()
     end
   end
 
