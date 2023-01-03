@@ -371,6 +371,13 @@ const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMes
 @inline ndofs(mesh::MeshesDGSEM, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 # TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM
+"""
+    eachnode(dg::DG)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the nodes in `dg`. 
+In particular, not the nodes themselves are returned.
+"""
 @inline eachnode(dg::DG) = Base.OneTo(nnodes(dg))
 @inline nnodes(dg::DG)   = nnodes(dg.basis)
 
@@ -378,11 +385,58 @@ const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMes
 # `mesh` for some combinations of mesh/solver.
 @inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
 
+"""
+    eachelement(dg::DG, cache)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the elements in `cache`. 
+In particular, not the elements themselves are returned.
+"""
 @inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(dg, cache))
+
+"""
+    eachinterface(dg::DG, cache)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the interfaces in `cache`. 
+In particular, not the interfaces themselves are returned.
+"""
 @inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(dg, cache))
+
+"""
+    eachboundary(dg::DG, cache)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the boundaries in `cache`. 
+In particular, not the boundaries themselves are returned.
+"""
 @inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(dg, cache))
+
+"""
+    eachmortar(dg::DG, cache)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the mortars in `cache`. 
+In particular, not the mortars themselves are returned.
+"""
 @inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(dg, cache))
+
+"""
+    eachmpiinterface(dg::DG, cache)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the MPI interfaces in `cache`. 
+In particular, not the interfaces themselves are returned.
+"""
 @inline eachmpiinterface(dg::DG, cache) = Base.OneTo(nmpiinterfaces(dg, cache))
+
+"""
+    eachmpimortar(dg::DG, cache)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the MPI mortars in `cache`. 
+In particular, not the mortars themselves are returned.
+"""
 @inline eachmpimortar(dg::DG, cache) = Base.OneTo(nmpimortars(dg, cache))
 
 @inline nelements(dg::DG, cache)   = nelements(cache.elements)
