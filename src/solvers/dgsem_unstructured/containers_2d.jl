@@ -39,6 +39,13 @@ end
 
 
 @inline nelements(elements::UnstructuredElementContainer2D) = size(elements.surface_flux_values, 4)
+"""
+    eachelement(elements::UnstructuredElementContainer2D)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the elements in `elements`. 
+In particular, not the elements themselves are returned.
+"""
 @inline eachelement(elements::UnstructuredElementContainer2D) = Base.OneTo(nelements(elements))
 
 @inline nvariables(elements::UnstructuredElementContainer2D) = size(elements.surface_flux_values, 1)
@@ -134,15 +141,20 @@ function init_interfaces(mesh::UnstructuredMesh2D, elements::UnstructuredElement
     mesh.n_interfaces, nvariables(elements), nnodes(elements))
 
   # extract and save the appropriate neighbour information from the mesh skeleton
-  init_interfaces!(interfaces, mesh.neighbour_information, mesh.boundary_names,
-                   mesh.n_elements, Val(isperiodic(mesh)))
+  if isperiodic(mesh)
+    init_interfaces!(interfaces, mesh.neighbour_information, mesh.boundary_names,
+                     mesh.n_elements, True())
+  else
+    init_interfaces!(interfaces, mesh.neighbour_information, mesh.boundary_names,
+                     mesh.n_elements, False())
+  end
 
   return interfaces
 end
 
 
 function init_interfaces!(interfaces, edge_information, boundary_names, n_elements,
-                          periodic::Val{false})
+                          periodic::False)
 
   n_nodes = nnodes(interfaces)
   n_surfaces = size(edge_information, 2)
@@ -173,7 +185,7 @@ end
 
 
 function init_interfaces!(interfaces, edge_information, boundary_names, n_elements,
-                          periodic::Val{true})
+                          periodic::True)
 
   n_nodes = nnodes(interfaces)
   n_surfaces = size(edge_information, 2)
