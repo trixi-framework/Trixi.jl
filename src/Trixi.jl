@@ -18,6 +18,8 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
+print("local Trixi")
+
 using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling, det
 using Printf: @printf, @sprintf, println
 using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros, spzeros
@@ -127,6 +129,7 @@ export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
        CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
+       CompressibleMhdDiffusion3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,

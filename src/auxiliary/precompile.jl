@@ -171,6 +171,7 @@ function _precompile_manual_()
       HyperbolicDiffusionEquations3D{RealT},
       CompressibleEulerEquations3D{RealT},
       IdealGlmMhdEquations3D{RealT},
+      CompressibleMhdDiffusion3D{RealT},
       LatticeBoltzmannEquations3D{RealT, typeof(Trixi.collision_bgk)},
     )
   end
@@ -187,6 +188,7 @@ function _precompile_manual_()
       IdealGlmMhdEquations1D{RealT},
       IdealGlmMhdEquations2D{RealT},
       IdealGlmMhdEquations3D{RealT},
+      CompressibleMhdDiffusion3D{RealT},
       LatticeBoltzmannEquations2D{RealT, typeof(Trixi.collision_bgk)},
       LatticeBoltzmannEquations3D{RealT, typeof(Trixi.collision_bgk)},
     )
@@ -280,6 +282,7 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{Type{IdealGlmMhdEquations1D},RealT})
     @assert Base.precompile(Tuple{Type{IdealGlmMhdEquations2D},RealT})
     @assert Base.precompile(Tuple{Type{IdealGlmMhdEquations3D},RealT})
+#=     @assert Base.precompile(Tuple{Type{CompressibleMhdDiffusion3D},RealT}) =#
   end
 
   # Constructors: LBM
