@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# Semidiscretization of the shallow water equations
+# Semidiscretization of the two-layer shallow water equations
 
 equations = TwoLayerShallowWaterEquations1D(gravity_constant=9.81,H0=2.0,rho1=0.9,rho2=1.0)
 # This initial condition will be overwritten with the discontinuous initial_condition_dam_break
@@ -29,7 +29,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 boundary_condition = boundary_condition_slip_wall
 
-# create the semi discretization object
+# create the semidiscretization object
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, 
                                     boundary_conditions=boundary_condition)
 
@@ -39,7 +39,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 tspan = (0.0,0.4)
 ode = semidiscretize(semi, tspan)
 
-# Initial Conditions well balanced test case
+# Initial conditions dam break test case
 function initial_condition_dam_break(x, t, element_id, equations::TwoLayerShallowWaterEquations1D)
   inicenter = 10.0
   x_norm = x[1] - inicenter
@@ -47,7 +47,8 @@ function initial_condition_dam_break(x, t, element_id, equations::TwoLayerShallo
 
   v1 = 0.0
   v2 = 0.0
-  # TODO: Discontinuity cannot be represented this way with LGL 
+  
+  # Set the discontinuity
   if element_id <= 16
     H2 = 2.0
     H1 = 4.0
@@ -65,12 +66,12 @@ end
 u = Trixi.wrap_array(ode.u0, semi)
 # reset the initial condition
 for element in eachelement(semi.solver, semi.cache)
-for i in eachnode(semi.solver)
-  x_node = Trixi.get_node_coords(semi.cache.elements.node_coordinates, 
-                                 equations, semi.solver, i, element)
-  u_node = initial_condition_dam_break(x_node, first(tspan), element, equations)
-  Trixi.set_node_vars!(u, u_node, equations, semi.solver, i, element)
-end
+  for i in eachnode(semi.solver)
+    x_node = Trixi.get_node_coords(semi.cache.elements.node_coordinates,
+      equations, semi.solver, i, element)
+    u_node = initial_condition_dam_break(x_node, first(tspan), element, equations)
+    Trixi.set_node_vars!(u, u_node, equations, semi.solver, i, element)
+  end
 end
 
 

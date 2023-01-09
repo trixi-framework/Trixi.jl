@@ -47,6 +47,8 @@
   A good introduction for the two-layer SWE is available in Chapter 12 of the book:
   - Benoit Cushman-Roisin (2011)
     Introduction to geophyiscal fluid dynamics: physical and numerical aspects
+    @link https://www.sciencedirect.com/bookseries/international-geophysics/vol/101/suppl/C
+    ISBN: 978-0-12-088759-0
   """
   struct TwoLayerShallowWaterEquations1D{RealT<:Real} <: AbstractShallowWaterEquations{1,5}
     gravity::RealT # gravitational constant
@@ -63,7 +65,7 @@
     TwoLayerShallowWaterEquations1D(gravity_constant, H0, rho1, rho2)
   end
 
-  have_nonconservative_terms(::TwoLayerShallowWaterEquations1D) = Val(true)
+  have_nonconservative_terms(::TwoLayerShallowWaterEquations1D) = True()
   varnames(::typeof(cons2cons), ::TwoLayerShallowWaterEquations1D) = ("h1", "h1_v1",
                                                                       "h2", "h2_v2", "b")
   # Note, we use the total water height, H2 = h1 + h2 + b, and first layer total heigth H1 = h1 + b 
@@ -81,13 +83,13 @@
   """
   function initial_condition_convergence_test(x, t, equations::TwoLayerShallowWaterEquations1D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
-    ω = 2 * pi * sqrt(2.0)
+    ω = 2.0 * pi * sqrt(2.0)
 
-    H2 = 2 + 0.1sin(ω * x[1] + t)
-    H1 = 4 + 0.1cos(ω * x[1] + t)
+    H2 = 2.0 + 0.1 * sin(ω * x[1] + t)
+    H1 = 4.0 + 0.1 * cos(ω * x[1] + t)
     v2 = 1.0
     v1 = 0.9
-    b  = 1.0 + 0.1cos(2.0 * ω * x[1])
+    b  = 1.0 + 0.1 * cos(2.0 * ω * x[1])
 
     return prim2cons(SVector(H1, v1, H2, v2, b), equations)
   end
@@ -214,13 +216,16 @@
                                           equations::TwoLayerShallowWaterEquations1D)
 
   Non-symmetric two-point surface flux discretizing the nonconservative (source) term that contains 
-  the gradients of the bottom topography and the layer heights 
+  the gradients of the bottom topography and the layer heights.
   [`TwoLayerShallowWaterEquations1D`](@ref).
 
   Further details are available in the paper:
   - Ulrik Skre Fjordholm (2012)
     Energy conservative and stable schemes for the two-layer shallow water equations.
-    (https://doi.org/10.1142/9789814417099_0039)
+    [DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
+  It should be noted that the equations are ordered differently and the
+  designation of the upper and lower layer has been changed which leads to a slightly different
+  formulation.
   """
   @inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
                                                        orientation::Integer,
@@ -267,7 +272,10 @@
   and the application to two layers is shown in the paper:
   - Ulrik Skre Fjordholm (2012)
     Energy conservative and stable schemes for the two-layer shallow water equations.
-    (https://doi.org/10.1142/9789814417099_0039)
+    [DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
+  It should be noted that the equations are ordered differently and the
+  designation of the upper and lower layer has been changed which leads to a slightly different
+  formulation.
   """
   @inline function flux_fjordholm_etal(u_ll, u_rr,
                                        orientation::Integer,
@@ -347,8 +355,11 @@
 
   Further details are available in the paper:
   - Ulrik Skre Fjordholm (2012)
-  Energy conservative and stable schemes for the two-layer shallow water equations.
-  (https://doi.org/10.1142/9789814417099_0039)
+    Energy conservative and stable schemes for the two-layer shallow water equations.
+    [DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
+  It should be noted that the equations are ordered differently and the
+  designation of the upper and lower layer has been changed which leads to a slightly different
+  formulation.
   """
   @inline function flux_es(u_ll, u_rr,
                            orientation::Integer, 
@@ -366,7 +377,7 @@
     q_ll = cons2entropy(u_ll,equations)[1:4]
 
     # Average values from left and right 
-    u_avg = (u_ll + u_rr)/2
+    u_avg = (u_ll + u_rr) / 2
 
     # Introduce variables for better readability
     rho1 = equations.rho1
@@ -460,7 +471,7 @@
   end
 
 
-  # Convert conservative variables to entropy
+  # Convert conservative variables to entropy variables
   # Note, only the first four are the entropy variables, the fifth entry still just carries the 
   # bottom topography values for convenience
   @inline function cons2entropy(u, equations::TwoLayerShallowWaterEquations1D)

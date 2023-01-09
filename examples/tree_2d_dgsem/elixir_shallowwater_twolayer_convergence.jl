@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# Semidiscretization of the shallow water equations
+# Semidiscretization of the two-layer shallow water equations
 
 equations = TwoLayerShallowWaterEquations2D(gravity_constant=10.0,rho1=0.9,rho2=1.0)
 

@@ -50,6 +50,8 @@ This affects the implementation and use of these equations in various ways:
 A good introduction for the two-layer SWE is available in Chapter 12 of the book:
   - Benoit Cushman-Roisin (2011)
     Introduction to geophyiscal fluid dynamics: physical and numerical aspects
+    @link https://www.sciencedirect.com/bookseries/international-geophysics/vol/101/suppl/C
+    ISBN: 978-0-12-088759-0
 """
 struct TwoLayerShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 7}
   gravity::RealT # gravitational constant
@@ -67,7 +69,7 @@ function TwoLayerShallowWaterEquations2D(; gravity_constant, H0=0.0, rho1, rho2)
 end
 
 
-have_nonconservative_terms(::TwoLayerShallowWaterEquations2D) = Val(true)
+have_nonconservative_terms(::TwoLayerShallowWaterEquations2D) = True()
 varnames(::typeof(cons2cons), ::TwoLayerShallowWaterEquations2D) = ("h1", "h1_v1", "h1_w1", "h2",
                                                                     "h2_v2", "h2_w2", "b")                                                             
 # Note, we use the total water height, H1 = h1 + h2 + b, and first layer total heigth H2 = h2 + b as
@@ -85,15 +87,15 @@ A smooth initial condition used for convergence tests in combination with
 """
 function initial_condition_convergence_test(x, t, equations::TwoLayerShallowWaterEquations2D)
   # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2]
-  ω = 2.0 * pi * sqrt(2.0)  
+  ω = 2.0 * pi * sqrt(2.0)
 
-  H2 = 2 + 0.1sin(ω*x[1]+t)*cos(ω*x[2]+t)
-  H1 = 4 + 0.1cos(ω*x[1]+t)*sin(ω*x[2]+t)
+  H2 = 2.0 + 0.1 * sin(ω * x[1] + t) * cos(ω * x[2] + t)
+  H1 = 4.0 + 0.1 * cos(ω * x[1] + t) * sin(ω * x[2] + t)
   v2 = 1.0
   v1 = 0.9
   w2 = 0.9
   w1 = 1.0
-  b  = 1.0 + 0.1cos(0.5ω*x[1])*sin(0.5ω*x[2])
+  b  = 1.0 + 0.1 * cos(0.5 * ω * x[1]) * sin(0.5 * ω * x[2])
 
   return prim2cons(SVector(H1, v1, w1, H2, v2, w2, b), equations)
 end
@@ -316,7 +318,10 @@ the gradients of the bottom topography and the layer heights
 Further details are available in the paper:
 - Ulrik Skre Fjordholm (2012)
   Energy conservative and stable schemes for the two-layer shallow water equations.
-  (https://doi.org/10.1142/9789814417099_0039)
+  [DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
+It should be noted that the equations are ordered differently and the
+designation of the upper and lower layer has been changed which leads to a slightly different
+formulation.
 """
 @inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr, 
                                                      orientation::Integer,
@@ -415,7 +420,10 @@ Details are available in Eq. (4.1) in the paper:
 and the application to two layers is shown in the paper:
 - Ulrik Skre Fjordholm (2012)
   Energy conservative and stable schemes for the two-layer shallow water equations.
-  (https://doi.org/10.1142/9789814417099_0039)
+  [DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
+It should be noted that the equations are ordered differently and the
+designation of the upper and lower layer has been changed which leads to a slightly different
+formulation.
 """
 @inline function flux_fjordholm_etal(u_ll, u_rr,
                                      orientation::Integer, 
@@ -592,7 +600,10 @@ variables.
 Further details are available in the paper:
 - Ulrik Skre Fjordholm (2012)
 Energy conservative and stable schemes for the two-layer shallow water equations.
-(https://doi.org/10.1142/9789814417099_0039)
+[DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
+It should be noted that the equations are ordered differently and the
+designation of the upper and lower layer has been changed which leads to a slightly different
+formulation.
 """
 @inline function flux_es(u_ll, u_rr,
                          orientation_or_normal_direction, 
@@ -702,8 +713,8 @@ end
   vel2_ll = v2_ll * normal_direction[1] + w2_ll * normal_direction[2]
   vel2_rr = v2_rr * normal_direction[1] + w2_rr * normal_direction[2]
   
-  Um_ll = (vel1_ll+vel2_ll)/(u_ll[1]+u_ll[4])
-  Um_rr = (vel1_rr+vel2_rr)/(u_rr[1]+u_rr[4])
+  Um_ll = (vel1_ll + vel2_ll) / (u_ll[1] + u_ll[4])
+  Um_rr = (vel1_rr + vel2_rr) / (u_rr[1] + u_rr[4])
 
   # Compute the wave celerity on the left and right
   h1_ll, h2_ll = waterheight(u_ll, equations)
@@ -713,7 +724,7 @@ end
   c_rr = sqrt(equations.gravity * (h1_rr + h2_rr))
 
   # The normal velocities are already scaled by the norm
-  return max(abs(Um_ll),abs(Um_rr)) + max(c_ll,c_rr)*norm(normal_direction)
+  return max(abs(Um_ll), abs(Um_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
 
 
@@ -735,8 +746,8 @@ end
   h1, h2 = waterheight(u, equations)
   v1, w1, v2, w2 = velocity(u, equations)
 
-  c = sqrt(equations.gravity*(h1 + h2)) 
-  return max(abs(v)+c,abs(v1),abs(v2)), max(abs(w) + c,abs(w1),abs(w2))
+  c = sqrt(equations.gravity * (h1 + h2)) 
+  return max(abs(v) + c, abs(v1), abs(v2)), max(abs(w) + c, abs(w1), abs(w2))
 end
 
 
@@ -765,7 +776,7 @@ end
 end
 
 
-# Convert conservative variables to entropy
+# Convert conservative variables to entropy variables
 # Note, only the first four are the entropy variables, the fifth entry still just carries the bottom
 # topography values for convenience. 
 # In contrast to general usage the entropy variables are denoted with q instead of w, because w is
@@ -802,7 +813,7 @@ end
 
 
 @inline function waterheight(u, equations::TwoLayerShallowWaterEquations2D)
-  return u[1],u[4]
+  return u[1], u[4]
 end
 
 

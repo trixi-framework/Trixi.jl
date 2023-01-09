@@ -4,7 +4,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the shallow water equations with a periodic
+# Semidiscretization of the two-layer shallow water equations with a periodic
 # bottom topography function (set in the initial conditions)
 
 equations = TwoLayerShallowWaterEquations2D(gravity_constant=10.0,rho1=0.9,rho2=1.0)
@@ -30,7 +30,7 @@ mesh_file = default_mesh_file
 
 mesh = UnstructuredMesh2D(mesh_file, periodicity=true)
 
-# Create the semi discretization object
+# Create the semidiscretization object
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms_convergence_test)
 
