@@ -225,3 +225,32 @@ end
   return SVector(dv3dy - dv2dz , dv1dz - dv3dx , dv2dx - dv1dy)
 end
 
+
+"""
+    initial_condition_convergence_test(x, t, equations::CompressibleMhdDiffusion3D)
+
+An Alfvén wave as smooth initial condition used for convergence tests.
+"""
+function initial_condition_convergence_test(x, t, equations::CompressibleMhdDiffusion3D)
+  p = 1
+  omega = 2*pi / 2 # may be multiplied by frequency
+  # r: length-variable = length of computational domain
+  r = 2
+  # e: epsilon = 0.2
+  e = 0.02
+  sqr = 1
+  Va  = omega
+  phi_alv = omega * (x[1] - t)
+
+  rho = 1.
+  rho_v1  = 0
+  rho_v2  = e*cos(phi_alv)
+  rho_v3  =  0
+  rho_e = 10.
+  B1  = 1
+  B2  = -rho_v2*sqr
+  B3  = 0
+  psi = 0
+
+  return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
+end
