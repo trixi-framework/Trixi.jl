@@ -58,6 +58,7 @@ struct TwoLayerShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquat
   H0::RealT      # constant "lake-at-rest" total water height
   rho1::RealT    # lower layer density
   rho2::RealT    # upper layer density
+  r::RealT       # # ratio of rho1 / rho2
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
@@ -65,7 +66,8 @@ end
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
 # well-balancedness test cases. Densities must be specificed such that rho_1 < rho_2.
 function TwoLayerShallowWaterEquations2D(; gravity_constant, H0=0.0, rho1, rho2)
-  TwoLayerShallowWaterEquations2D(gravity_constant, H0, rho1, rho2)
+  r = rho1 / rho2
+  TwoLayerShallowWaterEquations2D(gravity_constant, H0, rho1, rho2, r)
 end
 
 
@@ -271,13 +273,13 @@ Further details are available in the paper:
     f = SVector(z,
     equations.gravity * h1_ll * (b_rr + h2_rr),
     z,z,
-    equations.gravity * h2_ll * (b_rr + equations.rho1/equations.rho2 * h1_rr),
+    equations.gravity * h2_ll * (b_rr + equations.r * h1_rr),
     z,z)
   else # orientation == 2
     f = SVector(z, z,
     equations.gravity * h1_ll * (b_rr + h2_rr),
     z,z,
-    equations.gravity * h2_ll * (b_rr + equations.rho1/equations.rho2 * h1_rr),
+    equations.gravity * h2_ll * (b_rr + equations.r * h1_rr),
     z)
   end
 
@@ -300,9 +302,9 @@ end
                 normal_direction_average[2] * equations.gravity * h1_ll * (b_rr +  h2_rr),
                 zero(eltype(u_ll)),
                 normal_direction_average[1] * equations.gravity * h2_ll * (b_rr + 
-                                                            equations.rho1/equations.rho2 * h1_rr),
+                                                            equations.r * h1_rr),
                 normal_direction_average[2] * equations.gravity * h2_ll * (b_rr +
-                                                            equations.rho1/equations.rho2 * h1_rr),
+                                                            equations.r * h1_rr),
                 zero(eltype(u_ll)))
   end
 
@@ -339,7 +341,6 @@ formulation.
 
   # Assign variables for constants for better readability
   g = equations.gravity
-  r = equations.rho1 / equations.rho2
 
   # Bottom gradient nonconservative term: (0, g*h1*(b+h2)_x  , g*h1*(b+h2)_y  , 
   #                                        0, g*h2*(b+r*h1)_x, g*h2*(b+r*h1)_x, 0)
@@ -350,17 +351,19 @@ formulation.
   #   (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
   z = zero(eltype(u_ll))
   if orientation == 1 
-    f = SVector(z,
-                g*h1_ll*(b_ll +   h2_ll) + g*h1_average*(b_jump +   h2_jump),
-                z,z,
-                g*h2_ll*(b_ll + r*h1_ll) + g*h2_average*(b_jump + r*h1_jump),
-                z,z)
+    f = SVector(
+      z,
+      g * h1_ll * (b_ll +   h2_ll) + g * h1_average * (b_jump +   h2_jump),
+      z,z,
+      g * h2_ll * (b_ll + equations.r * h1_ll) + g * h2_average * (b_jump + equations.r * h1_jump),
+      z,z)
   else # orientation == 2
-    f = SVector(z,z,
-                g*h1_ll*(b_ll +   h2_ll) + g*h1_average*(b_jump +   h2_jump),
-                z,z,
-                g*h2_ll*(b_ll + r*h1_ll) + g*h2_average*(b_jump + r*h1_jump),
-                z)
+    f = SVector(
+      z,z,
+      g * h1_ll * (b_ll +   h2_ll) + g * h1_average * (b_jump +   h2_jump),
+      z,z,
+      g * h2_ll * (b_ll + equations.r * h1_ll) + g * h2_average * (b_jump + equations.r * h1_jump),
+      z)
   end
 
   return f
@@ -381,22 +384,19 @@ end
   h2_jump    = h2_rr - h2_ll
   b_jump     = b_rr  - b_ll
 
-  # Assing new variable for better readability
-  r = equations.rho1 / equations.rho2
-
   # Comes in two parts:
   #   (i)  Diagonal (consistent) term from the volume flux that uses `normal_direction_average`
   #        but we use `b_ll` to avoid cross-averaging across a discontinuous bottom topography
   f2 = normal_direction_average[1] * equations.gravity*h1_ll*(b_ll +     h2_ll)
   f3 = normal_direction_average[2] * equations.gravity*h1_ll*(b_ll +     h2_ll)
-  f5 = normal_direction_average[1] * equations.gravity*h2_ll*(b_ll + r * h1_ll)
-  f6 = normal_direction_average[2] * equations.gravity*h2_ll*(b_ll + r * h1_ll)
+  f5 = normal_direction_average[1] * equations.gravity*h2_ll*(b_ll + equations.r * h1_ll)
+  f6 = normal_direction_average[2] * equations.gravity*h2_ll*(b_ll + equations.r * h1_ll)
   #   (ii) True surface part that uses `normal_direction_ll`, `h_average` and `b_jump`
   #        to handle discontinuous bathymetry
   f2 += normal_direction_ll[1] * equations.gravity*h1_average*(b_jump +     h2_jump)
   f3 += normal_direction_ll[2] * equations.gravity*h1_average*(b_jump +     h2_jump)
-  f5 += normal_direction_ll[1] * equations.gravity*h2_average*(b_jump + r * h1_jump)
-  f6 += normal_direction_ll[2] * equations.gravity*h2_average*(b_jump + r * h1_jump)
+  f5 += normal_direction_ll[1] * equations.gravity*h2_average*(b_jump + equations.r * h1_jump)
+  f6 += normal_direction_ll[2] * equations.gravity*h2_average*(b_jump + equations.r * h1_jump)
 
   # Continuity equations do not have a nonconservative flux
   f1 = f4 = zero(eltype(u_ll))
@@ -788,10 +788,10 @@ end
   ρ2 = equations.rho2
   v1, w1, v2, w2 = velocity(u, equations)
 
-  q1 = ρ1 * (equations.gravity * (        h1 + h2 + b) - 0.5 * (v1^2 + w1^2))
+  q1 = ρ1 * (equations.gravity * (              h1 + h2 + b) - 0.5 * (v1^2 + w1^2))
   q2 = ρ1 * v1
   q3 = ρ1 * w1
-  q4 = ρ2 * (equations.gravity * ((ρ1/ρ2)*h1 + h2 + b) - 0.5 * (v2^2 + w2^2))
+  q4 = ρ2 * (equations.gravity * (equations.r * h1 + h2 + b) - 0.5 * (v2^2 + w2^2))
   q5 = ρ2 * v2
   q6 = ρ2 * w2
   return SVector(q1, q2, q3, q4, q5, q6, b)
@@ -837,11 +837,9 @@ end
 # Calculate kinetic energy for a conservative state `cons`
 @inline function energy_kinetic(u, equations::TwoLayerShallowWaterEquations2D)
   h1, h1_v1, h1_w1, h2, h2_v2, h2_w2, _ = u
-  ρ1 = equations.rho1
-  ρ2 = equations.rho2
 
-  return (0.5 * ρ1 * h1_v1^2 / h1 + 0.5 * ρ1 * h1_w1^2 / h1 +
-          0.5 * ρ2 * h2_v2^2 / h2 + 0.5 * ρ2 * h2_w2^2 / h2)
+  return (0.5 * equations.rho1 * h1_v1^2 / h1 + 0.5 * equations.rho1 * h1_w1^2 / h1 +
+          0.5 * equations.rho2 * h2_v2^2 / h2 + 0.5 * equations.rho2 * h2_w2^2 / h2)
 end
 
 

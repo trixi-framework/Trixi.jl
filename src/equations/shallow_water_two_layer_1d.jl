@@ -55,6 +55,7 @@
     H0::RealT      # constant "lake-at-rest" total water height
     rho1::RealT    # lower layer density
     rho2::RealT    # upper layer density
+    r::RealT       # ratio of rho1 / rho2
   end
 
   # Allow for flexibility to set the gravitational constant within an elixir depending on the
@@ -62,7 +63,8 @@
   # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
   # well-balancedness test cases. Densities must be specificed such that rho_1 < rho_2.
   function TwoLayerShallowWaterEquations1D(; gravity_constant, H0=0.0, rho1, rho2)
-    TwoLayerShallowWaterEquations1D(gravity_constant, H0, rho1, rho2)
+    r = rho1 / rho2
+    TwoLayerShallowWaterEquations1D(gravity_constant, H0, rho1, rho2, r) 
   end
 
   have_nonconservative_terms(::TwoLayerShallowWaterEquations1D) = True()
@@ -205,7 +207,7 @@
     f = SVector(z,
                 equations.gravity * h1_ll * (b_rr + h2_rr),
                 z,
-                equations.gravity * h2_ll * (b_rr + equations.rho1 / equations.rho2 * h1_rr),
+                equations.gravity * h2_ll * (b_rr + equations.r * h1_rr),
                 z)   
     return f
   end
@@ -243,16 +245,16 @@
 
     # Assign variables for constants for better readability
     g = equations.gravity
-    r = equations.rho1 / equations.rho2
 
     z = zero(eltype(u_ll))
 
     # Bottom gradient nonconservative term: (0, g*h1*(b+h2)_x, 0, g*h2*(b+r*h1)_x, 0)
-    f = SVector(z,
-                g * h1_ll * (b_ll + h2_ll)     + g * h1_average * (b_jump + h2_jump),
-                z,
-                g * h2_ll * (b_ll + r * h1_ll) + g * h2_average * (b_jump + r * h1_jump),
-                z)
+    f = SVector(
+      z,
+      g * h1_ll * (b_ll + h2_ll)     + g * h1_average * (b_jump + h2_jump),
+      z,
+      g * h2_ll * (b_ll + equations.r * h1_ll) + g * h2_average * (b_jump + equations.r * h1_jump),
+      z)
     return f
   end
 
@@ -483,7 +485,7 @@
 
     w1 = ρ1 * (equations.gravity * (h1 + h2 + b) - 0.5 * v1^2)
     w2 = ρ1 * v1
-    w3 = ρ2 * (equations.gravity * ((ρ1 / ρ2) * h1 + h2 + b) - 0.5 * v2^2)
+    w3 = ρ2 * (equations.gravity * (equations.r * h1 + h2 + b) - 0.5 * v2^2)
     w4 = ρ2 * v2
     return SVector(w1, w2, w3, w4, b)
   end
