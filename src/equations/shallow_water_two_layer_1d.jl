@@ -61,9 +61,14 @@
   # Allow for flexibility to set the gravitational constant within an elixir depending on the
   # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
   # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
-  # well-balancedness test cases. Densities must be specificed such that rho_1 < rho_2.
+  # well-balancedness test cases. Densities must be specificed such that rho_1 <= rho_2.
   function TwoLayerShallowWaterEquations1D(; gravity_constant, H0=0.0, rho1, rho2)
-    r = rho1 / rho2
+    # Assign density ratio if rho1 <= rho_2
+    if rho1 / rho2 > 1
+      error("Invalid input: Densities must be chosen such that rho1 <= rho2")
+    else
+      r = rho1 / rho2
+    end
     TwoLayerShallowWaterEquations1D(gravity_constant, H0, rho1, rho2, r) 
   end
 
