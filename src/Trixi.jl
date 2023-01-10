@@ -282,8 +282,13 @@ function __init__()
 end
 
 
-include("auxiliary/precompile.jl")
-_precompile_manual_()
+# Use the old precompile statements on Julia v1.7 and only switch to the newer
+# ones based on SnoopPrecompile.jl for Julia v1.8 and newer.
+@static if VERSION < v"1.8"
+  include("auxiliary/precompile_old.jl")
+else
+  include("auxiliary/precompile_new.jl")
+end
 
 
 end
