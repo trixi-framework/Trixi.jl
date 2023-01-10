@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # Semidiscretization of the two-layer shallow water equations
 
-equations = TwoLayerShallowWaterEquations1D(gravity_constant=10.0,rho1=0.9,rho2=1.0)
+equations = ShallowWaterTwoLayerEquations1D(gravity_constant=10.0,rho1=0.9,rho2=1.0)
 
 initial_condition = initial_condition_convergence_test
 

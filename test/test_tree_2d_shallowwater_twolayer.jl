@@ -1,4 +1,4 @@
-module TestExamples2DShallowWater
+module TestExamples2DShallowWaterTwoLayer
 
 using Test
 using Trixi

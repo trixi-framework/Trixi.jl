@@ -7,9 +7,9 @@ using Trixi
 # Semidiscretization of the two-layer shallow water equations with a discontinuous
 # bottom topography function (set in the initial conditions)
 
-equations = TwoLayerShallowWaterEquations2D(gravity_constant=1.0, rho1=0.9, rho2=1.0)
+equations = ShallowWaterTwoLayerEquations2D(gravity_constant=1.0, rho1=0.9, rho2=1.0)
 
-function initial_condition_dam_break(x, t,equations::TwoLayerShallowWaterEquations2D)
+function initial_condition_dam_break(x, t,equations::ShallowWaterTwoLayerEquations2D)
   if x[1] < 1.44
     H1 = 1.0
     H2 = 0.6
@@ -77,7 +77,7 @@ ode = semidiscretize(semi, tspan)
 # `element_id` explicitly. In particular, this initial conditions works as intended
 # only for the specific mesh loaded above!
 
-function initial_condition_discontinuous_bottom(x, t, element_id,equations::TwoLayerShallowWaterEquations2D)
+function initial_condition_discontinuous_bottom(x, t, element_id,equations::ShallowWaterTwoLayerEquations2D)
   v1 = 0.0
   w1 = 0.0
   v2 = 0.0

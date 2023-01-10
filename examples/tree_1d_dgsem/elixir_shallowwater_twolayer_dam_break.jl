@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # Semidiscretization of the two-layer shallow water equations
 
-equations = TwoLayerShallowWaterEquations1D(gravity_constant=9.81,H0=2.0,rho1=0.9,rho2=1.0)
+equations = ShallowWaterTwoLayerEquations1D(gravity_constant=9.81,H0=2.0,rho1=0.9,rho2=1.0)
 # This initial condition will be overwritten with the discontinuous initial_condition_dam_break
 initial_condition = initial_condition_convergence_test
 
@@ -40,7 +40,7 @@ tspan = (0.0,0.4)
 ode = semidiscretize(semi, tspan)
 
 # Initial conditions dam break test case
-function initial_condition_dam_break(x, t, element_id, equations::TwoLayerShallowWaterEquations1D)
+function initial_condition_dam_break(x, t, element_id, equations::ShallowWaterTwoLayerEquations1D)
   inicenter = 10.0
   x_norm = x[1] - inicenter
   r = abs(x_norm)

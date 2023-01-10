@@ -6,7 +6,7 @@
 
   
   @doc raw"""
-      TwoLayerShallowWaterEquations1D(gravity, H0, rho1, rho2)
+      ShallowWaterTwoLayerEquations1D(gravity, H0, rho1, rho2)
 
   Two-Layer Shallow Water equations in one space dimension. The equations are given by
   ```math
@@ -47,10 +47,10 @@
   A good introduction for the two-layer SWE is available in Chapter 12 of the book:
   - Benoit Cushman-Roisin (2011)
     Introduction to geophyiscal fluid dynamics: physical and numerical aspects
-    @link https://www.sciencedirect.com/bookseries/international-geophysics/vol/101/suppl/C
+    https://www.sciencedirect.com/bookseries/international-geophysics/vol/101/suppl/C
     ISBN: 978-0-12-088759-0
   """
-  struct TwoLayerShallowWaterEquations1D{RealT<:Real} <: AbstractShallowWaterEquations{1,5}
+  struct ShallowWaterTwoLayerEquations1D{RealT<:Real} <: AbstractShallowWaterEquations{1,5}
     gravity::RealT # gravitational constant
     H0::RealT      # constant "lake-at-rest" total water height
     rho1::RealT    # lower layer density
@@ -62,33 +62,33 @@
   # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
   # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
   # well-balancedness test cases. Densities must be specificed such that rho_1 <= rho_2.
-  function TwoLayerShallowWaterEquations1D(; gravity_constant, H0=0.0, rho1, rho2)
+  function ShallowWaterTwoLayerEquations1D(; gravity_constant, H0=0.0, rho1, rho2)
     # Assign density ratio if rho1 <= rho_2
     if rho1 / rho2 > 1
       error("Invalid input: Densities must be chosen such that rho1 <= rho2")
     else
       r = rho1 / rho2
     end
-    TwoLayerShallowWaterEquations1D(gravity_constant, H0, rho1, rho2, r) 
+    ShallowWaterTwoLayerEquations1D(gravity_constant, H0, rho1, rho2, r) 
   end
 
-  have_nonconservative_terms(::TwoLayerShallowWaterEquations1D) = True()
-  varnames(::typeof(cons2cons), ::TwoLayerShallowWaterEquations1D) = ("h1", "h1_v1",
+  have_nonconservative_terms(::ShallowWaterTwoLayerEquations1D) = True()
+  varnames(::typeof(cons2cons), ::ShallowWaterTwoLayerEquations1D) = ("h1", "h1_v1",
                                                                       "h2", "h2_v2", "b")
   # Note, we use the total water height, H2 = h1 + h2 + b, and first layer total heigth H1 = h1 + b 
   # as the first primitive variable for easier visualization and setting initial conditions
-  varnames(::typeof(cons2prim), ::TwoLayerShallowWaterEquations1D) = ("H1", "v1", "H2", "v2", "b")
+  varnames(::typeof(cons2prim), ::ShallowWaterTwoLayerEquations1D) = ("H1", "v1", "H2", "v2", "b")
 
 
   # Set initial conditions at physical location `x` for time `t`
   """
-      initial_condition_convergence_test(x, t, equations::TwoLayerShallowWaterEquations1D)
+      initial_condition_convergence_test(x, t, equations::ShallowWaterTwoLayerEquations1D)
 
   A smooth initial condition used for convergence tests in combination with
   [`source_terms_convergence_test`](@ref) (and 
   [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
   """
-  function initial_condition_convergence_test(x, t, equations::TwoLayerShallowWaterEquations1D)
+  function initial_condition_convergence_test(x, t, equations::ShallowWaterTwoLayerEquations1D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
     ω = 2.0 * pi * sqrt(2.0)
 
@@ -103,7 +103,7 @@
 
 
   """
-      source_terms_convergence_test(u, x, t, equations::TwoLayerShallowWaterEquations1D)
+      source_terms_convergence_test(u, x, t, equations::ShallowWaterTwoLayerEquations1D)
 
   Source terms used for convergence tests in combination with 
   [`initial_condition_convergence_test`](@ref) 
@@ -111,7 +111,7 @@
   in non-periodic domains).
   """
   @inline function source_terms_convergence_test(u, x, t, 
-        equations::TwoLayerShallowWaterEquations1D)
+        equations::ShallowWaterTwoLayerEquations1D)
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocity is taken to be constant
     ω = 2 * pi * sqrt(2.0)
@@ -134,7 +134,7 @@
 
   """
       boundary_condition_slip_wall(u_inner, orientation_or_normal, x, t, surface_flux_function,
-                                    equations::TwoLayerShallowWaterEquations1D)
+                                    equations::ShallowWaterTwoLayerEquations1D)
 
   Create a boundary state by reflecting the normal velocity component and keep
   the tangential velocity component unchanged. The boundary water height is taken from
@@ -147,7 +147,7 @@
     ISBN 0471987662
   """
   @inline function boundary_condition_slip_wall(u_inner, orientation_or_normal, direction,
-      x, t, surface_flux_function, equations::TwoLayerShallowWaterEquations1D)
+      x, t, surface_flux_function, equations::ShallowWaterTwoLayerEquations1D)
     # create the "external" boundary solution state
     u_boundary = SVector(u_inner[1],
                         -u_inner[2],
@@ -167,7 +167,7 @@
 
   # Calculate 1D flux for a single point
   # Note, the bottom topography has no flux
-  @inline function flux(u, orientation::Integer, equations::TwoLayerShallowWaterEquations1D)
+  @inline function flux(u, orientation::Integer, equations::ShallowWaterTwoLayerEquations1D)
     h1, h1_v1, h2, h2_v2, _ = u
 
     # Calculate velocities
@@ -187,10 +187,10 @@
 
   """
       flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
-                                            equations::TwoLayerShallowWaterEquations1D)
+                                            equations::ShallowWaterTwoLayerEquations1D)
 
   Non-symmetric two-point volume flux discretizing the nonconservative (source) term
-  that contains the gradient of the bottom topography [`TwoLayerShallowWaterEquations1D`](@ref).
+  that contains the gradient of the bottom topography [`ShallowWaterTwoLayerEquations1D`](@ref).
 
   Further details are available in the paper:
   - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
@@ -200,7 +200,7 @@
   """
   @inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
                                                          orientation::Integer,
-                                                         equations::TwoLayerShallowWaterEquations1D)
+                                                         equations::ShallowWaterTwoLayerEquations1D)
     # Pull the necessary left and right state information
     h1_ll, h2_ll = waterheight(u_ll, equations)
     h1_rr, h2_rr = waterheight(u_rr, equations)
@@ -220,11 +220,11 @@
 
   """
       flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
-                                          equations::TwoLayerShallowWaterEquations1D)
+                                          equations::ShallowWaterTwoLayerEquations1D)
 
   Non-symmetric two-point surface flux discretizing the nonconservative (source) term that contains 
   the gradients of the bottom topography and the layer heights.
-  [`TwoLayerShallowWaterEquations1D`](@ref).
+  [`ShallowWaterTwoLayerEquations1D`](@ref).
 
   Further details are available in the paper:
   - Ulrik Skre Fjordholm (2012)
@@ -236,7 +236,7 @@
   """
   @inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
                                                        orientation::Integer,
-                                                       equations::TwoLayerShallowWaterEquations1D)
+                                                       equations::ShallowWaterTwoLayerEquations1D)
     # Pull the necessary left and right state information
     h1_ll, _, h2_ll, _, b_ll = u_ll
     h1_rr, _, h2_rr, _, b_rr = u_rr
@@ -266,7 +266,7 @@
 
   """
       flux_fjordholm_etal(u_ll, u_rr, orientation,
-                          equations::TwoLayerShallowWaterEquations1D)
+                          equations::ShallowWaterTwoLayerEquations1D)
 
   Total energy conservative (mathematical entropy for shallow water equations). When the bottom 
   topography is nonzero this should only be used as a surface flux otherwise the scheme will not be 
@@ -286,7 +286,7 @@
   """
   @inline function flux_fjordholm_etal(u_ll, u_rr,
                                        orientation::Integer,
-                                       equations::TwoLayerShallowWaterEquations1D)
+                                       equations::ShallowWaterTwoLayerEquations1D)
     # Unpack left and right state
     h1_ll, h2_ll = waterheight(u_ll, equations)
     v1_ll, v2_ll = velocity(u_ll, equations)
@@ -313,7 +313,7 @@
 
   """
       flux_wintermeyer_etal(u_ll, u_rr, orientation,
-                            equations::TwoLayerShallowWaterEquations1D)
+                            equations::ShallowWaterTwoLayerEquations1D)
 
   Total energy conservative (mathematical entropy for shallow water equations) split form.
   When the bottom topography is nonzero this scheme will be well-balanced when used as a 
@@ -327,7 +327,7 @@
   """
   @inline function flux_wintermeyer_etal(u_ll, u_rr,
                                          orientation::Integer,
-                                         equations::TwoLayerShallowWaterEquations1D)
+                                         equations::ShallowWaterTwoLayerEquations1D)
     # Unpack left and right state
     h1_ll, h1_v1_ll, h2_ll, h2_v2_ll, _ = u_ll
     h1_rr, h1_v1_rr, h2_rr, h2_v2_rr, _ = u_rr
@@ -354,7 +354,7 @@
 
   """
       flux_es(u_ll, u_rr, orientation,
-                            equations::TwoLayerShallowWaterEquations1D)
+                            equations::ShallowWaterTwoLayerEquations1D)
 
   Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy stable 
   flux_fjordholm_etal and adds a Lax-Friedrichs type dissipation dependent on the jump of entropy
@@ -370,7 +370,7 @@
   """
   @inline function flux_es(u_ll, u_rr,
                            orientation::Integer, 
-                           equations::TwoLayerShallowWaterEquations1D)                   
+                           equations::ShallowWaterTwoLayerEquations1D)                   
     # Compute entropy conservative flux but without the bottom topography
     f_ec = flux_fjordholm_etal(u_ll, u_rr,
                                orientation,
@@ -428,7 +428,7 @@
   #    [DOI: 10.1016/j.ocemod.2008.06.003](https://doi.org/10.1016/j.ocemod.2008.06.003)
   @inline function max_abs_speed_naive(u_ll, u_rr, 
                                        orientation::Integer,
-                                       equations::TwoLayerShallowWaterEquations1D)
+                                       equations::ShallowWaterTwoLayerEquations1D)
     # Get the averaged velocity
     Um_ll = (u_ll[2] + u_ll[4]) / (u_ll[1] + u_ll[3])
     Um_rr = (u_rr[2] + u_rr[4]) / (u_rr[1] + u_rr[3])
@@ -446,7 +446,7 @@
   # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom 
   # topography
   @inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
-      orientation_or_normal_direction, equations::TwoLayerShallowWaterEquations1D)
+      orientation_or_normal_direction, equations::ShallowWaterTwoLayerEquations1D)
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
     diss = -0.5 * λ * (u_rr - u_ll)
     return SVector(diss[1], diss[2], diss[3], diss[4], zero(eltype(u_ll)))
@@ -454,7 +454,7 @@
 
 
   # Absolute speed of the barotropic mode
-  @inline function max_abs_speeds(u, equations::TwoLayerShallowWaterEquations1D)
+  @inline function max_abs_speeds(u, equations::ShallowWaterTwoLayerEquations1D)
     h1, h2 = waterheight(u, equations)
     
     # Calculate averaged velocity of both layers
@@ -466,7 +466,7 @@
 
 
   # Helper function to extract the velocity vector from the conservative variables
-  @inline function velocity(u, equations::TwoLayerShallowWaterEquations1D)
+  @inline function velocity(u, equations::ShallowWaterTwoLayerEquations1D)
     h1, h1_v1, h2, h2_v2, _ = u
 
     v1 = h1_v1 / h1
@@ -476,7 +476,7 @@
 
 
   # Convert conservative variables to primitive
-  @inline function cons2prim(u, equations::TwoLayerShallowWaterEquations1D)
+  @inline function cons2prim(u, equations::ShallowWaterTwoLayerEquations1D)
     h1, _, h2, _, b = u
 
     H2 = h2 + b
@@ -489,7 +489,7 @@
   # Convert conservative variables to entropy variables
   # Note, only the first four are the entropy variables, the fifth entry still just carries the 
   # bottom topography values for convenience
-  @inline function cons2entropy(u, equations::TwoLayerShallowWaterEquations1D)
+  @inline function cons2entropy(u, equations::ShallowWaterTwoLayerEquations1D)
     h1, h1_v1, h2, h2_v2, b = u
     ρ1 = equations.rho1
     ρ2 = equations.rho2
@@ -505,7 +505,7 @@
 
 
   # Convert primitive to conservative variables
-  @inline function prim2cons(prim, equations::TwoLayerShallowWaterEquations1D)
+  @inline function prim2cons(prim, equations::ShallowWaterTwoLayerEquations1D)
     H1, v1, H2, v2, b = prim
 
     h2    = H2 - b
@@ -516,17 +516,17 @@
   end
 
 
-  @inline function waterheight(u, equations::TwoLayerShallowWaterEquations1D)
+  @inline function waterheight(u, equations::ShallowWaterTwoLayerEquations1D)
     return u[1], u[3]
   end
 
 
   # Entropy function for the shallow water equations is the total energy
-  @inline entropy(cons, equations::TwoLayerShallowWaterEquations1D) = energy_total(cons, equations)
+  @inline entropy(cons, equations::ShallowWaterTwoLayerEquations1D) = energy_total(cons, equations)
 
 
   # Calculate total energy for a conservative state `cons`
-  @inline function energy_total(cons, equations::TwoLayerShallowWaterEquations1D)
+  @inline function energy_total(cons, equations::ShallowWaterTwoLayerEquations1D)
     h1, h2, h1_v1, h2_v2, b = cons
     # Set new variables for better readability
     g = equations.gravity
@@ -540,21 +540,21 @@
 
 
   # Calculate kinetic energy for a conservative state `cons`
-  @inline function energy_kinetic(u, equations::TwoLayerShallowWaterEquations1D)
+  @inline function energy_kinetic(u, equations::ShallowWaterTwoLayerEquations1D)
     h1, h1_v1, h2, h2_v2, _ = u
     return 0.5 * equations.rho1 * h1_v1^2 / h1 + 0.5 * equations.rho2 * h2_v2^2 / h2
   end
 
 
   # Calculate potential energy for a conservative state `cons`
-  @inline function energy_internal(cons, equations::TwoLayerShallowWaterEquations1D)
+  @inline function energy_internal(cons, equations::ShallowWaterTwoLayerEquations1D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
   end
 
 
   # Calculate the error for the "lake-at-rest" test case where H = h1+h2+b should
   # be a constant value over time
-  @inline function lake_at_rest_error(u, equations::TwoLayerShallowWaterEquations1D)
+  @inline function lake_at_rest_error(u, equations::ShallowWaterTwoLayerEquations1D)
     h1, _, h2, _, b = u
     return abs(equations.H0 - (h1 + h2 + b))
   end

@@ -7,11 +7,11 @@ using Trixi
 # semidiscretization of the shallow water equations with a discontinuous
 # bottom topography function (set in the initial conditions)
 
-equations = TwoLayerShallowWaterEquations2D(gravity_constant=1.0, H0=0.6, rho1=0.9, rho2=1.0)
+equations = ShallowWaterTwoLayerEquations2D(gravity_constant=1.0, H0=0.6, rho1=0.9, rho2=1.0)
 
 # An initial condition with constant total water height an optional perturbation and zero velocities
 # to test well-balancedness and entropy conservation.
-function initial_condition_well_balanced(x, t, equations::TwoLayerShallowWaterEquations2D)
+function initial_condition_well_balanced(x, t, equations::ShallowWaterTwoLayerEquations2D)
   # Set the background values
   inicenter = 0.5
   x_norm = sqrt((x[1] - inicenter)^2+(x[2] - inicenter)^2)
