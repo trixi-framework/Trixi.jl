@@ -413,7 +413,14 @@
 
 
   # Calculate approximation for maximum wave speed for local Lax-Friedrichs-type dissipation as the
-  # maximum velocity magnitude plus the maximum speed of sound.
+  # maximum velocity magnitude plus the maximum speed of sound. This function uses approximate 
+  # eigenvalues using the speed of the barotropic mode as there is no simple way to calculate them 
+  # analytically. 
+  # 
+  # A good overview of the derivation is given in:
+  # -  Jonas Nycander, Andrew McC. Hogg, Leela M. Frankcombe (2008)
+  #    Open boundary conditions for nonlinear channel Flows
+  #    [DOI: 10.1016/j.ocemod.2008.06.003](https://doi.org/10.1016/j.ocemod.2008.06.003)
   @inline function max_abs_speed_naive(u_ll, u_rr, 
                                        orientation::Integer,
                                        equations::TwoLayerShallowWaterEquations1D)
@@ -445,6 +452,7 @@
   @inline function max_abs_speeds(u, equations::TwoLayerShallowWaterEquations1D)
     h1, h2 = waterheight(u, equations)
     
+    # Calculate averaged velocity of both layers
     v = (u[2] + u[4]) / (h1 + h2)
     c = sqrt(equations.gravity * (h1 + h2))
 

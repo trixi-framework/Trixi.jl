@@ -674,14 +674,19 @@ formulation.
 end
 
 
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
-# maximum velocity magnitude plus the maximum speed
+# Calculate approximation for maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# maximum velocity magnitude plus the maximum speed of sound. This function uses approximate 
+# eigenvalues using the speed of the barotropic mode as there is no simple way to calculate them 
+# analytically. 
+# 
+# A good overview of the derivation is given in:
+# -  Jonas Nycander, Andrew McC. Hogg, Leela M. Frankcombe (2008)
+#    Open boundary conditions for nonlinear channel Flows
+#    [DOI: 10.1016/j.ocemod.2008.06.003](https://doi.org/10.1016/j.ocemod.2008.06.003)
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, 
   equations::TwoLayerShallowWaterEquations2D)
 
-  v1_ll, w1_ll, v2_ll, w2_ll = velocity(u_ll, equations)
-  v1_rr, w1_rr, v2_rr, w2_rr = velocity(u_rr, equations)
-
+  # Calculate averaged velocity of both layers
   if orientation == 1
     Um_ll = (u_ll[2] + u_ll[5]) / (u_ll[1] + u_ll[4])
     Um_rr = (u_rr[2] + u_rr[5]) / (u_rr[1] + u_rr[4])
@@ -708,13 +713,14 @@ end
   v1_ll, w1_ll, v2_ll, w2_ll = velocity(u_ll, equations)
   v1_rr, w1_rr, v2_rr, w2_rr = velocity(u_rr, equations)
 
-  vel1_ll = v1_ll * normal_direction[1] + w1_ll * normal_direction[2]
-  vel1_rr = v1_rr * normal_direction[1] + w1_rr * normal_direction[2]
-  vel2_ll = v2_ll * normal_direction[1] + w2_ll * normal_direction[2]
-  vel2_rr = v2_rr * normal_direction[1] + w2_rr * normal_direction[2]
+  v1_dot_n_ll = v1_ll * normal_direction[1] + w1_ll * normal_direction[2]
+  v1_dot_n_rr = v1_rr * normal_direction[1] + w1_rr * normal_direction[2]
+  v2_dot_n_ll = v2_ll * normal_direction[1] + w2_ll * normal_direction[2]
+  v2_dot_n_rr = v2_rr * normal_direction[1] + w2_rr * normal_direction[2]
   
-  Um_ll = (vel1_ll + vel2_ll) / (u_ll[1] + u_ll[4])
-  Um_rr = (vel1_rr + vel2_rr) / (u_rr[1] + u_rr[4])
+  # Calculate averaged velocity of both layers
+  Um_ll = (v1_dot_n_ll * u_ll[1] + v2_dot_n_ll * u_ll[4]) / (u_ll[1] + u_ll[4])
+  Um_rr = (v1_dot_n_rr * u_rr[1] + v2_dot_n_rr * u_rr[4]) / (u_rr[1] + u_rr[4])
 
   # Compute the wave celerity on the left and right
   h1_ll, h2_ll = waterheight(u_ll, equations)
@@ -739,7 +745,7 @@ end
 
 # Absolute speed of the barotropic mode
 @inline function max_abs_speeds(u, equations::TwoLayerShallowWaterEquations2D)
-  # averaged velocities
+  # Calculate averaged velocity of both layers
   v = (u[2] + u[5]) / (u[1] + u[4])
   w = (u[3] + u[6]) / (u[1] + u[4])
 
