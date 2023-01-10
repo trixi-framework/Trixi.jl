@@ -6,7 +6,7 @@
 
 
 function max_dt(u, t, mesh::TreeMesh{3},
-                constant_speed::Val{false}, equations, dg::DG, cache)
+                constant_speed::False, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -29,7 +29,7 @@ end
 
 
 function max_dt(u, t, mesh::TreeMesh{3},
-                constant_speed::Val{true}, equations, dg::DG, cache)
+                constant_speed::True, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -45,7 +45,7 @@ end
 
 
 function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                constant_speed::Val{false}, equations, dg::DG, cache)
+                constant_speed::False, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -80,7 +80,7 @@ end
 
 
 function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                constant_speed::Val{true}, equations, dg::DG, cache)
+                constant_speed::True, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -110,7 +110,7 @@ end
 
 
 function max_dt(u, t, mesh::ParallelP4estMesh{3},
-                constant_speed::Val{false}, equations, dg::DG, cache)
+                constant_speed::False, equations, dg::DG, cache)
   # call the method accepting a general `mesh::P4estMesh{3}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
@@ -126,7 +126,7 @@ end
 
 
 function max_dt(u, t, mesh::ParallelP4estMesh{3},
-                constant_speed::Val{true}, equations, dg::DG, cache)
+                constant_speed::True, equations, dg::DG, cache)
   # call the method accepting a general `mesh::P4estMesh{3}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.

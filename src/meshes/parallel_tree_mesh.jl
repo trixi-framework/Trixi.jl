@@ -74,7 +74,7 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening=true)
 end
 
 
-function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{true})
+function get_restart_mesh_filename(restart_filename, mpi_parallel::True)
   # Get directory name
   dirname, _ = splitdir(restart_filename)
 
