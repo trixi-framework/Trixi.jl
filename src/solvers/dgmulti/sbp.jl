@@ -393,9 +393,15 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
 
   periodicity = ntuple(_ -> true, NDIMS)
 
-  mesh_type = rd.approximation_type
+  if NDIMS == 1
+    mesh_type = Line()
+  elseif NDIMS == 2
+    mesh_type = Quad()
+  elseif NDIMS == 3
+    mesh_type = Hex()
+  end
 
-  md = MeshData(mesh_type, VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
+  md = MeshData(StartUpDG.VertexMappedMesh(mesh_type, VXYZ, EToV), FToF, xyz, xyzf, xyzq, wJq,
                 mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
                 periodicity)
 
