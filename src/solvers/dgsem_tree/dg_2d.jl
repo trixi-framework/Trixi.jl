@@ -1156,11 +1156,10 @@ end
     antidiffusive_flux1[1, i, j, element] = flux_limited
 
     # Limit velocity and total energy
+    rho_limited_im1i = bar_state_rho + antidiffusive_flux1[1, i, j, element]
+    rho_limited_iim1 = bar_state_rho - antidiffusive_flux1[1, i, j, element]
     for v in 2:nvariables(equations)
       bar_states_phi = lambda * bar_states1[v, i, j, element]
-
-      rho_limited_im1i = bar_state_rho + antidiffusive_flux1[1, i, j, element]
-      rho_limited_iim1 = bar_state_rho - antidiffusive_flux1[1, i, j, element]
 
       phi = bar_states_phi / bar_state_rho
 
@@ -1227,11 +1226,10 @@ end
     antidiffusive_flux2[1, i, j, element] = flux_limited
 
     # Limit velocity and total energy
+    rho_limited_jm1j = bar_state_rho + antidiffusive_flux2[1, i, j, element]
+    rho_limited_jjm1 = bar_state_rho - antidiffusive_flux2[1, i, j, element]
     for v in 2:nvariables(equations)
       bar_state_phi = lambda * bar_states2[v, i, j, element]
-
-      rho_limited_jm1j = bar_state_rho + antidiffusive_flux2[1, i, j, element]
-      rho_limited_jjm1 = bar_state_rho - antidiffusive_flux2[1, i, j, element]
 
       phi = bar_state_phi / bar_state_rho
 
