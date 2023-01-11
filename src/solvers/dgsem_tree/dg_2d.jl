@@ -1067,6 +1067,14 @@ end
     end
 
     for j in eachnode(dg), i in eachnode(dg)
+      # Previous solution
+      var_min[1, i, j, element] = min(var_min[1, i, j, element], u[1, i, j, element])
+      var_max[1, i, j, element] = max(var_max[1, i, j, element], u[1, i, j, element])
+      for v in 2:nvariables(equations)
+        phi = u[v, i, j, element] / u[1, i, j, element]
+        var_min[v, i, j, element] = min(var_min[v, i, j, element], phi)
+        var_max[v, i, j, element] = max(var_max[v, i, j, element], phi)
+      end
       # - xi direction
       bar_state_rho = bar_states1[1, i, j, element]
       var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
