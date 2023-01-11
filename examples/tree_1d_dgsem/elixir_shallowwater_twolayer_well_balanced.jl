@@ -3,34 +3,32 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# Semidiscretization of the two-layer shallow water equations
+# Semidiscretization of the two-layer shallow water equations to test well balancedness
 
 equations = ShallowWaterTwoLayerEquations1D(gravity_constant=1.0,H0=0.6,rho1=0.9,rho2=1.0)
 
-# Initial Conditions to test well balancedness with optional Perturbation
-function initial_condition_well_balanced(x, t, equations::ShallowWaterTwoLayerEquations1D)
-    add_perturbation = false
+"""
+    initial_condition_fjordholm_well_balanced(x, t, equations::ShallowWaterTwoLayerEquations1D)
+
+Initial condition to test well balanced with a bottom topography from Fjordholm
+- Ulrik Skre Fjordholm (2012)
+  Energy conservative and stable schemes for the two-layer shallow water equations.
+  [DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
+"""
+function initial_condition_fjordholm_well_balanced(x, t, equations::ShallowWaterTwoLayerEquations1D)
     inicenter = 0.5
     x_norm = x[1] - inicenter
     r = abs(x_norm)
-  
-    # Add perturbation to h1
-    if add_perturbation == true
-      h1 = 0.38<=x[1]<=0.42 ? 0.15 : 0.1
-    else 
-      h1 = 0.1
-    end
-  
 
     H2 = 0.5
-    H1 = H2 + h1
+    H1 = 0.6
     v1 = 0.0
     v2 = 0.0
     b  = r <= 0.1 ? 0.2 * (cos(10*π*(x[1] - 0.5)) + 1) : 0.0
     return prim2cons(SVector(H1, v1, H2, v2, b), equations)
   end
 
-initial_condition = initial_condition_well_balanced
+initial_condition = initial_condition_fjordholm_well_balanced
 
 ###############################################################################
 # Get the DG approximation space

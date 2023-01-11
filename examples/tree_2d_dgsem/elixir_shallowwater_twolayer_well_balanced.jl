@@ -3,37 +3,22 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# Semidiscretization of the two-layer shallow water equations with a discontinuous
-# bottom topography function
+# Semidiscretization of the two-layer shallow water equations with a bottom topography function 
+# to test well-balancedness
 
 equations = ShallowWaterTwoLayerEquations2D(gravity_constant=9.81, H0=0.6, rho1=0.9, rho2=1.0)
 
-# An initial condition with constant total water height an optional perturbation and zero velocities
-# to test well-balancedness and entropy conservation.
+# An initial condition with constant total water height, zero velocities and a bottom topography to 
+# test well-balancedness
 function initial_condition_well_balanced(x, t, equations::ShallowWaterTwoLayerEquations2D)
-  # Set the background values
-  inicenter = 0.5
-  x_norm = sqrt((x[1] - inicenter)^2+(x[2] - inicenter)^2)
-  r = abs(x_norm)
-
-
-  # Add perturbation to h1
-  add_perturbation = false
-  if add_perturbation == true
-    h1 = (0.38<=x[1]<=0.42 && 0.38<=x[2]<=0.42) ? 0.15 : 0.1
-  else 
-    h1 = 0.1
-  end
-
   H2 = 0.5
-  H1 = H2 + h1
+  H1 = 0.6
   v1 = 0.0
   w1 = 0.0
   v2 = 0.0
   w2 = 0.0
-
-  # Bottom Topography
   b = ((x[1]-0.5)^2+(x[2]-0.5)^2) < 0.04 ? 0.2*(cos(4*π*sqrt((x[1]-0.5)^2+(x[2]-0.5)^2))+1) : 0.0
+  
   return prim2cons(SVector(H1, v1, w1, H2, v2, w2, b), equations)
 end
 

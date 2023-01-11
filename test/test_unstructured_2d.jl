@@ -166,7 +166,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.25))
   end
 
-  @trixi_testset "elixir_shallowwater_twolayer_well_balaneced.jl" begin
+  @trixi_testset "elixir_shallowwater_twolayer_well_balanced.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_twolayer_well_balanced.jl"),
       l2    = [4.706532184998499e-16, 1.1215950712872183e-15, 6.7822712922421565e-16, 
                0.002192812926266047, 5.506855295923691e-15, 3.3105180099689275e-15, 
@@ -177,12 +177,13 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.25))
   end
 
-  @trixi_testset "elixir_shallowwater_twolayer_dam_break.jl" begin
+  @trixi_testset "elixir_shallowwater_twolayer_dam_break.jl with flux_lax_friedrichs" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_twolayer_dam_break.jl"),
       l2    = [0.01134184331012092, 0.011883197594154408, 0.00011180467236824915, 
                0.06524144260183219, 0.016317131554366447, 0.00014247470964017937, 0.0],
       linf  = [0.026537725168125192, 0.024868745448623667, 0.0008969682558990791,
                0.10551352047348622, 0.03690904440687801, 0.0010708225878796427, 0.0],
+      surface_flux = (flux_lax_friedrichs, flux_nonconservative_fjordholm_etal),
       tspan = (0.0, 0.25))
   end
 end

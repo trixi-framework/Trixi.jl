@@ -3,7 +3,8 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# Semidiscretization of the two-layer shallow water equations
+# Semidiscretization of the two-layer shallow water equations for a dam break test with a 
+# discontinuous bottom topography function to test entropy conservation
 
 equations = ShallowWaterTwoLayerEquations1D(gravity_constant=9.81,H0=2.0,rho1=0.9,rho2=1.0)
 # This initial condition will be overwritten with the discontinuous initial_condition_dam_break
@@ -13,7 +14,7 @@ initial_condition = initial_condition_convergence_test
 # Get the DG approximation space
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-solver = DGSEM(polydeg=3, surface_flux=(flux_lax_friedrichs, flux_nonconservative_fjordholm_etal),
+solver = DGSEM(polydeg=3, surface_flux=(flux_fjordholm_etal, flux_nonconservative_fjordholm_etal),
               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 
@@ -52,12 +53,13 @@ function initial_condition_dam_break(x, t, element_id, equations::ShallowWaterTw
   if element_id <= 16
     H2 = 2.0
     H1 = 4.0
+    b  = 0.0
   else
     H2 = 1.5
     H1 = 3.0
+    b  = 0.5
   end
 
-  b  = 0.0
   return prim2cons(SVector(H1, v1, H2, v2, b), equations)
 end
 

@@ -36,11 +36,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
     tspan = (0.0, 0.25))
   end
 
-  @trixi_testset "elixir_shallowwater_twolayer_dam_break.jl" begin
+  @trixi_testset "elixir_shallowwater_twolayer_dam_break.jl with flux_lax_friedrichs" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_twolayer_dam_break.jl"),
-      l2 = [0.3545579205941352, 1.6671098325838127, 0.7900767617260193, 0.9385785869258338,
-             1.0023746892375034],
-     linf = [0.6591615763025229, 2.0519328695833847, 1.1357745874830598, 1.2344402760174087, 1.1],
+    l2    = [0.35490827242437256, 1.6715402155795918, 0.6960264969949427, 
+             0.9351481433409805, 0.7938172946965545], 
+    linf  = [0.6417127471419837, 1.9742107034120873, 1.135774587483082, 1.236125279347084, 1.1],
+    surface_flux = (flux_lax_friedrichs, flux_nonconservative_fjordholm_etal),
     tspan = (0.0, 0.25))
   end
 
