@@ -103,7 +103,7 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
                   (prob=ode,), ode.f, alg,
                   SimpleIntegratorSSPOptions(callback, ode.tspan; kwargs...), false)
 
-  # Resize container
+  # resize container
   resize!(integrator.p, nelements(integrator.p.solver, integrator.p.cache))
 
   # initialize callbacks
@@ -140,7 +140,7 @@ function solve!(integrator::SimpleIntegratorSSP)
       terminate!(integrator)
     end
 
-    # Reset alphas for PLotting of MCL
+    # reset alphas for Plotting of MCL
     @unpack indicator = integrator.p.solver.volume_integral
     if indicator isa IndicatorMCL && indicator.Plotting
       @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
@@ -155,20 +155,23 @@ function solve!(integrator::SimpleIntegratorSSP)
     for stage in eachindex(alg.c)
       @trixi_timeit timer() "Runge-Kutta stage" begin
         t_stage = integrator.t + integrator.dt * alg.c[stage]
+        # compute du
         integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
 
+        # perfom forward Euler step
         @. integrator.u = integrator.u + integrator.dt * integrator.du
       end
       @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u, t_stage, integrator.dt, integrator.p, indicator)
 
       @trixi_timeit timer() "update_alpha_per_timestep!" update_alpha_per_timestep!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
 
-      # Check that we are within bounds
+      # check that we are within bounds
       if indicator.IDPCheckBounds
         laststage = (stage == length(alg.c))
         @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u, integrator.p, integrator.iter, laststage)
       end
 
+      # perform convex combination
       @. integrator.u = alg.a[stage] * integrator.r0 + alg.b[stage] * integrator.u
     end
 
@@ -233,7 +236,7 @@ function terminate!(integrator::SimpleIntegratorSSP)
   empty!(integrator.opts.tstops)
 
   if integrator.p.solver.volume_integral.indicator isa IndicatorIDP
-    resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep,  integrator.iter+1)
+    resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep, integrator.iter+1)
     resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep, integrator.iter+1)
     resize!(integrator.p.solver.volume_integral.indicator.cache.time_per_timestep, integrator.iter+1)
   end
@@ -347,10 +350,10 @@ end
   println("─"^100)
   variables = varnames(cons2cons, equations)
   for v in eachvariable(equations)
-    println(variables[v], ":\n- lower bound: ", idp_bounds_delta[2*v-1], "\n- upper bound: ", idp_bounds_delta[2*v])
+    println(variables[v], ":\n- lower bound: ", idp_bounds_delta[1, v], "\n- upper bound: ", idp_bounds_delta[2, v])
   end
   if indicator.IDPPressure
-    println("pressure:\n- lower bound: ", idp_bounds_delta[2*nvariables(equations)+1])
+    println("pressure:\n- lower bound: ", idp_bounds_delta[1, nvariables(equations)+1])
   end
   println("─"^100 * "\n")
 
