@@ -61,8 +61,7 @@ end
 mutable struct SimpleIntegratorSSP{RealT<:Real, uType, Params, Sol, F, Alg, SimpleIntegratorSSPOptions}
   u::uType
   du::uType
-  u_safe::uType
-  u_old::uType
+  r0::uType
   t::RealT
   dt::RealT # current time step
   dtcache::RealT # ignored
@@ -97,11 +96,10 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
                dt, callback=nothing, kwargs...)
   u = copy(ode.u0)
   du = similar(u)
-  u_safe = similar(u)
-  u_old = similar(u)
+  r0 = similar(u)
   t = first(ode.tspan)
   iter = 0
-  integrator = SimpleIntegratorSSP(u, du, u_safe, u_old, t, dt, zero(dt), iter, ode.p,
+  integrator = SimpleIntegratorSSP(u, du, r0, t, dt, zero(dt), iter, ode.p,
                   (prob=ode,), ode.f, alg,
                   SimpleIntegratorSSPOptions(callback, ode.tspan; kwargs...), false)
 
@@ -153,27 +151,26 @@ function solve!(integrator::SimpleIntegratorSSP)
       end
     end
 
-    @. integrator.u_safe = integrator.u
+    @. integrator.r0 = integrator.u
     for stage in eachindex(alg.c)
       @trixi_timeit timer() "Runge-Kutta stage" begin
         t_stage = integrator.t + integrator.dt * alg.c[stage]
-        integrator.f(integrator.du, integrator.u_safe, integrator.p, t_stage)
+        integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
 
-        @. integrator.u_safe = integrator.u_safe + integrator.dt * integrator.du
+        @. integrator.u = integrator.u + integrator.dt * integrator.du
       end
-      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, t_stage, integrator.dt, integrator.p, indicator)
+      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u, t_stage, integrator.dt, integrator.p, indicator)
 
       @trixi_timeit timer() "update_alpha_per_timestep!" update_alpha_per_timestep!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
 
       # Check that we are within bounds
       if indicator.IDPCheckBounds
         laststage = (stage == length(alg.c))
-        @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u_safe, integrator.p, integrator.iter, laststage)
+        @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u, integrator.p, integrator.iter, laststage)
       end
 
-      @. integrator.u_safe = alg.a[stage] * integrator.u + alg.b[stage] * integrator.u_safe
+      @. integrator.u = alg.a[stage] * integrator.r0 + alg.b[stage] * integrator.u
     end
-    @. integrator.u = integrator.u_safe
 
     if integrator.p.solver.volume_integral.indicator isa IndicatorIDP
       indicator.cache.time_per_timestep[integrator.iter+1] = integrator.t
@@ -220,7 +217,7 @@ end
 
 # get a cache where the RHS can be stored
 get_du(integrator::SimpleIntegratorSSP) = integrator.du
-get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_safe, integrator.u_old)
+get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.r0,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
@@ -246,8 +243,7 @@ end
 function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
   resize!(integrator.u, new_size)
   resize!(integrator.du, new_size)
-  resize!(integrator.u_safe, new_size)
-  resize!(integrator.u_old, new_size)
+  resize!(integrator.r0, new_size)
 
   # Resize container
   resize!(integrator.p, new_size)
