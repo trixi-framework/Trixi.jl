@@ -116,17 +116,17 @@
     # this manufactured solution velocity is taken to be constant
     ω = 2 * pi * sqrt(2.0)
 
-    du1 = (-0.1cos(t + ω*x[1]) - 0.1sin(t + ω*x[1]) - 0.09ω*cos(t + ω*x[1]) +
-           - 0.09ω*sin(t + ω*x[1]))
-    du2 = (5.0(-0.1ω*cos(t + ω*x[1]) - 0.1ω*sin(t + ω*x[1]))*(4.0 + 0.2cos(t + ω*x[1]) - 0.2sin(t +
-           ω*x[1])) + 0.1ω*(20.0 + cos(t + ω*x[1]) - sin(t + ω*x[1]))*cos(t + ω*x[1]) +
-           - 0.09cos(t + ω*x[1]) - 0.09sin(t + ω*x[1]) +
-           - 0.081ω*cos(t + ω*x[1]) - 0.081ω*sin(t + ω*x[1]))
-    du3 = 0.1cos(t + ω*x[1]) + 0.1ω*cos(t + ω*x[1]) + 0.2ω*sin(2ω*x[1])
-    du4 = ((10.0 + sin(t + ω*x[1]) - cos(2ω*x[1]))*(-0.09ω*cos(t + ω*x[1]) +
-            - 0.09ω*sin(t + ω*x[1]) - 0.2ω*sin(2ω*x[1])) + 0.1cos(t + ω*x[1]) + 
-            0.1ω*cos(t + ω*x[1]) + 5.0(0.1ω*cos(t + ω*x[1]) + 0.2ω*sin(2ω*x[1]))*(2.0 + 0.2sin(t +
-            ω*x[1]) - 0.2cos(2ω*x[1])) + 0.2ω*sin(2ω*x[1]))
+    du1 = (-0.1*cos(t + ω*x[1]) - 0.1*sin(t + ω*x[1]) - 0.09*ω*cos(t + ω*x[1]) +
+           - 0.09*ω*sin(t + ω*x[1]))
+    du2 = (5.0 * (-0.1*ω*cos(t + ω*x[1]) - 0.1*ω*sin(t + ω*x[1])) * (4.0 + 0.2*cos(t + ω*x[1]) +
+          -0.2*sin(t + ω*x[1])) + 0.1*ω*(20.0 + cos(t + ω*x[1]) - sin(t + ω*x[1])) * cos(t +
+           ω*x[1]) - 0.09*cos(t + ω*x[1]) - 0.09*sin(t + ω*x[1]) - 0.081*ω*cos(t + ω*x[1]) +
+          -0.081*ω*sin(t + ω*x[1]))
+    du3 = 0.1*cos(t + ω*x[1]) + 0.1*ω*cos(t + ω*x[1]) + 0.2*ω*sin(2.0*ω*x[1])
+    du4 = ((10.0 + sin(t + ω*x[1]) - cos(2ω*x[1]))*(-0.09*ω*cos(t + ω*x[1]) - 0.09*ω*sin(t +
+           ω*x[1]) - 0.2*ω*sin(2*ω*x[1])) + 0.1*cos(t + ω*x[1]) + 0.1*ω*cos(t + ω*x[1]) + 
+           5.0 * (0.1*ω*cos(t + ω*x[1]) + 0.2*ω*sin(2.0*ω*x[1])) * (2.0 + 0.2*sin(t + ω*x[1]) +
+          -0.2*cos(2.0*ω*x[1])) + 0.2*ω*sin(2.0*ω*x[1]))
 
     return SVector(du1, du2, du3, du4, 0.0)
   end
@@ -190,7 +190,9 @@
                                             equations::ShallowWaterTwoLayerEquations1D)
 
   Non-symmetric two-point volume flux discretizing the nonconservative (source) term
-  that contains the gradient of the bottom topography [`ShallowWaterTwoLayerEquations1D`](@ref).
+  that contains the gradient of the bottom topography [`ShallowWaterTwoLayerEquations2D`](@ref) and an
+  additional term that couples the momentum of both layers. This is a slightly modified version 
+  to account for the additional source term compared to the standard SWE described in the paper.
 
   Further details are available in the paper:
   - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
@@ -198,6 +200,7 @@
     shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
     [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
   """
+  # TODO: Change name after paper is finished
   @inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
                                                          orientation::Integer,
                                                          equations::ShallowWaterTwoLayerEquations1D)
@@ -222,9 +225,9 @@
       flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
                                           equations::ShallowWaterTwoLayerEquations1D)
 
-  Non-symmetric two-point surface flux discretizing the nonconservative (source) term that contains 
-  the gradients of the bottom topography and the layer heights.
-  [`ShallowWaterTwoLayerEquations1D`](@ref).
+Non-symmetric two-point surface flux discretizing the nonconservative (source) term that contains 
+the gradients of the bottom topography and an additional term that couples the momentum of both 
+layers [`ShallowWaterTwoLayerEquations2D`](@ref).
 
   Further details are available in the paper:
   - Ulrik Skre Fjordholm (2012)
@@ -315,9 +318,11 @@
       flux_wintermeyer_etal(u_ll, u_rr, orientation,
                             equations::ShallowWaterTwoLayerEquations1D)
 
-  Total energy conservative (mathematical entropy for shallow water equations) split form.
-  When the bottom topography is nonzero this scheme will be well-balanced when used as a 
-  `volume_flux`. The `surface_flux` should still use, e.g., [`flux_fjordholm_etal`](@ref).
+  Total energy conservative (mathematical entropy for two-layer shallow water equations) split form.
+  When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
+  The `surface_flux` should still use, e.g., [`flux_fjordholm_etal`](@ref). To obtain the flux for the
+  two-layer shallow water equations the flux that is described in the paper for the normal shallow 
+  water equations is used within each layer.
 
   Further details are available in Theorem 1 of the paper:
   - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
@@ -325,6 +330,7 @@
     shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
     [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
   """
+  #TODO: Change name after paper is finished
   @inline function flux_wintermeyer_etal(u_ll, u_rr,
                                          orientation::Integer,
                                          equations::ShallowWaterTwoLayerEquations1D)
@@ -356,9 +362,9 @@
       flux_es(u_ll, u_rr, orientation,
                             equations::ShallowWaterTwoLayerEquations1D)
 
-  Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy stable 
-  flux_fjordholm_etal and adds a Lax-Friedrichs type dissipation dependent on the jump of entropy
-  variables. 
+  Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy 
+  conservative flux_fjordholm_etal and adds a Lax-Friedrichs type dissipation dependent on the jump 
+  of entropy variables. 
 
   Further details are available in the paper:
   - Ulrik Skre Fjordholm (2012)
@@ -393,22 +399,28 @@
     drho = rho1 - rho2
 
     # Entropy Jacobian matrix
-    H = [[-rho2/(g*rho1*drho);;
-          -rho2*u_avg[2]/(g*rho1*u_avg[1]*drho);;
-          1.0/(g*drho);;
-          u_avg[4]/(g*u_avg[3]*drho)];
-         [-rho2*u_avg[2]/(g*rho1*u_avg[1]*drho);;
-          1.0*(g*rho1*u_avg[1]^3 - g*rho2*u_avg[1]^3 - rho2*u_avg[2]^2)/(g*rho1*u_avg[1]^2*drho);;  
-          u_avg[2]/(g*u_avg[1]*drho);;
-          u_avg[2]*u_avg[4]/(g*u_avg[1]*u_avg[3]*drho)];
-         [1.0/(g*drho);;
-          u_avg[2]/(g*u_avg[1]*drho);;
-         -1.0/(g*drho);;
-         -u_avg[4]/(g*u_avg[3]*drho)];
-         [u_avg[4]/(g*u_avg[3]*drho);;
-          u_avg[2]*u_avg[4]/(g*u_avg[1]*u_avg[3]*drho);;
-         -u_avg[4]/(g*u_avg[3]*drho);;
-          1.0*(g*rho1*u_avg[3]^3 - g*rho2*u_avg[3]^3 - rho2*u_avg[4]^2)/(g*rho2*u_avg[3]^2*drho)]]
+    H = Array{Float64,2}(undef,4,4)
+    # Use symmetry properties to compute matrix
+    H[:,1] = 
+      [-rho2/(g*rho1*drho);;
+      -rho2*u_avg[2]/(g*rho1*u_avg[1]*drho);;
+       1.0/(g*drho);;
+       u_avg[4]/(g*u_avg[3]*drho)]
+    H[:,2] = 
+      [H[2,1];;
+       (g*rho1*u_avg[1]^3 - g*rho2*u_avg[1]^3 - rho2*u_avg[2]^2)/(g*rho1*u_avg[1]^2*drho);;  
+       u_avg[2]/(g*u_avg[1]*drho);;
+       u_avg[2]*u_avg[4]/(g*u_avg[1]*u_avg[3]*drho)]
+    H[:,3] =
+      [H[3,1];;
+       H[3,2];;
+      -1.0/(g*drho);;
+      -u_avg[4]/(g*u_avg[3]*drho)]
+    H[:,4] = 
+      [H[4,1];;
+       H[4,2];;
+       H[4,3];;
+       (g*rho1*u_avg[3]^3 - g*rho2*u_avg[3]^3 - rho2*u_avg[4]^2)/(g*rho2*u_avg[3]^2*drho)]
 
     # Add dissipation to entropy conservative flux to obtain entropy stable flux
     f_es = f_ec - 0.5 * λ * H * (q_rr - q_ll)
