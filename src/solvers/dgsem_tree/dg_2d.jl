@@ -1261,7 +1261,7 @@ end
   end
 
   # Limit pressure
-  if indicator.IDPPressureTVD
+  if indicator.IDPPressure
     @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
     if indicator.Plotting
       alpha_pressure[:, :, element] .= one(eltype(alpha_pressure))
@@ -1403,13 +1403,14 @@ end
 end
 
 # 2d, IndicatorIDP
-@inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, mesh, equations, solver, cache, indicator::IndicatorIDP)
+@inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, mesh, equations, solver, cache, indicator::IndicatorIDP, iter, laststage)
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = solver.volume_integral.indicator
   @unpack var_bounds = solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
   @unpack idp_bounds_delta = solver.volume_integral.indicator.cache
 
   # Save the deviations every x iterations
   x = 0
+  save_errors = laststage && (x > 0) && (iter % x == 0)
   counter = 1
   if IDPDensityTVD
     deviation_min = zero(eltype(u))
@@ -1420,6 +1421,12 @@ end
     end
     idp_bounds_delta[1] = max(idp_bounds_delta[1], deviation_min)
     idp_bounds_delta[2] = max(idp_bounds_delta[2], deviation_max)
+    if save_errors
+      deviation_min_ = deviation_min
+      deviation_max_ = deviation_max
+      open("Deviation_rho_min.txt", "a") do f; println(f, deviation_min_); end
+      open("Deviation_rho_max.txt", "a") do f; println(f, deviation_max_); end
+    end
     counter += 2
   end
   if IDPPressureTVD
@@ -1432,6 +1439,12 @@ end
     end
     idp_bounds_delta[counter]   = max(idp_bounds_delta[counter],   deviation_min)
     idp_bounds_delta[counter+1] = max(idp_bounds_delta[counter+1], deviation_max)
+    if save_errors
+      deviation_min_ = deviation_min
+      deviation_max_ = deviation_max
+      open("Deviation_pre_min.txt", "a") do f; println(f, deviation_min_); end
+      open("Deviation_pre_max.txt", "a") do f; println(f, deviation_max_); end
+    end
     counter += 2
   end
   if IDPPositivity && !IDPDensityTVD
@@ -1440,6 +1453,10 @@ end
       deviation_min = max(deviation_min, var_bounds[counter][i, j, element] - u[1, i, j, element])
     end
     idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
+    if save_errors
+      deviation_min_ = deviation_min
+      open("Deviation_rho_min.txt", "a") do f; println(f, deviation_min_); end
+    end
     counter += 1
   end
   if IDPPositivity && !IDPPressureTVD
@@ -1449,6 +1466,10 @@ end
       deviation_min = max(deviation_min, var_bounds[counter][i, j, element] - p)
     end
     idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
+    if save_errors
+      deviation_min_ = deviation_min
+      open("Deviation_pre_min.txt", "a") do f; println(f, deviation_min_); end
+    end
     counter += 1
   end
   if IDPSpecEntropy
@@ -1458,6 +1479,10 @@ end
       deviation_min = max(deviation_min, var_bounds[counter][i, j, element] - s)
     end
     idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
+    if save_errors
+      deviation_min_ = deviation_min
+      open("Deviation_specEntr.txt", "a") do f; println(f, deviation_min_); end
+    end
     counter += 1
   end
   if IDPMathEntropy
@@ -1467,111 +1492,58 @@ end
       deviation_max = max(deviation_max, s - var_bounds[counter][i, j, element])
     end
     idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_max)
+    if save_errors
+      deviation_max_ = deviation_max
+      open("Deviation_mathEntr.txt", "a") do f; println(f, deviation_max_); end
+    end
   end
 
   return nothing
 end
 
 # 2d, IndicatorMCL
-@inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, mesh, equations, solver, cache, indicator::IndicatorMCL)
+@inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, mesh, equations, solver, cache, indicator::IndicatorMCL, iter, laststage)
   @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
   @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
   @unpack idp_bounds_delta = solver.volume_integral.indicator.cache
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
 
   n_vars = nvariables(equations)
+
+  deviation_min = zeros(eltype(u), n_vars + indicator.IDPPressure)
+  deviation_max = zeros(eltype(u), n_vars)
+
+  # Save the deviations every x iterations
+  x = 1
+  save_errors = laststage && (x > 0) && (iter % x == 0)
   for element in eachelement(solver, cache)
-    # -x
-    for j in eachnode(solver), i in 2:nnodes(solver)
-      lambda = lambda1[i, j, element]
-      rho_limited = bar_states1[1, i, j, element] + antidiffusive_flux1[1, i, j, element] / lambda
-      idp_bounds_delta[1] = max(idp_bounds_delta[1], var_min[1, i, j, element] - rho_limited)
-      idp_bounds_delta[2] = max(idp_bounds_delta[2], rho_limited - var_max[1, i, j, element])
-      if indicator.IDPPressureTVD
-        error_pressure = zero(eltype(idp_bounds_delta))
-        var_limited = zero(eltype(idp_bounds_delta))
-      end
+    for j in eachnode(solver), i in eachnode(solver)
+      deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - u[1, i, j, element])
+      deviation_max[1] = max(deviation_max[1], u[1, i, j, element] - var_max[1, i, j, element])
       for v in 2:n_vars
-        var_limited = bar_states1[v, i, j, element] + antidiffusive_flux1[v, i, j, element] / lambda
-        idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], rho_limited * var_min[v, i, j, element] - var_limited)
-        idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], var_limited - rho_limited * var_max[v, i, j, element])
-        if indicator.IDPPressureTVD
-          error_pressure += 0.5 * var_limited^2
-        end
+        var_limited = u[v, i, j, element] / u[1, i, j, element]
+        deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
+        deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
       end
-      if indicator.IDPPressureTVD
-        error_pressure -= 0.5 * var_limited^2 + var_limited * rho_limited
-        idp_bounds_delta[2*n_vars+1] = max(idp_bounds_delta[2*n_vars+1], error_pressure)
+      if indicator.IDPPressure
+        error_pressure = 0.5 * (u[2, i, j, element]^2 + u[3, i, j, element]^2) - u[1, i, j, element] * u[4, i, j, element]
+        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
       end
     end
-    # +x
-    for j in eachnode(solver), i in 1:nnodes(solver)-1
-      lambda = lambda1[i+1, j, element]
-      rho_limited = bar_states1[1, i+1, j, element] - antidiffusive_flux1[1, i+1, j, element] / lambda
-      idp_bounds_delta[1] = max(idp_bounds_delta[1], var_min[1, i, j, element] - rho_limited)
-      idp_bounds_delta[2] = max(idp_bounds_delta[2], rho_limited - var_max[1, i, j, element])
-      if indicator.IDPPressureTVD
-        error_pressure = zero(eltype(idp_bounds_delta))
-        var_limited = zero(eltype(idp_bounds_delta))
-      end
-      for v in 2:n_vars
-        var_limited = bar_states1[v, i+1, j, element] - antidiffusive_flux1[v, i+1, j, element] / lambda
-        idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], rho_limited * var_min[v, i, j, element] - var_limited)
-        idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], var_limited - rho_limited * var_max[v, i, j, element])
-        if indicator.IDPPressureTVD
-          error_pressure += 0.5 * var_limited^2
-        end
-      end
-      if indicator.IDPPressureTVD
-        error_pressure -= 0.5 * var_limited^2 + var_limited * rho_limited
-        idp_bounds_delta[2*n_vars+1] = max(idp_bounds_delta[2*n_vars+1], error_pressure)
-      end
+  end
+  vars = varnames(cons2cons, equations)
+  for v in eachvariable(equations)
+    idp_bounds_delta[1, v] = max(idp_bounds_delta[1, v], deviation_min[v])
+    idp_bounds_delta[2, v] = max(idp_bounds_delta[2, v], deviation_max[v])
+    if save_errors
+      open(string("Deviation_", vars[v], "_min.txt"), "a") do f; println(f, deviation_min[v]); end
+      open(string("Deviation_", vars[v], "_max.txt"), "a") do f; println(f, deviation_max[v]); end
     end
-    # -y
-    for j in 2:nnodes(solver), i in eachnode(solver)
-      lambda = lambda2[i, j, element]
-      rho_limited = bar_states2[1, i, j, element] + antidiffusive_flux2[1, i, j, element] / lambda
-      idp_bounds_delta[1] = max(idp_bounds_delta[1], var_min[1, i, j, element] - rho_limited)
-      idp_bounds_delta[2] = max(idp_bounds_delta[2], rho_limited - var_max[1, i, j, element])
-      if indicator.IDPPressureTVD
-        error_pressure = zero(eltype(idp_bounds_delta))
-        var_limited = zero(eltype(idp_bounds_delta))
-      end
-      for v in 2:n_vars
-        var_limited = bar_states2[v, i, j, element] + antidiffusive_flux2[v, i, j, element] / lambda
-        idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], rho_limited * var_min[v, i, j, element] - var_limited)
-        idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], var_limited - rho_limited * var_max[v, i, j, element])
-        if indicator.IDPPressureTVD
-          error_pressure += 0.5 * var_limited^2
-        end
-      end
-      if indicator.IDPPressureTVD
-        error_pressure -= 0.5 * var_limited^2 + var_limited * rho_limited
-        idp_bounds_delta[2*n_vars+1] = max(idp_bounds_delta[2*n_vars+1], error_pressure)
-      end
-    end
-    # +y
-    for j in 1:nnodes(solver)-1, i in eachnode(solver)
-      lambda = lambda2[i, j+1, element]
-      rho_limited = bar_states2[1, i, j+1, element] - antidiffusive_flux2[1, i, j+1, element] / lambda
-      idp_bounds_delta[1] = max(idp_bounds_delta[1], var_min[1, i, j, element] - rho_limited)
-      idp_bounds_delta[2] = max(idp_bounds_delta[2], rho_limited - var_max[1, i, j, element])
-      if indicator.IDPPressureTVD
-        error_pressure = zero(eltype(idp_bounds_delta))
-        var_limited = zero(eltype(idp_bounds_delta))
-      end
-      for v in 2:n_vars
-        var_limited = bar_states2[v, i, j+1, element] - antidiffusive_flux2[v, i, j+1, element] / lambda
-        idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], rho_limited * var_min[v, i, j, element] - var_limited)
-        idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], var_limited - rho_limited * var_max[v, i, j, element])
-        if indicator.IDPPressureTVD
-          error_pressure += 0.5 * var_limited^2
-        end
-      end
-      if indicator.IDPPressureTVD
-        error_pressure -= 0.5 * var_limited^2 + var_limited * rho_limited
-        idp_bounds_delta[2*n_vars+1] = max(idp_bounds_delta[2*n_vars+1], error_pressure)
-      end
+  end
+  if indicator.IDPPressure
+    idp_bounds_delta[1, n_vars+1] = max(idp_bounds_delta[1, n_vars+1], deviation_min[n_vars+1])
+    if save_errors
+      open("Deviation_pressure.txt", "a") do f; println(f, deviation_min[n_vars+1]); end
     end
   end
 

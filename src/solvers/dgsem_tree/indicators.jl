@@ -264,39 +264,39 @@ IndicatorMCL
 """
 struct IndicatorMCL{RealT<:Real, Cache, Indicator} <: AbstractIndicator
   cache::Cache
-  IDPPressureTVD::Bool    # synchronized pressure limiting
+  IDPPressure::Bool        # synchronized pressure limiting
   IDPCheckBounds::Bool
-  indicator_smooth::Bool  # activates smoothness indicator: IndicatorHennemannGassner
-  thr_smooth::RealT       # threshold for smoothness indicator
+  indicator_smooth::Bool   # activates smoothness indicator: IndicatorHennemannGassner
+  thr_smooth::RealT        # threshold for smoothness indicator
   IndicatorHG::Indicator
   Plotting::Bool
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorMCL(equations::AbstractEquations, basis;
-                      IDPPressureTVD=false,
+                      IDPPressure=false,
                       IDPCheckBounds=false,
                       indicator_smooth=false, thr_smooth=0.1, variable_smooth=density_pressure,
                       Plotting=true)
 
-  cache = create_cache(IndicatorMCL, equations, basis, 2*nvariables(equations)+IDPPressureTVD)
+  cache = create_cache(IndicatorMCL, equations, basis, IDPPressure)
   if indicator_smooth
     IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_smooth=false,
                                             variable=variable_smooth)
   else
     IndicatorHG = nothing
   end
-  IndicatorMCL{typeof(thr_smooth), typeof(cache), typeof(IndicatorHG)}(cache, IDPPressureTVD, IDPCheckBounds,
-    indicator_smooth, thr_smooth, IndicatorHG, Plotting)
+  IndicatorMCL{typeof(thr_smooth), typeof(cache), typeof(IndicatorHG)}(cache, IDPPressure,
+    IDPCheckBounds, indicator_smooth, thr_smooth, IndicatorHG, Plotting)
 end
 
 function Base.show(io::IO, indicator::IndicatorMCL)
   @nospecialize indicator # reduce precompilation time
 
   print(io, "IndicatorMCL(")
-  print(io, "density, velocity, total energy")
-  indicator.IDPPressureTVD && print(io, ", pressure")
-  indicator.indicator_smooth && print(io, ", Smoothness indicator: ", indicator.IndicatorHG,
+  print(io, "Limiting of density, velocity and total energy")
+  indicator.IDPPressure && print(io, "; pressure limiting")
+  indicator.indicator_smooth && print(io, "; Smoothness indicator: ", indicator.IndicatorHG,
     " with threshold ", indicator.thr_smooth)
   print(io, ")")
 end
@@ -308,13 +308,13 @@ function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIn
   @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
   variables = varnames(cons2cons, equations)
   for v in eachvariable(equations)
-    s = Symbol("shock_capturing_delta_volume_flux_", variables[v])
+    s = Symbol("shock_capturing_alpha_", variables[v])
     node_variables[s] = alpha[v, ntuple(_ -> :, nvariables(equations) + 1)...]
   end
 
-  if indicator.IDPPressureTVD
+  if indicator.IDPPressure
     @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
-    node_variables[:indicator_shock_capturing_pressure] = alpha_pressure
+    node_variables[:shock_capturing_alpha_pressure] = alpha_pressure
   end
 
   return nothing

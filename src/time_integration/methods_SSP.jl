@@ -167,7 +167,8 @@ function solve!(integrator::SimpleIntegratorSSP)
 
       # Check that we are within bounds
       if indicator.IDPCheckBounds
-        @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u_safe, integrator.p)
+        laststage = (stage == length(alg.c))
+        @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u_safe, integrator.p, integrator.iter, laststage)
       end
 
       @. integrator.u_safe = alg.a[stage] * integrator.u + alg.b[stage] * integrator.u_safe
@@ -361,7 +362,7 @@ end
   for v in eachvariable(equations)
     println(variables[v], ":\n- lower bound: ", idp_bounds_delta[2*v-1], "\n- upper bound: ", idp_bounds_delta[2*v])
   end
-  if indicator.IDPPressureTVD
+  if indicator.IDPPressure
     println("pressure:\n- lower bound: ", idp_bounds_delta[2*nvariables(equations)+1])
   end
   println("─"^100 * "\n")
