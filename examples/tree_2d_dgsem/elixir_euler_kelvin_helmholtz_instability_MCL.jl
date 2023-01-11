@@ -38,7 +38,7 @@ basis = LobattoLegendreBasis(polydeg)
 
 indicator_sc = IndicatorMCL(equations, basis;
                             IDPCheckBounds=true,
-                            IDPPressureTVD=false,
+                            IDPPressure=false,
                             indicator_smooth=false,
                             Plotting=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,

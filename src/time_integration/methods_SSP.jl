@@ -175,15 +175,6 @@ function solve!(integrator::SimpleIntegratorSSP)
     end
     @. integrator.u = integrator.u_safe
 
-    # Note:
-    # @. integrator.u_old = (1.0 - alg.a[i]) * integrator.u + alg.a[i] * integrator.u_safe
-    # The combination of the macro muladd with the operator @. changes the order of operations knowingly, which
-    # results in changed solutions.
-    # Moreover, unrolling the for-loop changes the order unexpectedly. Using a cache variable like
-    # @. u_tmp = (1.0 - alg.a[i]) * integrator.u
-    # @. integrator.u_old = u_tmp + alg.a[i] * integrator.u_safe
-    # solves the differences between the (not-)unrolled for-loop versions.
-
     if integrator.p.solver.volume_integral.indicator isa IndicatorIDP
       indicator.cache.time_per_timestep[integrator.iter+1] = integrator.t
     end
