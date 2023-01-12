@@ -905,11 +905,11 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(indicator::Type{IndicatorMCL}, equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis, IDPPressure, IDPSemiDiscEntropy)
+                      basis::LobattoLegendreBasis, IDPPressure)
   ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorMCL{real(basis)}(0, nvariables(equations), nnodes(basis))
   ContainerBarStates = Trixi.ContainerBarStates{real(basis)}(0, nvariables(equations), nnodes(basis))
 
-  idp_bounds_delta = zeros(real(basis), 2, nvariables(equations) + IDPPressure + IDPSemiDiscEntropy)
+  idp_bounds_delta = zeros(real(basis), 2, nvariables(equations) + IDPPressure)
 
   return (; ContainerShockCapturingIndicator, ContainerBarStates, idp_bounds_delta)
 end
