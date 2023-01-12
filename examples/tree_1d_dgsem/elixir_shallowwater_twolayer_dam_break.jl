@@ -83,7 +83,7 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 500
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=false, 
-                      extra_analysis_integrals=(energy_total,))
+                      extra_analysis_integrals=(energy_total, energy_kinetic, energy_internal,))
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
