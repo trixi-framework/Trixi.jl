@@ -8,33 +8,48 @@
 @doc raw"""
     ShallowWaterTwoLayerEquations2D(gravity, H0, rho1, rho2)
 
-Two-Layer Shallow water equations (2LSWE) in two space dimension. The equations are given by
+Two-Layer Shallow water equations (2L-SWE) in two space dimension. The equations are given by
 ```math
-\begin{alignat}{7}
-& (h_1)_t        &+& (h_1v_1)_x &+& (h_1w_1)_y &=& 0 \\
-& (h_1v_1)_t  &+& (h_1v_1^2 + \frac{gh_1^2}{2})_x &+& (h_1v_1w_1)_y &=& -gh_1(b+h_2)_x \\
-& (h_1w_1)_t &+& (h_1v_1w_1)_x &+& (h_1w_1^2 + \tfrac{gh_1^2}{2})_y &=& -gh_1(b+h_2)_y\\
-& (h_2)_t       &+& (h_2v_2)_x &+& (h_2w_2)_y &=& 0 \\
-& (h_2v_2)_t  &+& (h_2v_2^2 + \dfrac{gh_2^2}{2})_x &+& (h_2v_2w_2)_y &=
-& -gh_2(b+\dfrac{\rho_1}{\rho_2} h_1)_x\\
-& (h_2w_2)_t  &+& (h_2v_2w_2)_x &+& (h_2w_2^2 + \dfrac{gh_2^2}{2})_y &=
-& -gh_2(b+\dfrac{\rho_1}{\rho_2} h_1)_y
-\end{alignat}
+\begin{alignat*}{8}
+&\frac{\partial}{\partial t}h_1        
+&&+ \frac{\partial}{\partial x}\left(h_1v_1\right)
+&&+ \frac{\partial}{\partial y}\left(h_1w_1\right)  \quad 
+&&= \quad 0 \\
+&\frac{\partial}{\partial t}\left(h_1v_1\right)  
+&&+ \frac{\partial}{\partial x}\left(h_1v_1^2 + \frac{gh_1^2}{2}\right) 
+&&+ \frac{\partial}{\partial y}\left(h_1v_1w_1\right) \quad 
+&&= -gh_1\frac{\partial}{\partial x}\left(b+h_2\right) \\
+&\frac{\partial}{\partial t}\left(h_1w_1\right) 
+&&+ \frac{\partial}{\partial x}\left(h_1v_1w_1\right) 
+&&+ \frac{\partial}{\partial y}\left(h_1w_1^2 + \frac{gh_1^2}{2}\right) 
+&&= -gh_1\frac{\partial}{\partial y}\left(b+h_2\right)\\
+&\frac{\partial}{\partial t}h_2  
+&&+ \frac{\partial}{\partial x}\left(h_2v_2\right) 
+&&+ \frac{\partial}{\partial y}\left(h_2w_2\right) 
+&&= \quad 0 \\
+&\frac{\partial}{\partial t}\left(h_2v_2\right) 
+&&+ \frac{\partial}{\partial x}\left(h_2v_2^2 + \frac{gh_2^2}{2}\right) 
+&&+ \frac{\partial}{\partial y}\left(h_2v_2w_2\right) 
+&&= -gh_2\frac{\partial}{\partial x}\left(b+\frac{\rho_1}{\rho_2} h_1\right)\\
+&\frac{\partial}{\partial t}\left(h_2w_2\right)  
+&&+ \frac{\partial}{\partial x}\left(h_2v_2w_2\right) 
+&&+ \frac{\partial}{\partial y}\left(h_2w_2^2 + \frac{gh_2^2}{2}\right) 
+&&= -gh_2\frac{\partial}{\partial y}\left(b+\frac{\rho_1}{\rho_2} h_1\right)
+\end{alignat*}
 ```
-The unknown quantities of the SWE are the water heights of the lower layer ``h_2`` and the upper 
+The unknown quantities of the 2L-SWE are the water heights of the lower layer ``h_2`` and the upper 
 layer ``h_1`` and the respecitve velocities in x-Direction ``v_1`` and ``v_2`` and in y-Direction
 ``w_1`` and ``w_2``. The gravitational constant is denoted by `g`, the layer densitites by 
 ``\rho_1``and ``\rho_2`` and the (possibly) variable bottom topography function by ``b(x)``. 
 Conservative variable water height ``h_2`` is measured from the bottom topography ``b`` and ``h_1`` 
-relative to ``h_2``, therefore one also defines the total water heights as ``H2 = h2 + b`` and 
-``H1 = h1 + h2 + b``.
+relative to ``h_2``, therefore one also defines the total water heights as ``H_2 = h_2 + b`` and 
+``H_1 = h_1 + h_2 + b``.
 
 The additional quantity ``H_0`` is also available to store a reference value for the total water
 height that is useful to set initial conditions or test the "lake-at-rest" well-balancedness.
 
 The bottom topography function ``b(x)`` is set inside the initial condition routine
-for a particular problem setup. To test the conservative form of the 2LSWE one can set the bottom 
-topography variable `b` to zero.
+for a particular problem setup.
 
 In addition to the unknowns, Trixi currently stores the bottom topography values at the 
 approximation points despite being fixed in time. This is done for convenience of computing the 
@@ -47,7 +62,7 @@ This affects the implementation and use of these equations in various ways:
 * [`AnalysisCallback`](@ref) analyzes this variable.
 * Trixi's visualization tools will visualize the bottom topography by default.
 
-A good introduction for the two-layer SWE is available in Chapter 12 of the book:
+A good introduction for the 2L-SWE is available in Chapter 12 of the book:
   - Benoit Cushman-Roisin (2011)
     Introduction to geophyiscal fluid dynamics: physical and numerical aspects
     https://www.sciencedirect.com/bookseries/international-geophysics/vol/101/suppl/C
@@ -255,6 +270,9 @@ end
 """
     flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
                                           equations::ShallowWaterTwoLayerEquations2D)
+
+!!! warning "Experimental code"
+This numerical flux is experimental and may change in any future release.
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the bottom topography [`ShallowWaterTwoLayerEquations2D`](@ref) and an
@@ -517,6 +535,9 @@ end
 """
     flux_wintermeyer_etal(u_ll, u_rr, orientation,
                           equations::ShallowWaterTwoLayerEquations2D)
+
+!!! warning "Experimental code"
+This numerical flux is experimental and may change in any future release.
 
 Total energy conservative (mathematical entropy for two-layer shallow water equations) split form.
 When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
