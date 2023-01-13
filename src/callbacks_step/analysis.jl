@@ -444,14 +444,21 @@ function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
     elements_per_level .+= tree.quadrants_per_level
   end
 
-  min_level = findfirst(i -> i > 0, elements_per_level) - 1
-  max_level = findlast(i -> i > 0, elements_per_level) - 1
+  min_level_1 = findfirst(i -> i > 0, elements_per_level)
+  max_level_1 = findlast(i -> i > 0, elements_per_level)
 
-  for level = max_level:-1:min_level+1
-    mpi_println(" ├── level $level:    " * @sprintf("% 14d", elements_per_level[level + 1]))
+  # Check if there is at least one level with an element
+  if isnothing(min_level_1) || isnothing(max_level_1)
+    return nothing
+  else
+    min_level = min_level_1 - 1
+    max_level = max_level_1 - 1
+
+    for level = max_level:-1:min_level+1
+      mpi_println(" ├── level $level:    " * @sprintf("% 14d", elements_per_level[level + 1]))
+    end
+    mpi_println(" └── level $min_level:    " * @sprintf("% 14d", elements_per_level[min_level + 1]))
   end
-  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", elements_per_level[min_level + 1]))
-
   return nothing
 end
 
