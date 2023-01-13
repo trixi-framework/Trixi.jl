@@ -110,7 +110,7 @@ end
 # care of these situations when allowing to use `ode_norm` as default norm in
 # OrdinaryDiffEq.jl throughout all applications of Trixi.jl.
 recursive_sum_abs2(u::Number) = abs2(u)
-recursive_sum_abs2(u::AbstractArray) = sum(recursive_sum_abs2, u)
+recursive_sum_abs2(u::AbstractArray) = sum(recursive_sum_abs2, u; init=0)
 
 recursive_length(u::Number) = length(u)
 recursive_length(u::AbstractArray{<:Number}) = length(u)
