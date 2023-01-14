@@ -444,6 +444,7 @@ function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
     elements_per_level .+= tree.quadrants_per_level
   end
 
+  # levels start at zero but Julia's standard indexing starts at 1
   min_level_1 = findfirst(i -> i > 0, elements_per_level)
   max_level_1 = findlast(i -> i > 0, elements_per_level)
 
