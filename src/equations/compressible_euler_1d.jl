@@ -137,6 +137,7 @@ function initial_condition_density_wave(x, t, equations::CompressibleEulerEquati
   return SVector(rho, rho_v1, rho_e)
 end
 
+
 """
     initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEquations1D)
 
