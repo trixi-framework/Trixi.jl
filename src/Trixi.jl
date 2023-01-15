@@ -164,10 +164,6 @@ export initial_condition_constant,
        initial_condition_density_wave,
        initial_condition_weak_blast_wave
 
-export initial_condition_sine_wave,
-       initial_condition_sod,
-       initial_condition_shu_osher
-
 export boundary_condition_do_nothing,
        boundary_condition_periodic,
        BoundaryConditionDirichlet,
