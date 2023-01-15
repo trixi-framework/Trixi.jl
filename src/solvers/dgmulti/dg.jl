@@ -76,6 +76,7 @@ for the quadrature nodes in `dg`.
 In particular, not the quadrature nodes themselves are returned.
 """
 @inline each_quad_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq)
+@inline each_mode(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Np)
 
 # iteration over quantities over the entire mesh (dofs, quad nodes, face nodes).
 """

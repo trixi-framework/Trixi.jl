@@ -229,6 +229,7 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven, NeuralNetworkCNN
 
 export PositivityPreservingLimiterZhangShu
+export SecondOrderExponentialAdaptiveFilter,ZhangShuScalingAdaptiveFilter 
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured
