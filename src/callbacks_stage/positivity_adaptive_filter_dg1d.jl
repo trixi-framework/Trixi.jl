@@ -9,6 +9,8 @@
 
 Adaptive filter for DGMulti to ensure the well-posedness of the entropy
 projection step.
+Modify the input u to be the filtered solution û, such that the
+entropy-projected conservative variables u(Πv(û)) satisfies some desired bound.
 """
 # TODO: only support 1D GaussSBP. Multidimension and general DGMulti in future PRs.
 function adaptive_filter!(u, filter,
@@ -20,7 +22,6 @@ function adaptive_filter!(u, filter,
   @unpack Vq = rd
   @unpack invVDM = cache
   @unpack u_values, u_modal_coeffs, entropy_var_values = cache
-  # @unpack interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_face = cache
 
   # TODO: redundant operations with local_filtered_entropy_projection!
   apply_to_each_field(mul_by!(Vq), u_values, u)
@@ -38,6 +39,11 @@ function adaptive_filter!(u, filter,
   end
 end
 
+"""
+
+On element e, calculate and return the local density, internal energy and last
+entropy variable relaxed bound using adaptive filter's relaxation factors.
+"""
 function calc_local_bound(filter, e,
                           equations::Union{AbstractCompressibleEulerEquations,CompressibleNavierStokesDiffusion2D},
                           cache)
@@ -60,7 +66,8 @@ end
 
 """
 
-calculate the filter factor on element e, and store it in cache.filter_factors
+calculate and return the filter factor θ on element e, such that the filtered
+entropy projected variables u(Πv(û(θ))) satisfy local_bound
 """
 function calc_local_filter_factor!(cache, u, e, local_bound, filter::SecondOrderExponentialAdaptiveFilter, mesh, equations, dg)
   cond(θ) = calc_and_check_local_filtered_values!(cache, u, θ, e, local_bound, filter, mesh, equations, dg)
@@ -72,6 +79,12 @@ function calc_local_filter_factor!(cache, u, e, local_bound, filter::ZhangShuSca
   return bisection_bound(cond, 0.0, 1.0)
 end
 
+"""
+
+On element e, calculate filtered entropy projected variables u(Πv(û(θ))) and
+check whether the filtered variables satisfy the local_bound.
+Return boolean indicates whether the local_bound is satisfied.
+"""
 function calc_and_check_local_filtered_values!(cache, u, θ, e, local_bound, filter, mesh, equations, dg)
 
   try
@@ -84,6 +97,10 @@ function calc_and_check_local_filtered_values!(cache, u, θ, e, local_bound, fil
 
 end
 
+"""
+
+On element e, calculate filtered entropy projected variables u(Πv(û(θ)))
+"""
 function calc_local_filtered_values!(cache, u_e, θ, e, filter, mesh, equations, dg)
 
   calc_local_filtered_cons_values!(cache, u_e, θ, e, filter, mesh, equations, dg)
@@ -91,6 +108,10 @@ function calc_local_filtered_values!(cache, u_e, θ, e, filter, mesh, equations,
 
 end
 
+"""
+
+On element e, calculate filtered conservative variables û(θ) and set u_e = û(θ)
+"""
 function calc_local_filtered_cons_values!(cache, u_e, θ, e, filter, mesh, equations, dg)
 
   rd = dg.basis
@@ -103,6 +124,11 @@ function calc_local_filtered_cons_values!(cache, u_e, θ, e, filter, mesh, equat
 end
 
 # TODO: Only support 1D. Dispatch on dimension in future PRs
+"""
+
+On element e, calculate modal coefficients of filtered conservative variables
+û(θ) and put it in a temporary cache
+"""
 function apply_local_filter!(cache, θ, e, filter::SecondOrderExponentialAdaptiveFilter, mesh::DGMultiMesh{1}, dg::DGMulti{1})
   
   @unpack u_modal_coeffs, local_u_modal_coeffs_threaded = cache
@@ -123,6 +149,11 @@ function apply_local_filter!(cache, θ, e, filter::ZhangShuScalingAdaptiveFilter
 
 end
 
+"""
+
+Check whether entropy projected variables u(Πv(û)) stored in cache satisfy the
+local_bound
+"""
 function check_local_bound(e, local_bound, equations, dg, cache)
 
   @unpack entropy_projected_u_values, entropy_var_values = cache
