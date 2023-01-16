@@ -780,7 +780,7 @@ end
     rho_2gamma = 0.5 * rho / equations.gamma
     f1m = rho_2gamma * alpha_m
     f2m = rho_2gamma * alpha_m * v1
-    f3m = rho_2gamma * (alpha_m * v2 + a * (lambda2_m-lambda3_m))
+    f3m = rho_2gamma * (alpha_m * v2 + a * (lambda2_m - lambda3_m))
     f4m = rho_2gamma * (alpha_m * 0.5 * (v1^2 + v2^2) + a * v2 * (lambda2_m - lambda3_m)
                         + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
   end
@@ -967,6 +967,46 @@ end
     f3m = 0.5 * rho * v2 * v2 + 0.5 * p - lambda * u[3]
     f4m = 0.5 * rho * v2 * H - lambda * u[4]
   end
+  return SVector(f1m, f2m, f3m, f4m)
+end
+
+@inline function splitting_lax_friedrichs(u, ::Val{:plus}, normal_direction::AbstractVector,
+                                          equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v_dot_n = normal_direction[1] * v1 + normal_direction[2] * v2
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
+  lambda = 0.5 * (v_dot_n + a * norm(normal_direction))
+
+  f1p = 0.5 * rho * v_dot_n + lambda * u[1]
+  f2p = 0.5 * rho * v_dot_n * v1 + 0.5 * p * normal_direction[1] + lambda * u[2]
+  f3p = 0.5 * rho * v_dot_n * v2 + 0.5 * p * normal_direction[2] + lambda * u[3]
+  f4p = 0.5 * rho * v_dot_n * H + lambda * u[4]
+
+  return SVector(f1p, f2p, f3p, f4p)
+end
+
+@inline function splitting_lax_friedrichs(u, ::Val{:minus}, normal_direction::AbstractVector,
+                                          equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v_dot_n = normal_direction[1] * v1 + normal_direction[2] * v2
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
+  lambda = 0.5 * (v_dot_n + a * norm(normal_direction))
+
+  f1m = 0.5 * rho * v_dot_n - lambda * u[1]
+  f2m = 0.5 * rho * v_dot_n * v1 + 0.5 * p * normal_direction[1] - lambda * u[2]
+  f3m = 0.5 * rho * v_dot_n * v2 + 0.5 * p * normal_direction[2] - lambda * u[3]
+  f4m = 0.5 * rho * v_dot_n * H - lambda * u[4]
+
   return SVector(f1m, f2m, f3m, f4m)
 end
 

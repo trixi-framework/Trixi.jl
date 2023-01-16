@@ -333,11 +333,23 @@ struct FluxUpwind{Splitting}
   splitting::Splitting
 end
 
-@inline function (numflux::FluxUpwind)(u_ll, u_rr, orientation::Int, equations)
+@inline function (numflux::FluxUpwind)(u_ll, u_rr, orientation, equations)
   @unpack splitting = numflux
   fm = splitting(u_rr, Val{:minus}(), orientation, equations)
   fp = splitting(u_ll, Val{:plus}(),  orientation, equations)
   return fm + fp
+end
+
+# TODO: FD. Works properly for `splitting_lax_friedrichs` but needs further
+#       testing for other splittings.
+@inline function (numflux::FluxUpwind)(u_ll, u_rr, normal_direction::AbstractVector,
+                                       equations::AbstractEquations{2})
+  @unpack splitting = numflux
+  # Compute splitting in generic normal direction with specialized
+  # eigenvalues estimates calculated inside the `splitting` function
+  f_tilde_m = splitting(u_rr, Val{:minus}(), normal_direction, equations)
+  f_tilde_p = splitting(u_ll, Val{:plus}() , normal_direction, equations)
+  return f_tilde_m + f_tilde_p
 end
 
 Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(",  f.splitting, ")")

@@ -26,12 +26,10 @@ function create_cache(mesh::UnstructuredMesh2D, equations, dg::FDSBP, RealT, uEl
 end
 
 
-# TODO: FD; Upwind versions of surface / volume integral
-
 # 2D volume integral contributions for `VolumeIntegralStrongForm`
 @inline function calc_volume_integral!(du, u,
                                        mesh::UnstructuredMesh2D,
-                                       nonconservative_terms::Val{false}, equations,
+                                       nonconservative_terms::False, equations,
                                        volume_integral::VolumeIntegralStrongForm,
                                        dg::FDSBP, cache)
   D = dg.basis # SBP derivative operator
@@ -84,6 +82,85 @@ end
 end
 
 
+# 2D volume integral contributions for `VolumeIntegralUpwind`
+# Note that the plus / minus notation of the operators does not refer to the
+# upwind / downwind directions of the fluxes.
+# Instead, the plus / minus refers to the direction of the biasing within
+# the finite difference stencils. Thus, the D^- operator acts on the positive
+# part of the flux splitting f^+ and the D^+ operator acts on the negative part
+# of the flux splitting f^-.
+# Further note that appropriate plus / minus contravariant vector terms are applied
+# to the corresponding plus / minus derivative operator.
+@inline function calc_volume_integral!(du, u,
+                                       mesh::UnstructuredMesh2D,
+                                       nonconservative_terms::False, equations,
+                                       volume_integral::VolumeIntegralUpwind,
+                                       dg::FDSBP, cache)
+  # Pull the derivative matrix assuming that
+  # dg.basis isa SummationByPartsOperators.UpwindOperators
+  # TODO: FD, improve performance to use `mul!`. Current version allocates.
+  #       Also, would be good if the logic below for local rotations could be avoided
+  D_minus = Matrix(dg.basis.minus) # Upwind SBP D^- derivative operator
+  D_plus  = Matrix(dg.basis.plus)  # Upwind SBP D^+ derivative operator
+  @unpack contravariant_vectors_plus, contravariant_vectors_minus, rotations = cache.elements
+  @unpack splitting = volume_integral
+
+  @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+      u_node = get_node_vars(u, equations, dg, i, j, element)
+
+      # Compute the flux vector splitting. If the local coordinate
+      # system in an element is rotated, then the role of +/- swaps
+      if rotations[element] == 0
+        # standard flux splittings
+        flux1_minus, flux1_plus = splitting(u_node, 1, equations)
+        flux2_minus, flux2_plus = splitting(u_node, 2, equations)
+      elseif rotations[element] == 1 # corresponds to 90° rotation
+        # `i` direction flipped so swap x-direction
+        flux1_plus, flux1_minus = splitting(u_node, 1, equations)
+        flux2_minus, flux2_plus = splitting(u_node, 2, equations)
+      elseif rotations[element] == 2 || rotations[element] == 4 # corresponds to 180° rotation
+        # `i` and `j` directions flipped so swap x- and y-directions
+        flux1_plus, flux1_minus = splitting(u_node, 1, equations)
+        flux2_plus, flux2_minus = splitting(u_node, 2, equations)
+      else # rotations[element] == 3 # corresponds to 270° (or -90°) rotation
+        # `j` direction flipped so swap y-direction
+        flux1_minus, flux1_plus = splitting(u_node, 1, equations)
+        flux2_plus, flux2_minus = splitting(u_node, 2, equations)
+      end
+
+      # Compute the contravariant fluxes by taking the scalar product of the
+      # appropriate contravariant vector Ja^1 and the flux vector splitting
+      Ja11_plus, Ja12_plus = get_contravariant_vector(1, contravariant_vectors_plus, i, j, element)
+      contravariant_flux1_minus = Ja11_plus * flux1_minus + Ja12_plus * flux2_minus
+
+      Ja11_minus, Ja12_minus = get_contravariant_vector(1, contravariant_vectors_minus, i, j, element)
+      contravariant_flux1_plus = Ja11_minus * flux1_plus + Ja12_minus * flux2_plus
+
+      for ii in eachnode(dg)
+        multiply_add_to_node_vars!(du, D_minus[ii, i], contravariant_flux1_plus , equations, dg, ii, j, element)
+        multiply_add_to_node_vars!(du, D_plus[ii, i] , contravariant_flux1_minus, equations, dg, ii, j, element)
+      end
+
+      # Compute the contravariant fluxes by taking the scalar product of the
+      # appropriate contravariant vector Ja^2 and the flux vector splitting
+      Ja21_plus, Ja22_plus = get_contravariant_vector(2, contravariant_vectors_plus, i, j, element)
+      contravariant_flux2_minus = Ja21_plus * flux1_minus + Ja22_plus * flux2_minus
+
+      Ja21_minus, Ja22_minus = get_contravariant_vector(2, contravariant_vectors_minus, i, j, element)
+      contravariant_flux2_plus = Ja21_minus * flux1_plus + Ja22_minus * flux2_plus
+
+      for jj in eachnode(dg)
+        multiply_add_to_node_vars!(du, D_minus[jj, j], contravariant_flux2_plus , equations, dg, i, jj, element)
+        multiply_add_to_node_vars!(du, D_plus[jj, j] , contravariant_flux2_minus, equations, dg, i, jj, element)
+      end
+    end
+  end
+
+  return nothing
+end
+
+
 # Note! The local side numbering for the unstructured quadrilateral element implementation differs
 #       from the structured TreeMesh or StructuredMesh local side numbering:
 #
@@ -102,7 +179,7 @@ end
 # surface contributions are added.
 function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
                                 equations, surface_integral::SurfaceIntegralStrongForm,
-                                dg::DG, cache)
+                                dg::FDSBP, cache)
   inv_weight_left  = inv(left_boundary_weight(dg.basis))
   inv_weight_right = inv(right_boundary_weight(dg.basis))
   @unpack normal_directions, surface_flux_values = cache.elements
