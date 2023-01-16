@@ -62,8 +62,8 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to
 [Michael Schlottke-Lakemper](mailto:m.schlottke-lakemper@acom.rwth-aachen.de),
 [Hendrik Ranocha](mailto:mail@ranocha.de),
-or any other of the principal developers responsible for enforcement listed in the
-[`AUTHORS.md`](https://github.com/trixi-framework/Trixi.jl/blob/main/AUTHORS.md#principal-developers) file.
+or any other of the principal developers responsible for enforcement listed in
+[AUTHORS.md](AUTHORS.md).
 All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
