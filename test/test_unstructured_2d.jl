@@ -170,6 +170,22 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.00015638063264633573, 0.0003329723828695563, 0.00033297238286467135, 0.0009179128246792345],
       tspan = (0.0, 0.025))
   end
+
+  # TODO: this free-stream test might change once proper boundary conditions
+  #       are implemented for the upwind solver
+  @trixi_testset "FDSBP (upwind): elixir_euler_free_stream_upwind.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_fdsbp", "elixir_euler_free_stream_upwind.jl"),
+      l2   = [1.317918039557329e-13, 1.0704743312905878e-13, 8.090840230283804e-14, 1.6278848188744677e-12],
+      linf = [6.595390900088205e-12, 6.5621397205006815e-12, 4.15131817810277e-12, 8.673950446791423e-11],
+      tspan = (0.0, 0.2))
+  end
+
+  @trixi_testset "FDSBP (upwind): elixir_euler_convergence_upwind.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_fdsbp", "elixir_euler_convergence_upwind.jl"),
+      l2   = [7.953799252662559e-5, 0.00012546042648804053, 0.00012638745384152826, 0.00040076939261004185],
+      linf = [0.0005051201525521076, 0.0008676201698107899, 0.0008294017394752107, 0.0023917887756228495],
+      tspan = (0.0, 0.025))
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory

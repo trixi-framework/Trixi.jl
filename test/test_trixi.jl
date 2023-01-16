@@ -153,6 +153,9 @@ macro test_nowarn_mod(expr, additional_ignore_content=String[])
           "WARNING: importing deprecated binding Colors.RGB4 into PlotUtils.\n",
           r"┌ Warning: Keyword argument letter not supported with Plots.+\n└ @ Plots.+\n",
           r"┌ Warning: `parse\(::Type, ::Coloarant\)` is deprecated.+\n│.+\n│.+\n└ @ Plots.+\n",
+          # Ignore the message about ODE Symbols nonsense. DO NOT COMMIT! This is local to my machine
+          "┌ Warning: Backwards compatability support of the new return codes to Symbols will be deprecated with the Julia v1.9 release. Please see https://docs.sciml.ai/SciMLBase/stable/interfaces/Solutions/#retcodes for more information
+└ @ SciMLBase ~/.julia/packages/SciMLBase/0IYdl/src/retcodes.jl:360\n"
         ]
         append!(ignore_content, $additional_ignore_content)
         for pattern in ignore_content
