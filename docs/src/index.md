@@ -347,6 +347,8 @@ The full list of contributors can be found under [Authors](@ref).
 Trixi is licensed under the MIT license (see [License](@ref)). Since Trixi is
 an open-source project, we are very happy to accept contributions from the
 community. Please refer to [Contributing](@ref) for more details.
+Note that we strive to be a friendly, inclusive open-source community and ask all members
+of our community to adhere to our [Code of Conduct](@ref).
 To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
