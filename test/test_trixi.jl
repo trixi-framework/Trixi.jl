@@ -59,7 +59,7 @@ macro test_trixi_include(elixir, args...)
     Trixi.mpi_isroot() && println("═"^100)
     Trixi.mpi_isroot() && println($elixir)
 
-    # if `maxiters` is set in tests, it is usually set to a small numer to
+    # if `maxiters` is set in tests, it is usually set to a small number to
     # run only a few steps - ignore possible warnings coming from that
     if any(==(:maxiters) ∘ first, $kwargs)
       additional_ignore_content = [
@@ -124,7 +124,7 @@ end
 
 
 # Modified version of `@test_nowarn` that prints the content of `stderr` when
-# it is not empty and ignnores module replacements.
+# it is not empty and ignores module replacements.
 macro test_nowarn_mod(expr, additional_ignore_content=String[])
   quote
     let fname = tempname()
