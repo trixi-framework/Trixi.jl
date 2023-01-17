@@ -74,11 +74,6 @@ function calc_local_filter_factor!(cache, u, e, local_bound, filter::SecondOrder
   return bisection_bound(cond, -log(eps()), 0.0)
 end
 
-function calc_local_filter_factor!(cache, u, e, local_bound, filter::ZhangShuScalingAdaptiveFilter, mesh, equations, dg)
-  cond(θ) = calc_and_check_local_filtered_values!(cache, u, θ, e, local_bound, filter, mesh, equations, dg)
-  return bisection_bound(cond, 0.0, 1.0)
-end
-
 """
 
 On element e, calculate filtered entropy projected variables u(Πv(û(θ))) and
@@ -135,16 +130,6 @@ function apply_local_filter!(cache, θ, e, filter::SecondOrderExponentialAdaptiv
 
   for i in each_mode(mesh, dg)
     local_u_modal_coeffs_threaded[Threads.threadid()][i] = exp(-θ*(i-1)*(i-1))*u_modal_coeffs[i, e]
-  end
-
-end
-
-function apply_local_filter!(cache, θ, e, filter::ZhangShuScalingAdaptiveFilter, mesh::DGMultiMesh{1}, dg::DGMulti{1})
-
-  @unpack u_modal_coeffs, local_u_modal_coeffs_threaded = cache
-
-  for i in each_mode(mesh, dg)
-    i >= 2 ? local_u_modal_coeffs_threaded[Threads.threadid()][i] = θ*u_modal_coeffs[i, e] : nothing
   end
 
 end
