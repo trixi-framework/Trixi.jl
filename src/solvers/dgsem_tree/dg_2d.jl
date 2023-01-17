@@ -1525,8 +1525,23 @@ end
   x = 1
   save_errors = laststage && (x > 0) && (iter % x == 0)
 
-  var_limited = zero(eltype(idp_bounds_delta))
-  error_pressure = zero(eltype(idp_bounds_delta))
+  # New solution u^{n+1}
+  for element in eachelement(solver, cache)
+    for j in eachnode(solver), i in eachnode(solver)
+      deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - u[1, i, j, element])
+      deviation_max[1] = max(deviation_max[1], u[1, i, j, element] - var_max[1, i, j, element])
+      for v in 2:n_vars
+        var_limited = u[v, i, j, element] / u[1, i, j, element]
+        deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
+        deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
+      end
+      if indicator.IDPPressure
+        error_pressure = 0.5 * (u[2, i, j, element]^2 + u[3, i, j, element]^2) - u[1, i, j, element] * u[4, i, j, element]
+        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+      end
+    end
+  end
+
 
   # Limited bar states \bar{u}^{Lim} = \bar{u} + Δf^{Lim} / λ
   # Checking the bounds for...
@@ -1536,6 +1551,8 @@ end
   #   \bar{phi}^{min} <= \bar{phi}^{Lim} / \bar{rho}^{Lim} <= \bar{phi}^{max}
   # - pressure (p):
   #   \bar{rho}^{Lim} \bar{rho * E}^{Lim} >= |\bar{rho * v_1}^{Lim}|^2 / 2
+  var_limited = zero(eltype(idp_bounds_delta))
+  error_pressure = zero(eltype(idp_bounds_delta))
   for element in eachelement(solver, cache)
     # -x
     for j in eachnode(solver), i in 2:nnodes(solver)+1
@@ -1614,6 +1631,7 @@ end
       end
     end
   end
+
   vars = varnames(cons2cons, equations)
   for v in eachvariable(equations)
     idp_bounds_delta[1, v] = max(idp_bounds_delta[1, v], deviation_min[v])
