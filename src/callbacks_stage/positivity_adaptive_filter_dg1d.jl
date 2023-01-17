@@ -20,7 +20,7 @@ function adaptive_filter!(u, filter,
 
   rd = dg.basis
   @unpack Vq = rd
-  @unpack invVDM = cache
+  @unpack invVDM = filter.ops
   @unpack u_values, u_modal_coeffs, entropy_var_values = cache
 
   # TODO: redundant operations with local_filtered_entropy_projection!

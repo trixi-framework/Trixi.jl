@@ -343,7 +343,7 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
   rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (num_quad_points_total,), dg)  for _ in 1:Threads.nthreads()]
 
   return (; md, Qrst_skew,
-            VhP, Ph, invJ = inv.(md.J), invVDM = inv(rd.VDM),
+            VhP, Ph, invJ = inv.(md.J),
             entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
             u_values, u_face_values,  flux_face_values,
             u_modal_coeffs, local_u_modal_coeffs_threaded,

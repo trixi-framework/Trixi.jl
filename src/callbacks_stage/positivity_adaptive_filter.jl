@@ -9,24 +9,34 @@ struct FilterParam{FactorType<:Real}
   relaxation_factor_cons_var   ::FactorType
 end
 
-abstract type AdaptiveFilter end
-struct SecondOrderExponentialAdaptiveFilter{FactorType<:Real} <: AdaptiveFilter
-  param::FilterParam{FactorType}
+struct FilterOperators{InvVDM}
+  invVDM::InvVDM
 end
-struct ZhangShuScalingAdaptiveFilter{FactorType<:Real} <: AdaptiveFilter
+
+abstract type AdaptiveFilter end
+struct SecondOrderExponentialAdaptiveFilter{FactorType<:Real,InvVDM} <: AdaptiveFilter
   param::FilterParam{FactorType}
+  ops  ::FilterOperators{InvVDM}
+end
+struct ZhangShuScalingAdaptiveFilter{FactorType<:Real,InvVDM} <: AdaptiveFilter
+  param::FilterParam{FactorType}
+  ops  ::FilterOperators{InvVDM}
 end
 
 function SecondOrderExponentialAdaptiveFilter(; relaxation_factor_entropy_var,
-                                                relaxation_factor_cons_var)
+                                                relaxation_factor_cons_var,
+                                                dg::DG)
   SecondOrderExponentialAdaptiveFilter(FilterParam(relaxation_factor_entropy_var,
-                                                   relaxation_factor_cons_var))
+                                                   relaxation_factor_cons_var),
+                                       FilterOperators(inv(dg.basis.VDM)))
 end
 
 function ZhangShuScalingAdaptiveFilter(; relaxation_factor_entropy_var,
-                                         relaxation_factor_cons_var)
+                                         relaxation_factor_cons_var,
+                                         dg::DG)
   ZhangShuScalingAdaptiveFilter(FilterParam(relaxation_factor_entropy_var,
-                                            relaxation_factor_cons_var))
+                                            relaxation_factor_cons_var),
+                                FilterOperators(inv(dg.basis.VDM)))
 end
 
 function get_relaxation_factor_cons_var(filter::AdaptiveFilter)
