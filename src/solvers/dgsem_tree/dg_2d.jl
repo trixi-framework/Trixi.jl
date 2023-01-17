@@ -1082,7 +1082,7 @@ end
       for v in 2:nvariables(equations)
         bar_state_phi = bar_states1[v, i, j, element] / bar_state_rho
         var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
-        var_max[v, i, j, element] = max(var_max[v, 1, j, element], bar_state_phi)
+        var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_phi)
       end
       # + xi direction
       bar_state_rho = bar_states1[1, i+1, j, element]
