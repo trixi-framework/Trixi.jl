@@ -1133,13 +1133,13 @@ end
     bar_state_rho = bar_states1[1, i, j, element]
     # Limit density
     if antidiffusive_flux1[1, i, j, element] > 0
-      f_max = lambda * min(var_max[1, i-1, j, element] - bar_state_rho,
-                           bar_state_rho - var_min[1, i, j, element])
+      f_max = lambda * min(var_max[1, i, j, element] - bar_state_rho,
+                           bar_state_rho - var_min[1, i-1, j, element])
       f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
       flux_limited = min(antidiffusive_flux1[1, i, j, element], max(f_max, 0.0))
     else
-      f_min = lambda * max(var_min[1, i-1, j, element] - bar_state_rho,
-                           bar_state_rho - var_max[1, i, j, element])
+      f_min = lambda * max(var_min[1, i, j, element] - bar_state_rho,
+                           bar_state_rho - var_max[1, i-1, j, element])
       f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
       flux_limited = max(antidiffusive_flux1[1, i, j, element], min(f_min, 0.0))
     end
@@ -1173,10 +1173,10 @@ end
 
       g = antidiffusive_flux1[v, i, j, element] - (rho_limited_im1i * phi - lambda * bar_states_phi)
 
-      g_min = max(rho_limited_im1i * (var_min[v, i-1, j, element] - phi),
-                  rho_limited_iim1 * (phi - var_max[v, i, j, element]))
-      g_max = min(rho_limited_im1i * (var_max[v, i-1, j, element] - phi),
-                  rho_limited_iim1 * (phi - var_min[v, i, j, element]))
+      g_min = max(rho_limited_im1i * (var_min[v, i, j, element] - phi),
+                  rho_limited_iim1 * (phi - var_max[v, i-1, j, element]))
+      g_max = min(rho_limited_im1i * (var_max[v, i, j, element] - phi),
+                  rho_limited_iim1 * (phi - var_min[v, i-1, j, element]))
       g_min = isapprox(g_min, 0.0, atol=eps()) ? 0.0 : g_min
       g_max = isapprox(g_max, 0.0, atol=eps()) ? 0.0 : g_max
       if g > 0
@@ -1203,13 +1203,13 @@ end
     bar_state_rho = bar_states2[1, i, j, element]
     # Limit density
     if antidiffusive_flux2[1, i, j, element] > 0
-      f_max = lambda * min(var_max[1, i, j-1, element] - bar_state_rho,
-                           bar_state_rho - var_min[1, i, j, element])
+      f_max = lambda * min(var_max[1, i, j, element] - bar_state_rho,
+                           bar_state_rho - var_min[1, i, j-1, element])
       f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
       flux_limited = min(antidiffusive_flux2[1, i, j, element], max(f_max, 0.0))
     else
-      f_min = lambda * max(var_min[1, i, j-1, element] - bar_state_rho,
-                           bar_state_rho - var_max[1, i, j, element])
+      f_min = lambda * max(var_min[1, i, j, element] - bar_state_rho,
+                           bar_state_rho - var_max[1, i, j-1, element])
       f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
       flux_limited = max(antidiffusive_flux2[1, i, j, element], min(f_min, 0.0))
     end
@@ -1243,10 +1243,10 @@ end
 
       g = antidiffusive_flux2[v, i, j, element] - rho_limited_jm1j * phi + lambda * bar_state_phi
 
-      g_min = max(rho_limited_jm1j * (var_min[v, i, j-1, element] - phi),
-                  rho_limited_jjm1 * (phi - var_max[v, i, j, element]))
-      g_max = min(rho_limited_jm1j * (var_max[v, i, j-1, element] - phi),
-                  rho_limited_jjm1 * (phi - var_min[v, i, j, element]))
+      g_min = max(rho_limited_jm1j * (var_min[v, i, j, element] - phi),
+                  rho_limited_jjm1 * (phi - var_max[v, i, j-1, element]))
+      g_max = min(rho_limited_jm1j * (var_max[v, i, j, element] - phi),
+                  rho_limited_jjm1 * (phi - var_min[v, i, j-1, element]))
       g_min = isapprox(g_min, 0.0, atol=eps()) ? 0.0 : g_min
       g_max = isapprox(g_max, 0.0, atol=eps()) ? 0.0 : g_max
       if g > 0
