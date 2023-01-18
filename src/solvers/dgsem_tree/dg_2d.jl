@@ -1144,13 +1144,6 @@ end
       flux_limited = max(antidiffusive_flux1[1, i, j, element], min(f_min, 0.0))
     end
 
-    # alternative density limiting
-    # f_min = max(lambda * var_min[1, i-1, j, element] - bar_state_rho,
-    #             bar_state_rho - lambda * var_max[1, i, j, element])
-    # f_max = min(lambda * var_max[1, i-1, j, element] - bar_state_rho,
-    #             bar_state_rho - lambda * var_min[1, i, j, element])
-    # flux_limited = max(f_min, min(antidiffusive_flux1[1, i, j, element], f_max))
-
     if indicator.Plotting
       @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
       if isapprox(antidiffusive_flux1[1, i, j, element], 0.0, atol=eps())
@@ -1173,16 +1166,16 @@ end
 
       g = antidiffusive_flux1[v, i, j, element] - (rho_limited_im1i * phi - lambda * bar_states_phi)
 
-      g_min = max(rho_limited_im1i * (var_min[v, i, j, element] - phi),
-                  rho_limited_iim1 * (phi - var_max[v, i-1, j, element]))
-      g_max = min(rho_limited_im1i * (var_max[v, i, j, element] - phi),
-                  rho_limited_iim1 * (phi - var_min[v, i-1, j, element]))
-      g_min = isapprox(g_min, 0.0, atol=eps()) ? 0.0 : g_min
-      g_max = isapprox(g_max, 0.0, atol=eps()) ? 0.0 : g_max
       if g > 0
-        g_limited = max(0.0, min(g_max, max(g, g_min)))
+        g_max = min(rho_limited_im1i * (var_max[v, i-1, j, element] - phi),
+                    rho_limited_iim1 * (phi - var_min[v, i, j, element]))
+        g_max = isapprox(g_max, 0.0, atol=eps()) ? 0.0 : g_max
+        g_limited = min(g, max(g_max, 0.0))
       else
-        g_limited = min(0.0, max(g_min, min(g, g_max)))
+        g_min = max(rho_limited_im1i * (var_min[v, i-1, j, element] - phi),
+                    rho_limited_iim1 * (phi - var_max[v, i, j, element]))
+        g_min = isapprox(g_min, 0.0, atol=eps()) ? 0.0 : g_min
+        g_limited = max(g, min(g_min, 0.0))
       end
       if indicator.Plotting
         if isapprox(g, 0.0, atol=eps())
@@ -1214,13 +1207,6 @@ end
       flux_limited = max(antidiffusive_flux2[1, i, j, element], min(f_min, 0.0))
     end
 
-    # alternative density limiting
-    # f_min = max(lambda * var_min[1, i, j-1, element] - bar_state_rho,
-    #             bar_state_rho - lambda * var_max[1, i, j, element])
-    # f_max = min(lambda * var_max[1, i, j-1, element] - bar_state_rho,
-    #             bar_state_rho - lambda * var_min[1, i, j, element])
-    # flux_limited = max(f_min, min(antidiffusive_flux2[1, i, j, element], f_max))
-
     if indicator.Plotting
       @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
       if isapprox(antidiffusive_flux2[1, i, j, element], 0.0, atol=eps())
@@ -1243,16 +1229,16 @@ end
 
       g = antidiffusive_flux2[v, i, j, element] - rho_limited_jm1j * phi + lambda * bar_state_phi
 
-      g_min = max(rho_limited_jm1j * (var_min[v, i, j, element] - phi),
-                  rho_limited_jjm1 * (phi - var_max[v, i, j-1, element]))
-      g_max = min(rho_limited_jm1j * (var_max[v, i, j, element] - phi),
-                  rho_limited_jjm1 * (phi - var_min[v, i, j-1, element]))
-      g_min = isapprox(g_min, 0.0, atol=eps()) ? 0.0 : g_min
-      g_max = isapprox(g_max, 0.0, atol=eps()) ? 0.0 : g_max
       if g > 0
-        g_limited = max(0.0, min(g_max, max(g, g_min)))
+        g_max = min(rho_limited_jm1j * (var_max[v, i, j-1, element] - phi),
+                    rho_limited_jjm1 * (phi - var_min[v, i, j, element]))
+        g_max = isapprox(g_max, 0.0, atol=eps()) ? 0.0 : g_max
+        g_limited = min(g, max(g_max, 0.0))
       else
-        g_limited = min(0.0, max(g_min, min(g, g_max)))
+        g_min = max(rho_limited_jm1j * (var_min[v, i, j-1, element] - phi),
+                    rho_limited_jjm1 * (phi - var_max[v, i, j, element]))
+        g_min = isapprox(g_min, 0.0, atol=eps()) ? 0.0 : g_min
+        g_limited = max(g, min(g_min, 0.0))
       end
       if indicator.Plotting
         if isapprox(g, 0.0, atol=eps())
