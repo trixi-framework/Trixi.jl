@@ -1512,21 +1512,21 @@ end
   save_errors = laststage && (x > 0) && (iter % x == 0)
 
   # New solution u^{n+1}
-  # for element in eachelement(solver, cache)
-  #   for j in eachnode(solver), i in eachnode(solver)
-  #     deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - u[1, i, j, element])
-  #     deviation_max[1] = max(deviation_max[1], u[1, i, j, element] - var_max[1, i, j, element])
-  #     for v in 2:n_vars
-  #       var_limited = u[v, i, j, element] / u[1, i, j, element]
-  #       deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
-  #       deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
-  #     end
-  #     if indicator.IDPPressure
-  #       error_pressure = 0.5 * (u[2, i, j, element]^2 + u[3, i, j, element]^2) - u[1, i, j, element] * u[4, i, j, element]
-  #       deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
-  #     end
-  #   end
-  # end
+  for element in eachelement(solver, cache)
+    for j in eachnode(solver), i in eachnode(solver)
+      deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - u[1, i, j, element])
+      deviation_max[1] = max(deviation_max[1], u[1, i, j, element] - var_max[1, i, j, element])
+      for v in 2:n_vars
+        var_limited = u[v, i, j, element] / u[1, i, j, element]
+        deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
+        deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
+      end
+      if indicator.IDPPressure
+        error_pressure = 0.5 * (u[2, i, j, element]^2 + u[3, i, j, element]^2) - u[1, i, j, element] * u[4, i, j, element]
+        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+      end
+    end
+  end
 
 
   # Limited bar states \bar{u}^{Lim} = \bar{u} + Δf^{Lim} / λ
@@ -1541,12 +1541,31 @@ end
   error_pressure = zero(eltype(idp_bounds_delta))
   for element in eachelement(solver, cache)
     # -x
-    for j in eachnode(solver), i in 2:nnodes(solver)+1
+    for j in eachnode(solver), i in 1:nnodes(solver)
       rho_limited = bar_states1[1, i, j, element] + antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
+      deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - rho_limited)
+      deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i, j, element])
+      for v in 2:n_vars
+        var_limited = bar_states1[v, i, j, element] + antidiffusive_flux1[v, i, j, element] / lambda1[i, j, element]
+        deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited / rho_limited)
+        deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j, element])
+        if indicator.IDPPressure && (v == 2 || v == 3)
+          error_pressure += 0.5 * var_limited^2
+        end
+      end
+      if indicator.IDPPressure
+        error_pressure -= var_limited * rho_limited
+        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+        error_pressure = zero(eltype(idp_bounds_delta))
+      end
+    end
+    # +x
+    for j in eachnode(solver), i in 2:nnodes(solver)+1
+      rho_limited = bar_states1[1, i, j, element] - antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
       deviation_min[1] = max(deviation_min[1], var_min[1, i-1, j, element] - rho_limited)
       deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i-1, j, element])
       for v in 2:n_vars
-        var_limited = bar_states1[v, i, j, element] + antidiffusive_flux1[v, i, j, element] / lambda1[i, j, element]
+        var_limited = bar_states1[v, i, j, element] - antidiffusive_flux1[v, i, j, element] / lambda1[i, j, element]
         deviation_min[v] = max(deviation_min[v], var_min[v, i-1, j, element] - var_limited / rho_limited)
         deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i-1, j, element])
         if indicator.IDPPressure && (v == 2 || v == 3)
@@ -1559,34 +1578,15 @@ end
         error_pressure = zero(eltype(idp_bounds_delta))
       end
     end
-    # +x
-    for j in eachnode(solver), i in 1:nnodes(solver)
-      rho_limited = bar_states1[1, i, j, element] - antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
+    # -y
+    for j in 1:nnodes(solver), i in eachnode(solver)
+      rho_limited = bar_states2[1, i, j, element] + antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
       deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - rho_limited)
       deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i, j, element])
       for v in 2:n_vars
-        var_limited = bar_states1[v, i, j, element] - antidiffusive_flux1[v, i, j, element] / lambda1[i, j, element]
+        var_limited = bar_states2[v, i, j, element] + antidiffusive_flux2[v, i, j, element] / lambda2[i, j, element]
         deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited / rho_limited)
         deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j, element])
-        if indicator.IDPPressure && (v == 2 || v == 3)
-          error_pressure += 0.5 * var_limited^2
-        end
-      end
-      if indicator.IDPPressure
-        error_pressure -= var_limited * rho_limited
-        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
-        error_pressure = zero(eltype(idp_bounds_delta))
-      end
-    end
-    # -y
-    for j in 2:nnodes(solver)+1, i in eachnode(solver)
-      rho_limited = bar_states2[1, i, j, element] + antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
-      deviation_min[1] = max(deviation_min[1], var_min[1, i, j-1, element] - rho_limited)
-      deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i, j-1, element])
-      for v in 2:n_vars
-        var_limited = bar_states2[v, i, j, element] + antidiffusive_flux2[v, i, j, element] / lambda2[i, j, element]
-        deviation_min[v] = max(deviation_min[v], var_min[v, i, j-1, element] - var_limited / rho_limited)
-        deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j-1, element])
         if indicator.IDPPressure && (v == 2 || v == 3)
           error_pressure += 0.5 * var_limited^2
         end
@@ -1598,14 +1598,14 @@ end
       end
     end
     # +y
-    for j in 1:nnodes(solver), i in eachnode(solver)
+    for j in 2:nnodes(solver)+1, i in eachnode(solver)
       rho_limited = bar_states2[1, i, j, element] - antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
-      deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - rho_limited)
-      deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i, j, element])
+      deviation_min[1] = max(deviation_min[1], var_min[1, i, j-1, element] - rho_limited)
+      deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i, j-1, element])
       for v in 2:n_vars
         var_limited = bar_states2[v, i, j, element] - antidiffusive_flux2[v, i, j, element] / lambda2[i, j, element]
-        deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited / rho_limited)
-        deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j, element])
+        deviation_min[v] = max(deviation_min[v], var_min[v, i, j-1, element] - var_limited / rho_limited)
+        deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j-1, element])
         if indicator.IDPPressure && (v == 2 || v == 3)
           error_pressure += 0.5 * var_limited^2
         end

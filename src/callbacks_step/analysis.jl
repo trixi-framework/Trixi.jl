@@ -101,7 +101,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
   analyzer = SolutionAnalyzer(solver; kwargs...)
   cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache, RealT, uEltype)
 
-  analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
+  analysis_callback = AnalysisCallback(Float64(0.0), interval, save_analysis, output_directory, analysis_filename,
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
