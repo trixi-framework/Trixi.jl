@@ -13,18 +13,42 @@ struct FilterOperators{InvVDM}
   invVDM::InvVDM
 end
 
+struct FilterCache{UModalCoeffs<:AbstractArray,LocalUModalCoeff<:AbstractArray}
+  u_modal_coeffs               ::UModalCoeffs
+  local_u_modal_coeffs_threaded::LocalUModalCoeff
+end
+
 abstract type AdaptiveFilter end
-struct SecondOrderExponentialAdaptiveFilter{FactorType<:Real,InvVDM} <: AdaptiveFilter
+struct SecondOrderExponentialAdaptiveFilter{FactorType<:Real,InvVDM,
+                                            UModalCoeffs<:AbstractArray,
+                                            LocalUModalCoeff<:AbstractArray} <: AdaptiveFilter
   param::FilterParam{FactorType}
   ops  ::FilterOperators{InvVDM}
+  cache::FilterCache{UModalCoeffs,LocalUModalCoeff}
 end
 
 function SecondOrderExponentialAdaptiveFilter(; relaxation_factor_entropy_var,
                                                 relaxation_factor_cons_var,
-                                                dg::DG)
+                                                mesh::DGMultiMesh{1},
+                                                equations,
+                                                dg::DGMulti{1})
+
+  rd = dg.basis
+  md = mesh.md
+  nvars = nvariables(equations)
+  uEltype = real(dg)
+
+  # storage for 'unfiltered' modal coefficients of u
+  u_modal_coeffs = allocate_nested_array(uEltype, nvars, (rd.Np, md.num_elements), dg) 
+
+  # local storage for 'filtered' modal coefficients of u
+  local_u_modal_coeffs_threaded = [allocate_nested_array(uEltype, nvars, (rd.Np,), dg) for _ in 1:Threads.nthreads()]
+
   SecondOrderExponentialAdaptiveFilter(FilterParam(relaxation_factor_entropy_var,
                                                    relaxation_factor_cons_var),
-                                       FilterOperators(inv(dg.basis.VDM)))
+                                       FilterOperators(inv(rd.VDM)),
+                                       FilterCache(u_modal_coeffs,
+                                                   local_u_modal_coeffs_threaded))
 end
 
 function get_relaxation_factor_cons_var(filter::AdaptiveFilter)

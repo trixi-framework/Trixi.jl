@@ -313,9 +313,6 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
   nvars = nvariables(equations)
   entropy_var_values = allocate_nested_array(uEltype, nvars, (rd.Nq, md.num_elements), dg)
 
-  # storage for 'unfiltered' modal coefficients of u
-  u_modal_coeffs = allocate_nested_array(uEltype, nvars, (rd.Np, md.num_elements), dg) 
-
   # storage for all quadrature points (concatenated volume / face quadrature points)
   num_quad_points_total = rd.Nq + rd.Nfq
   entropy_projected_u_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements), dg)
@@ -330,9 +327,6 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
   u_face_values = view(entropy_projected_u_values, rd.Nq+1:num_quad_points_total, :)
   flux_face_values = similar(u_face_values)
 
-  # local storage for 'filtered' modal coefficients of u
-  local_u_modal_coeffs_threaded = [allocate_nested_array(uEltype, nvars, (rd.Np,), dg) for _ in 1:Threads.nthreads()]
-
   # local storage for interface fluxes, rhs, and source
   local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
 
@@ -346,7 +340,6 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
             VhP, Ph, invJ = inv.(md.J),
             entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
             u_values, u_face_values,  flux_face_values,
-            u_modal_coeffs, local_u_modal_coeffs_threaded,
             local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
 end
 

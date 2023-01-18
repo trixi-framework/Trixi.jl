@@ -21,7 +21,8 @@ function adaptive_filter!(u, filter,
   rd = dg.basis
   @unpack Vq = rd
   @unpack invVDM = filter.ops
-  @unpack u_values, u_modal_coeffs, entropy_var_values = cache
+  @unpack u_modal_coeffs = filter.cache
+  @unpack u_values, entropy_var_values = cache
 
   # TODO: redundant operations with local_filtered_entropy_projection!
   apply_to_each_field(mul_by!(Vq), u_values, u)
@@ -35,7 +36,7 @@ function adaptive_filter!(u, filter,
   @threaded for e in eachelement(mesh, dg, cache)
     local_bound = calc_local_bound(filter, e, equations, cache)
     θ = calc_local_filter_factor!(cache, u, e, local_bound, filter, mesh, equations, dg)
-    calc_local_filtered_cons_values!(cache, view(u, :, e), θ, e, filter, mesh, equations, dg)
+    calc_local_filtered_cons_values!(filter, view(u, :, e), θ, e, mesh, equations, dg)
   end
 end
 
@@ -98,7 +99,7 @@ On element e, calculate filtered entropy projected variables u(Πv(û(θ)))
 """
 function calc_local_filtered_values!(cache, u_e, θ, e, filter, mesh, equations, dg)
 
-  calc_local_filtered_cons_values!(cache, u_e, θ, e, filter, mesh, equations, dg)
+  calc_local_filtered_cons_values!(filter, u_e, θ, e, mesh, equations, dg)
   local_entropy_projection!(cache, u_e, e, mesh, equations, dg)
 
 end
@@ -107,13 +108,13 @@ end
 
 On element e, calculate filtered conservative variables û(θ) and set u_e = û(θ)
 """
-function calc_local_filtered_cons_values!(cache, u_e, θ, e, filter, mesh, equations, dg)
+function calc_local_filtered_cons_values!(filter, u_e, θ, e, mesh, equations, dg)
 
   rd = dg.basis
   @unpack VDM = rd
-  @unpack local_u_modal_coeffs_threaded = cache
+  @unpack local_u_modal_coeffs_threaded = filter.cache
 
-  apply_local_filter!(cache, θ, e, filter, mesh, dg)   # Update filter value into u_modal_coeffs_threaded
+  apply_local_filter!(filter, θ, e, mesh, dg)   # Update filter value into u_modal_coeffs_threaded
   apply_to_each_field(mul_by!(VDM), u_e, local_u_modal_coeffs_threaded[Threads.threadid()])
 
 end
@@ -124,9 +125,9 @@ end
 On element e, calculate modal coefficients of filtered conservative variables
 û(θ) and put it in a temporary cache
 """
-function apply_local_filter!(cache, θ, e, filter::SecondOrderExponentialAdaptiveFilter, mesh::DGMultiMesh{1}, dg::DGMulti{1})
+function apply_local_filter!(filter::SecondOrderExponentialAdaptiveFilter, θ, e, mesh::DGMultiMesh{1}, dg::DGMulti{1})
   
-  @unpack u_modal_coeffs, local_u_modal_coeffs_threaded = cache
+  @unpack u_modal_coeffs, local_u_modal_coeffs_threaded = filter.cache
 
   for i in each_mode(mesh, dg)
     local_u_modal_coeffs_threaded[Threads.threadid()][i] = exp(-θ*(i-1)*(i-1))*u_modal_coeffs[i, e]
