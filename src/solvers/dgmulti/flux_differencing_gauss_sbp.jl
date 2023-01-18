@@ -451,43 +451,6 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
   return nothing
 end
 
-# TODO: REFACTOR. redundant with entropy_projection!
-function local_entropy_projection!(cache, u_e, e, mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff{<:GaussSBP})
-
-  rd = dg.basis
-  @unpack u_values, entropy_var_values = cache
-  @unpack projected_entropy_var_values, entropy_projected_u_values = cache
-  @unpack interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_face = cache
-
-  volume_indices = Base.OneTo(rd.Nq)
-  face_indices = (rd.Nq + 1):(rd.Nq + rd.Nfq)
-
-  u_values_e                        = view(u_values, :, e)
-  entropy_var_values_e              = view(entropy_var_values, :, e)
-  entropy_var_face_values_e         = view(projected_entropy_var_values, face_indices, e)
-  entropy_projected_volume_values_e = view(entropy_projected_u_values, volume_indices, e)
-  entropy_projected_face_values_e   = view(entropy_projected_u_values, face_indices, e)
-
-  apply_to_each_field(mul_by!(interp_matrix_lobatto_to_gauss), u_values_e, u_e)
-  
-  # transform quadrature values to entropy variables
-  cons2entropy!(entropy_var_values_e, u_values_e, equations)
-
-  # Interpolate volume Gauss nodes to Gauss face nodes (note the layout of
-  # `projected_entropy_var_values = [vol pts; face pts]`).
-  apply_to_each_field(mul_by!(interp_matrix_gauss_to_face), entropy_var_face_values_e, entropy_var_values_e)
-
-  # directly copy over volume values (no entropy projection required)
-  @threaded for i in eachindex(u_values_e)
-    entropy_projected_volume_values_e[i] = u_values_e[i]
-  end
-
-  # transform entropy to conservative variables on face values
-  entropy2cons!(entropy_projected_face_values_e, entropy_var_face_values_e, equations)
-
-  return nothing
-end
-
 # Assumes cache.flux_face_values is already computed.
 # Enables tensor product evaluation of `LIFT isa TensorProductGaussFaceOperator`.
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
