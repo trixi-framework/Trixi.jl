@@ -110,7 +110,14 @@ end
 # care of these situations when allowing to use `ode_norm` as default norm in
 # OrdinaryDiffEq.jl throughout all applications of Trixi.jl.
 recursive_sum_abs2(u::Number) = abs2(u)
-recursive_sum_abs2(u::AbstractArray) = sum(recursive_sum_abs2, u)
+# Use `mapreduce` instead of `sum` since `sum` from StaticArrays.jl does not
+# support the kwarg `init`
+# We need `init=zero(eltype(eltype(u))` below to deal with arrays of `SVector`s etc.
+# A better solution would be `recursive_unitless_bottom_eltype` from 
+# https://github.com/SciML/RecursiveArrayTools.jl
+# However, what you have is good enough for us for now, so we don't need this 
+# additional dependency at the moment.
+recursive_sum_abs2(u::AbstractArray) = mapreduce(recursive_sum_abs2, +, u; init=zero(eltype(eltype(u))))
 
 recursive_length(u::Number) = length(u)
 recursive_length(u::AbstractArray{<:Number}) = length(u)
