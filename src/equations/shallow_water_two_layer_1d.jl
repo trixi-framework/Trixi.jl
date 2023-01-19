@@ -116,7 +116,7 @@ Source terms used for convergence tests in combination with
 in non-periodic domains).
 """
 @inline function source_terms_convergence_test(u, x, t,
-      equations::ShallowWaterTwoLayerEquations1D)
+                                               equations::ShallowWaterTwoLayerEquations1D)
   # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
   # this manufactured solution velocity is taken to be constant
   ω = 2 * pi * sqrt(2.0)
@@ -133,13 +133,13 @@ in non-periodic domains).
           5.0 * (0.1*ω*cos(t + ω*x[1]) + 0.2*ω*sin(2.0*ω*x[1])) * (2.0 + 0.2*sin(t + ω*x[1]) +
         -0.2*cos(2.0*ω*x[1])) + 0.2*ω*sin(2.0*ω*x[1]))
 
-  return SVector(du1, du2, du3, du4, 0.0)
+  return SVector(du1, du2, du3, du4, zero(eltype(u)))
 end
 
 
 """
     boundary_condition_slip_wall(u_inner, orientation_or_normal, x, t, surface_flux_function,
-                                  equations::ShallowWaterTwoLayerEquations1D)
+                                 equations::ShallowWaterTwoLayerEquations1D)
 
 Create a boundary state by reflecting the normal velocity component and keep
 the tangential velocity component unchanged. The boundary water height is taken from
@@ -152,13 +152,14 @@ For details see Section 9.2.5 of the book:
   ISBN 0471987662
 """
 @inline function boundary_condition_slip_wall(u_inner, orientation_or_normal, direction,
-    x, t, surface_flux_function, equations::ShallowWaterTwoLayerEquations1D)
+                                              x, t, surface_flux_function,
+                                              equations::ShallowWaterTwoLayerEquations1D)
   # create the "external" boundary solution state
   u_boundary = SVector(u_inner[1],
                       -u_inner[2],
-                        u_inner[3],
+                       u_inner[3],
                       -u_inner[4],
-                        u_inner[5])
+                       u_inner[5])
 
   # calculate the boundary flux
   if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -210,8 +211,8 @@ Further details are available in the paper:
 """
 # TODO: Change name after paper is finished
 @inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
-                                                        orientation::Integer,
-                                                        equations::ShallowWaterTwoLayerEquations1D)
+                                                       orientation::Integer,
+                                                       equations::ShallowWaterTwoLayerEquations1D)
   # Pull the necessary left and right state information
   h1_ll, h2_ll = waterheight(u_ll, equations)
   h1_rr, h2_rr = waterheight(u_rr, equations)
@@ -219,7 +220,7 @@ Further details are available in the paper:
 
   z = zero(eltype(u_ll))
 
-  # Bottom gradient nonconservative term: (0, g*h1*(b+rh2)_x, 0, g*h2*(b+h1)_x, 0)
+  # Bottom gradient nonconservative term: (0, g*h1*(b+h2)_x, 0, g*h2*(b+r*h1)_x, 0)
   f = SVector(z,
               equations.gravity * h1_ll * (b_rr + h2_rr),
               z,
@@ -246,8 +247,8 @@ designation of the upper and lower layer has been changed which leads to a sligh
 formulation.
 """
 @inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
-                                                      orientation::Integer,
-                                                      equations::ShallowWaterTwoLayerEquations1D)
+                                                     orientation::Integer,
+                                                     equations::ShallowWaterTwoLayerEquations1D)
   # Pull the necessary left and right state information
   h1_ll, _, h2_ll, _, b_ll = u_ll
   h1_rr, _, h2_rr, _, b_rr = u_rr
@@ -296,8 +297,8 @@ designation of the upper and lower layer has been changed which leads to a sligh
 formulation.
 """
 @inline function flux_fjordholm_etal(u_ll, u_rr,
-                                      orientation::Integer,
-                                      equations::ShallowWaterTwoLayerEquations1D)
+                                     orientation::Integer,
+                                     equations::ShallowWaterTwoLayerEquations1D)
   # Unpack left and right state
   h1_ll, h2_ll = waterheight(u_ll, equations)
   v1_ll, v2_ll = velocity(u_ll, equations)
@@ -312,7 +313,7 @@ formulation.
   p1_avg = 0.25 * equations.gravity * (h1_ll^2 + h1_rr^2)
   p2_avg = 0.25 * equations.gravity * (h2_ll^2 + h2_rr^2)
 
-  # Calculate fluxes depending on orientation
+  # Calculate fluxes
   f1 = h1_avg * v1_avg
   f2 = f1 * v1_avg + p1_avg
   f3 = h2_avg * v2_avg
@@ -343,8 +344,8 @@ Further details are available in Theorem 1 of the paper:
 """
 #TODO: Change name after paper is finished
 @inline function flux_wintermeyer_etal(u_ll, u_rr,
-                                        orientation::Integer,
-                                        equations::ShallowWaterTwoLayerEquations1D)
+                                       orientation::Integer,
+                                       equations::ShallowWaterTwoLayerEquations1D)
   # Unpack left and right state
   h1_ll, h1_v1_ll, h2_ll, h2_v2_ll, _ = u_ll
   h1_rr, h1_v1_rr, h2_rr, h2_v2_rr, _ = u_rr
@@ -359,7 +360,7 @@ Further details are available in Theorem 1 of the paper:
   p1_avg = 0.5 * equations.gravity * h1_ll * h1_rr
   p2_avg = 0.5 * equations.gravity * h2_ll * h2_rr
 
-  # Calculate fluxes depending on orientation
+  # Calculate fluxes
   f1 = 0.5 * (h1_v1_ll + h1_v1_rr)
   f2 = f1 * v1_avg + p1_avg
   f3 = 0.5 * (h2_v2_ll + h2_v2_rr)
@@ -371,7 +372,7 @@ end
 
 """
     flux_es(u_ll, u_rr, orientation,
-                          equations::ShallowWaterTwoLayerEquations1D)
+            equations::ShallowWaterTwoLayerEquations1D)
 
 Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy 
 conservative flux_fjordholm_etal and adds a Lax-Friedrichs type dissipation dependent on the jump 
@@ -386,8 +387,8 @@ designation of the upper and lower layer has been changed which leads to a sligh
 formulation.
 """
 @inline function flux_es(u_ll, u_rr,
-                          orientation::Integer,
-                          equations::ShallowWaterTwoLayerEquations1D)
+                         orientation::Integer,
+                         equations::ShallowWaterTwoLayerEquations1D)
   # Compute entropy conservative flux but without the bottom topography
   f_ec = flux_fjordholm_etal(u_ll, u_rr,
                               orientation,
@@ -450,8 +451,8 @@ end
 #    Open boundary conditions for nonlinear channel Flows
 #    [DOI: 10.1016/j.ocemod.2008.06.003](https://doi.org/10.1016/j.ocemod.2008.06.003)
 @inline function max_abs_speed_naive(u_ll, u_rr,
-                                      orientation::Integer,
-                                      equations::ShallowWaterTwoLayerEquations1D)
+                                     orientation::Integer,
+                                     equations::ShallowWaterTwoLayerEquations1D)
   # Get the averaged velocity
   Um_ll = (u_ll[2] + u_ll[4]) / (u_ll[1] + u_ll[3])
   Um_rr = (u_rr[2] + u_rr[4]) / (u_rr[1] + u_rr[3])

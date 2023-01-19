@@ -19,7 +19,7 @@ solver = DGSEM(polydeg=3, surface_flux=(flux_fjordholm_etal, flux_nonconservativ
 
 
 ###############################################################################
-# Get the TreeMesh and setup a periodic mesh
+# Get the TreeMesh and setup a non-periodic mesh
 
 coordinates_min = 0.0
 coordinates_max = 20.0

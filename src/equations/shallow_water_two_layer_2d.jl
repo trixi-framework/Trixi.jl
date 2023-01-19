@@ -73,7 +73,7 @@ struct ShallowWaterTwoLayerEquations2D{RealT<:Real} <: AbstractShallowWaterEquat
   H0::RealT      # constant "lake-at-rest" total water height
   rho1::RealT    # lower layer density
   rho2::RealT    # upper layer density
-  r::RealT       # # ratio of rho1 / rho2
+  r::RealT       # ratio of rho1 / rho2
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
@@ -168,7 +168,7 @@ Source terms used for convergence tests in combination with
          -0.09*sin(t + ω*x[1])*sin(t + ω*x[2]) - 0.0405*ω*cos(0.5*ω*x[1])*cos(0.5*ω*x[2]) +
          -0.081*ω*sin(t + ω*x[1])*sin(t + ω*x[2]))
 
-  return SVector(du1, du2, du3, du4, du5, du6, 0.0)
+  return SVector(du1, du2, du3, du4, du5, du6, zero(eltype(u)))
 end
 
 
@@ -223,6 +223,7 @@ end
   p1 = 0.5 * equations.gravity * h1^2
   p2 = 0.5 * equations.gravity * h2^2
 
+  # Calculate fluxes depending on orientation
   if orientation == 1
     f1 = h1_v1
     f2 = h1_v1 * v1 + p1
@@ -552,8 +553,9 @@ Further details are available in Theorem 1 of the paper:
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
 # TODO: Change name after paper is finished
-@inline function flux_wintermeyer_etal(u_ll, u_rr, orientation::Integer, 
-                                                         equations::ShallowWaterTwoLayerEquations2D)
+@inline function flux_wintermeyer_etal(u_ll, u_rr,
+                                       orientation::Integer,
+                                       equations::ShallowWaterTwoLayerEquations2D)
   # Unpack left and right state
   h1_ll, h1_v1_ll, h1_w1_ll, h2_ll, h2_v2_ll, h2_w2_ll, _ = u_ll
   h1_rr, h1_v1_rr, h1_w1_rr, h2_rr, h2_v2_rr, h2_w2_rr, _ = u_rr
@@ -726,8 +728,9 @@ end
 # -  Jonas Nycander, Andrew McC. Hogg, Leela M. Frankcombe (2008)
 #    Open boundary conditions for nonlinear channel Flows
 #    [DOI: 10.1016/j.ocemod.2008.06.003](https://doi.org/10.1016/j.ocemod.2008.06.003)
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, 
-  equations::ShallowWaterTwoLayerEquations2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, 
+                                     orientation::Integer, 
+                                     equations::ShallowWaterTwoLayerEquations2D)
 
   # Calculate averaged velocity of both layers
   if orientation == 1
@@ -778,8 +781,8 @@ end
 
 
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography
-@inline function (dissipation::DissipationLocalLaxFriedrichs)(
-      u_ll, u_rr, orientation_or_normal_direction, equations::ShallowWaterTwoLayerEquations2D)
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, 
+    orientation_or_normal_direction, equations::ShallowWaterTwoLayerEquations2D)
   λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
   diss = -0.5 * λ * (u_rr - u_ll)
   return SVector(diss[1], diss[2], diss[3], diss[4], diss[5], diss[6], zero(eltype(u_ll)))

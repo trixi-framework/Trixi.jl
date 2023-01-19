@@ -83,12 +83,13 @@ function initial_condition_discontinuous_dam_break(x, t, element_id,equations::S
   v2 = 0.0
   w2 = 0.0
 
-  # Left side of disconinuity
-  if element_id == 1  || element_id == 2 || element_id == 5 || element_id == 6 || element_id == 9 || element_id == 10 || element_id == 13 || element_id == 14
+  # Left side of discontinuity
+  IDs = [1, 2, 5, 6, 9, 10, 13, 14]
+  if element_id in IDs
     H1 = 1.0
     H2 = 0.6
     b  = 0.0
-  # Right side of disconinuity
+  # Right side of discontinuity
   else
     H1 = 0.9
     H2 = 0.5

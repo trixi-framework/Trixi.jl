@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# Semidiscretization of the two-layer shallow water equations to test well balancedness
+# Semidiscretization of the two-layer shallow water equations to test well-balancedness
 
 equations = ShallowWaterTwoLayerEquations1D(gravity_constant=1.0,H0=0.6,rho1=0.9,rho2=1.0)
 
@@ -24,7 +24,7 @@ function initial_condition_fjordholm_well_balanced(x, t, equations::ShallowWater
     H1 = 0.6
     v1 = 0.0
     v2 = 0.0
-    b  = r <= 0.1 ? 0.2 * (cos(10*π*(x[1] - 0.5)) + 1) : 0.0
+    b  = r <= 0.1 ? 0.2 * (cos(10 * pi * (x[1] - 0.5)) + 1) : 0.0
     return prim2cons(SVector(H1, v1, H2, v2, b), equations)
   end
 
