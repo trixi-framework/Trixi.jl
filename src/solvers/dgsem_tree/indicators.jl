@@ -7,6 +7,10 @@
 
 abstract type AbstractIndicator end
 
+function create_cache(typ::Type{IndicatorType}, semi, input_size) where {IndicatorType<:AbstractIndicator}
+  create_cache(typ, mesh_equations_solver_cache(semi)..., input_size)
+end
+
 function create_cache(typ::Type{IndicatorType}, semi) where {IndicatorType<:AbstractIndicator}
   create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
@@ -283,7 +287,7 @@ function IndicatorNeuralNetwork(equations::AbstractEquations, basis;
                                 network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   IndicatorType = typeof(indicator_type)
-  cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, equations, basis)
+  cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, equations, basis, size(params(network)[1],2))
   IndicatorNeuralNetwork{IndicatorType, typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
       indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable,
       network, cache)
@@ -301,7 +305,7 @@ function IndicatorNeuralNetwork(semi::AbstractSemidiscretization;
                                 network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   IndicatorType = typeof(indicator_type)
-  cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, semi)
+  cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, semi, size(params(network)[1],2))
   IndicatorNeuralNetwork{IndicatorType, typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
       indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable,
       network, cache)

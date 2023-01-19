@@ -232,13 +232,15 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 # empty cache is default
 function create_cache(::Type{IndicatorNeuralNetwork},
-                      equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+                      equations::AbstractEquations{2}, basis::LobattoLegendreBasis,
+                      input_size)
   return NamedTuple()
 end
 
 # cache for NeuralNetworkPerssonPeraire-type indicator
 function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire}},
-                      equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+                      equations::AbstractEquations{2}, basis::LobattoLegendreBasis,
+                      input_size)
 
   alpha = Vector{real(basis)}()
   alpha_tmp = similar(alpha)
@@ -251,12 +253,16 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire}
   modal_threaded      = [similar(prototype) for _ in 1:Threads.nthreads()]
   modal_tmp1_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
 
-  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
+  network_input = Vector{real(basis)}(undef, input_size)
+  network_output = Vector{real(basis)}(undef, 2)
+
+  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded, network_input, network_output)
 end
 
 # cache for NeuralNetworkRayHesthaven-type indicator
 function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkRayHesthaven}},
-                      equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+                      equations::AbstractEquations{2}, basis::LobattoLegendreBasis,
+                      input_size)
 
   alpha = Vector{real(basis)}()
   alpha_tmp = similar(alpha)
@@ -267,17 +273,21 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkRayHesthaven}},
   modal_threaded      = [similar(prototype) for _ in 1:Threads.nthreads()]
   modal_tmp1_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
 
-  network_input = Vector{Float64}(undef, 15)
   neighbor_ids= Array{Int64}(undef, 8)
-  neighbor_mean = Array{Float64}(undef, 4, 3)
+  neighbor_mean = Array{real(basis)}(undef, 4, 3)
+
+  c2e = Vector{Int64}()
+  X = similar(alpha)
+  network_input = Vector{real(basis)}(undef, input_size)  
+  network_output = Vector{real(basis)}(undef, 2)
 
   return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded,
-            network_input, neighbor_ids, neighbor_mean)
+            neighbor_ids, neighbor_mean, c2e, X,  network_input, network_output)
 end
 
 # cache for NeuralNetworkCNN-type indicator
 function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkCNN}},
-                      equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+                      equations::AbstractEquations{2}, basis::LobattoLegendreBasis, input_size)
 
   alpha = Vector{real(basis)}()
   alpha_tmp = similar(alpha)
@@ -285,19 +295,20 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkCNN}},
 
   prototype = A(undef, nnodes(basis), nnodes(basis))
   indicator_threaded  = [similar(prototype) for _ in 1:Threads.nthreads()]
-  n_cnn = 4
+  n_cnn = 4 # scale all Input to 4 x 4  LGL nodes
   nodes,_ = gauss_lobatto_nodes_weights(nnodes(basis))
   cnn_nodes,_= gauss_lobatto_nodes_weights(n_cnn)
   vandermonde = polynomial_interpolation_matrix(nodes, cnn_nodes)
-  network_input = Array{Float32}(undef, n_cnn, n_cnn, 1, 1)
+  network_input = Array{real(basis)}(undef, n_cnn, n_cnn, 1, 1)
 
   return (; alpha, alpha_tmp, indicator_threaded, nodes, cnn_nodes, vandermonde, network_input)
 end
 
+
 # this method is used when the indicator is constructed as for AMR
 function create_cache(typ::Type{<:IndicatorNeuralNetwork},
-                      mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
-  create_cache(typ, equations, dg.basis)
+                      mesh, equations::AbstractEquations{2}, dg::DGSEM, cache, input_size)
+  create_cache(typ, equations, dg.basis, input_size)
 end
 
 
@@ -306,7 +317,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
 
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_ann.cache
+  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded, network_input, network_output = indicator_ann.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -348,19 +359,24 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     end
 
     # Calculate energy in higher modes and polynomial degree for the network input
-    X1 = (total_energy - total_energy_clip1)/total_energy
-    X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
-    X3 = (total_energy_clip2 - total_energy_clip3)/total_energy_clip2
-    X4 = nnodes(dg)
-    network_input = SVector(X1, X2, X3, X4)
+    network_input[1] = (total_energy - total_energy_clip1)/total_energy
+    network_input[2] = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
+    network_input[3] = (total_energy_clip2 - total_energy_clip3)/total_energy_clip2
+    network_input[4] = nnodes(dg)
 
     # Scale input data
-    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
+    norm  = max(maximum(abs, network_input), one(eltype(network_input)))
+    for ind in eachindex(network_input)
+      network_input[ind] = network_input[ind] / norm
+    end
+
+    # # Evaluation of the network allocates a lot of memory.
+    # https://discourse.julialang.org/t/allocation-of-memory-while-evaluate-a-model/71064/7
     probability_troubled_cell = network(network_input)[1]
 
     # Compute indicator value
     alpha[element] = probability_to_indicator(probability_troubled_cell, alpha_continuous,
-                                              alpha_amr, alpha_min, alpha_max)
+                                              alpha_amr, alpha_min, alpha_max)                                    
   end
 
   if alpha_smooth
@@ -376,7 +392,8 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
 
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded, network_input, neighbor_ids, neighbor_mean = indicator_ann.cache #X, network_input
+  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded, network_input, neighbor_ids, neighbor_mean,
+                c2e, X, network_input, network_output = indicator_ann.cache #X, network_input
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -385,12 +402,15 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     resize!(alpha_tmp, nelements(dg, cache))
   end
 
-  c2e = zeros(Int, length(mesh.tree))
+  resize!(c2e, length(mesh.tree))
+  #c2e = zeros(Int, length(mesh.tree))
   for element in eachelement(dg, cache)
     c2e[cache.elements.cell_ids[element]] = element
   end
 
-  X = Array{Float64}(undef, 3, nelements(dg, cache))
+  resize!(X, 3 * nelements(dg, cache))
+  X = reshape(X,3,nelements(dg, cache))
+  # X = Array{Float64}(undef, 3, nelements(dg, cache))
 
   @threaded for element in eachelement(dg, cache)
     indicator  = indicator_threaded[Threads.threadid()]
@@ -485,12 +505,19 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     end
 
     # Scale input data
-    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
+    norm  = max(maximum(abs, network_input), one(eltype(network_input)))
+    for ind in eachindex(network_input)
+      network_input[ind] = network_input[ind] / norm
+    end
+
+    # Evaluation of the network allocates a lot of memory.
+    # https://discourse.julialang.org/t/allocation-of-memory-while-evaluate-a-model/71064/7
     probability_troubled_cell = network(network_input)[1]
 
     # Compute indicator value
     alpha[element] = probability_to_indicator(probability_troubled_cell, alpha_continuous,
                                               alpha_amr, alpha_min, alpha_max)
+
   end
 
   if alpha_smooth
@@ -502,7 +529,7 @@ end
 
 
 function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
-    u, mesh::TreeMesh{2}, equations, dg::DGSEM, cache; kwargs...)
+  u, mesh::TreeMesh{2}, equations, dg::DGSEM, cache; kwargs...)
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
   @unpack alpha, alpha_tmp, indicator_threaded, nodes, cnn_nodes, vandermonde, network_input = indicator_ann.cache
@@ -524,7 +551,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
     end
 
     # Interpolate nodal data to 4x4 LGL nodes
-    for j in 1:4, i in 1:4
+    for j in 1:n_cnn, i in 1:n_cnn
       acc = zero(eltype(indicator))
       for jj in eachnode(dg), ii in eachnode(dg)
         acc += vandermonde[i,ii] * indicator[ii,jj] * vandermonde[j,jj]
@@ -533,7 +560,13 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
     end
 
     # Scale input data
-    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
+    norm  =  max(maximum(abs, network_input), one(eltype(network_input)))
+    for ind in eachindex(network_input)
+      network_input[ind] = network_input[ind] / norm
+    end
+
+    # Evaluation of the network allocates a lot of memory.
+    # https://discourse.julialang.org/t/allocation-of-memory-while-evaluate-a-model/71064/7
     probability_troubled_cell = network(network_input)[1]
 
     # Compute indicator value
