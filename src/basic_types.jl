@@ -77,7 +77,20 @@ Imposing no boundary condition just evaluates the flux at the inner state.
 """
 struct BoundaryConditionDoNothing end
 
-@inline function (boundary_condition::BoundaryConditionDoNothing)(inner_flux_or_state, other_args...)
+# This version can be called by hyperbolic solvers on logically Cartesian meshes
+@inline function (::BoundaryConditionDoNothing)(
+    u_inner, orientation_or_normal_direction, direction::Integer, x, t, surface_flux, equations)
+  return flux(u_inner, orientation_or_normal_direction, equations)
+end
+
+# This version can be called by hyperbolic solvers on unstructured, curved meshes
+@inline function (::BoundaryConditionDoNothing)(
+    u_inner, outward_direction::AbstractVector, x, t, surface_flux, equations)
+  return flux(u_inner, outward_direction, equations)
+end
+
+# This version can be called by parabolic solvers
+@inline function (::BoundaryConditionDoNothing)(inner_flux_or_state, other_args...)
   return inner_flux_or_state
 end
 

@@ -32,9 +32,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_mod show(stdout, MIME"text/plain"(), semi)
     @test_nowarn_mod show(stdout, boundary_condition_do_nothing)
 
-    @test nvariables(semi)==nvariables(equations)
-    @test Base.ndims(semi)==Base.ndims(mesh)
-    @test Base.real(semi)==Base.real(dg)
+    @test nvariables(semi) == nvariables(equations)
+    @test Base.ndims(semi) == Base.ndims(mesh)
+    @test Base.real(semi) == Base.real(dg)
 
     ode = semidiscretize(semi, (0.0, 0.01))
     u0 = similar(ode.u0)
