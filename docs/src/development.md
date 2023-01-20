@@ -1,6 +1,6 @@
 # Development
 
-## Interactive use of Julia
+## [Interactive use of Julia](@id interactive-use-of-julia)
 When a Julia program is executed, Julia first loads and parses all code. Then,
 the just-in-time compiler has to compile all functions at their first use, which
 incurs an overhead each time a program is run. For proper packages and commands
@@ -236,6 +236,7 @@ However, it can be quite slow and does currently not work properly for Trixi. Th
 [Infiltrator.jl](https://github.com/JuliaDebug/Infiltrator.jl) package on the other hand does not 
 offer all features of a full debugger, but is a fast and simple tool that allows users to set 
 breakpoints to open a local REPL session and access the call stack and variables.
+
 ### Infiltrator
 The Infiltrator package provides fast breakpoints using the ```@infiltrate``` command to drop the 
 user into a local REPL session, where it is possible to access local variables, see the call stack 
@@ -243,7 +244,7 @@ and execute statements.
 
 The package can be installed in the Julia REPL by executing 
 ```julia-repl
-(@v1.7) pkg> add Infiltrator
+(@v1.8) pkg> add Infiltrator
 ```
 
 To load the package in the Julia REPL execute
@@ -252,7 +253,7 @@ julia> using Infiltrator
 ```
 
 Breakpoints can be set by adding a line with the ```@infiltrate``` macro at the respective position 
-in the code. Use [Revise](@ref Interactive use of Julia) if you want to set and delete breakpoints 
+in the code. Use [Revise](@ref interactive-use-of-julia) if you want to set and delete breakpoints 
 interactively. 
 
 !!! note 
