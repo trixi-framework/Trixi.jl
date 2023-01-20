@@ -23,6 +23,97 @@ function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::Abs
   create_cache(typ, equations, dg.basis)
 end
 
+# Overload indicator when ShallowWaterEquations1D is used to apply full FV method on cells 
+#   containing dry LGL nodes
+function (indicator_hg::IndicatorHennemannGassner)(u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                                   equations::ShallowWaterEquations1D, dg::DGSEM, 
+                                                   cache; kwargs...)
+  @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
+  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_hg.cache
+  # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
+  #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
+  #       or just `resize!` whenever we call the relevant methods as we do now?
+  resize!(alpha, nelements(dg, cache))
+  if alpha_smooth
+    resize!(alpha_tmp, nelements(dg, cache))
+  end
+
+  # magic parameters
+  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
+  parameter_s = log((1 - 0.0001)/0.0001)
+
+  # If h at one LGL node is lower than threshold_wet, set alpha[element]=1 via indicator_wet
+  #   to apply a full FV method and guarantee well balance property.
+  #= 
+    Determination of hard coded treshold: Showed good results in numerical experiments. Idea is to
+    gain more stability of velocity (and therefore the whole PDE) on (nearly) dry cells which
+      could be counteracted by division of conservative variables (hv/v).
+    Here, the impact of the threshold on the number of cells beeing updated with FV is not that
+      huge. Rather huge is the impact on tha stability.
+    The value can be seen as a trade-off between accuracy and stability.
+    Well balancedness of scheme using hydrostatic reconstruction can only be proved for FV method.
+    Therefore we set alpha to one regardless its given maximum value.
+  =#   
+  threshold_wet = 1e-4
+
+  @threaded for element in eachelement(dg, cache)
+    indicator  = indicator_threaded[Threads.threadid()]
+    modal      = modal_threaded[Threads.threadid()]
+
+    # (Re-)set dummy variable for alpha_dry
+    indicator_wet = 1.0
+
+    # Calculate indicator variables at Gauss-Lobatto nodes
+    for i in eachnode(dg)
+      u_local = get_node_vars(u, equations, dg, i, element)
+      h, _, _ = u_local
+      indicator_wet = min(indicator_wet, Int32(h > threshold_wet))
+      indicator[i] = indicator_hg.variable(u_local, equations)
+    end
+
+    # Convert to modal representation
+    multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, indicator)
+
+    # Calculate total energies for all modes, without highest, without two highest
+    total_energy = zero(eltype(modal))
+    for i in 1:nnodes(dg)
+      total_energy += modal[i]^2
+    end
+    total_energy_clip1 = zero(eltype(modal))
+    for i in 1:(nnodes(dg)-1)
+      total_energy_clip1 += modal[i]^2
+    end
+    total_energy_clip2 = zero(eltype(modal))
+    for i in 1:(nnodes(dg)-2)
+      total_energy_clip2 += modal[i]^2
+    end
+
+    # Calculate energy in higher modes
+    energy = max((total_energy - total_energy_clip1) / total_energy,
+                 (total_energy_clip1 - total_energy_clip2) / total_energy_clip1)
+
+    alpha_element = 1 / (1 + exp(-parameter_s / threshold * (energy - threshold)))
+
+    # Take care of the case close to pure DG
+    if alpha_element < alpha_min
+      alpha_element = zero(alpha_element)
+    end
+
+    # Take care of the case close to pure FV
+    if alpha_element > 1 - alpha_min
+      alpha_element = one(alpha_element)
+    end
+
+    # Clip the maximum amount of FV allowed or set to one depending on indicator_wet
+    alpha[element] = indicator_wet * min(alpha_max, alpha_element) - (indicator_wet-1)
+  end
+
+  if alpha_smooth
+    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
+  end
+
+  return alpha
+end
 
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                                    equations, dg::DGSEM, cache;
