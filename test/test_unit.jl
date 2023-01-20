@@ -553,6 +553,24 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @timed_testset "boundary_condition_do_nothing" begin
+    rho, v1, v2, p = 1.0, 0.1, 0.2, 0.3, 2.0
+
+    let equations = CompressibleEulerEquations2D(1.4)
+      u = prim2cons(SVector(rho, v1, v2, p), equations)
+      x = SVector(1.0, 2.0)
+      t = 0.5
+      surface_flux = flux_lax_friedrichs
+
+      outward_direction = SVector(0.2, -0.3)
+      @test flux(u, outward_direction, equations) ≈ boundary_condition_do_nothing(u, outward_direction, x, t, surface_flux, equations)
+
+      orientation = 2
+      direction = 4
+      @test flux(u, orientation, equations) ≈ boundary_condition_do_nothing(u, orientation, direction, x, t, surface_flux, equations)
+    end
+  end
+
   @timed_testset "TimeSeriesCallback" begin
     @test_nowarn_mod trixi_include(@__MODULE__,
                                      joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"),
