@@ -203,6 +203,7 @@ struct FluxHLL{MinMaxSpeed}
 end
 
 FluxHLL() = FluxHLL(min_max_speed_naive)
+FluxHLLChenNoelle() = FluxHLL(min_max_speed_chen_noelle)
 
 """
     min_max_speed_naive(u_ll, u_rr, orientation::Integer,   equations)
@@ -216,6 +217,7 @@ left and right states `u_ll, u_rr`, usually based only on the local wave speeds 
   [DOI: 10.1137/1025002](https://doi.org/10.1137/1025002)
 """
 function min_max_speed_naive end
+function min_max_speed_chen_noelle end
 
 @inline function (numflux::FluxHLL)(u_ll, u_rr, orientation_or_normal_direction, equations)
   λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
@@ -243,7 +245,7 @@ Base.show(io::IO, numflux::FluxHLL) = print(io, "FluxHLL(", numflux.min_max_spee
 See [`FluxHLL`](@ref).
 """
 const flux_hll = FluxHLL()
-
+const flux_hll_cn = FluxHLLChenNoelle()
 
 
 """
@@ -305,12 +307,27 @@ end
 
 @inline function (numflux::FluxHydrostaticReconstruction)(u_ll, u_rr,
                                                           orientation_or_normal_direction,
-                                                          equations::AbstractEquations)
+                                                          equations::AbstractEquations{1})
   @unpack numerical_flux, hydrostatic_reconstruction = numflux
 
   # Create the reconstructed left/right solution states in conservative form
   u_ll_star, u_rr_star = hydrostatic_reconstruction(u_ll, u_rr, equations)
 
+  threshold = equations.threshold_wet
+
+  # Apply threshold to cut off the height and the velocity at dry interfaces
+  if threshold > 0
+    h_ll, _, b_ll = u_ll_star
+    h_rr, _, b_rr = u_rr_star
+
+    if h_ll <= threshold
+      u_ll_star = SVector(threshold, 0, b_ll)
+    end
+
+    if h_rr <= threshold
+      u_rr_star = SVector(threshold, 0, b_rr)
+    end
+  end
   # Use the reconstructed states to compute the numerical surface flux
   return numerical_flux(u_ll_star, u_rr_star, orientation_or_normal_direction, equations)
 end

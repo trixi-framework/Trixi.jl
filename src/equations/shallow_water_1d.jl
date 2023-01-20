@@ -47,14 +47,18 @@ References for the SWE are many but a good introduction is available in Chapter 
 struct ShallowWaterEquations1D{RealT<:Real} <: AbstractShallowWaterEquations{1, 3}
   gravity::RealT # gravitational constant
   H0::RealT      # constant "lake-at-rest" total water height
+  threshold_limiter::RealT  # threshold to use in PositivityPreservingLimiterZhangShu on waterheight,
+                            #   as shift on the initial condition and cutoff before the next timestep
+  threshold_wet::RealT      # threshold to be applied on waterheight before calculating numflux
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
-# The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
-# well-balancedness test cases
-function ShallowWaterEquations1D(; gravity_constant, H0=0.0)
-  ShallowWaterEquations1D(gravity_constant, H0)
+# The reference total water height H0 is an artefact from the old calculation of the lake_at_rest_error
+# Strict default values for thresholds that performed great in several numerical experiments
+function ShallowWaterEquations1D(; gravity_constant, H0=0.0, 
+                                 threshold_limiter=1e-13, threshold_wet=1e-15)
+  ShallowWaterEquations1D(gravity_constant, H0, threshold_limiter, threshold_wet)
 end
 
 
@@ -306,6 +310,35 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
                  z)
 end
 
+@inline function flux_nonconservative_chen_noelle(u_ll, u_rr,
+                                                  orientation::Integer,
+                                                  equations::ShallowWaterEquations1D)
+  
+  # Pull the water height and bottom topography on the left
+  h_ll, _, b_ll = u_ll
+  h_rr, _, b_rr = u_rr
+
+  H_ll = h_ll+b_ll
+  H_rr = h_rr+b_rr
+
+  b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
+
+  # Create the hydrostatic reconstruction for the left solution state
+  u_ll_star, _ = hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, equations)
+
+  # Copy the reconstructed water height for easier to read code
+  h_ll_star = u_ll_star[1]
+
+  z = zero(eltype(u_ll))
+  # Includes two parts:
+  #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
+  #        cross-averaging across a discontinuous bottom topography
+  #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
+  return SVector(z,
+                 equations.gravity * h_ll * b_ll - equations.gravity * (h_ll_star+h_ll) * (b_ll-b_star),
+                 z)
+
+end
 
 """
     flux_fjordholm_etal(u_ll, u_rr, orientation,
@@ -408,6 +441,30 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   return u_ll_star, u_rr_star
 end
 
+@inline function  hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, equations::ShallowWaterEquations1D)
+  # Unpack left and right water heights and bottom topographies
+  h_ll, _, b_ll = u_ll
+  h_rr, _, b_rr = u_rr
+
+  # Get the velocities on either side
+  v_ll = velocity(u_ll, equations)
+  v_rr = velocity(u_rr, equations)
+
+  H_ll = b_ll+h_ll
+  H_rr = b_rr+h_rr
+
+  b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
+
+  # Compute the reconstructed water heights
+  h_ll_star = min( H_ll-b_star, h_ll )
+  h_rr_star = min( H_rr-b_star, h_rr )
+
+  # Create the conservative variables using the reconstruted water heights
+  u_ll_star = SVector( h_ll_star, h_ll_star * v_ll, b_ll )
+  u_rr_star = SVector( h_rr_star, h_rr_star * v_rr, b_rr )
+
+  return u_ll_star, u_rr_star
+end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
@@ -467,6 +524,25 @@ end
 
   λ_min = v_ll - sqrt(equations.gravity * h_ll)
   λ_max = v_rr + sqrt(equations.gravity * h_rr)
+
+  return λ_min, λ_max
+end
+
+
+@inline function min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations1D)
+  # Get the velocity quantities
+  v_ll = velocity(u_ll, equations)
+  v_rr = velocity(u_rr, equations)
+
+  # Calculate the wave celerity on the left and right
+  h_ll = waterheight(u_ll, equations)
+  h_rr = waterheight(u_rr, equations)
+
+  a_ll = sqrt(equations.gravity * h_ll)
+  a_rr = sqrt(equations.gravity * h_rr)
+
+  λ_min = min( v_ll-a_ll, v_rr-a_rr, 0 ) 
+  λ_max = max( v_ll+a_ll, v_rr+a_rr, 0 )
 
   return λ_min, λ_max
 end
