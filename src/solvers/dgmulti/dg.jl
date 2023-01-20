@@ -36,20 +36,74 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
   end
 end
 
+"""
+    eachdim(mesh)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the dimensions in `AbstractTree`.
+In particular, not the dimensions themselves are returned.
+"""
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
 
 # iteration over all elements in a mesh
 @inline ndofs(mesh::DGMultiMesh, dg::DGMulti, other_args...) = dg.basis.Np * mesh.md.num_elements
+"""
+    eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the elements in `mesh`. 
+In particular, not the elements themselves are returned.
+"""
 @inline eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(mesh.md.num_elements)
 
 # iteration over quantities in a single element
 @inline nnodes(basis::RefElemData) = basis.Np
+
+"""
+    each_face_node(mesh::DGMultiMesh, dg::DGMulti, other_args...)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the face nodes in `dg`. 
+In particular, not the face_nodes themselves are returned.
+"""
 @inline each_face_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq)
+
+"""
+    each_quad_node(mesh::DGMultiMesh, dg::DGMulti, other_args...)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the quadrature nodes in `dg`. 
+In particular, not the quadrature nodes themselves are returned.
+"""
 @inline each_quad_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq)
 
 # iteration over quantities over the entire mesh (dofs, quad nodes, face nodes).
+"""
+    each_dof_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the degrees of freedom (DOF) in `dg`. 
+In particular, not the DOFs themselves are returned.
+"""
 @inline each_dof_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(ndofs(mesh, dg, other_args...))
+
+
+"""
+    each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the global quadrature nodes in `mesh`. 
+In particular, not the quadrature nodes themselves are returned.
+"""
 @inline each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
+
+"""
+    each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the face nodes in `mesh`. 
+In particular, not the face nodes themselves are returned.
+"""
 @inline each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 
 # interface with semidiscretization_hyperbolic

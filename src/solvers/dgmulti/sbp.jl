@@ -113,7 +113,7 @@ function StartUpDG.RefElemData(element_type::Line,
     element_type, approximation_type, N,
     face_vertices, V1,
     rst, VDM, face_mask,
-    N, rst, LinearAlgebra.I, # plotting
+    rst, LinearAlgebra.I, # plotting
     rstq, wq, Vq, # quadrature
     rstf, wf, Vf, nrstJ, # faces
     M, Pq, Drst, LIFT)
@@ -173,7 +173,7 @@ function StartUpDG.RefElemData(element_type::Quad,
     element_type, approximation_type, N,
     face_vertices, V1,
     rst, VDM, face_mask,
-    N, rst, LinearAlgebra.I, # plotting
+    rst, LinearAlgebra.I, # plotting
     rstq, wq, Vq, # quadrature
     rstf, wf, Vf, nrstJ, # faces
     M, Pq, Drst, LIFT)
@@ -233,7 +233,7 @@ function StartUpDG.RefElemData(element_type::Hex,
     element_type, approximation_type, N,
     face_vertices, V1,
     rst, VDM, face_mask,
-    N, rst, LinearAlgebra.I, # plotting
+    rst, LinearAlgebra.I, # plotting
     rstq, wq, Vq, # quadrature
     rstf, wf, Vf, nrstJ, # faces
     M, Pq, Drst, LIFT)
@@ -287,7 +287,7 @@ function StartUpDG.RefElemData(element_type::Hex,
     element_type, approximation_type, N,
     face_vertices, V1,
     rst, VDM, face_mask,
-    N, rst, LinearAlgebra.I, # plotting
+    rst, LinearAlgebra.I, # plotting
     rstq, wq, Vq, # quadrature
     rstf, wf, Vf, nrstJ, # faces
     M, Pq, Drst, LIFT)
@@ -393,9 +393,15 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
 
   periodicity = ntuple(_ -> true, NDIMS)
 
-  mesh_type = rd.approximation_type
+  if NDIMS == 1
+    mesh_type = Line()
+  elseif NDIMS == 2
+    mesh_type = Quad()
+  elseif NDIMS == 3
+    mesh_type = Hex()
+  end
 
-  md = MeshData(mesh_type, VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
+  md = MeshData(StartUpDG.VertexMappedMesh(mesh_type, VXYZ, EToV), FToF, xyz, xyzf, xyzq, wJq,
                 mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
                 periodicity)
 

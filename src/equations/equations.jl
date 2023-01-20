@@ -9,6 +9,12 @@
 @inline nvariables(::AbstractEquations{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
 
 # TODO: Taal performance, 1:NVARS vs. Base.OneTo(NVARS) vs. SOneTo(NVARS)
+"""
+    eachvariable(equations::AbstractEquations)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the variables in `equations`. In particular, not the variables themselves are returned.
+"""
 @inline eachvariable(equations::AbstractEquations) = Base.OneTo(nvariables(equations))
 
 """
@@ -318,6 +324,13 @@ include("compressible_euler_multicomponent_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+"""
+    eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the components in `AbstractCompressibleEulerMulticomponentEquations`. 
+In particular, not the components themselves are returned.
+"""
 @inline eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations) = Base.OneTo(ncomponents(equations))
 
 # Ideal MHD
@@ -333,6 +346,13 @@ include("ideal_glm_mhd_multicomponent_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline ncomponents(::AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+"""
+    eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the components in `AbstractIdealGlmMhdMulticomponentEquations`. 
+In particular, not the components themselves are returned.
+"""
 @inline eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations) = Base.OneTo(ncomponents(equations))
 
 # Diffusion equation: first order hyperbolic system
