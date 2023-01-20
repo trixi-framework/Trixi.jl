@@ -516,6 +516,17 @@ end
 pretty_form_utf(quantity) = get_name(quantity)
 pretty_form_ascii(quantity) = get_name(quantity)
 
+# Overload analyze and pass the initial_condition as parameter for integrate
+# Special case only used for lake_at_rest_error for AbstractShallowWaterEquations
+# With the new wet-dry mechanics, the old calculation using a constant H0 as a reference value fails
+# Imagine e.g. a dry hill beeing higher than the waterlevel
+# New approach: Compare waterheight h at time T with the initial waterheight
+function analyze(::typeof(lake_at_rest_error), du, u, t, semi::AbstractSemidiscretization)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  @unpack initial_condition = semi
+
+  integrate(lake_at_rest_error, u, mesh, equations, solver, cache, initial_condition, normalize=true)    
+end
 
 function entropy_timederivative end
 pretty_form_utf(::typeof(entropy_timederivative)) = "∑∂S/∂U ⋅ Uₜ"
