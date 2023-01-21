@@ -104,6 +104,9 @@ function rhs!(du, u, t,
   # Reset du
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
+  # Apply waterheight and velocity cut off for ShallowWaterEquations2D
+  apply_thresholds!(u, equations, dg, cache)
+
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
     du, u, mesh,
@@ -153,6 +156,40 @@ function rhs!(du, u, t,
   return nothing
 end
 
+# Special case for SWE 2D: Apply the threshold to the waterheight and cut off 
+#   velocities in dry cells
+function apply_thresholds!(u, equations::ShallowWaterEquations2D, dg::DGSEM, cache)
+
+  threshold = equations.threshold_limiter
+
+  # If threshold is set to zero, there is nothing to do
+  if threshold == 0
+    return nothing
+  end
+
+  @threaded for element in eachelement(dg, cache)
+
+    for j in eachnode(dg), i in eachnode(dg)
+      u_node = get_node_vars(u, equations, dg, i, j, element)
+
+      h, h_v1, h_v2, b = u_node
+
+      h = h * Int32(h > threshold) + threshold * Int32(h <= threshold)
+      h_v1 = h_v1 * Int32(h > threshold)
+      h_v2 = h_v2 * Int32(h > threshold)
+
+      u_node = SVector(h, h_v1, h_v2, b)
+
+      set_node_vars!(u, u_node, equations, dg, i, j, element)
+    end
+  end
+
+  return nothing
+end
+
+function apply_thresholds!(u, equations::AbstractEquations{2}, dg::DGSEM, cache)
+  return nothing
+end
 
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
