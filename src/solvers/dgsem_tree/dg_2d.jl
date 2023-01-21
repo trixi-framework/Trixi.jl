@@ -187,7 +187,7 @@ function apply_thresholds!(u, equations::ShallowWaterEquations2D, dg::DGSEM, cac
   return nothing
 end
 
-function apply_thresholds!(u, equations::AbstractEquations{2}, dg::DGSEM, cache)
+function apply_thresholds!(u, equations::AbstractEquations{2}, dg, cache)
   return nothing
 end
 
