@@ -50,14 +50,18 @@ References for the SWE are many but a good introduction is available in Chapter 
 struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 4}
   gravity::RealT # gravitational constant
   H0::RealT      # constant "lake-at-rest" total water height
+  threshold_limiter::RealT  # threshold to use in PositivityPreservingLimiterZhangShu on waterheight,
+                            # as shift on the initial condition and cutoff before the next timestep
+  threshold_wet::RealT      # threshold to be applied on waterheight before calculating numflux
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
-# The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
-# well-balancedness test cases
-function ShallowWaterEquations2D(; gravity_constant, H0=0.0)
-  ShallowWaterEquations2D(gravity_constant, H0)
+# The reference total water height H0 is an artefact from the old calculation of the lake_at_rest_error
+# Strict default values for thresholds that performed great in several numerical experiments
+function ShallowWaterEquations2D(; gravity_constant, H0=0.0,
+                                 threshold_limiter=1e-13, threshold_wet=1e-15)
+  ShallowWaterEquations2D(gravity_constant, H0, threshold_limiter, threshold_wet)
 end
 
 
@@ -435,6 +439,31 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
   return u_ll_star, u_rr_star
 end
 
+@inline function hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, equations::ShallowWaterEquations2D)
+  # Unpack left and right water heights and bottom topographies
+  h_ll, _, _, b_ll = u_ll
+  h_rr, _, _, b_rr = u_rr
+
+  # Get the velocities on either side
+  v1_ll, v2_ll = velocity(u_ll, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
+
+  H_ll = b_ll + h_ll
+  H_rr = b_rr + h_rr
+
+  b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
+  
+  # Compute the reconstructed water heights
+  h_ll_star = min( H_ll-b_star, h_ll )
+  h_rr_star = min( H_rr-b_star, h_rr )
+
+
+  # Create the conservative variables using the reconstruted water heights
+  u_ll_star = SVector( h_ll_star, h_ll_star * v1_ll, h_ll_star * v2_ll, b_ll )
+  u_rr_star = SVector( h_rr_star, h_rr_star * v1_rr, h_rr_star * v2_rr, b_rr )
+
+  return u_ll_star, u_rr_star
+end
 
 """
     flux_nonconservative_audusse_etal(u_ll, u_rr, orientation::Integer,
@@ -519,6 +548,78 @@ end
   return SVector(f1, f2, f3, f4)
 end
 
+@inline function flux_nonconservative_chen_noelle(u_ll, u_rr, orientation::Integer,
+                                                  equations::ShallowWaterEquations2D)
+  # Pull the water height and bottom topography on the left
+  h_ll, _, _, b_ll = u_ll
+  h_rr, _, _, b_rr = u_rr
+
+  H_ll = h_ll + b_ll
+  H_rr = h_rr + b_rr
+
+  b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
+
+  # Create the hydrostatic reconstruction for the left solution state
+  u_ll_star, _ = hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, equations)
+
+  # Copy the reconstructed water height for easier to read code
+  h_ll_star = u_ll_star[1]
+
+  z = zero(eltype(u_ll))
+  # Includes two parts:
+  #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
+  #        cross-averaging across a discontinuous bottom topography
+  #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
+  if orientation == 1
+    f = SVector(z,
+                equations.gravity * h_ll * b_ll - equations.gravity * (h_ll_star + h_ll) * (b_ll - b_star),
+                z, z)
+  else # orientation == 2
+    f = SVector(z, z,
+                equations.gravity * h_ll * b_ll - equations.gravity * (h_ll_star + h_ll) * (b_ll - b_star),
+                z)
+  end
+
+  return f
+end
+
+@inline function flux_nonconservative_chen_noelle(u_ll, u_rr,
+                                                   normal_direction_ll::AbstractVector,
+                                                   normal_direction_average::AbstractVector,
+                                                   equations::ShallowWaterEquations2D)
+  # Pull the water height and bottom topography on the left
+  h_ll, _, _, b_ll = u_ll
+  h_rr, _, _, b_rr = u_rr
+
+  H_ll = h_ll + b_ll
+  H_rr = h_rr + b_rr
+
+  b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
+  
+  # Create the hydrostatic reconstruction for the left solution state
+  u_ll_star, _ = hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, equations)
+
+  # Copy the reconstructed water height for easier to read code
+  h_ll_star = u_ll_star[1]
+
+  # Comes in two parts:
+  #   (i)  Diagonal (consistent) term from the volume flux that uses `normal_direction_average`
+  #        but we use `b_ll` to avoid cross-averaging across a discontinuous bottom topography
+
+  f2 = normal_direction_average[1] * equations.gravity * h_ll * b_ll
+  f3 = normal_direction_average[2] * equations.gravity * h_ll * b_ll
+
+  #   (ii) True surface part that uses `normal_direction_ll`, `h_ll` and `h_ll_star`
+  #        to handle discontinuous bathymetry
+
+  f2 -= normal_direction_ll[1] * equations.gravity * (h_ll_star + h_ll) * (b_ll - b_star)
+  f3 -= normal_direction_ll[2] * equations.gravity * (h_ll_star + h_ll) * (b_ll - b_star)
+
+  # First and last equations do not have a nonconservative flux
+  f1 = f4 = zero(eltype(u_ll))
+
+  return SVector(f1, f2, f3, f4)
+end
 
 
 """
@@ -762,6 +863,46 @@ end
   return λ_min, λ_max
 end
 
+@inline function min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer, 
+                                           equations::ShallowWaterEquations2D)
+  h_ll = waterheight(u_ll, equations)
+  v1_ll, v2_ll = velocity(u_ll, equations)
+  h_rr = waterheight(u_rr, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
+
+  a_ll = sqrt(equations.gravity * h_ll)
+  a_rr = sqrt(equations.gravity * h_rr)
+
+  if orientation == 1 # x-direction
+    λ_min = min( v1_ll-a_ll, v1_rr-a_rr, 0 ) 
+    λ_max = max( v1_ll+a_ll, v1_rr+a_rr, 0 )
+  else # y-direction
+    λ_min = min( v2_ll-a_ll, v2_rr-a_rr, 0 )
+    λ_max = max( v2_ll+a_ll, v2_rr+a_rr, 0 )
+  end
+  return λ_min, λ_max
+end
+
+@inline function min_max_speed_chen_noelle(u_ll, u_rr, normal_direction::AbstractVector,
+                                           equations::ShallowWaterEquations2D)
+  h_ll = waterheight(u_ll, equations)
+  v1_ll, v2_ll = velocity(u_ll, equations)
+  h_rr = waterheight(u_rr, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
+
+  v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+  v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+  norm_ = norm(normal_direction)
+
+  a_ll = sqrt(equations.gravity * h_ll) * norm_
+  a_rr = sqrt(equations.gravity * h_rr) * norm_
+
+  λ_min = min( v_normal_ll - a_ll, v_normal_rr - a_rr, 0 ) 
+  λ_max = max( v_normal_ll + a_ll, v_normal_rr + a_rr, 0 )
+
+  return λ_min, λ_max
+end
 
 @inline function max_abs_speeds(u, equations::ShallowWaterEquations2D)
   h = waterheight(u, equations)
