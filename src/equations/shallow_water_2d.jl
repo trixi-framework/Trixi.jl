@@ -1016,9 +1016,14 @@ end
 
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
 # be a constant value over time
-@inline function lake_at_rest_error(u, equations::ShallowWaterEquations2D)
+@inline function lake_at_rest_error(u, u_exact, equations::ShallowWaterEquations2D)
   h, _, _, b = u
-  return abs(equations.H0 - (h + b))
+  h_exact, _, _, b_exact= u_exact
+
+  H = h + b
+  H_exact = h_exact + b_exact
+
+  return abs(H - H_exact)
 end
 
 end # @muladd
