@@ -147,4 +147,4 @@ ranks, this has the consequence that sibling cells (i.e., child cells with the s
 are kept on the same MPI rank to be able to coarsen them easily. This might cause an unbalanced
 distribution of cells on different ranks. For 2D meshes, this also means that *initially* each rank will
 at least own 4 cells, and for 3D meshes, *initially* each rank will at least own 8 cells.
-
+See [issue #1329](https://github.com/trixi-framework/Trixi.jl/issues/1329).
