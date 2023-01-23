@@ -131,11 +131,11 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
   if mesh isa P4estMesh
-    if p4est_partition_allow_for_coarsening != mesh.p4est_partition_allow_for_coarsening
+    if cb.affect!.p4est_partition_allow_for_coarsening != mesh.p4est_partition_allow_for_coarsening
       if mpi_isroot()
         @info "The attribute p4est_partition_allow_for_coarsening from the mesh is changed."
       end
-      mesh.p4est_partition_allow_for_coarsening = p4est_partition_allow_for_coarsening
+      mesh.p4est_partition_allow_for_coarsening = cb.affect!.p4est_partition_allow_for_coarsening
     end
   end
 
