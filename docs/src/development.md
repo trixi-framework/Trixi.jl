@@ -232,15 +232,15 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
 Julia offers several options for debugging. A classical debugger is available with the 
 [Debugger.jl](https://github.com/JuliaDebug/Debugger.jl) package or in the 
 [Julia extension for VS Code](https://www.julia-vscode.org/docs/stable/userguide/debugging/). 
-However, it can be quite slow and does currently not work properly for Trixi. The 
-[Infiltrator.jl](https://github.com/JuliaDebug/Infiltrator.jl) package on the other hand does not 
-offer all features of a full debugger, but is a fast and simple tool that allows users to set 
-breakpoints to open a local REPL session and access the call stack and variables.
+However, it can be quite slow and, at the time of writing (January 2023), does currently not work 
+properly with Trixi. The [Infiltrator.jl](https://github.com/JuliaDebug/Infiltrator.jl) package on 
+the other hand does not offer all features of a full debugger, but is a fast and simple tool that 
+allows users to set breakpoints to open a local REPL session and access the call stack and variables.
 
 ### Infiltrator
-The Infiltrator package provides fast breakpoints using the ```@infiltrate``` command to drop the 
-user into a local REPL session, where it is possible to access local variables, see the call stack 
-and execute statements.
+The Infiltrator package provides fast, interactive breakpoints using the ```@infiltrate``` command, 
+which drops the user into a local REPL session. From there, it is possible to access local variables, 
+see the call stack and execute statements.
 
 The package can be installed in the Julia REPL by executing 
 ```julia-repl
@@ -254,17 +254,19 @@ julia> using Infiltrator
 
 Breakpoints can be set by adding a line with the ```@infiltrate``` macro at the respective position 
 in the code. Use [Revise](@ref interactive-use-of-julia) if you want to set and delete breakpoints 
-interactively. 
+in your package without having to restart Julia. 
 
 !!! note 
-    In a package environment the ```@infiltrate``` macro only works when used in a specific way, 
-    which is why the functional form
+    When running Julia inside a package environment, the ```@infiltrate``` macro only works if `Infiltrator` 
+    has been added to the dependencies. Another work around when using Revise is to first load the
+    package and then add breakpoints with `Main.@infiltrate` to the code. If this is not 
+    desired, the functional form
     ```julia
     if isdefined(Main, :Infiltrator)
-    Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+      Main.Infiltrator.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
     end
     ```
-    should be used to set breakpoints when working with Trixi or other packages.
+    can be used to set breakpoints when working with Trixi or other packages.
 
 Triggering the breakpoint starts a REPL session where it is possible to interact with the current 
 local scope. Possible commands are:
@@ -275,13 +277,12 @@ local scope. Possible commands are:
 - Execute other arbitrary statements
 - ```?```: Print a help list with all options
 
-To finish the session then either use ```@continue``` to continue and eventually stop at the next 
-breakpoint or ```@exit``` to skip further breakpoints. After the code has finished local variables 
-saved with ```@exfiltrate``` can be accessed in the REPL using the ```safehouse``` variable.
+To finish a debugging session, either use ```@continue``` to continue and eventually stop at the
+next breakpoint or ```@exit``` to skip further breakpoints. After the code has finished, local 
+variables saved with ```@exfiltrate``` can be accessed in the REPL using the ```safehouse``` variable.
 
-#### Limitations and Issues
-- Local variables cannot be changed
-- It is not possible to step into further calls or access other function scopes
+Limitations of using Infiltrator.jl are that local variables cannot be changed, and that it is not 
+possible to step into further calls or access other function scopes.
 
 
 ## Releasing a new version of Trixi, Trixi2Vtk
