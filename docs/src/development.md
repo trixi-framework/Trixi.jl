@@ -232,7 +232,7 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
 Julia offers several options for debugging. A classical debugger is available with the 
 [Debugger.jl](https://github.com/JuliaDebug/Debugger.jl) package or in the 
 [Julia extension for VS Code](https://www.julia-vscode.org/docs/stable/userguide/debugging/). 
-However, it can be quite slow and, at the time of writing (January 2023), does currently not work 
+However, it can be quite slow and, at the time of writing (January 2023), currently does not work 
 properly with Trixi. The [Infiltrator.jl](https://github.com/JuliaDebug/Infiltrator.jl) package on 
 the other hand does not offer all features of a full debugger, but is a fast and simple tool that 
 allows users to set breakpoints to open a local REPL session and access the call stack and variables.
