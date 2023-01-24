@@ -6,7 +6,7 @@
 
 
 function max_dt(u, t, mesh::TreeMesh{2},
-                constant_speed::Val{false}, equations, dg::DG, cache)
+                constant_speed::False, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -28,7 +28,7 @@ end
 
 
 function max_dt(u, t, mesh::TreeMesh{2},
-                constant_speed::Val{true}, equations, dg::DG, cache)
+                constant_speed::True, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -43,7 +43,7 @@ function max_dt(u, t, mesh::TreeMesh{2},
 end
 
 @inline function max_dt(u, t, mesh::Union{TreeMesh,StructuredMesh},
-                        constant_speed::Val{false}, equations, semi, dg::DG, cache, indicator::Union{IndicatorIDP, IndicatorMCL})
+                        constant_speed::False, equations, semi, dg::DG, cache, indicator::Union{IndicatorIDP, IndicatorMCL})
   @unpack inverse_weights = dg.basis
   @trixi_timeit timer() "calc_lambda!" calc_lambdas_bar_states!(u, t, mesh, have_nonconservative_terms(equations), equations,
                                                                 indicator, dg, cache, semi.boundary_conditions;
@@ -129,7 +129,7 @@ end
 
 
 function max_dt(u, t, mesh::ParallelTreeMesh{2},
-                constant_speed::Val{false}, equations, dg::DG, cache)
+                constant_speed::False, equations, dg::DG, cache)
   # call the method accepting a general `mesh::TreeMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
@@ -145,7 +145,7 @@ end
 
 
 function max_dt(u, t, mesh::ParallelTreeMesh{2},
-                constant_speed::Val{true}, equations, dg::DG, cache)
+                constant_speed::True, equations, dg::DG, cache)
   # call the method accepting a general `mesh::TreeMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
@@ -161,7 +161,7 @@ end
 
 
 function max_dt(u, t, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
-                constant_speed::Val{false}, equations, dg::DG, cache)
+                constant_speed::False, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -194,7 +194,7 @@ end
 
 
 function max_dt(u, t, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
-                constant_speed::Val{true}, equations, dg::DG, cache)
+                constant_speed::True, equations, dg::DG, cache)
   @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
   # to avoid a division by zero if the speed vanishes everywhere,
@@ -221,7 +221,7 @@ end
 
 
 function max_dt(u, t, mesh::ParallelP4estMesh{2},
-                constant_speed::Val{false}, equations, dg::DG, cache)
+                constant_speed::False, equations, dg::DG, cache)
   # call the method accepting a general `mesh::P4estMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
@@ -237,7 +237,7 @@ end
 
 
 function max_dt(u, t, mesh::ParallelP4estMesh{2},
-                constant_speed::Val{true}, equations, dg::DG, cache)
+                constant_speed::True, equations, dg::DG, cache)
   # call the method accepting a general `mesh::P4estMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.

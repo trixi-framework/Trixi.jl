@@ -32,7 +32,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi
     directory, elixir = test_examples_2d[mesh]
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), directory, elixir),
+    @test_nowarn_mod trixi_include(@__MODULE__, joinpath(examples_dir(), directory, elixir),
                                      tspan=(0,0.1))
 
     # Constructor tests
@@ -47,7 +47,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     pd = PlotData2D(sol)
 
     # show
-    @test_nowarn_debug show(stdout, pd)
+    @test_nowarn_mod show(stdout, pd)
     println(stdout)
 
     # getindex
@@ -73,48 +73,48 @@ isdir(outdir) && rm(outdir, recursive=true)
     pds = pd["p"]
     @test pds.plot_data == pd
     @test pds.variable_id == 4
-    @test_nowarn_debug show(stdout, pds)
+    @test_nowarn_mod show(stdout, pds)
     println(stdout)
 
     # getmesh/PlotMesh
     @test getmesh(pd) == Trixi.PlotMesh(pd)
     @test getmesh(pd).plot_data == pd
-    @test_nowarn_debug show(stdout, getmesh(pd))
+    @test_nowarn_mod show(stdout, getmesh(pd))
     println(stdout)
 
     @testset "2D plot recipes" begin
       pd = PlotData2D(sol)
 
-      @test_nowarn_debug Plots.plot(sol)
-      @test_nowarn_debug Plots.plot(pd)
-      @test_nowarn_debug Plots.plot(pd["p"])
-      @test_nowarn_debug Plots.plot(getmesh(pd))
+      @test_nowarn_mod Plots.plot(sol)
+      @test_nowarn_mod Plots.plot(pd)
+      @test_nowarn_mod Plots.plot(pd["p"])
+      @test_nowarn_mod Plots.plot(getmesh(pd))
 
       semi = sol.prob.p
       if mesh == "DGMulti"
         scalar_data = StructArrays.component(sol.u[end], 1)
-        @test_nowarn_debug Plots.plot(ScalarPlotData2D(scalar_data, semi))
+        @test_nowarn_mod Plots.plot(ScalarPlotData2D(scalar_data, semi))
       else
         cache = semi.cache
         x = view(cache.elements.node_coordinates, 1, :, :, :)
-        @test_nowarn_debug Plots.plot(ScalarPlotData2D(x, semi))
+        @test_nowarn_mod Plots.plot(ScalarPlotData2D(x, semi))
       end
     end
 
     @testset "1D plot from 2D solution" begin
       if mesh != "DGMulti"
         @testset "Create 1D plot as slice" begin
-          @test_nowarn_debug PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
-          @test_nowarn_debug PlotData1D(sol, slice=:x, point=(0.5, 0.0)) isa PlotData1D
+          @test_nowarn_mod PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
+          @test_nowarn_mod PlotData1D(sol, slice=:x, point=(0.5, 0.0)) isa PlotData1D
           pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
-          @test_nowarn_debug Plots.plot(pd1D)
+          @test_nowarn_mod Plots.plot(pd1D)
 
           @testset "Create 1D plot along curve" begin
             curve = zeros(2, 10)
             curve[1, :] = range(-1, 1,length=10)
-            @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+            @test_nowarn_mod PlotData1D(sol, curve=curve) isa PlotData1D
             pd1D = PlotData1D(sol, curve=curve)
-            @test_nowarn_debug Plots.plot(pd1D)
+            @test_nowarn_mod Plots.plot(pd1D)
           end
         end
       end
@@ -123,7 +123,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "PlotData1D, PlotDataSeries, PlotMesh" begin
     # Run Trixi
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_1d_dgsem", "elixir_euler_blast_wave.jl"),
+    @test_nowarn_mod trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_1d_dgsem", "elixir_euler_blast_wave.jl"),
                                      tspan=(0,0.1))
 
     # Constructor
@@ -131,7 +131,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     pd = PlotData1D(sol)
 
     # show
-    @test_nowarn_debug show(stdout, pd)
+    @test_nowarn_mod show(stdout, pd)
     println(stdout)
 
     # getindex
@@ -155,13 +155,13 @@ isdir(outdir) && rm(outdir, recursive=true)
     pds = pd["p"]
     @test pds.plot_data == pd
     @test pds.variable_id == 3
-    @test_nowarn_debug show(stdout, pds)
+    @test_nowarn_mod show(stdout, pds)
     println(stdout)
 
     # getmesh/PlotMesh
     @test getmesh(pd) == Trixi.PlotMesh(pd)
     @test getmesh(pd).plot_data == pd
-    @test_nowarn_debug show(stdout, getmesh(pd))
+    @test_nowarn_mod show(stdout, getmesh(pd))
     println(stdout)
 
     # nvisnodes
@@ -174,10 +174,10 @@ isdir(outdir) && rm(outdir, recursive=true)
     @testset "1D plot recipes" begin
       pd = PlotData1D(sol)
 
-      @test_nowarn_debug Plots.plot(sol)
-      @test_nowarn_debug Plots.plot(pd)
-      @test_nowarn_debug Plots.plot(pd["p"])
-      @test_nowarn_debug Plots.plot(getmesh(pd))
+      @test_nowarn_mod Plots.plot(sol)
+      @test_nowarn_mod Plots.plot(pd)
+      @test_nowarn_mod Plots.plot(pd["p"])
+      @test_nowarn_mod Plots.plot(getmesh(pd))
     end
 
     # Fake a PlotDataXD objects to test code for plotting multiple variables on at least two rows
@@ -203,28 +203,28 @@ isdir(outdir) && rm(outdir, recursive=true)
     # Test two different approximation types since these use different memory layouts:
     # - structure of arrays for `Polynomial()`
     # - array of structures for `SBP()`
-    @test_nowarn_debug trixi_include(@__MODULE__,
+    @test_nowarn_mod trixi_include(@__MODULE__,
       joinpath(examples_dir(), "dgmulti_1d", "elixir_euler_flux_diff.jl"), tspan=(0.0 ,0.0),
       approximation_type=Polynomial())
     @test PlotData1D(sol) isa PlotData1D
 
-    @test_nowarn_debug trixi_include(@__MODULE__,
+    @test_nowarn_mod trixi_include(@__MODULE__,
       joinpath(examples_dir(), "dgmulti_1d", "elixir_euler_flux_diff.jl"), tspan=(0.0 ,0.0),
       approximation_type=SBP())
     @test PlotData1D(sol) isa PlotData1D
   end
 
   @timed_testset "plot time series" begin
-    @test_nowarn_debug trixi_include(@__MODULE__,
+    @test_nowarn_mod trixi_include(@__MODULE__,
                                      joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"),
                                      tspan=(0, 0.05))
 
-    @test_nowarn_debug Plots.plot(time_series, 1)
+    @test_nowarn_mod Plots.plot(time_series, 1)
     @test PlotData1D(time_series, 1) isa PlotData1D
   end
 
   @timed_testset "adapt_to_mesh_level" begin
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"),
+    @test_nowarn_mod trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1), analysis_callback=Trixi.TrivialCallback())
     @test adapt_to_mesh_level(sol, 5) isa Tuple
 
@@ -237,7 +237,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @timed_testset "plot 3D" begin
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_basic.jl"),
+    @test_nowarn_mod trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1), analysis_callback=Trixi.TrivialCallback(), initial_refinement_level=1)
     @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice =:yz) isa Trixi.PlotData2DCartesian
@@ -245,42 +245,42 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     @testset "1D plot from 3D solution and Tree-mesh" begin
       @testset "Create 1D plot as slice" begin
-        @test_nowarn_debug PlotData1D(sol) isa PlotData1D
+        @test_nowarn_mod PlotData1D(sol) isa PlotData1D
         pd1D = PlotData1D(sol)
-        @test_nowarn_debug Plots.plot(pd1D)
-        @test_nowarn_debug PlotData1D(sol, slice=:y, point = (0.5, 0.3, 0.1)) isa PlotData1D
-        @test_nowarn_debug PlotData1D(sol, slice=:z, point = (0.1, 0.3, 0.3)) isa PlotData1D
+        @test_nowarn_mod Plots.plot(pd1D)
+        @test_nowarn_mod PlotData1D(sol, slice=:y, point = (0.5, 0.3, 0.1)) isa PlotData1D
+        @test_nowarn_mod PlotData1D(sol, slice=:z, point = (0.1, 0.3, 0.3)) isa PlotData1D
 
       end
 
       @testset "Create 1D plot along curve" begin
         curve = zeros(3, 10)
         curve[1, :] = range(-1.0, -0.5, length=10)
-        @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+        @test_nowarn_mod PlotData1D(sol, curve=curve) isa PlotData1D
         pd1D = PlotData1D(sol, curve=curve)
-        @test_nowarn_debug Plots.plot(pd1D)
+        @test_nowarn_mod Plots.plot(pd1D)
       end
     end
 
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "structured_3d_dgsem", "elixir_advection_basic.jl"),
+    @test_nowarn_mod trixi_include(@__MODULE__, joinpath(examples_dir(), "structured_3d_dgsem", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
 
     @testset "1D plot from 3D solution and general mesh" begin
       @testset "Create 1D plot as slice" begin
-        @test_nowarn_debug PlotData1D(sol) isa PlotData1D
+        @test_nowarn_mod PlotData1D(sol) isa PlotData1D
         pd1D = PlotData1D(sol)
-        @test_nowarn_debug Plots.plot(pd1D)
-        @test_nowarn_debug PlotData1D(sol, slice=:y, point = (0.5, 0.3, 0.1)) isa PlotData1D
-        @test_nowarn_debug PlotData1D(sol, slice=:z, point = (0.1, 0.3, 0.3)) isa PlotData1D
+        @test_nowarn_mod Plots.plot(pd1D)
+        @test_nowarn_mod PlotData1D(sol, slice=:y, point = (0.5, 0.3, 0.1)) isa PlotData1D
+        @test_nowarn_mod PlotData1D(sol, slice=:z, point = (0.1, 0.3, 0.3)) isa PlotData1D
 
       end
 
       @testset "Create 1D plot along curve" begin
         curve = zeros(3, 10)
         curve[1, :] = range(-1.0, 1.0, length=10)
-        @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+        @test_nowarn_mod PlotData1D(sol, curve=curve) isa PlotData1D
         pd1D = PlotData1D(sol, curve=curve)
-        @test_nowarn_debug Plots.plot(pd1D)
+        @test_nowarn_mod Plots.plot(pd1D)
       end
     end
   end
@@ -289,7 +289,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"),
                         maxiters=1, analysis_callback=Trixi.TrivialCallback(),
                         initial_refinement_level=1)
-    @test_nowarn_debug Plots.plot(sol)
+    @test_nowarn_mod Plots.plot(sol)
   end
 
   @timed_testset "VisualizationCallback" begin
@@ -301,7 +301,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       ENV["GKSwstype"] = "100"
     end
 
-    @test_nowarn_debug trixi_include(@__MODULE__,
+    @test_nowarn_mod trixi_include(@__MODULE__,
                                joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_amr_visualization.jl"),
                                visualization = VisualizationCallback(interval=20,
                                                clims=(0,1),
@@ -315,10 +315,10 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "show" begin
-      @test_nowarn_debug show(stdout, visualization)
+      @test_nowarn_mod show(stdout, visualization)
       println(stdout)
 
-      @test_nowarn_debug show(stdout, "text/plain", visualization)
+      @test_nowarn_mod show(stdout, "text/plain", visualization)
       println(stdout)
     end
 
@@ -333,30 +333,37 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
+    @test_nowarn_mod trixi_include(@__MODULE__, joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
 
     # test interactive surface plot
-    @test_nowarn_debug Trixi.iplot(sol)
+    @test_nowarn_mod Trixi.iplot(sol)
 
     # also test when using PlotData2D object
     @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
-    @test_nowarn_debug Makie.plot(PlotData2D(sol))
+    @test_nowarn_mod Makie.plot(PlotData2D(sol))
 
     # test interactive ScalarPlotData2D plotting
     semi = sol.prob.p
     x = view(semi.cache.elements.node_coordinates, 1, :, :, :); # extracts the node x coordinates
     y = view(semi.cache.elements.node_coordinates, 2, :, :, :); # extracts the node x coordinates
-    @test_nowarn_debug iplot(ScalarPlotData2D(x.+y, semi), plot_mesh=true)
+    @test_nowarn_mod iplot(ScalarPlotData2D(x.+y, semi), plot_mesh=true)
 
     # test heatmap plot
-    @test_nowarn_debug Makie.plot(sol, plot_mesh=true)
+    @test_nowarn_mod Makie.plot(sol, plot_mesh=true)
 
     # test unpacking/iteration for FigureAndAxes
     fa = Makie.plot(sol)
     fig, axes = fa
-    @test_nowarn_debug Base.show(fa) === nothing
-    @test_nowarn_debug typeof(fig) <: Makie.Figure
-    @test_nowarn_debug typeof(axes) <: AbstractArray{<:Makie.Axis}
+    @test_nowarn_mod Base.show(fa) === nothing
+    @test_nowarn_mod typeof(fig) <: Makie.Figure
+    @test_nowarn_mod typeof(axes) <: AbstractArray{<:Makie.Axis}
+
+    # test plotting of constant solutions with Makie
+    # related issue: https://github.com/MakieOrg/Makie.jl/issues/931
+    for i in eachindex(sol.u)
+      fill!(sol.u[i], one(eltype(sol.u[i])))
+    end
+    @test_nowarn_mod Trixi.iplot(sol)
   end
 end
 

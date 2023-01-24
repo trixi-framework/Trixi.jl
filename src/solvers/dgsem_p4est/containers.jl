@@ -435,8 +435,9 @@ cfunction(::typeof(init_surfaces_iter_face), ::Val{3}) = @cfunction(init_surface
 # Function barrier for type stability
 function init_surfaces_iter_face_inner(info, user_data)
   @unpack interfaces, mortars, boundaries = user_data
+  elem_count = unsafe_load(info).sides.elem_count
 
-  if info.sides.elem_count == 2
+  if elem_count == 2
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
@@ -453,7 +454,7 @@ function init_surfaces_iter_face_inner(info, user_data)
         init_mortars_iter_face_inner(info, sides, user_data)
       end
     end
-  elseif info.sides.elem_count == 1
+  elseif elem_count == 1
     # One neighboring elements => boundary
     if boundaries !== nothing
       init_boundaries_iter_face_inner(info, user_data)
@@ -500,7 +501,8 @@ function init_interfaces_iter_face_inner(info, sides, user_data)
   faces = (sides[1].face, sides[2].face)
 
   # Save interfaces.node_indices dimension specific in containers_[23]d.jl
-  init_interface_node_indices!(interfaces, faces, info.orientation, interface_id)
+  init_interface_node_indices!(interfaces, faces,
+    unsafe_load(info).orientation, interface_id)
 
   return nothing
 end
@@ -585,7 +587,7 @@ function init_mortars_iter_face_inner(info, sides, user_data)
   # Last entry is the large element
   mortars.neighbor_ids[end, mortar_id] = large_quad_id + 1
 
-  init_mortar_node_indices!(mortars, faces, info.orientation, mortar_id)
+  init_mortar_node_indices!(mortars, faces, unsafe_load(info).orientation, mortar_id)
 
   return nothing
 end
@@ -597,7 +599,9 @@ end
 # - boundaries
 # and collect the numbers in `user_data` in this order.
 function count_surfaces_iter_face(info, user_data)
-  if info.sides.elem_count == 2
+  elem_count = unsafe_load(info).sides.elem_count
+
+  if elem_count == 2
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
@@ -616,7 +620,7 @@ function count_surfaces_iter_face(info, user_data)
       id = unsafe_load(ptr, 2)
       unsafe_store!(ptr, id + 1, 2)
     end
-  elseif info.sides.elem_count == 1
+  elseif elem_count == 1
     # One neighboring elements => boundary
 
     # Unpack user_data = [boundary_count] and increment boundary_count

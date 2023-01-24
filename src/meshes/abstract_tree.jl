@@ -75,6 +75,13 @@ n_children_per_cell(::AbstractTree{NDIMS}) where NDIMS = 2^NDIMS
 # 6 -> +z
 @inline n_directions(::AbstractTree{NDIMS}) where NDIMS = 2 * NDIMS
 # TODO: Taal performance, 1:n_directions(tree) vs. Base.OneTo(n_directions(tree)) vs. SOneTo(n_directions(tree))
+"""
+    eachdirection(tree::AbstractTree)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the directions in `AbstractTree`. 
+In particular, not the directions themselves are returned.
+"""
 @inline eachdirection(tree::AbstractTree) = Base.OneTo(n_directions(tree))
 
 # For a given direction, return its opposite direction

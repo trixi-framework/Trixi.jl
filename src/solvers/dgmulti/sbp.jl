@@ -113,7 +113,7 @@ function StartUpDG.RefElemData(element_type::Line,
     element_type, approximation_type, N,
     face_vertices, V1,
     rst, VDM, face_mask,
-    N, rst, LinearAlgebra.I, # plotting
+    rst, LinearAlgebra.I, # plotting
     rstq, wq, Vq, # quadrature
     rstf, wf, Vf, nrstJ, # faces
     M, Pq, Drst, LIFT)
@@ -173,7 +173,7 @@ function StartUpDG.RefElemData(element_type::Quad,
     element_type, approximation_type, N,
     face_vertices, V1,
     rst, VDM, face_mask,
-    N, rst, LinearAlgebra.I, # plotting
+    rst, LinearAlgebra.I, # plotting
     rstq, wq, Vq, # quadrature
     rstf, wf, Vf, nrstJ, # faces
     M, Pq, Drst, LIFT)
@@ -233,7 +233,7 @@ function StartUpDG.RefElemData(element_type::Hex,
     element_type, approximation_type, N,
     face_vertices, V1,
     rst, VDM, face_mask,
-    N, rst, LinearAlgebra.I, # plotting
+    rst, LinearAlgebra.I, # plotting
     rstq, wq, Vq, # quadrature
     rstf, wf, Vf, nrstJ, # faces
     M, Pq, Drst, LIFT)
@@ -287,7 +287,7 @@ function StartUpDG.RefElemData(element_type::Hex,
     element_type, approximation_type, N,
     face_vertices, V1,
     rst, VDM, face_mask,
-    N, rst, LinearAlgebra.I, # plotting
+    rst, LinearAlgebra.I, # plotting
     rstq, wq, Vq, # quadrature
     rstf, wf, Vf, nrstJ, # faces
     M, Pq, Drst, LIFT)
@@ -298,12 +298,12 @@ function Base.show(io::IO, mime::MIME"text/plain", rd::RefElemData{NDIMS, Elemen
   @nospecialize rd
   print(io, "RefElemData for an approximation using an ")
   show(IOContext(io, :compact => true), rd.approximation_type)
-  print(io, " on $(rd.elementType) element")
+  print(io, " on $(rd.element_type) element")
 end
 
 function Base.show(io::IO, rd::RefElemData{NDIMS, ElementType, ApproximationType}) where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:AbstractDerivativeOperator}
   @nospecialize rd
-  print(io, "RefElemData{", summary(rd.approximation_type), ", ", rd.elementType, "}")
+  print(io, "RefElemData{", summary(rd.approximation_type), ", ", rd.element_type, "}")
 end
 
 function StartUpDG.inverse_trace_constant(rd::RefElemData{NDIMS, ElementType, ApproximationType})  where {NDIMS, ElementType<:Union{Line, Quad, Hex}, ApproximationType<:AbstractDerivativeOperator}
@@ -393,14 +393,20 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
 
   periodicity = ntuple(_ -> true, NDIMS)
 
-  mesh_type = rd.approximation_type
+  if NDIMS == 1
+    mesh_type = Line()
+  elseif NDIMS == 2
+    mesh_type = Quad()
+  elseif NDIMS == 3
+    mesh_type = Hex()
+  end
 
-  md = MeshData(mesh_type, VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
+  md = MeshData(StartUpDG.VertexMappedMesh(mesh_type, VXYZ, EToV), FToF, xyz, xyzf, xyzq, wJq,
                 mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
                 periodicity)
 
   boundary_faces = []
-  return DGMultiMesh{NDIMS, rd.elementType, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, rd.element_type, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
@@ -444,7 +450,7 @@ end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
                               mesh::DGMultiMesh,
-                              have_nonconservative_terms::Val{false}, equations,
+                              have_nonconservative_terms::False, equations,
                               dg::DGMultiPeriodicFDSBP)
   @assert nelements(mesh, dg, cache) == 1
   nothing
@@ -470,7 +476,7 @@ end
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms::Val{false}, equations,
+                               have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGMultiFluxDiffPeriodicFDSBP, cache)
 
@@ -490,7 +496,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
       #       `= ∑_j (1 / M[i,i] * Q[i,j]) * volume_flux(u[i], u[j])`
       #       `= ∑_j        D[i,j]         * volume_flux(u[i], u[j])`
       # TODO: DGMulti.
-      # This would have to be changed if `has_nonconservative_terms = Val{false}()`
+      # This would have to be changed if `has_nonconservative_terms = False()`
       # because then `volume_flux` is non-symmetric.
       A = dg.basis.Drst[dim]
 
@@ -523,9 +529,9 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
       A = dg.basis.Drst[dim]
 
-      # since has_nonconservative_terms::Val{false},
+      # since has_nonconservative_terms::False,
       # the volume flux is symmetric.
-      flux_is_symmetric = Val{true}()
+      flux_is_symmetric = True()
       hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
                     normal_direction, u, equations)
     end

@@ -107,12 +107,12 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGMulti, c
 
   # Construct 1D plotting interpolation matrix `Vp1D` for a single face
   @unpack N, Fmask = rd
-  num_face_points = length(Fmask) ÷ num_faces(rd.elementType)
+  num_face_points = length(Fmask) ÷ num_faces(rd.element_type)
   vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), num_face_points - 1))
   rplot = LinRange(-1, 1, nvisnodes)
   Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
 
-  num_faces_total = num_faces(rd.elementType) * md.num_elements
+  num_faces_total = num_faces(rd.element_type) * md.num_elements
   xf, yf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), md.xyz)
   uf = similar(u, size(xf))
   apply_to_each_field((out, x)->out .= reshape(view(x, Fmask, :), num_face_points, num_faces_total), uf, u)
@@ -202,7 +202,7 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, ca
   Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
 
   num_face_points = N+1
-  num_faces_total = num_faces(rd.elementType) * md.num_elements
+  num_faces_total = num_faces(rd.element_type) * md.num_elements
   xf, yf, uf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), (md.xyz..., u.data))
 
   num_face_plotting_points = size(Vp1D, 1)
@@ -924,7 +924,7 @@ function distances_from_single_point(nodes, point)
   _, n_nodes, _, _, n_elements = size(nodes)
   shifted_data = nodes.-point
   distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
-    
+
   # Iterate over every entry.
   for element in 1:n_elements
     for x in 1:n_nodes
@@ -1376,111 +1376,6 @@ function reference_node_coordinates_2d(dg::DGSEM)
   return r, s
 end
 
-
-# Given a reference plotting triangulation, this function generates a plotting triangulation for
-# the entire global mesh. The output can be plotted using `Makie.mesh`.
-function global_plotting_triangulation_makie(pds::PlotDataSeries{<:PlotData2DTriangulated};
-                                             set_z_coordinate_zero = false)
-  @unpack variable_id = pds
-  pd = pds.plot_data
-  @unpack x, y, data, t = pd
-
-  makie_triangles = Makie.to_triangles(t)
-
-  # trimesh[i] holds GeometryBasics.Mesh containing plotting information on the ith element.
-  # Note: Float32 is required by GeometryBasics
-  num_plotting_nodes, num_elements = size(x)
-  trimesh = Vector{GeometryBasics.Mesh{3, Float32}}(undef, num_elements)
-  coordinates = zeros(Float32, num_plotting_nodes, 3)
-  for element in Base.OneTo(num_elements)
-    for i in Base.OneTo(num_plotting_nodes)
-      coordinates[i, 1] = x[i, element]
-      coordinates[i, 2] = y[i, element]
-      if set_z_coordinate_zero == false
-        coordinates[i, 3] = data[i, element][variable_id]
-      end
-    end
-    trimesh[element] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates), makie_triangles)
-  end
-  plotting_mesh = merge([trimesh...]) # merge meshes on each element into one large mesh
-  return plotting_mesh
-end
-
-# Returns a list of `Makie.Point`s which can be used to plot the mesh, or a solution "wireframe"
-# (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
-function convert_PlotData2D_to_mesh_Points(pds::PlotDataSeries{<:PlotData2DTriangulated};
-                                           set_z_coordinate_zero = false)
-  @unpack variable_id = pds
-  pd = pds.plot_data
-  @unpack x_face, y_face, face_data = pd
-
-  if set_z_coordinate_zero
-    # plot 2d surface by setting z coordinate to zero.
-    # Uses `x_face` since `face_data` may be `::Nothing`, as it's not used for 2D plots.
-    sol_f = zeros(eltype(first(x_face)), size(x_face))
-  else
-    sol_f = StructArrays.component(face_data, variable_id)
-  end
-
-  # This line separates solution lines on each edge by NaNs to ensure that they are rendered
-  # separately. The coordinates `xf`, `yf` and the solution `sol_f`` are assumed to be a matrix
-  # whose columns correspond to different elements. We add NaN separators by appending a row of
-  # NaNs to this matrix. We also flatten (e.g., apply `vec` to) the result, as this speeds up
-  # plotting.
-  xyz_wireframe = GeometryBasics.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (x_face, y_face, sol_f))...)
-
-  return xyz_wireframe
-end
-
-# Creates a GeometryBasics triangulation for the visualization of a ScalarData2D plot object.
-function global_plotting_triangulation_makie(pd::PlotData2DTriangulated{<:ScalarData};
-                                             set_z_coordinate_zero = false)
-  @unpack x, y, data, t = pd
-
-  makie_triangles = Makie.to_triangles(t)
-
-  # trimesh[i] holds GeometryBasics.Mesh containing plotting information on the ith element.
-  # Note: Float32 is required by GeometryBasics
-  num_plotting_nodes, num_elements = size(x)
-  trimesh = Vector{GeometryBasics.Mesh{3, Float32}}(undef, num_elements)
-  coordinates = zeros(Float32, num_plotting_nodes, 3)
-  for element in Base.OneTo(num_elements)
-    for i in Base.OneTo(num_plotting_nodes)
-      coordinates[i, 1] = x[i, element]
-      coordinates[i, 2] = y[i, element]
-      if set_z_coordinate_zero == false
-        coordinates[i, 3] = data.data[i, element]
-      end
-    end
-    trimesh[element] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates), makie_triangles)
-  end
-  plotting_mesh = merge([trimesh...]) # merge meshes on each element into one large mesh
-  return plotting_mesh
-end
-
-# Returns a list of `GeometryBasics.Point`s which can be used to plot the mesh, or a solution "wireframe"
-# (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
-function convert_PlotData2D_to_mesh_Points(pd::PlotData2DTriangulated{<:ScalarData};
-                                           set_z_coordinate_zero = false)
-  @unpack x_face, y_face, face_data = pd
-
-  if set_z_coordinate_zero
-    # plot 2d surface by setting z coordinate to zero.
-    # Uses `x_face` since `face_data` may be `::Nothing`, as it's not used for 2D plots.
-    sol_f = zeros(eltype(first(x_face)), size(x_face))
-  else
-    sol_f = face_data
-  end
-
-  # This line separates solution lines on each edge by NaNs to ensure that they are rendered
-  # separately. The coordinates `xf`, `yf` and the solution `sol_f`` are assumed to be a matrix
-  # whose columns correspond to different elements. We add NaN separators by appending a row of
-  # NaNs to this matrix. We also flatten (e.g., apply `vec` to) the result, as this speeds up
-  # plotting.
-  xyz_wireframe = GeometryBasics.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (x_face, y_face, sol_f))...)
-
-  return xyz_wireframe
-end
 
 
 # Find element and triangle ids containing coordinates given as a matrix [ndims, npoints]

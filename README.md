@@ -3,7 +3,7 @@
 [![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable)
 [![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
 [![Slack](https://img.shields.io/badge/chat-slack-e01e5a)](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
-[![Youtube](https://img.shields.io/youtube/channel/views/UCpd92vU2HjjTPup-AIN0pkg?style=social)](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg/videos)
+[![Youtube](https://img.shields.io/youtube/channel/views/UCpd92vU2HjjTPup-AIN0pkg?style=social)](https://www.youtube.com/@trixi-framework)
 [![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
 [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
@@ -16,18 +16,6 @@
 <p align="center">
   <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
-
-***
-**Trixi.jl at JuliaCon 2022**<br/>
-At this year's JuliaCon 2022, we have been present with two contributions that involve Trixi.jl:
-
-* [Running Julia code in parallel with MPI: Lessons learned](https://live.juliacon.org/talk/LUWYRJ),
-  26th July 2022. [Watch on YouTube](https://youtu.be/fog1x9rs71Q?t=5172), [repo](https://github.com/JuliaParallel/juliacon-2022-julia-for-hpc-minisymposium)
-* [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://live.juliacon.org/talk/YSLKZJ),
-  27th July 2022. [Watch on YouTube](https://youtu.be/_N4ozHr-t9E), [repo](https://github.com/trixi-framework/talk-2022-juliacon_toolchain)
-
-If you have questions about Trixi.jl or our other projects, feel free to get in touch via Slack or open an issue ♥️
-***
 
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
@@ -59,7 +47,7 @@ installation and postprocessing procedures. Its features include:
   * Compressible Euler equations
   * Magnetohydrodynamics (MHD) equations
   * Multi-component compressible Euler and MHD equations
-  * Acoustic perturbation equations
+  * Linearized Euler and acoustic perturbation equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
   * Shallow water equations
@@ -137,6 +125,7 @@ Then start a simulation by executing
 ```julia
 julia> trixi_include(default_example())
 ```
+Please be patient since Julia will compile the code just before running it.
 To visualize the results, load the package Plots
 ```julia
 julia> using Plots
@@ -239,8 +228,8 @@ In addition, you can also refer to Trixi directly as
 
 ## Authors
 Trixi was initiated by [Michael
-Schlottke-Lakemper](https://www.hlrs.de/people/schlottke-lakemper)
-(University of Stuttgart, Germany) and
+Schlottke-Lakemper](https://lakemper.eu)
+(RWTH Aachen University, Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (University of Hamburg, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
@@ -253,6 +242,8 @@ The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
 Trixi is licensed under the MIT license (see [LICENSE.md](LICENSE.md)). Since Trixi is
 an open-source project, we are very happy to accept contributions from the
 community. Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
+Note that we strive to be a friendly, inclusive open-source community and ask all members
+of our community to adhere to our [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).

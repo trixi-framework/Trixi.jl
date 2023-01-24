@@ -23,9 +23,24 @@ end
 
 
 """
-    IndicatorHennemannGassner
+    IndicatorHennemannGassner(equations::AbstractEquations, basis;
+                              alpha_max=0.5,
+                              alpha_min=0.001,
+                              alpha_smooth=true,
+                              variable)
+    IndicatorHennemannGassner(semi::AbstractSemidiscretization;
+                              alpha_max=0.5,
+                              alpha_min=0.001,
+                              alpha_smooth=true,
+                              variable)
 
-Indicator used for shock-capturing or AMR used by
+Indicator used for shock-capturing (when passing the `equations` and the `basis`)
+or adaptive mesh refinement (AMR, when passing the `semi`).
+
+See also [`VolumeIntegralShockCapturingHG`](@ref).
+
+## References
+
 - Hennemann, Gassner (2020)
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
@@ -95,9 +110,20 @@ end
 """
     IndicatorLöhner (equivalent to IndicatorLoehner)
 
+    IndicatorLöhner(equations::AbstractEquations, basis;
+                    f_wave=0.2, variable)
+    IndicatorLöhner(semi::AbstractSemidiscretization;
+                    f_wave=0.2, variable)
+
 AMR indicator adapted from a FEM indicator by Löhner (1987), also used in the
 FLASH code as standard AMR indicator.
 The indicator estimates a weighted second derivative of a specified variable locally.
+
+When constructed to be used for AMR, pass the `semi`. Pass the `equations`,
+and `basis` if this indicator should be used for shock capturing.
+
+## References
+
 - Löhner (1987)
   "An adaptive finite element scheme for transient problems in CFD"
   [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
@@ -157,6 +183,8 @@ end
 
 """
     IndicatorIDP
+
+TODO: docstring
 
 Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturingSubcell`](@ref) proposed by
 - Rueda-Ramírez, Pazner, Gassner (2022)
@@ -258,6 +286,7 @@ end
 """
 IndicatorMCL
 
+TODO: docstring
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -321,6 +350,14 @@ function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIn
 end
 
 
+"""
+    IndicatorMax(equations::AbstractEquations, basis; variable)
+    IndicatorMax(semi::AbstractSemidiscretization; variable)
+
+A simple indicator returning the maximum of `variable` in an element.
+When constructed to be used for AMR, pass the `semi`. Pass the `equations`,
+and `basis` if this indicator should be used for shock capturing.
+"""
 struct IndicatorMax{Variable, Cache<:NamedTuple} <: AbstractIndicator
   variable::Variable
   cache::Cache

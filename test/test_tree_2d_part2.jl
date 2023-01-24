@@ -16,6 +16,9 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Acoustic perturbation
   include("test_tree_2d_acoustics.jl")
 
+  # Linearized Euler
+  include("test_tree_2d_linearizedeuler.jl")
+
   # Compressible Euler
   include("test_tree_2d_euler.jl")
 

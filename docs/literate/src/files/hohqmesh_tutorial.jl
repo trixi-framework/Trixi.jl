@@ -35,7 +35,7 @@
 # There is a default example for this mesh type that can be executed by
 
 using Trixi
-redirect_stdout(devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 trixi_include(default_example_unstructured())
 end #hide #md
 
@@ -52,7 +52,7 @@ end #hide #md
 # To convert the HDF5-formatted `.h5` output file(s) from Trixi into VTK format execute the following
 
 using Trixi2Vtk
-redirect_stdout(devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 trixi2vtk("out/solution_000180.h5", output_directory="out")
 end #hide #md
 
@@ -62,7 +62,7 @@ end #hide #md
 # where the new files will be saved; it defaults to the current directory. (2) Specifying a higher number of
 # visualization nodes. For instance, if we want to use 12 uniformly spaced nodes for visualization we can execute
 
-redirect_stdout(devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 trixi2vtk("out/solution_000180.h5", output_directory="out", nvisnodes=12)
 end #hide #md
 
@@ -71,7 +71,7 @@ end #hide #md
 
 # Finally, if you want to convert all the solution files to VTK execute
 
-redirect_stdout(devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 trixi2vtk("out/solution_000*.h5", output_directory="out", nvisnodes=12)
 end #hide #md
 
@@ -364,7 +364,7 @@ stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback, save_solution, stepsize_callback)
 
-redirect_stdout(devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 ## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

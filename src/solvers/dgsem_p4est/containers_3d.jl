@@ -44,7 +44,7 @@ function calc_node_coordinates!(node_coordinates,
   p4est_root_len = 1 << P4EST_MAXLEVEL
   p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
 
-  trees = unsafe_wrap_sc(p8est_tree_t, mesh.p4est.trees)
+  trees = unsafe_wrap_sc(p8est_tree_t, unsafe_load(mesh.p4est).trees)
 
   for tree in eachindex(trees)
     offset = trees[tree].quadrants_offset

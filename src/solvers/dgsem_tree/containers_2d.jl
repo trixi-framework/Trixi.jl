@@ -74,6 +74,13 @@ end
 # Return number of elements
 @inline nelements(elements::ElementContainer2D) = length(elements.cell_ids)
 # TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
+"""
+    eachelement(elements::ElementContainer2D)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the elements in `elements`. 
+In particular, not the elements themselves are returned.
+"""
 @inline eachelement(elements::ElementContainer2D) = Base.OneTo(nelements(elements))
 @inline Base.real(elements::ElementContainer2D) = eltype(elements.node_coordinates)
 

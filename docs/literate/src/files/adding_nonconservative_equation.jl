@@ -62,7 +62,7 @@ end
 
 
 ## We use nonconservative terms
-have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
+have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.True()
 
 ## This "nonconservative numerical flux" implements the nonconservative terms.
 ## In general, nonconservative terms can be written in the form
@@ -219,7 +219,7 @@ end
 
 
 ## We use nonconservative terms
-have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
+have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.True()
 
 ## This "nonconservative numerical flux" implements the nonconservative terms.
 ## In general, nonconservative terms can be written in the form

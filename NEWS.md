@@ -4,11 +4,59 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.5 from v0.4.x
+
+#### Added
+
+#### Changed
+
+- Compile-time boolean indicators have been changed from `Val{true}`/`Val{false}`
+  to `Trixi.True`/`Trixi.False`. This affects user code only if new equations
+  with nonconservative terms are created. Change
+  `Trixi.has_nonconservative_terms(::YourEquations) = Val{true}()` to
+  `Trixi.has_nonconservative_terms(::YourEquations) = Trixi.True()`.
+- The (non-exported) DGSEM function `split_form_kernel!` has been renamed to `flux_differencing_kernel!`
+
+#### Deprecated
+
+- The signature of the `DGMultiMesh` constructors has changed - the `dg::DGMulti`
+  argument now comes first.
+- The undocumented and unused
+  `DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})`
+  constructor was removed.
+
+#### Removed
+
+- Everything deprecated in Trixi.jl v0.4.x has been removed.
+
+
+## Changes when updating to v0.5 from v0.4.x
+
+#### Added
+
+#### Changed
+
+- Trixi.jl updated its dependency [P4est.jl](https://github.com/trixi-framework/P4est.jl/)
+  from v0.3 to v0.4. The new bindings of the C library `p4est` have been
+  generated using Clang.jl instead of CBinding.jl v0.9. This affects only user
+  code that is interacting directly with `p4est`, e.g., because custom refinement
+  functions have been passed to `p4est`. Please consult the
+  [NEWS.md of P4est.jl](https://github.com/trixi-framework/P4est.jl/blob/main/NEWS.md)
+  for further information.
+
+#### Deprecated
+
+#### Removed
+
 
 ## Changes in the v0.4 lifecycle
 
 #### Added
 
+- Implementation of linearized Euler equations in 2D
+- Experimental support for upwind finite difference summation by parts (FDSBP)
+  has been added in Trixi.jl v0.4.55. The first implementation requires a `TreeMesh` and comes
+  with several examples in the `examples_dir()` of Trixi.jl.
 - Experimental support for 2D parabolic diffusion terms has been added.
   * `LaplaceDiffusion2D` and `CompressibleNavierStokesDiffusion2D` can be used to add
   diffusion to systems. `LaplaceDiffusion2D` can be used to add scalar diffusion to each
@@ -42,6 +90,10 @@ for human readability.
 #### Changed
 
 - The required Julia version is updated to v1.7.
+- The isentropic vortex setups contained a bug that was fixed in Trixi.jl v0.4.54.
+  Moreover, the setup was made a bit more challenging. See
+  https://github.com/trixi-framework/Trixi.jl/issues/1269 for further
+  information.
 
 #### Deprecated
 
