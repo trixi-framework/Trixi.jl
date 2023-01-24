@@ -133,7 +133,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
   if mesh isa P4estMesh
     if cb.affect!.p4est_partition_allow_for_coarsening != mesh.p4est_partition_allow_for_coarsening
       if mpi_isroot()
-        @info "The attribute p4est_partition_allow_for_coarsening from the mesh is changed."
+        @info "The attribute p4est_partition_allow_for_coarsening from the mesh is changed to `$(cb.affect!.p4est_partition_allow_for_coarsening)`."
       end
       mesh.p4est_partition_allow_for_coarsening = cb.affect!.p4est_partition_allow_for_coarsening
     end
