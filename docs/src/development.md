@@ -240,7 +240,7 @@ allows users to set breakpoints to open a local REPL session and access the call
 ### Infiltrator
 The Infiltrator package provides fast, interactive breakpoints using the ```@infiltrate``` command, 
 which drops the user into a local REPL session. From there, it is possible to access local variables, 
-see the call stack and execute statements.
+see the call stack, and execute statements.
 
 The package can be installed in the Julia REPL by executing 
 ```julia-repl
