@@ -148,8 +148,8 @@ macro test_nowarn_mod(expr, additional_ignore_content=String[])
           # We also ignore our own compilation messages
           "[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.\n",
           # Ignore info about overriding attribute from P4estMesh inside AMRCallback
-          "[ Info: The attribute p4est_partition_allow_for_coarsening from the mesh is changed to `true`.\n",
-          "[ Info: The attribute p4est_partition_allow_for_coarsening from the mesh is changed to `false`.\n",
+          "[ Info: The attribute `p4est_partition_allow_for_coarsening` from the mesh was changed to `true` by the `AMRCallback`.\n",
+          "[ Info: The attribute `p4est_partition_allow_for_coarsening` from the mesh was changed to `false by the `AMRCallback`.\n",
           # TODO: Upstream (PlotUtils). This should be removed again once the
           #       deprecated stuff is fixed upstream.
           "WARNING: importing deprecated binding Colors.RGB1 into PlotUtils.\n",
