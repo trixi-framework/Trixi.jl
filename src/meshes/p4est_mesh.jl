@@ -1444,6 +1444,10 @@ function balance!(mesh::P4estMesh{3}, init_fn=C_NULL)
   p8est_balance(mesh.p4est, P8EST_CONNECT_FACE, init_fn)
 end
 
+"""
+    p4est_partition_allow_for_coarsening!(mesh::P4estMesh, new_value::Bool)
+Set the parameter `p4est_partition_allow_for_coarsening` of the `mesh` to the `new_value`.
+"""
 p4est_partition_allow_for_coarsening!(mesh::P4estMesh, new_value) = mesh.p4est_partition_allow_for_coarsening = new_value
 
 function partition!(mesh::P4estMesh{2}; weight_fn=C_NULL)
