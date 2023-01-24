@@ -148,8 +148,9 @@ Non-periodic boundaries will be called `:x_neg`, `:x_pos`, `:y_neg`, `:y_pos`, `
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
                  deciding for each dimension if the boundaries in this dimension are periodic.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
-- `p4est_partition_allow_for_coarsening::Bool`: modify the partition in `p4est_partition` such that more
-                                                aggressive coarsening is possible in parallel setups using MPI.
+- `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
+                                                independent of domain partitioning. Should be `false` for static meshes
+                                                to permit more fine-grained partitioning.
 """
 function P4estMesh(trees_per_dimension; polydeg,
                    mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
@@ -331,8 +332,9 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
-- `p4est_partition_allow_for_coarsening::Bool`: modify the partition in `p4est_partition` such that more
-                                                aggressive coarsening is possible in parallel setups using MPI.
+- `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
+                                                independent of domain partitioning. Should be `false` for static meshes
+                                                to permit more fine-grained partitioning.
 """
 function P4estMesh{NDIMS}(meshfile::String;
                           mapping=nothing, polydeg=1, RealT=Float64,
@@ -478,8 +480,9 @@ The mesh will have two boundaries, `:inside` and `:outside`.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
-- `p4est_partition_allow_for_coarsening::Bool`: modify the partition in `p4est_partition` such that more
-                                                aggressive coarsening is possible in parallel setups using MPI.
+- `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
+                                                independent of domain partitioning. Should be `false` for static meshes
+                                                to permit more fine-grained partitioning.
 """
 function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
                               polydeg, RealT=Float64,
