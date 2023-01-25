@@ -23,6 +23,25 @@ write(joinpath(@__DIR__, "src", "authors.md"), authors_text)
 DocMeta.setdocmeta!(Trixi,     :DocTestSetup, :(using Trixi);     recursive=true)
 DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true)
 
+# Copy some files from the repository root directory to the docs and modify them
+# as necessary
+# Based on: https://github.com/ranocha/SummationByPartsOperators.jl/blob/0206a74140d5c6eb9921ca5021cb7bf2da1a306d/docs/make.jl#L27-L41
+open(joinpath(@__DIR__, "src", "code_of_conduct.md"), "w") do io
+  # Point to source license file
+  println(io, """
+  ```@meta
+  EditURL = "https://github.com/trixi-framework/Trixi.jl/blob/main/CODE_OF_CONDUCT.md"
+  ```
+  """)
+  # Write the modified contents
+  println(io, "# [Code of Conduct](@id code-of-conduct)")
+  println(io, "")
+  for line in eachline(joinpath(dirname(@__DIR__), "CODE_OF_CONDUCT.md"))
+    line = replace(line, "[AUTHORS.md](AUTHORS.md)" => "[Authors](@ref)")
+    println(io, "> ", line)
+  end
+end
+
 # Create tutorials for the following files:
 # Normal structure: "title" => "filename.jl"
 # If there are several files for one topic and one folder, the structure is:
@@ -36,6 +55,7 @@ files = [
     "Non-periodic boundaries" => "non_periodic_boundaries.jl",
     "DG schemes via `DGMulti` solver" => "DGMulti_1.jl",
     "Other SBP schemes (FD, CGSEM) via `DGMulti` solver" => "DGMulti_2.jl",
+    "Upwind FD SBP schemes" => "upwind_fdsbp.jl",
     # Topic: equations
     "Adding a new scalar conservation law" => "adding_new_scalar_equations.jl",
     "Adding a non-conservative equation" => "adding_nonconservative_equation.jl",
@@ -101,6 +121,7 @@ makedocs(
                        ],
         "Authors" => "authors.md",
         "Contributing" => "contributing.md",
+        "Code of Conduct" => "code_of_conduct.md",
         "License" => "license.md"
     ],
     strict = true # to make the GitHub action fail when doctests fail, see https://github.com/neuropsychology/Psycho.jl/issues/34

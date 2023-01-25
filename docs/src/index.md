@@ -41,6 +41,7 @@ installation and postprocessing procedures. Its features include:
   * Compressible Euler equations
   * Magnetohydrodynamics (MHD) equations
   * Multi-component compressible Euler and MHD equations
+  * Linearized Euler and acoustic perturbation equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
   * Shallow water equations
@@ -164,6 +165,7 @@ Then start a simulation by executing
 ```julia
 julia> trixi_include(default_example())
 ```
+Please be patient since Julia will compile the code just before running it.
 To visualize the results, load the package Plots
 ```julia
 julia> using Plots
@@ -345,6 +347,8 @@ The full list of contributors can be found under [Authors](@ref).
 Trixi is licensed under the MIT license (see [License](@ref)). Since Trixi is
 an open-source project, we are very happy to accept contributions from the
 community. Please refer to [Contributing](@ref) for more details.
+Note that we strive to be a friendly, inclusive open-source community and ask all members
+of our community to adhere to our [Code of Conduct](@ref code-of-conduct).
 To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).

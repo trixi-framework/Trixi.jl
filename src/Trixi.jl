@@ -44,7 +44,6 @@ using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 using MPI: MPI
 using MuladdMacro: @muladd
-using GeometryBasics: GeometryBasics
 using Octavian: Octavian, matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
@@ -52,7 +51,7 @@ using P4est
 using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
-using Static: Static, One
+using Static: Static, One, True, False
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
@@ -72,7 +71,8 @@ using SummationByPartsOperators: AbstractDerivativeOperator,
 import SummationByPartsOperators: integrate, semidiscretize,
                                   left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
-  SummationByPartsOperators, derivative_operator, periodic_derivative_operator
+  SummationByPartsOperators, derivative_operator, periodic_derivative_operator,
+  upwind_operators
 
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
@@ -132,7 +132,8 @@ export AcousticPerturbationEquations2D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
-       ShallowWaterEquations1D, ShallowWaterEquations2D
+       ShallowWaterEquations1D, ShallowWaterEquations2D,
+       LinearizedEulerEquations2D
 
 export LaplaceDiffusion2D,
        CompressibleNavierStokesDiffusion2D, CompressibleNavierStokesDiffusion3D
@@ -152,7 +153,11 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, 
        FluxLMARS,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
-       FluxHydrostaticReconstruction
+       FluxHydrostaticReconstruction,
+       FluxUpwind
+
+export splitting_steger_warming, splitting_vanleer_haenel,
+       splitting_coirier_vanleer, splitting_lax_friedrichs
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -185,11 +190,14 @@ export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
+       FDSBP,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
+       SurfaceIntegralUpwind,
        MortarL2
 
 export nelements, nnodes, nvariables,
@@ -227,7 +235,6 @@ export ode_norm, ode_unstable_check
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
-export VertexMappedMesh # TODO: DGMulti, v0.5. Remove deprecated VertexMappedMesh in next release
 
 export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
 
@@ -246,7 +253,7 @@ function __init__()
 
   @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
     include("visualization/recipes_makie.jl")
-    using .Makie: Makie
+    using .Makie: Makie, GeometryBasics
     export iplot, iplot! # interactive plot
   end
 

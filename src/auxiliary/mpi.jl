@@ -47,9 +47,15 @@ const MPI_IS_ROOT = Ref(true)
 
 # This is not type-stable but that's okay since we want to get rid of it anyway
 # and it's not used in performance-critical parts. The alternative we used before,
-# calling something like `eval(:(mpi_parallel() = Val(true)))` in `init_mpi()`,
+# calling something like `eval(:(mpi_parallel() = True()))` in `init_mpi()`,
 # causes invalidations and slows down the first call to Trixi.
-mpi_parallel()::Union{Val{true}, Val{false}} = Val(mpi_isparallel())
+function mpi_parallel()
+  if mpi_isparallel()
+    return True()
+  else
+    return False()
+  end
+end
 
 @inline mpi_isroot() = MPI_IS_ROOT[]
 
@@ -104,7 +110,14 @@ end
 # care of these situations when allowing to use `ode_norm` as default norm in
 # OrdinaryDiffEq.jl throughout all applications of Trixi.jl.
 recursive_sum_abs2(u::Number) = abs2(u)
-recursive_sum_abs2(u::AbstractArray) = sum(recursive_sum_abs2, u)
+# Use `mapreduce` instead of `sum` since `sum` from StaticArrays.jl does not
+# support the kwarg `init`
+# We need `init=zero(eltype(eltype(u))` below to deal with arrays of `SVector`s etc.
+# A better solution would be `recursive_unitless_bottom_eltype` from 
+# https://github.com/SciML/RecursiveArrayTools.jl
+# However, what you have is good enough for us for now, so we don't need this 
+# additional dependency at the moment.
+recursive_sum_abs2(u::AbstractArray) = mapreduce(recursive_sum_abs2, +, u; init=zero(eltype(eltype(u))))
 
 recursive_length(u::Number) = length(u)
 recursive_length(u::AbstractArray{<:Number}) = length(u)

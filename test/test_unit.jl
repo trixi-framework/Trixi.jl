@@ -553,8 +553,26 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @timed_testset "boundary_condition_do_nothing" begin
+    rho, v1, v2, p = 1.0, 0.1, 0.2, 0.3, 2.0
+
+    let equations = CompressibleEulerEquations2D(1.4)
+      u = prim2cons(SVector(rho, v1, v2, p), equations)
+      x = SVector(1.0, 2.0)
+      t = 0.5
+      surface_flux = flux_lax_friedrichs
+
+      outward_direction = SVector(0.2, -0.3)
+      @test flux(u, outward_direction, equations) ≈ boundary_condition_do_nothing(u, outward_direction, x, t, surface_flux, equations)
+
+      orientation = 2
+      direction = 4
+      @test flux(u, orientation, equations) ≈ boundary_condition_do_nothing(u, orientation, direction, x, t, surface_flux, equations)
+    end
+  end
+
   @timed_testset "TimeSeriesCallback" begin
-    @test_nowarn_debug trixi_include(@__MODULE__,
+    @test_nowarn_mod trixi_include(@__MODULE__,
                                      joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"),
                                      tspan=(0, 0.05))
 
@@ -570,6 +588,14 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "Consistency check for HLLE flux" begin
     # Set up equations and dummy conservative variables state
+    equations = CompressibleEulerEquations1D(1.4)
+    u = SVector(1.1, 2.34, 5.5)
+
+    orientations = [1]
+    for orientation in orientations
+      @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
     equations = CompressibleEulerEquations2D(1.4)
     u = SVector(1.1, -0.5, 2.34, 5.5)
 
@@ -577,11 +603,19 @@ isdir(outdir) && rm(outdir, recursive=true)
     for orientation in orientations
       @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
+
+    equations = CompressibleEulerEquations3D(1.4)
+    u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
+
+    orientations = [1, 2, 3]
+    for orientation in orientations
+      @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
   end
 
   @timed_testset "Consistency check for Godunov flux" begin
     # Set up equations and dummy conservative variables state
-    # Burger's Equation 
+    # Burger's Equation
 
     equation = InviscidBurgersEquation1D()
     u_values = [SVector(42.0), SVector(-42.0)]
@@ -617,7 +651,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     for normal_direction in normal_directions
       @test flux_godunov(u, u, normal_direction, equation) ≈ flux(u, normal_direction, equation)
     end
-    
+
     # Linear Advection 3D
     equation = LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
     u = SVector(3.14159)
@@ -635,7 +669,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     for normal_direction in normal_directions
       @test flux_godunov(u, u, normal_direction, equation) ≈ flux(u, normal_direction, equation)
-    end   
+    end
   end
 
   @timed_testset "Consistency check for Engquist-Osher flux" begin
@@ -659,7 +693,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @testset "Equivalent Fluxes" begin
     # Set up equations and dummy conservative variables state
-    # Burger's Equation 
+    # Burger's Equation
 
     equation = InviscidBurgersEquation1D()
     u_values = [SVector(42.0), SVector(-42.0)]
@@ -696,7 +730,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     for normal_direction in normal_directions
       @test flux_godunov(3*u, u, normal_direction, equation) ≈ flux_lax_friedrichs(3*u, u, normal_direction, equation)
     end
-    
+
     # Linear Advection 3D
     equation = LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
     u = SVector(3.14159)
@@ -714,7 +748,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     for normal_direction in normal_directions
       @test flux_godunov(1.3*u, u, normal_direction, equation) ≈ flux_lax_friedrichs(1.3*u, u, normal_direction, equation)
-    end   
+    end
   end
 
   @testset "FluxRotated vs. direct implementation" begin
