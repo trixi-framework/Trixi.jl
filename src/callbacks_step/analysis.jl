@@ -199,16 +199,23 @@ function (analysis_callback::AnalysisCallback)(integrator)
   @unpack dt, t = integrator
   iter = integrator.destats.naccept
 
-  # Record performance measurements and compute walltime/coretime PID
+  # Record performance measurements and compute performance index (PID)
   runtime_since_last_analysis = 1.0e-9 * (time_ns() - analysis_callback.start_time_last_analysis)
-  pid_walltime = runtime_since_last_analysis / (ndofsglobal(mesh, solver, cache) * ncalls(semi.performance_counter))
-  pid_coretime = pid_walltime * mpi_nranks()
+  # PID is an MPI-aware measure of how much time per global degree of freedom (i.e., over all ranks)
+  # and per `rhs!` evaluation is required. MPI-aware means that it essentially adds up the time
+  # spent on each MPI rank. Thus, in an ideally parallelized program, the PID should be constant
+  # independent of the number of MPI ranks used, since, e.g., using 4x the number of ranks should
+  # divide the runtime on each rank by 4. See also the Trixi.jl docs ("Performance" section) for
+  # more information.
+  performance_index = runtime_since_last_analysis * mpi_nranks() / (ndofsglobal(mesh, solver, cache)
+                                                                    * ncalls(semi.performance_counter))
 
   # Compute the total runtime since the analysis callback has been initialized, in seconds
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
 
-  # Compute the local, rhs!-only PID (performance index)
-  # OBS! This computation must happen *after* the walltime PID computation above, since `take!(...)`
+  # Compute the relative runtime as time spent in `rhs!` divided by the number of calls to `rhs!`
+  # and the number of local degrees of freedom
+  # OBS! This computation must happen *after* the PID computation above, since `take!(...)`
   #      will reset the number of calls to `rhs!`
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
 
@@ -249,13 +256,11 @@ function (analysis_callback::AnalysisCallback)(integrator)
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
     mpi_println("                 " * "              " *
                 "               " *
-                " PID (walltime): " * @sprintf("%10.8e s", pid_walltime))
+                " Perform. index: " * @sprintf("%10.8e s", performance_index))
     mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)) *
                 "               " *
-                " PID (coretime): " * @sprintf("%10.8e s", pid_coretime))
-    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)) *
-                "               " *
                 " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
+    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)))
 
     # Level information (only show for AMR)
     print_amr_information(integrator.opts.callback, mesh, solver, cache)
