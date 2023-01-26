@@ -44,7 +44,6 @@ using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 using MPI: MPI
 using MuladdMacro: @muladd
-using GeometryBasics: GeometryBasics
 using Octavian: Octavian, matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
@@ -253,7 +252,7 @@ function __init__()
 
   @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
     include("visualization/recipes_makie.jl")
-    using .Makie: Makie
+    using .Makie: Makie, GeometryBasics
     export iplot, iplot! # interactive plot
   end
 
