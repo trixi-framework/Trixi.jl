@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # Semidiscretization of the two-layer shallow water equations to test well-balancedness
 
-equations = ShallowWaterTwoLayerEquations1D(gravity_constant=1.0,H0=0.6,rho1=0.9,rho2=1.0)
+equations = ShallowWaterTwoLayerEquations1D(gravity_constant=1.0, H0=0.6, rho1=0.9, rho2=1.0)
 
 """
     initial_condition_fjordholm_well_balanced(x, t, equations::ShallowWaterTwoLayerEquations1D)

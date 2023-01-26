@@ -6,7 +6,7 @@ using Trixi
 # Semidiscretization of the two-layer shallow water equations for a dam break test with a 
 # discontinuous bottom topography function to test entropy conservation
 
-equations = ShallowWaterTwoLayerEquations1D(gravity_constant=9.81,H0=2.0,rho1=0.9,rho2=1.0)
+equations = ShallowWaterTwoLayerEquations1D(gravity_constant=9.81, H0=2.0, rho1=0.9, rho2=1.0)
 # This initial condition will be overwritten with the discontinuous initial_condition_dam_break
 initial_condition = initial_condition_convergence_test
 
@@ -15,7 +15,7 @@ initial_condition = initial_condition_convergence_test
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
 solver = DGSEM(polydeg=3, surface_flux=(flux_fjordholm_etal, flux_nonconservative_fjordholm_etal),
-              volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 
 ###############################################################################
@@ -42,13 +42,9 @@ ode = semidiscretize(semi, tspan)
 
 # Initial conditions dam break test case
 function initial_condition_dam_break(x, t, element_id, equations::ShallowWaterTwoLayerEquations1D)
-  inicenter = 10.0
-  x_norm = x[1] - inicenter
-  r = abs(x_norm)
-
   v1 = 0.0
   v2 = 0.0
-  
+
   # Set the discontinuity
   if element_id <= 16
     H2 = 2.0
@@ -83,7 +79,7 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 500
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=false, 
-                      extra_analysis_integrals=(energy_total, energy_kinetic, energy_internal,))
+    extra_analysis_integrals=(energy_total, energy_kinetic, energy_internal,))
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 

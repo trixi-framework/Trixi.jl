@@ -76,7 +76,8 @@ ode = semidiscretize(semi, tspan)
 # `element_id` explicitly. In particular, this initial conditions works as intended
 # only for the specific mesh loaded above!
 
-function initial_condition_discontinuous_dam_break(x, t, element_id,equations::ShallowWaterTwoLayerEquations2D)
+function initial_condition_discontinuous_dam_break(x, t, element_id, 
+                                                   equations::ShallowWaterTwoLayerEquations2D)
   # Constant values
   v1 = 0.0
   w1 = 0.0
@@ -118,7 +119,7 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 500
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,save_analysis=false,
-                          extra_analysis_integrals=(energy_total, energy_kinetic, energy_internal,))
+    extra_analysis_integrals=(energy_total, energy_kinetic, energy_internal,))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 

@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # Semidiscretization of the two-layer shallow water equations
 
-equations = ShallowWaterTwoLayerEquations1D(gravity_constant=10.0,rho1=0.9,rho2=1.0)
+equations = ShallowWaterTwoLayerEquations1D(gravity_constant=10.0, rho1=0.9, rho2=1.0)
 
 initial_condition = initial_condition_convergence_test
 
@@ -15,7 +15,7 @@ initial_condition = initial_condition_convergence_test
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
 solver = DGSEM(polydeg=3, surface_flux=(flux_fjordholm_etal, flux_nonconservative_fjordholm_etal),
-              volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 
 ###############################################################################

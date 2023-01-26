@@ -7,7 +7,7 @@ using Trixi
 # Semidiscretization of the two-layer shallow water equations with a periodic
 # bottom topography function (set in the initial conditions)
 
-equations = ShallowWaterTwoLayerEquations2D(gravity_constant=10.0,rho1=0.9,rho2=1.0)
+equations = ShallowWaterTwoLayerEquations2D(gravity_constant=10.0, rho1=0.9, rho2=1.0)
 
 initial_condition = initial_condition_convergence_test
 

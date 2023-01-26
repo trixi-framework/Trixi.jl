@@ -26,11 +26,14 @@ Two-Layer Shallow Water equations (2L-SWE) in one space dimension. The equations
 \end{alignat*}
 ```
 The unknown quantities of the 2L-SWE are the water heights of the lower layer ``h_2`` and the 
-upper layer ``h_1`` with respecitv velocities ``v_1`` and ``v_2``. The gravitational constant is 
-denoted by `g`, the layer densitites by ``\rho_1``and ``\rho_2`` and the (possibly) variable 
+upper layer ``h_1`` with respective velocities ``v_1`` and ``v_2``. The gravitational constant is 
+denoted by `g`, the layer densitites by ``$\rho_1$``and ``$\rho_2$`` and the (possibly) variable 
 bottom topography function ``b(x)``. The conservative variable water height ``h_2`` is measured 
 from the bottom topography ``b`` and ``h_1`` relative to ``h_2``, therefore one also defines the 
 total water heights as ``H_1 = h_1 + h_2 + b`` and ``H_2 = h_2 + b``.
+
+The densities must be chosen such that ``\rho_1 < \rho_2``, to make sure that the heavier fluid 
+``\rho_2`` is in the bottom layer and the lighter fluid ``\rho_1`` in the upper layer.
 
 The additional quantity ``H_0`` is also available to store a reference value for the total water
 height that is useful to set initial conditions or test the "lake-at-rest" well-balancedness.
@@ -95,13 +98,13 @@ A smooth initial condition used for convergence tests in combination with
 """
 function initial_condition_convergence_test(x, t, equations::ShallowWaterTwoLayerEquations1D)
   # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
-  ω = 2.0 * pi * sqrt(2.0)
+  f = 2.0 * pi * sqrt(2.0)
 
-  H2 = 2.0 + 0.1 * sin(ω * x[1] + t)
-  H1 = 4.0 + 0.1 * cos(ω * x[1] + t)
+  H2 = 2.0 + 0.1 * sin(f * x[1] + t)
+  H1 = 4.0 + 0.1 * cos(f * x[1] + t)
   v2 = 1.0
   v1 = 0.9
-  b  = 1.0 + 0.1 * cos(2.0 * ω * x[1])
+  b  = 1.0 + 0.1 * cos(2.0 * f * x[1])
 
   return prim2cons(SVector(H1, v1, H2, v2, b), equations)
 end
@@ -119,19 +122,19 @@ in non-periodic domains).
                                                equations::ShallowWaterTwoLayerEquations1D)
   # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
   # this manufactured solution velocity is taken to be constant
-  ω = 2 * pi * sqrt(2.0)
+  f = 2 * pi * sqrt(2.0)
 
-  du1 = (-0.1*cos(t + ω*x[1]) - 0.1*sin(t + ω*x[1]) - 0.09*ω*cos(t + ω*x[1]) +
-          - 0.09*ω*sin(t + ω*x[1]))
-  du2 = (5.0 * (-0.1*ω*cos(t + ω*x[1]) - 0.1*ω*sin(t + ω*x[1])) * (4.0 + 0.2*cos(t + ω*x[1]) +
-        -0.2*sin(t + ω*x[1])) + 0.1*ω*(20.0 + cos(t + ω*x[1]) - sin(t + ω*x[1])) * cos(t +
-          ω*x[1]) - 0.09*cos(t + ω*x[1]) - 0.09*sin(t + ω*x[1]) - 0.081*ω*cos(t + ω*x[1]) +
-        -0.081*ω*sin(t + ω*x[1]))
-  du3 = 0.1*cos(t + ω*x[1]) + 0.1*ω*cos(t + ω*x[1]) + 0.2*ω*sin(2.0*ω*x[1])
-  du4 = ((10.0 + sin(t + ω*x[1]) - cos(2ω*x[1]))*(-0.09*ω*cos(t + ω*x[1]) - 0.09*ω*sin(t +
-          ω*x[1]) - 0.2*ω*sin(2*ω*x[1])) + 0.1*cos(t + ω*x[1]) + 0.1*ω*cos(t + ω*x[1]) +
-          5.0 * (0.1*ω*cos(t + ω*x[1]) + 0.2*ω*sin(2.0*ω*x[1])) * (2.0 + 0.2*sin(t + ω*x[1]) +
-        -0.2*cos(2.0*ω*x[1])) + 0.2*ω*sin(2.0*ω*x[1]))
+  du1 = (-0.1*cos(t + f*x[1]) - 0.1*sin(t + f*x[1]) - 0.09*f*cos(t + f*x[1]) +
+          - 0.09*f*sin(t + f*x[1]))
+  du2 = (5.0 * (-0.1*f*cos(t + f*x[1]) - 0.1*f*sin(t + f*x[1])) * (4.0 + 0.2*cos(t + f*x[1]) +
+        -0.2*sin(t + f*x[1])) + 0.1*f*(20.0 + cos(t + f*x[1]) - sin(t + f*x[1])) * cos(t +
+          f*x[1]) - 0.09*cos(t + f*x[1]) - 0.09*sin(t + f*x[1]) - 0.081*f*cos(t + f*x[1]) +
+        -0.081*f*sin(t + f*x[1]))
+  du3 = 0.1*cos(t + f*x[1]) + 0.1*f*cos(t + f*x[1]) + 0.2*f*sin(2.0*f*x[1])
+  du4 = ((10.0 + sin(t + f*x[1]) - cos(2f*x[1]))*(-0.09*f*cos(t + f*x[1]) - 0.09*f*sin(t +
+          f*x[1]) - 0.2*f*sin(2*f*x[1])) + 0.1*cos(t + f*x[1]) + 0.1*f*cos(t + f*x[1]) +
+          5.0 * (0.1*f*cos(t + f*x[1]) + 0.2*f*sin(2.0*f*x[1])) * (2.0 + 0.2*sin(t + f*x[1]) +
+        -0.2*cos(2.0*f*x[1])) + 0.2*f*sin(2.0*f*x[1]))
 
   return SVector(du1, du2, du3, du4, zero(eltype(u)))
 end
@@ -196,7 +199,7 @@ end
                                           equations::ShallowWaterTwoLayerEquations1D)
 
 !!! warning "Experimental code"
-This numerical flux is experimental and may change in any future release.
+    This numerical flux is experimental and may change in any future release.
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the bottom topography [`ShallowWaterTwoLayerEquations2D`](@ref) and an
@@ -209,7 +212,6 @@ Further details are available in the paper:
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
-# TODO: Change name after paper is finished
 @inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
                                                        orientation::Integer,
                                                        equations::ShallowWaterTwoLayerEquations1D)
@@ -234,6 +236,9 @@ end
     flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
                                         equations::ShallowWaterTwoLayerEquations1D)
 
+!!! warning "Experimental code"
+    This numerical flux is experimental and may change in any future release.
+                                    
 Non-symmetric two-point surface flux discretizing the nonconservative (source) term that contains 
 the gradients of the bottom topography and an additional term that couples the momentum of both 
 layers [`ShallowWaterTwoLayerEquations2D`](@ref).
@@ -326,9 +331,6 @@ end
 """
     flux_wintermeyer_etal(u_ll, u_rr, orientation,
                           equations::ShallowWaterTwoLayerEquations1D)
-
-!!! warning "Experimental code"
-This numerical flux is experimental and may change in any future release.
                       
 Total energy conservative (mathematical entropy for two-layer shallow water equations) split form.
 When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
@@ -342,7 +344,6 @@ Further details are available in Theorem 1 of the paper:
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
-#TODO: Change name after paper is finished
 @inline function flux_wintermeyer_etal(u_ll, u_rr,
                                        orientation::Integer,
                                        equations::ShallowWaterTwoLayerEquations1D)
@@ -453,9 +454,13 @@ end
 @inline function max_abs_speed_naive(u_ll, u_rr,
                                      orientation::Integer,
                                      equations::ShallowWaterTwoLayerEquations1D)
+  # Unpack left and right state
+  h1_ll, h1_v1_ll, h2_ll, h2_v2_ll, _ = u_ll
+  h1_rr, h1_v1_rr, h2_rr, h2_v2_rr, _ = u_rr
+
   # Get the averaged velocity
-  Um_ll = (u_ll[2] + u_ll[4]) / (u_ll[1] + u_ll[3])
-  Um_rr = (u_rr[2] + u_rr[4]) / (u_rr[1] + u_rr[3])
+  v_m_ll = (h1_v1_ll + h2_v2_ll) / (h1_ll + h2_ll)
+  v_m_rr = (h1_v1_rr + h2_v2_rr) / (h1_rr + h2_rr)
 
   # Calculate the wave celerity on the left and right
   h1_ll, h2_ll = waterheight(u_ll, equations)
@@ -463,7 +468,7 @@ end
   c_ll = sqrt(equations.gravity * (h1_ll + h2_ll))
   c_rr = sqrt(equations.gravity * (h1_rr + h2_rr))
 
-  return (max(abs(Um_ll) + c_ll, abs(Um_rr) + c_rr))
+  return (max(abs(v_m_ll) + c_ll, abs(v_m_rr) + c_rr))
 end
 
 
@@ -479,13 +484,13 @@ end
 
 # Absolute speed of the barotropic mode
 @inline function max_abs_speeds(u, equations::ShallowWaterTwoLayerEquations1D)
-  h1, h2 = waterheight(u, equations)
+  h1, h1_v1, h2, h2_v2, _ = u
   
   # Calculate averaged velocity of both layers
-  v = (u[2] + u[4]) / (h1 + h2)
+  v_m = (h1_v1 + h2_v2) / (h1 + h2)
   c = sqrt(equations.gravity * (h1 + h2))
 
-  return (abs(v) + c)
+  return (abs(v_m) + c)
 end
 
 
@@ -514,16 +519,13 @@ end
 # Note, only the first four are the entropy variables, the fifth entry still just carries the 
 # bottom topography values for convenience
 @inline function cons2entropy(u, equations::ShallowWaterTwoLayerEquations1D)
-  h1, h1_v1, h2, h2_v2, b = u
-  ρ1 = equations.rho1
-  ρ2 = equations.rho2
-
+  h1, _, h2, _, b = u
   v1, v2 = velocity(u, equations)
 
-  w1 = ρ1 * (equations.gravity * (h1 + h2 + b) - 0.5 * v1^2)
-  w2 = ρ1 * v1
-  w3 = ρ2 * (equations.gravity * (equations.r * h1 + h2 + b) - 0.5 * v2^2)
-  w4 = ρ2 * v2
+  w1 = equations.rho1 * (equations.gravity * (h1 + h2 + b) - 0.5 * v1^2)
+  w2 = equations.rho1 * v1
+  w3 = equations.rho2 * (equations.gravity * (equations.r * h1 + h2 + b) - 0.5 * v2^2)
+  w4 = equations.rho2 * v2
   return SVector(w1, w2, w3, w4, b)
 end
 
@@ -554,11 +556,11 @@ end
   h1, h2, h1_v1, h2_v2, b = cons
   # Set new variables for better readability
   g = equations.gravity
-  ρ1 = equations.rho1
-  ρ2 = equations.rho2
+  rho1 = equations.rho1
+  rho2 = equations.rho2
 
-  e = (0.5 * ρ1 * (h1_v1^2 / h1 + g * h1^2) + 0.5 * ρ2 * (h2_v2^2 / h2 + g * h2^2) +
-      g * ρ2 * h2 * b + g * ρ1 * h1 * (h2 + b))
+  e = (0.5 * rho1 * (h1_v1^2 / h1 + g * h1^2) + 0.5 * rho2 * (h2_v2^2 / h2 + g * h2^2) +
+      g * rho2 * h2 * b + g * rho1 * h1 * (h2 + b))
   return e
 end
 
