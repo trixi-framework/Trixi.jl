@@ -244,6 +244,8 @@ where ``t_\text{wall}`` is the walltime since the last call to the `AnalysisCall
 DOFs over all MPI ranks; if doing a serial run, you can just think of this as *the*
 number of DOFs), and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
 `rhs!` function has been evaluated since the last call to the `AnalysisCallback`.
+The PID measures everything except the time spent in the `AnalysisCallback` itself -
+specifically, all other callbacks and the time integration method itself are included.
 
 The PID is usually most useful if you would like to compare the
 parallel performance of your code to its serial performance. Specifically, it
