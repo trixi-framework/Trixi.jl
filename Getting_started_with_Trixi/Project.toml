@@ -1,0 +1,7 @@
+name = "Tutorial"
+uuid = "8a17531d-5588-4481-aa6c-6f56a3cabb25"
+authors = ["ArseniyKholod <kholod.ap03@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
