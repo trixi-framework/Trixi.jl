@@ -256,7 +256,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
     mpi_println("                 " * "              " *
                 "               " *
-                " Perform. index: " * @sprintf("%10.8e s", performance_index))
+                " PID:            " * @sprintf("%10.8e s", performance_index))
     mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)) *
                 "               " *
                 " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))

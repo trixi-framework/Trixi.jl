@@ -135,5 +135,4 @@ To start Trixi in parallel with MPI, there are three options:
 ### [Performance](@id parallel_performance)
 For information on how to evaluate the parallel performance of Trixi, please
 have a look at the [Performance metrics of the `AnalysisCallback`](@ref)
-section, specifically at the descriptions of the walltime PID and the coretime
-PID.
+section, specifically at the descriptions of the performance index (PID).

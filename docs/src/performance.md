@@ -171,13 +171,12 @@ As a rule of thumb:
 
 
 ## Performance metrics of the `AnalysisCallback`
-The [`AnalysisCallback`](@ref) computes several values that you can use to
-evaluate the serial and parallel performance of Trixi. Since they represent
+The [`AnalysisCallback`](@ref) computes two performance indicators that you can use to
+evaluate the serial and parallel performance of Trixi. They represent
 measured run times that are normalized by the number of `rhs!` evaluations and
-the number of degrees of freedom of the problem setup, we refer to them
-as "performance indices" or "PIDs". The normalization ensures that we can
-compare different measurements for each type of PID independent of the number of
-time steps or mesh size. All PIDs have in common that they are still in units of
+the number of degrees of freedom of the problem setup. The normalization ensures that we can
+compare different measurements for each type of indicator independent of the number of
+time steps or mesh size. All indicators have in common that they are still in units of
 time, thus *lower is better* for each of them.
 
 Here, the term "degrees of freedom" (DOFs) refers to the number of *independent*
@@ -200,9 +199,9 @@ the number of state *variables* for the DOFs. That is, in the previous example
 setup with 5 state variables or a linear scalar advection setup with one state
 variable.
 
-For each PID, the measurements are always since the last invocation of the
+For each indicator, the measurements are always since the last invocation of the
 `AnalysisCallback`. That is, if the analysis callback is called multiple times,
-the PIDs are repeatedly computed and can thus also be used to track the
+the indicators are repeatedly computed and can thus also be used to track the
 performance over the course of a longer simulation, e.g., to analyze setups with varying performance
 characteristics. Note that the time spent in the `AnalysisCallback` itself is always
 *excluded*, i.e., the performance measurements are not distorted by potentially
@@ -210,54 +209,44 @@ expensive solution analysis computations. All other parts of a Trixi simulation
 are included, however, thus make sure that you disable everything you do *not*
 want to be measured (such as I/O callbacks, visualization etc.).
 
-!!! note "Performance index and adaptive mesh refinement"
-    Currently it is not possible to compute a meaningful PID for a simulation
+!!! note "Performance indicators and adaptive mesh refinement"
+    Currently it is not possible to compute meaningful performance indicators for a simulation
     with arbitrary adaptive mesh refinement, since this would require to
     explicitly keep track of the number of DOF updates due to the mesh size
     changing repeatedly. The only way to do this at the moment is by setting the
     analysis interval to the same value as the AMR interval.
 
-### Local, `rhs!`-only PID
-The *local, `rhs!`-only PID* is computed as
+### Local, `rhs!`-only indicator
+The *local, `rhs!`-only indicator* is computed as
 ```math
-\text{PID}_\text{local,\texttt{rhs!}} = \frac{\{\text{accumulated time spent in \texttt{rhs!}}\}}{n_\text{DOFs,local} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{time/DOF/rhs!} = \frac{\{\text{accumulated time spent in \texttt{rhs!}}\}}{n_\text{DOFs,local} \cdot n_\text{calls,\texttt{rhs!}}},
 ```
 where ``n_\text{DOFs,local}`` is the *local* number of DOFs (i.e., on the
 current MPI rank; if doing a serial run, you can just think of this as *the*
 number of DOFs) and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
-`rhs!` function has been evaluated. Note that for this PID, we measure *only*
+`rhs!` function has been evaluated. Note that for this indicator, we measure *only*
 the time spent in `rhs!`, i.e., by definition all computations outside of `rhs!` - specifically
 all other callbacks and the time integration method - are not taken into account.
 
-The local, `rhs!`-only PID is usually most useful if you do serial
+The local, `rhs!`-only indicator is usually most useful if you do serial
 measurements and are interested in the performance of the implementation of your
 core numerical methods (e.g., when doing performance tuning).
 
-### Walltime PID
-The *walltime PID* is computed as
+### Performance index (PID)
+The *performance index* (PID) is computed as
 ```math
-\text{PID}_\text{walltime} = \frac{\{\text{walltime since last call to \texttt{AnalysisCallback}}\}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{PID} = \frac{\{\text{walltime since last call to \texttt{AnalysisCallback}}\} \cdot n_\text{ranks,MPI}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
 ```
-where ``n_\text{DOFs,global}`` is the *global* number of DOFs (i.e., the sum of
+where ``n_\text{ranks,MPI}`` is the number of MPI ranks used,
+``n_\text{DOFs,global}`` is the *global* number of DOFs (i.e., the sum of
 DOFs over all MPI ranks; if doing a serial run, you can just think of this as *the*
 number of DOFs) and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
 `rhs!` function has been evaluated since the last call to the `AnalysisCallback`.
 
-The walltime PID is usually most useful if you are doing a parallel strong scaling and
-are interested in how much faster your simulation is when you increase the
-number of resources (i.e., MPI ranks) used to compute a problem of fixed size.
-
-### Coretime PID
-The *coretime PID* is computed as
-```math
-\text{PID}_\text{coretime} = \text{PID}_\text{walltime} \cdot n_\text{ranks,MPI},
-```
-where ``n_\text{ranks,MPI}`` is the number of MPI ranks used.
-
-The coretime PID is usually most useful if you would like to compare the
+The PID is usually most useful if you would like to compare the
 parallel performance of your code to its serial performance. Specifically, it
 allows you to evaluate the parallelization overhead of your code by giving you a
-measure of the resources that are necessary to solve a given simulation setup. The
-name "coretime" is inspired by the "core hours" metric that is often used by
+measure of the resources that are necessary to solve a given simulation setup.
+In a sense, it mimics the "core hours" metric that is often used by
 supercomputer centers to measure how many resources a particular compute job
 requires. It can thus be seen as a proxy for "energy used" and, as an extension, "monetary cost".
