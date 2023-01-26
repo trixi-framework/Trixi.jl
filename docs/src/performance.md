@@ -219,7 +219,7 @@ want to be measured (such as I/O callbacks, visualization etc.).
 ### Local, `rhs!`-only indicator
 The *local, `rhs!`-only indicator* is computed as
 ```math
-\text{time/DOF/rhs!} = \frac{t_\text{\texttt{rhs!}}\{\text{}\}}{n_\text{DOFs,local} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{time/DOF/rhs!} = \frac{t_\text{\texttt{rhs!}}}{n_\text{DOFs,local} \cdot n_\text{calls,\texttt{rhs!}}},
 ```
 where ``t_\text{\texttt{rhs!}}`` is the accumulated time spent in `rhs!`,
 ``n_\text{DOFs,local}`` is the *local* number of DOFs (i.e., on the
