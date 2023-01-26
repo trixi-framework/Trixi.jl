@@ -34,6 +34,7 @@ memory).
 mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
   start_time_last_analysis::Float64
+  ncalls_rhs_last_analysis::Int
   start_gc_time::Float64
   interval::Int
   save_analysis::Bool
@@ -108,7 +109,8 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
   analyzer = SolutionAnalyzer(solver; kwargs...)
   cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache, RealT, uEltype)
 
-  analysis_callback = AnalysisCallback(0.0, 0.0, 0.0, interval, save_analysis, output_directory, analysis_filename,
+  analysis_callback = AnalysisCallback(0.0, 0.0, 0, 0.0,
+                                       interval, save_analysis, output_directory, analysis_filename,
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
@@ -183,6 +185,9 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   # Record current time for performance index computation
   analysis_callback.start_time_last_analysis = time_ns()
 
+  # Record current number of `rhs!` calls for performance index computation
+  analysis_callback.ncalls_rhs_last_analysis = ncalls(semi.performance_counter)
+
   # Record total time spent in garbage collection so far using a high-resolution clock
   # Note: For details see the actual callback function below
   analysis_callback.start_gc_time = Base.gc_time_ns()
@@ -207,17 +212,10 @@ function (analysis_callback::AnalysisCallback)(integrator)
   # independent of the number of MPI ranks used, since, e.g., using 4x the number of ranks should
   # divide the runtime on each rank by 4. See also the Trixi.jl docs ("Performance" section) for
   # more information.
-  # The PID is meant to measure everything except the time required for running the `AnalysisCallback`
-  # itself. However, we call the right-hand side once below to be able to compute quantities such as
-  # the semidiscrete rate of change of the entropy. Thus, the total number of right-hand side calls is
-  # one bigger than the number of right-hand side calls included in the `runtime_since_last_analysis`.
-  # Thus, we need to normalize it appropriately. Checking whether the number of calls is positive
-  # ensures that we get `NaN` instead of a negative number for the first output before any right-hand
-  # evaluations have been performed.
-  ncalls_ = ncalls(semi.performance_counter)
-  ncalls_ = ifelse(ncalls_ > 0, ncalls_, ncalls_ - 1)
+  ncalls_rhs_since_last_analysis = (ncalls(semi.performance_counter)
+                                    - analysis_callback.ncalls_rhs_last_analysis)
   performance_index = runtime_since_last_analysis * mpi_nranks() / (ndofsglobal(mesh, solver, cache)
-                                                                    * ncalls_)
+                                                                    * ncalls_rhs_since_last_analysis)
 
   # Compute the total runtime since the analysis callback has been initialized, in seconds
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
@@ -314,6 +312,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
   # Reset performance measurements
   analysis_callback.start_time_last_analysis = time_ns()
+  analysis_callback.ncalls_rhs_last_analysis = ncalls(semi.performance_counter)
 
   # Return errors for EOC analysis
   return l2_error, linf_error
