@@ -207,8 +207,17 @@ function (analysis_callback::AnalysisCallback)(integrator)
   # independent of the number of MPI ranks used, since, e.g., using 4x the number of ranks should
   # divide the runtime on each rank by 4. See also the Trixi.jl docs ("Performance" section) for
   # more information.
+  # The PID is meant to measure everything except the time required for running the `AnalysisCallback`
+  # itself. However, we call the right-hand side once below to be able to compute quantities such as
+  # the semidiscrete rate of change of the entropy. Thus, the total number of right-hand side calls is
+  # one bigger than the number of right-hand side calls included in the `runtime_since_last_analysis`.
+  # Thus, we need to normalize it appropriately. Checking whether the number of calls is positive
+  # ensures that we get `NaN` instead of a negative number for the first output before any right-hand
+  # evaluations have been performed.
+  ncalls_ = ncalls(semi.performance_counter)
+  ncalls_ = ifelse(ncalls_ > 0, ncalls_, ncalls_ - 1)
   performance_index = runtime_since_last_analysis * mpi_nranks() / (ndofsglobal(mesh, solver, cache)
-                                                                    * ncalls(semi.performance_counter))
+                                                                    * ncalls_)
 
   # Compute the total runtime since the analysis callback has been initialized, in seconds
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
