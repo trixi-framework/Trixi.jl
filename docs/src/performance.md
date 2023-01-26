@@ -219,11 +219,12 @@ want to be measured (such as I/O callbacks, visualization etc.).
 ### Local, `rhs!`-only indicator
 The *local, `rhs!`-only indicator* is computed as
 ```math
-\text{time/DOF/rhs!} = \frac{\{\text{accumulated time spent in \texttt{rhs!}}\}}{n_\text{DOFs,local} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{time/DOF/rhs!} = \frac{t_\text{\texttt{rhs!}}\{\text{}\}}{n_\text{DOFs,local} \cdot n_\text{calls,\texttt{rhs!}}},
 ```
-where ``n_\text{DOFs,local}`` is the *local* number of DOFs (i.e., on the
+where ``t_\text{\texttt{rhs!}}`` is the accumulated time spent in `rhs!`,
+``n_\text{DOFs,local}`` is the *local* number of DOFs (i.e., on the
 current MPI rank; if doing a serial run, you can just think of this as *the*
-number of DOFs) and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
+number of DOFs), and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
 `rhs!` function has been evaluated. Note that for this indicator, we measure *only*
 the time spent in `rhs!`, i.e., by definition all computations outside of `rhs!` - specifically
 all other callbacks and the time integration method - are not taken into account.
@@ -235,12 +236,13 @@ core numerical methods (e.g., when doing performance tuning).
 ### Performance index (PID)
 The *performance index* (PID) is computed as
 ```math
-\text{PID} = \frac{\{\text{walltime since last call to \texttt{AnalysisCallback}}\} \cdot n_\text{ranks,MPI}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{PID} = \frac{t_\text{wall} \cdot n_\text{ranks,MPI}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
 ```
-where ``n_\text{ranks,MPI}`` is the number of MPI ranks used,
+where ``t_\text{wall}`` is the walltime since the last call to the `AnalysisCallback`,
+``n_\text{ranks,MPI}`` is the number of MPI ranks used,
 ``n_\text{DOFs,global}`` is the *global* number of DOFs (i.e., the sum of
 DOFs over all MPI ranks; if doing a serial run, you can just think of this as *the*
-number of DOFs) and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
+number of DOFs), and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
 `rhs!` function has been evaluated since the last call to the `AnalysisCallback`.
 
 The PID is usually most useful if you would like to compare the
