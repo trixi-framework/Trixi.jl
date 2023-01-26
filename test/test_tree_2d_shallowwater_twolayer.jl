@@ -17,7 +17,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     tspan = (0.0, 0.25))
   end
 
-  @trixi_testset "elixir_shallowwater_twolayer_convergence.jl with flux_es" begin
+  @trixi_testset "elixir_shallowwater_twolayer_convergence.jl with flux_es_fjordholm_etal" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_twolayer_convergence.jl"),
     l2   = [0.00024709443131137236, 0.0019215286339769443, 0.0023833298173254447, 
           0.00021258247976270914, 0.0011299428031136195, 0.0009191313765262401,
@@ -25,7 +25,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     linf = [0.0016099763244645793, 0.007659242165565017, 0.009123320235427057, 
             0.0013496983982568267, 0.0035573687287770994, 0.00296823235874899,
             3.361991620143279e-5],
-    surface_flux = (flux_es, flux_nonconservative_fjordholm_etal),
+    surface_flux = (flux_es_fjordholm_etal, flux_nonconservative_fjordholm_etal),
     tspan = (0.0, 0.25))
   end
 

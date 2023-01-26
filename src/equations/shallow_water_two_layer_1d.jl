@@ -372,8 +372,8 @@ end
 
 
 """
-    flux_es(u_ll, u_rr, orientation,
-            equations::ShallowWaterTwoLayerEquations1D)
+    flux_es_fjordholm_etal(u_ll, u_rr, orientation,
+                           equations::ShallowWaterTwoLayerEquations1D)
 
 Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy 
 conservative flux_fjordholm_etal and adds a Lax-Friedrichs type dissipation dependent on the jump 
@@ -387,9 +387,9 @@ It should be noted that the equations are ordered differently and the
 designation of the upper and lower layer has been changed which leads to a slightly different
 formulation.
 """
-@inline function flux_es(u_ll, u_rr,
-                         orientation::Integer,
-                         equations::ShallowWaterTwoLayerEquations1D)
+@inline function flux_es_fjordholm_etal(u_ll, u_rr,
+                                        orientation::Integer,
+                                        equations::ShallowWaterTwoLayerEquations1D)
   # Compute entropy conservative flux but without the bottom topography
   f_ec = flux_fjordholm_etal(u_ll, u_rr,
                               orientation,

@@ -29,7 +29,7 @@ initial_condition = initial_condition_well_balanced
 # Get the DG approximation space
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-surface_flux = (flux_es, flux_nonconservative_fjordholm_etal)
+surface_flux = (flux_es_fjordholm_etal, flux_nonconservative_fjordholm_etal)
 solver = DGSEM(polydeg=3, surface_flux=surface_flux,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
