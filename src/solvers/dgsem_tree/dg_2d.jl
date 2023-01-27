@@ -1164,7 +1164,7 @@ end
 
       phi = bar_states_phi / bar_state_rho
 
-      g = antidiffusive_flux1[v, i, j, element] - (rho_limited_iim1 * phi - lambda * bar_states_phi)
+      g = antidiffusive_flux1[v, i, j, element] + (rho_limited_im1i * phi - lambda * bar_states_phi)
 
       if g > 0
         g_max = min(rho_limited_iim1 * (var_max[v, i, j, element] - phi),
@@ -1186,8 +1186,7 @@ end
         alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
         alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
       end
-
-      antidiffusive_flux1[v, i, j, element] = (rho_limited_iim1 * phi - lambda * bar_states_phi) + g_limited
+      antidiffusive_flux1[v, i, j, element] = (lambda * bar_states_phi - rho_limited_im1i * phi) + g_limited
     end
   end
 
@@ -1227,7 +1226,7 @@ end
 
       phi = bar_state_phi / bar_state_rho
 
-      g = antidiffusive_flux2[v, i, j, element] - (rho_limited_jjm1 * phi - lambda * bar_state_phi)
+      g = antidiffusive_flux2[v, i, j, element] + (rho_limited_jm1j * phi - lambda * bar_state_phi)
 
       if g > 0
         g_max = min(rho_limited_jjm1 * (var_max[v, i, j, element] - phi),
@@ -1250,7 +1249,7 @@ end
         alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
       end
 
-      antidiffusive_flux2[v, i, j, element] = (rho_limited_jjm1 * phi - lambda * bar_state_phi) + g_limited
+      antidiffusive_flux2[v, i, j, element] = (lambda * bar_state_phi - rho_limited_jm1j * phi) + g_limited
     end
   end
 
