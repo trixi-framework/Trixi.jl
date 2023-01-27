@@ -10,8 +10,7 @@
                 interval,
                 adapt_initial_condition=true,
                 adapt_initial_condition_only_refine=true,
-                dynamic_load_balancing=true,
-                p4est_partition_allow_for_coarsening=true)
+                dynamic_load_balancing=true)
 
 Performs adaptive mesh refinement (AMR) every `interval` time steps
 for a given semidiscretization `semi` using the chosen `controller`.
@@ -22,7 +21,6 @@ struct AMRCallback{Controller, Adaptor, Cache}
   adapt_initial_condition::Bool
   adapt_initial_condition_only_refine::Bool
   dynamic_load_balancing::Bool
-  p4est_partition_allow_for_coarsening::Bool
   adaptor::Adaptor
   amr_cache::Cache
 end
@@ -32,8 +30,7 @@ function AMRCallback(semi, controller, adaptor;
                      interval,
                      adapt_initial_condition=true,
                      adapt_initial_condition_only_refine=true,
-                     dynamic_load_balancing=true,
-                     p4est_partition_allow_for_coarsening=true)
+                     dynamic_load_balancing=true)
   # check arguments
   if !(interval isa Integer && interval >= 0)
     throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
@@ -59,7 +56,7 @@ function AMRCallback(semi, controller, adaptor;
 
   amr_callback = AMRCallback{typeof(controller), typeof(adaptor), typeof(amr_cache)}(
     controller, interval, adapt_initial_condition, adapt_initial_condition_only_refine,
-    dynamic_load_balancing, p4est_partition_allow_for_coarsening, adaptor, amr_cache)
+    dynamic_load_balancing, adaptor, amr_cache)
 
   DiscreteCallback(condition, amr_callback,
                    save_positions=(false,false),
@@ -127,18 +124,6 @@ end
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:AMRCallback}
   amr_callback = cb.affect!
   semi = integrator.p
-
-  mesh, _, _, _ = mesh_equations_solver_cache(semi)
-
-  if mesh isa ParallelP4estMesh
-    if cb.affect!.p4est_partition_allow_for_coarsening != mesh.p4est_partition_allow_for_coarsening
-      mesh.p4est_partition_allow_for_coarsening = cb.affect!.p4est_partition_allow_for_coarsening
-      if mpi_isroot()
-        @info "The mesh attribute `p4est_partition_allow_for_coarsening` was changed to `$(cb.affect!.p4est_partition_allow_for_coarsening)` by the `AMRCallback`."
-      end
-      partition!(mesh)
-    end
-  end
 
   @trixi_timeit timer() "initial condition AMR" if amr_callback.adapt_initial_condition
     # iterate until mesh does not change anymore

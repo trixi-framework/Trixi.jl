@@ -109,7 +109,7 @@ end
     P4estMesh(trees_per_dimension; polydeg,
               mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
               RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true,
-              p4est_partition_allow_for_coarsening=false)
+              p4est_partition_allow_for_coarsening=true)
 
 Create a structured curved `P4estMesh` of the specified size.
 
@@ -155,7 +155,7 @@ Non-periodic boundaries will be called `:x_neg`, `:x_pos`, `:y_neg`, `:y_pos`, `
 function P4estMesh(trees_per_dimension; polydeg,
                    mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
                    RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true,
-                   p4est_partition_allow_for_coarsening=false)
+                   p4est_partition_allow_for_coarsening=true)
 
   @assert (
     (coordinates_min === nothing) === (coordinates_max === nothing)
@@ -279,7 +279,7 @@ end
     P4estMesh{NDIMS}(meshfile::String;
                      mapping=nothing, polydeg=1, RealT=Float64,
                      initial_refinement_level=0, unsaved_changes=true,
-                     p4est_partition_allow_for_coarsening=false)
+                     p4est_partition_allow_for_coarsening=true)
 
 Main mesh constructor for the `P4estMesh` that imports an unstructured, conforming
 mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
@@ -339,7 +339,7 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 function P4estMesh{NDIMS}(meshfile::String;
                           mapping=nothing, polydeg=1, RealT=Float64,
                           initial_refinement_level=0, unsaved_changes=true,
-                          p4est_partition_allow_for_coarsening=false) where NDIMS
+                          p4est_partition_allow_for_coarsening=true) where NDIMS
   # Prevent `p4est` from crashing Julia if the file doesn't exist
   @assert isfile(meshfile)
 
@@ -460,7 +460,7 @@ end
     P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
                          polydeg, RealT=Float64,
                          initial_refinement_level=0, unsaved_changes=true,
-                         p4est_partition_allow_for_coarsening=false)
+                         p4est_partition_allow_for_coarsening=true)
 
 Build a "Cubed Sphere" mesh as `P4estMesh` with
 `6 * trees_per_face_dimension^2 * layers` trees.
@@ -487,7 +487,7 @@ The mesh will have two boundaries, `:inside` and `:outside`.
 function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
                               polydeg, RealT=Float64,
                               initial_refinement_level=0, unsaved_changes=true,
-                              p4est_partition_allow_for_coarsening=false)
+                              p4est_partition_allow_for_coarsening=true)
   connectivity = connectivity_cubed_sphere(trees_per_face_dimension, layers)
 
   n_trees = 6 * trees_per_face_dimension^2 * layers
