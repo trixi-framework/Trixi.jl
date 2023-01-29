@@ -256,8 +256,8 @@ supercomputer centers to measure how many resources a particular compute job
 requires. It can thus be seen as a proxy for "energy used" and, as an extension, "monetary cost".
 
 !!! note "Initialization overhead in measurements"
-    When using one of `OrdinaryDiffEq`'s integration schemes, their implementation
-    will initialize some `OrdinaryDiffEq`-specific information during the first
+    When using one of the integration schemes from OrdinaryDiffEq.jl, their implementation
+    will initialize some OrdinaryDiffEq.jl-specific information during the first
     time step. Among other things, one additional call to `rhs!` is performed.
     Therefore, make sure that for performance measurements using the PID either the
     number of timesteps or the workload per `rhs!` call is large enough to make
