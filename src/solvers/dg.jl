@@ -384,6 +384,7 @@ In particular, not the nodes themselves are returned.
 # This is used in some more general analysis code and needs to dispatch on the
 # `mesh` for some combinations of mesh/solver.
 @inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
+@inline ndofsglobal(mesh, dg::DG, cache) = nelementsglobal(dg, cache) * nnodes(dg)^ndims(mesh)
 
 """
     eachelement(dg::DG, cache)
