@@ -8,14 +8,14 @@ EditURL = "<unknown>/src/Getting_started_with_Trixi.jl"
 written in [`Julia`](https://julialang.org/).
 That means for working with Trixi, Julia have to be installed on a PC.
 
-## **Julia installation**
+## **1. Julia installation**
 
 Trixi works with the current stable release Julia v.1.8.5.
 The most fully explaind installation process can be found in this
 [`Julia installation instruction`](https://julialang.org/downloads/platform/).
 But you can follow also our short installation instruction.
 
-### **Windows**
+### **1.1. Windows**
 
 - Download Julia [`installer`](https://julialang.org/downloads/) for Windows. Make sure
 that you chose the right version of installer (64-bit or 32-bit) according to your computer.
@@ -33,7 +33,7 @@ Now you can verify, that Julia is installed:
 
 Then Julia will be invoked. To close Julia enter *exit()* + *Enter*.
 
-### **Linux**
+### **1.2. Linux**
 
 - Open a terminal and navigate (using *cd*) to a directory, where you want to save Julia.
 Or you can open file manager, find this directory, right-click inside and
@@ -47,13 +47,13 @@ Now you can verify that Julia is installed entering *julia* command in the Termi
 
 Then Julia will be invoked. To close Julia enter *exit()* + *Enter*.
 
-## **For Users**
+## **2. Trixi installation**
+
+### **2.1. For Users**
 
 If you are planning to use Trixi for work or study without making any changes in Trixi,
 then you can follow this instruction. If you are planning to develop Trixi, then follow
-topic **For developers**.
-
-### **Trixi installation**
+topic **Trixi installation for developers**.
 
 Trixi and its related tools are registered Julia packages. So installation of them is
 running inside Julia. To appropriate work of Trixi you need to install
@@ -77,7 +77,60 @@ Now you have installed all this packages.
 used by Trixi and [`Plots`](https://github.com/JuliaPlots/Plots.jl) can be used to directly
 visualize Trixi's results from the Julia REPL.
 
-### **Usage**
+### **2.2. For Developers**
+
+If you plan on editing Trixi itself, you can download Trixi locally and run it from within the
+cloned directory.
+
+#### **2.2.1. Windows**
+
+If you are using Windows OS, you can clone Trixi directory using a Github Desktop.
+- If you haven't any github account yet, you have to create it on the
+[`Github website`](https://github.com/join).
+- Download and install [`Github Desktop`](https://desktop.github.com/) and then login into
+your account.
+- Open an installed Github Desktop, type *Ctrl+Shoft+O*.
+- In opened window paste *trixi-framework/Trixi.jl* and choose path to a folder, where you want
+to save Trixi. Then click *Clone* and Trixi will be cloned to PC.
+
+Now you cloned Trixi and only need to add Trixi packages to Julia.
+- Open Terminal using *Win+R* and *cmd*. Navigate to the folder with cloned Trixi using *cd*.
+- Start Julia with the ````--project```` flag set to your local Trixi clone, e.g.,
+````
+ julia --project=@.
+````
+- Run following commands in Julia REPL:
+
+````@example Getting_started_with_Trixi
+import Pkg; Pkg.instantiate()
+Pkg.add(["Trixi2Vtk", "Plots", "OrdinaryDiffEq"])
+````
+
+Now you already installed Trixi from your local clone. Note that if you installed Trixi this way,
+you always have to start Julia with the ````--project```` flag set to your local Trixi clone, e.g.,
+````
+julia --project=@.
+````
+
+#### **2.2.2. Linux**
+
+You can download Trixi locally and run it from within the cloned directory this way:
+````
+git clone git@github.com:trixi-framework/Trixi.jl.git
+cd Trixi.jl
+julia --project=@. -e 'import Pkg; Pkg.instantiate()'
+julia -e 'import Pkg; Pkg.add(["Trixi2Vtk", "Plots"])'
+julia -e 'import Pkg; Pkg.add("OrdinaryDiffEq")'
+````
+Note that if you installed Trixi this way,
+you always have to start Julia with the ````--project```` flag set to your local Trixi clone, e.g.,
+````
+julia --project=@.
+````
+
+## **3. Usage**
+
+### **3.1. Files execution**
 
 Trixi has a big set of
 [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples), that can be taken
@@ -107,6 +160,11 @@ get_examples()
 ````
 
 Editing the Trixi examples are the best way to start your first own investigation using Trixi.
+
+### **3.2. Files edditing**
+
+#### **3.2.1 For Users**
+
 To edit example files you have to download them. Let's have a look how to download default
 example file from [`Trixi github`](https://github.com/trixi-framework/Trixi.jl).
 
@@ -130,6 +188,29 @@ elixir_advection_basic.jl file from current folder, for example *"./elixir_advec
 ````
 using Trixi
 trixi_include(path_to_file)
+using Plots
+plot(sol)
+````
+You will obtain new plot with shifted dark and light lines.
+
+#### **3.2.2. For Developers**
+
+Like a developer you can change example files inside a cloned repository.
+To find a path to the *default_example* run following command in julia REPL:
+
+````@example Getting_started_with_Trixi
+default_example()
+````
+
+Open this file and go to the 10th line with following code:
+````
+advection_velocity = (0.2, -0.7)
+````
+Change values from *(0.2, -0.7)* to *(0.1, 0.1)*.
+Execute following code one more time:
+````
+using Trixi
+trixi_include(default_example())
 using Plots
 plot(sol)
 ````
