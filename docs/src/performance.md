@@ -254,3 +254,16 @@ measure of the resources that are necessary to solve a given simulation setup.
 In a sense, it mimics the "core hours" metric that is often used by
 supercomputer centers to measure how many resources a particular compute job
 requires. It can thus be seen as a proxy for "energy used" and, as an extension, "monetary cost".
+
+!!! note "Initialization overhead in measurements"
+    When using one of `OrdinaryDiffEq`'s integration schemes, their implementation
+    will initialize some `OrdinaryDiffEq`-specific information during the first
+    time step. Among other things, one additional call to `rhs!` is performed.
+    Therefore, make sure that for performance measurements using the PID either the
+    number of timesteps or the workload per `rhs!` call is large enough to make
+    the initialization overhead negligible. Note that the extra call to `rhs!`
+    is properly accounted for in both the number of calls and the measured time,
+    so you do not need to worry about it being expensive. If you want a perfect
+    timing result, you need to set the analysis interval such that the
+    `AnalysisCallback` is invoked at least once during the course of the simulation and
+    discard the first PID value.
