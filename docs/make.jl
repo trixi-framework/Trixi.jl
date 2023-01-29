@@ -68,6 +68,7 @@ files = [
     # Topic: other stuff
     "Explicit time stepping" => "time_stepping.jl",
     "Differentiable programming" => "differentiable_programming.jl",
+    "Getting started with Trixi" => "getting_started_with_Trixi.jl"
     ]
 tutorials = create_tutorials(files)
 
