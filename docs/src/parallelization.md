@@ -49,6 +49,9 @@ to find out how to select the employed MPI library).
     MPI-based parallelization is work in progress and not finished yet. Nothing
     related to MPI is part of the official API of Trixi yet.
 
+
+### [Usage](@id parallel_usage)
+
 To start Trixi in parallel with MPI, there are three options:
 
 1. **Run from the REPL with `mpiexec()`:** You can start a parallel execution directly from the
@@ -127,3 +130,9 @@ To start Trixi in parallel with MPI, there are three options:
     `julia --threads=2` instead of `julia --threads=1` used in the examples above.
     In that case, you should make sure that your system supports the number of processes/threads
     that you try to start.
+
+
+### [Performance](@id parallel_performance)
+For information on how to evaluate the parallel performance of Trixi, please
+have a look at the [Performance metrics of the `AnalysisCallback`](@ref)
+section, specifically at the descriptions of the performance index (PID).

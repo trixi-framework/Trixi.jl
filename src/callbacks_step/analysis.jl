@@ -33,6 +33,8 @@ memory).
 """
 mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
+  start_time_last_analysis::Float64
+  ncalls_rhs_last_analysis::Int
   start_gc_time::Float64
   interval::Int
   save_analysis::Bool
@@ -107,7 +109,8 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
   analyzer = SolutionAnalyzer(solver; kwargs...)
   cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache, RealT, uEltype)
 
-  analysis_callback = AnalysisCallback(0.0, 0.0, interval, save_analysis, output_directory, analysis_filename,
+  analysis_callback = AnalysisCallback(0.0, 0.0, 0, 0.0,
+                                       interval, save_analysis, output_directory, analysis_filename,
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
@@ -179,6 +182,12 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   # Record current time using a high-resolution clock
   analysis_callback.start_time = time_ns()
 
+  # Record current time for performance index computation
+  analysis_callback.start_time_last_analysis = time_ns()
+
+  # Record current number of `rhs!` calls for performance index computation
+  analysis_callback.ncalls_rhs_last_analysis = ncalls(semi.performance_counter)
+
   # Record total time spent in garbage collection so far using a high-resolution clock
   # Note: For details see the actual callback function below
   analysis_callback.start_gc_time = Base.gc_time_ns()
@@ -195,10 +204,26 @@ function (analysis_callback::AnalysisCallback)(integrator)
   @unpack dt, t = integrator
   iter = integrator.destats.naccept
 
+  # Record performance measurements and compute performance index (PID)
+  runtime_since_last_analysis = 1.0e-9 * (time_ns() - analysis_callback.start_time_last_analysis)
+  # PID is an MPI-aware measure of how much time per global degree of freedom (i.e., over all ranks)
+  # and per `rhs!` evaluation is required. MPI-aware means that it essentially adds up the time
+  # spent on each MPI rank. Thus, in an ideally parallelized program, the PID should be constant
+  # independent of the number of MPI ranks used, since, e.g., using 4x the number of ranks should
+  # divide the runtime on each rank by 4. See also the Trixi.jl docs ("Performance" section) for
+  # more information.
+  ncalls_rhs_since_last_analysis = (ncalls(semi.performance_counter)
+                                    - analysis_callback.ncalls_rhs_last_analysis)
+  performance_index = runtime_since_last_analysis * mpi_nranks() / (ndofsglobal(mesh, solver, cache)
+                                                                    * ncalls_rhs_since_last_analysis)
+
   # Compute the total runtime since the analysis callback has been initialized, in seconds
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
 
-  # Compute the local PID (performance index)
+  # Compute the relative runtime as time spent in `rhs!` divided by the number of calls to `rhs!`
+  # and the number of local degrees of freedom
+  # OBS! This computation must happen *after* the PID computation above, since `take!(...)`
+  #      will reset the number of calls to `rhs!`
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
 
   # Compute the total time spent in garbage collection since the analysis callback has been
@@ -236,6 +261,9 @@ function (analysis_callback::AnalysisCallback)(integrator)
     mpi_println(" sim. time:      " * @sprintf("%10.8e", t) *
                 "               " *
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
+    mpi_println("                 " * "              " *
+                "               " *
+                " PID:            " * @sprintf("%10.8e s", performance_index))
     mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)) *
                 "               " *
                 " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
@@ -281,6 +309,10 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
   # avoid re-evaluating possible FSAL stages
   u_modified!(integrator, false)
+
+  # Reset performance measurements
+  analysis_callback.start_time_last_analysis = time_ns()
+  analysis_callback.ncalls_rhs_last_analysis = ncalls(semi.performance_counter)
 
   # Return errors for EOC analysis
   return l2_error, linf_error
