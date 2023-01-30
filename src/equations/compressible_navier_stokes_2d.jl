@@ -1,15 +1,14 @@
 @doc raw"""
-    CompressibleNavierStokesDiffusion2D(gamma, mu, Pr, equations,
+    CompressibleNavierStokesDiffusion2D(equations; mu, Pr,
                                         gradient_variables=GradientVariablesPrimitive())
 
-These equations contain the diffusion (i.e. parabolic) terms applied
+Contains the diffusion (i.e. parabolic) terms applied
 to mass, momenta, and total energy together with the advective terms from
 the [`CompressibleEulerEquations2D`](@ref).
 
-- `gamma`: adiabatic constant,
+- `equations`: instance of the [`CompressibleEulerEquations2D`](@ref)
 - `mu`: dynamic viscosity,
 - `Pr`: Prandtl number,
-- `equations`: instance of the [`CompressibleEulerEquations2D`](@ref)
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to `GradientVariablesPrimitive()`.
 
@@ -37,7 +36,8 @@ where the system is closed with the ideal gas assumption giving
 ```math
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
 ```
-as the pressure. The terms on the right hand side of the system above
+as the pressure. The value of the adiabatic constant `gamma` is taken from the [`CompressibleEulerEquations2D`](@ref).
+The terms on the right hand side of the system above
 are built from the viscous stress tensor
 ```math
 \underline{\tau} = \mu \left(\nabla\mathbf{v} + \left(\nabla\mathbf{v}\right)^T\right) - \frac{2}{3} \mu \left(\nabla\cdot\mathbf{v}\right)\underline{I}
