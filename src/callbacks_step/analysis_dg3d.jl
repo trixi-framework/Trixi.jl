@@ -199,11 +199,11 @@ function integrate(func::Func, u,
 end
 
 
-function integrate(func::typeof(enstrophy), u,
+function integrate(func::Func, u,
                    mesh::TreeMesh{3},
-                   equations, equations_parabolic::CompressibleNavierStokesDiffusion3D,
+                   equations, equations_parabolic,
                    dg::DGSEM,
-                   cache, cache_parabolic; normalize=true)
+                   cache, cache_parabolic; normalize=true) where {Func}
   gradients_x, gradients_y, gradients_z = cache_parabolic.gradients
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, j, k, element)
