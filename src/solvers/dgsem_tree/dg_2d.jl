@@ -1066,50 +1066,98 @@ end
       var_max[v, :, :, element] .= typemin(eltype(var_max))
     end
 
-    for j in eachnode(dg), i in eachnode(dg)
-      # Previous solution
-      var_min[1, i, j, element] = min(var_min[1, i, j, element], u[1, i, j, element])
-      var_max[1, i, j, element] = max(var_max[1, i, j, element], u[1, i, j, element])
-      for v in 2:nvariables(equations)
-        phi = u[v, i, j, element] / u[1, i, j, element]
-        var_min[v, i, j, element] = min(var_min[v, i, j, element], phi)
-        var_max[v, i, j, element] = max(var_max[v, i, j, element], phi)
+    if indicator.DensityLimiter
+      for j in eachnode(dg), i in eachnode(dg)
+        # Previous solution
+        var_min[1, i, j, element] = min(var_min[1, i, j, element], u[1, i, j, element])
+        var_max[1, i, j, element] = max(var_max[1, i, j, element], u[1, i, j, element])
+        # - xi direction
+        bar_state_rho = bar_states1[1, i, j, element]
+        var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
+        var_max[1, i, j, element] = max(var_max[1, i, j, element], bar_state_rho)
+        # + xi direction
+        bar_state_rho = bar_states1[1, i+1, j, element]
+        var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
+        var_max[1, i, j, element] = max(var_max[1, i, j, element], bar_state_rho)
+        # - eta direction
+        bar_state_rho = bar_states2[1, i, j, element]
+        var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
+        var_max[1, i, j, element] = max(var_max[1, i, j, element], bar_state_rho)
+        # + eta direction
+        bar_state_rho = bar_states2[1, i, j+1, element]
+        var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
+        var_max[1, i, j, element] = max(var_max[1, i, j, element], bar_state_rho)
       end
-      # - xi direction
-      bar_state_rho = bar_states1[1, i, j, element]
-      var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
-      var_max[1, i, j, element] = max(var_max[1, i, j, element], bar_state_rho)
-      for v in 2:nvariables(equations)
-        bar_state_phi = bar_states1[v, i, j, element] / bar_state_rho
-        var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
-        var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_phi)
+    end #indicator.DensityLimiter
+
+    if indicator.SequentialLimiter
+      for j in eachnode(dg), i in eachnode(dg)
+        # Previous solution
+        for v in 2:nvariables(equations)
+          phi = u[v, i, j, element] / u[1, i, j, element]
+          var_min[v, i, j, element] = min(var_min[v, i, j, element], phi)
+          var_max[v, i, j, element] = max(var_max[v, i, j, element], phi)
+        end
+        # - xi direction
+        bar_state_rho = bar_states1[1, i, j, element]
+        for v in 2:nvariables(equations)
+          bar_state_phi = bar_states1[v, i, j, element] / bar_state_rho
+          var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
+          var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_phi)
+        end
+        # + xi direction
+        bar_state_rho = bar_states1[1, i+1, j, element]
+        for v in 2:nvariables(equations)
+          bar_state_phi = bar_states1[v, i+1, j, element] / bar_state_rho
+          var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
+          var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_phi)
+        end
+        # - eta direction
+        bar_state_rho = bar_states2[1, i, j, element]
+        for v in 2:nvariables(equations)
+          bar_state_phi = bar_states2[v, i, j, element] / bar_state_rho
+          var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
+          var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_phi)
+        end
+        # + eta direction
+        bar_state_rho = bar_states2[1, i, j+1, element]
+        for v in 2:nvariables(equations)
+          bar_state_phi = bar_states2[v, i, j+1, element] / bar_state_rho
+          var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
+          var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_phi)
+        end
       end
-      # + xi direction
-      bar_state_rho = bar_states1[1, i+1, j, element]
-      var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
-      var_max[1, i, j, element] = max(var_max[1, i, j, element], bar_state_rho)
-      for v in 2:nvariables(equations)
-        bar_state_phi = bar_states1[v, i+1, j, element] / bar_state_rho
-        var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
-        var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_phi)
-      end
-      # - eta direction
-      bar_state_rho = bar_states2[1, i, j, element]
-      var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
-      var_max[1, i, j, element] = max(var_max[1, i, j, element], bar_state_rho)
-      for v in 2:nvariables(equations)
-        bar_state_phi = bar_states2[v, i, j, element] / bar_state_rho
-        var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
-        var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_phi)
-      end
-      # + eta direction
-      bar_state_rho = bar_states2[1, i, j+1, element]
-      var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
-      var_max[1, i, j, element] = max(var_max[1, i, j, element], bar_state_rho)
-      for v in 2:nvariables(equations)
-        bar_state_phi = bar_states2[v, i, j+1, element] / bar_state_rho
-        var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
-        var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_phi)
+    elseif indicator.ConservativeLimiter
+      for j in eachnode(dg), i in eachnode(dg)
+        # Previous solution
+        for v in 2:nvariables(equations)
+          var_min[v, i, j, element] = min(var_min[v, i, j, element], u[v, i, j, element])
+          var_max[v, i, j, element] = max(var_max[v, i, j, element], u[v, i, j, element])
+        end
+        # - xi direction
+        for v in 2:nvariables(equations)
+          bar_state_rho = bar_states1[v, i, j, element]
+          var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_rho)
+          var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_rho)
+        end
+        # + xi direction
+        for v in 2:nvariables(equations)
+          bar_state_rho = bar_states1[v, i+1, j, element]
+          var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_rho)
+          var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_rho)
+        end
+        # - eta direction
+        for v in 2:nvariables(equations)
+          bar_state_rho = bar_states2[v, i, j, element]
+          var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_rho)
+          var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_rho)
+        end
+        # + eta direction
+        for v in 2:nvariables(equations)
+          bar_state_rho = bar_states2[v, i, j+1, element]
+          var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_rho)
+          var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_rho)
+        end
       end
     end
   end
@@ -1127,131 +1175,299 @@ end
   # It can also happen that the limited flux changes its sign (for instance to -1e-13).
   # This does not really make sense in theory and causes problems for the visualization.
   # Therefore we make sure that the flux keeps its sign during limiting.
-
-  for j in eachnode(dg), i in 2:nnodes(dg)
-    lambda = lambda1[i, j, element]
-    bar_state_rho = bar_states1[1, i, j, element]
-    # Limit density
-    if antidiffusive_flux1[1, i, j, element] > 0
-      f_max = lambda * min(var_max[1, i-1, j, element] - bar_state_rho,
-                           bar_state_rho - var_min[1, i, j, element])
-      f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
-      flux_limited = min(antidiffusive_flux1[1, i, j, element], max(f_max, 0.0))
-    else
-      f_min = lambda * max(var_min[1, i-1, j, element] - bar_state_rho,
-                           bar_state_rho - var_max[1, i, j, element])
-      f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
-      flux_limited = max(antidiffusive_flux1[1, i, j, element], min(f_min, 0.0))
-    end
-
-    if indicator.Plotting
-      @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
-      if isapprox(antidiffusive_flux1[1, i, j, element], 0.0, atol=eps())
-        coefficient = 1.0  # flux_limited is zero as well
+  
+  # Density limiter
+  if indicator.DensityLimiter
+    for j in eachnode(dg), i in 2:nnodes(dg)
+      lambda = lambda1[i, j, element]
+      bar_state_rho = bar_states1[1, i, j, element]
+      
+      # Limit density
+      if antidiffusive_flux1[1, i, j, element] > 0
+        f_max = lambda * min(var_max[1, i-1, j, element] - bar_state_rho,
+                            bar_state_rho - var_min[1, i, j, element])
+        f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
+        flux_limited = min(antidiffusive_flux1[1, i, j, element], max(f_max, 0.0))
       else
-        coefficient = flux_limited / antidiffusive_flux1[1, i, j, element]
+        f_min = lambda * max(var_min[1, i-1, j, element] - bar_state_rho,
+                            bar_state_rho - var_max[1, i, j, element])
+        f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
+        flux_limited = max(antidiffusive_flux1[1, i, j, element], min(f_min, 0.0))
       end
-      alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
-      alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
-    end
-    antidiffusive_flux1[1, i, j, element] = flux_limited
 
-    # Limit velocity and total energy
-    rho_limited_iim1 = lambda * bar_state_rho - antidiffusive_flux1[1, i, j, element]
-    rho_limited_im1i = lambda * bar_state_rho + antidiffusive_flux1[1, i, j, element]
-    for v in 2:nvariables(equations)
-      bar_states_phi = bar_states1[v, i, j, element]
-
-      phi = bar_states_phi / bar_state_rho
-
-      g = antidiffusive_flux1[v, i, j, element] + (lambda * bar_states_phi - rho_limited_im1i * phi)
-
-      if g > 0
-        g_max = min(rho_limited_im1i * (var_max[v, i-1, j, element] - phi),
-                    rho_limited_iim1 * (phi - var_min[v, i, j, element]))
-        g_max = isapprox(g_max, 0.0, atol=eps()) ? 0.0 : g_max
-        g_limited = min(g, max(g_max, 0.0))
-      else
-        g_min = max(rho_limited_im1i * (var_min[v, i-1, j, element] - phi),
-                    rho_limited_iim1 * (phi - var_max[v, i, j, element]))
-        g_min = isapprox(g_min, 0.0, atol=eps()) ? 0.0 : g_min
-        g_limited = max(g, min(g_min, 0.0))
-      end
-      if indicator.Plotting
-        if isapprox(g, 0.0, atol=eps())
-          coefficient = isapprox(g_limited, 0.0, atol=eps()) ? 1.0 : 0.0
+      if indicator.Plotting || indicator.DensityAlphaForAll
+        if isapprox(antidiffusive_flux1[1, i, j, element], 0.0, atol=eps())
+          coefficient = 1.0  # flux_limited is zero as well
         else
-          coefficient = g_limited / g
+          coefficient = flux_limited / antidiffusive_flux1[1, i, j, element]
         end
-        alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
-        alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
+
+        if indicator.Plotting
+          @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+          alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
+          alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
+        end
       end
-      antidiffusive_flux1[v, i, j, element] = (rho_limited_im1i * phi - lambda * bar_states_phi) + g_limited
-    end
-  end
+      antidiffusive_flux1[1, i, j, element] = flux_limited
 
-  for j in 2:nnodes(dg), i in eachnode(dg)
-    lambda = lambda2[i, j, element]
-    bar_state_rho = bar_states2[1, i, j, element]
-    # Limit density
-    if antidiffusive_flux2[1, i, j, element] > 0
-      f_max = lambda * min(var_max[1, i, j-1, element] - bar_state_rho,
-                           bar_state_rho - var_min[1, i, j, element])
-      f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
-      flux_limited = min(antidiffusive_flux2[1, i, j, element], max(f_max, 0.0))
-    else
-      f_min = lambda * max(var_min[1, i, j-1, element] - bar_state_rho,
-                           bar_state_rho - var_max[1, i, j, element])
-      f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
-      flux_limited = max(antidiffusive_flux2[1, i, j, element], min(f_min, 0.0))
+      #Limit all quantities with the same alpha
+      if indicator.DensityAlphaForAll
+        for v in 2:nvariables(equations)
+          antidiffusive_flux1[v, i, j, element] = coefficient * antidiffusive_flux1[v, i, j, element]
+          if indicator.Plotting
+            alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
+            alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
+          end
+        end
+      end
     end
 
-    if indicator.Plotting
-      @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
-      if isapprox(antidiffusive_flux2[1, i, j, element], 0.0, atol=eps())
-        coefficient = 1.0  # flux_limited is zero as well
+    for j in 2:nnodes(dg), i in eachnode(dg)
+      lambda = lambda2[i, j, element]
+      bar_state_rho = bar_states2[1, i, j, element]
+      
+      # Limit density
+      if antidiffusive_flux2[1, i, j, element] > 0
+        f_max = lambda * min(var_max[1, i, j-1, element] - bar_state_rho,
+                            bar_state_rho - var_min[1, i, j, element])
+        f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
+        flux_limited = min(antidiffusive_flux2[1, i, j, element], max(f_max, 0.0))
       else
-        coefficient = flux_limited / antidiffusive_flux2[1, i, j, element]
+        f_min = lambda * max(var_min[1, i, j-1, element] - bar_state_rho,
+                            bar_state_rho - var_max[1, i, j, element])
+        f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
+        flux_limited = max(antidiffusive_flux2[1, i, j, element], min(f_min, 0.0))
       end
-      alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
-      alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
-    end
-    antidiffusive_flux2[1, i, j, element] = flux_limited
 
-    # Limit velocity and total energy
-    rho_limited_jjm1 = lambda * bar_state_rho - antidiffusive_flux2[1, i, j, element]
-    rho_limited_jm1j = lambda * bar_state_rho + antidiffusive_flux2[1, i, j, element]
-    for v in 2:nvariables(equations)
-      bar_state_phi = bar_states2[v, i, j, element]
-
-      phi = bar_state_phi / bar_state_rho
-
-      g = antidiffusive_flux2[v, i, j, element] + (lambda * bar_state_phi - rho_limited_jm1j * phi)
-
-      if g > 0
-        g_max = min(rho_limited_jm1j * (var_max[v, i, j-1, element] - phi),
-                    rho_limited_jjm1 * (phi - var_min[v, i, j, element]))
-        g_max = isapprox(g_max, 0.0, atol=eps()) ? 0.0 : g_max
-        g_limited = min(g, max(g_max, 0.0))
-      else
-        g_min = max(rho_limited_jm1j * (var_min[v, i, j-1, element] - phi),
-                    rho_limited_jjm1 * (phi - var_max[v, i, j, element]))
-        g_min = isapprox(g_min, 0.0, atol=eps()) ? 0.0 : g_min
-        g_limited = max(g, min(g_min, 0.0))
-      end
-      if indicator.Plotting
-        if isapprox(g, 0.0, atol=eps())
-          coefficient = isapprox(g_limited, 0.0, atol=eps()) ? 1.0 : 0.0
+      if indicator.Plotting || indicator.DensityAlphaForAll
+        if isapprox(antidiffusive_flux2[1, i, j, element], 0.0, atol=eps())
+          coefficient = 1.0  # flux_limited is zero as well
         else
-          coefficient = g_limited / g
+          coefficient = flux_limited / antidiffusive_flux2[1, i, j, element]
         end
-        alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
-        alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
+        
+        if indicator.Plotting
+          @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+          alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
+          alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
+        end
+      end
+      antidiffusive_flux2[1, i, j, element] = flux_limited
+
+      #Limit all quantities with the same alpha
+      if indicator.DensityAlphaForAll
+        for v in 2:nvariables(equations)
+          antidiffusive_flux2[v, i, j, element] = coefficient * antidiffusive_flux2[v, i, j, element]
+          if indicator.Plotting
+            alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
+            alpha[v, i, j  , element] = min(alpha[v, i, j  , element], coefficient)
+          end
+        end
+      end
+    end
+  end # if indicator.DensityLimiter
+
+  # Sequential limiter
+  if indicator.SequentialLimiter
+    for j in eachnode(dg), i in 2:nnodes(dg)
+      lambda = lambda1[i, j, element]
+      bar_state_rho = bar_states1[1, i, j, element]
+
+      # Limit velocity and total energy
+      rho_limited_iim1 = lambda * bar_state_rho - antidiffusive_flux1[1, i, j, element]
+      rho_limited_im1i = lambda * bar_state_rho + antidiffusive_flux1[1, i, j, element]
+      for v in 2:nvariables(equations)
+        bar_states_phi = bar_states1[v, i, j, element]
+
+        phi = bar_states_phi / bar_state_rho
+
+        g = antidiffusive_flux1[v, i, j, element] + (lambda * bar_states_phi - rho_limited_im1i * phi)
+
+        if g > 0
+          g_max = min(rho_limited_im1i * (var_max[v, i-1, j, element] - phi),
+                      rho_limited_iim1 * (phi - var_min[v, i, j, element]))
+          g_max = isapprox(g_max, 0.0, atol=eps()) ? 0.0 : g_max
+          g_limited = min(g, max(g_max, 0.0))
+        else
+          g_min = max(rho_limited_im1i * (var_min[v, i-1, j, element] - phi),
+                      rho_limited_iim1 * (phi - var_max[v, i, j, element]))
+          g_min = isapprox(g_min, 0.0, atol=eps()) ? 0.0 : g_min
+          g_limited = max(g, min(g_min, 0.0))
+        end
+        if indicator.Plotting
+          @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+          if isapprox(g, 0.0, atol=eps())
+            coefficient = isapprox(g_limited, 0.0, atol=eps()) ? 1.0 : 0.0
+          else
+            coefficient = g_limited / g
+          end
+          alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
+          alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
+        end
+        antidiffusive_flux1[v, i, j, element] = (rho_limited_im1i * phi - lambda * bar_states_phi) + g_limited
+      end
+    end
+
+    for j in 2:nnodes(dg), i in eachnode(dg)
+      lambda = lambda2[i, j, element]
+      bar_state_rho = bar_states2[1, i, j, element]
+
+      # Limit velocity and total energy
+      rho_limited_jjm1 = lambda * bar_state_rho - antidiffusive_flux2[1, i, j, element]
+      rho_limited_jm1j = lambda * bar_state_rho + antidiffusive_flux2[1, i, j, element]
+      for v in 2:nvariables(equations)
+        bar_state_phi = bar_states2[v, i, j, element]
+
+        phi = bar_state_phi / bar_state_rho
+
+        g = antidiffusive_flux2[v, i, j, element] + (lambda * bar_state_phi - rho_limited_jm1j * phi)
+
+        if g > 0
+          g_max = min(rho_limited_jm1j * (var_max[v, i, j-1, element] - phi),
+                      rho_limited_jjm1 * (phi - var_min[v, i, j, element]))
+          g_max = isapprox(g_max, 0.0, atol=eps()) ? 0.0 : g_max
+          g_limited = min(g, max(g_max, 0.0))
+        else
+          g_min = max(rho_limited_jm1j * (var_min[v, i, j-1, element] - phi),
+                      rho_limited_jjm1 * (phi - var_max[v, i, j, element]))
+          g_min = isapprox(g_min, 0.0, atol=eps()) ? 0.0 : g_min
+          g_limited = max(g, min(g_min, 0.0))
+        end
+        if indicator.Plotting
+          @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+          if isapprox(g, 0.0, atol=eps())
+            coefficient = isapprox(g_limited, 0.0, atol=eps()) ? 1.0 : 0.0
+          else
+            coefficient = g_limited / g
+          end
+          alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
+          alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
+        end
+
+        antidiffusive_flux2[v, i, j, element] = (rho_limited_jm1j * phi - lambda * bar_state_phi) + g_limited
+      end
+    end
+  # Conservative limiter
+  elseif indicator.ConservativeLimiter
+    for j in eachnode(dg), i in 2:nnodes(dg)
+      lambda = lambda1[i, j, element]
+      for v in 2:nvariables(equations)
+        bar_state_rho = bar_states1[v, i, j, element]
+        # Limit density
+        if antidiffusive_flux1[v, i, j, element] > 0
+          f_max = lambda * min(var_max[v, i-1, j, element] - bar_state_rho,
+                              bar_state_rho - var_min[v, i, j, element])
+          f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
+          flux_limited = min(antidiffusive_flux1[v, i, j, element], max(f_max, 0.0))
+        else
+          f_min = lambda * max(var_min[v, i-1, j, element] - bar_state_rho,
+                              bar_state_rho - var_max[v, i, j, element])
+          f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
+          flux_limited = max(antidiffusive_flux1[v, i, j, element], min(f_min, 0.0))
+        end
+
+        if indicator.Plotting
+          @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+          if isapprox(antidiffusive_flux1[v, i, j, element], 0.0, atol=eps())
+            coefficient = 1.0  # flux_limited is zero as well
+          else
+            coefficient = flux_limited / antidiffusive_flux1[v, i, j, element]
+          end
+          alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
+          alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
+        end
+        antidiffusive_flux1[v, i, j, element] = flux_limited
+      end
+    end
+
+    for j in 2:nnodes(dg), i in eachnode(dg)
+      lambda = lambda2[i, j, element]
+      for v in 2:nvariables(equations)
+        bar_state_rho = bar_states2[v, i, j, element]
+        # Limit density
+        if antidiffusive_flux2[v, i, j, element] > 0
+          f_max = lambda * min(var_max[v, i, j-1, element] - bar_state_rho,
+                              bar_state_rho - var_min[v, i, j, element])
+          f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
+          flux_limited = min(antidiffusive_flux2[v, i, j, element], max(f_max, 0.0))
+        else
+          f_min = lambda * max(var_min[v, i, j-1, element] - bar_state_rho,
+                              bar_state_rho - var_max[v, i, j, element])
+          f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
+          flux_limited = max(antidiffusive_flux2[v, i, j, element], min(f_min, 0.0))
+        end
+
+        if indicator.Plotting
+          @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+          if isapprox(antidiffusive_flux2[v, i, j, element], 0.0, atol=eps())
+            coefficient = 1.0  # flux_limited is zero as well
+          else
+            coefficient = flux_limited / antidiffusive_flux2[v, i, j, element]
+          end
+          alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
+          alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
+        end
+        antidiffusive_flux2[v, i, j, element] = flux_limited
+      end      
+    end
+  end # indicator.SequentialLimiter and indicator.ConservativeLimiter 
+
+  # Density positivity limiter
+  if indicator.DensityPositivityLimiter
+    for j in eachnode(dg), i in 2:nnodes(dg)
+      lambda = lambda1[i, j, element]
+      bar_state_rho = bar_states1[1, i, j, element]
+      # Limit density
+      if antidiffusive_flux1[1, i, j, element] > 0
+        f_max = lambda * bar_state_rho
+        f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
+        flux_limited = min(antidiffusive_flux1[1, i, j, element], max(f_max, 0.0))
+      else
+        f_min = -lambda * bar_state_rho
+        f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
+        flux_limited = max(antidiffusive_flux1[1, i, j, element], min(f_min, 0.0))
       end
 
-      antidiffusive_flux2[v, i, j, element] = (rho_limited_jm1j * phi - lambda * bar_state_phi) + g_limited
+      if indicator.Plotting
+        @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+        if isapprox(antidiffusive_flux1[1, i, j, element], 0.0, atol=eps())
+          coefficient = 1.0  # flux_limited is zero as well
+        else
+          coefficient = flux_limited / antidiffusive_flux1[1, i, j, element]
+        end
+        alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
+        alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
+      end
+      antidiffusive_flux1[1, i, j, element] = flux_limited
     end
-  end
+
+    for j in 2:nnodes(dg), i in eachnode(dg)
+      lambda = lambda2[i, j, element]
+      bar_state_rho = bar_states2[1, i, j, element]
+      # Limit density
+      if antidiffusive_flux2[1, i, j, element] > 0
+        f_max = lambda * bar_state_rho
+        f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
+        flux_limited = min(antidiffusive_flux2[1, i, j, element], max(f_max, 0.0))
+      else
+        f_min = -lambda * bar_state_rho
+        f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
+        flux_limited = max(antidiffusive_flux2[1, i, j, element], min(f_min, 0.0))
+      end
+
+      if indicator.Plotting
+        @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+        if isapprox(antidiffusive_flux2[1, i, j, element], 0.0, atol=eps())
+          coefficient = 1.0  # flux_limited is zero as well
+        else
+          coefficient = flux_limited / antidiffusive_flux2[1, i, j, element]
+        end
+        alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
+        alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
+      end
+      antidiffusive_flux2[1, i, j, element] = flux_limited
+    end
+  end #if indicator.DensityPositivityLimiter
 
   # Limit pressure
   if indicator.IDPPressure
@@ -1510,112 +1726,276 @@ end
   x = 1
   save_errors = laststage && (x > 0) && (iter % x == 0)
 
-  # New solution u^{n+1}
-  for element in eachelement(solver, cache)
-    for j in eachnode(solver), i in eachnode(solver)
-      deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - u[1, i, j, element])
-      deviation_max[1] = max(deviation_max[1], u[1, i, j, element] - var_max[1, i, j, element])
-      for v in 2:n_vars
-        var_limited = u[v, i, j, element] / u[1, i, j, element]
-        deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
-        deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
-      end
-      if indicator.IDPPressure
-        error_pressure = 0.5 * (u[2, i, j, element]^2 + u[3, i, j, element]^2) - u[1, i, j, element] * u[4, i, j, element]
-        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+  if indicator.DensityLimiter
+    # New solution u^{n+1}
+    for element in eachelement(solver, cache)
+      for j in eachnode(solver), i in eachnode(solver)
+        deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - u[1, i, j, element])
+        deviation_max[1] = max(deviation_max[1], u[1, i, j, element] - var_max[1, i, j, element])
       end
     end
-  end
+
+    # Limited bar states \bar{u}^{Lim} = \bar{u} + Δf^{Lim} / λ
+    # Checking the bounds for...
+    # - density (rho):
+    #   \bar{rho}^{min} <= \bar{rho}^{Lim} <= \bar{rho}^{max}
+    for element in eachelement(solver, cache)
+      # -x
+      for j in eachnode(solver), i in 1:nnodes(solver)
+        rho_limited = bar_states1[1, i, j, element] - antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
+        deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - rho_limited)
+        deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i, j, element])
+      end
+      # +x
+      for j in eachnode(solver), i in 2:nnodes(solver)+1
+        rho_limited = bar_states1[1, i, j, element] + antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
+        deviation_min[1] = max(deviation_min[1], var_min[1, i-1, j, element] - rho_limited)
+        deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i-1, j, element])
+      end
+      # -y
+      for j in 1:nnodes(solver), i in eachnode(solver)
+        rho_limited = bar_states2[1, i, j, element] - antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
+        deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - rho_limited)
+        deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i, j, element])
+      end
+      # +y
+      for j in 2:nnodes(solver)+1, i in eachnode(solver)
+        rho_limited = bar_states2[1, i, j, element] + antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
+        deviation_min[1] = max(deviation_min[1], var_min[1, i, j-1, element] - rho_limited)
+        deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i, j-1, element])
+      end
+    end
+  end # indicator.DensityLimiter
 
 
-  # Limited bar states \bar{u}^{Lim} = \bar{u} + Δf^{Lim} / λ
-  # Checking the bounds for...
-  # - density (rho):
-  #   \bar{rho}^{min} <= \bar{rho}^{Lim} <= \bar{rho}^{max}
-  # - velocities and energy (phi):
-  #   \bar{phi}^{min} <= \bar{phi}^{Lim} / \bar{rho}^{Lim} <= \bar{phi}^{max}
-  # - pressure (p):
-  #   \bar{rho}^{Lim} \bar{rho * E}^{Lim} >= |\bar{rho * v}^{Lim}|^2 / 2
-  var_limited = zero(eltype(idp_bounds_delta))
-  error_pressure = zero(eltype(idp_bounds_delta))
-  for element in eachelement(solver, cache)
-    # -x
-    for j in eachnode(solver), i in 1:nnodes(solver)
-      rho_limited = bar_states1[1, i, j, element] - antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
-      deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - rho_limited)
-      deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i, j, element])
-      for v in 2:n_vars
-        var_limited = bar_states1[v, i, j, element] - antidiffusive_flux1[v, i, j, element] / lambda1[i, j, element]
-        deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited / rho_limited)
-        deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j, element])
-        if indicator.IDPPressure && (v == 2 || v == 3)
-          error_pressure += 0.5 * var_limited^2
+  # TODO: Pressure bounds are only checked if sequential or conservative limiters are active
+  if indicator.SequentialLimiter
+    # New solution u^{n+1}
+    for element in eachelement(solver, cache)
+      for j in eachnode(solver), i in eachnode(solver)
+        for v in 2:n_vars
+          var_limited = u[v, i, j, element] / u[1, i, j, element]
+          deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
+          deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
+        end
+        if indicator.IDPPressure
+          error_pressure = 0.5 * (u[2, i, j, element]^2 + u[3, i, j, element]^2) - u[1, i, j, element] * u[4, i, j, element]
+          deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
         end
       end
-      if indicator.IDPPressure
-        error_pressure -= var_limited * rho_limited
-        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
-        error_pressure = zero(eltype(idp_bounds_delta))
-      end
     end
-    # +x
-    for j in eachnode(solver), i in 2:nnodes(solver)+1
-      rho_limited = bar_states1[1, i, j, element] + antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
-      deviation_min[1] = max(deviation_min[1], var_min[1, i-1, j, element] - rho_limited)
-      deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i-1, j, element])
-      for v in 2:n_vars
-        var_limited = bar_states1[v, i, j, element] + antidiffusive_flux1[v, i, j, element] / lambda1[i, j, element]
-        deviation_min[v] = max(deviation_min[v], var_min[v, i-1, j, element] - var_limited / rho_limited)
-        deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i-1, j, element])
-        if indicator.IDPPressure && (v == 2 || v == 3)
-          error_pressure += 0.5 * var_limited^2
+
+
+    # Limited bar states \bar{u}^{Lim} = \bar{u} + Δf^{Lim} / λ
+    # Checking the bounds for...
+    # - velocities and energy (phi):
+    #   \bar{phi}^{min} <= \bar{phi}^{Lim} / \bar{rho}^{Lim} <= \bar{phi}^{max}
+    # - pressure (p):
+    #   \bar{rho}^{Lim} \bar{rho * E}^{Lim} >= |\bar{rho * v}^{Lim}|^2 / 2
+    var_limited = zero(eltype(idp_bounds_delta))
+    error_pressure = zero(eltype(idp_bounds_delta))
+    for element in eachelement(solver, cache)
+      # -x
+      for j in eachnode(solver), i in 1:nnodes(solver)
+        rho_limited = bar_states1[1, i, j, element] - antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
+        for v in 2:n_vars
+          var_limited = bar_states1[v, i, j, element] - antidiffusive_flux1[v, i, j, element] / lambda1[i, j, element]
+          deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited / rho_limited)
+          deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j, element])
+          if indicator.IDPPressure && (v == 2 || v == 3)
+            error_pressure += 0.5 * var_limited^2
+          end
+        end
+        if indicator.IDPPressure
+          error_pressure -= var_limited * rho_limited
+          deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+          error_pressure = zero(eltype(idp_bounds_delta))
         end
       end
-      if indicator.IDPPressure
-        error_pressure -= var_limited * rho_limited
-        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
-        error_pressure = zero(eltype(idp_bounds_delta))
-      end
-    end
-    # -y
-    for j in 1:nnodes(solver), i in eachnode(solver)
-      rho_limited = bar_states2[1, i, j, element] - antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
-      deviation_min[1] = max(deviation_min[1], var_min[1, i, j, element] - rho_limited)
-      deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i, j, element])
-      for v in 2:n_vars
-        var_limited = bar_states2[v, i, j, element] - antidiffusive_flux2[v, i, j, element] / lambda2[i, j, element]
-        deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited / rho_limited)
-        deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j, element])
-        if indicator.IDPPressure && (v == 2 || v == 3)
-          error_pressure += 0.5 * var_limited^2
+      # +x
+      for j in eachnode(solver), i in 2:nnodes(solver)+1
+        rho_limited = bar_states1[1, i, j, element] + antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
+        for v in 2:n_vars
+          var_limited = bar_states1[v, i, j, element] + antidiffusive_flux1[v, i, j, element] / lambda1[i, j, element]
+          deviation_min[v] = max(deviation_min[v], var_min[v, i-1, j, element] - var_limited / rho_limited)
+          deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i-1, j, element])
+          if indicator.IDPPressure && (v == 2 || v == 3)
+            error_pressure += 0.5 * var_limited^2
+          end
+        end
+        if indicator.IDPPressure
+          error_pressure -= var_limited * rho_limited
+          deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+          error_pressure = zero(eltype(idp_bounds_delta))
         end
       end
-      if indicator.IDPPressure
-        error_pressure -= var_limited * rho_limited
-        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
-        error_pressure = zero(eltype(idp_bounds_delta))
-      end
-    end
-    # +y
-    for j in 2:nnodes(solver)+1, i in eachnode(solver)
-      rho_limited = bar_states2[1, i, j, element] + antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
-      deviation_min[1] = max(deviation_min[1], var_min[1, i, j-1, element] - rho_limited)
-      deviation_max[1] = max(deviation_max[1], rho_limited - var_max[1, i, j-1, element])
-      for v in 2:n_vars
-        var_limited = bar_states2[v, i, j, element] + antidiffusive_flux2[v, i, j, element] / lambda2[i, j, element]
-        deviation_min[v] = max(deviation_min[v], var_min[v, i, j-1, element] - var_limited / rho_limited)
-        deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j-1, element])
-        if indicator.IDPPressure && (v == 2 || v == 3)
-          error_pressure += 0.5 * var_limited^2
+      # -y
+      for j in 1:nnodes(solver), i in eachnode(solver)
+        rho_limited = bar_states2[1, i, j, element] - antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
+        for v in 2:n_vars
+          var_limited = bar_states2[v, i, j, element] - antidiffusive_flux2[v, i, j, element] / lambda2[i, j, element]
+          deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited / rho_limited)
+          deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j, element])
+          if indicator.IDPPressure && (v == 2 || v == 3)
+            error_pressure += 0.5 * var_limited^2
+          end
+        end
+        if indicator.IDPPressure
+          error_pressure -= var_limited * rho_limited
+          deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+          error_pressure = zero(eltype(idp_bounds_delta))
         end
       end
-      if indicator.IDPPressure
-        error_pressure -= var_limited * rho_limited
-        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
-        error_pressure = zero(eltype(idp_bounds_delta))
+      # +y
+      for j in 2:nnodes(solver)+1, i in eachnode(solver)
+        rho_limited = bar_states2[1, i, j, element] + antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
+        for v in 2:n_vars
+          var_limited = bar_states2[v, i, j, element] + antidiffusive_flux2[v, i, j, element] / lambda2[i, j, element]
+          deviation_min[v] = max(deviation_min[v], var_min[v, i, j-1, element] - var_limited / rho_limited)
+          deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j-1, element])
+          if indicator.IDPPressure && (v == 2 || v == 3)
+            error_pressure += 0.5 * var_limited^2
+          end
+        end
+        if indicator.IDPPressure
+          error_pressure -= var_limited * rho_limited
+          deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+          error_pressure = zero(eltype(idp_bounds_delta))
+        end
       end
     end
-  end
+  elseif indicator.ConservativeLimiter
+      # New solution u^{n+1}
+    for element in eachelement(solver, cache)
+      for j in eachnode(solver), i in eachnode(solver)
+        for v in 2:n_vars
+          deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - u[v, i, j, element])
+          deviation_max[v] = max(deviation_max[v], u[v, i, j, element] - var_max[v, i, j, element])
+        end
+        if indicator.IDPPressure
+          error_pressure = 0.5 * (u[2, i, j, element]^2 + u[3, i, j, element]^2) - u[1, i, j, element] * u[4, i, j, element]
+          deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+        end
+      end
+    end
+
+
+    # Limited bar states \bar{u}^{Lim} = \bar{u} + Δf^{Lim} / λ
+    # Checking the bounds for...
+    # - conservative variables (phi):
+    #   \bar{rho*phi}^{min} <= \bar{rho*phi}^{Lim} <= \bar{rho*phi}^{max}
+    # - pressure (p):
+    #   \bar{rho}^{Lim} \bar{rho * E}^{Lim} >= |\bar{rho * v}^{Lim}|^2 / 2
+    var_limited = zero(eltype(idp_bounds_delta))
+    rho_limited = zero(eltype(idp_bounds_delta))
+    error_pressure = zero(eltype(idp_bounds_delta))
+    for element in eachelement(solver, cache)
+      # -x  
+      for j in eachnode(solver), i in 1:nnodes(solver)
+        rho_limited = bar_states1[1, i, j, element] - antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
+        for v in 2:n_vars
+          var_limited = bar_states1[v, i, j, element] - antidiffusive_flux1[v, i, j, element] / lambda1[i, j, element]
+          deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
+          deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
+          if indicator.IDPPressure && (v == 2 || v == 3)
+            error_pressure += 0.5 * var_limited^2
+          end
+        end
+        if indicator.IDPPressure
+          error_pressure -= var_limited * rho_limited
+          deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+          error_pressure = zero(eltype(idp_bounds_delta))
+        end
+      end
+      # +x
+      for j in eachnode(solver), i in 2:nnodes(solver)+1
+        rho_limited = bar_states1[1, i, j, element] + antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
+        for v in 2:n_vars
+          var_limited = bar_states1[v, i, j, element] + antidiffusive_flux1[v, i, j, element] / lambda1[i, j, element]
+          deviation_min[v] = max(deviation_min[v], var_min[v, i-1, j, element] - var_limited)
+          deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i-1, j, element])
+          if indicator.IDPPressure && (v == 2 || v == 3)
+            error_pressure += 0.5 * var_limited^2
+          end
+        end
+        if indicator.IDPPressure
+          error_pressure -= var_limited * rho_limited
+          deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+          error_pressure = zero(eltype(idp_bounds_delta))
+        end
+      end
+      # -y
+      for j in 1:nnodes(solver), i in eachnode(solver)
+        rho_limited = bar_states2[1, i, j, element] - antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
+        for v in 2:n_vars
+          var_limited = bar_states2[v, i, j, element] - antidiffusive_flux2[v, i, j, element] / lambda2[i, j, element]
+          deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
+          deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
+          if indicator.IDPPressure && (v == 2 || v == 3)
+            error_pressure += 0.5 * var_limited^2
+          end
+        end
+        if indicator.IDPPressure
+          error_pressure -= var_limited * rho_limited
+          deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+          error_pressure = zero(eltype(idp_bounds_delta))
+        end
+      end
+      # +y
+      for j in 2:nnodes(solver)+1, i in eachnode(solver)
+        rho_limited = bar_states2[1, i, j, element] + antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
+        for v in 2:n_vars
+          var_limited = bar_states2[v, i, j, element] + antidiffusive_flux2[v, i, j, element] / lambda2[i, j, element]
+          deviation_min[v] = max(deviation_min[v], var_min[v, i, j-1, element] - var_limited)
+          deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j-1, element])
+          if indicator.IDPPressure && (v == 2 || v == 3)
+            error_pressure += 0.5 * var_limited^2
+          end
+        end
+        if indicator.IDPPressure
+          error_pressure -= var_limited * rho_limited
+          deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+          error_pressure = zero(eltype(idp_bounds_delta))
+        end
+      end
+    end
+  end # indicator.ConservativeLimiter
+
+  if indicator.DensityPositivityLimiter
+    # New solution u^{n+1}
+    for element in eachelement(solver, cache)
+      for j in eachnode(solver), i in eachnode(solver)
+        deviation_min[1] = max(deviation_min[1], - u[1, i, j, element])
+      end
+    end
+
+    # Limited bar states \bar{u}^{Lim} = \bar{u} + Δf^{Lim} / λ
+    # Checking the bounds for...
+    # - density (rho):
+    #   0 <= \bar{rho}^{Lim}
+    for element in eachelement(solver, cache)
+      # -x
+      for j in eachnode(solver), i in 1:nnodes(solver)
+        rho_limited = bar_states1[1, i, j, element] - antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
+        deviation_min[1] = max(deviation_min[1], -rho_limited)
+      end
+      # +x
+      for j in eachnode(solver), i in 2:nnodes(solver)+1
+        rho_limited = bar_states1[1, i, j, element] + antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
+        deviation_min[1] = max(deviation_min[1], -rho_limited)
+      end
+      # -y
+      for j in 1:nnodes(solver), i in eachnode(solver)
+        rho_limited = bar_states2[1, i, j, element] - antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
+        deviation_min[1] = max(deviation_min[1], -rho_limited)
+      end
+      # +y
+      for j in 2:nnodes(solver)+1, i in eachnode(solver)
+        rho_limited = bar_states2[1, i, j, element] + antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
+        deviation_min[1] = max(deviation_min[1], -rho_limited)
+      end
+    end
+  end # indicator.DensityPositivityLimiter
 
   vars = varnames(cons2cons, equations)
   for v in eachvariable(equations)
