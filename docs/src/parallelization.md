@@ -113,11 +113,15 @@ To start Trixi in parallel with MPI, there are three options:
    documentation for `tmux`
    [available](https://github.com/tmux/tmux/wiki/Getting-Started) and once you
    get the hang of it, developing Trixi in parallel becomes much smoother this
-   way.
+   way. Some helpful commands are the following. To close a single pane you can press `Ctrl+b`
+   and then `x` followed by `y` to confirm. To quit the whole session you press `Ctrl+b` followed
+   by `:kill-session`. Often, you like to scroll up. You can do that by pressing `Ctrl+b` and then `[`,
+   which allows you to use the arrow keys to scroll up and down. To leave the scroll mode you press `q`.
+   Switching between panes can be done by `Ctrl+b` followed by `o`.
    As of March 2022, newer versions of tmpi also support mpich, which is the default
    backend of MPI.jl (via MPICH_Jll.jl). To use this setup, you need to install
    `mpiexecjl` as described in the 
-   [documentation of MPI.jl](https://juliaparallel.github.io/MPI.jl/latest/configuration/#Julia-wrapper-for-mpiexec)
+   [documentation of MPI.jl](https://docs.juliahub.com/MPI/nO0XF/0.16.0/configuration/)
    and make it available as `mpirun`, e.g., via a symlink of the form
    ```bash
    ln -s ~/.julia/bin/mpiexecjl /somewhere/in/your/path/mpirun
