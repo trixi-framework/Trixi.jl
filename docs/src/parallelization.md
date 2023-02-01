@@ -121,7 +121,7 @@ To start Trixi in parallel with MPI, there are three options:
    As of March 2022, newer versions of tmpi also support mpich, which is the default
    backend of MPI.jl (via MPICH_Jll.jl). To use this setup, you need to install
    `mpiexecjl` as described in the 
-   [documentation of MPI.jl](https://docs.juliahub.com/MPI/nO0XF/0.16.0/configuration/)
+   [documentation of MPI.jl](https://docs.juliahub.com/MPI/nO0XF/0.16.0/configuration/#Julia-wrapper-for-mpiexec)
    and make it available as `mpirun`, e.g., via a symlink of the form
    ```bash
    ln -s ~/.julia/bin/mpiexecjl /somewhere/in/your/path/mpirun
