@@ -33,7 +33,6 @@ function initial_condition_taylor_green_vortex(x, t, equations::CompressibleEule
 end
 initial_condition = initial_condition_taylor_green_vortex
 
-volume_flux = flux_ranocha
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = GaussSBP(),
              surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
