@@ -4,6 +4,19 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.5 lifecycle
+
+#### Added
+
+- Experimental support for 3D parabolic diffusion terms has been added.
+
+#### Changed
+
+#### Deprecated
+
+#### Removed
+
+
 ## Changes when updating to v0.5 from v0.4.x
 
 #### Added
@@ -16,6 +29,13 @@ for human readability.
   `Trixi.has_nonconservative_terms(::YourEquations) = Val{true}()` to
   `Trixi.has_nonconservative_terms(::YourEquations) = Trixi.True()`.
 - The (non-exported) DGSEM function `split_form_kernel!` has been renamed to `flux_differencing_kernel!`
+- Trixi.jl updated its dependency [P4est.jl](https://github.com/trixi-framework/P4est.jl/)
+  from v0.3 to v0.4. The new bindings of the C library `p4est` have been
+  generated using Clang.jl instead of CBinding.jl v0.9. This affects only user
+  code that is interacting directly with `p4est`, e.g., because custom refinement
+  functions have been passed to `p4est`. Please consult the
+  [NEWS.md of P4est.jl](https://github.com/trixi-framework/P4est.jl/blob/main/NEWS.md)
+  for further information.
 
 #### Deprecated
 
@@ -28,25 +48,6 @@ for human readability.
 #### Removed
 
 - Everything deprecated in Trixi.jl v0.4.x has been removed.
-
-
-## Changes when updating to v0.5 from v0.4.x
-
-#### Added
-
-#### Changed
-
-- Trixi.jl updated its dependency [P4est.jl](https://github.com/trixi-framework/P4est.jl/)
-  from v0.3 to v0.4. The new bindings of the C library `p4est` have been
-  generated using Clang.jl instead of CBinding.jl v0.9. This affects only user
-  code that is interacting directly with `p4est`, e.g., because custom refinement
-  functions have been passed to `p4est`. Please consult the
-  [NEWS.md of P4est.jl](https://github.com/trixi-framework/P4est.jl/blob/main/NEWS.md)
-  for further information.
-
-#### Deprecated
-
-#### Removed
 
 
 ## Changes in the v0.4 lifecycle
