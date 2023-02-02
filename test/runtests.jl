@@ -88,6 +88,7 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic"
     include("test_parabolic_2d.jl")
+    include("test_parabolic_3d.jl")
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc_part1"

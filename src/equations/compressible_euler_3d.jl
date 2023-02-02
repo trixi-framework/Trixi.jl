@@ -323,6 +323,52 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
                  zero(eltype(u_inner))) * norm_
 end
 
+"""
+    boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                 surface_flux_function, equations::CompressibleEulerEquations3D)
+
+Should be used together with [`TreeMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, orientation,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations3D)
+  # get the appropriate normal vector from the orientation
+  if orientation == 1
+    normal_direction = SVector(1.0, 0.0, 0.0)
+  elseif orientation == 2
+    normal_direction = SVector(0.0, 1.0, 0.0)
+  else # orientation == 3
+    normal_direction = SVector(0.0, 0.0, 1.0)
+  end
+
+  # compute and return the flux using `boundary_condition_slip_wall` routine above
+  return boundary_condition_slip_wall(u_inner, normal_direction, direction,
+                                      x, t, surface_flux_function, equations)
+end
+
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t,
+                                 surface_flux_function, equations::CompressibleEulerEquations3D)
+
+Should be used together with [`StructuredMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations3D)
+  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
+  # to be inward pointing on the -x, -y, and -z sides due to the orientation convention used by StructuredMesh
+  if isodd(direction)
+    boundary_flux = -boundary_condition_slip_wall(u_inner, -normal_direction,
+                                                  x, t, surface_flux_function, equations)
+  else
+    boundary_flux = boundary_condition_slip_wall(u_inner, normal_direction,
+                                                 x, t, surface_flux_function, equations)
+  end
+
+  return boundary_flux
+end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations3D)

@@ -5,13 +5,12 @@ using Trixi
 
 include("test_trixi.jl")
 
-EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_2d")
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-@testset "SemidiscretizationHyperbolicParabolic" begin
+@testset "SemidiscretizationHyperbolicParabolic (2D)" begin
 
   @trixi_testset "DGMulti 2D rhs_parabolic!" begin
 
