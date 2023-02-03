@@ -865,7 +865,7 @@ end
       if neighbor_side == 2 # Element is on the right, boundary on the left
         for j in eachnode(dg)
           u_inner = get_node_vars(u, equations, dg, 1, j, element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1], orientation, 1,
                                              equations, dg, 1, j, element)
           lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
 
@@ -881,7 +881,7 @@ end
       else # Element is on the left, boundary on the right
         for j in eachnode(dg)
           u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2], orientation, 2,
                                              equations, dg, nnodes(dg), j, element)
           lambda1[nnodes(dg)+1, j, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
 
@@ -899,7 +899,7 @@ end
       if neighbor_side == 2 # Element is on the right, boundary on the left
         for i in eachnode(dg)
           u_inner = get_node_vars(u, equations, dg, i, 1, element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3], orientation, 3,
                                              equations, dg, i, 1, element)
           lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
 
@@ -915,7 +915,7 @@ end
       else # Element is on the left, boundary on the right
         for i in eachnode(dg)
           u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4], orientation, 4,
                                              equations, dg, i, nnodes(dg), element)
           lambda2[i, nnodes(dg)+1, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
 
@@ -1551,13 +1551,22 @@ end
   return nothing
 end
 
-get_boundary_outer_state(u_inner, cache, t, boundary_condition, equations, dg, indices...) = u_inner
+get_boundary_outer_state(u_inner, cache, t, boundary_condition, orientation, direction, equations, dg, indices...) = u_inner
 
-@inline function get_boundary_outer_state(u_inner, cache, t, boundary_condition::BoundaryConditionDirichlet, equations, dg, indices...)
+@inline function get_boundary_outer_state(u_inner, cache, t, boundary_condition::BoundaryConditionDirichlet, orientation, direction, equations, dg, indices...)
   @unpack node_coordinates = cache.elements
 
   x = get_node_coords(node_coordinates, equations, dg, indices...)
   u_outer = boundary_condition.boundary_value_function(x, t, equations)
+
+  return u_outer
+end
+
+@inline function get_boundary_outer_state(u_inner, cache, t, boundary_condition::BoundaryConditionCharacteristic, orientation, direction, equations, dg, indices...)
+  @unpack node_coordinates = cache.elements
+
+  x = get_node_coords(node_coordinates, equations, dg, indices...)
+  u_outer = boundary_condition.boundary_value_function(boundary_condition.outer_boundary_value_function, u_inner, orientation, direction, x, t, equations)
 
   return u_outer
 end
