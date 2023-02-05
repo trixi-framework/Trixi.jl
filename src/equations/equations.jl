@@ -181,8 +181,9 @@ end
   return flux
 end
 
+
 """
-    BoundaryConditionCharacteristic(boundary_value_function)
+    BoundaryConditionCharacteristic(outer_boundary_value_function)
 
 """
 struct BoundaryConditionCharacteristic{B,C}
@@ -191,16 +192,17 @@ struct BoundaryConditionCharacteristic{B,C}
 end
 
 function BoundaryConditionCharacteristic(outer_boundary_value_function)
-  BoundaryConditionCharacteristic{typeof(outer_boundary_value_function), typeof(characteristic_boundary_value_function)}(outer_boundary_value_function, characteristic_boundary_value_function)
+  BoundaryConditionCharacteristic{typeof(outer_boundary_value_function), typeof(characteristic_boundary_value_function)}(
+    outer_boundary_value_function, characteristic_boundary_value_function)
 end
 
 
 # Dirichlet-type boundary condition for use with TreeMesh or StructuredMesh
 @inline function (boundary_condition::BoundaryConditionCharacteristic)(u_inner, orientation_or_normal,
-                                                                  direction,
-                                                                  x, t,
-                                                                  surface_flux_function, equations)
-  u_boundary = characteristic_boundary_value_function(boundary_condition.outer_boundary_value_function, 
+                                                                       direction,
+                                                                       x, t,
+                                                                       surface_flux_function, equations)
+  u_boundary = characteristic_boundary_value_function(boundary_condition.outer_boundary_value_function,
                                                       u_inner, orientation_or_normal, direction, x , t, equations)
 
   # Calculate boundary flux
@@ -360,7 +362,7 @@ include("compressible_euler_multicomponent_2d.jl")
     eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractCompressibleEulerMulticomponentEquations`. 
+for the components in `AbstractCompressibleEulerMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations) = Base.OneTo(ncomponents(equations))
@@ -382,7 +384,7 @@ include("ideal_glm_mhd_multicomponent_2d.jl")
     eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractIdealGlmMhdMulticomponentEquations`. 
+for the components in `AbstractIdealGlmMhdMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations) = Base.OneTo(ncomponents(equations))
