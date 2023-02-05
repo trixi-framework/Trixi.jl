@@ -12,17 +12,17 @@ The moist compressible Euler equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-\rho \\ \rho v_1 \\ \rho v_2 \\ \rho E \\ rho_v \\ rho_l
+\rho \\ \rho v_1 \\ \rho v_2 \\ \rho E \\ \rho_v \\ \rho_l
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
-\rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho E +p) v_1 \\ \rho_v v_1 \\\ rho_l v_1
+\rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho E +p) v_1 \\ \rho_v v_1 \\\ \rho_l v_1
 \end{pmatrix}
 +
 \frac{\partial}{\partial y}
 \begin{pmatrix}
-\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho E +p) v_2 \\ \rho_v v_2 \\\ rho_l v_2
+\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho E +p) v_2 \\ \rho_v v_2 \\\ \rho_l v_2
 \end{pmatrix}
 =
 \begin{pmatrix}
@@ -30,7 +30,7 @@ The moist compressible Euler equations
 \end{pmatrix}
 ```
 for moist air consiting of dry air, water vapor and liquid water in two space dimensions.
-Here, ``\rho`` is the total density calculated as the sum of the individual density of dry air ``\rho_d``, 
+Here, ``\rho`` is the total density calculated as the sum of the individual densities of dry air ``\rho_d``, 
 water vapor ``\rho_v`` and liquid water ``\rho_l``, ``v_1``,`v_2` the velocities, ``E`` the specific total energy **rather than** specific internal energy,
  and
 ```math
@@ -63,9 +63,11 @@ function CompressibleMoistEulerEquations2D(;g= 9.81, RealT=Float64)
    c_vv = 1424.0
    R_v = c_pv-c_vv
    c_pl =  4186.0
+   L_00 = 3147620.0
+   #
    gamma = c_pd / c_vd # = 1/(1 - kappa)
    kappa = 1 - inv(gamma)
-   L_00 = 3147620.0
+
    return CompressibleMoistEulerEquations2D{RealT}(p_0, c_pd, c_vd, R_d, c_pv, c_vv, R_v, c_pl,  g, kappa, gamma, L_00)
   end
 
@@ -227,7 +229,7 @@ end
 end
 
 
-# Gravity source term
+# Gravity source term.
 @inline function source_terms_geopotential(u, x, t, equations::CompressibleMoistEulerEquations2D)
   @unpack g = equations
   rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
@@ -239,7 +241,7 @@ end
 end
 
 
-# Raylight damping sponge source term form A. Sridhar et al., 
+# Raylight damping sponge source term form: A. Sridhar et al., 
 # Large-eddy simulations with ClimateMachine: a new open-sourcecode for
 # atmospheric simulations on GPUs and CPUs, 2 Oct 2021, doi: 10.5194/gmd-15-6259-2022,
 # https://arxiv.org/abs/2110.00853 [physics.ao-ph] .
@@ -300,7 +302,7 @@ end
 end
 
 
-# Add the source containing Q_ph
+# Add the source containing Q_ph.
 @inline function source_terms_phase_change(u, x, t, equations::CompressibleMoistEulerEquations2D)
 
   Q_ph = phase_change_term(u, equations)
@@ -310,7 +312,7 @@ end
 end
 
 
-# Source term with gravity and phase change
+# Source term with gravity and phase change.
 @inline function source_terms_moist_air(u, x, t, equations::CompressibleMoistEulerEquations2D)
 
   return (source_terms_geopotential(u, x, t, equations) + 
@@ -318,9 +320,10 @@ end
 end
 
 
-# Slip-wall boundary condition 
+# Slip-wall boundary condition.
 # Determine the boundary numerical surface flux for a slip wall condition.
 # Imposes a zero normal velocity at the wall.
+# Adaption from the 2D compressible euler implementation.
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
   surface_flux_function, equations::CompressibleMoistEulerEquations2D)
   @unpack c_pd, c_pv, c_pl, c_vd, c_vv = equations
@@ -420,7 +423,8 @@ end
 
 # Adjusted version of LLF dissipation from compressible euler.
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
-# maximum velocity magnitude plus the maximum speed of sound
+# maximum velocity magnitude plus the maximum speed of sound.
+# Adaption from the 2D euler implementation.
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
   equations::CompressibleMoistEulerEquations2D)
   @unpack c_pd, c_pv, c_pl, c_vd, c_vv = equations
@@ -583,7 +587,8 @@ end
 end
 
 
-# Rotate momentum flux. The same as in compressible Euler.
+# Rotate momentum flux.
+# Adaption from the 2D compressible euler implementation.
 @inline function rotate_to_x(u, normal_vector::AbstractVector, equations::CompressibleMoistEulerEquations2D)
   # cos and sin of the angle between the x-axis and the normalized normal_vector are
   # the normalized vector's x and y coordinates respectively (see unit circle).
@@ -872,9 +877,9 @@ end
   @unpack c_vd, c_vv, c_pl, R_d, R_v = equations
   # Pressure
   T = temperature(cons, equations)
-  rho_qd =cons[1]-cons[5]-cons[6]
-  rho_qv =cons[5]
-  rho_ql =cons[6]
+  rho_qd = cons[1]-cons[5]-cons[6]
+  rho_qv = cons[5]
+  rho_ql = cons[6]
   # Thermodynamic entropy
   s_d = c_vd*log(T) - R_d*log(rho_qd*R_d)
 
