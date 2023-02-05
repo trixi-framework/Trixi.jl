@@ -198,7 +198,7 @@ end
 
 
 
-@inline have_constant_speed(::HyperbolicDiffusionEquations3D) = Val(true)
+@inline have_constant_speed(::HyperbolicDiffusionEquations3D) = True()
 
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations3D)
   λ = sqrt(eq.nu * eq.inv_Tr)

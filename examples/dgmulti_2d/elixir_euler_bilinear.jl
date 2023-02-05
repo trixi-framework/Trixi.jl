@@ -26,7 +26,7 @@ for i in eachindex(vertex_coordinates[1])
   setindex!.(vertex_coordinates, mapping(vx, vy), i)
 end
 
-mesh = DGMultiMesh(vertex_coordinates, EToV, dg, is_on_boundary=is_on_boundary)
+mesh = DGMultiMesh(dg, vertex_coordinates, EToV, is_on_boundary=is_on_boundary)
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :top => boundary_condition_convergence_test,

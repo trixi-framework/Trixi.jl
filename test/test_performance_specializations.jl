@@ -28,7 +28,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
       # Call the optimized default version
       du .= 0
-      Trixi.split_form_kernel!(
+      Trixi.flux_differencing_kernel!(
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
@@ -37,7 +37,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Call the plain version - note the argument type `Function` of
       # `semi.solver.volume_integral.volume_flux`
       du .= 0
-      invoke(Trixi.split_form_kernel!,
+      invoke(Trixi.flux_differencing_kernel!,
         Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
         typeof(nonconservative_terms), typeof(semi.equations),
         Function, typeof(semi.solver), typeof(semi.cache), Bool},
@@ -67,7 +67,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
       # Call the optimized default version
       du .= 0
-      Trixi.split_form_kernel!(
+      Trixi.flux_differencing_kernel!(
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
@@ -76,7 +76,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Call the plain version - note the argument type `Function` of
       # `semi.solver.volume_integral.volume_flux`
       du .= 0
-      invoke(Trixi.split_form_kernel!,
+      invoke(Trixi.flux_differencing_kernel!,
         Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
         typeof(nonconservative_terms), typeof(semi.equations),
         Function, typeof(semi.solver), typeof(semi.cache), Bool},
@@ -106,7 +106,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
       # Call the optimized default version
       du .= 0
-      Trixi.split_form_kernel!(
+      Trixi.flux_differencing_kernel!(
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
@@ -115,7 +115,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Call the plain version - note the argument type `Function` of
       # `semi.solver.volume_integral.volume_flux`
       du .= 0
-      invoke(Trixi.split_form_kernel!,
+      invoke(Trixi.flux_differencing_kernel!,
         Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
         typeof(nonconservative_terms), typeof(semi.equations),
         Function, typeof(semi.solver), typeof(semi.cache), Bool},
@@ -145,7 +145,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
       # Call the optimized default version
       du .= 0
-      Trixi.split_form_kernel!(
+      Trixi.flux_differencing_kernel!(
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
@@ -154,7 +154,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Call the plain version - note the argument type `Function` of
       # `semi.solver.volume_integral.volume_flux`
       du .= 0
-      invoke(Trixi.split_form_kernel!,
+      invoke(Trixi.flux_differencing_kernel!,
         Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
         typeof(nonconservative_terms), typeof(semi.equations),
         Function, typeof(semi.solver), typeof(semi.cache), Bool},
@@ -184,7 +184,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
       # Call the optimized default version
       du .= 0
-      Trixi.split_form_kernel!(
+      Trixi.flux_differencing_kernel!(
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
@@ -193,7 +193,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Call the plain version - note the argument type `Function` of
       # `semi.solver.volume_integral.volume_flux`
       du .= 0
-      invoke(Trixi.split_form_kernel!,
+      invoke(Trixi.flux_differencing_kernel!,
         Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
         typeof(nonconservative_terms), typeof(semi.equations),
         Function, typeof(semi.solver), typeof(semi.cache), Bool},
@@ -223,7 +223,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
       # Call the optimized default version
       du .= 0
-      Trixi.split_form_kernel!(
+      Trixi.flux_differencing_kernel!(
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
@@ -232,7 +232,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Call the plain version - note the argument type `Function` of
       # `semi.solver.volume_integral.volume_flux`
       du .= 0
-      invoke(Trixi.split_form_kernel!,
+      invoke(Trixi.flux_differencing_kernel!,
         Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
         typeof(nonconservative_terms), typeof(semi.equations),
         Function, typeof(semi.solver), typeof(semi.cache), Bool},
@@ -262,7 +262,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
       # Call the optimized default version
       du .= 0
-      Trixi.split_form_kernel!(
+      Trixi.flux_differencing_kernel!(
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
@@ -271,7 +271,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Call the plain version - note the argument type `Function` of
       # `semi.solver.volume_integral.volume_flux`
       du .= 0
-      invoke(Trixi.split_form_kernel!,
+      invoke(Trixi.flux_differencing_kernel!,
         Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
         typeof(nonconservative_terms), typeof(semi.equations),
         Function, typeof(semi.solver), typeof(semi.cache), Bool},
@@ -301,7 +301,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
       # Call the optimized default version
       du .= 0
-      Trixi.split_form_kernel!(
+      Trixi.flux_differencing_kernel!(
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
@@ -310,7 +310,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Call the plain version - note the argument type `Function` of
       # `semi.solver.volume_integral.volume_flux`
       du .= 0
-      invoke(Trixi.split_form_kernel!,
+      invoke(Trixi.flux_differencing_kernel!,
         Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
         typeof(nonconservative_terms), typeof(semi.equations),
         Function, typeof(semi.solver), typeof(semi.cache), Bool},

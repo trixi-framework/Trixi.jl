@@ -58,7 +58,7 @@ function ShallowWaterEquations1D(; gravity_constant, H0=0.0)
 end
 
 
-have_nonconservative_terms(::ShallowWaterEquations1D) = Val(true)
+have_nonconservative_terms(::ShallowWaterEquations1D) = True()
 varnames(::typeof(cons2cons), ::ShallowWaterEquations1D) = ("h", "h_v", "b")
 # Note, we use the total water height, H = h + b, as the first primitive variable for easier
 # visualization and setting initial conditions

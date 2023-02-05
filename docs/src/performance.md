@@ -7,9 +7,10 @@ simultaneously.
 The usual development workflow in Julia is
 
 1. Make it work.
-2. Make it fast.
+2. Make it nice.
+3. Make it fast.
 
-To achieve the second step, you should be familiar with (at least) the section on
+To achieve the third step, you should be familiar with (at least) the section on
 [performance tips in the Julia manual](https://docs.julialang.org/en/v1/manual/performance-tips/).
 Here, we just list some important aspects you should consider when developing Trixi.
 
@@ -167,3 +168,102 @@ As a rule of thumb:
 - Do not use `@nospecialize` in performance-critical parts, in particular not for methods involved
   in computing `Trixi.rhs!`.
 - Consider using `@nospecialize` for methods like custom implementations of `Base.show`.
+
+
+## Performance metrics of the `AnalysisCallback`
+The [`AnalysisCallback`](@ref) computes two performance indicators that you can use to
+evaluate the serial and parallel performance of Trixi. They represent
+measured run times that are normalized by the number of `rhs!` evaluations and
+the number of degrees of freedom of the problem setup. The normalization ensures that we can
+compare different measurements for each type of indicator independent of the number of
+time steps or mesh size. All indicators have in common that they are still in units of
+time, thus *lower is better* for each of them.
+
+Here, the term "degrees of freedom" (DOFs) refers to the number of *independent*
+state vectors that are used to represent the numerical solution. For example, if
+you use a DGSEM-type scheme in 2D on a mesh with 8 elements and with
+5-by-5 Gauss-Lobatto nodes in each element (i.e., a polynomial degree of 4), the
+total number of DOFs would be
+```math
+n_\text{DOFs,DGSEM} = \{\text{number of elements}\} \cdot \{\text{number of nodes per element}\} = 8 \cdot (5 \cdot 5) = 200.
+```
+In contrast, for a finite volume-type scheme on a mesh with 8 elements, the total number of
+DOFs would be (independent of the number of spatial dimensions)
+```math
+n_\text{DOFs,FV} = \{\text{number of elements}\} = 8,
+```
+since for standard finite volume methods you store a single state vector in each
+element. Note that we specifically count the number of state *vectors* and not
+the number of state *variables* for the DOFs. That is, in the previous example
+``n_\text{DOFs,FV}`` is equal to 8 independent of whether this is a compressible Euler
+setup with 5 state variables or a linear scalar advection setup with one state
+variable.
+
+For each indicator, the measurements are always since the last invocation of the
+`AnalysisCallback`. That is, if the analysis callback is called multiple times,
+the indicators are repeatedly computed and can thus also be used to track the
+performance over the course of a longer simulation, e.g., to analyze setups with varying performance
+characteristics. Note that the time spent in the `AnalysisCallback` itself is always
+*excluded*, i.e., the performance measurements are not distorted by potentially
+expensive solution analysis computations. All other parts of a Trixi simulation
+are included, however, thus make sure that you disable everything you do *not*
+want to be measured (such as I/O callbacks, visualization etc.).
+
+!!! note "Performance indicators and adaptive mesh refinement"
+    Currently it is not possible to compute meaningful performance indicators for a simulation
+    with arbitrary adaptive mesh refinement, since this would require to
+    explicitly keep track of the number of DOF updates due to the mesh size
+    changing repeatedly. The only way to do this at the moment is by setting the
+    analysis interval to the same value as the AMR interval.
+
+### Local, `rhs!`-only indicator
+The *local, `rhs!`-only indicator* is computed as
+```math
+\text{time/DOF/rhs!} = \frac{t_\text{\texttt{rhs!}}}{n_\text{DOFs,local} \cdot n_\text{calls,\texttt{rhs!}}},
+```
+where ``t_\text{\texttt{rhs!}}`` is the accumulated time spent in `rhs!`,
+``n_\text{DOFs,local}`` is the *local* number of DOFs (i.e., on the
+current MPI rank; if doing a serial run, you can just think of this as *the*
+number of DOFs), and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
+`rhs!` function has been evaluated. Note that for this indicator, we measure *only*
+the time spent in `rhs!`, i.e., by definition all computations outside of `rhs!` - specifically
+all other callbacks and the time integration method - are not taken into account.
+
+The local, `rhs!`-only indicator is usually most useful if you do serial
+measurements and are interested in the performance of the implementation of your
+core numerical methods (e.g., when doing performance tuning).
+
+### Performance index (PID)
+The *performance index* (PID) is computed as
+```math
+\text{PID} = \frac{t_\text{wall} \cdot n_\text{ranks,MPI}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
+```
+where ``t_\text{wall}`` is the walltime since the last call to the `AnalysisCallback`,
+``n_\text{ranks,MPI}`` is the number of MPI ranks used,
+``n_\text{DOFs,global}`` is the *global* number of DOFs (i.e., the sum of
+DOFs over all MPI ranks; if doing a serial run, you can just think of this as *the*
+number of DOFs), and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
+`rhs!` function has been evaluated since the last call to the `AnalysisCallback`.
+The PID measures everything except the time spent in the `AnalysisCallback` itself -
+specifically, all other callbacks and the time integration method itself are included.
+
+The PID is usually most useful if you would like to compare the
+parallel performance of your code to its serial performance. Specifically, it
+allows you to evaluate the parallelization overhead of your code by giving you a
+measure of the resources that are necessary to solve a given simulation setup.
+In a sense, it mimics the "core hours" metric that is often used by
+supercomputer centers to measure how many resources a particular compute job
+requires. It can thus be seen as a proxy for "energy used" and, as an extension, "monetary cost".
+
+!!! note "Initialization overhead in measurements"
+    When using one of the integration schemes from OrdinaryDiffEq.jl, their implementation
+    will initialize some OrdinaryDiffEq.jl-specific information during the first
+    time step. Among other things, one additional call to `rhs!` is performed.
+    Therefore, make sure that for performance measurements using the PID either the
+    number of timesteps or the workload per `rhs!` call is large enough to make
+    the initialization overhead negligible. Note that the extra call to `rhs!`
+    is properly accounted for in both the number of calls and the measured time,
+    so you do not need to worry about it being expensive. If you want a perfect
+    timing result, you need to set the analysis interval such that the
+    `AnalysisCallback` is invoked at least once during the course of the simulation and
+    discard the first PID value.

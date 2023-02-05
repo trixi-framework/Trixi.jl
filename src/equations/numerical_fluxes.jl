@@ -182,7 +182,6 @@ end
 
 Base.show(io::IO, f::FluxLaxFriedrichs) = print(io, "FluxLaxFriedrichs(", f.dissipation.max_abs_speed, ")")
 
-# TODO: Shall we deprecate `flux_lax_friedrichs`?
 """
     flux_lax_friedrichs
 
@@ -238,7 +237,6 @@ end
 
 Base.show(io::IO, numflux::FluxHLL) = print(io, "FluxHLL(", numflux.min_max_speed, ")")
 
-# TODO: Shall we deprecate `flux_hll`?
 """
     flux_hll
 

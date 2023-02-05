@@ -18,12 +18,12 @@
 # We specialize on `PtrArray` since these will be returned by `Trixi.wrap_array`
 # if LoopVectorization.jl can handle the array types. This ensures that `@turbo`
 # works efficiently here.
-@inline function split_form_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                    element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                                    nonconservative_terms::Val{false},
-                                    equations::CompressibleEulerEquations3D,
-                                    volume_flux::typeof(flux_shima_etal_turbo),
-                                    dg::DGSEM, cache, alpha)
+@inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
+                                           element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                           nonconservative_terms::False,
+                                           equations::CompressibleEulerEquations3D,
+                                           volume_flux::typeof(flux_shima_etal_turbo),
+                                           dg::DGSEM, cache, alpha)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
 
@@ -332,12 +332,12 @@ end
 
 
 
-@inline function split_form_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                    element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                                    nonconservative_terms::Val{false},
-                                    equations::CompressibleEulerEquations3D,
-                                    volume_flux::typeof(flux_ranocha_turbo),
-                                    dg::DGSEM, cache, alpha)
+@inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
+                                           element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                           nonconservative_terms::False,
+                                           equations::CompressibleEulerEquations3D,
+                                           volume_flux::typeof(flux_ranocha_turbo),
+                                           dg::DGSEM, cache, alpha)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
 

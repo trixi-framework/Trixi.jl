@@ -22,9 +22,10 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, Ghost, NDIMSP2, NNOD
   boundary_names        ::Array{Symbol, 2}      # [face direction, tree]
   current_filename      ::String
   unsaved_changes       ::Bool
+  p4est_partition_allow_for_coarsening::Bool
 
   function P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes, boundary_names,
-                            current_filename, unsaved_changes) where NDIMS
+                            current_filename, unsaved_changes, p4est_partition_allow_for_coarsening) where NDIMS
     if NDIMS == 2
       @assert p4est isa Ptr{p4est_t}
     elseif NDIMS == 3
@@ -35,15 +36,16 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, Ghost, NDIMSP2, NNOD
       if !P4est.uses_mpi()
         error("p4est library does not support MPI")
       end
-      is_parallel = Val(true)
+      is_parallel = True()
     else
-      is_parallel = Val(false)
+      is_parallel = False()
     end
 
     ghost = ghost_new_p4est(p4est)
 
     mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(is_parallel), typeof(p4est), typeof(ghost), NDIMS+2, length(nodes)}(
-      p4est, is_parallel, ghost, tree_node_coordinates, nodes, boundary_names, current_filename, unsaved_changes)
+      p4est, is_parallel, ghost, tree_node_coordinates, nodes, boundary_names, current_filename, unsaved_changes,
+      p4est_partition_allow_for_coarsening)
 
     # Destroy `p4est` structs when the mesh is garbage collected
     finalizer(destroy_mesh, mesh)
@@ -52,34 +54,37 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, Ghost, NDIMSP2, NNOD
   end
 end
 
-const SerialP4estMesh{NDIMS}   = P4estMesh{NDIMS, <:Real, <:Val{false}}
-const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:Val{true}}
+const SerialP4estMesh{NDIMS}   = P4estMesh{NDIMS, <:Real, <:False}
+const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:True}
 
-@inline mpi_parallel(mesh::SerialP4estMesh) = Val(false)
-@inline mpi_parallel(mesh::ParallelP4estMesh) = Val(true)
+@inline mpi_parallel(mesh::SerialP4estMesh) = False()
+@inline mpi_parallel(mesh::ParallelP4estMesh) = True()
 
 
 function destroy_mesh(mesh::P4estMesh{2})
-  conn = mesh.p4est.connectivity
+  connectivity = unsafe_load(mesh.p4est).connectivity
   p4est_ghost_destroy(mesh.ghost)
   p4est_destroy(mesh.p4est)
-  p4est_connectivity_destroy(conn)
+  p4est_connectivity_destroy(connectivity)
 end
 
 function destroy_mesh(mesh::P4estMesh{3})
-  conn = mesh.p4est.connectivity
+  connectivity = unsafe_load(mesh.p4est).connectivity
   p8est_ghost_destroy(mesh.ghost)
   p8est_destroy(mesh.p4est)
-  p8est_connectivity_destroy(conn)
+  p8est_connectivity_destroy(connectivity)
 end
 
 
 @inline Base.ndims(::P4estMesh{NDIMS}) where NDIMS = NDIMS
 @inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
-@inline ntrees(mesh::P4estMesh) = mesh.p4est.trees.elem_count
+@inline function ntrees(mesh::P4estMesh)
+  trees = unsafe_load(mesh.p4est).trees
+  return unsafe_load(trees).elem_count
+end
 # returns Int32 by default which causes a weird method error when creating the cache
-@inline ncells(mesh::P4estMesh) = Int(mesh.p4est.local_num_quadrants)
+@inline ncells(mesh::P4estMesh) = Int(unsafe_load(mesh.p4est).local_num_quadrants)
 
 
 function Base.show(io::IO, mesh::P4estMesh)
@@ -103,7 +108,8 @@ end
 """
     P4estMesh(trees_per_dimension; polydeg,
               mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
-              RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
+              RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true,
+              p4est_partition_allow_for_coarsening=true)
 
 Create a structured curved `P4estMesh` of the specified size.
 
@@ -142,10 +148,14 @@ Non-periodic boundaries will be called `:x_neg`, `:x_pos`, `:y_neg`, `:y_pos`, `
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
                  deciding for each dimension if the boundaries in this dimension are periodic.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
+- `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
+                                                independent of domain partitioning. Should be `false` for static meshes
+                                                to permit more fine-grained partitioning.
 """
 function P4estMesh(trees_per_dimension; polydeg,
                    mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
-                   RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
+                   RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true,
+                   p4est_partition_allow_for_coarsening=true)
 
   @assert (
     (coordinates_min === nothing) === (coordinates_max === nothing)
@@ -185,9 +195,9 @@ function P4estMesh(trees_per_dimension; polydeg,
   calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, trees_per_dimension)
 
   # p4est_connectivity_new_brick has trees in Z-order, so use our own function for this
-  conn = connectivity_structured(trees_per_dimension..., periodicity)
+  connectivity = connectivity_structured(trees_per_dimension..., periodicity)
 
-  p4est = new_p4est(conn, initial_refinement_level)
+  p4est = new_p4est(connectivity, initial_refinement_level)
 
   # Non-periodic boundaries
   boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
@@ -195,7 +205,8 @@ function P4estMesh(trees_per_dimension; polydeg,
   structured_boundary_names!(boundary_names, trees_per_dimension, periodicity)
 
   return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
-                          boundary_names, "", unsaved_changes)
+                          boundary_names, "", unsaved_changes,
+                          p4est_partition_allow_for_coarsening)
 end
 
 # 2D version
@@ -267,7 +278,8 @@ end
 """
     P4estMesh{NDIMS}(meshfile::String;
                      mapping=nothing, polydeg=1, RealT=Float64,
-                     initial_refinement_level=0, unsaved_changes=true)
+                     initial_refinement_level=0, unsaved_changes=true,
+                     p4est_partition_allow_for_coarsening=true)
 
 Main mesh constructor for the `P4estMesh` that imports an unstructured, conforming
 mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
@@ -320,10 +332,14 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
+- `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
+                                                independent of domain partitioning. Should be `false` for static meshes
+                                                to permit more fine-grained partitioning.
 """
 function P4estMesh{NDIMS}(meshfile::String;
                           mapping=nothing, polydeg=1, RealT=Float64,
-                          initial_refinement_level=0, unsaved_changes=true) where NDIMS
+                          initial_refinement_level=0, unsaved_changes=true,
+                          p4est_partition_allow_for_coarsening=true) where NDIMS
   # Prevent `p4est` from crashing Julia if the file doesn't exist
   @assert isfile(meshfile)
 
@@ -346,7 +362,8 @@ function P4estMesh{NDIMS}(meshfile::String;
   end
 
   return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
-                          boundary_names, "", unsaved_changes)
+                          boundary_names, "", unsaved_changes,
+                          p4est_partition_allow_for_coarsening)
 end
 
 
@@ -356,14 +373,15 @@ end
 # [`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl).
 function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_dimensions, RealT)
   # Create the mesh connectivity using `p4est`
-  conn = read_inp_p4est(meshfile, Val(n_dimensions))
+  connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
+  connectivity_obj = unsafe_load(connectivity)
 
   # These need to be of the type Int for unsafe_wrap below to work
-  n_trees::Int = conn.num_trees
-  n_vertices::Int = conn.num_vertices
+  n_trees::Int = connectivity_obj.num_trees
+  n_vertices::Int = connectivity_obj.num_vertices
 
   # Extract a copy of the element vertices to compute the tree node coordinates
-  vertices = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
+  vertices = unsafe_wrap(Array, connectivity_obj.vertices, (3, n_vertices))
 
   # Readin all the information from the mesh file into a string array
   file_lines = readlines(open(meshfile))
@@ -396,10 +414,10 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_d
   for tree in 1:n_trees
     current_line = split(file_lines[file_idx])
     boundary_names[:, tree] = map(Symbol, current_line[2:end])
-    file_idx  += 1
+    file_idx += 1
   end
 
-  p4est = new_p4est(conn, initial_refinement_level)
+  p4est = new_p4est(connectivity, initial_refinement_level)
 
   return p4est, tree_node_coordinates, nodes, boundary_names
 end
@@ -411,14 +429,15 @@ end
 # names are given the name `:all`.
 function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg, initial_refinement_level, n_dimensions, RealT)
   # Create the mesh connectivity using `p4est`
-  conn = read_inp_p4est(meshfile, Val(n_dimensions))
+  connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
+  connectivity_obj = unsafe_load(connectivity)
 
   # These need to be of the type Int for unsafe_wrap below to work
-  n_trees::Int = conn.num_trees
-  n_vertices::Int = conn.num_vertices
+  n_trees::Int = connectivity_obj.num_trees
+  n_vertices::Int = connectivity_obj.num_vertices
 
-  vertices       = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
-  tree_to_vertex = unsafe_wrap(Array, conn.tree_to_vertex, (2^n_dimensions, n_trees))
+  vertices       = unsafe_wrap(Array, connectivity_obj.vertices, (3, n_vertices))
+  tree_to_vertex = unsafe_wrap(Array, connectivity_obj.tree_to_vertex, (2^n_dimensions, n_trees))
 
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes
@@ -428,7 +447,7 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg, initial_ref
                                                        n_trees)
   calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices, tree_to_vertex)
 
-  p4est = new_p4est(conn, initial_refinement_level)
+  p4est = new_p4est(connectivity, initial_refinement_level)
 
   # There's no simple and generic way to distinguish boundaries. Name all of them :all.
   boundary_names = fill(:all, 2 * n_dimensions, n_trees)
@@ -440,7 +459,8 @@ end
 """
     P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
                          polydeg, RealT=Float64,
-                         initial_refinement_level=0, unsaved_changes=true)
+                         initial_refinement_level=0, unsaved_changes=true,
+                         p4est_partition_allow_for_coarsening=true)
 
 Build a "Cubed Sphere" mesh as `P4estMesh` with
 `6 * trees_per_face_dimension^2 * layers` trees.
@@ -460,11 +480,15 @@ The mesh will have two boundaries, `:inside` and `:outside`.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
+- `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
+                                                independent of domain partitioning. Should be `false` for static meshes
+                                                to permit more fine-grained partitioning.
 """
 function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
                               polydeg, RealT=Float64,
-                              initial_refinement_level=0, unsaved_changes=true)
-  conn = connectivity_cubed_sphere(trees_per_face_dimension, layers)
+                              initial_refinement_level=0, unsaved_changes=true,
+                              p4est_partition_allow_for_coarsening=true)
+  connectivity = connectivity_cubed_sphere(trees_per_face_dimension, layers)
 
   n_trees = 6 * trees_per_face_dimension^2 * layers
 
@@ -477,14 +501,15 @@ function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, th
   calc_tree_node_coordinates!(tree_node_coordinates, nodes, trees_per_face_dimension, layers,
                               inner_radius, thickness)
 
-  p4est = new_p4est(conn, initial_refinement_level)
+  p4est = new_p4est(connectivity, initial_refinement_level)
 
   boundary_names = fill(Symbol("---"), 2 * 3, n_trees)
   boundary_names[5, :] .= Symbol("inside")
   boundary_names[6, :] .= Symbol("outside")
 
   return P4estMesh{3}(p4est, tree_node_coordinates, nodes,
-                      boundary_names, "", unsaved_changes)
+                      boundary_names, "", unsaved_changes,
+                      p4est_partition_allow_for_coarsening)
 end
 
 
@@ -570,15 +595,15 @@ function connectivity_structured(n_cells_x, n_cells_y, periodicity)
   corner_to_tree = C_NULL
   corner_to_corner = C_NULL
 
-  conn = p4est_connectivity_new_copy(n_vertices, n_trees, n_corners,
+  connectivity = p4est_connectivity_new_copy(n_vertices, n_trees, n_corners,
                                      vertices, tree_to_vertex,
                                      tree_to_tree, tree_to_face,
                                      tree_to_corner, ctt_offset,
                                      corner_to_tree, corner_to_corner)
 
-  @assert p4est_connectivity_is_valid(conn) == 1
+  @assert p4est_connectivity_is_valid(connectivity) == 1
 
-  return conn
+  return connectivity
 end
 
 # 3D version
@@ -692,7 +717,7 @@ function connectivity_structured(n_cells_x, n_cells_y, n_cells_z, periodicity)
   corner_to_tree = C_NULL
   corner_to_corner = C_NULL
 
-  conn = p8est_connectivity_new_copy(n_vertices, n_trees, n_corners, n_edges,
+  connectivity = p8est_connectivity_new_copy(n_vertices, n_trees, n_corners, n_edges,
                                      vertices, tree_to_vertex,
                                      tree_to_tree, tree_to_face,
                                      tree_to_edge, ett_offset,
@@ -700,9 +725,9 @@ function connectivity_structured(n_cells_x, n_cells_y, n_cells_z, periodicity)
                                      tree_to_corner, ctt_offset,
                                      corner_to_tree, corner_to_corner)
 
-  @assert p8est_connectivity_is_valid(conn) == 1
+  @assert p8est_connectivity_is_valid(connectivity) == 1
 
-  return conn
+  return connectivity
 end
 
 
@@ -928,7 +953,7 @@ function connectivity_cubed_sphere(trees_per_face_dimension, layers)
   corner_to_tree = C_NULL
   corner_to_corner = C_NULL
 
-  conn = p8est_connectivity_new_copy(n_vertices, n_trees, n_corners, n_edges,
+  connectivity = p8est_connectivity_new_copy(n_vertices, n_trees, n_corners, n_edges,
                                      vertices, tree_to_vertex,
                                      tree_to_tree, tree_to_face,
                                      tree_to_edge, ett_offset,
@@ -936,9 +961,9 @@ function connectivity_cubed_sphere(trees_per_face_dimension, layers)
                                      tree_to_corner, ctt_offset,
                                      corner_to_tree, corner_to_corner)
 
-  @assert p8est_connectivity_is_valid(conn) == 1
+  @assert p8est_connectivity_is_valid(connectivity) == 1
 
-  return conn
+  return connectivity
 end
 
 
@@ -1422,13 +1447,12 @@ function balance!(mesh::P4estMesh{3}, init_fn=C_NULL)
   p8est_balance(mesh.p4est, P8EST_CONNECT_FACE, init_fn)
 end
 
-
-function partition!(mesh::P4estMesh{2}; allow_coarsening=true, weight_fn=C_NULL)
-  p4est_partition(mesh.p4est, Int(allow_coarsening), weight_fn)
+function partition!(mesh::P4estMesh{2}; weight_fn=C_NULL)
+  p4est_partition(mesh.p4est, Int(mesh.p4est_partition_allow_for_coarsening), weight_fn)
 end
 
-function partition!(mesh::P4estMesh{3}; allow_coarsening=true, weight_fn=C_NULL)
-  p8est_partition(mesh.p4est, Int(allow_coarsening), weight_fn)
+function partition!(mesh::P4estMesh{3}; weight_fn=C_NULL)
+  p8est_partition(mesh.p4est, Int(mesh.p4est_partition_allow_for_coarsening), weight_fn)
 end
 
 
@@ -1440,7 +1464,7 @@ end
 
 function init_fn(p4est, which_tree, quadrant)
   # Unpack quadrant's user data ([global quad ID, controller_value])
-  ptr = Ptr{Int}(quadrant.p.user_data)
+  ptr = Ptr{Int}(unsafe_load(quadrant.p.user_data))
 
   # Initialize quad ID as -1 and controller_value as 0 (don't refine or coarsen)
   unsafe_store!(ptr, -1, 1)
@@ -1457,7 +1481,7 @@ cfunction(::typeof(init_fn), ::Val{3}) = @cfunction(init_fn, Cvoid, (Ptr{p8est_t
 function refine_fn(p4est, which_tree, quadrant)
   # Controller value has been copied to the quadrant's user data storage before.
   # Unpack quadrant's user data ([global quad ID, controller_value]).
-  ptr = Ptr{Int}(quadrant.p.user_data)
+  ptr = Ptr{Int}(unsafe_load(quadrant.p.user_data))
   controller_value = unsafe_load(ptr, 2)
 
   if controller_value > 0
@@ -1498,7 +1522,7 @@ function coarsen_fn(p4est, which_tree, quadrants_ptr)
 
   # Controller value has been copied to the quadrant's user data storage before.
   # Load controller value from quadrant's user data ([global quad ID, controller_value]).
-  controller_value(i) = unsafe_load(Ptr{Int}(quadrants[i].p.user_data), 2)
+  controller_value(i) = unsafe_load(Ptr{Int}(unsafe_load(quadrants[i].p.user_data)), 2)
 
   # `p4est` calls this function for each 2^ndims quads that could be coarsened to a single one.
   # Only coarsen if all these 2^ndims quads have been marked for coarsening.
@@ -1571,15 +1595,17 @@ end
 
 # Copy global quad ID to quad's user data storage, will be called below
 function save_original_id_iter_volume(info, user_data)
+  info_obj = unsafe_load(info)
+
   # Load tree from global trees array, one-based indexing
-  tree = unsafe_load_tree(info.p4est, info.treeid + 1)
+  tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
-  quad_id = offset + info.quadid
+  quad_id = offset + info_obj.quadid
 
   # Unpack quadrant's user data ([global quad ID, controller_value])
-  ptr = Ptr{Int}(info.quad.p.user_data)
+  ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
   # Save global quad ID
   unsafe_store!(ptr, quad_id, 1)
 
@@ -1601,9 +1627,11 @@ end
 
 # Extract information about which cells have been changed
 function collect_changed_iter_volume(info, user_data)
+  info_obj = unsafe_load(info)
+
   # The original element ID has been saved to user_data before.
   # Load original quad ID from quad's user data ([global quad ID, controller_value]).
-  quad_data_ptr = Ptr{Int}(info.quad.p.user_data)
+  quad_data_ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
   original_id = unsafe_load(quad_data_ptr, 1)
 
   # original_id of cells that have been newly created is -1
@@ -1642,19 +1670,21 @@ end
 
 # Extract newly created cells
 function collect_new_iter_volume(info, user_data)
+  info_obj = unsafe_load(info)
+
   # The original element ID has been saved to user_data before.
   # Unpack quadrant's user data ([global quad ID, controller_value]).
-  quad_data_ptr = Ptr{Int}(info.quad.p.user_data)
+  quad_data_ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
   original_id = unsafe_load(quad_data_ptr, 1)
 
   # original_id of cells that have been newly created is -1
   if original_id < 0
     # Load tree from global trees array, one-based indexing
-    tree = unsafe_load_tree(info.p4est, info.treeid + 1)
+    tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
     # Quadrant numbering offset of this quadrant
     offset = tree.quadrants_offset
     # Global quad ID
-    quad_id = offset + info.quadid
+    quad_id = offset + info_obj.quadid
 
     # Unpack user_data = original_cells
     user_data_ptr = Ptr{Int}(user_data)

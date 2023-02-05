@@ -25,7 +25,7 @@ struct IdealGlmMhdEquations1D{RealT<:Real} <: AbstractIdealGlmMhdEquations{1, 8}
   end
 end
 
-have_nonconservative_terms(::IdealGlmMhdEquations1D) = Val(false)
+have_nonconservative_terms(::IdealGlmMhdEquations1D) = False()
 varnames(::typeof(cons2cons), ::IdealGlmMhdEquations1D) = ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3")
 varnames(::typeof(cons2prim), ::IdealGlmMhdEquations1D) = ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3")
 default_analysis_integrals(::IdealGlmMhdEquations1D)  = (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))

@@ -5,13 +5,12 @@ using Trixi
 
 include("test_trixi.jl")
 
-EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_2d")
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-@testset "SemidiscretizationHyperbolicParabolic" begin
+@testset "SemidiscretizationHyperbolicParabolic (2D)" begin
 
   @trixi_testset "DGMulti 2D rhs_parabolic!" begin
 
@@ -32,9 +31,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_mod show(stdout, MIME"text/plain"(), semi)
     @test_nowarn_mod show(stdout, boundary_condition_do_nothing)
 
-    @test nvariables(semi)==nvariables(equations)
-    @test Base.ndims(semi)==Base.ndims(mesh)
-    @test Base.real(semi)==Base.real(dg)
+    @test nvariables(semi) == nvariables(equations)
+    @test Base.ndims(semi) == Base.ndims(mesh)
+    @test Base.real(semi) == Base.real(dg)
 
     ode = semidiscretize(semi, (0.0, 0.01))
     u0 = similar(ode.u0)

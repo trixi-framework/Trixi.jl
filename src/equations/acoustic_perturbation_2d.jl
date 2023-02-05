@@ -330,7 +330,7 @@ end
 end
 
 
-@inline have_constant_speed(::AcousticPerturbationEquations2D) = Val(false)
+@inline have_constant_speed(::AcousticPerturbationEquations2D) = False()
 
 @inline function max_abs_speeds(u, equations::AcousticPerturbationEquations2D)
   v1_mean = u[4]
