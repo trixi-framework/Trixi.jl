@@ -43,11 +43,26 @@ that there is no need to install MPI yourself. However, it is also possible to
 instead use an existing MPI installation, which is recommended if you are
 running MPI programs on a cluster or supercomputer
 ([see the MPI.jl docs](https://juliaparallel.github.io/MPI.jl/stable/configuration/)
-to find out how to select the employed MPI library).
+to find out how to select the employed MPI library). Additional notes on how to use
+a system-provided MPI installation with Trixi.jl can be found in the following subsection.
 
 !!! warning "Work in progress"
     MPI-based parallelization is work in progress and not finished yet. Nothing
     related to MPI is part of the official API of Trixi yet.
+
+
+### [Using a system-provided MPI installation](@id parallel_system_MPI)
+
+When using Trixi.jl with a system-provided MPI backend the underlying [`p4est`](https://github.com/cburstedde/p4est)
+library needs to be compiled with the same MPI installation. Therefore, you also need to use
+a system-provided `p4est` installation (for notes on how to install `p4est` see e.g.
+[here](https://github.com/cburstedde/p4est/blob/master/README), use the configure option
+`--enable-mpi`). In addition, [P4est.jl](https://github.com/trixi-framework/P4est.jl) needs to
+be configured to use the custom `p4est` installation. Follow the steps described
+[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md) for the configuration.
+In total, in your active Julia project you should have a LocalPreferences.toml file with sections
+`[MPIPreferences]` and `[P4est]` as well as an entry `MPIPreferences` in your Project.toml to
+use a custom MPI installation.
 
 
 ### [Usage](@id parallel_usage)
@@ -94,7 +109,7 @@ To start Trixi in parallel with MPI, there are three options:
    which are usually available through a package manager. Once you have
    installed both tools, you need to configure MPI.jl to use the OpenMPI for
    your system, which is explained
-   [here](https://juliaparallel.github.io/MPI.jl/stable/configuration/#Using-a-system-provided-MPI).
+   [here](https://juliaparallel.org/MPI.jl/stable/configuration/#Using-a-system-provided-MPI-backend).
    Then, you can download and install the
    [tmpi](https://github.com/Azrael3000/tmpi)
    script by executing
