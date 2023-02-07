@@ -150,9 +150,7 @@ get_examples()
 
 # Editing the Trixi examples are the best way to start your first own investigation using Trixi.
 
-# ### **3.2. Files edditing**
-
-# #### **3.2.1 For Users**
+# ### **3.2. Files downloading for users**
 
 # To edit example files you have to download them. Let's have a look how to download default
 # example file from [`Trixi github`](https://github.com/trixi-framework/Trixi.jl).
@@ -163,15 +161,37 @@ get_examples()
 # [`elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_basic.jl).
 # - Click the *Raw* button on right side of the webpage.
 # - On any place of newly opened webpage right-click and choose *Save as*.
-# - Choose folder and erase *.txt* from the file name. Save the file. 
+# - Choose folder and erase *.txt* from the file name. Save the file.
 
-# Now you can change something in this file. For example change the initial conditions.
+# ### **3.3. Files edditing**
 
-# - Open the file you downloaded. And go to the 10th line with following code:
+# Users have already downloaded file to change. Developers have this file inside cloned Trixi
+# directory. 
+
+# For example, we will change the initial conditions for calculations that occur in the default
+# example.
+
+# - **Users** open the downloaded file. 
+# - **Developers** open the file located at the following path: 
 # ````
-# advection_velocity = (0.2, -0.7)
+# \Trixi_cloned\examples\structured_2d_dgsem\elixir_advection_basic.jl
 # ````
-# - Change values from *(0.2, -0.7)* to *(0.1, 0.1)*.
+# - And go to the 25th line with following code:
+# ````
+# semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+# ````
+# Here default initial condition function ````initial_condition_convergence_test```` is used.
+# - Comment out this line using # symbol:
+# ````
+# # semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+# ````
+# - Now you can create your own initial conditions. For example you can use sinus wave function. 
+# Write following code into a file after commented out line:
+# ````
+# initial_condition_sine_wave(x, t, equations) =
+# SVector(1.0 + 0.5 * cos(2*pi * sum(x - equations.advection_velocity * t)))
+# semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+# ````
 # - Execute following code one more time, but instead of *path_to_file* paste the path to the
 # elixir_advection_basic.jl file from current folder, for example *"./elixir_advection_basic.jl"*.
 # ````
@@ -180,28 +200,8 @@ get_examples()
 # using Plots
 # plot(sol)
 # ````
-# You will obtain new plot with shifted dark and light lines.
-
-# #### **3.2.2. For Developers**
-
-# Like a developer you can change example files inside a cloned repository.
-# To find a path to the *default_example* run following command in julia REPL:
-
-default_example()
-
-# Open this file and go to the 10th line with following code:
-# ````
-# advection_velocity = (0.2, -0.7)
-# ````
-# Change values from *(0.2, -0.7)* to *(0.1, 0.1)*.
-# Execute following code one more time:
-# ````
-# using Trixi
-# trixi_include(default_example())
-# using Plots
-# plot(sol)
-# ````
-# You will obtain new plot with shifted dark and light lines.
+# You will obtain new plot with shifted and with twice the number of lines. Feel free to add
+# changes into ````initial_condition_sine_wave```` to observe different solutions.
 
 # Now you are able to download, edit and execute Trixi code.
  
