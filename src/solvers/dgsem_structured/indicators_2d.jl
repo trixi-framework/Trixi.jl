@@ -64,11 +64,11 @@ function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi, m
   end
 
   # Calc bounds at physical boundaries
-  if all(mesh.periodicity)
+  if isperiodic(mesh)
     return nothing
   end
   linear_indices = LinearIndices(size(mesh))
-  if !mesh.periodicity[1]
+  if !isperiodic(mesh, 1)
     # - xi direction
     for cell_y in axes(mesh, 2)
       element = linear_indices[begin, cell_y]
@@ -96,7 +96,7 @@ function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi, m
       end
     end
   end
-  if !mesh.periodicity[2]
+  if !isperiodic(mesh, 2)
     # - eta direction
     for cell_x in axes(mesh, 1)
       element = linear_indices[cell_x, begin]
@@ -158,11 +158,11 @@ function calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, t, semi,
   end
 
   # Calc bounds at physical boundaries
-  if all(mesh.periodicity)
+  if isperiodic(mesh)
     return nothing
   end
   linear_indices = LinearIndices(size(mesh))
-  if !mesh.periodicity[1]
+  if !isperiodic(mesh, 1)
     # - xi direction
     for cell_y in axes(mesh, 2)
       element = linear_indices[begin, cell_y]
@@ -188,7 +188,7 @@ function calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, t, semi,
       end
     end
   end
-  if !mesh.periodicity[2]
+  if !isperiodic(mesh, 2)
     # - eta direction
     for cell_x in axes(mesh, 1)
       element = linear_indices[cell_x, begin]

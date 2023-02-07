@@ -517,11 +517,11 @@ end
   end
 
   # Calc lambdas and bar states at physical boundaries
-  if all(mesh.periodicity)
+  if isperiodic(mesh)
     return nothing
   end
   linear_indices = LinearIndices(size(mesh))
-  if !mesh.periodicity[1]
+  if !isperiodic(mesh, 1)
     # - xi direction
     for cell_y in axes(mesh, 2)
       element  = linear_indices[begin, cell_y]
@@ -556,12 +556,12 @@ end
         flux_inner = flux(u_inner, Ja1, equations)
         flux_outer = flux(u_outer, Ja1, equations)
         for v in eachvariable(equations)
-          bar_states1[v, nnodes(dg), j, element] = 0.5 * (u_inner[v] + u_outer[v]) - 0.5 * (flux_outer[v] - flux_inner[v]) / lambda1[nnodes(dg)+1, j, element]
+          bar_states1[v, nnodes(dg)+1, j, element] = 0.5 * (u_inner[v] + u_outer[v]) - 0.5 * (flux_outer[v] - flux_inner[v]) / lambda1[nnodes(dg)+1, j, element]
         end
       end
     end
   end
-  if !mesh.periodicity[2]
+  if !isperiodic(mesh, 2)
     # - eta direction
     for cell_x in axes(mesh, 1)
       element = linear_indices[cell_x, begin]
@@ -596,7 +596,7 @@ end
         flux_inner = flux(u_inner, Ja2, equations)
         flux_outer = flux(u_outer, Ja2, equations)
         for v in eachvariable(equations)
-          bar_states2[v, i, nnodes(dg), element] = 0.5 * (u_outer[v] + u_inner[v]) - 0.5 * (flux_outer[v] - flux_inner[v]) / lambda2[i, nnodes(dg)+1, element]
+          bar_states2[v, i, nnodes(dg)+1, element] = 0.5 * (u_outer[v] + u_inner[v]) - 0.5 * (flux_outer[v] - flux_inner[v]) / lambda2[i, nnodes(dg)+1, element]
         end
       end
     end
