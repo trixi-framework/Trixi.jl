@@ -297,7 +297,8 @@ struct IndicatorMCL{RealT<:Real, Cache, Indicator} <: AbstractIndicator
   DensityAlphaForAll::Bool
   SequentialLimiter::Bool
   ConservativeLimiter::Bool
-  IDPPressure::Bool        # synchronized pressure limiting
+  PressurePositivityLimiterKuzmin::Bool  # synchronized pressure limiting à la Kuzmin
+  PressurePositivityLimiter::Bool        # synchronized pressure limiting
   DensityPositivityLimiter::Bool
   IDPCheckBounds::Bool
   indicator_smooth::Bool   # activates smoothness indicator: IndicatorHennemannGassner
@@ -308,19 +309,23 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorMCL(equations::AbstractEquations, basis;
-                      DensityLimiter=true,
-                      DensityAlphaForAll=false,
-                      SequentialLimiter=true,
-                      ConservativeLimiter=false,
-                      IDPPressure=false,
-                      DensityPositivityLimiter=false,
+                      DensityLimiter=true,                  # Impose local maximum/minimum for cons(1) based on bar states
+                      DensityAlphaForAll=false,             # Use the cons(1) blending coefficient for all quantities
+                      SequentialLimiter=true,               # Impose local maximum/minimum for variables phi:=cons(i)/cons(1) i 2:nvariables based on bar states
+                      ConservativeLimiter=false,            # Impose local maximum/minimum for conservative variables 2:nvariables based on bar states
+                      PressurePositivityLimiterKuzmin=false,# Impose positivity for pressure â la Kuzmin
+                      PressurePositivityLimiter=false,      # Impose positivity for pressure
+                      DensityPositivityLimiter=false,       # Impose positivity for cons(1)
                       IDPCheckBounds=false,
                       indicator_smooth=false, thr_smooth=0.1, variable_smooth=density_pressure,
                       Plotting=true)
   if SequentialLimiter && ConservativeLimiter
     error("Only one of the two can be selected: SequentialLimiter/ConservativeLimiter")
   end
-  cache = create_cache(IndicatorMCL, equations, basis, IDPPressure)
+  if PressurePositivityLimiterKuzmin && PressurePositivityLimiter
+    error("Only one of the two can be selected: PressurePositivityLimiterKuzmin/PressurePositivityLimiter")
+  end
+  cache = create_cache(IndicatorMCL, equations, basis, PressurePositivityLimiterKuzmin || PressurePositivityLimiter)
   if indicator_smooth
     IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_smooth=false,
                                             variable=variable_smooth)
@@ -328,7 +333,7 @@ function IndicatorMCL(equations::AbstractEquations, basis;
     IndicatorHG = nothing
   end
   IndicatorMCL{typeof(thr_smooth), typeof(cache), typeof(IndicatorHG)}(cache, DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
-    IDPPressure, DensityPositivityLimiter, IDPCheckBounds, indicator_smooth, thr_smooth, IndicatorHG, Plotting)
+    PressurePositivityLimiterKuzmin, PressurePositivityLimiter, DensityPositivityLimiter, IDPCheckBounds, indicator_smooth, thr_smooth, IndicatorHG, Plotting)
 end
 
 function Base.show(io::IO, indicator::IndicatorMCL)
@@ -339,7 +344,8 @@ function Base.show(io::IO, indicator::IndicatorMCL)
   indicator.DensityAlphaForAll && print(io, "; dens alpha ∀")
   indicator.SequentialLimiter && print(io, "; seq")
   indicator.ConservativeLimiter && print(io, "; cons")
-  indicator.IDPPressure && print(io, "; pres")
+  indicator.PressurePositivityLimiterKuzmin && print(io, "; pres (Kuzmin)")
+  indicator.PressurePositivityLimiter && print(io, "; pres")
   indicator.DensityPositivityLimiter && print(io, "; dens pos")
   indicator.indicator_smooth && print(io, "; Smoothness indicator: ", indicator.IndicatorHG,
     " with threshold ", indicator.thr_smooth)
@@ -357,7 +363,7 @@ function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIn
     node_variables[s] = alpha[v, ntuple(_ -> :, nvariables(equations) + 1)...]
   end
 
-  if indicator.IDPPressure
+  if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
     @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
     node_variables[:shock_capturing_alpha_pressure] = alpha_pressure
   end
