@@ -25,7 +25,7 @@ function initial_condition_inviscid_bow(x, t, equations::CompressibleEulerEquati
 end
 initial_condition = initial_condition_inviscid_bow
 
-boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_condition = BoundaryConditionCharacteristic(initial_condition)
 boundary_conditions = (x_neg=boundary_condition,
                        x_pos=boundary_condition_slip_wall,
                        y_neg=boundary_condition,
@@ -38,9 +38,8 @@ basis = LobattoLegendreBasis(polydeg)
 
 indicator_sc = IndicatorIDP(equations, basis;
                             IDPDensityTVD=true,
-                            IDPPositivity=true,
-                            IDPMaxIter=20,
-                            IDPSpecEntropy=true,
+                            IDPSpecEntropy=true, IDPMaxIter=100,
+                            BarStates=true,
                             indicator_smooth=false)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
@@ -114,12 +113,12 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=500,
+save_solution = SaveSolutionCallback(interval=5000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.3)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

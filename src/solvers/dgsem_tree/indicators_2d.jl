@@ -331,7 +331,7 @@ end
         boundary_index += 2
       end
       u_inner = get_node_vars(u, equations, dg, index..., element)
-      u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[boundary_index],
+      u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[boundary_index], orientation, boundary_index,
                                          equations, dg, index..., element)
       var_outer = variable(u_outer, equations)
 
@@ -414,7 +414,7 @@ end
       if neighbor_side == 2 # Element is on the right, boundary on the left
         for j in eachnode(dg)
           u_inner = get_node_vars(u, equations, dg, 1, j, element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1], orientation, 1,
                                              equations, dg, 1, j, element)
           var_outer = variable(u_outer, equations)
 
@@ -423,7 +423,7 @@ end
       else # Element is on the left, boundary on the right
         for j in eachnode(dg)
           u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2], orientation, 2,
                                              equations, dg, nnodes(dg), j, element)
           var_outer = variable(u_outer, equations)
 
@@ -434,7 +434,7 @@ end
       if neighbor_side == 2 # Element is on the right, boundary on the left
         for i in eachnode(dg)
           u_inner = get_node_vars(u, equations, dg, i, 1, element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3], orientation, 3,
                                              equations, dg, i, 1, element)
           var_outer = variable(u_outer, equations)
 
@@ -443,7 +443,7 @@ end
       else # Element is on the left, boundary on the right
         for i in eachnode(dg)
           u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
-          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4], orientation, 4,
                                              equations, dg, i, nnodes(dg), element)
           var_outer = variable(u_outer, equations)
 
