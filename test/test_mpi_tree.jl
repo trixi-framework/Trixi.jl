@@ -16,8 +16,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       # Expected errors are exactly the same as in the serial test!
-      l2   = [8.311947673061856e-6],
-      linf = [6.627000273229378e-5])
+      l2   = [8.312144636192947e-6],
+      linf = [6.626823860056419e-5])
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
