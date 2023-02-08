@@ -37,11 +37,11 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
 end
 
 function Base.show(io::IO,
-                   cb::DiscreteCallback{<:Any, PeriodicCallbackAffect{<:SaveSolutionCallback}})
+                   cb::DiscreteCallback{<:Any, <:PeriodicCallbackAffect{<:SaveSolutionCallback}})
   @nospecialize cb # reduce precompilation time
 
-  save_solution_callback = cb.affect!
-  print(io, "SaveSolutionCallback(interval=", save_solution_callback.interval, ")")
+  save_solution_callback = cb.affect!.affect!
+  print(io, "SaveSolutionCallback(dt=", save_solution_callback.interval, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
