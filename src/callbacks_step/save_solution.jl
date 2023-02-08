@@ -6,27 +6,38 @@
 
 
 """
-    SaveSolutionCallback(; interval=0,
+    SaveSolutionCallback(; interval::Integer=0, dt=0.0,
                            save_initial_solution=true,
                            save_final_solution=true,
                            output_directory="out",
                            solution_variables=cons2prim)
 
-Save the current numerical solution every `interval` time steps. `solution_variables` can be any
-callable that converts the conservative variables at a single point to a set of solution variables.
-The first parameter passed to `solution_variables` will be the set of conservative variables and the
-second parameter is the equation struct.
+Save the current numerical solution in regular intervals. Either pass `interval` to save
+every `interval` time steps, or pass `dt` to save in intervals of `dt` in terms
+of integration time by adding additional `tstops` (note that this may change the solution).
+`solution_variables` can be any callable that converts the conservative variables
+at a single point to a set of solution variables. The first parameter passed
+to `solution_variables` will be the set of conservative variables
+and the second parameter is the equation struct.
 """
-mutable struct SaveSolutionCallback{SolutionVariables}
-  interval::Int
+mutable struct SaveSolutionCallback{I, SV}
+  interval::I
   save_initial_solution::Bool
   save_final_solution::Bool
   output_directory::String
-  solution_variables::SolutionVariables
+  solution_variables::SV
 end
 
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
+  @nospecialize cb # reduce precompilation time
+
+  save_solution_callback = cb.affect!
+  print(io, "SaveSolutionCallback(interval=", save_solution_callback.interval, ")")
+end
+
+function Base.show(io::IO,
+                   cb::DiscreteCallback{<:Any, PeriodicCallbackAffect{<:SaveSolutionCallback}})
   @nospecialize cb # reduce precompilation time
 
   save_solution_callback = cb.affect!
@@ -52,25 +63,61 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Sav
   end
 end
 
+function Base.show(io::IO, ::MIME"text/plain",
+                   cb::DiscreteCallback{<:Any, <:PeriodicCallbackAffect{<:SaveSolutionCallback}})
+  @nospecialize cb # reduce precompilation time
 
-function SaveSolutionCallback(; interval=0,
+  if get(io, :compact, false)
+    show(io, cb)
+  else
+    save_solution_callback = cb.affect!.affect!
+
+    setup = [
+             "dt" => save_solution_callback.interval,
+             "solution variables" => save_solution_callback.solution_variables,
+             "save initial solution" => save_solution_callback.save_initial_solution ? "yes" : "no",
+             "save final solution" => save_solution_callback.save_final_solution ? "yes" : "no",
+             "output directory" => abspath(normpath(save_solution_callback.output_directory)),
+            ]
+    summary_box(io, "SaveSolutionCallback", setup)
+  end
+end
+
+
+function SaveSolutionCallback(; interval::Integer=0,
+                                dt=0.0,
                                 save_initial_solution=true,
                                 save_final_solution=true,
                                 output_directory="out",
                                 solution_variables=cons2prim)
 
-  solution_callback = SaveSolutionCallback(interval, save_initial_solution, save_final_solution,
+  if dt > 0
+    interval = dt
+  end
+
+  solution_callback = SaveSolutionCallback(interval,
+                                           save_initial_solution, save_final_solution,
                                            output_directory, solution_variables)
 
-  DiscreteCallback(solution_callback, solution_callback, # the first one is the condition, the second the affect!
-                   save_positions=(false,false),
-                   initialize=initialize!)
+  if dt > 0
+    return PeriodicCallback(solution_callback, dt, initialize=initialize_save_cb!)
+  else
+    # The first one is the condition, the second the affect!
+    return DiscreteCallback(solution_callback, solution_callback,
+                            save_positions=(false,false),
+                            initialize=initialize_save_cb!)
+  end
 end
 
 
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:SaveSolutionCallback}
-  solution_callback = cb.affect!
+function initialize_save_cb!(cb, u, t, integrator)
+  # The SaveSolutionCallback is either cb.affect! (with DiscreteCallback)
+  # or cb.affect!.affect! (with PeriodicCallback).
+  # Let recursive dispatch handle this.
+  initialize_save_cb!(cb.affect!, u, t, integrator)
+end
 
+function initialize_save_cb!(solution_callback::SaveSolutionCallback, u, t, integrator)
   mpi_isroot() && mkpath(solution_callback.output_directory)
 
   semi = integrator.p

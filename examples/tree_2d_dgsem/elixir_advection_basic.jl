@@ -37,7 +37,7 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval=100)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
-save_solution = SaveSolutionCallback(interval=100,
+save_solution = SaveSolutionCallback(dt=0.1,
                                      solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
