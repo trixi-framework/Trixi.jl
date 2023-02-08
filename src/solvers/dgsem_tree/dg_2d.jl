@@ -649,7 +649,8 @@ end
       u, mesh, nonconservative_terms, equations, indicator, dg, element, cache)
 
   # limit antidiffusive flux
-  calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms, equations, indicator, dg, element, cache)
+  calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms, equations, indicator, dg, element, cache,
+                                  fstar1_L, fstar2_L)
 
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   for j in eachnode(dg), i in eachnode(dg)
@@ -1189,7 +1190,8 @@ end
   return nothing
 end
 
-@inline function calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms, equations, indicator, dg, element, cache)
+@inline function calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms, equations, indicator, dg, element, cache,
+                                                 fstar1, fstar2)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
   @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
@@ -1581,38 +1583,38 @@ end
       flux_velocity = antidiffusive_flux1[2, i, j, element]^2 + antidiffusive_flux1[3, i, j, element]^2
 
       Q = - lambda1[i, j, element]^2 * (bar_states1[1, i, j, element] * bar_states1[4, i, j, element] -
-                                      0.5 * bar_state_velocity)
+                                        0.5 * bar_state_velocity)
       P_1 = 0.5 * flux_velocity - antidiffusive_flux1[4, i, j, element] * antidiffusive_flux1[1, i, j, element]
-      P_2 = lambda1[i, j, element] * (bar_states1[2, i, j, element] * antidiffusive_flux1[2, i, j, element] + 
-                                      bar_states1[3, i, j, element] * antidiffusive_flux1[3, i, j, element]
-                                      - bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element]
-                                      - bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element])
-      
+      P_2 = lambda1[i, j, element] * (bar_states1[2, i, j, element] * antidiffusive_flux1[2, i, j, element] +
+                                      bar_states1[3, i, j, element] * antidiffusive_flux1[3, i, j, element] -
+                                      bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element] -
+                                      bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element])
+
       # Solve the quadratic formula
-      aux_var = P_2^2 - 4*P_1*Q
+      aux_var = P_2^2 - 4 * P_1 * Q
       if aux_var >= 0.0
         # Only solve for real solutions
         aux_var = sqrt(aux_var)
-        alpha1 = 0.5 * (-P_2 + aux_var) / (P_1)
-        alpha2 = 0.5 * (-P_2 - aux_var) / (P_1)
-        alpha3 = 0.5 * ( P_2 + aux_var) / (P_1)
-        alpha4 = 0.5 * ( P_2 - aux_var) / (P_1)
-        
+        alpha1 = 0.5 * (-P_2 + aux_var) / P_1
+        alpha2 = 0.5 * (-P_2 - aux_var) / P_1
+        alpha3 = 0.5 * ( P_2 + aux_var) / P_1
+        alpha4 = 0.5 * ( P_2 - aux_var) / P_1
+
         # If the solutions are negative, we can take the maximum antidiffusive flux
-        if alpha1 < 0.0 
+        if alpha1 < 0.0
           alpha1 = 1.0
         end
-        if alpha2 < 0.0 
+        if alpha2 < 0.0
           alpha2 = 1.0
         end
-        if alpha3 < 0.0 
+        if alpha3 < 0.0
           alpha3 = 1.0
         end
-        if alpha4 < 0.0 
+        if alpha4 < 0.0
           alpha4 = 1.0
         end
         # Get the most restrictive alpha
-        alpha = min(alpha1,alpha2,alpha3,alpha4,1.0)
+        alpha = min(alpha1, alpha2, alpha3, alpha4, 1.0)
       else
         # If the solutions are complex, we can take the maximum antidiffusive flux
         alpha = 1.0
@@ -1636,45 +1638,126 @@ end
 
       P_1 = 0.5 * flux_velocity - antidiffusive_flux2[4, i, j, element] * antidiffusive_flux2[1, i, j, element]
       P_2 = lambda2[i, j, element] * (bar_states2[2, i, j, element] * antidiffusive_flux2[2, i, j, element] +
-                                      bar_states2[3, i, j, element] * antidiffusive_flux2[3, i, j, element]
-                                      - bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element]
-                                      - bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element])
+                                      bar_states2[3, i, j, element] * antidiffusive_flux2[3, i, j, element] -
+                                      bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element] -
+                                      bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element])
       # Solve the quadratic formula
-      aux_var = P_2^2 - 4*P_1*Q
-      if P_2^2 - 4*P_1*Q >= 0.0 
+      aux_var = P_2^2 - 4 * P_1 * Q
+      if aux_var >= 0.0
         # Only solve for real solutions
         aux_var = sqrt(aux_var)
-        alpha1 = 0.5 * (-P_2 + aux_var) / (P_1)
-        alpha2 = 0.5 * (-P_2 - aux_var) / (P_1)
-        alpha3 = 0.5 * ( P_2 + aux_var) / (P_1)
-        alpha4 = 0.5 * ( P_2 - aux_var) / (P_1)
-        
+        alpha1 = 0.5 * (-P_2 + aux_var) / P_1
+        alpha2 = 0.5 * (-P_2 - aux_var) / P_1
+        alpha3 = 0.5 * ( P_2 + aux_var) / P_1
+        alpha4 = 0.5 * ( P_2 - aux_var) / P_1
+
         # If the solutions are negative, we can take the maximum antidiffusive flux
-        if alpha1 < 0.0 
+        if alpha1 < 0.0
           alpha1 = 1.0
         end
-        if alpha2 < 0.0 
+        if alpha2 < 0.0
           alpha2 = 1.0
         end
-        if alpha3 < 0.0 
+        if alpha3 < 0.0
           alpha3 = 1.0
         end
-        if alpha4 < 0.0 
+        if alpha4 < 0.0
           alpha4 = 1.0
         end
         # Get the most restrictive alpha
-        alpha = min(alpha1,alpha2,alpha3,alpha4,1.0)
+        alpha = min(alpha1, alpha2, alpha3, alpha4, 1.0)
       else
         # If the solutions are complex, we can take the maximum antidiffusive flux
         alpha = 1.0
       end
-      
+
       if indicator.Plotting
         alpha_pressure[i, j-1, element] = min(alpha_pressure[i, j-1, element], alpha)
         alpha_pressure[i,   j, element] = min(alpha_pressure[i,   j, element], alpha)
       end
       for v in eachvariable(equations)
         antidiffusive_flux2[v, i, j, element] *= alpha
+      end
+    end
+  end
+
+  # Limit entropy
+  # TODO: This is a very inefficient function. We compute the entropy four times at each node.
+  # TODO: For now, this only works for Cartesian meshes.
+  if indicator.SemiDiscEntropyLimiter
+    @unpack alpha_entropy = indicator.cache.ContainerShockCapturingIndicator
+    if indicator.Plotting
+      alpha_entropy[:, :, element] .= one(eltype(alpha_entropy))
+    end
+    for j in eachnode(dg), i in 2:nnodes(dg)
+      antidiffusive_flux_local = get_node_vars(antidiffusive_flux1, equations, dg, i, j, element)
+      u_local    = get_node_vars(u, equations, dg, i,   j, element)
+      u_local_m1 = get_node_vars(u, equations, dg, i-1, j, element)
+
+      # Using mathematic entropy
+      v_local    = cons2entropy(u_local,    equations)
+      v_local_m1 = cons2entropy(u_local_m1, equations)
+
+      q_local    = u_local[2]    / u_local[1]    * entropy(u_local, equations)
+      q_local_m1 = u_local_m1[2] / u_local_m1[1] * entropy(u_local_m1, equations)
+
+      f_local    = flux(u_local,    1, equations)
+      f_local_m1 = flux(u_local_m1, 1, equations)
+
+      psi_local    = dot(v_local, f_local)       - q_local
+      psi_local_m1 = dot(v_local_m1, f_local_m1) - q_local_m1
+
+      delta_v = v_local - v_local_m1
+      delta_psi = psi_local - psi_local_m1
+
+      entProd_FV = dot(delta_v, fstar1[:, i, j]) - delta_psi
+      delta_entProd = dot(delta_v, antidiffusive_flux_local)
+
+      if (entProd_FV + delta_entProd > 0.0) && (delta_entProd != 0.0)
+        alpha = min(1.0, (abs(entProd_FV)+eps()) / (abs(delta_entProd)+eps()))
+        if indicator.Plotting
+          alpha_entropy[i-1, j, element] = min(alpha_entropy[i-1, j, element], alpha)
+          alpha_entropy[i,   j, element] = min(alpha_entropy[i,   j, element], alpha)
+        end
+        for v in eachvariable(equations)
+          antidiffusive_flux1[v, i, j, element] = alpha * antidiffusive_flux1[v, i, j, element]
+        end
+      end
+    end
+
+    for j in 2:nnodes(dg), i in eachnode(dg)
+      antidiffusive_flux_local = get_node_vars(antidiffusive_flux2, equations, dg, i, j, element)
+      u_local    = get_node_vars(u, equations, dg, i,   j, element)
+      u_local_m1 = get_node_vars(u, equations, dg, i, j-1, element)
+
+      # Using mathematic entropy
+      v_local    = cons2entropy(u_local,    equations)
+      v_local_m1 = cons2entropy(u_local_m1, equations)
+
+      q_local    = u_local[3]    / u_local[1]    * entropy(u_local, equations)
+      q_local_m1 = u_local_m1[3] / u_local_m1[1] * entropy(u_local_m1, equations)
+
+      f_local    = flux(u_local,    2, equations)
+      f_local_m1 = flux(u_local_m1, 2, equations)
+
+      psi_local    = dot(v_local, f_local)       - q_local
+      psi_local_m1 = dot(v_local_m1, f_local_m1) - q_local_m1
+
+      delta_v = v_local - v_local_m1
+      delta_psi = psi_local - psi_local_m1
+
+      entProd_FV = dot(delta_v, fstar2[:, i, j]) - delta_psi
+      delta_entProd = dot(delta_v, antidiffusive_flux_local)
+
+      if (entProd_FV + delta_entProd > 0.0) && (delta_entProd != 0.0)
+        alpha = min(1.0, (abs(entProd_FV)+eps()) / (abs(delta_entProd)+eps()))
+        if indicator.Plotting
+          alpha_entropy[i, j-1, element] = min(alpha_entropy[i, j-1, element], alpha)
+          alpha_entropy[i,   j, element] = min(alpha_entropy[i,   j, element], alpha)
+        end
+        for v in eachvariable(equations)
+          antidiffusive_flux2[v, i, j, element] = alpha * antidiffusive_flux2[v, i, j, element]
+        end
       end
     end
   end

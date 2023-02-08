@@ -1380,11 +1380,13 @@ mutable struct ContainerShockCapturingIndicatorMCL{uEltype<:Real}
   var_max::Array{uEltype, 4}                # [variable, i, j, element]
   alpha::Array{uEltype, 4}                  # [variable, i, j, element]
   alpha_pressure::Array{uEltype, 3}         # [i, j, element]
+  alpha_entropy::Array{uEltype, 3}          # [i, j, element]
   # internal `resize!`able storage
   _var_min::Vector{uEltype}
   _var_max::Vector{uEltype}
   _alpha::Vector{uEltype}
   _alpha_pressure::Vector{uEltype}
+  _alpha_entropy::Vector{uEltype}
 end
 
 function ContainerShockCapturingIndicatorMCL{uEltype}(capacity::Integer, n_variables, n_nodes) where uEltype<:Real
@@ -1402,8 +1404,11 @@ function ContainerShockCapturingIndicatorMCL{uEltype}(capacity::Integer, n_varia
   _alpha_pressure = fill(nan_uEltype, n_nodes * n_nodes * capacity)
   alpha_pressure = unsafe_wrap(Array, pointer(_alpha_pressure), (n_nodes, n_nodes, capacity))
 
-  return ContainerShockCapturingIndicatorMCL{uEltype}(var_min, var_max, alpha, alpha_pressure,
-                                                      _var_min, _var_max, _alpha, _alpha_pressure)
+  _alpha_entropy = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+  alpha_entropy = unsafe_wrap(Array, pointer(_alpha_entropy), (n_nodes, n_nodes, capacity))
+
+  return ContainerShockCapturingIndicatorMCL{uEltype}(var_min, var_max, alpha, alpha_pressure, alpha_entropy,
+                                                      _var_min, _var_max, _alpha, _alpha_pressure, _alpha_entropy)
 end
 
 nvariables(container::ContainerShockCapturingIndicatorMCL) = size(container.var_min, 1)
@@ -1431,6 +1436,10 @@ function Base.resize!(container::ContainerShockCapturingIndicatorMCL, capacity)
   @unpack _alpha_pressure = container
   resize!(_alpha_pressure, n_nodes * n_nodes * capacity)
   container.alpha_pressure = unsafe_wrap(Array, pointer(_alpha_pressure), (n_nodes, n_nodes, capacity))
+
+  @unpack _alpha_entropy = container
+  resize!(_alpha_entropy, n_nodes * n_nodes * capacity)
+  container.alpha_entropy = unsafe_wrap(Array, pointer(_alpha_entropy), (n_nodes, n_nodes, capacity))
 
   return nothing
 end

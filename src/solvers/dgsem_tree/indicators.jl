@@ -300,6 +300,7 @@ struct IndicatorMCL{RealT<:Real, Cache, Indicator} <: AbstractIndicator
   PressurePositivityLimiterKuzmin::Bool  # synchronized pressure limiting à la Kuzmin
   PressurePositivityLimiter::Bool        # synchronized pressure limiting
   DensityPositivityLimiter::Bool
+  SemiDiscEntropyLimiter::Bool           # synchronized semidiscrete entropy fix
   IDPCheckBounds::Bool
   indicator_smooth::Bool   # activates smoothness indicator: IndicatorHennemannGassner
   thr_smooth::RealT        # threshold for smoothness indicator
@@ -316,6 +317,7 @@ function IndicatorMCL(equations::AbstractEquations, basis;
                       PressurePositivityLimiterKuzmin=false,# Impose positivity for pressure â la Kuzmin
                       PressurePositivityLimiter=false,      # Impose positivity for pressure
                       DensityPositivityLimiter=false,       # Impose positivity for cons(1)
+                      SemiDiscEntropyLimiter=false,
                       IDPCheckBounds=false,
                       indicator_smooth=false, thr_smooth=0.1, variable_smooth=density_pressure,
                       Plotting=true)
@@ -332,8 +334,11 @@ function IndicatorMCL(equations::AbstractEquations, basis;
   else
     IndicatorHG = nothing
   end
-  IndicatorMCL{typeof(thr_smooth), typeof(cache), typeof(IndicatorHG)}(cache, DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
-    PressurePositivityLimiterKuzmin, PressurePositivityLimiter, DensityPositivityLimiter, IDPCheckBounds, indicator_smooth, thr_smooth, IndicatorHG, Plotting)
+  IndicatorMCL{typeof(thr_smooth), typeof(cache), typeof(IndicatorHG)}(cache,
+    DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
+    PressurePositivityLimiterKuzmin, PressurePositivityLimiter,
+    DensityPositivityLimiter, SemiDiscEntropyLimiter,
+    IDPCheckBounds, indicator_smooth, thr_smooth, IndicatorHG, Plotting)
 end
 
 function Base.show(io::IO, indicator::IndicatorMCL)
@@ -347,6 +352,7 @@ function Base.show(io::IO, indicator::IndicatorMCL)
   indicator.PressurePositivityLimiterKuzmin && print(io, "; pres (Kuzmin)")
   indicator.PressurePositivityLimiter && print(io, "; pres")
   indicator.DensityPositivityLimiter && print(io, "; dens pos")
+  indicator.SemiDiscEntropyLimiter && print(io, "; semidiscrete entropy fix")
   indicator.indicator_smooth && print(io, "; Smoothness indicator: ", indicator.IndicatorHG,
     " with threshold ", indicator.thr_smooth)
   print(io, ")")
@@ -366,6 +372,11 @@ function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIn
   if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
     @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
     node_variables[:shock_capturing_alpha_pressure] = alpha_pressure
+  end
+
+  if indicator.SemiDiscEntropyLimiter
+    @unpack alpha_entropy = indicator.cache.ContainerShockCapturingIndicator
+    node_variables[:shock_capturing_alpha_entropy] = alpha_entropy
   end
 
   return nothing
