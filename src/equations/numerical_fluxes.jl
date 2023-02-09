@@ -245,7 +245,7 @@ Base.show(io::IO, numflux::FluxHLL) = print(io, "FluxHLL(", numflux.min_max_spee
 See [`FluxHLL`](@ref).
 """
 const flux_hll = FluxHLL()
-const flux_hll_cn = FluxHLLChenNoelle()
+const flux_hll_chen_noelle = FluxHLLChenNoelle()
 
 
 """
