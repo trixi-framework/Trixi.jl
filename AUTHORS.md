@@ -31,6 +31,7 @@ are listed in alphabetical order:
 * Gregor Gassner
 * Lucas Gemein
 * Sven Goldberg
+* Joshua Lampert
 * Julia Odenthal
 * Hendrik Ranocha
 * Andrés M. Rueda-Ramírez

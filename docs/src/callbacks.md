@@ -30,6 +30,8 @@ An example elixir using AMR can be found at [examples/tree_2d_dgsem/elixir\_adve
 The [`AnalysisCallback`](@ref) can be used to analyze the numerical solution, e.g. calculate
 errors or user-specified integrals, and print the results to the screen. The results can also be
 saved in a file. An example can be found at [examples/tree_2d_dgsem/elixir\_euler\_vortex.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_vortex.jl).
+In [Performance metrics of the `AnalysisCallback`](@ref) you can find a detailed
+description of the different performance metrics the `AnalysisCallback` computes.
 
 ### I/O
 

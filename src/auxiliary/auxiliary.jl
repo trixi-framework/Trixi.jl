@@ -38,17 +38,19 @@ end
 
 PerformanceCounter() = PerformanceCounter(0, 0.0)
 
-function Base.take!(counter::PerformanceCounter)
+@inline function Base.take!(counter::PerformanceCounter)
   time_per_call = counter.runtime / counter.ncalls_since_readout
   counter.ncalls_since_readout = 0
   counter.runtime = 0.0
   return time_per_call
 end
 
-function Base.put!(counter::PerformanceCounter, runtime::Real)
+@inline function Base.put!(counter::PerformanceCounter, runtime::Real)
   counter.ncalls_since_readout += 1
   counter.runtime += runtime
 end
+
+@inline ncalls(counter::PerformanceCounter) = counter.ncalls_since_readout
 
 
 """
@@ -69,12 +71,22 @@ function PerformanceCounterList{N}() where {N}
   return PerformanceCounterList{N}(counters)
 end
 
-function Base.take!(counter::PerformanceCounterList)
+@inline function Base.take!(counter_list::PerformanceCounterList)
   time_per_call = 0.0
-  for c in counter.counters
+  for c in counter_list.counters
     time_per_call += take!(c)
   end
   return time_per_call
+end
+
+@inline function ncalls(counter_list::PerformanceCounterList)
+  ncalls_first = ncalls(first(counter_list.counters))
+  for c in counter_list.counters
+    if ncalls_first != ncalls(c)
+      error("Some counters have a different number of calls. Using `ncalls` on the counter list is undefined behavior.")
+    end
+  end
+  return ncalls_first
 end
 
 
