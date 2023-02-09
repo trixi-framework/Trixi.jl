@@ -229,22 +229,16 @@ function calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, t, semi,
 end
 
 
-@inline function update_alpha_per_timestep!(indicator::IndicatorIDP, timestep, n_stages, semi, mesh::StructuredMesh)
+@inline function update_alpha_per_timestep!(indicator::IndicatorIDP, timestep, n_stages, semi, mesh::StructuredMesh{2})
   _, _, solver, cache = mesh_equations_solver_cache(semi)
   @unpack weights = solver.basis
   @unpack alpha_mean_per_timestep, alpha_max_per_timestep= indicator.cache
   @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
 
-  if indicator.indicator_smooth
-    elements = cache.element_ids_dgfv
-  else
-    elements = eachelement(solver, cache)
-  end
-
   alpha_max_per_timestep[timestep] = max(alpha_max_per_timestep[timestep], maximum(alpha))
   alpha_avg = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
-  for element in elements
+  for element in eachelement(solver, cache)
     for j in eachnode(solver), i in eachnode(solver)
       jacobian = inv(cache.elements.inverse_jacobian[i, j, element])
       alpha_avg += jacobian * weights[i] * weights[j] * alpha[i, j, element]
@@ -253,6 +247,45 @@ end
   end
   if total_volume > 0
     alpha_mean_per_timestep[timestep] += 1/(n_stages * total_volume) * alpha_avg
+  end
+
+  return nothing
+end
+
+@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, iter, semi, mesh::StructuredMesh{2})
+  _, equations, dg, cache = mesh_equations_solver_cache(semi)
+  @unpack weights = dg.basis
+  @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
+
+  # Save the alphas every x iterations
+  x = 1
+  if x == 0 || iter % x != 0
+    return nothing
+  end
+
+  n_vars = nvariables(equations)
+  vars = varnames(cons2cons, equations)
+
+  alpha_avg = zeros(eltype(alpha), n_vars + (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin))
+  total_volume = zero(eltype(alpha))
+  for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+      jacobian = inv(cache.elements.inverse_jacobian[i, j, element])
+      for v in eachvariable(equations)
+        alpha_avg[v] += jacobian * weights[i] * weights[j] * alpha[v, i, j, element]
+      end
+      alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] * alpha_pressure[i, j, element]
+      total_volume += jacobian * weights[i] * weights[j]
+    end
+  end
+
+  for v in eachvariable(equations)
+    open(string("Alpha_min_", vars[v], ".txt"), "a") do f; println(f, minimum((view(alpha, v, ntuple(_ -> :, n_vars)...)))); end
+    open(string("Alpha_avg_", vars[v], ".txt"), "a") do f; println(f, alpha_avg[v] / total_volume); end
+  end
+  if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+    open("Alpha_min_pressure.txt", "a") do f; println(f, minimum(alpha_pressure)); end
+    open("Alpha_avg_pressure.txt", "a") do f; println(f, alpha_avg[n_vars + 1] / total_volume); end
   end
 
   return nothing
