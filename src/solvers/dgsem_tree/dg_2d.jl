@@ -1454,17 +1454,31 @@ end
         flux_limited = max(antidiffusive_flux1[1, i, j, element], min(f_min, 0.0))
       end
 
-      if indicator.Plotting
-        @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+      if indicator.Plotting || indicator.DensityAlphaForAll
         if isapprox(antidiffusive_flux1[1, i, j, element], 0.0, atol=eps())
           coefficient = 1.0  # flux_limited is zero as well
         else
           coefficient = flux_limited / antidiffusive_flux1[1, i, j, element]
         end
-        alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
-        alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
+
+        if indicator.Plotting
+          @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+          alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
+          alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
+        end
       end
       antidiffusive_flux1[1, i, j, element] = flux_limited
+
+      #Limit all quantities with the same alpha
+      if indicator.DensityAlphaForAll
+        for v in 2:nvariables(equations)
+          antidiffusive_flux1[v, i, j, element] = coefficient * antidiffusive_flux1[v, i, j, element]
+          if indicator.Plotting
+            alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
+            alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
+          end
+        end
+      end
     end
 
     for j in 2:nnodes(dg), i in eachnode(dg)
@@ -1481,17 +1495,31 @@ end
         flux_limited = max(antidiffusive_flux2[1, i, j, element], min(f_min, 0.0))
       end
 
-      if indicator.Plotting
-        @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+      if indicator.Plotting || indicator.DensityAlphaForAll
         if isapprox(antidiffusive_flux2[1, i, j, element], 0.0, atol=eps())
           coefficient = 1.0  # flux_limited is zero as well
         else
           coefficient = flux_limited / antidiffusive_flux2[1, i, j, element]
         end
-        alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
-        alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
+        
+        if indicator.Plotting
+          @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+          alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
+          alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
+        end
       end
       antidiffusive_flux2[1, i, j, element] = flux_limited
+
+      #Limit all quantities with the same alpha
+      if indicator.DensityAlphaForAll
+        for v in 2:nvariables(equations)
+          antidiffusive_flux2[v, i, j, element] = coefficient * antidiffusive_flux2[v, i, j, element]
+          if indicator.Plotting
+            alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
+            alpha[v, i, j  , element] = min(alpha[v, i, j  , element], coefficient)
+          end
+        end
+      end
     end
   end #if indicator.DensityPositivityLimiter
 
