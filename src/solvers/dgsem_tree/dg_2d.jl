@@ -1501,7 +1501,7 @@ end
         else
           coefficient = flux_limited / antidiffusive_flux2[1, i, j, element]
         end
-        
+
         if indicator.Plotting
           @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
           alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
@@ -1526,9 +1526,6 @@ end
   # Limit pressure à la Kuzmin
   if indicator.PressurePositivityLimiterKuzmin
     @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
-    if indicator.Plotting
-      alpha_pressure[:, :, element] .= one(eltype(alpha_pressure))
-    end
     for j in eachnode(dg), i in 2:nnodes(dg)
       bar_state_velocity = bar_states1[2, i, j, element]^2 + bar_states1[3, i, j, element]^2
       flux_velocity = antidiffusive_flux1[2, i, j, element]^2 + antidiffusive_flux1[3, i, j, element]^2
@@ -1603,9 +1600,6 @@ end
   # New pressure limiter!
   elseif indicator.PressurePositivityLimiter
     @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
-    if indicator.Plotting
-      alpha_pressure[:, :, element] .= one(eltype(alpha_pressure))
-    end
     for j in eachnode(dg), i in 2:nnodes(dg)
       bar_state_velocity = bar_states1[2, i, j, element]^2 + bar_states1[3, i, j, element]^2
       flux_velocity = antidiffusive_flux1[2, i, j, element]^2 + antidiffusive_flux1[3, i, j, element]^2

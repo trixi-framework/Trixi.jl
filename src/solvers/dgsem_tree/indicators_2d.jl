@@ -903,6 +903,17 @@ standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol,
   return nothing
 end
 
+@inline function save_alpha_per_timestep!(indicator::IndicatorIDP, iter, semi, mesh)
+  _, equations, solver, cache = mesh_equations_solver_cache(semi)
+  @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
+
+  # TODO: For IndicatorIDP
+
+  # TODO: volume-weighted alpha
+
+  return nothing
+end
+
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(indicator::Type{IndicatorMCL}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, PressureLimiter)
@@ -915,6 +926,32 @@ function create_cache(indicator::Type{IndicatorMCL}, equations::AbstractEquation
 end
 
 @inline function update_alpha_per_timestep!(indicator::IndicatorMCL, timestep, n_stages, semi, mesh)
+
+  return nothing
+end
+
+@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, iter, semi, mesh)
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+    @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
+
+    # TODO: volume-weighted average of alpha
+    #       and then StructuredMesh
+
+    n_vars = nvariables(equations)
+    vars = varnames(cons2cons, equations)
+
+    # Save the alphas every x iterations
+    x = 1
+    if x == 0 || iter % x != 0
+      return nothing
+    end
+
+    for v in eachvariable(equations)
+      open(string("Alpha_min_", vars[v], ".txt"), "a") do f; println(f, minimum((view(alpha, v, ntuple(_ -> :, n_vars)...)))); end
+    end
+    if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+      open("Alpha_min_pressure.txt", "a") do f; println(f, minimum(alpha_pressure)); end
+    end
 
   return nothing
 end

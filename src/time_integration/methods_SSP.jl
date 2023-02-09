@@ -143,10 +143,11 @@ function solve!(integrator::SimpleIntegratorSSP)
     # reset alphas for Plotting of MCL
     @unpack indicator = integrator.p.solver.volume_integral
     if indicator isa IndicatorMCL && indicator.Plotting
-      @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+      @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
       @threaded for element in eachelement(integrator.p.solver, integrator.p.cache)
         for j in eachnode(integrator.p.solver), i in eachnode(integrator.p.solver)
-          alpha[:, i, j, element] .= 1.0
+          alpha[:, i, j, element] .= one(eltype(alpha))
+          alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
         end
       end
     end
@@ -174,6 +175,8 @@ function solve!(integrator::SimpleIntegratorSSP)
       # perform convex combination
       @. integrator.u = alg.a[stage] * integrator.r0 + alg.b[stage] * integrator.u
     end
+
+    @trixi_timeit timer() "save_alpha_per_timestep!" save_alpha_per_timestep!(indicator, integrator.iter+1, integrator.p, integrator.p.mesh)
 
     if integrator.p.solver.volume_integral.indicator isa IndicatorIDP
       indicator.cache.time_per_timestep[integrator.iter+1] = integrator.t
