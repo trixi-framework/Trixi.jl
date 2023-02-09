@@ -47,9 +47,11 @@ References for the SWE are many but a good introduction is available in Chapter 
 struct ShallowWaterEquations1D{RealT<:Real} <: AbstractShallowWaterEquations{1, 3}
   gravity::RealT # gravitational constant
   H0::RealT      # constant "lake-at-rest" total water height
-  threshold_limiter::RealT  # threshold to use in PositivityPreservingLimiterZhangShu on waterheight,
-                            #   as shift on the initial condition and cutoff before the next timestep
-  threshold_wet::RealT      # threshold to be applied on waterheight before calculating numflux
+  threshold_limiter::RealT  # Threshold to use in PositivityPreservingLimiterZhangShu on waterheight,
+                            # as a (small) shift on the initial condition and cutoff before the 
+                            # next time step.
+  threshold_wet::RealT      # Threshold to be applied on water height to define when the flow is "wet"
+                            # before calculating the numerical flux.
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
@@ -318,8 +320,8 @@ end
   h_ll, _, b_ll = u_ll
   h_rr, _, b_rr = u_rr
 
-  H_ll = h_ll+b_ll
-  H_rr = h_rr+b_rr
+  H_ll = h_ll + b_ll
+  H_rr = h_rr + b_rr
 
   b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
 
@@ -456,8 +458,8 @@ end
   b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
 
   # Compute the reconstructed water heights
-  h_ll_star = min( H_ll-b_star, h_ll )
-  h_rr_star = min( H_rr-b_star, h_rr )
+  h_ll_star = min( H_ll - b_star, h_ll )
+  h_rr_star = min( H_rr - b_star, h_rr )
 
   # Create the conservative variables using the reconstruted water heights
   u_ll_star = SVector( h_ll_star, h_ll_star * v_ll, b_ll )
@@ -541,8 +543,8 @@ end
   a_ll = sqrt(equations.gravity * h_ll)
   a_rr = sqrt(equations.gravity * h_rr)
 
-  λ_min = min( v_ll-a_ll, v_rr-a_rr, 0 ) 
-  λ_max = max( v_ll+a_ll, v_rr+a_rr, 0 )
+  λ_min = min( v_ll - a_ll, v_rr - a_rr, zero(eltype(u_ll)) ) 
+  λ_max = max( v_ll + a_ll, v_rr + a_rr, zero(eltype(u_ll)) )
 
   return λ_min, λ_max
 end
