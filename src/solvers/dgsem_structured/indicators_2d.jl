@@ -235,7 +235,7 @@ end
   @unpack alpha_mean_per_timestep, alpha_max_per_timestep= indicator.cache
   @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
 
-  alpha_max_per_timestep[timestep] = max(alpha_max_per_timestep[timestep], maximum(alpha))
+  alpha_max_per_timestep = max(alpha_max_per_timestep, maximum(alpha))
   alpha_avg = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
   for element in eachelement(solver, cache)
@@ -246,7 +246,7 @@ end
     end
   end
   if total_volume > 0
-    alpha_mean_per_timestep[timestep] += 1/(n_stages * total_volume) * alpha_avg
+    alpha_mean_per_timestep += 1/(n_stages * total_volume) * alpha_avg
   end
 
   return nothing

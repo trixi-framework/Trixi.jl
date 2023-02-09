@@ -185,21 +185,6 @@ function solve!(integrator::SimpleIntegratorSSP)
 
     @trixi_timeit timer() "save_alpha_per_timestep!" save_alpha_per_timestep!(indicator, integrator.t, integrator.iter+1, integrator.p, integrator.p.mesh, output_directory)
 
-    if integrator.p.solver.volume_integral.indicator isa IndicatorIDP
-      indicator.cache.time_per_timestep[integrator.iter+1] = integrator.t
-    end
-
-    if integrator.p.solver.volume_integral.indicator isa IndicatorIDP &&
-      integrator.iter+1 == length(indicator.cache.alpha_max_per_timestep) && !integrator.finalstep
-      new_length = length(indicator.cache.alpha_max_per_timestep) + 200
-      resize!(indicator.cache.alpha_max_per_timestep,  new_length)
-      resize!(indicator.cache.alpha_mean_per_timestep, new_length)
-      resize!(indicator.cache.time_per_timestep, new_length)
-      indicator.cache.alpha_max_per_timestep[new_length - 199:new_length] .= 0.0
-      indicator.cache.alpha_mean_per_timestep[new_length - 199:new_length] .= 0.0
-      indicator.cache.time_per_timestep[new_length - 199:new_length] .= 0.0
-    end
-
     integrator.iter += 1
     integrator.t += integrator.dt
 
@@ -244,12 +229,6 @@ end
 function terminate!(integrator::SimpleIntegratorSSP)
   integrator.finalstep = true
   empty!(integrator.opts.tstops)
-
-  if integrator.p.solver.volume_integral.indicator isa IndicatorIDP
-    resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep, integrator.iter+1)
-    resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep, integrator.iter+1)
-    resize!(integrator.p.solver.volume_integral.indicator.cache.time_per_timestep, integrator.iter+1)
-  end
 end
 
 # used for AMR

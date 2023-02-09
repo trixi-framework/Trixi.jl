@@ -200,13 +200,12 @@ function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquation
     cache = (; cache..., ContainerBarStates)
   end
 
-  alpha_max_per_timestep  = zeros(real(basis), 200)
-  alpha_mean_per_timestep = zeros(real(basis), 200)
-  time_per_timestep = zeros(real(basis), 200)
+  alpha_max_per_timestep  = zero(real(basis))
+  alpha_mean_per_timestep = zero(real(basis))
 
   idp_bounds_delta = zeros(real(basis), length)
 
-  return (; cache..., alpha_max_per_timestep, alpha_mean_per_timestep, time_per_timestep,
+  return (; cache..., alpha_max_per_timestep, alpha_mean_per_timestep,
           ContainerShockCapturingIndicator, idp_bounds_delta)
 end
 
@@ -877,10 +876,10 @@ standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol,
 @inline function update_alpha_per_timestep!(indicator::IndicatorIDP, timestep, n_stages, semi, mesh::TreeMesh)
   _, _, solver, cache = mesh_equations_solver_cache(semi)
   @unpack weights = solver.basis
-  @unpack alpha_mean_per_timestep, alpha_max_per_timestep, time_per_timestep = indicator.cache
+  @unpack alpha_mean_per_timestep, alpha_max_per_timestep = indicator.cache
   @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
 
-  alpha_max_per_timestep[timestep] = max(alpha_max_per_timestep[timestep], maximum(alpha))
+  alpha_max_per_timestep = max(alpha_max_per_timestep, maximum(alpha))
   alpha_avg = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
   for element in eachelement(solver, cache)
@@ -891,14 +890,14 @@ standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol,
     end
   end
   if total_volume > 0
-    alpha_mean_per_timestep[timestep] += 1/(n_stages * total_volume) * alpha_avg
+    alpha_mean_per_timestep += 1/(n_stages * total_volume) * alpha_avg
   end
 
   return nothing
 end
 
 @inline function save_alpha_per_timestep!(indicator::IndicatorIDP, time, iter, semi, mesh, output_directory)
-  @unpack alpha_mean_per_timestep, alpha_max_per_timestep, time_per_timestep = indicator.cache
+  @unpack alpha_mean_per_timestep, alpha_max_per_timestep = indicator.cache
   # The maximum and average values were calculated in `update_alpha_per_timestep!` in each RK stage.
   # This is necessary if we want the average of the alphas over all stages (discussable).
 
@@ -916,7 +915,7 @@ end
     return nothing
   end
   open("$output_directory/alphas.txt", "a") do f;
-    println(f, iter, ", ", time, ", ", alpha_max_per_timestep[iter], ", ", alpha_mean_per_timestep[iter]);
+    println(f, iter, ", ", time, ", ", alpha_max_per_timestep, ", ", alpha_mean_per_timestep);
   end
 
   return nothing
