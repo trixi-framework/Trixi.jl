@@ -12,9 +12,6 @@ function rhs!(du, u, t,
   # Reset du
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
-  # Apply waterheight and velocity cut off
-  apply_thresholds!(u, equations, dg, cache)
-  
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
     du, u, mesh,
