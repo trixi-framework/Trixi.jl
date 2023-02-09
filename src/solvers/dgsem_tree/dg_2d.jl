@@ -2013,7 +2013,6 @@ end
   end # indicator.DensityLimiter
 
 
-  # TODO: Pressure bounds are only checked if sequential or conservative limiters are active
   if indicator.SequentialLimiter
     # New solution u^{n+1}
     for element in eachelement(solver, cache)
@@ -2126,7 +2125,6 @@ end
     # - pressure (p):
     #   \bar{rho}^{Lim} \bar{rho * E}^{Lim} >= |\bar{rho * v}^{Lim}|^2 / 2
     var_limited = zero(eltype(idp_bounds_delta))
-    rho_limited = zero(eltype(idp_bounds_delta))
     error_pressure = zero(eltype(idp_bounds_delta))
     for element in eachelement(solver, cache)
       for j in eachnode(solver), i in eachnode(solver)
@@ -2192,7 +2190,48 @@ end
         end
       end
     end
-  end # indicator.ConservativeLimiter
+  elseif indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+    # New solution u^{n+1}
+    for element in eachelement(solver, cache)
+      for j in eachnode(solver), i in eachnode(solver)
+        error_pressure = 0.5 * (u[2, i, j, element]^2 + u[3, i, j, element]^2) - u[1, i, j, element] * u[4, i, j, element]
+        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+      end
+    end
+
+    # Limited bar states \bar{u}^{Lim} = \bar{u} + Δf^{Lim} / λ
+    # Checking the bounds for...
+    # - pressure (p):
+    #   \bar{rho}^{Lim} \bar{rho * E}^{Lim} >= |\bar{rho * v}^{Lim}|^2 / 2
+    for element in eachelement(solver, cache)
+      for j in eachnode(solver), i in eachnode(solver)
+        # -x
+        rho_limited = bar_states1[1, i, j, element] - antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
+        error_pressure = 0.5 * (bar_states1[2, i, j, element] - antidiffusive_flux1[2, i, j, element] / lambda1[i, j, element])^2 +
+                         0.5 * (bar_states1[3, i, j, element] - antidiffusive_flux1[3, i, j, element] / lambda1[i, j, element])^2 -
+                         (bar_states1[4, i, j, element] - antidiffusive_flux1[4, i, j, element] / lambda1[i, j, element]) * rho_limited
+        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+        # +x
+        rho_limited = bar_states1[1, i+1, j, element] + antidiffusive_flux1[1, i+1, j, element] / lambda1[i+1, j, element]
+        error_pressure = 0.5 * (bar_states1[2, i+1, j, element] + antidiffusive_flux1[2, i+1, j, element] / lambda1[i+1, j, element])^2 +
+                         0.5 * (bar_states1[3, i+1, j, element] + antidiffusive_flux1[3, i+1, j, element] / lambda1[i+1, j, element])^2 -
+                         (bar_states1[4, i+1, j, element] + antidiffusive_flux1[4, i+1, j, element] / lambda1[i+1, j, element]) * rho_limited
+        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+        # -y
+        rho_limited = bar_states2[1, i, j, element] - antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
+        error_pressure = 0.5 * (bar_states2[2, i, j, element] - antidiffusive_flux2[2, i, j, element] / lambda2[i, j, element])^2 +
+                         0.5 * (bar_states2[3, i, j, element] - antidiffusive_flux2[3, i, j, element] / lambda2[i, j, element])^2 -
+                         (bar_states2[4, i, j, element] - antidiffusive_flux2[4, i, j, element] / lambda2[i, j, element]) * rho_limited
+        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+        # +y
+        rho_limited = bar_states2[1, i, j+1, element] + antidiffusive_flux2[1, i, j+1, element] / lambda2[i, j+1, element]
+        error_pressure = 0.5 * (bar_states2[2, i, j+1, element] + antidiffusive_flux2[2, i, j+1, element] / lambda2[i, j+1, element])^2 +
+                         0.5 * (bar_states2[3, i, j+1, element] + antidiffusive_flux2[3, i, j+1, element] / lambda2[i, j+1, element])^2 -
+                         (bar_states2[4, i, j+1, element] + antidiffusive_flux2[4, i, j+1, element] / lambda2[i, j+1, element]) * rho_limited
+        deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
+      end
+    end
+  end # indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
 
   if indicator.DensityPositivityLimiter
     # New solution u^{n+1}
