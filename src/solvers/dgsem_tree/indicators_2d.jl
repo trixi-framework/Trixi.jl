@@ -930,28 +930,66 @@ end
   return nothing
 end
 
-@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, iter, semi, mesh)
-    _, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
+@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, iter, semi, mesh::StructuredMesh{2})
+  _, equations, dg, cache = mesh_equations_solver_cache(semi)
+  @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
 
-    # TODO: volume-weighted average of alpha
-    #       and then StructuredMesh
+  error("TODO: volume-weighted average of alpha")
 
-    n_vars = nvariables(equations)
-    vars = varnames(cons2cons, equations)
+  # Save the alphas every x iterations
+  x = 1
+  if x == 0 || iter % x != 0
+    return nothing
+  end
 
-    # Save the alphas every x iterations
-    x = 1
-    if x == 0 || iter % x != 0
-      return nothing
+  n_vars = nvariables(equations)
+  vars = varnames(cons2cons, equations)
+
+  for v in eachvariable(equations)
+    open(string("Alpha_min_", vars[v], ".txt"), "a") do f; println(f, minimum((view(alpha, v, ntuple(_ -> :, n_vars)...)))); end
+  end
+  if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+    open("Alpha_min_pressure.txt", "a") do f; println(f, minimum(alpha_pressure)); end
+  end
+
+  return nothing
+end
+
+@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, iter, semi, mesh::TreeMesh2D)
+  _, equations, dg, cache = mesh_equations_solver_cache(semi)
+  @unpack weights = dg.basis
+  @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
+
+  # Save the alphas every x iterations
+  x = 1
+  if x == 0 || iter % x != 0
+    return nothing
+  end
+
+  n_vars = nvariables(equations)
+  vars = varnames(cons2cons, equations)
+
+  alpha_avg = zeros(eltype(alpha), n_vars + (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin))
+  total_volume = zero(eltype(alpha))
+  for element in eachelement(dg, cache)
+    jacobian = inv(cache.elements.inverse_jacobian[element])
+    for j in eachnode(dg), i in eachnode(dg)
+      for v in eachvariable(equations)
+        alpha_avg[v] += jacobian * weights[i] * weights[j] * alpha[v, i, j, element]
+      end
+      alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] * alpha_pressure[i, j, element]
+      total_volume += jacobian * weights[i] * weights[j]
     end
+  end
 
-    for v in eachvariable(equations)
-      open(string("Alpha_min_", vars[v], ".txt"), "a") do f; println(f, minimum((view(alpha, v, ntuple(_ -> :, n_vars)...)))); end
-    end
-    if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-      open("Alpha_min_pressure.txt", "a") do f; println(f, minimum(alpha_pressure)); end
-    end
+  for v in eachvariable(equations)
+    open(string("Alpha_min_", vars[v], ".txt"), "a") do f; println(f, minimum((view(alpha, v, ntuple(_ -> :, n_vars)...)))); end
+    open(string("Alpha_avg_", vars[v], ".txt"), "a") do f; println(f, alpha_avg[v] / total_volume); end
+  end
+  if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+    open("Alpha_min_pressure.txt", "a") do f; println(f, minimum(alpha_pressure)); end
+    open("Alpha_avg_pressure.txt", "a") do f; println(f, alpha_avg[n_vars + 1] / total_volume); end
+  end
 
   return nothing
 end
