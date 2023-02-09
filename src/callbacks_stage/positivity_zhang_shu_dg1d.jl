@@ -44,7 +44,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
 end
 
 # Overload limiter for ShallowWaterEquations1D and cut off waterheight as well as velocity
-#   to avoid numerical problems/instabilities caused by velocities close to zero
+# to avoid numerical problems/instabilities caused by velocities close to zero
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{1}, equations::ShallowWaterEquations1D,
                             dg::DGSEM, cache)
@@ -77,10 +77,10 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
     for i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, element)
 
-      # Cut velocity off in case of waterheight beeing smaller than threshold
+      # Cut off velocity in case that the waterheight is smaller than the threshold
 
       h_node, h_v_node, b_node = u_node
-      h_mean, h_v_mean, _ = u_mean #b_mean is not used as b_node must not be overwritten
+      h_mean, h_v_mean, _ = u_mean # b_mean is not used as b_node must not be overwritten
 
       # Set them both to zero to apply linear combination correctly
       h_v_node = h_v_node * Int32(h_node > threshold)
@@ -88,13 +88,34 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
       h_v_mean = h_v_mean * Int32(h_node > threshold)
 
       u_node = SVector(h_node, h_v_node, b_node)
-      u_mean = SVector(h_mean, h_v_mean, 0)
+      u_mean = SVector(h_mean, h_v_mean, zero(eltype(u)))
 
       # When velocity is cut off, the only value beeing averaged is the waterheight,
-      #   because the velocity is set to zero and this value is passed.
+      # because the velocity is set to zero and this value is passed.
       # Otherwise, the velocity is averaged, as well.
+      # Note that the auxiliary bottom topography variable `b` is never limited.
       set_node_vars!(u, theta * u_node + (1-theta) * u_mean,
                      (1,2), dg, i, element)
+    end
+  end
+
+  # An extra "safety" check is done over all the degrees of
+  # freedom after the limiting in order to avoid dry nodes.
+  # If the value_mean < threshold before applying limiter, there
+  # could still be dry nodes afterwards due to logic of limiter.
+  @threaded for element in eachelement(dg, cache)
+
+    for i in eachnode(dg)
+      u_node = get_node_vars(u, equations, dg, i, element)
+
+      h, v, b = u_node
+
+      h = h * Int32(h > threshold) + threshold * Int32(h <= threshold)
+      v = v * Int32(h > threshold)
+
+      u_node = SVector(h, v, b)
+
+      set_node_vars!(u, u_node, equations, dg, i, element)
     end
   end
 
