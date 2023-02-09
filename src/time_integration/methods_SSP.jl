@@ -352,7 +352,7 @@ end
   for v in eachvariable(equations)
     println(variables[v], ":\n- lower bound: ", idp_bounds_delta[1, v], "\n- upper bound: ", idp_bounds_delta[2, v])
   end
-  if indicator.IDPPressure
+  if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
     println("pressure:\n- lower bound: ", idp_bounds_delta[1, nvariables(equations)+1])
   end
   println("─"^100 * "\n")
