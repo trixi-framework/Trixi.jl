@@ -227,6 +227,52 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 """
+    IndicatorClamp(equations::AbstractEquations, basis; a=0.0, b=1.0, variable)
+    IndicatorClamp(semi::AbstractSemidiscretization; a=0.0, b=1.0, variable)
+
+A simple indicator returning 1.0 when the element average of `variable` lies within [a,b].
+Returns -1.0 otherwise.
+"""
+struct IndicatorClamp{RealT<:Real, Variable, Cache<:NamedTuple} <: AbstractIndicator
+  a::RealT
+  b::RealT
+  variable::Variable
+  cache::Cache
+end
+
+function IndicatorClamp(equations::AbstractEquations, basis; a = 0.0, b = 1.0, variable)
+  cache = create_cache(IndicatorClamp, equations, basis)
+  IndicatorClamp{typeof(a), typeof(variable), typeof(cache)}(a, b, variable, cache)
+end
+
+function IndicatorClamp(semi::AbstractSemidiscretization; a = 0.0, b = 1.0, variable)
+  cache = create_cache(IndicatorClamp, semi)
+  return IndicatorClamp{typeof(a), typeof(variable), typeof(cache)}(a, b, variable, cache)
+end
+
+function Base.show(io::IO, indicator::IndicatorClamp)
+  @nospecialize indicator # reduce precompilation time
+
+  print(io, "IndicatorClamp(")
+  print(io, "a=", indicator.a, "b=", indicator.b, "variable=", indicator.variable, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorClamp)
+  @nospecialize indicator # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, indicator)
+  else
+    setup = [
+             "indicator variable" => indicator.variable,
+             "a" => indicator.a,
+             "b" => indicator.b,
+            ]
+    summary_box(io, "IndicatorClamp", setup)
+  end
+end
+
+"""
     IndicatorNeuralNetwork
 
 Artificial neural network based indicator used for shock-capturing or AMR.

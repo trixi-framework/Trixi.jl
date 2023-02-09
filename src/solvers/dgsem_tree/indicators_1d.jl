@@ -201,6 +201,46 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,3},
   return alpha
 end
 
+function create_cache(::Type{IndicatorClamp}, equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+
+  alpha = Vector{real(basis)}()
+
+  A = Array{real(basis), ndims(equations)}
+  indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+
+  return (; alpha, indicator_threaded, basis.weights)
+end
+
+function create_cache(typ::Type{IndicatorClamp}, mesh, equations::AbstractEquations{1}, dg::DGSEM, cache)
+  cache = create_cache(typ, equations, dg.basis)
+end
+
+function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any,4},
+                                       mesh, equations, dg::DGSEM, cache;
+                                       kwargs...)
+  @unpack alpha, indicator_threaded, weights = indicator_clamp.cache
+  resize!(alpha, nelements(dg, cache))
+
+  @threaded for element in eachelement(dg, cache)
+    indicator = indicator_threaded[Threads.threadid()]
+
+    # Calculate indicator variables at Gauss-Lobatto nodes.
+    mean = 0.0
+    for i in eachnode(dg)
+      u_local = get_node_vars(u, equations, dg, i, element)
+      mean += indicator_clamp.variable(u_local, equations) * weights[i]*0.5
+    end
+
+    if indicator_clamp.a <= mean <= indicator_clamp.b
+      alpha[element] =  1.0
+    else
+      alpha[element] = -1.0
+    end
+  end
+
+  return alpha
+end
+
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 # empty cache is default
 function create_cache(::Type{<:IndicatorNeuralNetwork},
