@@ -1857,15 +1857,47 @@ end
 end
 
 # 2d, IndicatorIDP
-@inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, mesh, equations, solver, cache, indicator::IndicatorIDP, iter, laststage)
+@inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, mesh, equations, solver, cache, indicator::IndicatorIDP, time, iter, laststage, output_directory)
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = solver.volume_integral.indicator
   @unpack var_bounds = solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
   @unpack idp_bounds_delta = solver.volume_integral.indicator.cache
 
   # Save the deviations every x iterations
-  x = 0
-  save_errors = laststage && (x > 0) && (iter % x == 0)
+  x = 1
+
+  # Headline
+  if laststage && x > 0 && iter == 1
+    open("$output_directory/deviations.txt", "a") do f;
+      print(f, "# iter, simu_time")
+      if IDPDensityTVD
+        print(f, ", rho_min, rho_max");
+      end
+      if IDPPressureTVD
+        print(f, ", p_min, p_max");
+      end
+      if IDPPositivity && !IDPDensityTVD
+        print(f, ", rho_min");
+      end
+      if IDPPositivity && !IDPPressureTVD
+        print(f, ", p_min");
+      end
+      if IDPSpecEntropy
+        print(f, ", specEntr_min");
+      end
+      if IDPMathEntropy
+        print(f, ", mathEntr_max");
+      end
+      print(f, "\n")
+    end
+  end
+
+  save_errors = laststage && x > 0 && (iter % x == 0)
   counter = 1
+  if save_errors
+    open("$output_directory/deviations.txt", "a") do f;
+      print(f, iter, ", ", time);
+    end
+  end
   if IDPDensityTVD
     deviation_min = zero(eltype(u))
     deviation_max = zero(eltype(u))
@@ -1878,8 +1910,9 @@ end
     if save_errors
       deviation_min_ = deviation_min
       deviation_max_ = deviation_max
-      open("Deviation_rho_min.txt", "a") do f; println(f, deviation_min_); end
-      open("Deviation_rho_max.txt", "a") do f; println(f, deviation_max_); end
+      open("$output_directory/deviations.txt", "a") do f;
+        print(f, ", ", deviation_min_, ", ", deviation_max_);
+      end
     end
     counter += 2
   end
@@ -1896,8 +1929,9 @@ end
     if save_errors
       deviation_min_ = deviation_min
       deviation_max_ = deviation_max
-      open("Deviation_pre_min.txt", "a") do f; println(f, deviation_min_); end
-      open("Deviation_pre_max.txt", "a") do f; println(f, deviation_max_); end
+      open("$output_directory/deviations.txt", "a") do f;
+        print(f, ", ", deviation_min_, ", ", deviation_max_);
+      end
     end
     counter += 2
   end
@@ -1909,7 +1943,9 @@ end
     idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
     if save_errors
       deviation_min_ = deviation_min
-      open("Deviation_rho_min.txt", "a") do f; println(f, deviation_min_); end
+      open("$output_directory/deviations.txt", "a") do f;
+        print(f, ", ", deviation_min_);
+      end
     end
     counter += 1
   end
@@ -1922,7 +1958,9 @@ end
     idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
     if save_errors
       deviation_min_ = deviation_min
-      open("Deviation_pre_min.txt", "a") do f; println(f, deviation_min_); end
+      open("$output_directory/deviations.txt", "a") do f;
+        print(f, ", ", deviation_min_);
+      end
     end
     counter += 1
   end
@@ -1935,7 +1973,9 @@ end
     idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
     if save_errors
       deviation_min_ = deviation_min
-      open("Deviation_specEntr.txt", "a") do f; println(f, deviation_min_); end
+      open("$output_directory/deviations.txt", "a") do f;
+        print(f, ", ", deviation_min_);
+      end
     end
     counter += 1
   end
@@ -1948,28 +1988,45 @@ end
     idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_max)
     if save_errors
       deviation_max_ = deviation_max
-      open("Deviation_mathEntr.txt", "a") do f; println(f, deviation_max_); end
+      open("$output_directory/deviations.txt", "a") do f;
+        print(f, ", ", deviation_max_);
+      end
     end
+  end
+  if save_errors
+    open("$output_directory/deviations.txt", "a") do f; print(f, "\n"); end;
   end
 
   return nothing
 end
 
 # 2d, IndicatorMCL
-@inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, mesh, equations, solver, cache, indicator::IndicatorMCL, iter, laststage)
+@inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, mesh, equations, solver, cache, indicator::IndicatorMCL, time, iter, laststage, output_directory)
   @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
   @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
   @unpack idp_bounds_delta = solver.volume_integral.indicator.cache
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
 
   n_vars = nvariables(equations)
-
-  deviation_min = zeros(eltype(u), n_vars + (indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter))
-  deviation_max = zeros(eltype(u), n_vars)
+  vars = varnames(cons2cons, equations)
 
   # Save the deviations every x iterations
   x = 1
-  save_errors = laststage && (x > 0) && (iter % x == 0)
+
+  # Headline
+  if laststage && x > 0 && iter == 1
+    open("$output_directory/deviations.txt", "a") do f;
+      print(f, "# iter, simu_time", join(", $(v)_min, $(v)_max" for v in vars));
+      if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+        print(f, ", pressure_min\n")
+      else
+        print(f, "\n")
+      end
+    end
+  end
+
+  deviation_min = zeros(eltype(u), n_vars + (indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter))
+  deviation_max = zeros(eltype(u), n_vars)
 
   if indicator.DensityLimiter
     # New solution u^{n+1}
@@ -2005,7 +2062,6 @@ end
       end
     end
   end # indicator.DensityLimiter
-
 
   if indicator.SequentialLimiter
     # New solution u^{n+1}
@@ -2257,19 +2313,26 @@ end
     end
   end # indicator.DensityPositivityLimiter
 
-  vars = varnames(cons2cons, equations)
   for v in eachvariable(equations)
     idp_bounds_delta[1, v] = max(idp_bounds_delta[1, v], deviation_min[v])
     idp_bounds_delta[2, v] = max(idp_bounds_delta[2, v], deviation_max[v])
-    if save_errors
-      open(string("Deviation_", vars[v], "_min.txt"), "a") do f; println(f, deviation_min[v]); end
-      open(string("Deviation_", vars[v], "_max.txt"), "a") do f; println(f, deviation_max[v]); end
-    end
   end
   if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
     idp_bounds_delta[1, n_vars+1] = max(idp_bounds_delta[1, n_vars+1], deviation_min[n_vars+1])
-    if save_errors
-      open("Deviation_pressure.txt", "a") do f; println(f, deviation_min[n_vars+1]); end
+  end
+
+  if !laststage || x == 0 || iter % x != 0
+    return nothing
+  end
+  open("$output_directory/deviations.txt", "a") do f;
+    print(f, iter, ", ", time)
+    for v in eachvariable(equations)
+      print(f, ", ", deviation_min[v], ", ", deviation_max[v]);
+    end
+    if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+      println(f, ", ", deviation_min[n_vars+1]);
+    else
+      print(f, "\n");
     end
   end
 

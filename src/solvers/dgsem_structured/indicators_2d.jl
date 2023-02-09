@@ -252,19 +252,35 @@ end
   return nothing
 end
 
-@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, iter, semi, mesh::StructuredMesh{2})
+@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, time, iter, semi, mesh::StructuredMesh{2}, output_directory)
   _, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack weights = dg.basis
   @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
 
   # Save the alphas every x iterations
   x = 1
-  if x == 0 || iter % x != 0
+  if x == 0
     return nothing
   end
 
   n_vars = nvariables(equations)
   vars = varnames(cons2cons, equations)
+
+  # Headline
+  if iter == 1 && x > 0
+    open("$output_directory/alphas.txt", "a") do f;
+      print(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
+      if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+        print(f, ", alpha_min_pressure, alpha_avg_pressure\n")
+      else
+        print(f, "\n")
+      end
+    end
+  end
+
+  if iter % x != 0
+    return nothing
+  end
 
   alpha_avg = zeros(eltype(alpha), n_vars + (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin))
   total_volume = zero(eltype(alpha))
@@ -279,13 +295,17 @@ end
     end
   end
 
-  for v in eachvariable(equations)
-    open(string("Alpha_min_", vars[v], ".txt"), "a") do f; println(f, minimum((view(alpha, v, ntuple(_ -> :, n_vars)...)))); end
-    open(string("Alpha_avg_", vars[v], ".txt"), "a") do f; println(f, alpha_avg[v] / total_volume); end
-  end
-  if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-    open("Alpha_min_pressure.txt", "a") do f; println(f, minimum(alpha_pressure)); end
-    open("Alpha_avg_pressure.txt", "a") do f; println(f, alpha_avg[n_vars + 1] / total_volume); end
+  open("$output_directory/alphas.txt", "a") do f;
+    print(f, iter, ", ", time)
+    for v in eachvariable(equations)
+      print(f, ", ", minimum(view(alpha, v, ntuple(_ -> :, n_vars)...)));
+      print(f, ", ", alpha_avg[v] / total_volume);
+    end
+    if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+      println(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
+    else
+      print(f, "\n")
+    end
   end
 
   return nothing

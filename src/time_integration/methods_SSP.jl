@@ -128,6 +128,13 @@ function solve!(integrator::SimpleIntegratorSSP)
   t_end = last(prob.tspan)
   callbacks = integrator.opts.callback
 
+  # WARNING: Only works if the last callback got a variable `output_directory`.
+  if callbacks.discrete_callbacks[end].condition isa SaveSolutionCallback
+    output_directory = callbacks.discrete_callbacks[end].condition.output_directory
+  else
+    output_directory = "out"
+  end
+
   integrator.finalstep = false
   @trixi_timeit timer() "main loop" while !integrator.finalstep
     if isnan(integrator.dt)
@@ -169,14 +176,14 @@ function solve!(integrator::SimpleIntegratorSSP)
       # check that we are within bounds
       if indicator.IDPCheckBounds
         laststage = (stage == length(alg.c))
-        @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u, integrator.p, integrator.iter, laststage)
+        @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u, integrator.p, integrator.t, integrator.iter+1, laststage, output_directory)
       end
 
       # perform convex combination
       @. integrator.u = alg.a[stage] * integrator.r0 + alg.b[stage] * integrator.u
     end
 
-    @trixi_timeit timer() "save_alpha_per_timestep!" save_alpha_per_timestep!(indicator, integrator.iter+1, integrator.p, integrator.p.mesh)
+    @trixi_timeit timer() "save_alpha_per_timestep!" save_alpha_per_timestep!(indicator, integrator.t, integrator.iter+1, integrator.p, integrator.p.mesh, output_directory)
 
     if integrator.p.solver.volume_integral.indicator isa IndicatorIDP
       indicator.cache.time_per_timestep[integrator.iter+1] = integrator.t

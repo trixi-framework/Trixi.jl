@@ -897,19 +897,27 @@ standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol,
   return nothing
 end
 
-@inline function save_alpha_per_timestep!(indicator::IndicatorIDP, iter, semi, mesh)
+@inline function save_alpha_per_timestep!(indicator::IndicatorIDP, time, iter, semi, mesh, output_directory)
   @unpack alpha_mean_per_timestep, alpha_max_per_timestep, time_per_timestep = indicator.cache
   # The maximum and average values were calculated in `update_alpha_per_timestep!` in each RK stage.
   # This is necessary if we want the average of the alphas over all stages (discussable).
 
   # Save the alphas every x iterations
   x = 1
+
+  # Headline
+  if x > 0 && iter == 1
+    open("$output_directory/alphas.txt", "a") do f;
+      println(f, "# iter, simu_time, alpha_min, alpha_avg");
+    end
+  end
+
   if x == 0 || iter % x != 0
     return nothing
   end
-
-  open(string("Alpha_max.txt"), "a") do f; println(f, alpha_max_per_timestep[iter]); end
-  open(string("Alpha_avg.txt"), "a") do f; println(f, alpha_mean_per_timestep[iter]); end
+  open("$output_directory/alphas.txt", "a") do f;
+    println(f, iter, ", ", time, ", ", alpha_max_per_timestep[iter], ", ", alpha_mean_per_timestep[iter]);
+  end
 
   return nothing
 end
@@ -930,19 +938,35 @@ end
   return nothing
 end
 
-@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, iter, semi, mesh::TreeMesh2D)
+@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, time, iter, semi, mesh::TreeMesh2D, output_directory)
   _, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack weights = dg.basis
   @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
 
   # Save the alphas every x iterations
   x = 1
-  if x == 0 || iter % x != 0
+  if x == 0
     return nothing
   end
 
   n_vars = nvariables(equations)
   vars = varnames(cons2cons, equations)
+
+  # Headline
+  if iter == 1
+    open("$output_directory/alphas.txt", "a") do f;
+      print(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
+      if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+        println(f, ", alpha_min_pressure, alpha_avg_pressure")
+      else
+        print(f, "\n")
+      end
+    end
+  end
+
+  if iter % x != 0
+    return nothing
+  end
 
   alpha_avg = zeros(eltype(alpha), n_vars + (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin))
   total_volume = zero(eltype(alpha))
@@ -957,13 +981,17 @@ end
     end
   end
 
-  for v in eachvariable(equations)
-    open(string("Alpha_min_", vars[v], ".txt"), "a") do f; println(f, minimum((view(alpha, v, ntuple(_ -> :, n_vars)...)))); end
-    open(string("Alpha_avg_", vars[v], ".txt"), "a") do f; println(f, alpha_avg[v] / total_volume); end
-  end
-  if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-    open("Alpha_min_pressure.txt", "a") do f; println(f, minimum(alpha_pressure)); end
-    open("Alpha_avg_pressure.txt", "a") do f; println(f, alpha_avg[n_vars + 1] / total_volume); end
+  open("$output_directory/alphas.txt", "a") do f;
+    print(f, iter, ", ", time)
+    for v in eachvariable(equations)
+      print(f, ", ", minimum(view(alpha, v, ntuple(_ -> :, n_vars)...)));
+      print(f, ", ", alpha_avg[v] / total_volume);
+    end
+    if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+      println(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
+    else
+      print(f, "\n")
+    end
   end
 
   return nothing
