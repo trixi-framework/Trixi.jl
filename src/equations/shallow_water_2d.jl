@@ -50,9 +50,11 @@ References for the SWE are many but a good introduction is available in Chapter 
 struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 4}
   gravity::RealT # gravitational constant
   H0::RealT      # constant "lake-at-rest" total water height
-  threshold_limiter::RealT  # threshold to use in PositivityPreservingLimiterZhangShu on waterheight,
-                            # as shift on the initial condition and cutoff before the next timestep
-  threshold_wet::RealT      # threshold to be applied on waterheight before calculating numflux
+  threshold_limiter::RealT  # Threshold to use in PositivityPreservingLimiterZhangShu on waterheight,
+                             # as a (small) shift on the initial condition and cutoff before the 
+                             # next time step.
+   threshold_wet::RealT      # Threshold to be applied on water height to define when the flow is "wet"
+                             # before calculating the numerical flux.
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
@@ -454,8 +456,8 @@ end
   b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
   
   # Compute the reconstructed water heights
-  h_ll_star = min( H_ll-b_star, h_ll )
-  h_rr_star = min( H_rr-b_star, h_rr )
+  h_ll_star = min( H_ll - b_star, h_ll )
+  h_rr_star = min( H_rr - b_star, h_rr )
 
 
   # Create the conservative variables using the reconstruted water heights
@@ -874,11 +876,11 @@ end
   a_rr = sqrt(equations.gravity * h_rr)
 
   if orientation == 1 # x-direction
-    λ_min = min( v1_ll-a_ll, v1_rr-a_rr, 0 ) 
-    λ_max = max( v1_ll+a_ll, v1_rr+a_rr, 0 )
+    λ_min = min( v1_ll - a_ll, v1_rr - a_rr, zero(eltype(u_ll)) ) 
+    λ_max = max( v1_ll + a_ll, v1_rr + a_rr, zero(eltype(u_ll)) )
   else # y-direction
-    λ_min = min( v2_ll-a_ll, v2_rr-a_rr, 0 )
-    λ_max = max( v2_ll+a_ll, v2_rr+a_rr, 0 )
+    λ_min = min( v2_ll - a_ll, v2_rr - a_rr, zero(eltype(u_ll)) )
+    λ_max = max( v2_ll + a_ll, v2_rr + a_rr, zero(eltype(u_ll)) )
   end
   return λ_min, λ_max
 end
@@ -898,8 +900,8 @@ end
   a_ll = sqrt(equations.gravity * h_ll) * norm_
   a_rr = sqrt(equations.gravity * h_rr) * norm_
 
-  λ_min = min( v_normal_ll - a_ll, v_normal_rr - a_rr, 0 ) 
-  λ_max = max( v_normal_ll + a_ll, v_normal_rr + a_rr, 0 )
+  λ_min = min( v_normal_ll - a_ll, v_normal_rr - a_rr, zero(eltype(u_ll)) ) 
+  λ_max = max( v_normal_ll + a_ll, v_normal_rr + a_rr, zero(eltype(u_ll)) )
 
   return λ_min, λ_max
 end

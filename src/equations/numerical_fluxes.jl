@@ -313,20 +313,23 @@ end
   # Create the reconstructed left/right solution states in conservative form
   u_ll_star, u_rr_star = hydrostatic_reconstruction(u_ll, u_rr, equations)
 
+  # Set the water height to be at least the value stored in the variable threshold after
+  # the hydrostatic reconstruction is applied and before the numerical flux is calculated
+  # to avoid numerical problem with arbitrary small values. Interfaces with a water height
+  # lower or equal to the threshold can be declared as dry.
+  # The default value is set to 1e-15 and can be changed within the constructor call in an elixir.
   threshold = equations.threshold_wet
 
-  if threshold > 0
-    h_ll, _, _, b_ll = u_ll_star
-    h_rr, _, _, b_rr = u_rr_star
+  h_ll, _, _, b_ll = u_ll_star
+  h_rr, _, _, b_rr = u_rr_star
 
-    # Implement threshold to cut off the height and the velocity
-    if h_ll <= threshold
-      u_ll_star = SVector(threshold, 0, 0, b_ll)
-    end
+  # Implement threshold to cut off the height and the velocity
+  if h_ll <= threshold
+    u_ll_star = SVector(threshold, zero(eltype(u_ll)), zero(eltype(u_ll)), b_ll)
+  end
 
-    if h_rr <= threshold
-      u_rr_star = SVector(threshold, 0, 0, b_rr)
-    end
+  if h_rr <= threshold
+    u_rr_star = SVector(threshold, zero(eltype(u_rr)), zero(eltype(u_rr)), b_rr)
   end
   # Use the reconstructed states to compute the numerical surface flux
   return numerical_flux(u_ll_star, u_rr_star, orientation_or_normal_direction, equations)

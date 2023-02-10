@@ -25,7 +25,8 @@ function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::Abs
 end
 
 # Overload indicator when ShallowWaterEquations2D is used to apply full FV method on cells
-#   containing dry LGL nodes
+# containing some "dry" LGL nodes. That is, if an element is partially "wet" then it becomes a
+# full FV element.
 function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
                                                    mesh, equations::ShallowWaterEquations2D, 
                                                    dg::DGSEM, cache; kwargs...)
@@ -43,18 +44,19 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
 
-   # If h at one LGL node is lower than threshold_wet, set alpha[element]=1 via indicator_wet
-   #   to apply a full FV method and guarantee well balance property.
-   #= 
-     Determination of hard coded treshold: Showed good results in numerical experiments. Idea is to
-     gain more stability of velocities (and therefore the whole PDE) on (nearly) dry cells which
-       could be counteracted by division of conservative variables (hv/v).
-     Here, the impact of the threshold on the number of cells beeing updated with FV is not that
-       huge. Rather huge is the impact on the stability.
-     The value can be seen as a trade-off between accuracy and stability.
-     Well balancedness of scheme using hydrostatic reconstruction can only be proved for FV method.
-     Therefore we set alpha to one regardless its given maximum value.
-   =#   
+  # If h at one LGL node is lower than threshold_wet, set alpha[element]=1 via indicator_wet
+  # in order to apply a full FV method in the partially wet cell and guarantee the well-balanced property.
+  #
+  # Determination of hard coded threshold: Showed good results in many numerical experiments. Idea is to
+  # gain more stability when computing the velocity on (nearly) dry cells which
+  # could be counteracted by division of conservative variables, e.g., v2 / v1 = hv / h.
+  # Here, the impact of the threshold on the number of cells being updated with FV is not that
+  # significant. However, its impact on the stability is very significant.
+  # The value can be seen as a trade-off between accuracy and stability.
+  # Well-balancedness of the scheme on partially wet cells with hydrostatic reconstruction 
+  # can only be proven for the FV method (see Chen and Noelle).
+  # Therefore we set alpha to one regardless of its given maximum value.
+  #    
   threshold_wet = 1e-4
 
   @threaded for element in eachelement(dg, cache)
