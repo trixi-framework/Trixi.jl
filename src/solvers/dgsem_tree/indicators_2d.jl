@@ -252,7 +252,7 @@ function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any,4},
       mean += indicator_clamp.variable(u_local, equations) * weights[i]*weights[j]*0.25
     end
 
-    if indicator_clamp.a <= mean <= indicator_clamp.b
+    if indicator_clamp.min <= mean <= indicator_clamp.max
       alpha[element] =  1.0
     else
       alpha[element] = -1.0
