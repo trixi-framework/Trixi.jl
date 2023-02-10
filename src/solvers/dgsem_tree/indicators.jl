@@ -227,34 +227,34 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 """
-    IndicatorClamp(equations::AbstractEquations, basis; a=0.0, b=1.0, variable)
-    IndicatorClamp(semi::AbstractSemidiscretization; a=0.0, b=1.0, variable)
+    IndicatorClamp(equations::AbstractEquations, basis; min=0.0, max=1.0, variable)
+    IndicatorClamp(semi::AbstractSemidiscretization; min=0.0, max=1.0, variable)
 
-A simple indicator returning 1.0 when the element average of `variable` lies within [a,b].
+A simple indicator returning 1.0 when the element average of `variable` lies within [min,max].
 Returns -1.0 otherwise.
 """
 struct IndicatorClamp{RealT<:Real, Variable, Cache<:NamedTuple} <: AbstractIndicator
-  a::RealT
-  b::RealT
+  min::RealT
+  max::RealT
   variable::Variable
   cache::Cache
 end
 
-function IndicatorClamp(equations::AbstractEquations, basis; a = 0.0, b = 1.0, variable)
+function IndicatorClamp(equations::AbstractEquations, basis; min = 0.0, max = 1.0, variable)
   cache = create_cache(IndicatorClamp, equations, basis)
-  IndicatorClamp{typeof(a), typeof(variable), typeof(cache)}(a, b, variable, cache)
+  IndicatorClamp{typeof(a), typeof(variable), typeof(cache)}(min, max, variable, cache)
 end
 
-function IndicatorClamp(semi::AbstractSemidiscretization; a = 0.0, b = 1.0, variable)
+function IndicatorClamp(semi::AbstractSemidiscretization; min = 0.0, max = 1.0, variable)
   cache = create_cache(IndicatorClamp, semi)
-  return IndicatorClamp{typeof(a), typeof(variable), typeof(cache)}(a, b, variable, cache)
+  return IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(a, b, variable, cache)
 end
 
 function Base.show(io::IO, indicator::IndicatorClamp)
   @nospecialize indicator # reduce precompilation time
 
   print(io, "IndicatorClamp(")
-  print(io, "a=", indicator.a, "b=", indicator.b, "variable=", indicator.variable, ")")
+  print(io, "min=", indicator.min, ", max=", indicator.max, ", variable=", indicator.variable, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorClamp)
