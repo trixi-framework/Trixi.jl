@@ -6,7 +6,7 @@ using Trixi
 # Semidiscretization of the two-layer shallow water equations for a dam break test with a 
 # discontinuous bottom topography function to test entropy conservation
 
-equations = ShallowWaterTwoLayerEquations1D(gravity_constant=9.81, H0=2.0, rho1=0.9, rho2=1.0)
+equations = ShallowWaterTwoLayerEquations1D(gravity_constant=9.81, H0=2.0, rho_upper=0.9, rho_lower=1.0)
 # This initial condition will be overwritten with the discontinuous initial_condition_dam_break
 initial_condition = initial_condition_convergence_test
 
@@ -42,21 +42,21 @@ ode = semidiscretize(semi, tspan)
 
 # Initial conditions dam break test case
 function initial_condition_dam_break(x, t, element_id, equations::ShallowWaterTwoLayerEquations1D)
-  v1 = 0.0
-  v2 = 0.0
+  v1_upper = 0.0
+  v1_lower = 0.0
 
   # Set the discontinuity
   if element_id <= 16
-    H2 = 2.0
-    H1 = 4.0
+    H_lower = 2.0
+    H_upper = 4.0
     b  = 0.0
   else
-    H2 = 1.5
-    H1 = 3.0
+    H_lower = 1.5
+    H_upper = 3.0
     b  = 0.5
   end
 
-  return prim2cons(SVector(H1, v1, H2, v2, b), equations)
+  return prim2cons(SVector(H_upper, v1_upper, H_lower, v1_lower, b), equations)
 end
 
 

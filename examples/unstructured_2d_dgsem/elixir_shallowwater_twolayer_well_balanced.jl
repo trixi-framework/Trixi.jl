@@ -7,22 +7,22 @@ using Trixi
 # Semidiscretization of the two-layer shallow water equations with a discontinuous bottom 
 # topography to test well-balancedness
 
-equations = ShallowWaterTwoLayerEquations2D(gravity_constant=1.0, H0=0.6, rho1=0.9, rho2=1.0)
+equations = ShallowWaterTwoLayerEquations2D(gravity_constant=1.0, H0=0.6, rho_upper=0.9, rho_lower=1.0)
 
 # An initial condition with constant total water height, zero velocities and a bottom topography to 
 # test well-balancedness
 function initial_condition_well_balanced(x, t, equations::ShallowWaterTwoLayerEquations2D)
-  H2 = 0.5
-  H1 = 0.6
-  v1 = 0.0
-  w1 = 0.0
-  v2 = 0.0
-  w2 = 0.0
+  H_lower = 0.5
+  H_upper = 0.6
+  v1_upper = 0.0
+  v2_upper = 0.0
+  v1_lower = 0.0
+  v2_lower = 0.0
 
   # Bottom Topography
   b = (((x[1] - 0.5)^2 + (x[2] - 0.5)^2) < 0.04 ? 0.2 * (cos(4 * pi * sqrt((x[1] - 0.5)^2 + (x[2] +
         -0.5)^2)) + 1) : 0)
-  return prim2cons(SVector(H1, v1, w1, H2, v2, w2, b), equations)
+  return prim2cons(SVector(H_upper, v1_upper, v2_upper, H_lower, v1_lower, v2_lower, b), equations)
 end
 
 initial_condition = initial_condition_well_balanced

@@ -7,26 +7,26 @@ using Trixi
 # Semidiscretization of the two-layer shallow water equations for a dam break test with a 
 # discontinuous bottom topography function to test energy conservation
 
-equations = ShallowWaterTwoLayerEquations2D(gravity_constant=1.0, rho1=0.9, rho2=1.0)
+equations = ShallowWaterTwoLayerEquations2D(gravity_constant=1.0, rho_upper=0.9, rho_lower=1.0)
 
 # This initial condition will be overwritten with the true discontinuous condition from 
 # initial_condition_discontinuous_dam_break
 function initial_condition_dam_break(x, t,equations::ShallowWaterTwoLayerEquations2D)
   if x[1] < sqrt(2)/2
-    H1 = 1.0
-    H2 = 0.6
+    H_upper = 1.0
+    H_lower = 0.6
     b  = 0.1
   else
-    H1 = 0.9
-    H2 = 0.5
+    H_upper = 0.9
+    H_lower = 0.5
     b  = 0.0
   end
 
-  v1 = 0.0
-  w1 = 0.0
-  v2 = 0.0
-  w2 = 0.0
-  return prim2cons(SVector(H1, v1, w1, H2, v2, w2, b), equations)
+  v1_upper = 0.0
+  v2_upper = 0.0
+  v1_lower = 0.0
+  v2_lower = 0.0
+  return prim2cons(SVector(H_upper, v1_upper, v2_upper, H_lower, v1_lower, v2_lower, b), equations)
 end
 
 initial_condition = initial_condition_dam_break
@@ -79,25 +79,25 @@ ode = semidiscretize(semi, tspan)
 function initial_condition_discontinuous_dam_break(x, t, element_id, 
                                                    equations::ShallowWaterTwoLayerEquations2D)
   # Constant values
-  v1 = 0.0
-  w1 = 0.0
-  v2 = 0.0
-  w2 = 0.0
+  v1_upper = 0.0
+  v2_upper = 0.0
+  v1_lower = 0.0
+  v2_lower = 0.0
 
   # Left side of discontinuity
   IDs = [1, 2, 5, 6, 9, 10, 13, 14]
   if element_id in IDs
-    H1 = 1.0
-    H2 = 0.6
+    H_upper = 1.0
+    H_lower = 0.6
     b  = 0.0
   # Right side of discontinuity
   else
-    H1 = 0.9
-    H2 = 0.5
+    H_upper = 0.9
+    H_lower = 0.5
     b  = 0.1
   end
 
-  return prim2cons(SVector(H1, v1, w1, H2, v2, w2, b), equations)
+  return prim2cons(SVector(H_upper, v1_upper, v2_upper, H_lower, v1_lower, v2_lower, b), equations)
 end
 
 # point to the data we want to augment
