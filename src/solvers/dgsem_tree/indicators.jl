@@ -242,12 +242,12 @@ end
 
 function IndicatorClamp(equations::AbstractEquations, basis; min = 0.0, max = 1.0, variable)
   cache = create_cache(IndicatorClamp, equations, basis)
-  IndicatorClamp{typeof(a), typeof(variable), typeof(cache)}(min, max, variable, cache)
+  IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(min, max, variable, cache)
 end
 
 function IndicatorClamp(semi::AbstractSemidiscretization; min = 0.0, max = 1.0, variable)
   cache = create_cache(IndicatorClamp, semi)
-  return IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(a, b, variable, cache)
+  return IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(min, max, variable, cache)
 end
 
 function Base.show(io::IO, indicator::IndicatorClamp)
@@ -265,8 +265,8 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorClamp)
   else
     setup = [
              "indicator variable" => indicator.variable,
-             "a" => indicator.a,
-             "b" => indicator.b,
+             "min" => indicator.min,
+             "max" => indicator.max,
             ]
     summary_box(io, "IndicatorClamp", setup)
   end
