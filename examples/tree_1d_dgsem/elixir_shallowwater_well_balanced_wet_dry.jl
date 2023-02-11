@@ -6,14 +6,25 @@ using Trixi
 # Semidiscretization of the shallow water equations
 
 equations = ShallowWaterEquations1D(gravity_constant=9.812)
-cfl = .3
 
-function initial_condition_well_balanced_CN(x, t, equations:: ShallowWaterEquations1D)
-  v = 0
-  b = sin(4*pi*x[1]) + 3
+"""
+    initial_condition_well_balanced_chen_noelle(x, t, equations:: ShallowWaterEquations1D)
+
+Initial condition with a complex (discontinuous) bottom topography to test the well-balanced
+property for the [`hydrostatic_reconstruction_chen_noelle`](@ref) including dry areas within the 
+domain. The errors from the analysis callback are not important but the error for this 
+lake at rest test case `∑|H0-(h+b)|` should be around machine roundoff.
+The initial condition was found in the section 5.2 of the paper:
+- Guoxian Chen and Sebastian Noelle (2017) 
+  A new hydrostatic reconstruction scheme based on subcell reconstructions
+  [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
+"""
+function initial_condition_well_balanced_chen_noelle(x, t, equations:: ShallowWaterEquations1D)
+  v = 0.0
+  b = sin(4 * pi * x[1]) + 3
 
   if x[1] >= 0.5
-    b = sin(4*pi*x[1]) + 1
+    b = sin(4 * pi * x[1]) + 1
   end
 
   H = max(b, 2.5)
@@ -22,11 +33,16 @@ function initial_condition_well_balanced_CN(x, t, equations:: ShallowWaterEquati
     H = max(b, 1.5)
   end
 
+  # It is mandatory to shift the water level at dry areas to make sure the water height h
+  # stays positive. The system would not be stable for h set to a hard 0 due to division by h in 
+  # the computation of velocity, e.g., (h v) / h. Therefore, a small dry state threshold
+  # (1e-13 per default, set in the constructor for the ShallowWaterEquations) is added if h = 0. 
+  # This default value can be changed within the constructor call depending on the simulation setup.
   H = max(H, b + equations.threshold_limiter)
   return prim2cons(SVector(H, v, b), equations)
 end
 
-initial_condition = initial_condition_well_balanced_CN
+initial_condition = initial_condition_well_balanced_chen_noelle
 
 ###############################################################################
 # Get the DG approximation space
@@ -35,7 +51,7 @@ volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
 surface_flux = (FluxHydrostaticReconstruction(flux_hll_chen_noelle, hydrostatic_reconstruction_chen_noelle),
                 flux_nonconservative_chen_noelle)
 
-basis = LobattoLegendreBasis(5)
+basis = LobattoLegendreBasis(3)
 
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,
@@ -51,13 +67,12 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 ###############################################################################
 # Create the TreeMesh for the domain [0, 1]
 
-coordinates_min = 0.
-coordinates_max = 1.
+coordinates_min = 0.0
+coordinates_max = 1.0
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
-                n_cells_max=10_000,
-                )
+                n_cells_max=10_000)
 
 # create the semi discretization object
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -65,7 +80,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 25.0)
+tspan = (0.0, 100.0)
 ode = semidiscretize(semi, tspan)
 
 
@@ -79,11 +94,11 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_anal
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=1000,
+save_solution = SaveSolutionCallback(interval=5000,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 
-stepsize_callback = StepsizeCallback(cfl=cfl)                                     
+stepsize_callback = StepsizeCallback(cfl=2.0)                                     
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
                         stepsize_callback)
