@@ -441,6 +441,21 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
   return u_ll_star, u_rr_star
 end
 
+"""
+    hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, orientation::Integer,
+                                           equations::ShallowWaterEquations2D)
+
+A particular type of hydrostatic reconstruction on the water height to guarantee well-balancedness
+for a general bottom topography [`ShallowWaterEquations1D`](@ref). The reconstructed solution states
+`u_ll_star` and `u_rr_star` variables are used to evaluate the surface numerical flux at the interface.
+The key idea is a linear reconstruction of the bottom and water height at the interfaces using subcells.
+Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).
+
+Further details on this hydrostatic reconstruction and its motivation can be found in
+- Guoxian Chen and Sebastian Noelle (2017) 
+  A new hydrostatic reconstruction scheme based on subcell reconstructions
+  [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
+"""
 @inline function hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, equations::ShallowWaterEquations2D)
   # Unpack left and right water heights and bottom topographies
   h_ll, _, _, b_ll = u_ll
@@ -550,6 +565,27 @@ end
   return SVector(f1, f2, f3, f4)
 end
 
+"""
+    flux_nonconservative_chen_noelle(u_ll, u_rr,
+                                     orientation::Integer,
+                                     equations::ShallowWaterEquations2D)
+    flux_nonconservative_chen_noelle(u_ll, u_rr,
+                                     normal_direction_ll      ::AbstractVector,
+                                     normal_direction_average ::AbstractVector,
+                                     equations::ShallowWaterEquations2D)
+
+Non-symmetric two-point surface flux that discretizes the nonconservative (source) term.
+The discretization uses the `hydrostatic_reconstruction_chen_noelle` on the conservative
+variables.
+
+Should be used together with [`FluxHydrostaticReconstruction`](@ref) and
+[`hydrostatic_reconstruction_chen_noelle`](@ref) in the surface flux to ensure consistency.
+
+Further details on the hydrostatic reconstruction and its motivation can be found in
+- Guoxian Chen and Sebastian Noelle (2017) 
+  A new hydrostatic reconstruction scheme based on subcell reconstructions
+  [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
+"""
 @inline function flux_nonconservative_chen_noelle(u_ll, u_rr, orientation::Integer,
                                                   equations::ShallowWaterEquations2D)
   # Pull the water height and bottom topography on the left
@@ -865,6 +901,21 @@ end
   return λ_min, λ_max
 end
 
+"""
+    min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer,
+                              equations::ShallowWaterEquations2D)
+    min_max_speed_chen_noelle(u_ll, u_rr, normal_direction::AbstractVector,
+                              equations::ShallowWaterEquations2D)
+
+The approximated speeds for the HLL type numerical flux used by Chen and Noelle for their 
+hydrostatic reconstruction. As they state in the paper, those speeds are chosen for the numerical
+flux to show positivity and an entropy inequality.
+
+Further details on this hydrostatic reconstruction and its motivation can be found in
+- Guoxian Chen and Sebastian Noelle (2017) 
+  A new hydrostatic reconstruction scheme based on subcell reconstructions
+  [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
+"""
 @inline function min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer, 
                                            equations::ShallowWaterEquations2D)
   h_ll = waterheight(u_ll, equations)
