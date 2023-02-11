@@ -258,6 +258,34 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.25))
   end
 
+  @trixi_testset "elixir_shallowwater_well_balanced_wet_dry.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced_wet_dry.jl"),
+      l2   = [0.029659454053629655, 1.1553585079236288e-14, 1.2090918908201374e-14, 0.1164224011562928],
+      linf = [0.4999999999999011, 5.097044204873532e-14, 4.550091706897745e-14, 1.9999999999999991],
+      tspan = (0.0, 0.25))
+  end
+
+  @trixi_testset "elixir_shallowwater_conical_island.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_conical_island.jl"),
+      l2   = [0.2694926768042202, 0.1411009228274121, 0.14110094475179885, 0.0011537702354532122],
+      linf = [1.112992190552472, 0.6917271415200803, 0.6917271423769389, 0.021790250683516296],
+      tspan = (0.0, 0.25))
+  end
+
+  @trixi_testset "elixir_shallowwater_parabolic_bowl.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_parabolic_bowl.jl"),
+      l2   = [0.009554371585408719, 0.002275006675117367, 0.006098409438019513, 4.0426608138290764e-17],
+      linf = [0.03780630473436756, 0.008897336649446749, 0.023990826432799407, 3.3306690738754696e-16],
+      tspan = (0.0, 0.25), cells_per_dimension = (60, 60))
+  end
+
+  @trixi_testset "elixir_shallowwater_three_mound_dam_break.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_three_mound_dam_break.jl"),
+      l2   = [0.5402648923470162, 0.5528681962014276, 0.1655171741139314, 0.010408121100153647],
+      linf = [1.0940118676332913, 1.5893502849064436, 0.7582082525930182, 0.0601932230094299],
+      tspan = (0.0, 0.25))
+  end
+
   @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
       l2   = [0.0364192725149364, 0.0426667193422069, 0.04261673001449095, 0.025884071405646924,

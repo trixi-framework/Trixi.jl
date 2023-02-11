@@ -37,6 +37,13 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
       tspan = (0.0, 0.25))
   end
 
+  @trixi_testset "elixir_shallowwater_well_balanced_wet_dry.jl with FluxHydrostaticReconstruction" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced_wet_dry.jl"),
+      l2   = [0.03904507146870548, 2.0953804074196604e-14, 5.139180449007378e-17, 0.1649319748280072],
+      linf = [0.49999999999989153, 4.967300398427917e-14, 4.841253465352248e-16, 1.9999999999999991],
+      tspan = (0.0, 0.25))
+  end
+
   @trixi_testset "elixir_shallowwater_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.001868474306068482, 0.01731687445878443, 0.017649083171490863, 6.274146767717023e-5],
@@ -56,6 +63,28 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
       l2   = [0.0018957692481057034, 0.016943229710439864, 0.01755623297390675, 6.274146767717414e-5],
       linf = [0.015156105797771602, 0.07964811135780492, 0.0839787097210376, 0.0001819675955490041],
       tspan = (0.0, 0.025), surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal))
+  end
+
+  @trixi_testset "elixir_shallowwater_conical_island.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_conical_island.jl"),
+        l2   = [0.26189905898488786, 0.13109288589313403, 0.1310928914335753, 0.0011537702354532694],
+        linf = [1.1129921709644124, 0.22929803337323118, 0.22929795378591095, 0.021790250683516282],
+        tspan = (0.0, 0.25))
+  end
+
+  @trixi_testset "elixir_shallowwater_parabolic_bowl.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_parabolic_bowl.jl"),
+      l2   = [0.009551029879419562, 0.0022746779961813663, 0.006093909535093138, 3.649315951724414e-17],
+      linf = [0.037838314224258915, 0.008905881822753982, 0.02385742969303331, 2.7755575615628914e-16],
+      tspan = (0.0, 0.25), 
+      basis = LobattoLegendreBasis(3))
+  end
+
+  @trixi_testset "elixir_shallowwater_three_mound_dam_break.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_three_mound_dam_break.jl"),
+      l2   = [0.5402648923470211, 0.5528681962014322, 0.1655171741139329, 0.010408121100153715],
+      linf = [1.0940118676332915, 1.5893502849064438, 0.7582082525930185, 0.0601932230094296],
+      tspan = (0.0, 0.25))
   end
 end
 
