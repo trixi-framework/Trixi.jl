@@ -1,19 +1,26 @@
 
 using OrdinaryDiffEq
 using Trixi
-using Plots
+
 ###############################################################################
 # semidiscretization of the shallow water equations with a discontinuous
 # bottom topography function
 
 equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=1.4)
 
-cfl = 0.1
+"""
+    initial_condition_three_mounds(x, t, equations::ShallowWaterEquations2D)
 
-#
-#   Problem with boundary! Looks reasonable but boundary is not meaningful
-#
+Initial condition including two dam breaks, one on each end of the x dimension. The bottom
+topography is given by one large and two smaller mounds. Those are flooded by the water for t > 0.
+Periodic boundary conditions were used. To smooth the discontinuities, a logistic function is applied.
 
+The initial conditions are based on section 6.3 from the paper:
+  - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and Timothy Warburton (2018)
+    An entropy stable discontinuous Galerkin method for the shallow water equations on 
+    curvilinear meshes with wet/dry fronts accelerated by GPUs\n
+    [DOI: 10.1016/j.jcp.2018.08.038](https://doi.org/10.1016/j.jcp.2018.08.038)
+"""
 function initial_condition_three_mounds(x, t, equations::ShallowWaterEquations2D)
   # Set the background values
   
@@ -21,26 +28,25 @@ function initial_condition_three_mounds(x, t, equations::ShallowWaterEquations2D
   v2 = 0.0
   
   x1, x2 = x
-  M_1 = 0.75 - 2*sqrt( (x1+0.25)^2 + (x2-0.5)^2 )
-  M_2 = 0.75 - 2*sqrt( (x1+0.25)^2 + (x2+0.5)^2 )
-  M_3 = 2 - 5.6*sqrt( (x1-0.25)^2 + x2^2 )
+  M_1 = 0.75 - 2.0 * sqrt( (x1 + 0.25)^2 + (x2 - 0.5)^2 )
+  M_2 = 0.75 - 2.0 * sqrt( (x1 + 0.25)^2 + (x2 + 0.5)^2 )
+  M_3 = 2.0 - 5.6 * sqrt( (x1 - 0.25)^2 + x2^2 )
   
-  b = max(0, M_1, M_2, M_3)
+  b = max(0.0, M_1, M_2, M_3)
   
   # use a logistic function to tranfer water height value smoothly
   L  = equations.H0    # maximum of function
   x0 = -0.8  # center point of function
-  k  = -40.0 # sharpness of transfer
+  k  = -75.0 # sharpness of transfer
   
-  H = max(b, L/(1.0 + exp(-k*(x1 - x0))))
+  # Creating two discontinuities
+  H = max(b, L / (1.0 + exp(-k * (x1 - x0))), L / (1.0 + exp(k * (x1 + x0))))
   H = max(H, b + equations.threshold_limiter)
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
 initial_condition = initial_condition_three_mounds
-# Dirichlet condition crashes, slip wall condition explodes
-#boundary_condition = boundary_condition_slip_wall
-#boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
 ###############################################################################
 # Get the DG approximation space
 
@@ -63,22 +69,19 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 ###############################################################################
 # Get the TreeMesh and setup a periodic mesh
 
-coordinates_min = (-1, -1)
-coordinates_max = (1,  1)
+coordinates_min = (-1.0, -1.0)
+coordinates_max = (1.0,  1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
-                n_cells_max=10_000
-                #,periodicity=false
-               )
+                n_cells_max=10_000)
 
 # Create the semi discretization object
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
-                                    #;boundary_conditions=boundary_condition)
 
 ###############################################################################
 # ODE solver
 
-tspan = (0.0, 10.)
+tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 ###############################################################################
@@ -96,10 +99,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 
-stepsize_callback = StepsizeCallback(cfl=cfl)
-
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution)
 
 ###############################################################################
 # run the simulation
@@ -107,7 +107,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(equations.threshold_limiter,),
                                                      variables=(Trixi.waterheight,))
 
-sol = solve(ode, SSPRK43(stage_limiter!),
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, adaptive=false);
+sol = solve(ode, SSPRK43(stage_limiter!), dt=1.0,
+            save_everystep=false, callback=callbacks)
+
 summary_callback() # print the timer summary

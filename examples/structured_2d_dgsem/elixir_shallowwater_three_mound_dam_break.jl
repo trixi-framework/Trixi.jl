@@ -2,56 +2,58 @@
 using OrdinaryDiffEq
 using Trixi
 
- ###############################################################################
- # Semidiscretization of the shallow water equations
+###############################################################################
+# semidiscretization of the shallow water equations with a discontinuous
+# bottom topography function
 
-equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=1.4)                        
+equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=1.4)
 
 """
-    initial_condition_conical_island(x, t, equations::ShallowWaterEquations2D)
+    initial_condition_three_mounds(x, t, equations::ShallowWaterEquations2D)
 
-Initial condition [`ShallowWaterEquations2D`](@ref) to test the [`hydrostatic_reconstruction_chen_noelle`](@ref) 
-and their handling of discontinuous water heights at the start in combination with wetting and 
-drying. The bottom topography is given by a conical island in the middle of the domain. Around that
-island, there is a cylindric water column at T=0 and the rest of the domain is dry. This 
-discontinuous water height is smoothed by a logistic function. This simulation uses periodic 
-boundary conditions.
+Initial condition including two dam breaks, one on each end of the x dimension. The bottom
+topography is given by one large and two smaller mounds. Those are flooded by the water for t > 0.
+Periodic boundary conditions were used. To smooth the discontinuities, a logistic function is applied.
+
+The initial conditions are based on section 6.3 from the paper:
+  - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and Timothy Warburton (2018)
+    An entropy stable discontinuous Galerkin method for the shallow water equations on 
+    curvilinear meshes with wet/dry fronts accelerated by GPUs\n
+    [DOI: 10.1016/j.jcp.2018.08.038](https://doi.org/10.1016/j.jcp.2018.08.038)
 """
-function initial_condition_conical_island(x, t, equations::ShallowWaterEquations2D)
+function initial_condition_three_mounds(x, t, equations::ShallowWaterEquations2D)
   # Set the background values
   
   v1 = 0.0
   v2 = 0.0
-
+  
   x1, x2 = x
-  b = max(0.1, 1.0 - 4.0 * sqrt(x1^2 + x2^2))
+  M_1 = 0.75 - 2.0 * sqrt( (x1 + 0.25)^2 + (x2 - 0.5)^2 )
+  M_2 = 0.75 - 2.0 * sqrt( (x1 + 0.25)^2 + (x2 + 0.5)^2 )
+  M_3 = 2.0 - 5.6 * sqrt( (x1 - 0.25)^2 + x2^2 )
+  
+  b = max(0.0, M_1, M_2, M_3)
   
   # use a logistic function to tranfer water height value smoothly
   L  = equations.H0    # maximum of function
-  x0 = 0.3   # center point of function
-  k  = -25.0 # sharpness of transfer
+  x0 = -0.8  # center point of function
+  k  = -75.0 # sharpness of transfer
   
-  H = max(b, L/(1.0 + exp(-k*(sqrt(x1^2+x2^2) - x0))))
-
-  # It is mandatory to shift the water level at dry areas to make sure the water height h
-  # stays positive. The system would not be stable for h set to a hard 0 due to division by h in 
-  # the computation of velocity, e.g., (h v1) / h. Therefore, a small dry state threshold
-  # (1e-13 per default, set in the constructor for the ShallowWaterEquations) is added if h = 0. 
-  # This default value can be changed within the constructor call depending on the simulation setup.
+  # Creating two discontinuities
+  H = max(b, L / (1.0 + exp(-k * (x1 - x0))), L / (1.0 + exp(k * (x1 + x0))))
   H = max(H, b + equations.threshold_limiter)
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
-initial_condition = initial_condition_conical_island
+initial_condition = initial_condition_three_mounds
 
 ###############################################################################
 # Get the DG approximation space
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
 surface_flux = (FluxHydrostaticReconstruction(flux_hll_chen_noelle, hydrostatic_reconstruction_chen_noelle),
-                flux_nonconservative_chen_noelle)
-
-basis = LobattoLegendreBasis(4)
+               flux_nonconservative_chen_noelle)
+basis = LobattoLegendreBasis(3)
 
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,
@@ -60,17 +62,17 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          variable=waterheight_pressure)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
-                                                 volume_flux_fv=surface_flux)
+                                                 volume_flux_fv=surface_flux)                                             
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 ###############################################################################
-# Get the StructuredMesh and setup a periodic mesh
+# Get the TreeMesh and setup a periodic mesh
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0,  1.0)
 
-cells_per_dimension = (16, 16)
+cells_per_dimension = (8, 8)
 
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
@@ -107,6 +109,6 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(equations.thres
                                                      variables=(Trixi.waterheight,))
 
 sol = solve(ode, SSPRK43(stage_limiter!), dt=1.0,
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks)
 
 summary_callback() # print the timer summary

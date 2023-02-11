@@ -6,33 +6,39 @@ using Trixi
 # Semidiscretization of the shallow water equations
 
 equations = ShallowWaterEquations2D(gravity_constant=9.81)
-cfl = 0.1
 
-# Implemented based on Wintermeyer (scaled on half of domain)
-function parabolic_bowl_analytic_2D_H(gravity, x,t)
-  a = 1
-  h_0 = 0.1
-  σ = 0.5
-  ω = sqrt(2*gravity*h_0)/a
+"""
+    initial_condition_parabolic_bowl(x, t, equations:: ShallowWaterEquations2D)
 
-  H = 0.5 * (σ * h_0/a^2 * (2*2*x[1]*cos(ω*t) + 2*2*x[2]*sin(ω*t)- σ) + h_0)
-  return H
-end
-
-# Implemented based on Wintermeyer (scaled on half of domain)
+Well-known initial condition to test the [`hydrostatic_reconstruction_chen_noelle`](@ref) and its
+wet-dry mechanics. This test has analytical solutions. The initial condition is defined by the 
+analytical solution at time t=0. The bottom topography defines a bowl and the water level is given
+by an oscillating lake. Due to the limit of useable cells within `TreeMesh``, the simulation cannot be
+too accurate. For a nicer result, see the elixir using `StructuredMesh`.
+The original test and its analytical solution are taken out of section 6.2 from the paper:
+  - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and Timothy Warburton (2018)
+    An entropy stable discontinuous Galerkin method for the shallow water equations on 
+    curvilinear meshes with wet/dry fronts accelerated by GPUs\n
+    [DOI: 10.1016/j.jcp.2018.08.038](https://doi.org/10.1016/j.jcp.2018.08.038)
+"""
 function initial_condition_parabolic_bowl(x, t, equations:: ShallowWaterEquations2D)
-  a = 1
+  a = 1.0
   h_0 = 0.1
-  σ = 0.5
-  ω = sqrt(2*equations.gravity*h_0)/a
+  sigma = 0.5
+  ω = sqrt(2 * equations.gravity * h_0) / a
 
-  v1 = -σ*ω*sin(ω*t)
-  v2 = -σ*ω*cos(ω*t)
+  v1 = -sigma * ω * sin(ω * t)
+  v2 = -sigma * ω * cos(ω * t)
 
-  b = 0.5 * (h_0 * ((2*x[1])^2 + (2*x[2])^2)/a^2)
+  b = 0.5 * (h_0 * ((2 * x[1])^2 + (2 * x[2])^2) / a^2)
 
-  H = max(b, parabolic_bowl_analytic_2D_H(equations.gravity, x, t))
+  H = 0.5 * (sigma * h_0 / a^2 * (4 * x[1] * cos(ω * t) + 4 * x[2] * sin(ω * t)- sigma) + h_0)
 
+  # It is mandatory to shift the water level at dry areas to make sure the water height h
+  # stays positive. The system would not be stable for h set to a hard 0 due to division by h in 
+  # the computation of velocity, e.g., (h v1) / h. Therefore, a small dry state threshold
+  # (1e-13 per default, set in the constructor for the ShallowWaterEquations) is added if h = 0. 
+  # This default value can be changed within the constructor call depending on the simulation setup.
   H = max(H, b + equations.threshold_limiter)
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
@@ -45,7 +51,7 @@ volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
 surface_flux = (FluxHydrostaticReconstruction(flux_hll_chen_noelle, hydrostatic_reconstruction_chen_noelle),
                 flux_nonconservative_chen_noelle)
 
-basis = LobattoLegendreBasis(6)
+basis = LobattoLegendreBasis(7)
 
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.6,
@@ -67,8 +73,7 @@ coordinates_max = (1.0, 1.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=6,
-                n_cells_max=10_000
-                )
+                n_cells_max=10_000)
 
 # create the semi discretization object
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -76,7 +81,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -89,7 +94,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_anal
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=1000,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 
@@ -101,11 +106,9 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(equations.thres
 ###############################################################################
 # run the simulation
 
-stepsize_callback = StepsizeCallback(cfl=cfl)
-
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution)
 
 sol = solve(ode, SSPRK43(stage_limiter!), dt=1.0,
-            save_everystep=false, callback=callbacks, adaptive=false);
+            save_everystep=false, callback=callbacks);
  
 summary_callback() # print the timer summary

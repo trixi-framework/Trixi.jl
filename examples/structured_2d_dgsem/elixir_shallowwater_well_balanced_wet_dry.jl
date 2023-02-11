@@ -7,15 +7,26 @@ using Trixi
 
 
 equations = ShallowWaterEquations2D(gravity_constant=9.812)
-cfl = 1
 
-function initial_condition_complex_bottom_wb_CN(x, t, equations:: ShallowWaterEquations2D)
+"""
+    initial_condition_well_balanced_chen_noelle(x, t, equations:: ShallowWaterEquations2D)
+
+Initial condition with a complex (discontinuous) bottom topography to test the well-balanced
+property for the [`hydrostatic_reconstruction_chen_noelle`](@ref) including dry areas within the 
+domain. The errors from the analysis callback are not important but the error for this 
+lake at rest test case `∑|H0-(h+b)|` should be around machine roundoff.
+The initial condition was found in the section 5.2 of the paper:
+- Guoxian Chen and Sebastian Noelle (2017) 
+  A new hydrostatic reconstruction scheme based on subcell reconstructions
+  [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
+"""
+function initial_condition_complex_bottom_well_balanced(x, t, equations:: ShallowWaterEquations2D)
   v1 = 0
   v2 = 0
-  b = sin(4*pi*x[1]) + 3
+  b = sin(4 * pi * x[1]) + 3
 
   if x[1] >= 0.5
-    b = sin(4*pi*x[1]) + 1
+    b = sin(4 * pi * x[1]) + 1
   end
 
   H = max(b, 2.5)
@@ -24,11 +35,16 @@ function initial_condition_complex_bottom_wb_CN(x, t, equations:: ShallowWaterEq
     H = max(b, 1.5)
   end
 
+  # It is mandatory to shift the water level at dry areas to make sure the water height h
+  # stays positive. The system would not be stable for h set to a hard 0 due to division by h in 
+  # the computation of velocity, e.g., (h v1) / h. Therefore, a small dry state threshold
+  # (1e-13 per default, set in the constructor for the ShallowWaterEquations) is added if h = 0. 
+  # This default value can be changed within the constructor call depending on the simulation setup.
   H = max(H, b + equations.threshold_limiter)
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
-initial_condition = initial_condition_complex_bottom_wb_CN
+initial_condition = initial_condition_complex_bottom_well_balanced
 
 ###############################################################################
 # Get the DG approximation space
@@ -55,8 +71,8 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 ###############################################################################
 # Create the StructuredMesh for the domain [0, 1]^2
 
-coordinates_min = (0., 0.)
-coordinates_max = (1., 1.)
+coordinates_min = (0.0, 0.0)
+coordinates_max = (1.0, 1.0)
 
 cells_per_dimension = (16, 16)
 
@@ -87,7 +103,7 @@ save_solution = SaveSolutionCallback(interval=1000,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 
-stepsize_callback = StepsizeCallback(cfl=cfl)
+stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution, stepsize_callback)
 

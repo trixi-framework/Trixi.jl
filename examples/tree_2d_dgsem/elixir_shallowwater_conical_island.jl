@@ -1,14 +1,23 @@
 
 using OrdinaryDiffEq
 using Trixi
-using Plots
+
 ###############################################################################
 # semidiscretization of the shallow water equations
 
-equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=1.4)
+equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=1.4)                                
 
-cfl = 0.1                                    
+"""
+    initial_condition_conical_island(x, t, equations::ShallowWaterEquations2D)
 
+IInitial condition [`ShallowWaterEquations2D`](@ref) to test the [`hydrostatic_reconstruction_chen_noelle`](@ref) 
+and their handling of discontinuous water heights at the start in combination with wetting and 
+drying. The bottom topography is given by a conical island in the middle of the domain. Around that
+island, there is a cylindric water column at T=0 and the rest of the domain is dry. This 
+discontinuous water height is smoothed by a logistic function. This simulation uses a Dirichlet 
+boundary condition with the initial values. Due to the dry cells at the boundary, this has the 
+effect of an outflow which can be seen in the simulation.
+"""
 function initial_condition_conical_island(x, t, equations::ShallowWaterEquations2D)
   # Set the background values
   
@@ -16,7 +25,7 @@ function initial_condition_conical_island(x, t, equations::ShallowWaterEquations
   v2 = 0.0
 
   x1, x2 = x
-  b = max(0.1, - sqrt(16*x1^2+16*x2^2) + 1)
+  b = max(0.1, 1.0 - 4.0 * sqrt(x1^2 + x2^2))
   
   # use a logistic function to tranfer water height value smoothly
   L  = equations.H0    # maximum of function
@@ -25,13 +34,18 @@ function initial_condition_conical_island(x, t, equations::ShallowWaterEquations
   
   H = max(b, L/(1.0 + exp(-k*(sqrt(x1^2+x2^2) - x0))))
 
+  # It is mandatory to shift the water level at dry areas to make sure the water height h
+  # stays positive. The system would not be stable for h set to a hard 0 due to division by h in 
+  # the computation of velocity, e.g., (h v1) / h. Therefore, a small dry state threshold
+  # (1e-13 per default, set in the constructor for the ShallowWaterEquations) is added if h = 0. 
+  # This default value can be changed within the constructor call depending on the simulation setup.
   H = max(H, b + equations.threshold_limiter)
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
 initial_condition = initial_condition_conical_island
-# Works with Dirichlet boundary conditions as well
-#boundary_conditions = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
+
 ###############################################################################
 # Get the DG approximation space
 
@@ -53,24 +67,23 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 ###############################################################################
-# Get the TreeMesh and setup a periodic mesh
+# Get the TreeMesh and setup a mesh
 
-coordinates_min = (-1, -1)
-coordinates_max = (1,  1)
+coordinates_min = (-1.0, -1.0)
+coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
-                n_cells_max=10_000
-                #,periodicity=false
-               )
+                n_cells_max=10_000,
+                periodicity=false)
             
 # Create the semi discretization object
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
-                                    #, boundary_conditions=boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions=boundary_conditions)
 
 ###############################################################################
 # ODE solver
 
-tspan = (0.0, 10.)
+tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 ###############################################################################
@@ -84,14 +97,11 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=1000,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 
-stepsize_callback = StepsizeCallback(cfl=cfl)
-
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution)
 
 ###############################################################################
 # run the simulation
@@ -99,7 +109,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(equations.threshold_limiter,),
                                                      variables=(Trixi.waterheight,))
 
-sol = solve(ode, SSPRK43(stage_limiter!),
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, adaptive=false);
+sol = solve(ode, SSPRK43(stage_limiter!), dt=1.0, 
+            save_everystep=false, callback=callbacks);
+
 summary_callback() # print the timer summary
