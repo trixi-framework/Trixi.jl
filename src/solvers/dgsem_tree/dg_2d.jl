@@ -1610,7 +1610,7 @@ end
       P_2 = lambda1[i, j, element] * (bar_states1[2, i, j, element] * antidiffusive_flux1[2, i, j, element] +
                                       bar_states1[3, i, j, element] * antidiffusive_flux1[3, i, j, element] -
                                       bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element] -
-                                      bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element])
+                                      bar_states1[4, i, j, element] * antidiffusive_flux1[1, i, j, element])
 
       # Solve the quadratic formula
       aux_var = P_2^2 - 4 * P_1 * Q
@@ -1662,7 +1662,7 @@ end
       P_2 = lambda2[i, j, element] * (bar_states2[2, i, j, element] * antidiffusive_flux2[2, i, j, element] +
                                       bar_states2[3, i, j, element] * antidiffusive_flux2[3, i, j, element] -
                                       bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element] -
-                                      bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element])
+                                      bar_states2[4, i, j, element] * antidiffusive_flux2[1, i, j, element])
       # Solve the quadratic formula
       aux_var = P_2^2 - 4 * P_1 * Q
       if aux_var >= 0.0
