@@ -229,13 +229,13 @@ function calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, t, semi,
 end
 
 
-@inline function update_alpha_per_timestep!(indicator::IndicatorIDP, timestep, n_stages, semi, mesh::StructuredMesh{2})
+@inline function update_alpha_max_avg!(indicator::IndicatorIDP, timestep, n_stages, semi, mesh::StructuredMesh{2})
   _, _, solver, cache = mesh_equations_solver_cache(semi)
   @unpack weights = solver.basis
-  @unpack alpha_mean_per_timestep, alpha_max_per_timestep= indicator.cache
+  @unpack alpha_max_avg = indicator.cache
   @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
 
-  alpha_max_per_timestep = max(alpha_max_per_timestep, maximum(alpha))
+  alpha_max_avg[1] = max(alpha_max_avg[1], maximum(alpha))
   alpha_avg = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
   for element in eachelement(solver, cache)
@@ -245,14 +245,12 @@ end
       total_volume += jacobian * weights[i] * weights[j]
     end
   end
-  if total_volume > 0
-    alpha_mean_per_timestep += 1/(n_stages * total_volume) * alpha_avg
-  end
+  alpha_max_avg[2] += 1/(n_stages * total_volume) * alpha_avg
 
   return nothing
 end
 
-@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, time, iter, semi, mesh::StructuredMesh{2}, output_directory)
+@inline function save_alpha(indicator::IndicatorMCL, time, iter, semi, mesh::StructuredMesh{2}, output_directory)
   _, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack weights = dg.basis
   @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator

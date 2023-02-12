@@ -200,13 +200,11 @@ function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquation
     cache = (; cache..., ContainerBarStates)
   end
 
-  alpha_max_per_timestep  = zero(real(basis))
-  alpha_mean_per_timestep = zero(real(basis))
+  alpha_max_avg = zeros(real(basis), 2)
 
   idp_bounds_delta = zeros(real(basis), length)
 
-  return (; cache..., alpha_max_per_timestep, alpha_mean_per_timestep,
-          ContainerShockCapturingIndicator, idp_bounds_delta)
+  return (; cache..., alpha_max_avg, ContainerShockCapturingIndicator, idp_bounds_delta)
 end
 
 function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSEM, t, dt; kwargs...)
@@ -873,13 +871,13 @@ end
 
 standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
 
-@inline function update_alpha_per_timestep!(indicator::IndicatorIDP, timestep, n_stages, semi, mesh::TreeMesh)
+@inline function update_alpha_max_avg!(indicator::IndicatorIDP, timestep, n_stages, semi, mesh::TreeMesh)
   _, _, solver, cache = mesh_equations_solver_cache(semi)
   @unpack weights = solver.basis
-  @unpack alpha_mean_per_timestep, alpha_max_per_timestep = indicator.cache
+  @unpack alpha_max_avg = indicator.cache
   @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
 
-  alpha_max_per_timestep = max(alpha_max_per_timestep, maximum(alpha))
+  alpha_max_avg[1] = max(alpha_max_avg[1], maximum(alpha))
   alpha_avg = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
   for element in eachelement(solver, cache)
@@ -889,15 +887,13 @@ standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol,
       total_volume += jacobian * weights[i] * weights[j]
     end
   end
-  if total_volume > 0
-    alpha_mean_per_timestep += 1/(n_stages * total_volume) * alpha_avg
-  end
+  alpha_max_avg[2] += 1/(n_stages * total_volume) * alpha_avg
 
   return nothing
 end
 
-@inline function save_alpha_per_timestep!(indicator::IndicatorIDP, time, iter, semi, mesh, output_directory)
-  @unpack alpha_mean_per_timestep, alpha_max_per_timestep = indicator.cache
+@inline function save_alpha(indicator::IndicatorIDP, time, iter, semi, mesh, output_directory)
+  @unpack alpha_max_avg = indicator.cache
   # The maximum and average values were calculated in `update_alpha_per_timestep!` in each RK stage.
   # This is necessary if we want the average of the alphas over all stages (discussable).
 
@@ -907,7 +903,7 @@ end
   # Headline
   if x > 0 && iter == 1
     open("$output_directory/alphas.txt", "a") do f;
-      println(f, "# iter, simu_time, alpha_min, alpha_avg");
+      println(f, "# iter, simu_time, alpha_max, alpha_avg");
     end
   end
 
@@ -915,7 +911,7 @@ end
     return nothing
   end
   open("$output_directory/alphas.txt", "a") do f;
-    println(f, iter, ", ", time, ", ", alpha_max_per_timestep, ", ", alpha_mean_per_timestep);
+    println(f, iter, ", ", time, ", ", alpha_max_avg[1], ", ", alpha_max_avg[2]);
   end
 
   return nothing
@@ -932,12 +928,12 @@ function create_cache(indicator::Type{IndicatorMCL}, equations::AbstractEquation
   return (; ContainerShockCapturingIndicator, ContainerBarStates, idp_bounds_delta)
 end
 
-@inline function update_alpha_per_timestep!(indicator::IndicatorMCL, timestep, n_stages, semi, mesh)
+@inline function update_alpha_max_avg!(indicator::IndicatorMCL, timestep, n_stages, semi, mesh)
 
   return nothing
 end
 
-@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, time, iter, semi, mesh::TreeMesh2D, output_directory)
+@inline function save_alpha(indicator::IndicatorMCL, time, iter, semi, mesh::TreeMesh2D, output_directory)
   _, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack weights = dg.basis
   @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
