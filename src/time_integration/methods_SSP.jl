@@ -154,7 +154,9 @@ function solve!(integrator::SimpleIntegratorSSP)
       @threaded for element in eachelement(integrator.p.solver, integrator.p.cache)
         for j in eachnode(integrator.p.solver), i in eachnode(integrator.p.solver)
           alpha[:, i, j, element] .= one(eltype(alpha))
-          alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
+          if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+            alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
+          end
         end
       end
     elseif indicator isa IndicatorIDP

@@ -894,7 +894,7 @@ end
 
 @inline function save_alpha(indicator::IndicatorIDP, time, iter, semi, mesh, output_directory)
   @unpack alpha_max_avg = indicator.cache
-  # The maximum and average values were calculated in `update_alpha_per_timestep!` in each RK stage.
+  # The maximum and average values were calculated in `update_alpha_max_avg!` in each RK stage.
   # This is necessary if we want the average of the alphas over all stages (discussable).
 
   # Save the alphas every x iterations
@@ -952,10 +952,9 @@ end
     open("$output_directory/alphas.txt", "a") do f;
       print(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
       if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-        println(f, ", alpha_min_pressure, alpha_avg_pressure")
-      else
-        print(f, "\n")
+        print(f, ", alpha_min_pressure, alpha_avg_pressure")
       end
+      println(f)
     end
   end
 
@@ -971,7 +970,9 @@ end
       for v in eachvariable(equations)
         alpha_avg[v] += jacobian * weights[i] * weights[j] * alpha[v, i, j, element]
       end
-      alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] * alpha_pressure[i, j, element]
+      if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+        alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] * alpha_pressure[i, j, element]
+      end
       total_volume += jacobian * weights[i] * weights[j]
     end
   end
@@ -983,10 +984,9 @@ end
       print(f, ", ", alpha_avg[v] / total_volume);
     end
     if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-      println(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
-    else
-      print(f, "\n")
+      print(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
     end
+    println(f)
   end
 
   return nothing
