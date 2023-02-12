@@ -160,8 +160,9 @@ function solve!(integrator::SimpleIntegratorSSP)
         end
       end
     elseif indicator isa IndicatorIDP
-      indicator.cache.alpha_max = zero(eltype(indicator.cache.alpha_max))
-      indicator.cache.alpha_avg = zero(eltype(indicator.cache.alpha_avg))
+      @unpack alpha_avg, alpha_max = indicator.cache
+      alpha_max = zero(eltype(alpha_max))
+      alpha_avg = zero(eltype(alpha_avg))
     end
 
     @. integrator.r0 = integrator.u
