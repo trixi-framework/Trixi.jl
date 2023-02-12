@@ -157,6 +157,8 @@ function solve!(integrator::SimpleIntegratorSSP)
           alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
         end
       end
+    elseif indicator isa IndicatorIDP
+      indicator.cache.alpha_max_avg .= zero(eltype(indicator.cache.alpha_max_avg))
     end
 
     @. integrator.r0 = integrator.u
