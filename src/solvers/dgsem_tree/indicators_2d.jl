@@ -914,6 +914,9 @@ end
     println(f, iter, ", ", time, ", ", alpha_max_avg[1], ", ", alpha_max_avg[2]);
   end
 
+  # Reset alpha_max_avg
+  indicator.cache.alpha_max_avg .= zero(eltype(indicator.cache.alpha_max_avg))
+
   return nothing
 end
 
@@ -940,7 +943,7 @@ end
 
   # Save the alphas every x iterations
   x = 1
-  if x == 0
+  if x == 0 || !indicator.Plotting
     return nothing
   end
 
@@ -987,6 +990,16 @@ end
       print(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
     end
     println(f)
+  end
+
+  # Reset alphas
+  @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+      alpha[:, i, j, element] .= one(eltype(alpha))
+      if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+        alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
+      end
+    end
   end
 
   return nothing

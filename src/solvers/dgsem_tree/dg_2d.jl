@@ -1887,7 +1887,7 @@ end
       if IDPMathEntropy
         print(f, ", mathEntr_max");
       end
-      print(f, "\n")
+      println(f)
     end
   end
 
@@ -1994,7 +1994,7 @@ end
     end
   end
   if save_errors
-    open("$output_directory/deviations.txt", "a") do f; print(f, "\n"); end;
+    open("$output_directory/deviations.txt", "a") do f; println(f); end;
   end
 
   return nothing

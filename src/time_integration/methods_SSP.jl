@@ -147,22 +147,6 @@ function solve!(integrator::SimpleIntegratorSSP)
       terminate!(integrator)
     end
 
-    # reset alphas for Plotting of MCL
-    @unpack indicator = integrator.p.solver.volume_integral
-    if indicator isa IndicatorMCL && indicator.Plotting
-      @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
-      @threaded for element in eachelement(integrator.p.solver, integrator.p.cache)
-        for j in eachnode(integrator.p.solver), i in eachnode(integrator.p.solver)
-          alpha[:, i, j, element] .= one(eltype(alpha))
-          if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-            alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
-          end
-        end
-      end
-    elseif indicator isa IndicatorIDP
-      indicator.cache.alpha_max_avg .= zero(eltype(indicator.cache.alpha_max_avg))
-    end
-
     @. integrator.r0 = integrator.u
     for stage in eachindex(alg.c)
       @trixi_timeit timer() "Runge-Kutta stage" begin
