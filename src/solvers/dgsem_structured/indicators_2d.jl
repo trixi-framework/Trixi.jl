@@ -229,30 +229,28 @@ function calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, t, semi,
 end
 
 
-@inline function update_alpha_per_timestep!(indicator::IndicatorIDP, timestep, n_stages, semi, mesh::StructuredMesh{2})
+@inline function update_alpha!(indicator::IndicatorIDP, timestep, n_stages, semi, mesh::StructuredMesh{2})
   _, _, solver, cache = mesh_equations_solver_cache(semi)
   @unpack weights = solver.basis
-  @unpack alpha_mean_per_timestep, alpha_max_per_timestep= indicator.cache
+  @unpack alpha_avg, alpha_max = indicator.cache
   @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
 
-  alpha_max_per_timestep = max(alpha_max_per_timestep, maximum(alpha))
-  alpha_avg = zero(eltype(alpha))
+  alpha_max = max(alpha_max, maximum(alpha))
+  alpha_avg_ = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
   for element in eachelement(solver, cache)
     for j in eachnode(solver), i in eachnode(solver)
       jacobian = inv(cache.elements.inverse_jacobian[i, j, element])
-      alpha_avg += jacobian * weights[i] * weights[j] * alpha[i, j, element]
+      alpha_avg_ += jacobian * weights[i] * weights[j] * alpha[i, j, element]
       total_volume += jacobian * weights[i] * weights[j]
     end
   end
-  if total_volume > 0
-    alpha_mean_per_timestep += 1/(n_stages * total_volume) * alpha_avg
-  end
+  alpha_avg += 1/(n_stages * total_volume) * alpha_avg_
 
   return nothing
 end
 
-@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, time, iter, semi, mesh::StructuredMesh{2}, output_directory)
+@inline function save_alpha(indicator::IndicatorMCL, time, iter, semi, mesh::StructuredMesh{2}, output_directory)
   _, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack weights = dg.basis
   @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
@@ -271,10 +269,9 @@ end
     open("$output_directory/alphas.txt", "a") do f;
       print(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
       if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-        print(f, ", alpha_min_pressure, alpha_avg_pressure\n")
-      else
-        print(f, "\n")
+        print(f, ", alpha_min_pressure, alpha_avg_pressure")
       end
+      println(f)
     end
   end
 
@@ -290,7 +287,9 @@ end
       for v in eachvariable(equations)
         alpha_avg[v] += jacobian * weights[i] * weights[j] * alpha[v, i, j, element]
       end
-      alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] * alpha_pressure[i, j, element]
+      if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+        alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] * alpha_pressure[i, j, element]
+      end
       total_volume += jacobian * weights[i] * weights[j]
     end
   end
@@ -302,10 +301,9 @@ end
       print(f, ", ", alpha_avg[v] / total_volume);
     end
     if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-      println(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
-    else
-      print(f, "\n")
+      print(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
     end
+    println(f)
   end
 
   return nothing

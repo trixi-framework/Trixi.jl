@@ -2018,10 +2018,9 @@ end
     open("$output_directory/deviations.txt", "a") do f;
       print(f, "# iter, simu_time", join(", $(v)_min, $(v)_max" for v in vars));
       if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-        print(f, ", pressure_min\n")
-      else
-        print(f, "\n")
+        print(f, ", pressure_min")
       end
+      println(f)
     end
   end
 
@@ -2330,10 +2329,9 @@ end
       print(f, ", ", deviation_min[v], ", ", deviation_max[v]);
     end
     if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
-      println(f, ", ", deviation_min[n_vars+1]);
-    else
-      print(f, "\n");
+      print(f, ", ", deviation_min[n_vars+1]);
     end
+    println(f);
   end
 
   return nothing

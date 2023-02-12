@@ -154,9 +154,14 @@ function solve!(integrator::SimpleIntegratorSSP)
       @threaded for element in eachelement(integrator.p.solver, integrator.p.cache)
         for j in eachnode(integrator.p.solver), i in eachnode(integrator.p.solver)
           alpha[:, i, j, element] .= one(eltype(alpha))
-          alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
+          if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+            alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
+          end
         end
       end
+    elseif indicator isa IndicatorIDP
+      indicator.cache.alpha_max = zero(indicator.cache.alpha_max)
+      indicator.cache.alpha_avg = zero(indicator.cache.alpha_avg)
     end
 
     @. integrator.r0 = integrator.u
@@ -171,7 +176,7 @@ function solve!(integrator::SimpleIntegratorSSP)
       end
       @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u, t_stage, integrator.dt, integrator.p, indicator)
 
-      @trixi_timeit timer() "update_alpha_per_timestep!" update_alpha_per_timestep!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
+      @trixi_timeit timer() "update_alpha!" update_alpha!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
 
       # check that we are within bounds
       if indicator.IDPCheckBounds
@@ -183,7 +188,7 @@ function solve!(integrator::SimpleIntegratorSSP)
       @. integrator.u = alg.a[stage] * integrator.r0 + alg.b[stage] * integrator.u
     end
 
-    @trixi_timeit timer() "save_alpha_per_timestep!" save_alpha_per_timestep!(indicator, integrator.t, integrator.iter+1, integrator.p, integrator.p.mesh, output_directory)
+    @trixi_timeit timer() "save_alpha" save_alpha(indicator, integrator.t, integrator.iter+1, integrator.p, integrator.p.mesh, output_directory)
 
     integrator.iter += 1
     integrator.t += integrator.dt

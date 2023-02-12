@@ -200,12 +200,12 @@ function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquation
     cache = (; cache..., ContainerBarStates)
   end
 
-  alpha_max_per_timestep  = zero(real(basis))
-  alpha_mean_per_timestep = zero(real(basis))
+  alpha_max  = zero(real(basis))
+  alpha_avg = zero(real(basis))
 
   idp_bounds_delta = zeros(real(basis), length)
 
-  return (; cache..., alpha_max_per_timestep, alpha_mean_per_timestep,
+  return (; cache..., alpha_max, alpha_avg,
           ContainerShockCapturingIndicator, idp_bounds_delta)
 end
 
@@ -873,32 +873,30 @@ end
 
 standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
 
-@inline function update_alpha_per_timestep!(indicator::IndicatorIDP, timestep, n_stages, semi, mesh::TreeMesh)
+@inline function update_alpha!(indicator::IndicatorIDP, timestep, n_stages, semi, mesh::TreeMesh)
   _, _, solver, cache = mesh_equations_solver_cache(semi)
   @unpack weights = solver.basis
-  @unpack alpha_mean_per_timestep, alpha_max_per_timestep = indicator.cache
+  @unpack alpha_avg, alpha_max = indicator.cache
   @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
 
-  alpha_max_per_timestep = max(alpha_max_per_timestep, maximum(alpha))
-  alpha_avg = zero(eltype(alpha))
+  alpha_max = max(alpha_max, maximum(alpha))
+  alpha_avg_ = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
   for element in eachelement(solver, cache)
     jacobian = inv(cache.elements.inverse_jacobian[element])
     for j in eachnode(solver), i in eachnode(solver)
-      alpha_avg += jacobian * weights[i] * weights[j] * alpha[i, j, element]
+      alpha_avg_ += jacobian * weights[i] * weights[j] * alpha[i, j, element]
       total_volume += jacobian * weights[i] * weights[j]
     end
   end
-  if total_volume > 0
-    alpha_mean_per_timestep += 1/(n_stages * total_volume) * alpha_avg
-  end
+  alpha_avg += 1/(n_stages * total_volume) * alpha_avg_
 
   return nothing
 end
 
-@inline function save_alpha_per_timestep!(indicator::IndicatorIDP, time, iter, semi, mesh, output_directory)
-  @unpack alpha_mean_per_timestep, alpha_max_per_timestep = indicator.cache
-  # The maximum and average values were calculated in `update_alpha_per_timestep!` in each RK stage.
+@inline function save_alpha(indicator::IndicatorIDP, time, iter, semi, mesh, output_directory)
+  @unpack alpha_avg, alpha_max = indicator.cache
+  # The maximum and average values were calculated in `update_alpha!` in each RK stage.
   # This is necessary if we want the average of the alphas over all stages (discussable).
 
   # Save the alphas every x iterations
@@ -907,7 +905,7 @@ end
   # Headline
   if x > 0 && iter == 1
     open("$output_directory/alphas.txt", "a") do f;
-      println(f, "# iter, simu_time, alpha_min, alpha_avg");
+      println(f, "# iter, simu_time, alpha_max, alpha_avg");
     end
   end
 
@@ -915,7 +913,7 @@ end
     return nothing
   end
   open("$output_directory/alphas.txt", "a") do f;
-    println(f, iter, ", ", time, ", ", alpha_max_per_timestep, ", ", alpha_mean_per_timestep);
+    println(f, iter, ", ", time, ", ", alpha_max, ", ", alpha_avg);
   end
 
   return nothing
@@ -932,12 +930,12 @@ function create_cache(indicator::Type{IndicatorMCL}, equations::AbstractEquation
   return (; ContainerShockCapturingIndicator, ContainerBarStates, idp_bounds_delta)
 end
 
-@inline function update_alpha_per_timestep!(indicator::IndicatorMCL, timestep, n_stages, semi, mesh)
+@inline function update_alpha!(indicator::IndicatorMCL, timestep, n_stages, semi, mesh)
 
   return nothing
 end
 
-@inline function save_alpha_per_timestep!(indicator::IndicatorMCL, time, iter, semi, mesh::TreeMesh2D, output_directory)
+@inline function save_alpha(indicator::IndicatorMCL, time, iter, semi, mesh::TreeMesh2D, output_directory)
   _, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack weights = dg.basis
   @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
@@ -956,10 +954,9 @@ end
     open("$output_directory/alphas.txt", "a") do f;
       print(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
       if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-        println(f, ", alpha_min_pressure, alpha_avg_pressure")
-      else
-        print(f, "\n")
+        print(f, ", alpha_min_pressure, alpha_avg_pressure")
       end
+      println(f)
     end
   end
 
@@ -975,7 +972,9 @@ end
       for v in eachvariable(equations)
         alpha_avg[v] += jacobian * weights[i] * weights[j] * alpha[v, i, j, element]
       end
-      alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] * alpha_pressure[i, j, element]
+      if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+        alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] * alpha_pressure[i, j, element]
+      end
       total_volume += jacobian * weights[i] * weights[j]
     end
   end
@@ -987,10 +986,9 @@ end
       print(f, ", ", alpha_avg[v] / total_volume);
     end
     if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-      println(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
-    else
-      print(f, "\n")
+      print(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
     end
+    println(f)
   end
 
   return nothing
