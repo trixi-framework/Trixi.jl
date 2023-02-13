@@ -205,7 +205,7 @@ function create_cache(::Type{IndicatorClamp}, equations::AbstractEquations{1}, b
 
   alpha = Vector{real(basis)}()
 
-  return (; alpha, indicator_threaded, basis.weights)
+  return (; alpha, basis.weights)
 end
 
 function create_cache(typ::Type{IndicatorClamp}, mesh, equations::AbstractEquations{1}, dg::DGSEM, cache)
@@ -220,10 +220,13 @@ function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any,4},
 
   @threaded for element in eachelement(dg, cache)
     mean::Variable = 0.0
+
     for i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, element)
-      mean += indicator_clamp.variable(u_local, equations) * weights[i]*0.5
+      mean += indicator_clamp.variable(u_local, equations) * weights[i]
     end
+
+    mean *= 0.5
 
     if indicator_clamp.min <= mean <= indicator_clamp.max
       alpha[element] =  1.0

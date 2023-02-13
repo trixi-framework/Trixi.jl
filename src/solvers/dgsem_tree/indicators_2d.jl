@@ -232,7 +232,7 @@ end
 function create_cache(::Type{IndicatorClamp}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
   alpha = Vector{real(basis)}()
 
-  return (; alpha, indicator_threaded, basis.weights)
+  return (; alpha, basis.weights)
 end
 
 function create_cache(typ::Type{IndicatorClamp}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
@@ -249,8 +249,9 @@ function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any,4},
     mean::Variable = 0.0
     for j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, j, element)
-      mean += indicator_clamp.variable(u_local, equations) * weights[i]*weights[j]*0.25
+      mean += indicator_clamp.variable(u_local, equations) * weights[i]*weights[j]
     end
+    mean *= 0.25
 
     if indicator_clamp.min <= mean <= indicator_clamp.max
       alpha[element] =  1.0
