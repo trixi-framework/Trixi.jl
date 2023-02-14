@@ -151,8 +151,8 @@ function solve!(integrator::SimpleIntegratorSSP)
     @unpack indicator = integrator.p.solver.volume_integral
     if indicator isa IndicatorMCL && indicator.Plotting
       @unpack alpha, alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
-      @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
+      @threaded for element in eachelement(integrator.p.solver, integrator.p.cache)
+        for j in eachnode(integrator.p.solver), i in eachnode(integrator.p.solver)
           alpha[:, i, j, element] .= one(eltype(alpha))
           if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
             alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
