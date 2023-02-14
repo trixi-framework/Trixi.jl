@@ -298,6 +298,7 @@ struct IndicatorMCL{RealT<:Real, Cache, Indicator} <: AbstractIndicator
   SequentialLimiter::Bool
   ConservativeLimiter::Bool
   PressurePositivityLimiterKuzmin::Bool  # synchronized pressure limiting à la Kuzmin
+  PressurePositivityLimiterKuzminExact::Bool  # Only for PressurePositivityLimiterKuzmin=true: Use the exact calculation of alpha
   PressurePositivityLimiter::Bool        # synchronized pressure limiting
   DensityPositivityLimiter::Bool
   SemiDiscEntropyLimiter::Bool           # synchronized semidiscrete entropy fix
@@ -315,6 +316,7 @@ function IndicatorMCL(equations::AbstractEquations, basis;
                       SequentialLimiter=true,               # Impose local maximum/minimum for variables phi:=cons(i)/cons(1) i 2:nvariables based on bar states
                       ConservativeLimiter=false,            # Impose local maximum/minimum for conservative variables 2:nvariables based on bar states
                       PressurePositivityLimiterKuzmin=false,# Impose positivity for pressure â la Kuzmin
+                      PressurePositivityLimiterKuzminExact=true,# Only for PressurePositivityLimiterKuzmin=true: Use the exact calculation of alpha
                       PressurePositivityLimiter=false,      # Impose positivity for pressure
                       DensityPositivityLimiter=false,       # Impose positivity for cons(1)
                       SemiDiscEntropyLimiter=false,
@@ -336,7 +338,7 @@ function IndicatorMCL(equations::AbstractEquations, basis;
   end
   IndicatorMCL{typeof(thr_smooth), typeof(cache), typeof(IndicatorHG)}(cache,
     DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
-    PressurePositivityLimiterKuzmin, PressurePositivityLimiter,
+    PressurePositivityLimiterKuzmin, PressurePositivityLimiterKuzminExact, PressurePositivityLimiter,
     DensityPositivityLimiter, SemiDiscEntropyLimiter,
     IDPCheckBounds, indicator_smooth, thr_smooth, IndicatorHG, Plotting)
 end
@@ -349,10 +351,16 @@ function Base.show(io::IO, indicator::IndicatorMCL)
   indicator.DensityAlphaForAll && print(io, "; dens alpha ∀")
   indicator.SequentialLimiter && print(io, "; seq")
   indicator.ConservativeLimiter && print(io, "; cons")
-  indicator.PressurePositivityLimiterKuzmin && print(io, "; pres (Kuzmin)")
+  if indicator.PressurePositivityLimiterKuzmin 
+    if indicator. PressurePositivityLimiterKuzminExact 
+      print(io, "; pres (Kuzmin ex)")
+    else
+      print(io, "; pres (Kuzmin)")
+    end
+  end
   indicator.PressurePositivityLimiter && print(io, "; pres")
   indicator.DensityPositivityLimiter && print(io, "; dens pos")
-  indicator.SemiDiscEntropyLimiter && print(io, "; semidiscrete entropy fix")
+  indicator.SemiDiscEntropyLimiter && print(io, "; semid. entropy")
   indicator.indicator_smooth && print(io, "; Smoothness indicator: ", indicator.IndicatorHG,
     " with threshold ", indicator.thr_smooth)
   print(io, ")")

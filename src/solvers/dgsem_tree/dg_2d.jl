@@ -1533,23 +1533,24 @@ end
       Q = lambda1[i, j, element]^2 * (bar_states1[1, i, j, element] * bar_states1[4, i, j, element] -
                                       0.5 * bar_state_velocity)
 
-      # exact calculation of max(R_ij, R_ji)
-      # R_max = lambda1[i, j, element] *
-      #           abs(bar_states1[2, i, j, element] * antidiffusive_flux1[2, i, j, element] +
-      #               bar_states1[3, i, j, element] * antidiffusive_flux1[3, i, j, element] -
-      #               bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element] -
-      #               bar_states1[4, i, j, element] * antidiffusive_flux1[1, i, j, element])
-      # R_max += max(0, 0.5 * flux_velocity -
-      #                 antidiffusive_flux1[4, i, j, element] * antidiffusive_flux1[1, i, j, element])
-
-      # approximation R_max
-      R_max = lambda1[i, j, element] *
-                (sqrt(bar_state_velocity * flux_velocity) +
-                abs(bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element]) +
-                abs(bar_states1[4, i, j, element] * antidiffusive_flux1[1, i, j, element]))
-      R_max += max(0, 0.5 * flux_velocity -
-                      antidiffusive_flux1[4, i, j, element] * antidiffusive_flux1[1, i, j, element])
-
+      if indicator.PressurePositivityLimiterKuzminExact
+        # exact calculation of max(R_ij, R_ji)
+        R_max = lambda1[i, j, element] *
+                  abs(bar_states1[2, i, j, element] * antidiffusive_flux1[2, i, j, element] +
+                      bar_states1[3, i, j, element] * antidiffusive_flux1[3, i, j, element] -
+                      bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element] -
+                      bar_states1[4, i, j, element] * antidiffusive_flux1[1, i, j, element])
+        R_max += max(0, 0.5 * flux_velocity -
+                        antidiffusive_flux1[4, i, j, element] * antidiffusive_flux1[1, i, j, element])
+      else
+        # approximation R_max
+        R_max = lambda1[i, j, element] *
+                  (sqrt(bar_state_velocity * flux_velocity) +
+                  abs(bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element]) +
+                  abs(bar_states1[4, i, j, element] * antidiffusive_flux1[1, i, j, element]))
+        R_max += max(0, 0.5 * flux_velocity -
+                        antidiffusive_flux1[4, i, j, element] * antidiffusive_flux1[1, i, j, element])
+      end
       if R_max > Q
         alpha = Q / R_max
         if indicator.Plotting
@@ -1569,22 +1570,24 @@ end
       Q = lambda2[i, j, element]^2 * (bar_states2[1, i, j, element] * bar_states2[4, i, j, element] -
                                       0.5 * bar_state_velocity)
 
-      # exact calculation of max(R_ij, R_ji)
-      # R_max = lambda2[i, j, element] *
-      #           abs(bar_states2[2, i, j, element] * antidiffusive_flux2[2, i, j, element] +
-      #               bar_states2[3, i, j, element] * antidiffusive_flux2[3, i, j, element] -
-      #               bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element] -
-      #               bar_states2[4, i, j, element] * antidiffusive_flux2[1, i, j, element])
-      # R_max += max(0, 0.5 * flux_velocity -
-      #                 antidiffusive_flux2[4, i, j, element] * antidiffusive_flux2[1, i, j, element])
-
-      # approximation R_max
-      R_max = lambda2[i, j, element] *
-                (sqrt(bar_state_velocity * flux_velocity) +
-                abs(bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element]) +
-                abs(bar_states2[4, i, j, element] * antidiffusive_flux2[1, i, j, element]))
-      R_max += max(0, 0.5 * flux_velocity -
-                      antidiffusive_flux2[4, i, j, element] * antidiffusive_flux2[1, i, j, element])
+      if indicator.PressurePositivityLimiterKuzminExact
+        # exact calculation of max(R_ij, R_ji)
+        R_max = lambda2[i, j, element] *
+                  abs(bar_states2[2, i, j, element] * antidiffusive_flux2[2, i, j, element] +
+                      bar_states2[3, i, j, element] * antidiffusive_flux2[3, i, j, element] -
+                      bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element] -
+                      bar_states2[4, i, j, element] * antidiffusive_flux2[1, i, j, element])
+        R_max += max(0, 0.5 * flux_velocity -
+                        antidiffusive_flux2[4, i, j, element] * antidiffusive_flux2[1, i, j, element])
+      else
+        # approximation R_max
+        R_max = lambda2[i, j, element] *
+                  (sqrt(bar_state_velocity * flux_velocity) +
+                  abs(bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element]) +
+                  abs(bar_states2[4, i, j, element] * antidiffusive_flux2[1, i, j, element]))
+        R_max += max(0, 0.5 * flux_velocity -
+                        antidiffusive_flux2[4, i, j, element] * antidiffusive_flux2[1, i, j, element])
+      end
 
       if R_max > Q
         alpha = Q / R_max
