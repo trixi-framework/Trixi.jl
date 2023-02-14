@@ -676,7 +676,7 @@ formulation.
   drho = rho_upper - rho_lower
 
   # Entropy Jacobian matrix
-  H = Array{Float64,2}(undef,6,6)
+  H = MArray{Tuple{6,6}, eltype(u_ll), 2}(undef)
   # Use symmetry properties to compute matrix
   H[:,1] = 
     [-rho_lower/(g*rho_upper*drho);;
