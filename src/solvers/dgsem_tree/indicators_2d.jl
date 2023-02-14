@@ -992,16 +992,6 @@ end
     println(f)
   end
 
-  # Reset alphas
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      alpha[:, i, j, element] .= one(eltype(alpha))
-      if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-        alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
-      end
-    end
-  end
-
   return nothing
 end
 
