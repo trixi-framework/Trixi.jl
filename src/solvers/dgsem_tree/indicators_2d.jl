@@ -246,7 +246,8 @@ function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any,4},
   resize!(alpha, nelements(dg, cache))
 
   @threaded for element in eachelement(dg, cache)
-    mean::Variable = 0.0
+    mean = zero(real(dg.basis))
+
     for j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, j, element)
       mean += indicator_clamp.variable(u_local, equations) * weights[i]*weights[j]

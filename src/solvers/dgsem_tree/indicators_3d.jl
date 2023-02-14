@@ -257,19 +257,19 @@ function create_cache(typ::Type{IndicatorClamp}, mesh, equations::AbstractEquati
   cache = create_cache(typ, equations, dg.basis)
 end
 
-function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any,4},
+function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any,5},
                                            mesh, equations, dg::DGSEM, cache;
                                            kwargs...)
   @unpack alpha, weights = indicator_clamp.cache
   resize!(alpha, nelements(dg, cache))
 
   @threaded for element in eachelement(dg, cache)
-    mean::Variable = 0.0
+    mean = zero(real(dg.basis))
+
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, j, k, element)
       mean += indicator_clamp.variable(u_local, equations) * weights[i]*weights[j]*weights[k]
     end
-
     mean *= 0.125
 
     if indicator_clamp.min <= mean <= indicator_clamp.max
