@@ -311,7 +311,8 @@ possible to step into further calls or access other function scopes.
 
 You can build the documentation of Trixi.jl locally by running
 ```bash
-julia --project=docs -e 'using Pkg; Pkg.instantiate(); include("docs/make.jl")'
+julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+julia --project=docs --color=yes docs/make.jl
 ```
 from the Trixi.jl main directory. Then, you can look at the html files generated in
 `docs/build`.
@@ -319,13 +320,7 @@ For PRs triggered from branches inside the Trixi.jl main repository previews of
 the new documentation are generated at `https://trixi-framework.github.io/Trixi.jl/previews/PRXXX`,
 where `XXX` is the number of the PR.
 This does not work for PRs from forks for security reasons (since anyone could otherwise push
-arbitrary stuff to the Trixi website, including malicious code). In order to build the documentation
-locally for PRs from forks you can use the following commands that mimic what is done by the CI
-```bash
-julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
-julia --project=docs --color=yes docs/make.jl
-```
-where, again, the html files are found in the `docs/build` folder.
+arbitrary stuff to the Trixi website, including malicious code).
 
 
 
