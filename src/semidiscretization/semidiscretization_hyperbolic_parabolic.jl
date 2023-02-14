@@ -229,7 +229,7 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
   iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!
   # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
   # first function implicitly and the second one explicitly. Thus, we pass the
-  # more stiff parabolic function first.
+  # stiffer parabolic function first.
   return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
 end
 
