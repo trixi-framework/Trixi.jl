@@ -21,10 +21,17 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=7,
                 n_cells_max=30_000) # set maximum capacity of tree data structure
 
+function x_trans_periodic(x, domain_length = SVector(2*pi), center = SVector(0.0))
+  x_normalized = x .- center
+  x_shifted = x_normalized .% domain_length
+  x_offset = ((x_shifted .< -0.5*domain_length) - (x_shifted .> 0.5*domain_length)) .* domain_length
+  return center + x_shifted + x_offset
+end
+
 # Define initial condition
 function initial_condition_diffusive_convergence_test(x, t, equation::LinearScalarAdvectionEquation1D)
     # Store translated coordinate for easy use of exact solution
-    x_trans = x - equation.advection_velocity * t
+    x_trans = x_trans_periodic(x - equation.advection_velocity * t)
   
     nu = diffusivity()
     c = 0.0
