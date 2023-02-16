@@ -30,23 +30,23 @@ end
 
 # Define initial condition
 function initial_condition_diffusive_convergence_test(x, t, equation::LinearScalarAdvectionEquation1D)
-    # Store translated coordinate for easy use of exact solution
-    x_trans = x_trans_periodic(x - equation.advection_velocity * t)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x_trans_periodic(x - equation.advection_velocity * t)
   
-    nu = diffusivity()
-    c = 0.0
-    A = 1.0
-    L = 2
-    f = 1/L
-    omega = 1.0
-    scalar = c + A * sin(omega * sum(x_trans)) * exp(-nu * omega^2 * t)
-    return SVector(scalar)
-  end
-  initial_condition = initial_condition_diffusive_convergence_test
+  nu = diffusivity()
+  c = 0.0
+  A = 1.0
+  L = 2
+  f = 1/L
+  omega = 1.0
+  scalar = c + A * sin(omega * sum(x_trans)) * exp(-nu * omega^2 * t)
+  return SVector(scalar)
+end
+initial_condition = initial_condition_diffusive_convergence_test
   
-  # define periodic boundary conditions everywhere
-  boundary_conditions = boundary_condition_periodic
-  boundary_conditions_parabolic = boundary_condition_periodic
+# define periodic boundary conditions everywhere
+boundary_conditions = boundary_condition_periodic
+boundary_conditions_parabolic = boundary_condition_periodic
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition_diffusive_convergence_test, solver;
@@ -85,7 +85,7 @@ time_abs_tol = 1.0e-8
 #            save_everystep=false, callback=callbacks)
 
 sol = solve(ode, IMEXEuler(autodiff=false), dt = 50*pi/(mesh.tree.length+1),
-           save_everystep=false, callback=callbacks)
+            save_everystep=false, callback=callbacks)
 
 # sol = solve(ode, SDIRK2(autodiff=false), abstol=time_int_tol, reltol=time_int_tol,
 #            save_everystep=false, callback=callbacks)
