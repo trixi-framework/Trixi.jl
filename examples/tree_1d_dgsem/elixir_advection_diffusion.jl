@@ -84,11 +84,11 @@ time_abs_tol = 1.0e-8
 # sol = solve(ode, KenCarp3(autodiff=false), dt = 5.0e-01, abstol=time_abs_tol, reltol=time_int_tol,
 #            save_everystep=false, callback=callbacks)
 
-#sol = solve(ode, IMEXEuler(autodiff=false), dt = 50*pi/(mesh.tree.length+1),
-#            save_everystep=false, callback=callbacks)
-
-sol = solve(ode, SDIRK2(autodiff=false), abstol=time_int_tol, reltol=time_int_tol,
+sol = solve(ode, IMEXEuler(autodiff=false), dt = 50*pi/(mesh.tree.length+1),
            save_everystep=false, callback=callbacks)
+
+# sol = solve(ode, SDIRK2(autodiff=false), abstol=time_int_tol, reltol=time_int_tol,
+#            save_everystep=false, callback=callbacks)
 
 # Print the timer summary
 summary_callback()
