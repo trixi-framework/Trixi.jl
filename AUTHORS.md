@@ -33,6 +33,7 @@ are listed in alphabetical order:
 * Sven Goldberg
 * Joshua Lampert
 * Julia Odenthal
+* Sigrun Ortleb
 * Hendrik Ranocha
 * Andrés M. Rueda-Ramírez
 * Felipe Santillan

@@ -18,7 +18,7 @@ coordinates_max =  pi # maximum coordinate
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=7,
+                initial_refinement_level=4,
                 n_cells_max=30_000) # set maximum capacity of tree data structure
 
 function x_trans_periodic(x, domain_length = SVector(2*pi), center = SVector(0.0))
@@ -57,7 +57,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-tspan = (0.0, 10.0)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
@@ -65,11 +65,10 @@ ode = semidiscretize(semi, tspan);
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=100)
 
 # The AliveCallback prints short status information in regular intervals
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
+alive_callback = AliveCallback(analysis_interval=100)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
@@ -79,16 +78,10 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-time_int_tol = 1.0e-8
-time_abs_tol = 1.0e-8
-# sol = solve(ode, KenCarp3(autodiff=false), dt = 5.0e-01, abstol=time_abs_tol, reltol=time_int_tol,
-#            save_everystep=false, callback=callbacks)
-
-sol = solve(ode, IMEXEuler(autodiff=false), dt = 50*pi/(mesh.tree.length+1),
+time_int_tol = 1.0e-10
+time_abs_tol = 1.0e-10
+sol = solve(ode, KenCarp4(autodiff=false), abstol=time_abs_tol, reltol=time_int_tol,
             save_everystep=false, callback=callbacks)
-
-# sol = solve(ode, SDIRK2(autodiff=false), abstol=time_int_tol, reltol=time_int_tol,
-#            save_everystep=false, callback=callbacks)
 
 # Print the timer summary
 summary_callback()
