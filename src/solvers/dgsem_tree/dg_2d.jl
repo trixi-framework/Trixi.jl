@@ -1223,9 +1223,9 @@ end
 
       if indicator.Plotting || indicator.DensityAlphaForAll
         if isapprox(antidiffusive_flux1[1, i, j, element], 0.0, atol=eps())
-          coefficient = 1.0  # flux_limited is zero as well
+          coefficient = 1.0 # flux_limited is zero as well
         else
-          coefficient = flux_limited / antidiffusive_flux1[1, i, j, element]
+          coefficient = min(1, (flux_limited + sign(flux_limited) * eps()) / (antidiffusive_flux1[1, i, j, element] + sign(flux_limited) * eps()))
         end
 
         if indicator.Plotting
@@ -1267,9 +1267,9 @@ end
 
       if indicator.Plotting || indicator.DensityAlphaForAll
         if isapprox(antidiffusive_flux2[1, i, j, element], 0.0, atol=eps())
-          coefficient = 1.0  # flux_limited is zero as well
+          coefficient = 1.0 # flux_limited is zero as well
         else
-          coefficient = flux_limited / antidiffusive_flux2[1, i, j, element]
+          coefficient = min(1, (flux_limited + sign(flux_limited) * eps()) / (antidiffusive_flux2[1, i, j, element] + sign(flux_limited) * eps()))
         end
 
         if indicator.Plotting
@@ -1323,9 +1323,9 @@ end
         if indicator.Plotting
           @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
           if isapprox(g, 0.0, atol=eps())
-            coefficient = isapprox(g_limited, 0.0, atol=eps()) ? 1.0 : 0.0
+            coefficient = 1.0 # g_limited is zero as well
           else
-            coefficient = g_limited / g
+            coefficient = min(1, (g_limited + sign(g_limited) * eps()) / (g + sign(g_limited) * eps()))
           end
           alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
@@ -1362,9 +1362,9 @@ end
         if indicator.Plotting
           @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
           if isapprox(g, 0.0, atol=eps())
-            coefficient = isapprox(g_limited, 0.0, atol=eps()) ? 1.0 : 0.0
+            coefficient = 1.0 # g_limited is zero as well
           else
-            coefficient = g_limited / g
+            coefficient = min(1, (g_limited + sign(g_limited) * eps()) / (g + sign(g_limited) * eps()))
           end
           alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
@@ -1395,9 +1395,9 @@ end
         if indicator.Plotting
           @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
           if isapprox(antidiffusive_flux1[v, i, j, element], 0.0, atol=eps())
-            coefficient = 1.0  # flux_limited is zero as well
+            coefficient = 1.0 # flux_limited is zero as well
           else
-            coefficient = flux_limited / antidiffusive_flux1[v, i, j, element]
+            coefficient = min(1, (flux_limited + sign(flux_limited) * eps()) / (antidiffusive_flux1[v, i, j, element] + sign(flux_limited) * eps()))
           end
           alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
@@ -1426,9 +1426,9 @@ end
         if indicator.Plotting
           @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
           if isapprox(antidiffusive_flux2[v, i, j, element], 0.0, atol=eps())
-            coefficient = 1.0  # flux_limited is zero as well
+            coefficient = 1.0 # flux_limited is zero as well
           else
-            coefficient = flux_limited / antidiffusive_flux2[v, i, j, element]
+            coefficient = min(1, (flux_limited + sign(flux_limited) * eps()) / (antidiffusive_flux2[v, i, j, element] + sign(flux_limited) * eps()))
           end
           alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
