@@ -418,8 +418,6 @@ function calc_gradient!(gradients, u_transformed, t,
     cache_parabolic, t, boundary_conditions_parabolic, mesh, equations_parabolic,
     dg.surface_integral, dg)
 
-  # TODO: parabolic; mortars
-
   # Calculate surface integrals
   @trixi_timeit timer() "surface integral" begin
     @unpack boundary_interpolation = dg.basis
