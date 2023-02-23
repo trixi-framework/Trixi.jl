@@ -50,7 +50,8 @@ boundary_conditions = boundary_condition_periodic
 boundary_conditions_parabolic = boundary_condition_periodic
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition_diffusive_convergence_test, solver;
+semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), 
+  initial_condition_diffusive_convergence_test, solver;
   boundary_conditions=(boundary_conditions, boundary_conditions_parabolic))
 
 
