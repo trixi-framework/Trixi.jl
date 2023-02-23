@@ -5,9 +5,9 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advection_velocity = 1.0e-1
+advection_velocity = 0.1
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
-diffusivity() = 1.0e-1
+diffusivity() = 0.1
 equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
