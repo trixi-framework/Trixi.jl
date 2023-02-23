@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear advection equation
+# semidiscretization of the linear advection diffusion equation
 
 advection_velocity = 0.1
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
