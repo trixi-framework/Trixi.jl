@@ -104,7 +104,7 @@ stepsize_callback = StepsizeCallback(cfl=2.0)
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
                         stepsize_callback)
 
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(equations.threshold_limiter,),
+stage_limiter! = PositivityPreservingLimiterShallowWater(thresholds=(equations.threshold_limiter,),
                                                      variables=(Trixi.waterheight,))
                                                     
 ###############################################################################

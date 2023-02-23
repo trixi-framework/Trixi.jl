@@ -103,7 +103,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 # run the simulation
 
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(equations.threshold_limiter,),
+stage_limiter! = PositivityPreservingLimiterShallowWater(thresholds=(equations.threshold_limiter,),
                                                      variables=(Trixi.waterheight,))
 
 sol = solve(ode, SSPRK43(stage_limiter!), dt=1.0,
