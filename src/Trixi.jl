@@ -227,7 +227,7 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax,
        IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven, NeuralNetworkCNN
 
-export PositivityPreservingLimiterZhangShu
+export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterShallowWater
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured

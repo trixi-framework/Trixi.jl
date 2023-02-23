@@ -106,7 +106,7 @@ save_solution = SaveSolutionCallback(interval=250,
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution)
 
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(equations.threshold_limiter,),
+stage_limiter! = PositivityPreservingLimiterShallowWater(thresholds=(equations.threshold_limiter,),
                                                      variables=(Trixi.waterheight,))
 
 ###############################################################################
