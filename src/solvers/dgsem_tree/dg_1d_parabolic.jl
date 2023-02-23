@@ -473,9 +473,6 @@ function create_cache_parabolic(mesh::TreeMesh{1}, equations_hyperbolic::Abstrac
 
   boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
 
-  # mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
-
-  # cache = (; elements, interfaces, boundaries, mortars)
   cache = (; elements, interfaces, boundaries, gradients, flux_viscous, u_transformed)
 
   # Add specialized parts of the cache required to compute the mortars etc.
