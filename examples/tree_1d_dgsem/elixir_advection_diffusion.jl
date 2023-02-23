@@ -19,7 +19,8 @@ coordinates_max =  pi # maximum coordinate
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
-                n_cells_max=30_000) # set maximum capacity of tree data structure
+                n_cells_max=30_000, # set maximum capacity of tree data structure
+                periodicity=true)
 
 function x_trans_periodic(x, domain_length = SVector(2*pi), center = SVector(0.0))
   x_normalized = x .- center
