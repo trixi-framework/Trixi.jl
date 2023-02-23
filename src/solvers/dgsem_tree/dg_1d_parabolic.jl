@@ -68,9 +68,6 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1}, equations_parabolic::Abstra
     cache_parabolic, t, boundary_conditions_parabolic, mesh, equations_parabolic,
     dg.surface_integral, dg)
 
-  # TODO: parabolic; extend to mortars
-  # @assert nmortars(dg, cache) == 0
-
   # Calculate surface integrals
   @trixi_timeit timer() "surface integral" calc_surface_integral!(
     du, u, mesh, equations_parabolic, dg.surface_integral, dg, cache_parabolic)
