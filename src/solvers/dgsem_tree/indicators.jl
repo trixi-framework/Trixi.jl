@@ -351,8 +351,8 @@ function Base.show(io::IO, indicator::IndicatorMCL)
   indicator.DensityAlphaForAll && print(io, "; dens alpha ∀")
   indicator.SequentialLimiter && print(io, "; seq")
   indicator.ConservativeLimiter && print(io, "; cons")
-  if indicator.PressurePositivityLimiterKuzmin 
-    if indicator. PressurePositivityLimiterKuzminExact 
+  if indicator.PressurePositivityLimiterKuzmin
+    if indicator. PressurePositivityLimiterKuzminExact
       print(io, "; pres (Kuzmin ex)")
     else
       print(io, "; pres (Kuzmin)")
@@ -373,18 +373,18 @@ function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIn
   @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
   variables = varnames(cons2cons, equations)
   for v in eachvariable(equations)
-    s = Symbol("shock_capturing_alpha_", variables[v])
-    node_variables[s] = alpha[v, ntuple(_ -> :, nvariables(equations) + 1)...]
+    s = Symbol("alpha_", variables[v])
+    node_variables[s] = alpha[v, ntuple(_ -> :, size(alpha, 2) + 1)...]
   end
 
   if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
     @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
-    node_variables[:shock_capturing_alpha_pressure] = alpha_pressure
+    node_variables[:alpha_pressure] = alpha_pressure
   end
 
   if indicator.SemiDiscEntropyLimiter
     @unpack alpha_entropy = indicator.cache.ContainerShockCapturingIndicator
-    node_variables[:shock_capturing_alpha_entropy] = alpha_entropy
+    node_variables[:alpha_entropy] = alpha_entropy
   end
 
   return nothing

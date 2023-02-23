@@ -1303,11 +1303,11 @@ end
       rho_limited_iim1 = lambda * bar_state_rho - antidiffusive_flux1[1, i, j, element]
       rho_limited_im1i = lambda * bar_state_rho + antidiffusive_flux1[1, i, j, element]
       for v in 2:nvariables(equations)
-        bar_states_phi = bar_states1[v, i, j, element]
+        bar_state_phi = bar_states1[v, i, j, element]
 
-        phi = bar_states_phi / bar_state_rho
+        phi = bar_state_phi / bar_state_rho
 
-        g = antidiffusive_flux1[v, i, j, element] + (lambda * bar_states_phi - rho_limited_im1i * phi)
+        g = antidiffusive_flux1[v, i, j, element] + (lambda * bar_state_phi - rho_limited_im1i * phi)
 
         if g > 0
           g_max = min(rho_limited_im1i * (var_max[v, i-1, j, element] - phi),
@@ -1330,7 +1330,7 @@ end
           alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
         end
-        antidiffusive_flux1[v, i, j, element] = (rho_limited_im1i * phi - lambda * bar_states_phi) + g_limited
+        antidiffusive_flux1[v, i, j, element] = (rho_limited_im1i * phi - lambda * bar_state_phi) + g_limited
       end
     end
 
@@ -1378,16 +1378,16 @@ end
     for j in eachnode(dg), i in 2:nnodes(dg)
       lambda = lambda1[i, j, element]
       for v in 2:nvariables(equations)
-        bar_state_rho = bar_states1[v, i, j, element]
+        bar_state_phi = bar_states1[v, i, j, element]
         # Limit density
         if antidiffusive_flux1[v, i, j, element] > 0
-          f_max = lambda * min(var_max[v, i-1, j, element] - bar_state_rho,
-                              bar_state_rho - var_min[v, i, j, element])
+          f_max = lambda * min(var_max[v, i-1, j, element] - bar_state_phi,
+                               bar_state_phi - var_min[v, i, j, element])
           f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
           flux_limited = min(antidiffusive_flux1[v, i, j, element], max(f_max, 0.0))
         else
-          f_min = lambda * max(var_min[v, i-1, j, element] - bar_state_rho,
-                              bar_state_rho - var_max[v, i, j, element])
+          f_min = lambda * max(var_min[v, i-1, j, element] - bar_state_phi,
+                               bar_state_phi - var_max[v, i, j, element])
           f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
           flux_limited = max(antidiffusive_flux1[v, i, j, element], min(f_min, 0.0))
         end
@@ -1409,16 +1409,16 @@ end
     for j in 2:nnodes(dg), i in eachnode(dg)
       lambda = lambda2[i, j, element]
       for v in 2:nvariables(equations)
-        bar_state_rho = bar_states2[v, i, j, element]
+        bar_state_phi = bar_states2[v, i, j, element]
         # Limit density
         if antidiffusive_flux2[v, i, j, element] > 0
-          f_max = lambda * min(var_max[v, i, j-1, element] - bar_state_rho,
-                              bar_state_rho - var_min[v, i, j, element])
+          f_max = lambda * min(var_max[v, i, j-1, element] - bar_state_phi,
+                               bar_state_phi - var_min[v, i, j, element])
           f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
           flux_limited = min(antidiffusive_flux2[v, i, j, element], max(f_max, 0.0))
         else
-          f_min = lambda * max(var_min[v, i, j-1, element] - bar_state_rho,
-                              bar_state_rho - var_max[v, i, j, element])
+          f_min = lambda * max(var_min[v, i, j-1, element] - bar_state_phi,
+                               bar_state_phi - var_max[v, i, j, element])
           f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
           flux_limited = max(antidiffusive_flux2[v, i, j, element], min(f_min, 0.0))
         end
@@ -1710,10 +1710,6 @@ end
   # TODO: This is a very inefficient function. We compute the entropy four times at each node.
   # TODO: For now, this only works for Cartesian meshes.
   if indicator.SemiDiscEntropyLimiter
-    @unpack alpha_entropy = indicator.cache.ContainerShockCapturingIndicator
-    if indicator.Plotting
-      alpha_entropy[:, :, element] .= one(eltype(alpha_entropy))
-    end
     for j in eachnode(dg), i in 2:nnodes(dg)
       antidiffusive_flux_local = get_node_vars(antidiffusive_flux1, equations, dg, i, j, element)
       u_local    = get_node_vars(u, equations, dg, i,   j, element)
@@ -1741,6 +1737,7 @@ end
       if (entProd_FV + delta_entProd > 0.0) && (delta_entProd != 0.0)
         alpha = min(1.0, (abs(entProd_FV)+eps()) / (abs(delta_entProd)+eps()))
         if indicator.Plotting
+          @unpack alpha_entropy = indicator.cache.ContainerShockCapturingIndicator
           alpha_entropy[i-1, j, element] = min(alpha_entropy[i-1, j, element], alpha)
           alpha_entropy[i,   j, element] = min(alpha_entropy[i,   j, element], alpha)
         end
