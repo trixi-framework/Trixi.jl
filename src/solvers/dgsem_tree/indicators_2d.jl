@@ -939,7 +939,7 @@ end
 @inline function save_alpha(indicator::IndicatorMCL, time, iter, semi, mesh::TreeMesh2D, output_directory)
   _, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack weights = dg.basis
-  @unpack alpha, alpha_pressure, alpha_eff, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha, alpha_pressure, alpha_entropy, alpha_eff, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
 
   # Save the alphas every x iterations
   x = 1
@@ -957,6 +957,9 @@ end
       if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
         print(f, ", alpha_min_pressure, alpha_avg_pressure")
       end
+      if indicator.SemiDiscEntropyLimiter
+        print(f, ", alpha_min_entropy, alpha_avg_entropy")
+      end
       println(f)
     end
     open("$output_directory/alphas_mean.txt", "a") do f;
@@ -971,7 +974,9 @@ end
     return nothing
   end
 
-  alpha_avg = zeros(eltype(alpha), n_vars + (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin))
+  alpha_avg = zeros(eltype(alpha), n_vars +
+                                   (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin) +
+                                   indicator.SemiDiscEntropyLimiter)
   alpha_mean_avg = zeros(eltype(alpha), n_vars)
   alpha_eff_avg = zeros(eltype(alpha), n_vars)
   total_volume = zero(eltype(alpha))
@@ -986,6 +991,10 @@ end
       if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
         alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] * alpha_pressure[i, j, element]
       end
+      if indicator.SemiDiscEntropyLimiter
+        k = n_vars + (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin) + 1
+        alpha_avg[k] += jacobian * weights[i] * weights[j] * alpha_entropy[i, j, element]
+      end
       total_volume += jacobian * weights[i] * weights[j]
     end
   end
@@ -998,6 +1007,10 @@ end
     end
     if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
       print(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
+    end
+    if indicator.SemiDiscEntropyLimiter
+      k = n_vars + (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin) + 1
+      print(f, ", ", minimum(alpha_entropy), ", ", alpha_avg[k] / total_volume)
     end
     println(f)
   end
