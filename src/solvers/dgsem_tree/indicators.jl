@@ -399,6 +399,18 @@ function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIn
     node_variables[s] = copy(alpha_mean[v, ntuple(_ -> :, size(alpha, 2) + 1)...])
   end
 
+  @unpack alpha_mean_pressure = indicator.cache.ContainerShockCapturingIndicator
+  if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+    @unpack alpha_mean_pressure = indicator.cache.ContainerShockCapturingIndicator
+    node_variables[:alpha_mean_pressure] = alpha_mean_pressure
+  end
+
+  @unpack alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+  if indicator.SemiDiscEntropyLimiter
+    @unpack alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+    node_variables[:alpha_mean_entropy] = alpha_mean_entropy
+  end
+
   return nothing
 end
 

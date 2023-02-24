@@ -1383,6 +1383,8 @@ mutable struct ContainerShockCapturingIndicatorMCL{uEltype<:Real}
   alpha_entropy::Array{uEltype, 3}          # [i, j, element]
   alpha_eff::Array{uEltype, 4}              # [variable, i, j, element]
   alpha_mean::Array{uEltype, 4}             # [variable, i, j, element]
+  alpha_mean_pressure::Array{uEltype, 3}             # [variable, i, j, element]
+  alpha_mean_entropy::Array{uEltype, 3}             # [variable, i, j, element]
   # internal `resize!`able storage
   _var_min::Vector{uEltype}
   _var_max::Vector{uEltype}
@@ -1391,6 +1393,8 @@ mutable struct ContainerShockCapturingIndicatorMCL{uEltype<:Real}
   _alpha_entropy::Vector{uEltype}
   _alpha_eff::Vector{uEltype}
   _alpha_mean::Vector{uEltype}
+  _alpha_mean_pressure::Vector{uEltype}
+  _alpha_mean_entropy::Vector{uEltype}
 end
 
 function ContainerShockCapturingIndicatorMCL{uEltype}(capacity::Integer, n_variables, n_nodes) where uEltype<:Real
@@ -1417,8 +1421,14 @@ function ContainerShockCapturingIndicatorMCL{uEltype}(capacity::Integer, n_varia
   _alpha_mean = fill(nan_uEltype, n_variables * n_nodes * n_nodes * capacity)
   alpha_mean = unsafe_wrap(Array, pointer(_alpha_mean), (n_variables, n_nodes, n_nodes, capacity))
 
-  return ContainerShockCapturingIndicatorMCL{uEltype}(var_min, var_max, alpha, alpha_pressure, alpha_entropy, alpha_eff, alpha_mean,
-                                                      _var_min, _var_max, _alpha, _alpha_pressure, _alpha_entropy, _alpha_eff, _alpha_mean)
+  _alpha_mean_pressure = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+  alpha_mean_pressure = unsafe_wrap(Array, pointer(_alpha_mean_pressure), (n_nodes, n_nodes, capacity))
+
+  _alpha_mean_entropy = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+  alpha_mean_entropy = unsafe_wrap(Array, pointer(_alpha_mean_entropy), (n_nodes, n_nodes, capacity))
+
+  return ContainerShockCapturingIndicatorMCL{uEltype}(var_min, var_max, alpha, alpha_pressure, alpha_entropy, alpha_eff, alpha_mean, alpha_mean_pressure, alpha_mean_entropy,
+                                                      _var_min, _var_max, _alpha, _alpha_pressure, _alpha_entropy, _alpha_eff, _alpha_mean, _alpha_mean_pressure, _alpha_mean_entropy)
 end
 
 nvariables(container::ContainerShockCapturingIndicatorMCL) = size(container.var_min, 1)
@@ -1458,6 +1468,14 @@ function Base.resize!(container::ContainerShockCapturingIndicatorMCL, capacity)
   @unpack _alpha_mean = container
   resize!(_alpha_mean, n_variables * n_nodes * n_nodes * capacity)
   container.alpha_mean = unsafe_wrap(Array, pointer(_alpha_mean), (n_variables, n_nodes, n_nodes, capacity))
+
+  @unpack _alpha_mean_pressure = container
+  resize!(_alpha_mean_pressure, n_nodes * n_nodes * capacity)
+  container.alpha_mean_pressure = unsafe_wrap(Array, pointer(_alpha_mean_pressure), (n_nodes, n_nodes, capacity))
+
+  @unpack _alpha_mean_entropy = container
+  resize!(_alpha_mean_entropy, n_nodes * n_nodes * capacity)
+  container.alpha_mean_entropy = unsafe_wrap(Array, pointer(_alpha_mean_entropy), (n_nodes, n_nodes, capacity))
 
   return nothing
 end
