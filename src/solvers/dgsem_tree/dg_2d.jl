@@ -1647,17 +1647,18 @@ end
         R_max += max(0, 0.5 * flux_velocity -
                         antidiffusive_flux1[4, i, j, element] * antidiffusive_flux1[1, i, j, element])
       end
+      alpha = 1 # Initialize alpha for plotting
       if R_max > Q
         alpha = Q / R_max
-        if indicator.Plotting
-          alpha_pressure[i-1, j, element] = min(alpha_pressure[i-1, j, element], alpha)
-          alpha_pressure[i,   j, element] = min(alpha_pressure[i,   j, element], alpha)
-          alpha_mean_pressure[i-1, j, element] += alpha
-          alpha_mean_pressure[i,   j, element] += alpha
-        end
         for v in eachvariable(equations)
           antidiffusive_flux1[v, i, j, element] *= alpha
         end
+      end
+      if indicator.Plotting
+        alpha_pressure[i-1, j, element] = min(alpha_pressure[i-1, j, element], alpha)
+        alpha_pressure[i,   j, element] = min(alpha_pressure[i,   j, element], alpha)
+        alpha_mean_pressure[i-1, j, element] += alpha
+        alpha_mean_pressure[i,   j, element] += alpha
       end
     end
 
@@ -1686,18 +1687,18 @@ end
         R_max += max(0, 0.5 * flux_velocity -
                         antidiffusive_flux2[4, i, j, element] * antidiffusive_flux2[1, i, j, element])
       end
-
+      alpha = 1 # Initialize alpha for plotting
       if R_max > Q
         alpha = Q / R_max
-        if indicator.Plotting
-          alpha_pressure[i, j-1, element] = min(alpha_pressure[i, j-1, element], alpha)
-          alpha_pressure[i,   j, element] = min(alpha_pressure[i,   j, element], alpha)
-          alpha_mean_pressure[i, j-1, element] += alpha
-          alpha_mean_pressure[i,   j, element] += alpha
-        end
         for v in eachvariable(equations)
           antidiffusive_flux2[v, i, j, element] *= alpha
         end
+      end
+      if indicator.Plotting
+        alpha_pressure[i, j-1, element] = min(alpha_pressure[i, j-1, element], alpha)
+        alpha_pressure[i,   j, element] = min(alpha_pressure[i,   j, element], alpha)
+        alpha_mean_pressure[i, j-1, element] += alpha
+        alpha_mean_pressure[i,   j, element] += alpha
       end
     end
     if indicator.Plotting
@@ -1847,18 +1848,19 @@ end
       entProd_FV = dot(delta_v, fstar1[:, i, j]) - delta_psi
       delta_entProd = dot(delta_v, antidiffusive_flux_local)
 
+      alpha = 1 # Initialize alpha for plotting
       if (entProd_FV + delta_entProd > 0.0) && (delta_entProd != 0.0)
         alpha = min(1.0, (abs(entProd_FV)+eps()) / (abs(delta_entProd)+eps()))
-        if indicator.Plotting
-          @unpack alpha_entropy, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
-          alpha_entropy[i-1, j, element] = min(alpha_entropy[i-1, j, element], alpha)
-          alpha_entropy[i,   j, element] = min(alpha_entropy[i,   j, element], alpha)
-          alpha_mean_entropy[i-1, j, element] += alpha
-          alpha_mean_entropy[i,   j, element] += alpha
-        end
         for v in eachvariable(equations)
           antidiffusive_flux1[v, i, j, element] = alpha * antidiffusive_flux1[v, i, j, element]
         end
+      end
+      if indicator.Plotting
+        @unpack alpha_entropy, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+        alpha_entropy[i-1, j, element] = min(alpha_entropy[i-1, j, element], alpha)
+        alpha_entropy[i,   j, element] = min(alpha_entropy[i,   j, element], alpha)
+        alpha_mean_entropy[i-1, j, element] += alpha
+        alpha_mean_entropy[i,   j, element] += alpha
       end
     end
 
@@ -1886,18 +1888,19 @@ end
       entProd_FV = dot(delta_v, fstar2[:, i, j]) - delta_psi
       delta_entProd = dot(delta_v, antidiffusive_flux_local)
 
+      alpha = 1 # Initialize alpha for plotting
       if (entProd_FV + delta_entProd > 0.0) && (delta_entProd != 0.0)
         alpha = min(1.0, (abs(entProd_FV)+eps()) / (abs(delta_entProd)+eps()))
-        if indicator.Plotting
-          @unpack alpha_entropy, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
-          alpha_entropy[i, j-1, element] = min(alpha_entropy[i, j-1, element], alpha)
-          alpha_entropy[i,   j, element] = min(alpha_entropy[i,   j, element], alpha)
-          alpha_mean_entropy[i, j-1, element] += alpha
-          alpha_mean_entropy[i,   j, element] += alpha
-        end
         for v in eachvariable(equations)
           antidiffusive_flux2[v, i, j, element] = alpha * antidiffusive_flux2[v, i, j, element]
         end
+      end
+      if indicator.Plotting
+        @unpack alpha_entropy, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+        alpha_entropy[i, j-1, element] = min(alpha_entropy[i, j-1, element], alpha)
+        alpha_entropy[i,   j, element] = min(alpha_entropy[i,   j, element], alpha)
+        alpha_mean_entropy[i, j-1, element] += alpha
+        alpha_mean_entropy[i,   j, element] += alpha
       end
     end
     if indicator.Plotting
