@@ -1202,12 +1202,12 @@ end
   # This does not really make sense in theory and causes problems for the visualization.
   # Therefore we make sure that the flux keeps its sign during limiting.
 
-  # TODO: Allocations!!!
-  P = zeros(eltype(u), 4, nnodes(dg), nnodes(dg))
-  Q = zeros(eltype(u), 4, nnodes(dg), nnodes(dg))
-
-  @unpack alpha_mean, alpha_mean_pressure, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
   if indicator.Plotting
+    # TODO: Allocations!!!
+    P = zeros(eltype(u), 4, nnodes(dg), nnodes(dg))
+    Q = zeros(eltype(u), 4, nnodes(dg), nnodes(dg))
+
+    @unpack alpha_mean, alpha_mean_pressure, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
     for j in eachnode(dg), i in eachnode(dg)
       alpha_mean[:, i, j, element] .= zero(eltype(alpha_mean))
       alpha_mean_pressure[i, j, element] = zero(eltype(alpha_mean_pressure))
@@ -1235,14 +1235,6 @@ end
       end
 
       if indicator.Plotting || indicator.DensityAlphaForAll
-        # left node
-        aux = abs(lambda * (bar_state_rho - u[1, i-1, j, element]))
-        P[1, i-1, j] += aux + abs(flux_limited)
-        Q[1, i-1, j] += aux + abs(antidiffusive_flux1[1, i, j, element])
-        # right node
-        aux = abs(lambda * (bar_state_rho - u[1, i, j, element]))
-        P[1, i, j] += aux + abs(flux_limited)
-        Q[1, i, j] += aux + abs(antidiffusive_flux1[1, i, j, element])
         if isapprox(antidiffusive_flux1[1, i, j, element], 0.0, atol=eps())
           coefficient = 1.0 # flux_limited is zero as well
         else
@@ -1250,6 +1242,15 @@ end
         end
 
         if indicator.Plotting
+          # left node
+          aux = abs(lambda * (bar_state_rho - u[1, i-1, j, element]))
+          P[1, i-1, j] += aux + abs(flux_limited)
+          Q[1, i-1, j] += aux + abs(antidiffusive_flux1[1, i, j, element])
+          # right node
+          aux = abs(lambda * (bar_state_rho - u[1, i, j, element]))
+          P[1, i, j] += aux + abs(flux_limited)
+          Q[1, i, j] += aux + abs(antidiffusive_flux1[1, i, j, element])
+
           @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
@@ -1285,14 +1286,6 @@ end
       end
 
       if indicator.Plotting || indicator.DensityAlphaForAll
-        # left node
-        aux = abs(lambda * (bar_state_rho - u[1, i, j-1, element]))
-        P[1, i, j-1] += aux + abs(flux_limited)
-        Q[1, i, j-1] += aux + abs(antidiffusive_flux2[1, i, j, element])
-        # right node
-        aux = abs(lambda * (bar_state_rho - u[1, i, j, element]))
-        P[1, i, j] += aux + abs(flux_limited)
-        Q[1, i, j] += aux + abs(antidiffusive_flux2[1, i, j, element])
         if isapprox(antidiffusive_flux2[1, i, j, element], 0.0, atol=eps())
           coefficient = 1.0 # flux_limited is zero as well
         else
@@ -1300,6 +1293,15 @@ end
         end
 
         if indicator.Plotting
+          # left node
+          aux = abs(lambda * (bar_state_rho - u[1, i, j-1, element]))
+          P[1, i, j-1] += aux + abs(flux_limited)
+          Q[1, i, j-1] += aux + abs(antidiffusive_flux2[1, i, j, element])
+          # right node
+          aux = abs(lambda * (bar_state_rho - u[1, i, j, element]))
+          P[1, i, j] += aux + abs(flux_limited)
+          Q[1, i, j] += aux + abs(antidiffusive_flux2[1, i, j, element])
+
           @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
@@ -1346,7 +1348,6 @@ end
           g_limited = max(g, min(g_min, 0.0))
         end
         if indicator.Plotting
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           # left node
           aux = abs(lambda * (bar_state_phi - u[v, i-1, j, element]))
           P[v, i-1, j] += aux + abs(g_limited)
@@ -1355,11 +1356,13 @@ end
           aux = abs(lambda * (bar_state_phi - u[v, i, j, element]))
           P[v, i, j] += aux + abs(g_limited)
           Q[v, i, j] += aux + abs(g)
+
           if isapprox(g, 0.0, atol=eps())
             coefficient = 1.0 # g_limited is zero as well
           else
             coefficient = min(1, (g_limited + sign(g_limited) * eps()) / (g + sign(g_limited) * eps()))
           end
+          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
           alpha_mean[v, i-1, j, element] += coefficient
@@ -1395,7 +1398,6 @@ end
           g_limited = max(g, min(g_min, 0.0))
         end
         if indicator.Plotting
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           # left node
           aux = abs(lambda * (bar_state_phi - u[v, i, j-1, element]))
           P[v, i, j-1] += aux + abs(g_limited)
@@ -1404,11 +1406,13 @@ end
           aux = abs(lambda * (bar_state_phi - u[v, i, j, element]))
           P[v, i, j] += aux + abs(g_limited)
           Q[v, i, j] += aux + abs(g)
+
           if isapprox(g, 0.0, atol=eps())
             coefficient = 1.0 # g_limited is zero as well
           else
             coefficient = min(1, (g_limited + sign(g_limited) * eps()) / (g + sign(g_limited) * eps()))
           end
+          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
           alpha_mean[v, i, j-1, element] += coefficient
@@ -1438,7 +1442,6 @@ end
         end
 
         if indicator.Plotting
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           # left node
           aux = abs(lambda * (bar_state_phi - u[v, i-1, j, element]))
           P[v, i-1, j] += aux + abs(flux_limited)
@@ -1447,11 +1450,13 @@ end
           aux = abs(lambda * (bar_state_phi - u[v, i, j, element]))
           P[v, i, j] += aux + abs(flux_limited)
           Q[v, i, j] += aux + abs(antidiffusive_flux1[v, i, j, element])
+
           if isapprox(antidiffusive_flux1[v, i, j, element], 0.0, atol=eps())
             coefficient = 1.0 # flux_limited is zero as well
           else
             coefficient = min(1, (flux_limited + sign(flux_limited) * eps()) / (antidiffusive_flux1[v, i, j, element] + sign(flux_limited) * eps()))
           end
+          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
           alpha_mean[v, i-1, j, element] += coefficient
@@ -1479,7 +1484,6 @@ end
         end
 
         if indicator.Plotting
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           # left node
           aux = abs(lambda * (bar_state_phi - u[v, i, j-1, element]))
           P[v, i, j-1] += aux + abs(flux_limited)
@@ -1488,11 +1492,13 @@ end
           aux = abs(lambda * (bar_state_phi - u[v, i, j, element]))
           P[v, i, j] += aux + abs(flux_limited)
           Q[v, i, j] += aux + abs(antidiffusive_flux2[v, i, j, element])
+
           if isapprox(antidiffusive_flux2[v, i, j, element], 0.0, atol=eps())
             coefficient = 1.0 # flux_limited is zero as well
           else
             coefficient = min(1, (flux_limited + sign(flux_limited) * eps()) / (antidiffusive_flux2[v, i, j, element] + sign(flux_limited) * eps()))
           end
+          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
           alpha_mean[v, i, j-1, element] += coefficient
@@ -1510,35 +1516,6 @@ end
       for v in eachvariable(equations)
         alpha_eff[v, i, j, element] = P[v, i, j] / (Q[v, i, j] + eps())
       end
-    end
-  end
-
-  if indicator.Plotting
-    @unpack alpha_mean = indicator.cache.ContainerShockCapturingIndicator
-    # Interfaces don't contribute
-    # for j in 2:nnodes(dg)-1, i in 2:nnodes(dg)-1
-    #   alpha_mean[:, i, j, element] ./= 4
-    # end
-    # for i in 2:nnodes(dg)-1
-    #   alpha_mean[:, i, 1, element] ./= 3.0
-    #   alpha_mean[:, i, nnodes(dg), element] ./= 3.0
-    #   alpha_mean[:, 1, i, element] ./= 3.0
-    #   alpha_mean[:, nnodes(dg), i, element] ./= 3.0
-    # end
-    # alpha_mean[:, 1, 1, element] ./= 2.0
-    # alpha_mean[:, nnodes(dg), nnodes(dg), element] ./= 2.0
-    # alpha_mean[:, 1, nnodes(dg), element] ./= 2.0
-    # alpha_mean[:, nnodes(dg), 1, element] ./= 2.0
-
-    # Interfaces contribute with 1.0
-    for i in eachnode(dg)
-      alpha_mean[:, i, 1, element] .+= 1.0
-      alpha_mean[:, i, nnodes(dg), element] .+= 1.0
-      alpha_mean[:, 1, i, element] .+= 1.0
-      alpha_mean[:, nnodes(dg), i, element] .+= 1.0
-    end
-    for j in eachnode(dg), i in eachnode(dg)
-      alpha_mean[:, i, j, element] ./= 4
     end
   end
 
@@ -1566,9 +1543,13 @@ end
         end
 
         if indicator.Plotting
-          @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
+          if !indicator.DensityLimiter
+            alpha_mean[1, i-1, j, element] += coefficient
+            alpha_mean[1, i,   j, element] += coefficient
+          end
         end
       end
       antidiffusive_flux1[1, i, j, element] = flux_limited
@@ -1603,9 +1584,13 @@ end
         end
 
         if indicator.Plotting
-          @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
+          if !indicator.DensityLimiter
+            alpha_mean[1, i, j-1, element] += coefficient
+            alpha_mean[1, i, j,   element] += coefficient
+          end
         end
       end
       antidiffusive_flux2[1, i, j, element] = flux_limited
@@ -1618,6 +1603,21 @@ end
       end
     end
   end #if indicator.DensityPositivityLimiter
+
+  # Divide alpha_mean by number of additions
+  if indicator.Plotting
+    @unpack alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+    # Interfaces contribute with 1.0
+    for i in eachnode(dg)
+      alpha_mean[:, i, 1, element] .+= 1.0
+      alpha_mean[:, i, nnodes(dg), element] .+= 1.0
+      alpha_mean[:, 1, i, element] .+= 1.0
+      alpha_mean[:, nnodes(dg), i, element] .+= 1.0
+    end
+    for j in eachnode(dg), i in eachnode(dg)
+      alpha_mean[:, i, j, element] ./= 4
+    end
+  end
 
   # Limit pressure à la Kuzmin
   if indicator.PressurePositivityLimiterKuzmin
