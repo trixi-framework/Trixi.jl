@@ -1921,7 +1921,22 @@ end
   return nothing
 end
 
-get_boundary_outer_state(u_inner, cache, t, boundary_condition, orientation_or_normal, direction, equations, dg, indices...) = u_inner
+@inline function get_boundary_outer_state(u_inner, cache, t, boundary_condition, orientation_or_normal, direction, equations, dg, indices...)
+  if boundary_condition == boundary_condition_slip_wall #boundary_condition_reflecting_euler_wall
+    if orientation_or_normal isa AbstractArray
+      u_rotate = rotate_to_x(u_inner, orientation_or_normal, equations)
+
+      return SVector(u_inner[1],
+                     u_inner[2] - 2.0 * u_rotate[2],
+                     u_inner[3] - 2.0 * u_rotate[3],
+                     u_inner[4])
+    else # orientation_or_normal isa Integer
+      return SVector(u_inner[1], -u_inner[2], -u_inner[3], u_inner[4])
+    end
+  end
+
+  return u_inner
+end
 
 @inline function get_boundary_outer_state(u_inner, cache, t, boundary_condition::BoundaryConditionDirichlet, orientation_or_normal, direction, equations, dg, indices...)
   @unpack node_coordinates = cache.elements
