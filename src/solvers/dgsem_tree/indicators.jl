@@ -222,11 +222,11 @@ function IndicatorIDP(equations::AbstractEquations, basis;
                       IDPPositivity=false,
                       IDPSpecEntropy=false,
                       IDPMathEntropy=false,
-                      BarStates=false,
+                      BarStates=true,
                       positCorrFactor=0.1, IDPMaxIter=10,
                       newton_tol=(1.0e-12, 1.0e-14), IDP_gamma=2*ndims(equations),
                       IDPCheckBounds=false,
-                      indicator_smooth=true, thr_smooth=0.1, variable_smooth=density_pressure)
+                      indicator_smooth=false, thr_smooth=0.1, variable_smooth=density_pressure)
 
   if IDPMathEntropy && IDPSpecEntropy
     error("Only one of the two can be selected: IDPMathEntropy/IDPSpecEntropy")

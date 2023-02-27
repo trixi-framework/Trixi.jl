@@ -17,7 +17,10 @@ indicator_sc = IndicatorIDP(equations, basis;
                             IDPDensityTVD=false,
                             IDPPressureTVD=false,
                             IDPPositivity=false,
-                            indicator_smooth=false)
+                            IDPSpecEntropy=false,
+                            indicator_smooth=false,
+                            BarStates=true,
+                            IDPCheckBounds=false)
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,
                                                       volume_flux_fv=surface_flux)
@@ -62,17 +65,17 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=100000,
+save_solution = SaveSolutionCallback(interval=10000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
-                        stepsize_callback)
+                        stepsize_callback,
+                        save_solution)
 
 
 ###############################################################################

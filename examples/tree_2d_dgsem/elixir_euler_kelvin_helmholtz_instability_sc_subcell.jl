@@ -38,7 +38,10 @@ basis = LobattoLegendreBasis(polydeg)
 
 indicator_sc = IndicatorIDP(equations, basis;
                             IDPPositivity=true,
-                            indicator_smooth=false)
+                            IDPDensityTVD=false,
+                            IDPSpecEntropy=false,
+                            BarStates=true,
+                            IDPCheckBounds=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -68,12 +71,15 @@ save_solution = SaveSolutionCallback(interval=5000,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.3)
+save_restart = SaveRestartCallback(interval=50000,
+                                   save_final_restart=true)
+
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
-                        stepsize_callback)
+                        stepsize_callback,
+                        save_restart, save_solution)
 
 
 ###############################################################################

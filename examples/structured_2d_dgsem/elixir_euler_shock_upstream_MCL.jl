@@ -36,13 +36,16 @@ volume_flux  = flux_ranocha
 polydeg = 5
 basis = LobattoLegendreBasis(polydeg)
 
-indicator_sc = IndicatorIDP(equations, basis;
-                            IDPDensityTVD=true,
-                            IDPPositivity=false,
-                            IDPSpecEntropy=true,
-                            IDPMaxIter=100,
-                            BarStates=true,
-                            IDPCheckBounds=true)
+indicator_sc = IndicatorMCL(equations, basis;
+                            DensityLimiter=true,
+                            DensityAlphaForAll=false,
+                            SequentialLimiter=true,
+                            ConservativeLimiter=false,
+                            PressurePositivityLimiterKuzmin=false, PressurePositivityLimiterKuzminExact=false,
+                            DensityPositivityLimiter=false,
+                            SemiDiscEntropyLimiter=false,
+                            IDPCheckBounds=true,
+                            Plotting=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -115,12 +118,12 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=5000,
+save_solution = SaveSolutionCallback(interval=2000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

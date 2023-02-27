@@ -38,19 +38,17 @@ boundary_conditions = (
                       )
 
 surface_flux = flux_lax_friedrichs # HLLC needs more shock capturing (alpha_max)
-volume_flux  = flux_chandrashekar # works with Chandrashekar flux as well
+volume_flux  = flux_chandrashekar # works with Ranocha flux as well
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example
 indicator_sc = IndicatorIDP(equations, basis;
                             IDPDensityTVD=true,
-                            IDPPressureTVD=true,
                             IDPSpecEntropy=true,
-                            IDPPositivity=true,
                             IDPCheckBounds=true,
-                            IDPMaxIter=25,
-                            indicator_smooth=true, thr_smooth=0.05)
+                            BarStates=true,
+                            IDPMaxIter=25)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -77,17 +75,17 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=5000,
+save_solution = SaveSolutionCallback(interval=1000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.1)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
-                        stepsize_callback)
+                        stepsize_callback,
+                        save_solution)
 
 ###############################################################################
 # run the simulation

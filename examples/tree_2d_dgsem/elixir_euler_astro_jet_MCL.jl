@@ -38,14 +38,19 @@ boundary_conditions = (
                       )
 
 surface_flux = flux_lax_friedrichs # HLLC needs more shock capturing (alpha_max)
-volume_flux  = flux_ranocha # works with Chandrashekar flux as well
+volume_flux  = flux_chandrashekar # works with Ranocha flux as well
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example
 indicator_sc = IndicatorMCL(equations, basis;
+                            DensityLimiter=true,
+                            DensityAlphaForAll=false,
+                            SequentialLimiter=true,
+                            PressurePositivityLimiterKuzmin=false,
+                            DensityPositivityLimiter=false,
+                            SemiDiscEntropyLimiter=false,
                             IDPCheckBounds=true,
-                            IDPPressure=true,
                             Plotting=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
@@ -55,7 +60,7 @@ coordinates_min = (-0.5, -0.5)
 coordinates_max = ( 0.5,  0.5)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=6,
+                initial_refinement_level=8,
                 periodicity=(false,true),
                 n_cells_max=100_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, boundary_conditions=boundary_conditions)
@@ -78,12 +83,12 @@ save_solution = SaveSolutionCallback(interval=5000,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
-                        stepsize_callback)
+                        stepsize_callback,
+                        save_solution)
 
 ###############################################################################
 # run the simulation

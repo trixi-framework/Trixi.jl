@@ -15,8 +15,8 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorIDP(equations, basis;
                             IDPDensityTVD=true,
-                            IDPPressureTVD=true,
                             IDPPositivity=false,
+                            BarStates=true,
                             indicator_smooth=true)
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,
@@ -46,20 +46,17 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
-
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
-                        stepsize_callback)
+                        stepsize_callback,
+                        save_solution)
 ###############################################################################
 # run the simulation
 
