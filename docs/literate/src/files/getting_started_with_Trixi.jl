@@ -62,8 +62,10 @@
 # - Invoke Julia executing *julia*.
 # - Execute following commands:
 
-import Pkg
-Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
+# ````
+# import Pkg
+# Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
+# ````
 
 # Now you have installed all this packages.
 # [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl) is a visualization tool, 
@@ -95,8 +97,10 @@ Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
 # ````
 # - Run following commands in Julia REPL:
 
-import Pkg; Pkg.instantiate()
-Pkg.add(["Trixi2Vtk", "Plots", "OrdinaryDiffEq"])
+# ````
+# import Pkg; Pkg.instantiate()
+# Pkg.add(["Trixi2Vtk", "Plots", "OrdinaryDiffEq"])
+# ````
 
 # Now you already installed Trixi from your local clone. Note that if you installed Trixi this way,
 # you always have to start Julia with the ````--project```` flag set to your local Trixi clone, e.g.,
@@ -129,17 +133,23 @@ Pkg.add(["Trixi2Vtk", "Plots", "OrdinaryDiffEq"])
 # [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples), that can be taken
 # as basis for your future investigations.
 
-# Now execute one of them using *trixi_include(...)* function. *trixi_include(...)* expects
-# a single string argument with the path to a Trixi elixir, i.e., a text file containing Julia
-# code necessary to set up and run a simulation. *default_example()* returns the path to an example
+# Now execute one of them using *include(...)* function. *include(...)* expects
+# a single string argument with the path to a text file containing Julia code. 
+# *default_example()* returns the path to an example
 # elixir with a short, two-dimensional problem setup. *plot(sol)* builds a graphical representation
 # of the solution.
 
-# Invoke Julia in terminal. (Open Terminal: *Win+R* and enter *cmd*, invoke Julia in terminal: *julia*).
+# Invoke Julia in terminal. (Open Terminal: *Win+R* and enter *cmd*, invoke Julia in terminal: 
+# *julia*).
 # And execute following code.  
 
 using Trixi
-trixi_include(default_example())
+include(default_example())
+
+# To aobserve result of computation, we need to use Plots package and function *plot()*, that
+# builds a graphical representation of the solution. *sol* is a variable defined in
+# default_example() and contains solution.
+
 using Plots
 plot(sol)
 
@@ -190,7 +200,7 @@ get_examples()
 # ````
 # initial_condition_sine_wave(x, t, equations) =
 # SVector(1.0 + 0.5 * cos(2*pi * sum(x - equations.advection_velocity * t)))
-# semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+# semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
 # ````
 # - Execute following code one more time, but instead of *path_to_file* paste the path to the
 # elixir_advection_basic.jl file from current folder, for example *"./elixir_advection_basic.jl"*.
