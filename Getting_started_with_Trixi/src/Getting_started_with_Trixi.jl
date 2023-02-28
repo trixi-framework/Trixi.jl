@@ -85,7 +85,7 @@
 # [`Github website`](https://github.com/join).
 # - Download and install [`Github Desktop`](https://desktop.github.com/) and then login into
 # your account.
-# - Open an installed Github Desktop, type *Ctrl+Shoft+O*.
+# - Open an installed Github Desktop, type *Ctrl+Shift+O*.
 # - In opened window paste *trixi-framework/Trixi.jl* and choose path to a folder, where you want
 # to save Trixi. Then click *Clone* and Trixi will be cloned to PC. 
 
@@ -136,8 +136,7 @@
 # Now execute one of them using *include(...)* function. *include(...)* expects
 # a single string argument with the path to a text file containing Julia code. 
 # *default_example()* returns the path to an example
-# elixir with a short, two-dimensional problem setup. *plot(sol)* builds a graphical representation
-# of the solution.
+# elixir with a short, two-dimensional problem setup.
 
 # Invoke Julia in terminal. (Open Terminal: *Win+R* and enter *cmd*, invoke Julia in terminal: 
 # *julia*).
@@ -146,9 +145,9 @@
 using Trixi
 include(default_example())
 
-# To aobserve result of computation, we need to use Plots package and function *plot()*, that
+# To observe result of computation, we need to use *Plots* package and function *plot()*, that
 # builds a graphical representation of the solution. *sol* is a variable defined in
-# default_example() and contains solution.
+# default_example() and it contains solution of the executed example.
 
 using Plots
 plot(sol)
