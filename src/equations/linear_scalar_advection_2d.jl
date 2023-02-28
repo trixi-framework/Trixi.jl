@@ -267,4 +267,37 @@ end
 @inline energy_total(u, equation::LinearScalarAdvectionEquation2D) = energy_total(u[1], equation)
 
 
+# Coupling fluxes.
+struct CouplingEquation{RealT<:Real} <: AbstractLinearScalarAdvectionEquation{2, 2}
+  coupling_strength::RealT
+end
+
+function CouplingEquation(a::NTuple{2,<:Real})
+  CouplingEquation(a)
+end
+
+function CouplingEquation(a1::Real, a2::Real)
+  CouplingEquation(SVector(a1, a2))
+end
+
+varnames(::typeof(cons2cons), ::CouplingEquation) = ("scalar_a", "scalar_b")
+varnames(::typeof(cons2prim), ::CouplingEquation) = ("scalar_a", "scalar_b" )
+
+# Calculate 2D flux for a single point
+@inline function flux(u, orientation::Integer, equation::CouplingEquation)
+  scalar_a, scalar_b = u
+
+  return scalar_a * scalar_b * equation.coupling_strength
+  # return SVector(scalar_a * scalar_b * equation.coupling_strength, scalar_a * scalar_b * equation.coupling_strength)
+end
+
+# Calculate 2D flux for a single point in the normal direction
+# Note, this directional vector is not normalized
+@inline function flux(u, normal_direction::AbstractVector, equation::CouplingEquation)
+  scalar_a, scalar_b = u
+
+  return scalar_a * scalar_b * equation.coupling_strength
+  # return SVector(scalar_a * scalar_b * equation.coupling_strength, scalar_a * scalar_b * equation.coupling_strength)
+end
+
 end # @muladd

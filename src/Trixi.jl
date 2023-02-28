@@ -125,6 +125,7 @@ export AcousticPerturbationEquations2D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
+       CouplingEquation,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations2D
@@ -152,7 +153,9 @@ export boundary_condition_periodic,
        boundary_condition_noslip_wall,
        boundary_condition_slip_wall,
        boundary_condition_wall,
-       BoundaryConditionCoupled
+       BoundaryConditionCoupled,
+       BoundaryConditionCoupledAB,
+       BoundaryConditionCoupledBA
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export source_terms_harmonic

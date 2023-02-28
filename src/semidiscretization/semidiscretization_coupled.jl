@@ -21,20 +21,29 @@ end
 
 Create a coupled semidiscretization that consists of the semidiscretizations contained in the tuple `semis`.
 """
-function SemidiscretizationCoupled(semis)
-  @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
-
-  _, equations, _, _ = mesh_equations_solver_cache(semis[1])
+function SemidiscretizationCoupled(semis, other_list)
+  # @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
+  equation_list = []
+  for i in 1:length(semis)
+    _, equations, _, _ = mesh_equations_solver_cache(semis[i])
+    append!(equation_list, [equations])
+  end
 
   # Number of coefficients as Vector
-  n_coeffs = semis .|> (x -> nvariables(equations) * ndofs(x)) |> collect
+  n_coeffs = zeros(Int64, length(semis))
+  for i in 1:length(semis)
+    n_coeffs[i] = (semis[i] |> (x -> nvariables(equation_list[i]) * ndofs(x)) |> collect)[1]
+  end
   u_indices = Vector{UnitRange{Int}}(undef, length(semis))
+
+  print("SemidiscretizationCoupled: ", " n_coeffs = ", n_coeffs, " u_indices = ", u_indices, "\n")
 
   for i in 1:length(semis)
     offset = sum(n_coeffs[1:i-1]) + 1
     u_indices[i] = range(offset, length=n_coeffs[i])
+    print("SemidiscretizationCoupled: ",  " i = ", i, " offset = ", offset, " u_indices[i] = ", u_indices[i], "\n")
 
-    allocate_coupled_boundary_conditions(semis[i].boundary_conditions, semis[i])
+    allocate_coupled_boundary_conditions(semis[i], semis[other_list[i]])
   end
 
   performance_counter = PerformanceCounter()
@@ -59,10 +68,10 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
     summary_line(io, "#spatial dimensions", ndims(semi.semis[1]))
     summary_line(io, "#meshes", nmeshes(semi))
     summary_line(io, "equations", mesh_equations_solver_cache(semi.semis[1])[2] |> typeof |> nameof)
-    summary_line(io, "initial condition", semi.semis[1].initial_condition)
+    summary_line(io, "initial conditions", semi.semis[1].initial_condition)
     # TODO boundary conditions? That will be 36 BCs for a cubed sphere
     summary_line(io, "source terms", semi.semis[1].source_terms)
-    summary_line(io, "solver", mesh_equations_solver_cache(semi.semis[1])[3] |> typeof |> nameof)
+    summary_line(io, "solvers", mesh_equations_solver_cache(semi.semis[1])[3] |> typeof |> nameof)
     summary_line(io, "total #DOFs", ndofs(semi))
     summary_footer(io)
   end
@@ -100,6 +109,7 @@ end
   sum(ndofs, semi.semis)
 end
 
+# TODO: Ask bout polydeg.
 @inline function polydeg(semi::SemidiscretizationCoupled)
   _, _, solver, _ = mesh_equations_solver_cache(semi.semis[1])
 
@@ -114,7 +124,7 @@ end
   end
 end
 
-
+# TODO: Find out where this is being used.
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationCoupled)
   _, equations, _, _ = mesh_equations_solver_cache(semi.semis[1])
   return nothing, equations, nothing, nothing
@@ -187,23 +197,24 @@ end
 
 
 # Don't do anything for other BCs than BoundaryConditionCoupled
-function allocate_coupled_boundary_conditions(boundary_conditions, semi) end
+function allocate_coupled_boundary_conditions(semi, semi_other) end
 
-function allocate_coupled_boundary_conditions(boundary_conditions::Union{Tuple, NamedTuple}, semi)
+function allocate_coupled_boundary_conditions(semi, semi_other)
   n_boundaries = 2 * ndims(semi)
   mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
+  _, equations_other, _, _ = mesh_equations_solver_cache(semi_other)
 
   for direction in 1:n_boundaries
     boundary_condition = semi.boundary_conditions[direction]
 
-    allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, solver)
+    allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, equations_other, solver)
   end
 end
 
-function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, solver) end
+function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, equations_other, solver) end
 
 # In 2D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2}, direction, mesh, equations, dg::DGSEM)
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2}, direction, mesh, equations, equations_other, dg::DGSEM)
   if direction in (1, 2)
     cell_size = size(mesh, 2)
   else
@@ -212,8 +223,28 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
   boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations), nnodes(dg), cell_size)
 end
 
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupledAB{2}, direction, mesh, equations, equations_other, dg::DGSEM)
+  if direction in (1, 2)
+    cell_size = size(mesh, 2)
+  else
+    cell_size = size(mesh, 1)
+  end
+  boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations) + nvariables(equations_other), nnodes(dg), cell_size)
+  # boundary_condition.innere_boundary = Array{Float64, 3}(undef, nvariables(equations) + nvariables(equations_other), nnodes(dg), cell_size)
+end
+
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupledBA{2}, direction, mesh, equations, equations_other, dg::DGSEM)
+  if direction in (1, 2)
+    cell_size = size(mesh, 2)
+  else
+    cell_size = size(mesh, 1)
+  end
+  boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations) + nvariables(equations_other), nnodes(dg), cell_size)
+  # boundary_condition.inner_boundary = Array{Float64, 3}(undef, nvariables(equations) + nvariables(equations_other), nnodes(dg), cell_size)
+end
+
 # In 3D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{3}, direction, mesh, equations, dg::DGSEM)
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{3}, direction, mesh, equations, equations_other, dg::DGSEM)
   if direction in (1, 2)
     cell_size = (size(mesh, 2), size(mesh, 3))
   elseif direction in (3, 4)
@@ -305,6 +336,97 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{2
   end
 end
 
+# In 2D
+function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledAB{2}, u_ode, semi)
+  # Copy the boundary condition from A to B (other to this).
+  @unpack u_indices = semi
+  @unpack other_semi_index, other_orientation, indices = boundary_condition
+
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
+  @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
+
+  linear_indices = LinearIndices(size(mesh))
+
+  if other_orientation == 1
+    cells = axes(mesh, 2)
+  else # other_orientation == 2
+    cells = axes(mesh, 1)
+  end
+
+  # Copy solution data to the coupled boundary using "delayed indexing" with
+  # a start value and a step size to get the correct face and orientation.
+  node_index_range = eachnode(solver)
+  i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
+  j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
+
+  i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh, 1))
+  j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh, 2))
+
+  i_cell = i_cell_start
+  j_cell = j_cell_start
+
+  for cell in cells
+    i_node = i_node_start
+    j_node = j_node_start
+
+    for i in eachnode(solver)
+      for v in 1:size(u, 1)
+        boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node, 
+                                                      linear_indices[i_cell, j_cell]]
+      end
+      i_node += i_node_step
+      j_node += j_node_step
+    end
+    i_cell += i_cell_step
+    j_cell += j_cell_step
+  end
+end
+
+# In 2D
+function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledBA{2}, u_ode, semi)
+  # Copy the boundary condition from B to A (other to this).
+  @unpack u_indices = semi
+  @unpack other_semi_index, other_orientation, indices = boundary_condition
+
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
+  @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
+
+  linear_indices = LinearIndices(size(mesh))
+
+  if other_orientation == 1
+    cells = axes(mesh, 2)
+  else # other_orientation == 2
+    cells = axes(mesh, 1)
+  end
+
+  # Copy solution data to the coupled boundary using "delayed indexing" with
+  # a start value and a step size to get the correct face and orientation.
+  node_index_range = eachnode(solver)
+  i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
+  j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
+
+  i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh, 1))
+  j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh, 2))
+
+  i_cell = i_cell_start
+  j_cell = j_cell_start
+
+  for cell in cells
+    i_node = i_node_start
+    j_node = j_node_start
+
+    for i in eachnode(solver)
+      for v in 1:size(u, 1)
+        boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node, 
+                                                      linear_indices[i_cell, j_cell]]
+      end
+      i_node += i_node_step
+      j_node += j_node_step
+    end
+    i_cell += i_cell_step
+    j_cell += j_cell_step
+  end
+end
 
 # In 3D
 function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{3}, u_ode, semi)
