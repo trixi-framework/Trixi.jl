@@ -135,7 +135,7 @@
 
 # Now execute one of them using *include(...)* function. *include(...)* expects
 # a single string argument with the path to a text file containing Julia code. 
-# *default_example()* returns the path to an example
+# *default_example_unstructured()* returns the path to an example
 # elixir with a short, two-dimensional problem setup.
 
 # Invoke Julia in terminal. (Open Terminal: *Win+R* and enter *cmd*, invoke Julia in terminal: 
@@ -143,11 +143,11 @@
 # And execute following code.  
 
 using Trixi
-include(default_example())
+include(default_example_unstructured())
 
 # To observe result of computation, we need to use *Plots* package and function *plot()*, that
 # builds a graphical representation of the solution. *sol* is a variable defined in
-# default_example() and it contains solution of the executed example.
+# default_example_unstructured() and it contains solution of the executed example.
 
 using Plots
 plot(sol)
@@ -161,13 +161,13 @@ get_examples()
 
 # ### **3.2. Files downloading for users**
 
-# To edit example files you have to download them. Let's have a look how to download default
-# example file from [`Trixi github`](https://github.com/trixi-framework/Trixi.jl).
+# To edit example files you have to download them. Let's have a look how to download
+# default_example_unstructured file from [`Trixi github`](https://github.com/trixi-framework/Trixi.jl).
 
 # - All examples are located inside the
 # [`example`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples) folder. 
 # - Navigate to the file 
-# [`elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_basic.jl).
+# [`elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/unstructured_2d_dgsem/elixir_advection_basic.jl).
 # - Click the *Raw* button on right side of the webpage.
 # - On any place of newly opened webpage right-click and choose *Save as*.
 # - Choose folder and erase *.txt* from the file name. Save the file.
@@ -183,9 +183,9 @@ get_examples()
 # - **Users** open the downloaded file. 
 # - **Developers** open the file located at the following path: 
 # ````
-# \Trixi_cloned\examples\structured_2d_dgsem\elixir_advection_basic.jl
+# \Trixi_cloned\examples\unstructured_2d_dgsem\elixir_advection_basic.jl
 # ````
-# - And go to the 25th line with following code:
+# - And go to the 30th line with following code:
 # ````
 # semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 # ````

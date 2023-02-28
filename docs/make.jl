@@ -66,10 +66,9 @@ files = [
     "Structured mesh with curvilinear mapping" => "structured_mesh_mapping.jl",
     "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.jl",
     # Topic: other stuff
+    "Getting started with Trixi" => "getting_started_with_Trixi.jl",
     "Explicit time stepping" => "time_stepping.jl",
-    "Differentiable programming" => "differentiable_programming.jl",
-    "Getting started with Trixi" => "getting_started_with_Trixi.jl"
-    ]
+    "Differentiable programming" => "differentiable_programming.jl"]
 tutorials = create_tutorials(files)
 
 # Make documentation
