@@ -6,7 +6,7 @@
 
 
 @doc raw"""
-    ShallowWaterEquations1D(gravity, H0)
+    ShallowWaterEquations1D(gravity, H0, threshold_limiter, threshold_wet)
 
 Shallow water equations (SWE) in one space dimension. The equations are given by
 ```math
@@ -23,6 +23,12 @@ also defines the total water height as ``H = h + b``.
 
 The additional quantity ``H_0`` is also available to store a reference value for the total water height that
 is useful to set initial conditions or test the "lake-at-rest" well-balancedness.
+
+Also, there are two thresholds which prevent numerical problems as well as instabilities. Both of them do not
+have to be passed, as default values are defined within the struct. The first one, threshold_limiter, is
+used in PositivityPreservingLimiterShallowWater on the water height, as a (small) shift on the initial condition
+and cutoff before the next time step. The second one, threshold_wet, is applied on the water height to
+define when the flow is "wet" before calculating the numerical flux.
 
 The bottom topography function ``b(x)`` is set inside the initial condition routine
 for a particular problem setup. To test the conservative form of the SWE one can set the bottom topography
@@ -47,7 +53,7 @@ References for the SWE are many but a good introduction is available in Chapter 
 struct ShallowWaterEquations1D{RealT<:Real} <: AbstractShallowWaterEquations{1, 3}
   gravity::RealT # gravitational constant
   H0::RealT      # constant "lake-at-rest" total water height
-  threshold_limiter::RealT  # Threshold to use in PositivityPreservingLimiterZhangShu on waterheight,
+  threshold_limiter::RealT  # Threshold to use in PositivityPreservingLimiterShallowWater on water height,
                             # as a (small) shift on the initial condition and cutoff before the 
                             # next time step.
   threshold_wet::RealT      # Threshold to be applied on water height to define when the flow is "wet"
