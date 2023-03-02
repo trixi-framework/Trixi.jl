@@ -215,16 +215,22 @@ end
 """
     semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
 
-Wrap the semidiscretization `semi` as a Split ODE problem in the time interval `tspan`
+Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+The parabolic right-hand side is the first function of the split ODE problem and
+will be used by default by the implicit part of IMEX methods from the
+SciML ecosystem.
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
   u0_ode = compute_coefficients(first(tspan), semi)
   # TODO: MPI, do we want to synchonize loading and print debug statements, e.g. using
   #       mpi_isparallel() && MPI.Barrier(mpi_comm())
   #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-  iip = true # is-inplace, i.e., we modify a vector when calling rhs!, rhs_parabolic!
-  return SplitODEProblem{iip}(rhs!, rhs_parabolic!, u0_ode, tspan, semi)
+  iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!
+  # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
+  # first function implicitly and the second one explicitly. Thus, we pass the
+  # stiffer parabolic function first.
+  return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
