@@ -880,4 +880,15 @@ end
   return abs(equations.H0 - (h + b))
 end
 
+@inline function lake_at_rest_error(u, u_exact, equations::ShallowWaterEquations2D)
+  h, _, _, b = u
+  
+  h_exact, _, _, b_exact= u_exact
+
+  H = h + b
+  H_exact = h_exact + b_exact
+
+  return abs(H - H_exact)
+end
+
 end # @muladd
