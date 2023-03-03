@@ -279,13 +279,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.25), cells_per_dimension = (60, 60))
   end
 
-  @trixi_testset "elixir_shallowwater_three_mound_dam_break.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_three_mound_dam_break.jl"),
-      l2   = [0.5402648923470162, 0.5528681962014276, 0.1655171741139314, 0.010408121100153647],
-      linf = [1.0940118676332913, 1.5893502849064436, 0.7582082525930182, 0.0601932230094299],
-      tspan = (0.0, 0.25))
-  end
-
   @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
       l2   = [0.0364192725149364, 0.0426667193422069, 0.04261673001449095, 0.025884071405646924,

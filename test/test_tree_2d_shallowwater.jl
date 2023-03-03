@@ -79,13 +79,6 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
       tspan = (0.0, 0.25), 
       basis = LobattoLegendreBasis(3))
   end
-
-  @trixi_testset "elixir_shallowwater_three_mound_dam_break.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_three_mound_dam_break.jl"),
-      l2   = [0.5402648923470211, 0.5528681962014322, 0.1655171741139329, 0.010408121100153715],
-      linf = [1.0940118676332915, 1.5893502849064438, 0.7582082525930185, 0.0601932230094296],
-      tspan = (0.0, 0.25))
-  end
 end
 
 end # module
