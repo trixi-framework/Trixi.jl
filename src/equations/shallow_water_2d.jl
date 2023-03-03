@@ -480,6 +480,21 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   h_ll_star = min( H_ll - b_star, h_ll )
   h_rr_star = min( H_rr - b_star, h_rr )
 
+  # Set the water height to be at least the value stored in the variable threshold after
+  # the hydrostatic reconstruction is applied and before the numerical flux is calculated
+  # to avoid numerical problem with arbitrary small values. Interfaces with a water height
+  # lower or equal to the threshold can be declared as dry.
+  # The default value is set to 1e-15 and can be changed within the constructor call in an elixir.
+  threshold = equations.threshold_wet
+
+  h_ll_star = h_ll_star * Int32(h_ll_star > threshold) + threshold * Int32(h_ll_star <= threshold)
+  h_rr_star = h_rr_star * Int32(h_rr_star > threshold) + threshold * Int32(h_rr_star <= threshold)
+
+  v1_ll = v1_ll * Int32(h_ll_star > threshold)
+  v1_rr = v1_rr * Int32(h_rr_star > threshold)
+
+  v2_ll = v2_ll * Int32(h_ll_star > threshold)
+  v2_rr = v2_rr * Int32(h_rr_star > threshold)
 
   # Create the conservative variables using the reconstruted water heights
   u_ll_star = SVector( h_ll_star, h_ll_star * v1_ll, h_ll_star * v2_ll, b_ll )
