@@ -18,9 +18,9 @@
   The limiter is applied to all scalar `variables` in their given order
   using the associated `thresholds` to determine the minimal acceptable values.
   The order of the `variables` is important and might have a strong influence
-  on the robustness. 
-  As opposed to the standard version of the [PositivityPreservingLimiterZhangShu](@ref), 
-  nodes with a water height below the `threshold_limiter` are treated in a special way. 
+  on the robustness.
+  As opposed to the standard version of the [`PositivityPreservingLimiterZhangShu`](@ref),
+  nodes with a water height below the `threshold_limiter` are treated in a special way.
   To avoid numerical problems caused by velocities close to zero,
   the velocity is cut off, such that the node can be identified as "dry". The special feature of the
   `ShallowWaterEquations` used here is that the bottom topography is stored as an additional
@@ -28,7 +28,7 @@
   should not be changed, much less limited. That is why, the `set_node_vars!` function is not applied
   to the last conservation variable.
   After the limiting process is applied to all degrees of freedom, for safety reasons,
-  the wet/dry threshold is applied again on all the DG nodes in order to avoid dry nodes. 
+  the wet/dry threshold is applied again on all the DG nodes in order to avoid dry nodes.
   In the case where value_mean < threshold before applying imiter, there could still be dry nodes
   afterwards due to the logic of the limiter.
   """
