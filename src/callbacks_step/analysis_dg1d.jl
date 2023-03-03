@@ -175,7 +175,21 @@ function integrate(func::Func, u,
   end
 end
 
+# Overload to pass the initial_condition as parameter for calculating lake_at_rest_error
+ function integrate(::typeof(lake_at_rest_error), u,
+                    mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                    equations::ShallowWaterEquations1D, dg::DGSEM, cache,
+                    initial_condition; normalize=true)
+   node_coordinates = cache.elements.node_coordinates                   
+   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, element, equations, dg
+     x = get_node_coords(node_coordinates, equations, dg, i, element)
 
+     u_exact = initial_condition(x, 0.0, equations)
+     u_local = get_node_vars(u, equations, dg, i, element)
+     return lake_at_rest_error(u_local, u_exact, equations)
+   end
+ end
+ 
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{1},StructuredMesh{1}}, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
