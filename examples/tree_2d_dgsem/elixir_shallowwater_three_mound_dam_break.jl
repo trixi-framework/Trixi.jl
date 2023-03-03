@@ -105,7 +105,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # run the simulation
 
 stage_limiter! = PositivityPreservingLimiterShallowWater(thresholds=(equations.threshold_limiter,),
-                                                     variables=(Trixi.waterheight,))
+                                                         variables=(Trixi.waterheight,))
 
 sol = solve(ode, SSPRK43(stage_limiter!), dt=1.0,
             save_everystep=false, callback=callbacks)

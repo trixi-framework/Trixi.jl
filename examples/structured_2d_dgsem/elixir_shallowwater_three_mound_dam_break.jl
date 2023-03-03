@@ -13,7 +13,7 @@ equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=1.4)
 
 Initial condition including two dam breaks, one on each end of the x dimension. The bottom
 topography is given by one large and two smaller mounds. Those are flooded by the water for t > 0.
-Periodic boundary conditions were used. To smooth the discontinuities, a logistic function is applied.
+To smooth the discontinuities, a logistic function is applied.
 
 The initial conditions are based on section 6.3 from the paper:
   - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and Timothy Warburton (2018)
@@ -106,7 +106,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # run the simulation
 
 stage_limiter! = PositivityPreservingLimiterShallowWater(thresholds=(equations.threshold_limiter,),
-                                                     variables=(Trixi.waterheight,))
+                                                         variables=(Trixi.waterheight,))
 
 sol = solve(ode, SSPRK43(stage_limiter!), dt=1.0,
             save_everystep=false, callback=callbacks)

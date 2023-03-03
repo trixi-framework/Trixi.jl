@@ -10,12 +10,12 @@ equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=1.4)
 """
     initial_condition_conical_island(x, t, equations::ShallowWaterEquations2D)
 
-IInitial condition [`ShallowWaterEquations2D`](@ref) to test the [`hydrostatic_reconstruction_chen_noelle`](@ref) 
-and their handling of discontinuous water heights at the start in combination with wetting and 
+Initial condition [`ShallowWaterEquations2D`](@ref) to test the [`hydrostatic_reconstruction_chen_noelle`](@ref)
+and their handling of discontinuous water heights at the start in combination with wetting and
 drying. The bottom topography is given by a conical island in the middle of the domain. Around that
-island, there is a cylindric water column at T=0 and the rest of the domain is dry. This 
-discontinuous water height is smoothed by a logistic function. This simulation uses a Dirichlet 
-boundary condition with the initial values. Due to the dry cells at the boundary, this has the 
+island, there is a cylindrical water column at t=0 and the rest of the domain is dry. This
+discontinuous water height is smoothed by a logistic function. This simulation uses a Dirichlet
+boundary condition with the initial values. Due to the dry cells at the boundary, this has the
 effect of an outflow which can be seen in the simulation.
 """
 function initial_condition_conical_island(x, t, equations::ShallowWaterEquations2D)
@@ -107,7 +107,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # run the simulation
 
 stage_limiter! = PositivityPreservingLimiterShallowWater(thresholds=(equations.threshold_limiter,),
-                                                     variables=(Trixi.waterheight,))
+                                                         variables=(Trixi.waterheight,))
 
 sol = solve(ode, SSPRK43(stage_limiter!), dt=1.0, 
             save_everystep=false, callback=callbacks);

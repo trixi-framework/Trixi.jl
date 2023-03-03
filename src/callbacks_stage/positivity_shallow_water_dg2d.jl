@@ -6,7 +6,8 @@
 
 
 function limiter_shallow_water!(u, threshold::Real, variable,
-                            mesh::AbstractMesh{2}, equations::ShallowWaterEquations2D, dg::DGSEM, cache)
+                                mesh::AbstractMesh{2},
+                                equations::ShallowWaterEquations2D, dg::DGSEM, cache)
   @unpack weights = dg.basis
 
   @threaded for element in eachelement(dg, cache)
@@ -61,7 +62,7 @@ function limiter_shallow_water!(u, threshold::Real, variable,
   end
 
   # "Safety" application of the wet/dry thresholds over all the DG nodes
-  # freedom after the limiting in order to avoid dry nodes.
+  # after the limiting in order to avoid dry nodes.
   # If the value_mean < threshold before applying limiter, there
   # could still be dry nodes afterwards due to logic of limiter
   @threaded for element in eachelement(dg, cache)

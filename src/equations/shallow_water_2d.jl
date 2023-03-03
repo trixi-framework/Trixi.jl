@@ -29,8 +29,8 @@ is useful to set initial conditions or test the "lake-at-rest" well-balancedness
 
 Also, there are two thresholds which prevent numerical problems as well as instabilities. Both of them do not
 have to be passed, as default values are defined within the struct. The first one, threshold_limiter, is
-used in PositivityPreservingLimiterShallowWater on the water height, as a (small) shift on the initial condition
-and cutoff before the next time step. The second one, threshold_wet, is applied on the water height to
+used in [`PositivityPreservingLimiterShallowWater`](@ref) on the water height, as a (small) shift on the initial
+condition and cutoff before the next time step. The second one, threshold_wet, is applied on the water height to
 define when the flow is "wet" before calculating the numerical flux.
 
 The bottom topography function ``b(x,y)`` is set inside the initial condition routine
@@ -581,7 +581,7 @@ end
                                      equations::ShallowWaterEquations2D)
 
 Non-symmetric two-point surface flux that discretizes the nonconservative (source) term.
-The discretization uses the `hydrostatic_reconstruction_chen_noelle` on the conservative
+The discretization uses the [`hydrostatic_reconstruction_chen_noelle`](@ref) on the conservative
 variables.
 
 Should be used together with [`FluxHydrostaticReconstruction`](@ref) and

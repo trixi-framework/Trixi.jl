@@ -13,7 +13,7 @@ equations = ShallowWaterEquations2D(gravity_constant=9.81)
 Well-known initial condition to test the [`hydrostatic_reconstruction_chen_noelle`](@ref) and its
 wet-dry mechanics. This test has analytical solutions. The initial condition is defined by the 
 analytical solution at time t=0. The bottom topography defines a bowl and the water level is given
-by an oscillating lake. The simulation may take a couple of minute due to the higher resolution.
+by an oscillating lake.
 The original test and its analytical solution are taken out of section 6.2 from the paper:
   - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and Timothy Warburton (2018)
     An entropy stable discontinuous Galerkin method for the shallow water equations on 
@@ -101,7 +101,7 @@ save_solution = SaveSolutionCallback(interval=100,
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution)
 
 stage_limiter! = PositivityPreservingLimiterShallowWater(thresholds=(equations.threshold_limiter,),
-                                                     variables=(Trixi.waterheight,))
+                                                         variables=(Trixi.waterheight,))
 
 ###############################################################################
 # run the simulation
