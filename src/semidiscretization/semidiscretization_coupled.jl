@@ -331,7 +331,7 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledAB
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
   # @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
   # @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, boundary_condition.equations_coupled, solver, cache)
-  @views u = wrap_array(u_ode, mesh, boundary_condition.equations_other, solver, cache)
+  @views u = wrap_array(u_ode, mesh, boundary_condition.equations_coupled, solver, cache)
 
   linear_indices = LinearIndices(size(mesh))
 
@@ -361,8 +361,8 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledAB
 
     for i in eachnode(solver)
       for v in 1:size(u, 1)
-        boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node, 
-                                                      linear_indices[i_cell, j_cell]]
+        boundary_condition.u_boundary[v, i, cell] = u[v, Int(ceil(i_node)), Int(ceil(j_node/2)), 
+                                                      Int(ceil(linear_indices[i_cell, j_cell]/2))]
       end
       i_node += i_node_step
       j_node += j_node_step
