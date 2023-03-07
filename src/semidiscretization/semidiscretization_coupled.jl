@@ -36,12 +36,9 @@ function SemidiscretizationCoupled(semis, other_list)
   end
   u_indices = Vector{UnitRange{Int}}(undef, length(semis))
 
-  print("SemidiscretizationCoupled: ", " n_coeffs = ", n_coeffs, " u_indices = ", u_indices, "\n")
-
   for i in 1:length(semis)
     offset = sum(n_coeffs[1:i-1]) + 1
     u_indices[i] = range(offset, length=n_coeffs[i])
-    print("SemidiscretizationCoupled: ",  " i = ", i, " offset = ", offset, " u_indices[i] = ", u_indices[i], "\n")
 
     allocate_coupled_boundary_conditions(semis[i], semis[other_list[i]])
   end
@@ -230,17 +227,6 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
     cell_size = size(mesh, 1)
   end
   boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations) + nvariables(equations_other), nnodes(dg), cell_size)
-  # boundary_condition.innere_boundary = Array{Float64, 3}(undef, nvariables(equations) + nvariables(equations_other), nnodes(dg), cell_size)
-end
-
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupledBA{2}, direction, mesh, equations, equations_other, dg::DGSEM)
-  if direction in (1, 2)
-    cell_size = size(mesh, 2)
-  else
-    cell_size = size(mesh, 1)
-  end
-  boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations) + nvariables(equations_other), nnodes(dg), cell_size)
-  # boundary_condition.inner_boundary = Array{Float64, 3}(undef, nvariables(equations) + nvariables(equations_other), nnodes(dg), cell_size)
 end
 
 # In 3D
@@ -343,7 +329,9 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledAB
   @unpack other_semi_index, other_orientation, indices = boundary_condition
 
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
-  @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
+  # @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
+  # @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, boundary_condition.equations_coupled, solver, cache)
+  @views u = wrap_array(u_ode, mesh, boundary_condition.equations_other, solver, cache)
 
   linear_indices = LinearIndices(size(mesh))
 
@@ -365,51 +353,7 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledAB
   i_cell = i_cell_start
   j_cell = j_cell_start
 
-  for cell in cells
-    i_node = i_node_start
-    j_node = j_node_start
-
-    for i in eachnode(solver)
-      for v in 1:size(u, 1)
-        boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node, 
-                                                      linear_indices[i_cell, j_cell]]
-      end
-      i_node += i_node_step
-      j_node += j_node_step
-    end
-    i_cell += i_cell_step
-    j_cell += j_cell_step
-  end
-end
-
-# In 2D
-function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledBA{2}, u_ode, semi)
-  # Copy the boundary condition from B to A (other to this).
-  @unpack u_indices = semi
-  @unpack other_semi_index, other_orientation, indices = boundary_condition
-
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
-  @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
-
-  linear_indices = LinearIndices(size(mesh))
-
-  if other_orientation == 1
-    cells = axes(mesh, 2)
-  else # other_orientation == 2
-    cells = axes(mesh, 1)
-  end
-
-  # Copy solution data to the coupled boundary using "delayed indexing" with
-  # a start value and a step size to get the correct face and orientation.
-  node_index_range = eachnode(solver)
-  i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
-  j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
-
-  i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh, 1))
-  j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh, 2))
-
-  i_cell = i_cell_start
-  j_cell = j_cell_start
+  print("size(u) = ", size(u))
 
   for cell in cells
     i_node = i_node_start

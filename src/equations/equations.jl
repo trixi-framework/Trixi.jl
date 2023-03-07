@@ -325,7 +325,6 @@ end
 mutable struct BoundaryConditionCoupledAB{NDIMS, NDIMST2M1, uEltype<:Real, I, AbstractEquations, AbstractEquations}
   # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
   u_boundary       ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-  # inner_boundary   ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
   other_semi_index ::Int
   other_orientation::Int
   indices          ::I
@@ -333,36 +332,6 @@ mutable struct BoundaryConditionCoupledAB{NDIMS, NDIMST2M1, uEltype<:Real, I, Ab
   equations_coupled::AbstractEquations
 
   function BoundaryConditionCoupledAB(other_semi_index, indices, uEltype, equations_other, equations_coupled)
-    NDIMS = length(indices)
-    u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
-    inner_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
-    equations_other = equations_other
-    equations_coupled = equations_coupled
-
-    if indices[1] in (:begin, :end)
-      other_orientation = 1
-    elseif indices[2] in (:begin, :end)
-      other_orientation = 2
-    else
-      other_orientation = 3
-    end
-
-    new{NDIMS, NDIMS*2-1, uEltype, typeof(indices), AbstractEquations, AbstractEquations}(
-      u_boundary, other_semi_index, other_orientation, indices, equations_other, equations_coupled)
-  end
-end
-
-mutable struct BoundaryConditionCoupledBA{NDIMS, NDIMST2M1, uEltype<:Real, I, AbstractEquations, AbstractEquations}
-  # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
-  u_boundary       ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-  # inner_boundary   ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-  other_semi_index ::Int
-  other_orientation::Int
-  indices          ::I
-  equations_other  ::AbstractEquations
-  equations_coupled::AbstractEquations
-
-  function BoundaryConditionCoupledBA(other_semi_index, indices, uEltype, equations_other, equations_coupled)
     NDIMS = length(indices)
     u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
     inner_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
@@ -393,9 +362,9 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
 
   # Calculate boundary flux
   if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+    flux = surface_flux_function(vcat(u_inner, u_boundary[1]), u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+    flux = surface_flux_function(u_boundary, vcat(u_inner, boundary[1]), orientation, equations)
   end
 
   return flux
@@ -408,30 +377,12 @@ function (boundary_condition::BoundaryConditionCoupledAB)(u_inner, orientation, 
   # but we don't have a solver here
   u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, surface_node_indices..., cell_indices...],
                               Val(nvariables(boundary_condition.equations_coupled))))
-
+                            
   # Calculate boundary flux
   if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, boundary_condition.equations_coupled)
+    flux = surface_flux_function(vcat(u_inner, u_boundary[1]), u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, boundary_condition.equations_coupled)
-  end
-
-  return flux
-end
-
-function (boundary_condition::BoundaryConditionCoupledBA)(u_inner, orientation, direction,
-                                                          cell_indices, surface_node_indices,
-                                                          surface_flux_function, equations)
-  # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
-  # but we don't have a solver here
-  u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, surface_node_indices..., cell_indices...],
-                              Val(nvariables(boundary_condition.equations_coupled))))
-
-  # Calculate boundary flux
-  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, boundary_condition.equations_coupled)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, boundary_condition.equations_coupled)
+    flux = surface_flux_function(u_boundary, vcat(u_inner, u_boundary[1]), orientation, equations)
   end
 
   return flux

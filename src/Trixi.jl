@@ -125,7 +125,7 @@ export AcousticPerturbationEquations2D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
-       CouplingEquation,
+       CouplingLinearScalarAdvectionEquation2D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations2D

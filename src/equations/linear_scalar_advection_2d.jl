@@ -66,7 +66,8 @@ function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectio
   L = 2
   f = 1/L
   omega = 2 * pi * f
-  scalar = c + A * sin(omega * sum(x_trans))
+  # scalar = c + A * sin(omega * sum(x_trans))
+  scalar = x[2]
   return SVector(scalar)
 end
 
@@ -297,8 +298,8 @@ varnames(::typeof(cons2prim), ::CouplingLinearScalarAdvectionEquation2D) = ("sca
 @inline function flux(u, orientation::Integer, equation::CouplingLinearScalarAdvectionEquation2D)
   # u = variable containing values from system a and system b.
   # scalar_a, scalar_b = u
-  scalar_a = 1
-  scalar_b = 1
+  scalar_a = 0
+  scalar_b = 0
 
   # return scalar_a * scalar_b * equation.coupling_strength
   return SVector(scalar_a * scalar_b * equation.coupling_strength, scalar_a * scalar_b * equation.coupling_strength)
@@ -308,8 +309,8 @@ end
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equation::CouplingLinearScalarAdvectionEquation2D)
   # scalar_a, scalar_b = u
-  scalar_a = 1
-  scalar_b = 1
+  scalar_a = 0
+  scalar_b = 0
 
   # return scalar_a * scalar_b * equation.coupling_strength
   return SVector(scalar_a * scalar_b * equation.coupling_strength, scalar_a * scalar_b * equation.coupling_strength)
