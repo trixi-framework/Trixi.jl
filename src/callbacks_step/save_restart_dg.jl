@@ -157,8 +157,8 @@ function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equ
   if !mpi_isroot()
     # Receive nodal data from root
     for v in eachvariable(equations)
-      if length(u[v, .., :]) == 0
-        data = eltype(u[v, .., :])[]
+      if isempty(u)
+        data = eltype(u)[]
       else
         data = @view u[v, .., :]
       end
