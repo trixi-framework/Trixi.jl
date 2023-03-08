@@ -64,9 +64,9 @@ end
 function calc_error_norms(func, u, t, analyzer,
                           mesh::TreeMesh{3}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
-  @unpack vandermonde, weights = analyzer
-  @unpack node_coordinates = cache.elements
-  @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2 = cache_analysis
+  (; vandermonde, weights) = analyzer
+  (; node_coordinates) = cache.elements
+  (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2) = cache_analysis
 
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), equations))
@@ -101,9 +101,9 @@ function calc_error_norms(func, u, t, analyzer,
                           mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                           equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
-  @unpack vandermonde, weights = analyzer
-  @unpack node_coordinates, inverse_jacobian = cache.elements
-  @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
+  (; vandermonde, weights) = analyzer
+  (; node_coordinates, inverse_jacobian) = cache.elements
+  (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2) = cache_analysis
 
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), equations))
@@ -139,7 +139,7 @@ end
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
-  @unpack weights = dg.basis
+  (; weights) = dg.basis
 
   # Initialize integral with zeros of the right shape
   integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
@@ -165,7 +165,7 @@ function integrate_via_indices(func::Func, u,
                                mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
-  @unpack weights = dg.basis
+  (; weights) = dg.basis
 
   # Initialize integral with zeros of the right shape
   integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
@@ -246,7 +246,7 @@ end
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::Union{StructuredMesh{3}, P4estMesh{3}}, equations::IdealGlmMhdEquations3D,
                  dg::DGSEM, cache)
-  @unpack contravariant_vectors = cache.elements
+  (; contravariant_vectors) = cache.elements
   integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix) do u, i, j, k, element, equations, dg, cache, derivative_matrix
     divb = zero(eltype(u))
     # Get the contravariant vectors Ja^1, Ja^2, and Ja^3
@@ -268,7 +268,7 @@ end
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::TreeMesh{3}, equations::IdealGlmMhdEquations3D,
                  dg::DGSEM, cache)
-  @unpack derivative_matrix, weights = dg.basis
+  (; derivative_matrix, weights) = dg.basis
 
   # integrate over all elements to get the divergence-free condition errors
   linf_divb = zero(eltype(u))
@@ -291,8 +291,8 @@ end
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::Union{StructuredMesh{3}, P4estMesh{3}}, equations::IdealGlmMhdEquations3D,
                  dg::DGSEM, cache)
-  @unpack derivative_matrix, weights = dg.basis
-  @unpack contravariant_vectors = cache.elements
+  (; derivative_matrix, weights) = dg.basis
+  (; contravariant_vectors) = cache.elements
 
   # integrate over all elements to get the divergence-free condition errors
   linf_divb = zero(eltype(u))

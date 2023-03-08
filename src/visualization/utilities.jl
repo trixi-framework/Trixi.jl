@@ -102,11 +102,11 @@ mesh_plotting_wireframe(u, semi) = mesh_plotting_wireframe(u, mesh_equations_sol
 # Returns (plotting_coordinates_x, plotting_coordinates_y, nothing) for a 2D mesh wireframe.
 function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGMulti, cache;
                                  nvisnodes=2*nnodes(dg))
-  @unpack md = mesh
+  (; md) = mesh
   rd = dg.basis
 
   # Construct 1D plotting interpolation matrix `Vp1D` for a single face
-  @unpack N, Fmask = rd
+  (; N, Fmask) = rd
   num_face_points = length(Fmask) ÷ num_faces(rd.element_type)
   vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), num_face_points - 1))
   rplot = LinRange(-1, 1, nvisnodes)
@@ -192,11 +192,11 @@ end
 
 function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, cache; nvisnodes=2*nnodes(dg))
 
-  @unpack md = mesh
+  (; md) = mesh
   rd = dg.basis
 
   # Construct 1D plotting interpolation matrix `Vp1D` for a single face
-  @unpack N, Fmask = rd
+  (; N, Fmask) = rd
   vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), N))
   rplot = LinRange(-1, 1, nvisnodes)
   Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
@@ -1217,7 +1217,7 @@ end
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
 function calc_vertices(node_coordinates, mesh)
-  @unpack cells_per_dimension = mesh
+  (; cells_per_dimension) = mesh
   @assert size(node_coordinates, 1) == 2 "only works in 2D"
 
   linear_indices = LinearIndices(size(mesh))
@@ -1370,7 +1370,7 @@ function plotting_interpolation_matrix(dg::DGSEM; nvisnodes=2*length(dg.basis.no
 end
 
 function reference_node_coordinates_2d(dg::DGSEM)
-  @unpack nodes = dg.basis
+  (; nodes) = dg.basis
   r = vec([nodes[i] for i in eachnode(dg), j in eachnode(dg)])
   s = vec([nodes[j] for i in eachnode(dg), j in eachnode(dg)])
   return r, s

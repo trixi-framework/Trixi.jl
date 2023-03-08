@@ -26,8 +26,8 @@ function get_elements_by_coordinates!(element_ids, coordinates, mesh::TreeMesh, 
     throw(DimensionMismatch("storage length for element ids does not match the number of coordinates"))
   end
 
-  @unpack cell_ids = cache.elements
-  @unpack tree = mesh
+  (; cell_ids) = cache.elements
+  (; tree) = mesh
 
   # Reset element ids - 0 indicates "not (yet) found"
   element_ids .= 0
@@ -80,8 +80,8 @@ end
 # The coordinates are known to be located in the respective element in `element_ids`
 function calc_interpolating_polynomials!(interpolating_polynomials, coordinates, element_ids,
                                          mesh::TreeMesh, dg::DGSEM, cache)
-  @unpack tree = mesh
-  @unpack nodes = dg.basis
+  (; tree) = mesh
+  (; nodes) = dg.basis
 
   wbary = barycentric_weights(nodes)
 
@@ -119,7 +119,7 @@ end
 # Record the solution variables at each given point
 function record_state_at_points!(point_data, u, solution_variables, n_solution_variables,
                                  mesh::TreeMesh{2}, equations, dg::DG, time_series_cache)
-  @unpack element_ids, interpolating_polynomials = time_series_cache
+  (; element_ids, interpolating_polynomials) = time_series_cache
   old_length = length(first(point_data))
   new_length = old_length + n_solution_variables
 

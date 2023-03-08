@@ -162,8 +162,8 @@ julia> function compute_vorticity(velocity, mesh, equations::CompressibleEulerEq
                                   dg::DGMulti, cache)
          rd = dg.basis
          md = mesh.md
-         @unpack Dr, Ds = rd
-         @unpack rxJ, sxJ, ryJ, syJ, J = md
+         (; Dr, Ds) = rd
+         (; rxJ, sxJ, ryJ, syJ, J) = md
          v1, v2 = velocity
          dv1dy = ryJ .* (Dr * v1) + syJ .* (Ds * v1)
          dv2dx = rxJ .* (Dr * v2) + sxJ .* (Ds * v2)

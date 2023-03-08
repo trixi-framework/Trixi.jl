@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -14,7 +13,7 @@ Initial state for a lid-driven cavity flow setup. To be used in combination with
 [`boundary_condition_lid_driven_cavity`](@ref) and [`boundary_condition_noslip_wall`](@ref).
 """
 function initial_condition_lid_driven_cavity(x, t, equations::LatticeBoltzmannEquations2D)
-  @unpack L, u0, nu = equations
+  (; L, u0, nu) = equations
 
   rho = 1
   v1 = 0
@@ -44,7 +43,7 @@ function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x,
                                              equations::LatticeBoltzmannEquations2D)
   @assert direction == 4 "moving wall assumed in +y direction"
 
-  @unpack rho0, u0, weights, c_s = equations
+  (; rho0, u0, weights, c_s) = equations
   cs_squared = c_s^2
 
   pdf1 = u_inner[3] + 2 * weights[1] * rho0 * u0 / cs_squared

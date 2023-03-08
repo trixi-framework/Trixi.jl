@@ -55,7 +55,7 @@ end
 @inline function source_terms_poisson_nonperiodic(u, x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -ν Δϕ = f in Ω, u = g on ∂Ω
   # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
-  @unpack inv_Tr = equations
+  (; inv_Tr) = equations
 
   x1, x2 = x
   du1 = 10 * pi^2 * cospi(x1) * sinpi(2 * x2)
@@ -89,7 +89,7 @@ Source term that only includes the forcing from the hyperbolic diffusion system.
 """
 @inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations2D)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
-  @unpack inv_Tr = equations
+  (; inv_Tr) = equations
   phi, q1, q2 = u
 
   du2 = -inv_Tr * q1
@@ -127,7 +127,7 @@ end
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::HyperbolicDiffusionEquations2D)
   phi, q1, q2 = u
-  @unpack inv_Tr = equations
+  (; inv_Tr) = equations
 
   if orientation == 1
     f1 = -equations.nu*q1
@@ -145,7 +145,7 @@ end
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equations::HyperbolicDiffusionEquations2D)
   phi, q1, q2 = u
-  @unpack inv_Tr = equations
+  (; inv_Tr) = equations
 
   f1 = -equations.nu * (normal_direction[1] * q1 + normal_direction[2] * q2)
   f2 = -phi * inv_Tr * normal_direction[1]

@@ -19,7 +19,7 @@ end
 # evalute the Gamma curve interpolant at a particular point s and return the (x,y) coordinate
 function evaluate_at(s, boundary_curve::CurvedSurface)
 
-   @unpack nodes, barycentric_weights, coordinates = boundary_curve
+   (; nodes, barycentric_weights, coordinates) = boundary_curve
 
    x_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, view(coordinates, :, 1),
                                                                 barycentric_weights)
@@ -34,7 +34,7 @@ end
 # and return the (x,y) coordinate
 function derivative_at(s, boundary_curve::CurvedSurface)
 
-   @unpack nodes, barycentric_weights, coordinates = boundary_curve
+   (; nodes, barycentric_weights, coordinates) = boundary_curve
 
    x_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes,
                                                                                  view(coordinates, :, 1),

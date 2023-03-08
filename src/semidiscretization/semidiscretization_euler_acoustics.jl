@@ -157,8 +157,8 @@ end
 
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)
-  @unpack semi_acoustics, cache = semi
-  @unpack acoustic_source_terms, acoustic_source_weights, coupled_element_ids = cache
+  (; semi_acoustics, cache) = semi
+  (; acoustic_source_terms, acoustic_source_weights, coupled_element_ids) = cache
 
   du_acoustics = wrap_array(du_ode, semi_acoustics)
 

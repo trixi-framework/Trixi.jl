@@ -27,7 +27,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
     # re-initialize elements container
-    @unpack elements = cache
+    (; elements) = cache
     resize!(elements, length(leaf_cell_ids))
     init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
     @assert nelements(dg, cache) > old_n_elements
@@ -56,12 +56,12 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
   end # GC.@preserve old_u_ode
 
   # re-initialize interfaces container
-  @unpack interfaces = cache
+  (; interfaces) = cache
   resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
   init_interfaces!(interfaces, elements, mesh)
 
   # re-initialize boundaries container
-  @unpack boundaries = cache
+  (; boundaries) = cache
   resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
   init_boundaries!(boundaries, elements, mesh)
 
@@ -79,7 +79,7 @@ end
 function refine_element!(u::AbstractArray{<:Any,3}, element_id,
                          old_u, old_element_id,
                          adaptor::LobattoLegendreAdaptorL2, equations, dg)
-  @unpack forward_upper, forward_lower = adaptor
+  (; forward_upper, forward_lower) = adaptor
 
   # Store new element ids
   left_id  = element_id
@@ -141,7 +141,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
     # re-initialize elements container
-    @unpack elements = cache
+    (; elements) = cache
     resize!(elements, length(leaf_cell_ids))
     init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
     @assert nelements(dg, cache) < old_n_elements
@@ -181,12 +181,12 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
   end # GC.@preserve old_u_ode
 
   # re-initialize interfaces container
-  @unpack interfaces = cache
+  (; interfaces) = cache
   resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
   init_interfaces!(interfaces, elements, mesh)
 
   # re-initialize boundaries container
-  @unpack boundaries = cache
+  (; boundaries) = cache
   resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
   init_boundaries!(boundaries, elements, mesh)
 
@@ -204,7 +204,7 @@ end
 function coarsen_elements!(u::AbstractArray{<:Any,3}, element_id,
                            old_u, old_element_id,
                            adaptor::LobattoLegendreAdaptorL2, equations, dg)
-  @unpack reverse_upper, reverse_lower = adaptor
+  (; reverse_upper, reverse_lower) = adaptor
 
   # Store old element ids
   left_id  = old_element_id

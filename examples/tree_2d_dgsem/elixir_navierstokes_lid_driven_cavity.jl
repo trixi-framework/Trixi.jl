@@ -75,5 +75,3 @@ time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol,
             save_everystep=false, callback=callbacks)
 summary_callback() # print the timer summary
-
-

@@ -9,9 +9,9 @@
 # the entire global mesh. The output can be plotted using `Makie.mesh`.
 function global_plotting_triangulation_makie(pds::PlotDataSeries{<:PlotData2DTriangulated};
                                              set_z_coordinate_zero = false)
-  @unpack variable_id = pds
+  (; variable_id) = pds
   pd = pds.plot_data
-  @unpack x, y, data, t = pd
+  (; x, y, data, t) = pd
 
   makie_triangles = Makie.to_triangles(t)
 
@@ -38,9 +38,9 @@ end
 # (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
 function convert_PlotData2D_to_mesh_Points(pds::PlotDataSeries{<:PlotData2DTriangulated};
                                            set_z_coordinate_zero = false)
-  @unpack variable_id = pds
+  (; variable_id) = pds
   pd = pds.plot_data
-  @unpack x_face, y_face, face_data = pd
+  (; x_face, y_face, face_data) = pd
 
   if set_z_coordinate_zero
     # plot 2d surface by setting z coordinate to zero.
@@ -63,7 +63,7 @@ end
 # Creates a GeometryBasics triangulation for the visualization of a ScalarData2D plot object.
 function global_plotting_triangulation_makie(pd::PlotData2DTriangulated{<:ScalarData};
                                              set_z_coordinate_zero = false)
-  @unpack x, y, data, t = pd
+  (; x, y, data, t) = pd
 
   makie_triangles = Makie.to_triangles(t)
 
@@ -90,7 +90,7 @@ end
 # (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
 function convert_PlotData2D_to_mesh_Points(pd::PlotData2DTriangulated{<:ScalarData};
                                            set_z_coordinate_zero = false)
-  @unpack x_face, y_face, face_data = pd
+  (; x_face, y_face, face_data) = pd
 
   if set_z_coordinate_zero
     # plot 2d surface by setting z coordinate to zero.
@@ -154,7 +154,7 @@ function iplot(pd::PlotData2DTriangulated;
                plot_mesh=true, show_axis=false, colormap=default_Makie_colormap(),
                variable_to_plot_in=1)
 
-  @unpack variable_names = pd
+  (; variable_names) = pd
 
   # Initialize a Makie figure that we'll add the solution and toggle switches to.
   fig = Makie.Figure()
@@ -308,7 +308,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
 
   plotting_mesh = global_plotting_triangulation_makie(pds; set_z_coordinate_zero = true)
 
-  @unpack variable_id = pds
+  (; variable_id) = pds
   pd = pds.plot_data
   solution_z = vec(StructArrays.component(pd.data, variable_id))
   Makie.mesh!(myplot, plotting_mesh, color=solution_z, shading=false, colormap=myplot[:colormap])

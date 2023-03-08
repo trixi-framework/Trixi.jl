@@ -44,7 +44,7 @@ end
 
 function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
                               equations, surface_integral, dg::DG)
-  @unpack surface_flux = surface_integral
+  (; surface_flux) = surface_integral
 
   @threaded for element in eachelement(dg, cache)
     left_element = cache.elements.left_neighbors[1, element]
@@ -74,8 +74,8 @@ end
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{1}, equations, surface_integral, dg::DG)
-  @unpack surface_flux = surface_integral
-  @unpack surface_flux_values, node_coordinates = cache.elements
+  (; surface_flux) = surface_integral
+  (; surface_flux_values, node_coordinates) = cache.elements
 
   orientation = 1
 

@@ -121,7 +121,7 @@ end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
-  @unpack _u, _neighbor_ids, _node_indices = interfaces
+  (; _u, _neighbor_ids, _node_indices) = interfaces
 
   n_dims = ndims(interfaces)
   n_nodes = size(interfaces.u, 3)
@@ -190,7 +190,7 @@ end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
-  @unpack _u, neighbor_ids, node_indices, name = boundaries
+  (; _u, neighbor_ids, node_indices, name) = boundaries
 
   n_dims = ndims(boundaries)
   n_nodes = size(boundaries.u, 2)
@@ -318,7 +318,7 @@ end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mortars::P4estMortarContainer, capacity)
-  @unpack _u, _neighbor_ids, _node_indices = mortars
+  (; _u, _neighbor_ids, _node_indices) = mortars
 
   n_dims = ndims(mortars)
   n_nodes = size(mortars.u, 4)
@@ -378,22 +378,22 @@ end
 
 function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
   # Re-initialize elements container
-  @unpack elements = cache
+  (; elements) = cache
   resize!(elements, ncells(mesh))
   init_elements!(elements, mesh, dg.basis)
 
   required = count_required_surfaces(mesh)
 
   # resize interfaces container
-  @unpack interfaces = cache
+  (; interfaces) = cache
   resize!(interfaces, required.interfaces)
 
   # resize boundaries container
-  @unpack boundaries = cache
+  (; boundaries) = cache
   resize!(boundaries, required.boundaries)
 
   # resize mortars container
-  @unpack mortars = cache
+  (; mortars) = cache
   resize!(mortars, required.mortars)
 
   # re-initialize containers together to reduce
@@ -434,7 +434,7 @@ cfunction(::typeof(init_surfaces_iter_face), ::Val{3}) = @cfunction(init_surface
 
 # Function barrier for type stability
 function init_surfaces_iter_face_inner(info, user_data)
-  @unpack interfaces, mortars, boundaries = user_data
+  (; interfaces, mortars, boundaries) = user_data
   elem_count = unsafe_load(info).sides.elem_count
 
   if elem_count == 2
@@ -478,7 +478,7 @@ end
 
 # Initialization of interfaces after the function barrier
 function init_interfaces_iter_face_inner(info, sides, user_data)
-  @unpack interfaces, interface_id, mesh = user_data
+  (; interfaces, interface_id, mesh) = user_data
   user_data.interface_id += 1
 
   # Get Tuple of local trees, one-based indexing
@@ -510,7 +510,7 @@ end
 
 # Initialization of boundaries after the function barrier
 function init_boundaries_iter_face_inner(info, user_data)
-  @unpack boundaries, boundary_id, mesh = user_data
+  (; boundaries, boundary_id, mesh) = user_data
   user_data.boundary_id += 1
 
   # Extract boundary data
@@ -546,7 +546,7 @@ end
 
 # Initialization of mortars after the function barrier
 function init_mortars_iter_face_inner(info, sides, user_data)
-  @unpack mortars, mortar_id, mesh = user_data
+  (; mortars, mortar_id, mesh) = user_data
   user_data.mortar_id += 1
 
   # Get Tuple of local trees, one-based indexing

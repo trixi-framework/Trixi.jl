@@ -1,4 +1,3 @@
-
 # From here on, this file contains specializations of DG methods on the
 # curved 3D meshes `StructuredMesh{3}, P4estMesh{3}` to the compressible
 # Euler equations.
@@ -24,8 +23,8 @@
                                            equations::CompressibleEulerEquations3D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
                                            dg::DGSEM, cache, alpha)
-  @unpack derivative_split = dg.basis
-  @unpack contravariant_vectors = cache.elements
+  (; derivative_split) = dg.basis
+  (; contravariant_vectors) = cache.elements
 
   # Create a temporary array that will be used to store the RHS with permuted
   # indices `[i, j, k, v]` to allow using SIMD instructions.
@@ -338,8 +337,8 @@ end
                                            equations::CompressibleEulerEquations3D,
                                            volume_flux::typeof(flux_ranocha_turbo),
                                            dg::DGSEM, cache, alpha)
-  @unpack derivative_split = dg.basis
-  @unpack contravariant_vectors = cache.elements
+  (; derivative_split) = dg.basis
+  (; contravariant_vectors) = cache.elements
 
   # Create a temporary array that will be used to store the RHS with permuted
   # indices `[i, j, k, v]` to allow using SIMD instructions.

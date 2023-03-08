@@ -50,7 +50,7 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
 
-  @unpack contravariant_vectors = cache.elements
+  (; contravariant_vectors) = cache.elements
 
   for element in eachelement(dg, cache)
     max_λ1 = max_λ2 = max_λ3 = zero(max_scaled_speed)
@@ -85,7 +85,7 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
 
-  @unpack contravariant_vectors = cache.elements
+  (; contravariant_vectors) = cache.elements
 
   max_λ1, max_λ2, max_λ3 = max_abs_speeds(equations)
 

@@ -18,7 +18,7 @@ end
 
 function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:VisualizationCallback}
   visualization_callback = cb.affect!
-  @unpack interval, plot_arguments, solution_variables, variable_names, show_mesh, plot_creator, plot_data_creator = visualization_callback
+  (; interval, plot_arguments, solution_variables, variable_names, show_mesh, plot_creator, plot_data_creator) = visualization_callback
   print(io, "VisualizationCallback(",
             "interval=", interval, ", ",
             "solution_variables=", solution_variables, ", ",
@@ -123,7 +123,7 @@ end
 
 # this method is called to determine whether the callback should be activated
 function (visualization_callback::VisualizationCallback)(u, t, integrator)
-  @unpack interval = visualization_callback
+  (; interval) = visualization_callback
 
   # With error-based step size control, some steps can be rejected. Thus,
   #   `integrator.iter >= integrator.destats.naccept`
@@ -140,7 +140,7 @@ end
 function (visualization_callback::VisualizationCallback)(integrator)
   u_ode = integrator.u
   semi = integrator.p
-  @unpack plot_arguments, solution_variables, variable_names, show_mesh, plot_data_creator, plot_creator = visualization_callback
+  (; plot_arguments, solution_variables, variable_names, show_mesh, plot_data_creator, plot_creator) = visualization_callback
 
   # Extract plot data
   plot_data = plot_data_creator(u_ode, semi, solution_variables=solution_variables)

@@ -44,9 +44,9 @@ end
 function calc_error_norms(func, u, t, analyzer,
                           mesh::StructuredMesh{1}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
-  @unpack vandermonde, weights = analyzer
-  @unpack node_coordinates, inverse_jacobian = cache.elements
-  @unpack u_local, x_local, jacobian_local = cache_analysis
+  (; vandermonde, weights) = analyzer
+  (; node_coordinates, inverse_jacobian) = cache.elements
+  (; u_local, x_local, jacobian_local) = cache_analysis
 
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1), equations))
@@ -82,9 +82,9 @@ end
 function calc_error_norms(func, u, t, analyzer,
                           mesh::TreeMesh{1}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
-  @unpack vandermonde, weights = analyzer
-  @unpack node_coordinates = cache.elements
-  @unpack u_local, x_local = cache_analysis
+  (; vandermonde, weights) = analyzer
+  (; node_coordinates) = cache.elements
+  (; u_local, x_local) = cache_analysis
 
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1), equations))
@@ -118,7 +118,7 @@ end
 function integrate_via_indices(func::Func, u,
                                mesh::StructuredMesh{1}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
-  @unpack weights = dg.basis
+  (; weights) = dg.basis
 
   # Initialize integral with zeros of the right shape
   integral = zero(func(u, 1, 1, equations, dg, args...))
@@ -144,7 +144,7 @@ end
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{1}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
-  @unpack weights = dg.basis
+  (; weights) = dg.basis
 
   # Initialize integral with zeros of the right shape
   integral = zero(func(u, 1, 1, equations, dg, args...))
@@ -202,7 +202,7 @@ end
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::TreeMesh{1}, equations::IdealGlmMhdEquations1D,
                  dg::DG, cache)
-  @unpack derivative_matrix, weights = dg.basis
+  (; derivative_matrix, weights) = dg.basis
 
   # integrate over all elements to get the divergence-free condition errors
   linf_divb = zero(eltype(u))

@@ -1,4 +1,3 @@
-
 # From here on, this file contains specializations of DG methods on the
 # TreeMesh3D to the compressible Euler equations.
 #
@@ -23,7 +22,7 @@
                                            equations::CompressibleEulerEquations3D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
                                            dg::DGSEM, cache, alpha)
-  @unpack derivative_split = dg.basis
+  (; derivative_split) = dg.basis
 
   # Create a temporary array that will be used to store the RHS with permuted
   # indices `[i, j, k, v]` to allow using SIMD instructions.
@@ -268,7 +267,7 @@ end
                                            equations::CompressibleEulerEquations3D,
                                            volume_flux::typeof(flux_ranocha_turbo),
                                            dg::DGSEM, cache, alpha)
-  @unpack derivative_split = dg.basis
+  (; derivative_split) = dg.basis
 
   # Create a temporary array that will be used to store the RHS with permuted
   # indices `[i, j, k, v]` to allow using SIMD instructions.
@@ -605,4 +604,3 @@ end
     _du[v, i, j, k, element] += du[i, j, k, v]
   end
 end
-

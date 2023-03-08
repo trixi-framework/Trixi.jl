@@ -60,7 +60,7 @@ end
 function prolong2interfaces!(cache, u,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
-  @unpack interfaces = cache
+  (; interfaces) = cache
   index_range = eachnode(dg)
 
   @threaded for interface in eachinterface(dg, cache)
@@ -112,8 +112,8 @@ function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2},
                               nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
-  @unpack neighbor_ids, node_indices = cache.interfaces
-  @unpack contravariant_vectors = cache.elements
+  (; neighbor_ids, node_indices) = cache.interfaces
+  (; contravariant_vectors) = cache.elements
   index_range = eachnode(dg)
   index_end = last(index_range)
 
@@ -179,8 +179,8 @@ end
                                       interface_index, normal_direction,
                                       primary_node_index, primary_direction_index, primary_element_index,
                                       secondary_node_index, secondary_direction_index, secondary_element_index)
-  @unpack u = cache.interfaces
-  @unpack surface_flux = surface_integral
+  (; u) = cache.interfaces
+  (; surface_flux) = surface_integral
 
   u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_node_index, interface_index)
 
@@ -200,7 +200,7 @@ end
                                       interface_index, normal_direction,
                                       primary_node_index, primary_direction_index, primary_element_index,
                                       secondary_node_index, secondary_direction_index, secondary_element_index)
-  @unpack u = cache.interfaces
+  (; u) = cache.interfaces
   surface_flux, nonconservative_flux = surface_integral.surface_flux
 
   u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_node_index, interface_index)
@@ -231,7 +231,7 @@ end
 function prolong2boundaries!(cache, u,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
-  @unpack boundaries = cache
+  (; boundaries) = cache
   index_range = eachnode(dg)
 
   @threaded for boundary in eachboundary(dg, cache)
@@ -261,8 +261,8 @@ end
 function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
-  @unpack boundaries = cache
-  @unpack surface_flux_values = cache.elements
+  (; boundaries) = cache
+  (; surface_flux_values) = cache.elements
   index_range = eachnode(dg)
 
   @threaded for local_index in eachindex(boundary_indexing)
@@ -301,9 +301,9 @@ end
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index, boundary_index)
-  @unpack boundaries = cache
-  @unpack node_coordinates, contravariant_vectors = cache.elements
-  @unpack surface_flux = surface_integral
+  (; boundaries) = cache
+  (; node_coordinates, contravariant_vectors) = cache.elements
+  (; surface_flux) = surface_integral
 
   # Extract solution data from boundary container
   u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
@@ -330,8 +330,8 @@ end
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index, boundary_index)
-  @unpack boundaries = cache
-  @unpack node_coordinates, contravariant_vectors = cache.elements
+  (; boundaries) = cache
+  (; node_coordinates, contravariant_vectors) = cache.elements
   surface_flux, nonconservative_flux = surface_integral.surface_flux
 
   # Extract solution data from boundary container
@@ -366,7 +366,7 @@ function prolong2mortars!(cache, u,
                           mesh::P4estMesh{2}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           surface_integral, dg::DGSEM)
-  @unpack neighbor_ids, node_indices = cache.mortars
+  (; neighbor_ids, node_indices) = cache.mortars
   index_range = eachnode(dg)
 
   @threaded for mortar in eachmortar(dg, cache)
@@ -431,9 +431,9 @@ function calc_mortar_flux!(surface_flux_values,
                            nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
-  @unpack neighbor_ids, node_indices = cache.mortars
-  @unpack contravariant_vectors = cache.elements
-  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+  (; neighbor_ids, node_indices) = cache.mortars
+  (; contravariant_vectors) = cache.elements
+  (; fstar_upper_threaded, fstar_lower_threaded) = cache
   index_range = eachnode(dg)
 
   @threaded for mortar in eachmortar(dg, cache)
@@ -489,8 +489,8 @@ end
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
                                    node_index)
-  @unpack u = cache.mortars
-  @unpack surface_flux = surface_integral
+  (; u) = cache.mortars
+  (; surface_flux) = surface_integral
 
   u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index, mortar_index)
 
@@ -508,7 +508,7 @@ end
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
                                    node_index)
-  @unpack u = cache.mortars
+  (; u) = cache.mortars
   surface_flux, nonconservative_flux = surface_integral.surface_flux
 
   u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index, mortar_index)
@@ -533,7 +533,7 @@ end
                                             mesh::P4estMesh{2}, equations,
                                             mortar_l2::LobattoLegendreMortarL2,
                                             dg::DGSEM, cache, mortar, fstar, u_buffer)
-  @unpack neighbor_ids, node_indices = cache.mortars
+  (; neighbor_ids, node_indices) = cache.mortars
 
   # Copy solution small to small
   small_indices   = node_indices[1, mortar]
@@ -593,8 +593,8 @@ function calc_surface_integral!(du, u,
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
-  @unpack boundary_interpolation = dg.basis
-  @unpack surface_flux_values = cache.elements
+  (; boundary_interpolation) = dg.basis
+  (; surface_flux_values) = cache.elements
 
   # Note that all fluxes have been computed with outward-pointing normal vectors.
   # Access the factors only once before beginning the loop to increase performance.

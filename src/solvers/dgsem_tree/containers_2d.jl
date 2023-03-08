@@ -158,7 +158,7 @@ Base.eltype(interfaces::InterfaceContainer2D) = eltype(interfaces.u)
 function Base.resize!(interfaces::InterfaceContainer2D, capacity)
   n_nodes = nnodes(interfaces)
   n_variables = nvariables(interfaces)
-  @unpack _u, _neighbor_ids, orientations = interfaces
+  (; _u, _neighbor_ids, orientations) = interfaces
 
   resize!(_u, 2 * n_variables * n_nodes * capacity)
   interfaces.u = unsafe_wrap(Array, pointer(_u),
@@ -783,7 +783,7 @@ Base.eltype(mpi_interfaces::MPIInterfaceContainer2D) = eltype(mpi_interfaces.u)
 function Base.resize!(mpi_interfaces::MPIInterfaceContainer2D, capacity)
   n_nodes = nnodes(mpi_interfaces)
   n_variables = nvariables(mpi_interfaces)
-  @unpack _u, local_neighbor_ids, orientations, remote_sides = mpi_interfaces
+  (; _u, local_neighbor_ids, orientations, remote_sides) = mpi_interfaces
 
   resize!(_u, 2 * n_variables * n_nodes * capacity)
   mpi_interfaces.u = unsafe_wrap(Array, pointer(_u),

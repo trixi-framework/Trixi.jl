@@ -537,7 +537,7 @@ end
 function prolong2mpiinterfaces!(cache, u,
                                 mesh::ParallelTreeMesh{2},
                                 equations, surface_integral, dg::DG)
-  @unpack mpi_interfaces = cache
+  (; mpi_interfaces) = cache
 
   @threaded for interface in eachmpiinterface(dg, cache)
     local_element = mpi_interfaces.local_neighbor_ids[interface]
@@ -572,7 +572,7 @@ end
 function prolong2mpimortars!(cache, u,
                              mesh::ParallelTreeMesh{2}, equations,
                              mortar_l2::LobattoLegendreMortarL2, surface_integral, dg::DGSEM)
-  @unpack mpi_mortars = cache
+  (; mpi_mortars) = cache
 
   @threaded for mortar in eachmpimortar(dg, cache)
     local_neighbor_ids = mpi_mortars.local_neighbor_ids[mortar]
@@ -683,8 +683,8 @@ function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::ParallelTreeMesh{2},
                                   nonconservative_terms::False, equations,
                                   surface_integral, dg::DG, cache)
-  @unpack surface_flux = surface_integral
-  @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
+  (; surface_flux) = surface_integral
+  (; u, local_neighbor_ids, orientations, remote_sides) = cache.mpi_interfaces
 
   @threaded for interface in eachmpiinterface(dg, cache)
     # Get local neighboring element
@@ -726,9 +726,9 @@ function calc_mpi_mortar_flux!(surface_flux_values,
                                nonconservative_terms::False, equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
-  @unpack surface_flux = surface_integral
-  @unpack u_lower, u_upper, orientations = cache.mpi_mortars
-  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+  (; surface_flux) = surface_integral
+  (; u_lower, u_upper, orientations) = cache.mpi_mortars
+  (; fstar_upper_threaded, fstar_lower_threaded) = cache
 
   @threaded for mortar in eachmpimortar(dg, cache)
     # Choose thread-specific pre-allocated container

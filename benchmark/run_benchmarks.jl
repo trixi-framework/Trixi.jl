@@ -1,4 +1,3 @@
-
 using PkgBenchmark
 using Trixi
 

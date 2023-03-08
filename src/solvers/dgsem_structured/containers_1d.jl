@@ -32,7 +32,7 @@ end
 # `mesh.mapping` is passed as an additional argument for type stability (function barrier)
 function calc_node_coordinates!(node_coordinates, cell_x, mapping, mesh::StructuredMesh{1},
                                 basis::LobattoLegendreBasis)
-  @unpack nodes = basis
+  (; nodes) = basis
 
   # Get cell length in reference mesh
   dx = 2 / size(mesh, 1)

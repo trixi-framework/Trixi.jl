@@ -25,7 +25,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
   @nospecialize cb # reduce precompilation time
 
   glm_speed_callback = cb.affect!
-  @unpack glm_scale, cfl = glm_speed_callback
+  (; glm_scale, cfl) = glm_speed_callback
   print(io, "GlmSpeedCallback(glm_scale=", glm_scale, ", cfl=", cfl, ")")
 end
 
@@ -76,7 +76,7 @@ end
   dt = get_proposed_dt(integrator)
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  @unpack glm_scale, cfl = glm_speed_callback
+  (; glm_scale, cfl) = glm_speed_callback
 
   # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
   c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)

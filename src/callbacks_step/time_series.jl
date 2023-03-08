@@ -50,7 +50,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:TimeSeriesCallback})
   @nospecialize cb # reduce precompilation time
 
   time_series_callback = cb.affect!
-  @unpack interval, solution_variables, output_directory, filename = time_series_callback
+  (; interval, solution_variables, output_directory, filename) = time_series_callback
   print(io, "TimeSeriesCallback(",
             "interval=", interval, ", ",
             "solution_variables=", interval, ", ",
@@ -169,7 +169,7 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
     error("the TimeSeriesCallback does not work with AMR enabled")
   end
 
-  @unpack interval = time_series_callback
+  (; interval) = time_series_callback
 
   # Create record if in correct interval (needs to be checked since the callback is also called
   # after the final step for storing the data on disk, indepdendent of the current interval)

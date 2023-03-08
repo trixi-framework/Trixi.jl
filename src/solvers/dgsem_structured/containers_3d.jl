@@ -37,7 +37,7 @@ function calc_node_coordinates!(node_coordinates, element,
                                 cell_x, cell_y, cell_z,
                                 mapping, mesh::StructuredMesh{3},
                                 basis::LobattoLegendreBasis)
-  @unpack nodes = basis
+  (; nodes) = basis
 
   # Get cell length in reference mesh
   dx = 2 / size(mesh, 1)
@@ -110,7 +110,7 @@ end
 # These are called Ja^i in Kopriva's blue book.
 function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,6}, element,
                                      jacobian_matrix, node_coordinates, basis::LobattoLegendreBasis)
-  @unpack derivative_matrix = basis
+  (; derivative_matrix) = basis
 
   # The general form is
   # Jaⁱₙ = 0.5 * ( ∇ × (Xₘ ∇ Xₗ - Xₗ ∇ Xₘ) )ᵢ  where (n, m, l) cyclic and ∇ = (∂/∂ξ, ∂/∂η, ∂/∂ζ)ᵀ

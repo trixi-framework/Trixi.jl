@@ -32,7 +32,7 @@ end
 
 # Analytical flow solution, used for the initial condition of the flow simulation
 function velocity(x, t, vortex_pair::VortexPair)
-  @unpack r0, rc, circulation = vortex_pair
+  (; r0, rc, circulation) = vortex_pair
 
   omega = circulation / (4 * pi * r0^2)
   si, co = sincos(omega * t)
@@ -65,8 +65,8 @@ struct InitialCondition{RealT<:Real}
 end
 
 function (initial_condition::InitialCondition)(x, t, equations::CompressibleEulerEquations2D)
-  @unpack vortex_pair = initial_condition
-  @unpack rho0, c0 = vortex_pair
+  (; vortex_pair) = initial_condition
+  (; rho0, c0) = vortex_pair
   gamma = equations.gamma
 
   v = velocity(x, t, vortex_pair)
@@ -93,7 +93,7 @@ function SpongeLayer(; sponge_layer_min, sponge_layer_max, reference_values, sou
 end
 
 function (sponge_layer::SpongeLayer)(u, x, t, equations)
-  @unpack sponge_layer_min, sponge_layer_max, reference_values, source_terms = sponge_layer
+  (; sponge_layer_min, sponge_layer_max, reference_values, source_terms) = sponge_layer
 
   if lies_in_sponge_layer(x, sponge_layer_min, sponge_layer_max)
     return source_term_sponge_layer(u, x, t, equations, sponge_layer_min, sponge_layer_max,

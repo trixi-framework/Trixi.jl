@@ -10,7 +10,7 @@ function save_solution_file(u, time, dt, timestep,
                             equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
-  @unpack output_directory, solution_variables = solution_callback
+  (; output_directory, solution_variables) = solution_callback
 
   # Filename without extension based on current time step
   if isempty(system)
@@ -78,7 +78,7 @@ function save_solution_file(u, time, dt, timestep,
                             mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
-  @unpack output_directory, solution_variables = solution_callback
+  (; output_directory, solution_variables) = solution_callback
 
   # Filename without extension based on current time step
   if isempty(system)

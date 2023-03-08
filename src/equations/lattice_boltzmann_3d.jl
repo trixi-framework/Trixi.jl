@@ -198,7 +198,7 @@ varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations3D) = ("rho", "v
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations3D)
-  @unpack u0 = equations
+  (; u0) = equations
   rho = pi
   v1 = u0
   v2 = u0
@@ -277,7 +277,7 @@ end
 Calculate the macroscopic velocity vector from the particle distribution functions `u`.
 """
 @inline function velocity(u, equations::LatticeBoltzmannEquations3D)
-  @unpack v_alpha1, v_alpha2, v_alpha3 = equations
+  (; v_alpha1, v_alpha2, v_alpha3) = equations
   rho = density(u, equations)
 
   return SVector(dot(v_alpha1, u)/rho,
@@ -304,7 +304,7 @@ Calculate the local equilibrium distribution for the distribution function with 
 given the macroscopic state defined by `rho`, `v1`, `v2`, `v3`.
 """
 @inline function equilibrium_distribution(alpha, rho, v1, v2, v3, equations::LatticeBoltzmannEquations3D)
-  @unpack weights, c_s, v_alpha1, v_alpha2, v_alpha3 = equations
+  (; weights, c_s, v_alpha1, v_alpha2, v_alpha3) = equations
 
   va_v = v_alpha1[alpha]*v1 + v_alpha2[alpha]*v2 + v_alpha3[alpha]*v3
   cs_squared = c_s^2
@@ -361,7 +361,7 @@ end
 Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
 """
 @inline function collision_bgk(u, dt, equations::LatticeBoltzmannEquations3D)
-  @unpack c_s, nu = equations
+  (; c_s, nu) = equations
   tau = nu / (c_s^2 * dt)
   return -(u - equilibrium_distribution(u, equations))/(tau + 1/2)
 end
@@ -371,7 +371,7 @@ end
 @inline have_constant_speed(::LatticeBoltzmannEquations3D) = True()
 
 @inline function max_abs_speeds(equations::LatticeBoltzmannEquations3D)
-  @unpack c = equations
+  (; c) = equations
 
   return c, c, c
 end

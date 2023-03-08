@@ -310,7 +310,7 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
   md = mesh.md
 
   # Vp = the interpolation matrix from nodal points to plotting points
-  @unpack Vp = rd
+  (; Vp) = rd
   interpolate_to_plotting_points!(out, x) = mul!(out, Vp, x)
 
   solution_variables_ = digest_solution_variables(equations, solution_variables)
@@ -423,7 +423,7 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
   md = mesh.md
 
   # Vp = the interpolation matrix from nodal points to plotting points
-  @unpack Vp = rd
+  (; Vp) = rd
 
   # interpolate nodal coordinates and solution field to plotting points
   x_plot, y_plot = map(x->Vp * x, md.xyz) # md.xyz is a tuple of arrays containing nodal coordinates
@@ -629,7 +629,7 @@ Create a `PlotData1D` object from a solution object created by either `OrdinaryD
 PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
 
 function PlotData1D(time_series_callback::TimeSeriesCallback, point_id::Integer)
-  @unpack time, variable_names, point_data = time_series_callback
+  (; time, variable_names, point_data) = time_series_callback
 
   n_solution_variables = length(variable_names)
   data = Matrix{Float64}(undef, length(time), n_solution_variables)

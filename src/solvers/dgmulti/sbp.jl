@@ -1,4 +1,3 @@
-
 """
     DGMulti(approximation_type::AbstractDerivativeOperator;
             element_type::AbstractElemShape,
@@ -480,7 +479,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGMultiFluxDiffPeriodicFDSBP, cache)
 
-  @unpack volume_flux = volume_integral
+  (; volume_flux) = volume_integral
 
   # We expect speedup over the serial version only when using two or more threads
   # since the threaded version below does not exploit the symmetry properties,

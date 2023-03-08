@@ -77,7 +77,7 @@ end
 
 # this method is called to determine whether the callback should be activated
 function (restart_callback::SaveRestartCallback)(u, t, integrator)
-  @unpack interval, save_final_restart = restart_callback
+  (; interval, save_final_restart) = restart_callback
 
   # With error-based step size control, some steps can be rejected. Thus,
   #   `integrator.iter >= integrator.destats.naccept`
@@ -93,7 +93,7 @@ end
 # this method is called when the callback is activated
 function (restart_callback::SaveRestartCallback)(integrator)
   u_ode = integrator.u
-  @unpack t, dt = integrator
+  (; t, dt) = integrator
   iter = integrator.destats.naccept
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)

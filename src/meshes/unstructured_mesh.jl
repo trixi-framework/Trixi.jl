@@ -101,7 +101,7 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
   @unpack ( corner_nodes, interface_info, element_node_ids, curved_check,
             quad_corners, quad_corners_flipped, curve_values,
             element_is_curved, surface_curves, boundary_names ) = arrays
-  @unpack n_corners, n_surfaces, n_elements = counters
+  (; n_corners, n_surfaces, n_elements) = counters
   mesh_nnodes = length(cheby_nodes)
 
   # counter to step through the mesh file line by line

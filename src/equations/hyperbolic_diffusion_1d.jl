@@ -73,7 +73,7 @@ diffusion system that is used with [`initial_condition_poisson_nonperiodic`](@re
                                                   equations::HyperbolicDiffusionEquations1D)
   # elliptic equation: -νΔϕ = f
   # analytical solution: ϕ = sin(πx) and f = π^2sin(πx)
-  @unpack inv_Tr = equations
+  (; inv_Tr) = equations
 
   dphi = pi^2 * sinpi(x[1])
   dq1  = -inv_Tr * u[2]
@@ -115,7 +115,7 @@ Source term that only includes the forcing from the hyperbolic diffusion system.
 """
 @inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations1D)
   # harmonic solution of the form ϕ = A + B * x, so f = 0
-  @unpack inv_Tr = equations
+  (; inv_Tr) = equations
 
   dq1 = -inv_Tr * u[2]
 
@@ -150,7 +150,7 @@ end
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::HyperbolicDiffusionEquations1D)
   phi, q1 = u
-  @unpack inv_Tr = equations
+  (; inv_Tr) = equations
 
   # Ignore orientation since it is always "1" in 1D
   f1 = -equations.nu * q1

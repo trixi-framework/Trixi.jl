@@ -153,7 +153,7 @@ Base.eltype(interfaces::InterfaceContainer1D) = eltype(interfaces.u)
 # See explanation of Base.resize! for the element container
 function Base.resize!(interfaces::InterfaceContainer1D, capacity)
   n_variables = nvariables(interfaces)
-  @unpack _u, _neighbor_ids, orientations = interfaces
+  (; _u, _neighbor_ids, orientations) = interfaces
 
   resize!(_u, 2 * n_variables * capacity)
   interfaces.u = unsafe_wrap(Array, pointer(_u),

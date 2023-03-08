@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -28,7 +27,7 @@ initial_condition = initial_condition_poisson_periodic
 @inline function source_terms_poisson_periodic(u, x, t, equations::HyperbolicDiffusionEquations3D)
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
-  @unpack inv_Tr = equations
+  (; inv_Tr) = equations
   C = -12 * equations.nu * pi^2
 
   x1, x2, x3 = x

@@ -1,4 +1,3 @@
-
 # ========= GaussSBP approximation types ============
 # Note: we define type aliases outside of the @muladd block to avoid Revise breaking when code
 # inside the @muladd block is edited. See https://github.com/trixi-framework/Trixi.jl/issues/801
@@ -133,8 +132,8 @@ end
                                                      A::TensorProductGaussFaceOperator{2, Interpolation},
                                                      x::AbstractVector)
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; nnodes_1d, nfaces) = A
 
   fill!(out, zero(eltype(out)))
 
@@ -167,8 +166,8 @@ end
                                                      A::TensorProductGaussFaceOperator{3, Interpolation},
                                                      x::AbstractVector)
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; nnodes_1d, nfaces) = A
 
   fill!(out, zero(eltype(out)))
 
@@ -213,8 +212,8 @@ end
                                                      A::TensorProductGaussFaceOperator{2, Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; inv_volume_weights_1d, nnodes_1d, nfaces) = A
 
   fill!(out_vec, zero(eltype(out_vec)))
 
@@ -259,8 +258,8 @@ end
                                                      A::TensorProductGaussFaceOperator{3, Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; inv_volume_weights_1d, nnodes_1d, nfaces) = A
 
   fill!(out_vec, zero(eltype(out_vec)))
 
@@ -380,7 +379,7 @@ function create_cache(mesh::DGMultiMesh, equations,
                       dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Quad, Hex}}, RealT, uEltype)
 
   rd = dg.basis
-  @unpack md = mesh
+  (; md) = mesh
 
   cache = invoke(create_cache, Tuple{typeof(mesh), typeof(equations), DGMultiFluxDiff, typeof(RealT), typeof(uEltype)},
                  mesh, equations, dg, RealT, uEltype)
@@ -418,10 +417,10 @@ end
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff{<:GaussSBP})
 
   rd = dg.basis
-  @unpack Vq = rd
-  @unpack VhP, entropy_var_values, u_values = cache
-  @unpack projected_entropy_var_values, entropy_projected_u_values = cache
-  @unpack interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_face = cache
+  (; Vq) = rd
+  (; VhP, entropy_var_values, u_values) = cache
+  (; projected_entropy_var_values, entropy_projected_u_values) = cache
+  (; interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_face) = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
     apply_to_each_field(mul_by!(interp_matrix_lobatto_to_gauss), view(u_values, :, e), view(u, :, e))
@@ -456,8 +455,8 @@ end
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
                                 mesh::DGMultiMesh, equations,
                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache)
-  @unpack gauss_volume_local_threaded, rhs_volume_local_threaded = cache
-  @unpack interp_matrix_gauss_to_lobatto, gauss_LIFT = cache
+  (; gauss_volume_local_threaded, rhs_volume_local_threaded) = cache
+  (; interp_matrix_gauss_to_lobatto, gauss_LIFT) = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
 
@@ -480,13 +479,13 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                volume_integral, dg::DGMultiFluxDiff{<:GaussSBP},
                                cache)
 
-  @unpack entropy_projected_u_values = cache
-  @unpack fluxdiff_local_threaded, rhs_local_threaded, rhs_volume_local_threaded = cache
+  (; entropy_projected_u_values) = cache
+  (; fluxdiff_local_threaded, rhs_local_threaded, rhs_volume_local_threaded) = cache
 
   # After computing the volume integral, we transform back to Lobatto nodes.
   # This allows us to reuse the other DGMulti routines as-is.
-  @unpack interp_matrix_gauss_to_lobatto = cache
-  @unpack projection_matrix_gauss_to_face, inv_gauss_weights = cache
+  (; interp_matrix_gauss_to_lobatto) = cache
+  (; projection_matrix_gauss_to_face, inv_gauss_weights) = cache
 
   rd = dg.basis
   volume_indices = Base.OneTo(rd.Nq)

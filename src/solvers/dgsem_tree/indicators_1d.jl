@@ -27,8 +27,8 @@ end
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                                    equations, dg::DGSEM, cache;
                                                    kwargs...)
-  @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_hg.cache
+  (; alpha_max, alpha_min, alpha_smooth, variable) = indicator_hg
+  (; alpha, alpha_tmp, indicator_threaded, modal_threaded) = indicator_hg.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -134,7 +134,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3},
                                    mesh, equations, dg::DGSEM, cache;
                                    kwargs...)
   @assert nnodes(dg) >= 3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
-  @unpack alpha, indicator_threaded = löhner.cache
+  (; alpha, indicator_threaded) = löhner.cache
   resize!(alpha, nelements(dg, cache))
 
   @threaded for element in eachelement(dg, cache)
@@ -183,7 +183,7 @@ end
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,3},
                                        mesh, equations, dg::DGSEM, cache;
                                        kwargs...)
-  @unpack alpha, indicator_threaded = indicator_max.cache
+  (; alpha, indicator_threaded) = indicator_max.cache
   resize!(alpha, nelements(dg, cache))
 
   @threaded for element in eachelement(dg, cache)
@@ -246,9 +246,9 @@ end
 
 function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     u::AbstractArray{<:Any,3}, mesh, equations, dg::DGSEM, cache; kwargs...)
-  @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
+  (; indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network) = indicator_ann
 
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_ann.cache
+  (; alpha, alpha_tmp, indicator_threaded, modal_threaded) = indicator_ann.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -315,9 +315,9 @@ end
 
 function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     u::AbstractArray{<:Any,3}, mesh, equations, dg::DGSEM, cache; kwargs...)
-  @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
+  (; indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network) = indicator_ann
 
-  @unpack alpha, alpha_tmp, indicator_threaded, neighbor_ids = indicator_ann.cache
+  (; alpha, alpha_tmp, indicator_threaded, neighbor_ids) = indicator_ann.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?

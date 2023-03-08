@@ -31,7 +31,7 @@ end
 function initialize_cache!(averaging_callback_cache, u,
                            mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2},
                            dg::DGSEM, cache)
-  @unpack vorticity_prev = averaging_callback_cache
+  (; vorticity_prev) = averaging_callback_cache
 
   # Calculate vorticity for initial solution
   calc_vorticity!(vorticity_prev, u, mesh, equations, dg, cache)
@@ -44,8 +44,8 @@ end
 function calc_mean_values!(mean_values, averaging_callback_cache, u, u_prev, integration_constant,
                            mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2},
                            dg::DGSEM, cache)
-  @unpack v_mean, c_mean, rho_mean, vorticity_mean = mean_values
-  @unpack vorticity_prev = averaging_callback_cache
+  (; v_mean, c_mean, rho_mean, vorticity_mean) = mean_values
+  (; vorticity_prev) = averaging_callback_cache
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)

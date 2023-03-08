@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -13,7 +12,7 @@ equations = CompressibleEulerEquations2D(gamma)
 #   https://tinyurl.com/c76fjtx4
 # Mach = 2000 jet
 function initial_condition_astro_jet(x, t, equations::CompressibleEulerEquations2D)
-  @unpack gamma = equations 
+  (; gamma) = equations 
   rho = 0.5
   v1 = 0
   v2 = 0

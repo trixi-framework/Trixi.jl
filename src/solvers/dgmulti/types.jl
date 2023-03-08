@@ -208,7 +208,7 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
   md = MeshData(vertex_coordinates, EToV, dg.basis)
   md = NDIMS==1 ? StartUpDG.make_periodic(md, periodicity...) : StartUpDG.make_periodic(md, periodicity)
 
-  @unpack xyz = md
+  (; xyz) = md
   for i in eachindex(xyz[1])
     new_xyz = mapping(getindex.(xyz, i)...)
     setindex!.(xyz, new_xyz, i)
@@ -216,8 +216,8 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
   md_curved = MeshData(dg.basis, md, xyz...)
 
   # interpolate geometric terms to both volume and face cubature points
-  @unpack rstxyzJ = md_curved
-  @unpack Vq, Vf = dg.basis
+  (; rstxyzJ) = md_curved
+  (; Vq, Vf) = dg.basis
   rstxyzJ_interpolated = map(x -> [Vq; Vf] * x, rstxyzJ)
   md_curved = @set md_curved.rstxyzJ = rstxyzJ_interpolated
 
@@ -268,7 +268,7 @@ end
 # Computes `b = kron(A, A) * x` in an optimized fashion
 function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
 
-  @unpack A = A_kronecker
+  (; A) = A_kronecker
   tmp_storage = A_kronecker.tmp_storage[Threads.threadid()]
   n = size(A, 2)
 
@@ -306,7 +306,7 @@ end
 # Computes `b = kron(A, A, A) * x` in an optimized fashion
 function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
 
-  @unpack A = A_kronecker
+  (; A) = A_kronecker
   tmp_storage = A_kronecker.tmp_storage[Threads.threadid()]
   n = size(A, 2)
 

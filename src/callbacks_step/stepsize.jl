@@ -20,7 +20,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:StepsizeCallback})
   @nospecialize cb # reduce precompilation time
 
   stepsize_callback = cb.affect!
-  @unpack cfl_number = stepsize_callback
+  (; cfl_number) = stepsize_callback
   print(io, "StepsizeCallback(cfl_number=", cfl_number, ")")
 end
 
@@ -69,7 +69,7 @@ end
     u_ode = integrator.u
     semi = integrator.p
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    @unpack cfl_number = stepsize_callback
+    (; cfl_number) = stepsize_callback
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     dt = @trixi_timeit timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
@@ -92,7 +92,7 @@ end
 # many examples in `solve(ode, ..., dt=stepsize_callback(ode), ...)`.
 function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition, Affect!<:StepsizeCallback}
   stepsize_callback = cb.affect!
-  @unpack cfl_number = stepsize_callback
+  (; cfl_number) = stepsize_callback
   u_ode = ode.u0
   t = first(ode.tspan)
   semi = ode.p

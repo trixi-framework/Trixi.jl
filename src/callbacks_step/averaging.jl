@@ -30,7 +30,7 @@ end
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:AveragingCallback})
   @nospecialize cb # reduce precompilation time
   averaging_callback = cb.affect!
-  @unpack tspan = averaging_callback
+  (; tspan) = averaging_callback
 
   print(io, "AveragingCallback(tspan=", tspan, ")")
 end
@@ -82,7 +82,7 @@ end
 # This function is called during time integration and updates the mean values according to the
 # trapezoidal rule
 function (averaging_callback::AveragingCallback)(integrator)
-  @unpack mean_values = averaging_callback
+  (; mean_values) = averaging_callback
 
   u_ode = integrator.u
   u_prev_ode = integrator.uprev

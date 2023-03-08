@@ -55,9 +55,9 @@ end
 function calc_error_norms_per_element(func, u, t, analyzer,
                                       mesh::ParallelTreeMesh{2}, equations, initial_condition,
                                       dg::DGSEM, cache, cache_analysis)
-  @unpack vandermonde, weights = analyzer
-  @unpack node_coordinates = cache.elements
-  @unpack u_local, u_tmp1, x_local, x_tmp1 = cache_analysis
+  (; vandermonde, weights) = analyzer
+  (; node_coordinates) = cache.elements
+  (; u_local, u_tmp1, x_local, x_tmp1) = cache_analysis
 
   # Set up data structures
   T = typeof(zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations)))
@@ -88,9 +88,9 @@ end
 function calc_error_norms(func, u, t, analyzer,
                           mesh::ParallelP4estMesh{2}, equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
-  @unpack vandermonde, weights = analyzer
-  @unpack node_coordinates, inverse_jacobian = cache.elements
-  @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
+  (; vandermonde, weights) = analyzer
+  (; node_coordinates, inverse_jacobian) = cache.elements
+  (; u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1) = cache_analysis
 
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
@@ -163,7 +163,7 @@ end
 function integrate_via_indices(func::Func, u,
                                mesh::ParallelP4estMesh{2}, equations,
                                dg::DGSEM, cache, args...; normalize=true) where {Func}
-  @unpack weights = dg.basis
+  (; weights) = dg.basis
 
   # Initialize integral with zeros of the right shape
   # Pass `zero(SVector{nvariables(equations), eltype(u))}` to `func` since `u` might be empty, if the

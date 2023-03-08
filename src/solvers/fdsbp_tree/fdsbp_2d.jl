@@ -46,7 +46,7 @@ function calc_volume_integral!(du, u,
                                volume_integral::VolumeIntegralStrongForm,
                                dg::FDSBP, cache)
   D = dg.basis # SBP derivative operator
-  @unpack f_threaded = cache
+  (; f_threaded) = cache
 
   # SBP operators from SummationByPartsOperators.jl implement the basic interface
   # of matrix-vector multiplication. Thus, we pass an "array of structures",
@@ -104,8 +104,8 @@ function calc_volume_integral!(du, u,
   # dg.basis isa SummationByPartsOperators.UpwindOperators
   D_minus = dg.basis.minus # Upwind SBP D^- derivative operator
   D_plus = dg.basis.plus   # Upwind SBP D^+ derivative operator
-  @unpack f_minus_plus_threaded, f_minus_threaded, f_plus_threaded = cache
-  @unpack splitting = volume_integral
+  (; f_minus_plus_threaded, f_minus_threaded, f_plus_threaded) = cache
+  (; splitting) = volume_integral
 
   # SBP operators from SummationByPartsOperators.jl implement the basic interface
   # of matrix-vector multiplication. Thus, we pass an "array of structures",
@@ -162,7 +162,7 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
                                 dg::DG, cache)
   inv_weight_left  = inv(left_boundary_weight(dg.basis))
   inv_weight_right = inv(right_boundary_weight(dg.basis))
-  @unpack surface_flux_values = cache.elements
+  (; surface_flux_values) = cache.elements
 
   @threaded for element in eachelement(dg, cache)
     for l in eachnode(dg)
@@ -210,8 +210,8 @@ function calc_interface_flux!(surface_flux_values,
                               nonconservative_terms::False, equations,
                               surface_integral::SurfaceIntegralUpwind,
                               dg::FDSBP, cache)
-  @unpack splitting = surface_integral
-  @unpack u, neighbor_ids, orientations = cache.interfaces
+  (; splitting) = surface_integral
+  (; u, neighbor_ids, orientations) = cache.interfaces
 
   @threaded for interface in eachinterface(dg, cache)
     # Get neighboring elements
@@ -255,8 +255,8 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
                                 dg::FDSBP, cache)
   inv_weight_left  = inv(left_boundary_weight(dg.basis))
   inv_weight_right = inv(right_boundary_weight(dg.basis))
-  @unpack surface_flux_values = cache.elements
-  @unpack splitting = surface_integral
+  (; surface_flux_values) = cache.elements
+  (; splitting) = surface_integral
 
 
   @threaded for element in eachelement(dg, cache)
@@ -326,7 +326,7 @@ function calc_error_norms(func, u, t, analyzer,
                           dg::FDSBP, cache, cache_analysis)
   # TODO: FD. This is rather inefficient right now and allocates...
   weights = diag(SummationByPartsOperators.mass_matrix(dg.basis))
-  @unpack node_coordinates = cache.elements
+  (; node_coordinates) = cache.elements
 
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))

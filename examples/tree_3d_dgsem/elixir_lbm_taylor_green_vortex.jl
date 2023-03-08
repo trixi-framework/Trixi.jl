@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -14,7 +13,7 @@ equations = LatticeBoltzmannEquations3D(Ma=0.1, Re=1600.0; L=L)
 Initialize the flow field to the Taylor-Green vortex setup
 """
 function initial_condition_taylor_green_vortex(x, t, equations::LatticeBoltzmannEquations3D)
-  @unpack u0, rho0, L = equations
+  (; u0, rho0, L) = equations
 
   v1 =  u0 * sin(x[1] / L) * cos(x[2] / L) * cos(x[3] / L)
   v2 = -u0 * cos(x[1] / L) * sin(x[2] / L) * cos(x[3] / L)
