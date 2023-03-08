@@ -380,9 +380,9 @@ function (boundary_condition::BoundaryConditionCoupledAB)(u_inner, orientation, 
                             
   # Calculate boundary flux
   if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(vcat(u_inner, u_boundary[1]), u_boundary, orientation, equations)
+    flux = surface_flux_function(vcat(u_inner, u_boundary[1]), u_boundary, orientation, boundary_condition.equations_coupled)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, vcat(u_inner, u_boundary[1]), orientation, equations)
+    flux = surface_flux_function(u_boundary, vcat(u_inner, u_boundary[1]), orientation, boundary_condition.equations_coupled)
   end
 
   return flux
