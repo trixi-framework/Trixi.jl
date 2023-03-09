@@ -61,6 +61,8 @@ using Triangulate: Triangulate, TriangulateIO, triangulate
 export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
+
+# TODO: Deprecated in v0.5
 @reexport using UnPack: @unpack
 using UnPack: @pack!
 

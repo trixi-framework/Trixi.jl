@@ -44,6 +44,9 @@ for human readability.
 - The undocumented and unused
   `DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})`
   constructor was removed.
+- The macro `@unpack` re-exported from UnPack.jl is deprecated and will be
+  removed. Consider using Julia's own destructuring syntax `(; a, b) = stuff`
+  instead of `@unpack a, b = stuff`.
 
 #### Removed
 
