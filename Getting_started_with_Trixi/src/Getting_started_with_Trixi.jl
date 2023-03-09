@@ -167,7 +167,7 @@ get_examples()
 # - All examples are located inside the
 # [`example`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples) folder. 
 # - Navigate to the file 
-# [`elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/unstructured_2d_dgsem/elixir_advection_basic.jl).
+# [`elixir_euler_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/unstructured_2d_dgsem/elixir_euler_basic.jl).
 # - Click the *Raw* button on right side of the webpage.
 # - On any place of newly opened webpage right-click and choose *Save as*.
 # - Choose folder and erase *.txt* from the file name. Save the file.
@@ -178,39 +178,64 @@ get_examples()
 # directory. 
 
 # For example, we will change the initial conditions for calculations that occur in the default
-# example.
+# example. In this example compressible euler equations in 2D are solved. So that means, that
+# we have to be specified initial values for density, velocity along x-axis, velocity along y-axis
+# and pressure.
 
 # - **Users** open the downloaded file. 
 # - **Developers** open the file located at the following path: 
 # ````
-# \Trixi_cloned\examples\unstructured_2d_dgsem\elixir_advection_basic.jl
+# \Trixi_cloned\examples\unstructured_2d_dgsem\elixir_euler_basic.jl
 # ````
-# - And go to the 30th line with following code:
+# - And go to the 11th line with following code:
 # ````
-# semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+# initial_condition = initial_condition_convergence_test
 # ````
 # Here default initial condition function ````initial_condition_convergence_test```` is used.
 # - Comment out this line using # symbol:
 # ````
-# # semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+# # initial_condition = initial_condition_convergence_test
 # ````
-# - Now you can create your own initial conditions. For example you can use sinus wave function. 
+# - Now you can create your own initial conditions. For example you can use pressure perturbation
+# as initial condition. 
 # Write following code into a file after commented out line:
 # ````
-# initial_condition_sine_wave(x, t, equations) =
-# SVector(1.0 + 0.5 * cos(2*pi * sum(x - equations.advection_velocity * t)))
-# semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
+# function initial_condition_pressure_perturbation(x, t, equations::CompressibleEulerEquations2D)
+#  xs = 1.5 # location of the initial disturbance on the x axis
+#  w = 1/8 # half width
+#  p = exp(-log(2) * ((x[1]-xs)^2 + x[2]^2)/w^2) + 1.0
+#  v1 = 0.0
+#  v2 = 0.0
+#  rho = 1.0
+#  return prim2cons(SVector(rho, v1, v2, p), equations)
+# end
+# initial_condition = initial_condition_pressure_perturbation
+# ````
+# - Go to the 12th line of initial file and comment it out:
+# ````
+# # source_terms = source_terms_convergence_test
+# ````
+# - Last thing is to change *semi*, because we aren't using source_terms anymore. 
+# Comment out 39th-41st lines of initial code:
+# ````
+# # semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+# #                                   source_terms=source_terms,
+# #                                   boundary_conditions=boundary_conditions)
+# ````
+# And paste new semidiscretization:
+# ````
+# semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+#                                    boundary_conditions=boundary_conditions)
 # ````
 # - Execute following code one more time, but instead of *path_to_file* paste the path to the
-# elixir_advection_basic.jl file from current folder, for example *"./elixir_advection_basic.jl"*.
+# elixir_euler_basic.jl file from current folder, for example "./elixir_euler_basic.jl".
 # ````
 # using Trixi
 # trixi_include(path_to_file)
 # using Plots
 # plot(sol)
 # ````
-# You will obtain new plot with shifted and with twice the number of lines. Feel free to add
-# changes into ````initial_condition_sine_wave```` to observe different solutions.
+# Then you will obtain new solution. Feel free to add
+# changes into ````initial_condition```` to observe different solutions.
 
-# Now you are able to download, edit and execute Trixi code.
- 
+# Now you are able to download, edit and execute Trixi code. 
