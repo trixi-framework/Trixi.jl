@@ -218,6 +218,7 @@ end
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equation::LinearScalarAdvectionEquation2D)
   a = equation.advection_velocity[orientation]
+  print("a*u = ", a*u, "\n")
   return a * u
 end
 
@@ -232,6 +233,7 @@ end
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation2D)
   a = dot(equation.advection_velocity, normal_direction) # velocity in normal direction
+  print("a*u = ", a*u, "\n")
   return a * u
 end
 
@@ -283,41 +285,30 @@ struct CouplingLinearScalarAdvectionEquation2D{RealT<:Real} <: AbstractLinearSca
 end
 
 function CouplingLinearScalarAdvectionEquation2D(a::NTuple{2,<:Real})
-  CouplingLinearScalarAdvectionEquation2D(a[1])
+  CouplingLinearScalarAdvectionEquation2D(SVector(a))
 end
 
 function CouplingLinearScalarAdvectionEquation2D(a1::Real, a2::Real)
-  CouplingLinearScalarAdvectionEquation2D(a1)
+  CouplingLinearScalarAdvectionEquation2D(SVector(a1, a2))
 end
 
-# varnames(::typeof(cons2cons), ::CouplingLinearScalarAdvectionEquation2D) = ("scalar_a", "scalar_b")
-# varnames(::typeof(cons2prim), ::CouplingLinearScalarAdvectionEquation2D) = ("scalar_a", "scalar_b" )
-
-varnames(::typeof(cons2cons), ::CouplingLinearScalarAdvectionEquation2D) = ("scalar_a")
-varnames(::typeof(cons2prim), ::CouplingLinearScalarAdvectionEquation2D) = ("scalar_a")
+varnames(::typeof(cons2cons), ::CouplingLinearScalarAdvectionEquation2D) = ("scalar_a", "scalar_b")
+varnames(::typeof(cons2prim), ::CouplingLinearScalarAdvectionEquation2D) = ("scalar_a", "scalar_b" )
 
 # Calculate 2D flux for a single point
 @inline function flux(u, orientation::Integer, equation::CouplingLinearScalarAdvectionEquation2D)
   # u = variable containing values from system a and system b.
-  # scalar_a, scalar_b = u
-  scalar_a = 0
-  scalar_b = 0
-  # print("flux at coupled boundary \n")
+  scalar_a, scalar_b = u
 
-  return scalar_a * scalar_b * equation.coupling_strength
-  # return SVector(scalar_a * scalar_b * equation.coupling_strength, scalar_a * scalar_b * equation.coupling_strength)
+  return SVector(scalar_a * scalar_b * equation.coupling_strength, scalar_a * scalar_b * equation.coupling_strength)
 end
 
 # Calculate 2D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equation::CouplingLinearScalarAdvectionEquation2D)
-  # scalar_a, scalar_b = u
-  scalar_a = 0
-  scalar_b = 0
-  # print("flux at coupled boundary \n")
+  scalar_a, scalar_b = u
 
-  return scalar_a * scalar_b * equation.coupling_strength
-  # return SVector(scalar_a * scalar_b * equation.coupling_strength, scalar_a * scalar_b * equation.coupling_strength)
+  return SVector(scalar_a * scalar_b * equation.coupling_strength, scalar_a * scalar_b * equation.coupling_strength)
 end
 
 # Calculate maximum wave speed in the normal direction for local Lax-Friedrichs-type dissipation
