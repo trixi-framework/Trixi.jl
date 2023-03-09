@@ -30,8 +30,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5},
                                                    mesh, equations, dg::DGSEM, cache;
                                                    kwargs...)
   (; alpha_max, alpha_min, alpha_smooth, variable) = indicator_hg
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded,
-          modal_tmp1_threaded, modal_tmp2_threaded = indicator_hg.cache
+  (; alpha, alpha_tmp, indicator_threaded, modal_threaded,
+     modal_tmp1_threaded, modal_tmp2_threaded) = indicator_hg.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -138,7 +138,7 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}}, alpha, alpha_t
     alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_left],  alpha[large])
     alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_right], alpha[large])
   end
-  
+
 end
 
 

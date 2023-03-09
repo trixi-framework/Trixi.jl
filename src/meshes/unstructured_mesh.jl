@@ -98,9 +98,9 @@ function UnstructuredMesh2D(filename; RealT=Float64, periodicity=false, unsaved_
 end
 
 function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, cheby_nodes, bary_weights)
-  @unpack ( corner_nodes, interface_info, element_node_ids, curved_check,
-            quad_corners, quad_corners_flipped, curve_values,
-            element_is_curved, surface_curves, boundary_names ) = arrays
+  (; corner_nodes, interface_info, element_node_ids, curved_check,
+     quad_corners, quad_corners_flipped, curve_values,
+     element_is_curved, surface_curves, boundary_names) = arrays
   (; n_corners, n_surfaces, n_elements) = counters
   mesh_nnodes = length(cheby_nodes)
 

@@ -914,9 +914,9 @@ function calc_mortar_flux!(surface_flux_values,
                            surface_integral, dg::DG, cache)
   (; surface_flux) = surface_integral
   (; u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations) = cache.mortars
-  @unpack (fstar_upper_left_threaded, fstar_upper_right_threaded,
-           fstar_lower_left_threaded, fstar_lower_right_threaded,
-           fstar_tmp1_threaded) = cache
+  (; fstar_upper_left_threaded, fstar_upper_right_threaded,
+     fstar_lower_left_threaded, fstar_lower_right_threaded,
+     fstar_tmp1_threaded) = cache
 
   @threaded for mortar in eachmortar(dg, cache)
     # Choose thread-specific pre-allocated container
@@ -950,9 +950,9 @@ function calc_mortar_flux!(surface_flux_values,
                            surface_integral, dg::DG, cache)
   surface_flux, nonconservative_flux = surface_integral.surface_flux
   (; u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations, large_sides) = cache.mortars
-  @unpack (fstar_upper_left_threaded, fstar_upper_right_threaded,
-           fstar_lower_left_threaded, fstar_lower_right_threaded,
-           fstar_tmp1_threaded) = cache
+  (; fstar_upper_left_threaded, fstar_upper_right_threaded,
+     fstar_lower_left_threaded, fstar_lower_right_threaded,
+     fstar_tmp1_threaded) = cache
 
   @threaded for mortar in eachmortar(dg, cache)
     # Choose thread-specific pre-allocated container

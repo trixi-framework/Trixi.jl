@@ -28,8 +28,7 @@ Base.eltype(elements::ElementContainer2D) = eltype(elements.surface_flux_values)
 function Base.resize!(elements::ElementContainer2D, capacity)
   n_nodes = nnodes(elements)
   n_variables = nvariables(elements)
-  @unpack _node_coordinates, _surface_flux_values,
-          inverse_jacobian, cell_ids = elements
+  (;_node_coordinates, _surface_flux_values, inverse_jacobian, cell_ids) = elements
 
   resize!(inverse_jacobian, capacity)
 
@@ -78,7 +77,7 @@ end
     eachelement(elements::ElementContainer2D)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the elements in `elements`. 
+for the elements in `elements`.
 In particular, not the elements themselves are returned.
 """
 @inline eachelement(elements::ElementContainer2D) = Base.OneTo(nelements(elements))
@@ -329,8 +328,7 @@ Base.eltype(boundaries::BoundaryContainer2D) = eltype(boundaries.u)
 function Base.resize!(boundaries::BoundaryContainer2D, capacity)
   n_nodes = nnodes(boundaries)
   n_variables = nvariables(boundaries)
-  @unpack _u, _node_coordinates,
-          neighbor_ids, orientations, neighbor_sides = boundaries
+  (; _u, _node_coordinates, neighbor_ids, orientations, neighbor_sides) = boundaries
 
   resize!(_u, 2 * n_variables * n_nodes * capacity)
   boundaries.u = unsafe_wrap(Array, pointer(_u),
@@ -532,8 +530,7 @@ Base.eltype(mortars::L2MortarContainer2D) = eltype(mortars.u_upper)
 function Base.resize!(mortars::L2MortarContainer2D, capacity)
   n_nodes = nnodes(mortars)
   n_variables = nvariables(mortars)
-  @unpack _u_upper, _u_lower, _neighbor_ids,
-          large_sides, orientations = mortars
+  (; _u_upper, _u_lower, _neighbor_ids, large_sides, orientations) = mortars
 
   resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
   mortars.u_upper = unsafe_wrap(Array, pointer(_u_upper),
@@ -960,8 +957,8 @@ Base.eltype(mpi_mortars::MPIL2MortarContainer2D) = eltype(mpi_mortars.u_upper)
 function Base.resize!(mpi_mortars::MPIL2MortarContainer2D, capacity)
   n_nodes = nnodes(mpi_mortars)
   n_variables = nvariables(mpi_mortars)
-  @unpack _u_upper, _u_lower, local_neighbor_ids, local_neighbor_positions,
-          large_sides, orientations = mpi_mortars
+  (; _u_upper, _u_lower, local_neighbor_ids, local_neighbor_positions,
+     large_sides, orientations) = mpi_mortars
 
   resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
   mpi_mortars.u_upper = unsafe_wrap(Array, pointer(_u_upper),

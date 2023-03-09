@@ -7,8 +7,8 @@
 
 # Initialize data structures in element container
 function init_elements!(elements, mesh::StructuredMesh{2}, basis::LobattoLegendreBasis)
-  @unpack node_coordinates, left_neighbors,
-          jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
+  (; node_coordinates, left_neighbors,
+     jacobian_matrix, contravariant_vectors, inverse_jacobian) = elements
 
   linear_indices = LinearIndices(size(mesh))
 

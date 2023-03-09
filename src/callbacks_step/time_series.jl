@@ -185,8 +185,8 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
       mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
       u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-      @unpack (point_data, solution_variables,
-              variable_names, time_series_cache) = time_series_callback
+      (; point_data, solution_variables, variable_names,
+         time_series_cache) = time_series_callback
 
       # Record state at points (solver/mesh-dependent implementation)
       record_state_at_points!(point_data, u, solution_variables, length(variable_names), mesh,

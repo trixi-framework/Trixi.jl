@@ -36,8 +36,8 @@ end
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
 function Base.resize!(elements::P4estElementContainer, capacity)
-  @unpack _node_coordinates, _jacobian_matrix, _contravariant_vectors,
-    _inverse_jacobian, _surface_flux_values = elements
+  (; _node_coordinates, _jacobian_matrix, _contravariant_vectors,
+    _inverse_jacobian, _surface_flux_values) = elements
 
   n_dims = ndims(elements)
   n_nodes = size(elements.node_coordinates, 2)

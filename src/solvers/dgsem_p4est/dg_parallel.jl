@@ -341,8 +341,8 @@ cfunction(::typeof(init_neighbor_rank_connectivity_iter_face), ::Val{3}) = @cfun
 
 # Function barrier for type stability
 function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
-  @unpack interfaces, interface_id, global_interface_ids, neighbor_ranks_interface,
-          mortars, mortar_id, global_mortar_ids, neighbor_ranks_mortar, mesh = user_data
+  (; interfaces, interface_id, global_interface_ids, neighbor_ranks_interface,
+     mortars, mortar_id, global_mortar_ids, neighbor_ranks_mortar, mesh) = user_data
 
   # Get the global interface/mortar ids and neighbor rank if current face belongs to an MPI
   # interface/mortar

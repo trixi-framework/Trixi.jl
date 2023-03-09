@@ -28,8 +28,7 @@ Base.eltype(elements::ElementContainer1D) = eltype(elements.surface_flux_values)
 function Base.resize!(elements::ElementContainer1D, capacity)
   n_nodes = nnodes(elements)
   n_variables = nvariables(elements)
-  @unpack _node_coordinates, _surface_flux_values,
-          inverse_jacobian, cell_ids = elements
+  (; _node_coordinates, _surface_flux_values, inverse_jacobian, cell_ids) = elements
 
   resize!(inverse_jacobian, capacity)
 
@@ -77,7 +76,7 @@ end
     eachelement(elements::ElementContainer1D)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the elements in `elements`. 
+for the elements in `elements`.
 In particular, not the elements themselves are returned.
 """
 @inline eachelement(elements::ElementContainer1D) = Base.OneTo(nelements(elements))
@@ -305,8 +304,7 @@ Base.eltype(boundaries::BoundaryContainer1D) = eltype(boundaries.u)
 # See explanation of Base.resize! for the element container
 function Base.resize!(boundaries::BoundaryContainer1D, capacity)
   n_variables = nvariables(boundaries)
-  @unpack _u, _node_coordinates,
-          neighbor_ids, orientations, neighbor_sides = boundaries
+  (; _u, _node_coordinates, neighbor_ids, orientations, neighbor_sides) = boundaries
 
   resize!(_u, 2 * n_variables * capacity)
   boundaries.u = unsafe_wrap(Array, pointer(_u),
