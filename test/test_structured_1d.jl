@@ -22,8 +22,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_advection_composite.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_composite.jl"),
-      l2   = [6.30105298e-02],
-      linf = [5.88401985e-01])
+      l2   = [0.0630105298116176],
+      linf = [0.5884019851242106])
   end
 
   @trixi_testset "elixir_advection_nonperiodic.jl" begin
