@@ -138,7 +138,7 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}}, alpha, alpha_t
     alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_left],  alpha[large])
     alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_right], alpha[large])
   end
-  
+
 end
 
 
