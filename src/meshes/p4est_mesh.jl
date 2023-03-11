@@ -22,9 +22,10 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, Ghost, NDIMSP2, NNOD
   boundary_names        ::Array{Symbol, 2}      # [face direction, tree]
   current_filename      ::String
   unsaved_changes       ::Bool
+  p4est_partition_allow_for_coarsening::Bool
 
   function P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes, boundary_names,
-                            current_filename, unsaved_changes) where NDIMS
+                            current_filename, unsaved_changes, p4est_partition_allow_for_coarsening) where NDIMS
     if NDIMS == 2
       @assert p4est isa Ptr{p4est_t}
     elseif NDIMS == 3
@@ -43,7 +44,8 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, Ghost, NDIMSP2, NNOD
     ghost = ghost_new_p4est(p4est)
 
     mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(is_parallel), typeof(p4est), typeof(ghost), NDIMS+2, length(nodes)}(
-      p4est, is_parallel, ghost, tree_node_coordinates, nodes, boundary_names, current_filename, unsaved_changes)
+      p4est, is_parallel, ghost, tree_node_coordinates, nodes, boundary_names, current_filename, unsaved_changes,
+      p4est_partition_allow_for_coarsening)
 
     # Destroy `p4est` structs when the mesh is garbage collected
     finalizer(destroy_mesh, mesh)
@@ -106,7 +108,8 @@ end
 """
     P4estMesh(trees_per_dimension; polydeg,
               mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
-              RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
+              RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true,
+              p4est_partition_allow_for_coarsening=true)
 
 Create a structured curved `P4estMesh` of the specified size.
 
@@ -145,10 +148,14 @@ Non-periodic boundaries will be called `:x_neg`, `:x_pos`, `:y_neg`, `:y_pos`, `
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
                  deciding for each dimension if the boundaries in this dimension are periodic.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
+- `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
+                                                independent of domain partitioning. Should be `false` for static meshes
+                                                to permit more fine-grained partitioning.
 """
 function P4estMesh(trees_per_dimension; polydeg,
                    mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
-                   RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
+                   RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true,
+                   p4est_partition_allow_for_coarsening=true)
 
   @assert (
     (coordinates_min === nothing) === (coordinates_max === nothing)
@@ -198,7 +205,8 @@ function P4estMesh(trees_per_dimension; polydeg,
   structured_boundary_names!(boundary_names, trees_per_dimension, periodicity)
 
   return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
-                          boundary_names, "", unsaved_changes)
+                          boundary_names, "", unsaved_changes,
+                          p4est_partition_allow_for_coarsening)
 end
 
 # 2D version
@@ -270,7 +278,8 @@ end
 """
     P4estMesh{NDIMS}(meshfile::String;
                      mapping=nothing, polydeg=1, RealT=Float64,
-                     initial_refinement_level=0, unsaved_changes=true)
+                     initial_refinement_level=0, unsaved_changes=true,
+                     p4est_partition_allow_for_coarsening=true)
 
 Main mesh constructor for the `P4estMesh` that imports an unstructured, conforming
 mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
@@ -323,10 +332,14 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
+- `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
+                                                independent of domain partitioning. Should be `false` for static meshes
+                                                to permit more fine-grained partitioning.
 """
 function P4estMesh{NDIMS}(meshfile::String;
                           mapping=nothing, polydeg=1, RealT=Float64,
-                          initial_refinement_level=0, unsaved_changes=true) where NDIMS
+                          initial_refinement_level=0, unsaved_changes=true,
+                          p4est_partition_allow_for_coarsening=true) where NDIMS
   # Prevent `p4est` from crashing Julia if the file doesn't exist
   @assert isfile(meshfile)
 
@@ -349,7 +362,8 @@ function P4estMesh{NDIMS}(meshfile::String;
   end
 
   return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
-                          boundary_names, "", unsaved_changes)
+                          boundary_names, "", unsaved_changes,
+                          p4est_partition_allow_for_coarsening)
 end
 
 
@@ -445,7 +459,8 @@ end
 """
     P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
                          polydeg, RealT=Float64,
-                         initial_refinement_level=0, unsaved_changes=true)
+                         initial_refinement_level=0, unsaved_changes=true,
+                         p4est_partition_allow_for_coarsening=true)
 
 Build a "Cubed Sphere" mesh as `P4estMesh` with
 `6 * trees_per_face_dimension^2 * layers` trees.
@@ -465,10 +480,14 @@ The mesh will have two boundaries, `:inside` and `:outside`.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
+- `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
+                                                independent of domain partitioning. Should be `false` for static meshes
+                                                to permit more fine-grained partitioning.
 """
 function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
                               polydeg, RealT=Float64,
-                              initial_refinement_level=0, unsaved_changes=true)
+                              initial_refinement_level=0, unsaved_changes=true,
+                              p4est_partition_allow_for_coarsening=true)
   connectivity = connectivity_cubed_sphere(trees_per_face_dimension, layers)
 
   n_trees = 6 * trees_per_face_dimension^2 * layers
@@ -489,7 +508,8 @@ function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, th
   boundary_names[6, :] .= Symbol("outside")
 
   return P4estMesh{3}(p4est, tree_node_coordinates, nodes,
-                      boundary_names, "", unsaved_changes)
+                      boundary_names, "", unsaved_changes,
+                      p4est_partition_allow_for_coarsening)
 end
 
 
@@ -1427,13 +1447,12 @@ function balance!(mesh::P4estMesh{3}, init_fn=C_NULL)
   p8est_balance(mesh.p4est, P8EST_CONNECT_FACE, init_fn)
 end
 
-
-function partition!(mesh::P4estMesh{2}; allow_coarsening=true, weight_fn=C_NULL)
-  p4est_partition(mesh.p4est, Int(allow_coarsening), weight_fn)
+function partition!(mesh::P4estMesh{2}; weight_fn=C_NULL)
+  p4est_partition(mesh.p4est, Int(mesh.p4est_partition_allow_for_coarsening), weight_fn)
 end
 
-function partition!(mesh::P4estMesh{3}; allow_coarsening=true, weight_fn=C_NULL)
-  p8est_partition(mesh.p4est, Int(allow_coarsening), weight_fn)
+function partition!(mesh::P4estMesh{3}; weight_fn=C_NULL)
+  p8est_partition(mesh.p4est, Int(mesh.p4est_partition_allow_for_coarsening), weight_fn)
 end
 
 
