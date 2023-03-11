@@ -69,16 +69,15 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::Union{TreeMesh{1}, S
     end
 
     # Calculate energy in higher modes
-    tolE = eps(total_energy)
-    if total_energy > tolE
+    if iszero(total_energy)
       energy_frac_1 = (total_energy - total_energy_clip1) / total_energy
     else
-      energy_frac_1 = 0.0
+      energy_frac_1 = zero(total_energy)
     end
-    if total_energy_clip1 > tolE
+    if iszero(total_energy_clip1)
       energy_frac_2 = (total_energy_clip1 - total_energy_clip2) / total_energy_clip1
     else
-      energy_frac_2 = 0.0
+      energy_frac_2 = zero(total_energy_clip1)
     end
     energy = max(energy_frac_1, energy_frac_2)
 
