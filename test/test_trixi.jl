@@ -157,7 +157,7 @@ macro test_nowarn_mod(expr, additional_ignore_content=String[])
           r"┌ Warning: Layer with Float32 parameters got Float64 input.+\n│.+\n│.+\n│.+\n└ @ Flux.+\n",
           # TODO: Silence warning from deprecation destats -> stats. Should be fixed in
           #       https://github.com/trixi-framework/Trixi.jl/pull/1372
-          r"┌ Warning: `destats` kwarg has been deprecated in favor of `stats`.+\n│.+\n└ @.1\n",
+          r"┌ Warning: `destats` kwarg has been deprecated in favor of `stats`\n│.+\n└ @.+\n",
           r"┌ Warning: `sol.destats` is deprecated. Use `sol.stats` instead.+\n│.+\n└ @.+\n",
         ]
         append!(ignore_content, $additional_ignore_content)
