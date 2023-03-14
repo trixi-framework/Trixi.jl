@@ -48,6 +48,8 @@ end
 #   "title" => ["subtitle 1" => ("folder 1", "filename 1.jl"),
 #               "subtitle 2" => ("folder 2", "filename 2.jl")]
 files = [
+    # Topic: introduction
+    "Getting started with Trixi" => "getting_started_with_Trixi.jl",
     # Topic: DG semidiscretizations
     "Introduction to DG methods" => "scalar_linear_advection_1d.jl",
     "DGSEM with flux differencing" => "DGSEM_FluxDiff.jl",
@@ -66,7 +68,6 @@ files = [
     "Structured mesh with curvilinear mapping" => "structured_mesh_mapping.jl",
     "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.jl",
     # Topic: other stuff
-    "Getting started with Trixi" => "getting_started_with_Trixi.jl",
     "Explicit time stepping" => "time_stepping.jl",
     "Differentiable programming" => "differentiable_programming.jl"]
 tutorials = create_tutorials(files)
