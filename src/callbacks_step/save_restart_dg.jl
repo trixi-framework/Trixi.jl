@@ -159,10 +159,11 @@ function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equ
     for v in eachvariable(equations)
       if isempty(u)
         data = eltype(u)[]
+        MPI.Scatterv!(nothing, data, mpi_root(), mpi_comm())
       else
         data = @view u[v, .., :]
+        MPI.Scatterv!(nothing, data, mpi_root(), mpi_comm())
       end
-      MPI.Scatterv!(nothing, data, mpi_root(), mpi_comm())
     end
 
     return u_ode
