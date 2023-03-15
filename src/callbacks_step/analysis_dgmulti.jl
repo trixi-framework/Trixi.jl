@@ -15,16 +15,19 @@ function calc_error_norms(func, u, t, analyzer,
   # interpolate u to quadrature points
   apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
-  component_l2_errors = zero(eltype(u_values))
+  component_l2_errors   = zero(eltype(u_values))
   component_linf_errors = zero(eltype(u_values))
+  component_l1_errors   = zero(eltype(u_values))
   for i in each_quad_node_global(mesh, dg, cache)
     u_exact = initial_condition(SVector(getindex.(md.xyzq, i)), t, equations)
     error_at_node = func(u_values[i], equations) - func(u_exact, equations)
-    component_l2_errors += md.wJq[i] * error_at_node.^2
+    
+    component_l2_errors  += md.wJq[i] * error_at_node.^2
     component_linf_errors = max.(component_linf_errors, abs.(error_at_node))
+    component_l1_errors  += md.wJq[i] * abs.(error_at_node)
   end
   total_volume = sum(md.wJq)
-  return sqrt.(component_l2_errors ./ total_volume), component_linf_errors
+  return sqrt.(component_l2_errors ./ total_volume), component_linf_errors, component_l1_errors ./ total_volume
 end
 
 function integrate(func::Func, u,
