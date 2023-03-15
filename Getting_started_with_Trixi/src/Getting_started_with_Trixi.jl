@@ -2,7 +2,7 @@
 
 # **Trixi.jl** is a numerical simulation framework for hyperbolic conservation laws 
 # written in [`Julia`](https://julialang.org/).
-# That means for working with Trixi, Julia have to be installed on a PC. 
+# This means that Julia have to be installed on a PC to work with Trixi. 
 
 # ## Julia installation
 
@@ -160,7 +160,7 @@ get_examples()
 # ### Files downloading for users
 
 # To edit example files you have to download them. Let's have a look how to download
-# default_example_unstructured file from [`Trixi github`](https://github.com/trixi-framework/Trixi.jl).
+# `default_example_unstructured` file from [`Trixi github`](https://github.com/trixi-framework/Trixi.jl).
 
 # - All examples are located inside
 #   the [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples) folder.
@@ -176,7 +176,7 @@ get_examples()
 # directory. 
 
 # For example, we will change the initial conditions for calculations that occur in the default
-# example. In this example compressible euler equations in 2D are solved. So that means, that
+# example. In this example compressible euler equations in 2D are solved. So this means that
 # we have to specify initial values for density, velocity along x-axis, velocity along y-axis
 # and pressure.
 
