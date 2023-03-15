@@ -58,7 +58,7 @@ function calc_error_norms(func, u, t, analyzer,
   else
     l2_error   = convert(eltype(l2_errors), NaN * zero(eltype(l2_errors)))
     linf_error = convert(eltype(linf_errors), NaN * zero(eltype(linf_errors)))
-    l1_error   = convert(eltype(l2_errors), NaN * zero(eltype(l2_errors)))
+    l1_error   = convert(eltype(l2_errors), NaN * zero(eltype(l1_errors)))
   end
 
   return l2_error, linf_error, l1_error
