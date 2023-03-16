@@ -7,7 +7,7 @@
 
 function (steady_state_callback::SteadyStateCallback)(du, u, mesh::AbstractMesh{2},
                                                       equations, dg::DG, cache)
-  @unpack abstol, reltol = steady_state_callback
+  (; abstol, reltol) = steady_state_callback
 
   terminate = true
   for element in eachelement(dg, cache)

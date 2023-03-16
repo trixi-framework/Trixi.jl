@@ -148,19 +148,19 @@ end
 # on (mapped) hypercube domains
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes},
                                     mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver, cache) where {Keys, ValueTypes<:NTuple{2,Any}}
-  @unpack x_neg, x_pos = boundary_conditions
+  (; x_neg, x_pos) = boundary_conditions
   (; x_neg, x_pos)
 end
 
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes},
                                     mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver, cache) where {Keys, ValueTypes<:NTuple{4,Any}}
-  @unpack x_neg, x_pos, y_neg, y_pos = boundary_conditions
+  (; x_neg, x_pos, y_neg, y_pos) = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos)
 end
 
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes},
                                     mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver, cache) where {Keys, ValueTypes<:NTuple{6,Any}}
-  @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
+  (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos) = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
 
@@ -222,8 +222,8 @@ const SemiHypMeshBCSolver{Mesh, BoundaryConditions, Solver} =
 print_boundary_conditions(io, semi::SemiHypMeshBCSolver) = summary_line(io, "boundary conditions", typeof(semi.boundary_conditions))
 
 function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Any, <:UnstructuredSortedBoundaryTypes})
-  @unpack boundary_conditions = semi
-  @unpack boundary_dictionary = boundary_conditions
+  (; boundary_conditions) = semi
+  (; boundary_dictionary) = boundary_conditions
   summary_line(io, "boundary conditions", length(boundary_dictionary))
   for (boundary_name, boundary_condition) in boundary_dictionary
     summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
@@ -231,7 +231,7 @@ function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Any, <:Unstru
 end
 
 function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Any, <:NamedTuple})
-  @unpack boundary_conditions = semi
+  (; boundary_conditions) = semi
   summary_line(io, "boundary conditions", length(boundary_conditions))
   bc_names = keys(boundary_conditions)
   for (i, bc_name) in enumerate(bc_names)
@@ -263,13 +263,13 @@ end
 
 
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolic)
-  @unpack mesh, equations, solver, cache = semi
+  (; mesh, equations, solver, cache) = semi
   return mesh, equations, solver, cache
 end
 
 
 function calc_error_norms(func, u_ode, t, analyzer, semi::SemidiscretizationHyperbolic, cache_analysis)
-  @unpack mesh, equations, initial_condition, solver, cache = semi
+  (; mesh, equations, initial_condition, solver, cache) = semi
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
   calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache, cache_analysis)
@@ -287,7 +287,7 @@ end
 
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
-  @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
+  (; mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache) = semi
 
   u  = wrap_array(u_ode,  mesh, equations, solver, cache)
   du = wrap_array(du_ode, mesh, equations, solver, cache)

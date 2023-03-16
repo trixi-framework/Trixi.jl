@@ -8,8 +8,8 @@
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
-  @unpack plot_data, variable_id = pds
-  @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
+  (; plot_data, variable_id) = pds
+  (; x, y, data, variable_names, orientation_x, orientation_y) = plot_data
 
   # Set geometric properties
   xlims --> (x[begin], x[end])
@@ -34,8 +34,8 @@ end
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
-  @unpack plot_data = pm
-  @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
+  (; plot_data) = pm
+  (; x, y, mesh_vertices_x, mesh_vertices_y) = plot_data
 
   # Set geometric and annotation properties
   xlims --> (x[begin], x[end])
@@ -58,8 +58,8 @@ end
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any, <:AbstractVector{<:AbstractVector}}})
-  @unpack plot_data = pm
-  @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
+  (; plot_data) = pm
+  (; x, y, mesh_vertices_x, mesh_vertices_y) = plot_data
 
   # Set geometric and annotation properties
   xlims --> (minimum(x), maximum(x))
@@ -117,8 +117,8 @@ end
 
 # Plot a single variable.
 RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{1}})
-  @unpack plot_data, variable_id = pds
-  @unpack x, data, variable_names, orientation_x = plot_data
+  (; plot_data, variable_id) = pds
+  (; x, data, variable_names, orientation_x) = plot_data
 
   # Set geometric properties
   xlims --> (x[begin], x[end])
@@ -134,8 +134,8 @@ end
 
 # Plot the mesh as vertical lines from a PlotMesh object.
 RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{1}})
-  @unpack plot_data = pm
-  @unpack x, mesh_vertices_x = plot_data
+  (; plot_data) = pm
+  (; x, mesh_vertices_x) = plot_data
 
   # Set geometric and annotation properties
   xlims --> (x[begin], x[end])
@@ -193,8 +193,8 @@ end
 RecipesBase.@recipe function f(pds::PlotDataSeries{<:PlotData2DTriangulated})
 
   pd = pds.plot_data
-  @unpack variable_id = pds
-  @unpack x, y, data, t, variable_names = pd
+  (; variable_id) = pds
+  (; x, y, data, t, variable_names) = pd
 
   # extract specific solution field to plot
   data_field = zeros(eltype(first(data)), size(data))
@@ -218,7 +218,7 @@ end
 # Visualize a 2D mesh given an `PlotData2DTriangulated` object
 RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DTriangulated})
   pd = pm.plot_data
-  @unpack x_face, y_face = pd
+  (; x_face, y_face) = pd
 
   # This line separates solution lines on each edge by NaNs to ensure that they are rendered
   # separately. The coordinates `xf`, `yf` and the solution `sol_f`` are assumed to be a matrix
@@ -244,7 +244,7 @@ end
 # Example usage: `plot(ScalarPlotData2D(u, semi))`.
 RecipesBase.@recipe function f(pd::PlotData2DTriangulated{<:ScalarData})
 
-  @unpack x, y, data, t, variable_names = pd
+  (; x, y, data, t, variable_names) = pd
 
   title_string = isnothing(variable_names) ? "" : variable_names
 

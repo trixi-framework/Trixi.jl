@@ -9,7 +9,7 @@ function save_restart_file(u, time, dt, timestep,
                            mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, SerialP4estMesh},
                            equations, dg::DG, cache,
                            restart_callback)
-  @unpack output_directory = restart_callback
+  (; output_directory) = restart_callback
 
   # Filename without extension based on current time step
   filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
@@ -88,7 +88,7 @@ end
 function save_restart_file(u, time, dt, timestep,
                            mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                            restart_callback)
-  @unpack output_directory = restart_callback
+  (; output_directory) = restart_callback
 
   # Filename without extension based on current time step
   filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))

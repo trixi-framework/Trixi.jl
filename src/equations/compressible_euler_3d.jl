@@ -1358,7 +1358,7 @@ end
 @inline function entropy2cons(w, equations::CompressibleEulerEquations3D)
   # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
   # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
-  @unpack gamma = equations
+  (; gamma) = equations
 
   # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
   # instead of `-rho * s / (gamma - 1)`

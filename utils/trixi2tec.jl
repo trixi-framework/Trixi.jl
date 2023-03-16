@@ -35,7 +35,7 @@ julia> trixi2tec(sol, "mydata_primitive.tec", solution_variables=cons2prim)
 function trixi2tec(u, semi, filename; title=basename(filename), solution_variables=cons2cons)
   # Extract fundamental building blocks and auxiliary data
   mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
-  @unpack node_coordinates = cache.elements
+  (; node_coordinates) = cache.elements
 
   # Collect variable names and size information
   ndims = Trixi.ndims(semi)

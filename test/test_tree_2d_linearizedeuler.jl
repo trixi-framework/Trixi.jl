@@ -1,4 +1,3 @@
-
 using Test
 using Trixi
 

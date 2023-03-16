@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -16,7 +15,7 @@ incompressible Navier-Stokes equations. To be used in combination with
 this setup will converge to the state set in [`initial_condition_couette_steady`](@ref).
 """
 function initial_condition_couette_unsteady(x, t, equations::LatticeBoltzmannEquations2D)
-  @unpack L, u0, rho0, nu = equations
+  (; L, u0, rho0, nu) = equations
 
   x1, x2 = x
   v1 = u0*x2/L
@@ -53,7 +52,7 @@ function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x,
                                              equations::LatticeBoltzmannEquations2D)
   @assert direction == 4 "moving wall assumed in +y direction"
 
-  @unpack rho0, u0, weights, c_s = equations
+  (; rho0, u0, weights, c_s) = equations
   cs_squared = c_s^2
 
   pdf1 = u_inner[3] + 2 * weights[1] * rho0 * u0 / cs_squared

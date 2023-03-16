@@ -1,4 +1,3 @@
-
 # This example is described in more detail in the documentation of Trixi
 
 using Trixi, LinearAlgebra, ForwardDiff

@@ -19,7 +19,7 @@ end
 @inline Base.ndims(::P4estMPIInterfaceContainer{NDIMS}) where NDIMS = NDIMS
 
 function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
-  @unpack _u, local_neighbor_ids, node_indices, local_sides = mpi_interfaces
+  (; _u, local_neighbor_ids, node_indices, local_sides) = mpi_interfaces
 
   n_dims = ndims(mpi_interfaces)
   n_nodes = size(mpi_interfaces.u, 3)
@@ -94,7 +94,7 @@ end
 @inline Base.ndims(::P4estMPIMortarContainer{NDIMS}) where NDIMS = NDIMS
 
 function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
-  @unpack _u, _node_indices, _normal_directions = mpi_mortars
+  (; _u, _node_indices, _normal_directions) = mpi_mortars
 
   n_dims = ndims(mpi_mortars)
   n_nodes = size(mpi_mortars.u, 4)
@@ -187,30 +187,30 @@ function reinitialize_containers!(mesh::ParallelP4estMesh, equations, dg::DGSEM,
   update_ghost_layer!(mesh)
 
   # Re-initialize elements container
-  @unpack elements = cache
+  (; elements) = cache
   resize!(elements, ncells(mesh))
   init_elements!(elements, mesh, dg.basis)
 
   required = count_required_surfaces(mesh)
 
   # resize interfaces container
-  @unpack interfaces = cache
+  (; interfaces) = cache
   resize!(interfaces, required.interfaces)
 
   # resize boundaries container
-  @unpack boundaries = cache
+  (; boundaries) = cache
   resize!(boundaries, required.boundaries)
 
   # resize mortars container
-  @unpack mortars = cache
+  (; mortars) = cache
   resize!(mortars, required.mortars)
 
   # resize mpi_interfaces container
-  @unpack mpi_interfaces = cache
+  (; mpi_interfaces) = cache
   resize!(mpi_interfaces, required.mpi_interfaces)
 
   # resize mpi_mortars container
-  @unpack mpi_mortars = cache
+  (; mpi_mortars) = cache
   resize!(mpi_mortars, required.mpi_mortars)
 
   # re-initialize containers together to reduce
@@ -218,7 +218,7 @@ function reinitialize_containers!(mesh::ParallelP4estMesh, equations, dg::DGSEM,
   init_surfaces!(interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars, mesh)
 
   # re-initialize MPI cache
-  @unpack mpi_cache = cache
+  (; mpi_cache) = cache
   init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars,
                   nvariables(equations), nnodes(dg), eltype(elements))
 
@@ -267,7 +267,7 @@ cfunction(::typeof(init_surfaces_iter_face_parallel), ::Val{3}) = @cfunction(ini
 
 # Function barrier for type stability, overload for parallel P4estMesh
 function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIterFaceUserData)
-  @unpack interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars = user_data
+  (; interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars) = user_data
   # This function is called during `init_surfaces!`, more precisely it is called for each face
   # while p4est iterates over the forest. Since `init_surfaces!` can be used to initialize all
   # surfaces at once or any subset of them, some of the unpacked values above may be `nothing` if
@@ -342,7 +342,7 @@ end
 
 # Initialization of MPI interfaces after the function barrier
 function init_mpi_interfaces_iter_face_inner(info, sides, user_data)
-  @unpack mpi_interfaces, mpi_interface_id, mesh = user_data
+  (; mpi_interfaces, mpi_interface_id, mesh) = user_data
   user_data.mpi_interface_id += 1
 
   if sides[1].is.full.is_ghost == true
@@ -379,7 +379,7 @@ end
 
 # Initialization of MPI mortars after the function barrier
 function init_mpi_mortars_iter_face_inner(info, sides, user_data)
-  @unpack mpi_mortars, mpi_mortar_id, mesh = user_data
+  (; mpi_mortars, mpi_mortar_id, mesh) = user_data
   user_data.mpi_mortar_id += 1
 
   # Get Tuple of adjacent trees, one-based indexing

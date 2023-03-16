@@ -20,7 +20,7 @@ function cons2entropy!(entropy_var_values::StructArray,
   # end
   # but much more efficient due to explicit optimization via `@turbo` from
   # LoopVectorization.jl.
-  @unpack gamma, inv_gamma_minus_one = equations
+  (; gamma, inv_gamma_minus_one) = equations
 
   rho_values, rho_v1_values, rho_v2_values, rho_e_values = StructArrays.components(u_values)
   w1_values, w2_values, w3_values, w4_values = StructArrays.components(entropy_var_values)
@@ -57,7 +57,7 @@ function entropy2cons!(entropy_projected_u_values  ::StructArray,
   # end
   # but much more efficient due to explicit optimization via `@turbo` from
   # LoopVectorization.jl.
-  @unpack gamma, inv_gamma_minus_one = equations
+  (; gamma, inv_gamma_minus_one) = equations
   gamma_minus_one = gamma - 1
 
   rho_values, rho_v1_values, rho_v2_values, rho_e_values = StructArrays.components(entropy_projected_u_values)
@@ -101,7 +101,7 @@ function cons2entropy!(entropy_var_values::StructArray,
   # end
   # but much more efficient due to explicit optimization via `@turbo` from
   # LoopVectorization.jl.
-  @unpack gamma, inv_gamma_minus_one = equations
+  (; gamma, inv_gamma_minus_one) = equations
 
   rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values = StructArrays.components(u_values)
   w1_values, w2_values, w3_values, w4_values, w5_values = StructArrays.components(entropy_var_values)
@@ -141,7 +141,7 @@ function entropy2cons!(entropy_projected_u_values  ::StructArray,
   # end
   # but much more efficient due to explicit optimization via `@turbo` from
   # LoopVectorization.jl.
-  @unpack gamma, inv_gamma_minus_one = equations
+  (; gamma, inv_gamma_minus_one) = equations
   gamma_minus_one = gamma - 1
 
   rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values = StructArrays.components(entropy_projected_u_values)

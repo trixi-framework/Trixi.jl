@@ -186,7 +186,7 @@ end
 
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
-  @unpack semi_euler, semi_gravity, cache = semi
+  (; semi_euler, semi_gravity, cache) = semi
 
   u_euler   = wrap_array(u_ode , semi_euler)
   du_euler  = wrap_array(du_ode, semi_euler)
@@ -229,7 +229,7 @@ end
 
 # TODO: Taal refactor, add some callbacks or so within the gravity update to allow investigating/optimizing it
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode)
-  @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
+  (; semi_euler, semi_gravity, parameters, gravity_counter, cache) = semi
 
   # Can be changed by AMR
   resize!(cache.du_ode,     length(cache.u_ode))
@@ -242,12 +242,12 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode)
 
   # set up main loop
   finalstep = false
-  @unpack n_iterations_max, cfl, resid_tol, timestep_gravity = parameters
+  (; n_iterations_max, cfl, resid_tol, timestep_gravity) = parameters
   iter = 0
   t = zero(real(semi_gravity.solver))
 
   # iterate gravity solver until convergence or maximum number of iterations are reached
-  @unpack equations = semi_gravity
+  (; equations) = semi_gravity
   while !finalstep
     dt = @trixi_timeit timer() "calculate dt" cfl * max_dt(u_gravity, t, semi_gravity.mesh,
                                                            have_constant_speed(equations), equations,
@@ -286,7 +286,7 @@ function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gr
   rho0 = gravity_parameters.background_density
   grav_scale = -4.0*pi*G
 
-  @unpack u_ode, du_ode, u_tmp1_ode = cache
+  (; u_ode, du_ode, u_tmp1_ode) = cache
   u_tmp1_ode .= zero(eltype(u_tmp1_ode))
   du_gravity = wrap_array(du_ode, semi_gravity)
   for stage in eachindex(c)
@@ -336,7 +336,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, sem
   rho0 = gravity_parameters.background_density
   grav_scale = -4 * G * pi
 
-  @unpack u_ode, du_ode, u_tmp1_ode, u_tmp2_ode = cache
+  (; u_ode, du_ode, u_tmp1_ode, u_tmp2_ode) = cache
   u_tmp1_ode .= zero(eltype(u_tmp1_ode))
   u_tmp2_ode .= u_ode
   du_gravity = wrap_array(du_ode, semi_gravity)

@@ -11,7 +11,7 @@
 # simulations.
 function calc_vorticity_node(u, mesh::TreeMesh{2}, equations::CompressibleEulerEquations2D,
                              dg::DGSEM, cache, i, j, element)
-  @unpack derivative_matrix = dg.basis
+  (; derivative_matrix) = dg.basis
 
   v2_x = zero(eltype(u)) # derivative of v2 in x direction
   for ii in eachnode(dg)
@@ -72,7 +72,7 @@ end # muladd
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
                                            dg::DGSEM, cache, alpha)
-  @unpack derivative_split = dg.basis
+  (; derivative_split) = dg.basis
 
   # Create a temporary array that will be used to store the RHS with permuted
   # indices `[i, j, v]` to allow using SIMD instructions.
@@ -234,7 +234,7 @@ end
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_ranocha_turbo),
                                            dg::DGSEM, cache, alpha)
-  @unpack derivative_split = dg.basis
+  (; derivative_split) = dg.basis
 
   # Create a temporary array that will be used to store the RHS with permuted
   # indices `[i, j, v]` to allow using SIMD instructions.

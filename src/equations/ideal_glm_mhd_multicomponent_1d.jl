@@ -164,7 +164,7 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmM
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
   rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr = u_rr
-  @unpack gammas, gas_constants, cv = equations
+  (; gammas, gas_constants, cv) = equations
 
   rho_ll = density(u_ll, equations)
   rho_rr = density(u_rr, equations)
@@ -377,7 +377,7 @@ end
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::IdealGlmMhdMulticomponentEquations1D)
   rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
-  @unpack cv, gammas, gas_constants = equations
+  (; cv, gammas, gas_constants) = equations
 
   rho = density(u, equations)
 
@@ -482,7 +482,7 @@ end
 
 
  @inline function totalgamma(u, equations::IdealGlmMhdMulticomponentEquations1D)
-  @unpack cv, gammas = equations
+  (; cv, gammas) = equations
 
   help1 = zero(u[1])
   help2 = zero(u[1])

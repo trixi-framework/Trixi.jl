@@ -8,7 +8,7 @@
 function prolong2mpiinterfaces!(cache, u,
                                 mesh::ParallelP4estMesh{2},
                                 equations, surface_integral, dg::DG)
-  @unpack mpi_interfaces = cache
+  (; mpi_interfaces) = cache
   index_range = eachnode(dg)
 
   @threaded for interface in eachmpiinterface(dg, cache)
@@ -43,8 +43,8 @@ function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::ParallelP4estMesh{2},
                                   nonconservative_terms,
                                   equations, surface_integral, dg::DG, cache)
-  @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
-  @unpack contravariant_vectors = cache.elements
+  (; local_neighbor_ids, node_indices, local_sides) = cache.mpi_interfaces
+  (; contravariant_vectors) = cache.elements
   index_range = eachnode(dg)
   index_end = last(index_range)
 
@@ -105,8 +105,8 @@ end
                                           interface_index, normal_direction,
                                           interface_node_index, local_side,
                                           surface_node_index, local_direction_index, local_element_index)
-  @unpack u = cache.mpi_interfaces
-  @unpack surface_flux = surface_integral
+  (; u) = cache.mpi_interfaces
+  (; surface_flux) = surface_integral
 
   u_ll, u_rr = get_surface_node_vars(u, equations, dg, interface_node_index, interface_index)
 
@@ -126,7 +126,7 @@ function prolong2mpimortars!(cache, u,
                              mesh::ParallelP4estMesh{2}, equations,
                              mortar_l2::LobattoLegendreMortarL2,
                              surface_integral, dg::DGSEM)
-  @unpack node_indices = cache.mpi_mortars
+  (; node_indices) = cache.mpi_mortars
   index_range = eachnode(dg)
 
   @threaded for mortar in eachmpimortar(dg, cache)
@@ -190,9 +190,9 @@ function calc_mpi_mortar_flux!(surface_flux_values,
                                nonconservative_terms, equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
-  @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
-  @unpack contravariant_vectors = cache.elements
-  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+  (; local_neighbor_ids, local_neighbor_positions, node_indices) = cache.mpi_mortars
+  (; contravariant_vectors) = cache.elements
+  (; fstar_upper_threaded, fstar_lower_threaded) = cache
   index_range = eachnode(dg)
 
   @threaded for mortar in eachmpimortar(dg, cache)
@@ -243,8 +243,8 @@ end
                                        surface_integral, dg::DG, cache,
                                        mortar_index, position_index, normal_direction,
                                        node_index)
-  @unpack u = cache.mpi_mortars
-  @unpack surface_flux = surface_integral
+  (; u) = cache.mpi_mortars
+  (; surface_flux) = surface_integral
 
   u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index, mortar_index)
 
@@ -259,7 +259,7 @@ end
                                                 mesh::ParallelP4estMesh{2}, equations,
                                                 mortar_l2::LobattoLegendreMortarL2,
                                                 dg::DGSEM, cache, mortar, fstar, u_buffer)
-  @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
+  (; local_neighbor_ids, local_neighbor_positions, node_indices) = cache.mpi_mortars
 
   small_indices   = node_indices[1, mortar]
   small_direction = indices2direction(small_indices)

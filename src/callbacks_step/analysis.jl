@@ -129,7 +129,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
 
   analysis_callback = cb.affect!
   analysis_callback.initial_state_integrals = initial_state_integrals
-  @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
+  (; save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals) = analysis_callback
 
   if save_analysis && mpi_isroot()
     mkpath(output_directory)
@@ -201,7 +201,7 @@ end
 function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  @unpack dt, t = integrator
+  (; dt, t) = integrator
   iter = integrator.stats.naccept
 
   # Record performance measurements and compute performance index (PID)
@@ -322,7 +322,7 @@ end
 # This method is just called internally from `(analysis_callback::AnalysisCallback)(integrator)`
 # and serves as a function barrier. Additionally, it makes the code easier to profile and optimize.
 function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
-  @unpack analyzer, analysis_errors, analysis_integrals = analysis_callback
+  (; analyzer, analysis_errors, analysis_integrals) = analysis_callback
   cache_analysis = analysis_callback.cache
   _, equations, _, _ = mesh_equations_solver_cache(semi)
 
@@ -365,7 +365,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
 
   # Conservation errror
   if :conservation_error in analysis_errors
-    @unpack initial_state_integrals = analysis_callback
+    (; initial_state_integrals) = analysis_callback
     state_integrals = integrate(u_ode, semi)
 
     if mpi_isroot()
@@ -527,7 +527,7 @@ end
 function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect!<:AnalysisCallback}
   analysis_callback = cb.affect!
   semi = sol.prob.p
-  @unpack analyzer = analysis_callback
+  (; analyzer) = analysis_callback
   cache_analysis = analysis_callback.cache
 
   l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi, cache_analysis)

@@ -6,11 +6,11 @@ function create_cache_parabolic(mesh::DGMultiMesh,
   # TODO: parabolic; utilize the parabolic variables in `equations_parabolic` to reduce memory usage in the parabolic cache
   nvars = nvariables(equations_hyperbolic)
 
-  @unpack M, Drst = dg.basis
+  (; M, Drst) = dg.basis
   weak_differentiation_matrices = map(A -> -M \ (A' * M), Drst)
 
   # u_transformed stores "transformed" variables for computing the gradient
-  @unpack md = mesh
+  (; md) = mesh
   u_transformed = allocate_nested_array(uEltype, nvars, size(md.x), dg)
   gradients = ntuple(_ -> similar(u_transformed), ndims(mesh))
   flux_viscous = similar.(gradients)
@@ -58,7 +58,7 @@ end
 function calc_gradient_surface_integral(gradients, u, scalar_flux_face_values,
                                         mesh, equations::AbstractEquationsParabolic,
                                         dg::DGMulti, cache, cache_parabolic)
-  @unpack local_flux_face_values_threaded = cache_parabolic
+  (; local_flux_face_values_threaded) = cache_parabolic
   @threaded for e in eachelement(mesh, dg)
     local_flux_values = local_flux_face_values_threaded[Threads.threadid()]
     for dim in eachdim(mesh)
@@ -75,7 +75,7 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
                         equations::AbstractEquationsParabolic,
                         boundary_conditions, dg::DGMulti, cache, cache_parabolic)
 
-  @unpack weak_differentiation_matrices = cache_parabolic
+  (; weak_differentiation_matrices) = cache_parabolic
 
   for dim in eachindex(gradients)
     reset_du!(gradients[dim], dg)
@@ -90,12 +90,12 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
     end
   end
 
-  @unpack u_face_values = cache_parabolic
+  (; u_face_values) = cache_parabolic
   prolong2interfaces!(u_face_values, u, mesh, equations, dg.surface_integral, dg, cache)
 
   # compute fluxes at interfaces
-  @unpack scalar_flux_face_values = cache_parabolic
-  @unpack mapM, mapP, Jf = mesh.md
+  (; scalar_flux_face_values) = cache_parabolic
+  (; mapM, mapP, Jf) = mesh.md
   @threaded for face_node_index in each_face_node_global(mesh, dg)
     idM, idP = mapM[face_node_index], mapP[face_node_index]
     uM = u_face_values[idM]
@@ -147,7 +147,7 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
   md = mesh.md
 
   num_pts_per_face = rd.Nfq ÷ rd.Nfaces
-  @unpack xyzf, nxyzJ, Jf = md
+  (; xyzf, nxyzJ, Jf) = md
   for f in mesh.boundary_faces[boundary_key]
     for i in Base.OneTo(num_pts_per_face)
 
@@ -176,7 +176,7 @@ function calc_viscous_fluxes!(flux_viscous, u, gradients, mesh::DGMultiMesh,
     reset_du!(flux_viscous[dim], dg)
   end
 
-  @unpack local_flux_viscous_threaded, local_u_values_threaded = cache_parabolic
+  (; local_flux_viscous_threaded, local_u_values_threaded) = cache_parabolic
 
   @threaded for e in eachelement(mesh, dg)
 
@@ -222,8 +222,8 @@ function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, bounda
                                mesh, equations::AbstractEquationsParabolic, dg::DGMulti,
                                parabolic_scheme, cache, cache_parabolic)
   # compute fluxes at interfaces
-  @unpack scalar_flux_face_values, inv_h = cache_parabolic
-  @unpack mapM, mapP = mesh.md
+  (; scalar_flux_face_values, inv_h) = cache_parabolic
+  (; mapM, mapP) = mesh.md
   @threaded for face_node_index in each_face_node_global(mesh, dg)
     idM, idP = mapM[face_node_index], mapP[face_node_index]
     uM, uP = u_face_values[idM], u_face_values[idP]
@@ -238,7 +238,7 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
                           equations::AbstractEquationsParabolic,
                           boundary_conditions, dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
 
-  @unpack weak_differentiation_matrices = cache_parabolic
+  (; weak_differentiation_matrices) = cache_parabolic
 
   reset_du!(du, dg)
 
@@ -259,8 +259,8 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
   end
 
   # compute fluxes at interfaces
-  @unpack scalar_flux_face_values = cache_parabolic
-  @unpack mapM, mapP, nxyzJ = mesh.md
+  (; scalar_flux_face_values) = cache_parabolic
+  (; mapM, mapP, nxyzJ) = mesh.md
   @threaded for face_node_index in each_face_node_global(mesh, dg, cache, cache_parabolic)
     idM, idP = mapM[face_node_index], mapP[face_node_index]
 
@@ -304,7 +304,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, equations_parabolic::Abstra
 
   reset_du!(du, dg)
 
-  @unpack u_transformed, gradients, flux_viscous = cache_parabolic
+  (; u_transformed, gradients, flux_viscous) = cache_parabolic
   transform_variables!(u_transformed, u, mesh, equations_parabolic,
                        dg, parabolic_scheme, cache, cache_parabolic)
 

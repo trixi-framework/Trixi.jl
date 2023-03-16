@@ -199,7 +199,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                      t, iter;
                                      only_refine=false, only_coarsen=false,
                                      passive_args=())
-  @unpack controller, adaptor = amr_callback
+  (; controller, adaptor) = amr_callback
 
   u = wrap_array(u_ode, mesh, equations, dg, cache)
   lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
@@ -219,7 +219,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
    @assert axes(lambda) == axes(leaf_cell_ids) ("Indicator (axes = $(axes(lambda))) and leaf cell (axes = $(axes(leaf_cell_ids))) arrays have different axes")
   end
 
-  @unpack to_refine, to_coarsen = amr_callback.amr_cache
+  (; to_refine, to_coarsen) = amr_callback.amr_cache
   empty!(to_refine)
   empty!(to_coarsen)
   for element in 1:length(lambda)
@@ -367,7 +367,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                                      t, iter;
                                      only_refine=false, only_coarsen=false,
                                      passive_args=())
-  @unpack controller, adaptor = amr_callback
+  (; controller, adaptor) = amr_callback
 
   u = wrap_array(u_ode, mesh, equations, dg, cache)
   lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
@@ -612,7 +612,7 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
                                             mesh, equations, dg::DG, cache;
                                             kwargs...)
 
-  @unpack controller_value = controller.cache
+  (; controller_value) = controller.cache
   resize!(controller_value, nelements(dg, cache))
 
   alpha = controller.indicator(u, mesh, equations, dg, cache; kwargs...)
@@ -740,7 +740,7 @@ function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
                                                     mesh, equations, dg::DG, cache;
                                                     kwargs...)
 
-  @unpack controller_value = controller.cache
+  (; controller_value) = controller.cache
   resize!(controller_value, nelements(dg, cache))
 
   alpha = controller.indicator_primary(u, mesh, equations, dg, cache; kwargs...)

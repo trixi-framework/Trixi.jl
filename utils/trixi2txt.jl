@@ -25,10 +25,8 @@ using Glob: glob
 using Printf: @printf
 using HDF5: h5open, attributes, haskey
 using MuladdMacro: @muladd
-# using Tullio: @tullio
 using LoopVectorization
 using StaticArrays
-using UnPack: @unpack
 
 include("../src/basic_types.jl")
 include("../src/solvers/dgsem/basis_lobatto_legendre.jl")

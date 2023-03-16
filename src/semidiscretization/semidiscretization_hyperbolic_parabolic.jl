@@ -190,13 +190,13 @@ end
 
 # retain dispatch on hyperbolic equations only
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolicParabolic)
-  @unpack mesh, equations, solver, cache = semi
+  (; mesh, equations, solver, cache) = semi
   return mesh, equations, solver, cache
 end
 
 
 function calc_error_norms(func, u_ode, t, analyzer, semi::SemidiscretizationHyperbolicParabolic, cache_analysis)
-  @unpack mesh, equations, initial_condition, solver, cache = semi
+  (; mesh, equations, initial_condition, solver, cache) = semi
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
   calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache, cache_analysis)
@@ -234,7 +234,7 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
-  @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
+  (; mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache) = semi
 
   u  = wrap_array(u_ode,  mesh, equations, solver, cache)
   du = wrap_array(du_ode, mesh, equations, solver, cache)
@@ -250,7 +250,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
 end
 
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
-  @unpack mesh, equations_parabolic, initial_condition, boundary_conditions_parabolic, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
+  (; mesh, equations_parabolic, initial_condition, boundary_conditions_parabolic, source_terms, solver, solver_parabolic, cache, cache_parabolic) = semi
 
   u  = wrap_array(u_ode,  mesh, equations_parabolic, solver, cache_parabolic)
   du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache_parabolic)

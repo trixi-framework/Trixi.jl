@@ -102,7 +102,7 @@ end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LinearizedEulerEquations2D)
-    @unpack v_mean_global, c_mean_global, rho_mean_global = equations
+    (; v_mean_global, c_mean_global, rho_mean_global) = equations
     rho_prime, v1_prime, v2_prime, p_prime = u
     if orientation == 1
         f1 = v_mean_global[1] * rho_prime + rho_mean_global * v1_prime
@@ -123,12 +123,12 @@ end
 @inline have_constant_speed(::LinearizedEulerEquations2D) = True()
 
 @inline function max_abs_speeds(equations::LinearizedEulerEquations2D)
-    @unpack v_mean_global, c_mean_global = equations
+    (; v_mean_global, c_mean_global) = equations
     return abs(v_mean_global[1]) + c_mean_global, abs(v_mean_global[2]) + c_mean_global
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::LinearizedEulerEquations2D)
-    @unpack v_mean_global, c_mean_global = equations
+    (; v_mean_global, c_mean_global) = equations
     if orientation == 1
         return abs(v_mean_global[1]) + c_mean_global
     else # orientation == 2

@@ -222,7 +222,7 @@ Entropy conserving two-point flux by
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerMulticomponentEquations1D)
   # Unpack left and right state
-  @unpack gammas, gas_constants, cv = equations
+  (; gammas, gas_constants, cv) = equations
   rho_v1_ll, rho_e_ll = u_ll
   rho_v1_rr, rho_e_rr = u_rr
   rhok_mean   = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i+2], u_rr[i+2]) for i in eachcomponent(equations))
@@ -292,7 +292,7 @@ See also
 """
 @inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerMulticomponentEquations1D)
   # Unpack left and right state
-  @unpack gammas, gas_constants, cv = equations
+  (; gammas, gas_constants, cv) = equations
   rho_v1_ll, rho_e_ll = u_ll
   rho_v1_rr, rho_e_rr = u_rr
   rhok_mean   = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i+2], u_rr[i+2]) for i in eachcomponent(equations))
@@ -402,7 +402,7 @@ end
 
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::CompressibleEulerMulticomponentEquations1D)
-  @unpack cv, gammas = equations
+  (; cv, gammas) = equations
   v1, p = prim
 
   RealT = eltype(prim)
@@ -423,7 +423,7 @@ end
 
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::CompressibleEulerMulticomponentEquations1D)
-  @unpack cv, gammas, gas_constants = equations
+  (; cv, gammas, gas_constants) = equations
   rho_v1, rho_e = u
 
   rho       = density(u, equations)
@@ -461,7 +461,7 @@ Function that calculates the total gamma out of all partial gammas using the
 partial density fractions as well as the partial specific heats at constant volume.
 """
 @inline function totalgamma(u, equations::CompressibleEulerMulticomponentEquations1D)
-  @unpack cv, gammas = equations
+  (; cv, gammas) = equations
 
   help1 = zero(u[1])
   help2 = zero(u[1])

@@ -36,7 +36,7 @@ struct FluxPlusDissipation{NumericalFlux, Dissipation}
 end
 
 @inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, orientation_or_normal_direction, equations)
-  @unpack numerical_flux, dissipation = numflux
+  (; numerical_flux, dissipation) = numflux
 
   return ( numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
             + dissipation(u_ll, u_rr, orientation_or_normal_direction, equations) )
@@ -62,7 +62,7 @@ end
 # Rotated surface flux computation (2D version)
 @inline function (flux_rotated::FluxRotated)(u_ll, u_rr, normal_direction::AbstractVector,
                                              equations::AbstractEquations{2})
-  @unpack numerical_flux = flux_rotated
+  (; numerical_flux) = flux_rotated
 
   norm_ = norm(normal_direction)
   # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
@@ -80,7 +80,7 @@ end
 # Rotated surface flux computation (3D version)
 @inline function (flux_rotated::FluxRotated)(u_ll, u_rr, normal_direction::AbstractVector,
                                              equations::AbstractEquations{3})
-  @unpack numerical_flux = flux_rotated
+  (; numerical_flux) = flux_rotated
 
   # Storing these vectors could increase the performance by 20 percent
   norm_ = norm(normal_direction)
@@ -117,12 +117,12 @@ struct DissipationGlobalLaxFriedrichs{RealT}
 end
 
 @inline function (dissipation::DissipationGlobalLaxFriedrichs)(u_ll, u_rr, orientation::Integer, equations)
-  @unpack λ = dissipation
+  (; λ) = dissipation
   return -λ/2 * (u_rr - u_ll)
 end
 
 @inline function (dissipation::DissipationGlobalLaxFriedrichs)(u_ll, u_rr, normal_direction::AbstractVector, equations)
-  @unpack λ = dissipation
+  (; λ) = dissipation
   return -λ/2 * norm(normal_direction) * (u_rr - u_ll)
 end
 
@@ -306,7 +306,7 @@ end
 @inline function (numflux::FluxHydrostaticReconstruction)(u_ll, u_rr,
                                                           orientation_or_normal_direction,
                                                           equations::AbstractEquations)
-  @unpack numerical_flux, hydrostatic_reconstruction = numflux
+  (; numerical_flux, hydrostatic_reconstruction) = numflux
 
   # Create the reconstructed left/right solution states in conservative form
   u_ll_star, u_rr_star = hydrostatic_reconstruction(u_ll, u_rr, equations)
@@ -334,7 +334,7 @@ struct FluxUpwind{Splitting}
 end
 
 @inline function (numflux::FluxUpwind)(u_ll, u_rr, orientation::Int, equations)
-  @unpack splitting = numflux
+  (; splitting) = numflux
   fm = splitting(u_rr, Val{:minus}(), orientation, equations)
   fp = splitting(u_ll, Val{:plus}(),  orientation, equations)
   return fm + fp

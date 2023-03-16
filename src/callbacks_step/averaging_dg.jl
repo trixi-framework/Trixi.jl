@@ -6,7 +6,7 @@
 
 
 function save_averaging_file(averaging_callback, mesh::TreeMesh, equations, dg::DGSEM, cache)
-  @unpack output_directory, filename, mean_values = averaging_callback
+  (; output_directory, filename, mean_values) = averaging_callback
   h5open(joinpath(output_directory, filename), "w") do file
     # Add context information
     attributes(file)["ndims"] = ndims(mesh)

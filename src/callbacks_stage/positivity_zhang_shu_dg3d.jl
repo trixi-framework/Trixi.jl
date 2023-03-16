@@ -7,7 +7,7 @@
 
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{3}, equations, dg::DGSEM, cache)
-  @unpack weights = dg.basis
+  (; weights) = dg.basis
 
   @threaded for element in eachelement(dg, cache)
     # dermine minimum value

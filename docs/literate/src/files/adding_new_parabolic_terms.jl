@@ -40,7 +40,7 @@ varnames(variable_mapping, equations_parabolic::ConstantAnisotropicDiffusion2D) 
 # Here, we specialize the flux to our new parabolic equation type `ConstantAnisotropicDiffusion2D`.
 
 function Trixi.flux(u, gradients, orientation::Integer, equations_parabolic::ConstantAnisotropicDiffusion2D)
-  @unpack diffusivity = equations_parabolic
+  (; diffusivity) = equations_parabolic
   dudx, dudy = gradients
   if orientation == 1
     return SVector(diffusivity[1, 1] * dudx + diffusivity[1, 2] * dudy)
@@ -157,4 +157,3 @@ sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol,
 
 using Plots
 plot(sol)
-

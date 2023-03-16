@@ -276,7 +276,7 @@ function init_mpi_neighbor_connectivity(mpi_interfaces, mpi_mortars, mesh::Paral
   iterate_p4est(mesh.p4est, user_data; ghost_layer=mesh.ghost, iter_face_c=iter_face_c)
 
   # Build proper connectivity data structures from information gathered by iterating over p4est
-  @unpack global_interface_ids, neighbor_ranks_interface, global_mortar_ids, neighbor_ranks_mortar = user_data
+  (; global_interface_ids, neighbor_ranks_interface, global_mortar_ids, neighbor_ranks_mortar) = user_data
 
   mpi_neighbor_ranks = vcat(neighbor_ranks_interface, neighbor_ranks_mortar...) |> sort |> unique
 
@@ -341,8 +341,8 @@ cfunction(::typeof(init_neighbor_rank_connectivity_iter_face), ::Val{3}) = @cfun
 
 # Function barrier for type stability
 function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
-  @unpack interfaces, interface_id, global_interface_ids, neighbor_ranks_interface,
-          mortars, mortar_id, global_mortar_ids, neighbor_ranks_mortar, mesh = user_data
+  (; interfaces, interface_id, global_interface_ids, neighbor_ranks_interface,
+     mortars, mortar_id, global_mortar_ids, neighbor_ranks_mortar, mesh) = user_data
 
   # Get the global interface/mortar ids and neighbor rank if current face belongs to an MPI
   # interface/mortar
@@ -472,7 +472,7 @@ end
 function exchange_normal_directions!(mpi_mortars, mpi_cache, mesh::ParallelP4estMesh, n_nodes)
   RealT = real(mesh)
   n_dims = ndims(mesh)
-  @unpack mpi_neighbor_mortars, mpi_neighbor_ranks = mpi_cache
+  (; mpi_neighbor_mortars, mpi_neighbor_ranks) = mpi_cache
   n_small_elements = 2^(n_dims-1)
   data_size = n_nodes^(n_dims - 1) * n_dims
 

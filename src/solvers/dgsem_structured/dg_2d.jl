@@ -50,8 +50,8 @@ end
                                    dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
-  @unpack derivative_dhat = dg.basis
-  @unpack contravariant_vectors = cache.elements
+  (; derivative_dhat) = dg.basis
+  (; contravariant_vectors) = cache.elements
 
   for j in eachnode(dg), i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -84,8 +84,8 @@ end
                                            element, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                                            nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha=true)
-  @unpack derivative_split = dg.basis
-  @unpack contravariant_vectors = cache.elements
+  (; derivative_split) = dg.basis
+  (; contravariant_vectors) = cache.elements
 
   # Calculate volume integral in one element
   for j in eachnode(dg), i in eachnode(dg)
@@ -132,8 +132,8 @@ end
                                            element, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                                            nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha=true)
-  @unpack derivative_split = dg.basis
-  @unpack contravariant_vectors = cache.elements
+  (; derivative_split) = dg.basis
+  (; contravariant_vectors) = cache.elements
   symmetric_flux, nonconservative_flux = volume_flux
 
   # Apply the symmetric flux as usual
@@ -192,8 +192,8 @@ end
                               mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                               nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
-  @unpack contravariant_vectors = cache.elements
-  @unpack weights, derivative_matrix = dg.basis
+  (; contravariant_vectors) = cache.elements
+  (; weights, derivative_matrix) = dg.basis
 
   # Performance improvement if the metric terms of the subcell FV method are only computed
   # once at the beginning of the simulation, instead of at every Runge-Kutta stage
@@ -254,8 +254,8 @@ end
                               mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                               nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
-  @unpack contravariant_vectors = cache.elements
-  @unpack weights, derivative_matrix = dg.basis
+  (; contravariant_vectors) = cache.elements
+  (; weights, derivative_matrix) = dg.basis
 
   volume_flux, nonconservative_flux = volume_flux_fv
 
@@ -332,7 +332,7 @@ function calc_interface_flux!(cache, u,
                               mesh::StructuredMesh{2},
                               nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG)
-  @unpack elements = cache
+  (; elements) = cache
 
   @threaded for element in eachelement(dg, cache)
     # Interfaces in negative directions
@@ -367,8 +367,8 @@ end
     return nothing
   end
 
-  @unpack surface_flux = surface_integral
-  @unpack contravariant_vectors, inverse_jacobian = cache.elements
+  (; surface_flux) = surface_integral
+  (; contravariant_vectors, inverse_jacobian) = cache.elements
 
   right_direction = 2 * orientation
   left_direction = right_direction - 1
@@ -423,7 +423,7 @@ end
   end
 
   surface_flux, nonconservative_flux = surface_integral.surface_flux
-  @unpack contravariant_vectors, inverse_jacobian = cache.elements
+  (; contravariant_vectors, inverse_jacobian) = cache.elements
 
   right_direction = 2 * orientation
   left_direction  = right_direction - 1
@@ -489,7 +489,7 @@ end
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{2}, equations, surface_integral, dg::DG)
-  @unpack surface_flux_values = cache.elements
+  (; surface_flux_values) = cache.elements
   linear_indices = LinearIndices(size(mesh))
 
   for cell_y in axes(mesh, 2)
@@ -545,7 +545,7 @@ end
 function apply_jacobian!(du,
                          mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                          equations, dg::DG, cache)
-  @unpack inverse_jacobian = cache.elements
+  (; inverse_jacobian) = cache.elements
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)

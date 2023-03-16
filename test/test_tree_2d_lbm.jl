@@ -52,7 +52,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       initial_condition=function initial_condition_couette_steady(x, t, equations::LatticeBoltzmannEquations2D)
         # Initial state for a *steady* Couette flow setup. To be used in combination with
         # [`boundary_condition_couette`](@ref) and [`boundary_condition_noslip_wall`](@ref).
-        @unpack L, u0, rho0 = equations
+        (; L, u0, rho0) = equations
 
         rho = rho0
         v1 = u0 * x[2] / L

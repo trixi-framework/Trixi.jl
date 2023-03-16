@@ -60,7 +60,7 @@ end
 @inline function source_terms_poisson_nonperiodic(u, x, t, equations::HyperbolicDiffusionEquations3D)
   # elliptic equation: -νΔϕ = f
   # analytical solution: ϕ = 2 cos(πx)sin(2πy)sin(2πz) + 2 and f = 18 π^2 cos(πx)sin(2πy)sin(2πz)
-  @unpack inv_Tr = equations
+  (; inv_Tr) = equations
 
   x1, x2, x3 = x
   du1 = 18 * pi^2 * cospi(x1) * sinpi(2 * x2) * sinpi(2 * x3)
@@ -99,7 +99,7 @@ Source term that only includes the forcing from the hyperbolic diffusion system.
 """
 @inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations3D)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
-  @unpack inv_Tr = equations
+  (; inv_Tr) = equations
 
   du1 = zero(u[1])
   du2 = -inv_Tr * u[2]

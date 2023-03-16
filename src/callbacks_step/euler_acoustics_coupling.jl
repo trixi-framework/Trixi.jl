@@ -83,7 +83,7 @@ The mean values for the acoustic perturbation equations are read from `averaging
 function EulerAcousticsCouplingCallback(ode_euler,
                                         averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback},
                                         alg, cfl_acoustics::Real, cfl_euler::Real; kwargs...)
-  @unpack mean_values = averaging_callback.affect!
+  (; mean_values) = averaging_callback.affect!
 
   return EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acoustics, cfl_euler;
                                         kwargs...)
@@ -135,11 +135,11 @@ end
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator_acoustics) where {Condition, Affect!<:EulerAcousticsCouplingCallback}
   euler_acoustics_coupling = cb.affect!
   semi = integrator_acoustics.p
-  @unpack semi_acoustics = semi
+  (; semi_acoustics) = semi
 
   # Initialize mean values in u_ode
   u_acoustics = wrap_array(u_ode, semi_acoustics)
-  @unpack mean_values = euler_acoustics_coupling
+  (; mean_values) = euler_acoustics_coupling
   @views @. u_acoustics[4:5, .., :] = mean_values.v_mean
   @views @. u_acoustics[6, .., :] = mean_values.c_mean
   @views @. u_acoustics[7, .., :] = mean_values.rho_mean
@@ -155,7 +155,7 @@ end
 # time step, manages the time stepsize for both the acoustics and Euler solvers and calculates the
 # acoustic sources for the next acoustics time step
 function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_acoustics)
-  @unpack stepsize_callback_acoustics, stepsize_callback_euler, integrator_euler = euler_acoustics_coupling
+  (; stepsize_callback_acoustics, stepsize_callback_euler, integrator_euler) = euler_acoustics_coupling
 
   @assert integrator_acoustics.t == integrator_euler.t
 
@@ -187,8 +187,8 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
   semi_euler = integrator_euler.p
   u_acoustics = wrap_array(integrator_acoustics.u, semi)
   u_euler = wrap_array(integrator_euler.u, semi_euler)
-  @unpack acoustic_source_terms, coupled_element_ids = semi.cache
-  @unpack vorticity_mean = euler_acoustics_coupling.mean_values
+  (; acoustic_source_terms, coupled_element_ids) = semi.cache
+  (; vorticity_mean) = euler_acoustics_coupling.mean_values
 
   @trixi_timeit timer() "calc acoustic source terms" calc_acoustic_sources!(
     acoustic_source_terms, u_euler, u_acoustics, vorticity_mean, coupled_element_ids,

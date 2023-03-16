@@ -183,8 +183,8 @@ end
 @inline function build_lazy_physical_derivative(element, orientation,
                                                 mesh::DGMultiMesh{1}, dg, cache,
                                                 operator_scaling = 1.0)
-  @unpack Qrst_skew = cache
-  @unpack rxJ = mesh.md
+  (; Qrst_skew) = cache
+  (; rxJ) = mesh.md
   # ignore orientation
   return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1,element],))
 end
@@ -192,8 +192,8 @@ end
 @inline function build_lazy_physical_derivative(element, orientation,
                                                 mesh::DGMultiMesh{2}, dg, cache,
                                                 operator_scaling = 1.0)
-  @unpack Qrst_skew = cache
-  @unpack rxJ, sxJ, ryJ, syJ = mesh.md
+  (; Qrst_skew) = cache
+  (; rxJ, sxJ, ryJ, syJ) = mesh.md
   if orientation == 1
     return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1,element], sxJ[1,element]))
   else # if orientation == 2
@@ -204,8 +204,8 @@ end
 @inline function build_lazy_physical_derivative(element, orientation,
                                                 mesh::DGMultiMesh{3}, dg, cache,
                                                 operator_scaling = 1.0)
-  @unpack Qrst_skew = cache
-  @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
+  (; Qrst_skew) = cache
+  (; rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ) = mesh.md
   if orientation == 1
     return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1, element], sxJ[1, element], txJ[1, element]))
   elseif orientation == 2
@@ -227,7 +227,7 @@ end
   # SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
 
   # assumes geometric terms are constant on each element
-  @unpack rstxyzJ = mesh.md
+  (; rstxyzJ) = mesh.md
   return SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element))
 end
 
@@ -235,7 +235,7 @@ end
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
 
   # assumes geometric terms vary spatially over each element
-  @unpack rstxyzJ = mesh.md
+  (; rstxyzJ) = mesh.md
   return SVector{NDIMS}(view.(rstxyzJ[:, orientation], :, element))
 end
 
@@ -258,7 +258,7 @@ end
 # use traditional multidimensional SBP operators for SBP approximation types.
 function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiffSBP, sparse_operators)
   rd = dg.basis
-  @unpack M, Drst, Pq = rd
+  (; M, Drst, Pq) = rd
   Qrst = map(D -> M * D, Drst)
   Qrst_skew = map(A -> 0.5 * (A - A'), Qrst)
   if sparse_operators == true
@@ -305,7 +305,7 @@ end
 function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, uEltype)
 
   rd = dg.basis
-  @unpack md = mesh
+  (; md) = mesh
 
   Qrst_skew, VhP, Ph = compute_flux_differencing_SBP_matrices(dg)
 
@@ -347,9 +347,9 @@ end
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti)
 
   rd = dg.basis
-  @unpack Vq = rd
-  @unpack VhP, entropy_var_values, u_values = cache
-  @unpack projected_entropy_var_values, entropy_projected_u_values = cache
+  (; Vq) = rd
+  (; VhP, entropy_var_values, u_values) = cache
+  (; projected_entropy_var_values, entropy_projected_u_values) = cache
 
   apply_to_each_field(mul_by!(Vq), u_values, u)
 
@@ -412,7 +412,7 @@ end
                                           has_nonconservative_terms::False, volume_integral,
                                           has_sparse_operators::False, mesh,
                                           equations, dg, cache)
-  @unpack volume_flux = volume_integral
+  (; volume_flux) = volume_integral
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
     # True() indicates the volume flux is symmetric
@@ -450,8 +450,8 @@ end
                                           has_nonconservative_terms::False, volume_integral,
                                           has_sparse_operators::True, mesh,
                                           equations, dg, cache)
-  @unpack Qrst_skew = cache
-  @unpack volume_flux = volume_integral
+  (; Qrst_skew) = cache
+  (; volume_flux) = volume_integral
   for dim in eachdim(mesh)
     # There are two ways to write this flux differencing discretization on affine meshes.
     #
@@ -481,7 +481,7 @@ end
                                           has_nonconservative_terms::True, volume_integral,
                                           has_sparse_operators::True, mesh,
                                           equations, dg, cache)
-  @unpack Qrst_skew = cache
+  (; Qrst_skew) = cache
   flux_conservative, flux_nonconservative = volume_integral.volume_flux
   for dim in eachdim(mesh)
     normal_direction = get_contravariant_vector(element_index, dim, mesh)
@@ -509,8 +509,8 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                volume_integral, dg::DGMultiFluxDiff,
                                cache)
 
-  @unpack entropy_projected_u_values, Ph = cache
-  @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
+  (; entropy_projected_u_values, Ph) = cache
+  (; fluxdiff_local_threaded, rhs_local_threaded) = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
@@ -537,7 +537,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                volume_integral, dg::DGMultiFluxDiffSBP,
                                cache)
 
-  @unpack fluxdiff_local_threaded, inv_wq = cache
+  (; fluxdiff_local_threaded, inv_wq) = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]

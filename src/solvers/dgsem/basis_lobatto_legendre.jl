@@ -121,7 +121,7 @@ Map the function `f` to the coefficients `u` and integrate with respect to the
 quadrature rule given by `basis`.
 """
 function integrate(f, u, basis::LobattoLegendreBasis)
-  @unpack weights = basis
+  (; weights) = basis
 
   res = zero(f(first(u)))
   for i in eachindex(u, weights)

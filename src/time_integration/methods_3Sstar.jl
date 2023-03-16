@@ -160,8 +160,8 @@ function solve(ode::ODEProblem, alg::T;
 end
 
 function solve!(integrator::SimpleIntegrator3Sstar)
-  @unpack prob = integrator.sol
-  @unpack alg = integrator
+  (; prob) = integrator.sol
+  (; alg) = integrator
   t_end = last(prob.tspan)
   callbacks = integrator.opts.callback
 

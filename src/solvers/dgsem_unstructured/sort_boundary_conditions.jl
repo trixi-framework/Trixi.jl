@@ -37,7 +37,7 @@ end
 
 
 function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N}, cache) where N
-  @unpack boundary_dictionary, boundary_condition_types = boundary_types_container
+  (; boundary_dictionary, boundary_condition_types) = boundary_types_container
 
   unique_names = unique(cache.boundaries.name)
 

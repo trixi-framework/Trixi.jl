@@ -64,7 +64,7 @@ end
 
 # this method is called to determine whether the callback should be activated
 function (alive_callback::AliveCallback)(u, t, integrator)
-  @unpack alive_interval, analysis_interval = alive_callback
+  (; alive_interval, analysis_interval) = alive_callback
 
   # With error-based step size control, some steps can be rejected. Thus,
   #   `integrator.iter >= integrator.stats.naccept`

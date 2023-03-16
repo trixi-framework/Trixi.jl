@@ -71,7 +71,7 @@ function refine_element!(u::AbstractArray{<:Any,5}, element_id,
                          old_u, old_element_id,
                          adaptor::LobattoLegendreAdaptorL2, equations, dg,
                          u_tmp1, u_tmp2)
-  @unpack forward_upper, forward_lower = adaptor
+  (; forward_upper, forward_lower) = adaptor
 
   # Store new element ids
   bottom_lower_left_id  = element_id
@@ -220,7 +220,7 @@ function coarsen_elements!(u::AbstractArray{<:Any,5}, element_id,
                            old_u, old_element_id,
                            adaptor::LobattoLegendreAdaptorL2, equations, dg,
                            u_tmp1, u_tmp2)
-  @unpack reverse_upper, reverse_lower = adaptor
+  (; reverse_upper, reverse_lower) = adaptor
 
   # Store old element ids
   bottom_lower_left_id  = old_element_id

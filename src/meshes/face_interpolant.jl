@@ -19,7 +19,7 @@ end
 # evalute the Gamma face interpolant at a particular point s = (s_1, s_2) and return the (x,y,z) coordinate
 function evaluate_at(s, boundary_face::CurvedFace)
 
-   @unpack nodes, barycentric_weights, coordinates = boundary_face
+   (; nodes, barycentric_weights, coordinates) = boundary_face
 
    x_coordinate_at_s_on_boundary_face = lagrange_interpolation_2d(s, nodes, view(coordinates, 1, :, :),
                                                                   barycentric_weights)

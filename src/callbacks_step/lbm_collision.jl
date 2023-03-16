@@ -51,7 +51,7 @@ end
   dt = get_proposed_dt(integrator)
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  @unpack collision_op = equations
+  (; collision_op) = equations
 
   u_ode = integrator.u
   u = wrap_array(u_ode, mesh, equations, solver, cache)

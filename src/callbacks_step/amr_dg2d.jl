@@ -134,7 +134,7 @@ end
 function refine_element!(u::AbstractArray{<:Any,4}, element_id,
                          old_u, old_element_id,
                          adaptor::LobattoLegendreAdaptorL2, equations, dg)
-  @unpack forward_upper, forward_lower = adaptor
+  (; forward_upper, forward_lower) = adaptor
 
   # Store new element ids
   lower_left_id  = element_id
@@ -269,7 +269,7 @@ end
 function coarsen_elements!(u::AbstractArray{<:Any,4}, element_id,
                            old_u, old_element_id,
                            adaptor::LobattoLegendreAdaptorL2, equations, dg)
-  @unpack reverse_upper, reverse_lower = adaptor
+  (; reverse_upper, reverse_lower) = adaptor
 
   # Store old element ids
   lower_left_id  = old_element_id

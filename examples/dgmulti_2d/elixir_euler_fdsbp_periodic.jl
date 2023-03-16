@@ -1,4 +1,3 @@
-
 using Trixi, OrdinaryDiffEq
 
 dg = DGMulti(element_type = Quad(),

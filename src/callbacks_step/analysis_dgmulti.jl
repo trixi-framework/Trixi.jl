@@ -10,7 +10,7 @@ function calc_error_norms(func, u, t, analyzer,
                           dg::DGMulti{NDIMS}, cache, cache_analysis) where {NDIMS}
   rd = dg.basis
   md = mesh.md
-  @unpack u_values = cache
+  (; u_values) = cache
 
   # interpolate u to quadrature points
   apply_to_each_field(mul_by!(rd.Vq), u_values, u)
@@ -32,7 +32,7 @@ function integrate(func::Func, u,
                    equations, dg::DGMulti, cache; normalize=true) where {Func}
   rd = dg.basis
   md = mesh.md
-  @unpack u_values = cache
+  (; u_values) = cache
 
   # interpolate u to quadrature points
   apply_to_each_field(mul_by!(rd.Vq), u_values, u)
@@ -49,7 +49,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
 
   rd = dg.basis
   md = mesh.md
-  @unpack u_values = cache
+  (; u_values) = cache
 
   # interpolate u, du to quadrature points
   du_values = similar(u_values) # Todo: DGMulti. Can we move this to the analysis cache somehow?
@@ -70,7 +70,7 @@ end
 # This function is used in `analyze(::Val{:l2_divb},...)` and `analyze(::Val{:linf_divb},...)`
 function compute_local_divergence!(local_divergence, element, vector_field,
                                    mesh, dg::DGMulti, cache)
-  @unpack md = mesh
+  (; md) = mesh
   rd = dg.basis
   uEltype = eltype(first(vector_field))
 
@@ -94,7 +94,7 @@ get_component(u::AbstractArray{<:SVector}, i::Int) = getindex.(u, i)
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::DGMultiMesh, equations::IdealGlmMhdEquations2D,
                  dg::DGMulti, cache)
-  @unpack md = mesh
+  (; md) = mesh
   rd = dg.basis
   B1 = get_component(u, 6)
   B2 = get_component(u, 7)

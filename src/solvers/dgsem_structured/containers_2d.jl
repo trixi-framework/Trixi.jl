@@ -7,8 +7,8 @@
 
 # Initialize data structures in element container
 function init_elements!(elements, mesh::StructuredMesh{2}, basis::LobattoLegendreBasis)
-  @unpack node_coordinates, left_neighbors,
-          jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
+  (; node_coordinates, left_neighbors,
+     jacobian_matrix, contravariant_vectors, inverse_jacobian) = elements
 
   linear_indices = LinearIndices(size(mesh))
 
@@ -37,7 +37,7 @@ function calc_node_coordinates!(node_coordinates, element,
                                 cell_x, cell_y, mapping,
                                 mesh::StructuredMesh{2},
                                 basis::LobattoLegendreBasis)
-  @unpack nodes = basis
+  (; nodes) = basis
 
   # Get cell length in reference mesh
   dx = 2 / size(mesh, 1)
@@ -57,7 +57,7 @@ end
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
 function calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates::AbstractArray{<:Any, 4}, basis::LobattoLegendreBasis)
-  @unpack derivative_matrix = basis
+  (; derivative_matrix) = basis
 
   # The code below is equivalent to the following matrix multiplications, which
   # seem to end up calling generic linear algebra code from Julia. Thus, the

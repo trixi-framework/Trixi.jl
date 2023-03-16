@@ -85,4 +85,3 @@ sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol,
 
 using Plots
 plot(sol)
-

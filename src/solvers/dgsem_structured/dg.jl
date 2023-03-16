@@ -39,8 +39,8 @@ end
                                                   mesh::StructuredMesh, equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices, surface_node_indices, element)
-  @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
-  @unpack surface_flux = surface_integral
+  (; node_coordinates, contravariant_vectors, inverse_jacobian) = cache.elements
+  (; surface_flux) = surface_integral
 
   u_inner = get_node_vars(u, equations, dg, node_indices..., element)
   x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)

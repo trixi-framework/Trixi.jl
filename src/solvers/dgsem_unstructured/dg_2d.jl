@@ -86,7 +86,7 @@ end
 function prolong2interfaces!(cache, u,
                              mesh::UnstructuredMesh2D,
                              equations, surface_integral, dg::DG)
-  @unpack interfaces = cache
+  (; interfaces) = cache
 
   @threaded for interface in eachinterface(dg, cache)
     primary_element   = interfaces.element_ids[1, interface]
@@ -142,9 +142,9 @@ function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredMesh2D,
                               nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
-  @unpack surface_flux = surface_integral
-  @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
-  @unpack normal_directions = cache.elements
+  (; surface_flux) = surface_integral
+  (; u, start_index, index_increment, element_ids, element_side_ids) = cache.interfaces
+  (; normal_directions) = cache.elements
 
 
   @threaded for interface in eachinterface(dg, cache)
@@ -196,8 +196,8 @@ function calc_interface_flux!(surface_flux_values,
                               nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
   surface_flux, nonconservative_flux = surface_integral.surface_flux
-  @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
-  @unpack normal_directions = cache.elements
+  (; u, start_index, index_increment, element_ids, element_side_ids) = cache.interfaces
+  (; normal_directions) = cache.elements
 
   @threaded for interface in eachinterface(dg, cache)
     # Get the primary element index and local side index
@@ -260,7 +260,7 @@ end
 function prolong2boundaries!(cache, u,
                              mesh::UnstructuredMesh2D,
                              equations, surface_integral, dg::DG)
-  @unpack boundaries = cache
+  (; boundaries) = cache
 
   @threaded for boundary in eachboundary(dg, cache)
     element = boundaries.element_id[boundary]
@@ -301,7 +301,7 @@ end
 function calc_boundary_flux!(cache, t, boundary_conditions,
                              mesh::Union{UnstructuredMesh2D, P4estMesh},
                              equations, surface_integral, dg::DG)
-  @unpack boundary_condition_types, boundary_indices = boundary_conditions
+  (; boundary_condition_types, boundary_indices) = boundary_conditions
 
   calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
                               mesh, equations, surface_integral, dg)
@@ -345,8 +345,8 @@ end
 function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
                              mesh::UnstructuredMesh2D, equations,
                              surface_integral, dg::DG)
-  @unpack surface_flux_values = cache.elements
-  @unpack element_id, element_side_id = cache.boundaries
+  (; surface_flux_values) = cache.elements
+  (; element_id, element_side_id) = cache.boundaries
 
   @threaded for local_index in eachindex(boundary_indexing)
     # use the local index to get the global boundary index from the pre-sorted list
@@ -374,9 +374,9 @@ end
                                      nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index, boundary_index)
-  @unpack normal_directions = cache.elements
-  @unpack u, node_coordinates = cache.boundaries
-  @unpack surface_flux = surface_integral
+  (; normal_directions) = cache.elements
+  (; u, node_coordinates) = cache.boundaries
+  (; surface_flux) = surface_integral
 
   # pull the inner solution state from the boundary u values on the boundary element
   u_inner = get_node_vars(u, equations, dg, node_index, boundary_index)
@@ -407,8 +407,8 @@ end
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index, boundary_index)
   surface_flux, nonconservative_flux = surface_integral.surface_flux
-  @unpack normal_directions = cache.elements
-  @unpack u, node_coordinates = cache.boundaries
+  (; normal_directions) = cache.elements
+  (; u, node_coordinates) = cache.boundaries
 
   # pull the inner solution state from the boundary u values on the boundary element
   u_inner = get_node_vars(u, equations, dg, node_index, boundary_index)
@@ -456,8 +456,8 @@ end
 # Therefore, we require a different surface integral routine here despite their similar structure.
 function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
                                 equations, surface_integral, dg::DGSEM, cache)
-  @unpack boundary_interpolation = dg.basis
-  @unpack surface_flux_values = cache.elements
+  (; boundary_interpolation) = dg.basis
+  (; surface_flux_values) = cache.elements
 
   @threaded for element in eachelement(dg, cache)
     for l in eachnode(dg), v in eachvariable(equations)
@@ -484,8 +484,8 @@ end
 #   Note! Independent of the equation system and is only a check on the discrete mapping terms.
 #         Can be used for a metric identities check on StructuredMesh{2} or UnstructuredMesh2D
 function max_discrete_metric_identities(dg::DGSEM, cache)
-  @unpack derivative_matrix = dg.basis
-  @unpack contravariant_vectors = cache.elements
+  (; derivative_matrix) = dg.basis
+  (; contravariant_vectors) = cache.elements
 
   ndims_ = size(contravariant_vectors, 1)
 
