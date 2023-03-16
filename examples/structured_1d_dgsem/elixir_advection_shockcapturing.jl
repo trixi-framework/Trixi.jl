@@ -8,6 +8,7 @@ advection_velocity = 1.0
 
 """
     initial_condition_composite(x, t, equations::LinearScalarAdvectionEquation1D)
+
 Slight simplification of
 - Jiang, Shu (1996)
   Efficient Implementation of Weighted ENO Schemes
