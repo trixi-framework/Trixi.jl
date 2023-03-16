@@ -157,7 +157,14 @@ function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equ
   if !mpi_isroot()
     # Receive nodal data from root
     for v in eachvariable(equations)
-      MPI.Scatterv!(nothing, @view(u[v, .., :]), mpi_root(), mpi_comm())
+      # put Scatterv in both blocks of the if condition to avoid type instability
+      if isempty(u)
+        data = eltype(u)[]
+        MPI.Scatterv!(nothing, data, mpi_root(), mpi_comm())
+      else
+        data = @view u[v, .., :]
+        MPI.Scatterv!(nothing, data, mpi_root(), mpi_comm())
+      end
     end
 
     return u_ode

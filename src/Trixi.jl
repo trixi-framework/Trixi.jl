@@ -71,6 +71,7 @@ using SummationByPartsOperators: AbstractDerivativeOperator,
   AbstractNonperiodicDerivativeOperator, DerivativeOperator,
   AbstractPeriodicDerivativeOperator, PeriodicDerivativeOperator, grid
 import SummationByPartsOperators: integrate, semidiscretize,
+                                  compute_coefficients, compute_coefficients!,
                                   left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
   SummationByPartsOperators, derivative_operator, periodic_derivative_operator,

@@ -92,9 +92,9 @@ mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, F, Alg, Simpl
   finalstep::Bool # added for convenience
 end
 
-# Forward integrator.destats.naccept to integrator.iter (see GitHub PR#771)
+# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
 function Base.getproperty(integrator::SimpleIntegrator2N, field::Symbol)
-  if field === :destats
+  if field === :stats
     return (naccept = getfield(integrator, :iter),)
   end
   # general fallback

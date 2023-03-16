@@ -1,7 +1,7 @@
 name = "Trixi"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 authors = ["Michael Schlottke-Lakemper <m.schlottke-lakemper@hlrs.de>", "Gregor Gassner <ggassner@uni-koeln.de>", "Hendrik Ranocha <mail@ranocha.de>", "Andrew R. Winters <andrew.ross.winters@liu.se>", "Jesse Chan <jesse.chan@rice.edu>"]
-version = "0.5.13-pre"
+version = "0.5.14-pre"
 
 [deps]
 CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
@@ -58,7 +58,7 @@ Polyester = "0.3.4, 0.5, 0.6, 0.7"
 RecipesBase = "1.1"
 Reexport = "1.0"
 Requires = "1.1"
-SciMLBase = "1.65"
+SciMLBase = "1.90"
 Setfield = "0.8, 1"
 StartUpDG = "0.15"
 Static = "0.3, 0.4, 0.5, 0.6, 0.7, 0.8"
@@ -71,4 +71,4 @@ Triangulate = "2.0"
 TriplotBase = "0.1"
 TriplotRecipes = "0.1"
 UnPack = "1.0"
-julia = "1.7"
+julia = "1.8"

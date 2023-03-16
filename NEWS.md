@@ -12,6 +12,8 @@ for human readability.
 
 #### Changed
 
+- The required Julia version is updated to v1.8 in Trixi.jl v0.5.13.
+
 #### Deprecated
 
 #### Removed
