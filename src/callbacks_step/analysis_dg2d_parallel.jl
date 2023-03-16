@@ -75,7 +75,7 @@ function calc_error_norms_per_element(func, u, t, analyzer,
   T = typeof(zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations)))
   l2_errors   = zeros(T, nelements(dg, cache))
   linf_errors = copy(l2_errors)
-  l1_errors   = copy(l1_errors)
+  l1_errors   = copy(l2_errors)
 
   # Iterate over all elements for error calculations
   for element in eachelement(dg, cache)
@@ -110,7 +110,7 @@ function calc_error_norms(func, u, t, analyzer,
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
   linf_error = copy(l2_error)
-  l2_error   = copy(l2_error)
+  l1_error   = copy(l2_error)
   volume = zero(real(mesh))
 
   # Iterate over all elements for error calculations
