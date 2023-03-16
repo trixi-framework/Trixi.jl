@@ -63,8 +63,8 @@ using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 
 # TODO: Deprecated in v0.5
-@reexport using UnPack: @unpack
-using UnPack: @pack!
+@reexport using SimpleUnPack: @unpack
+using SimpleUnPack: @pack!
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,
