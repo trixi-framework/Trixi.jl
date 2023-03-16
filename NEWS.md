@@ -16,6 +16,10 @@ for human readability.
 
 #### Deprecated
 
+- The macro `@unpack` (re-exported originally from UnPack.jl) is deprecated and
+  will be removed. Consider using Julia's standard destructuring syntax
+  `(; a, b) = stuff` instead of `@unpack a, b = stuff`.
+
 #### Removed
 
 
