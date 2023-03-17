@@ -47,7 +47,7 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_central
-polydeg = 4
+polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,
@@ -59,13 +59,13 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-cells_per_dimension = (100,)
+# Create curved mesh
+cells_per_dimension = (125,)
 coordinates_min = (-1.0,) # minimum coordinate
-coordinates_max = (1.0,) # maximum coordinate
-
-# Create curved mesh with 16 cells
+coordinates_max = (1.0,)  # maximum coordinate
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
                       periodicity=true)
+
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -73,9 +73,9 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.0
-tspan = (0.0, 8.0)
-ode = semidiscretize(semi, tspan);
+# Create ODE problem with a given time span
+tspan = (0.0, 4.0)
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers

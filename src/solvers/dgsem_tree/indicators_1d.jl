@@ -42,8 +42,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::Union{TreeMesh{1}, S
   parameter_s = log((1 - 0.0001)/0.0001)
 
   @threaded for element in eachelement(dg, cache)
-    indicator  = indicator_threaded[Threads.threadid()]
-    modal      = modal_threaded[Threads.threadid()]
+    indicator = indicator_threaded[Threads.threadid()]
+    modal     = modal_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
     for i in eachnode(dg)
