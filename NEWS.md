@@ -12,7 +12,13 @@ for human readability.
 
 #### Changed
 
+- The required Julia version is updated to v1.8 in Trixi.jl v0.5.13.
+
 #### Deprecated
+
+- The macro `@unpack` (re-exported originally from UnPack.jl) is deprecated and
+  will be removed. Consider using Julia's standard destructuring syntax
+  `(; a, b) = stuff` instead of `@unpack a, b = stuff`.
 
 #### Removed
 
