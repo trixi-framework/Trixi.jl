@@ -79,7 +79,7 @@ function calc_volume_integral!(du, u,
 end
 
 
-# 2D volume integral contributions for `VolumeIntegralUpwind`.
+# 1D volume integral contributions for `VolumeIntegralUpwind`.
 # Note that the plus / minus notation of the operators does not refer to the
 # upwind / downwind directions of the fluxes.
 # Instead, the plus / minus refers to the direction of the biasing within
