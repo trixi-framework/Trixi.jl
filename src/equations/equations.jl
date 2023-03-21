@@ -455,5 +455,8 @@ include("lattice_boltzmann_3d.jl")
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
 
+# Coupling equations.
+abstract type AbstractCouplingEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("coupled_compressible_euler_hyperbolic_diffusion_2d.jl")
 
 end # @muladd
