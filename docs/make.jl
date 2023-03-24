@@ -47,6 +47,7 @@ end
 # If there are several files for one topic and one folder, the structure is:
 #   "title" => ["subtitle 1" => ("folder 1", "filename 1.jl"),
 #               "subtitle 2" => ("folder 2", "filename 2.jl")]
+
 files = [
     # Topic: introduction
     "Getting started with Trixi" => "getting_started_with_Trixi.jl",
