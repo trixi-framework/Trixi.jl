@@ -60,6 +60,7 @@ using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 @reexport using UnPack: @unpack
 using UnPack: @pack!
+using Infiltrator
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,

@@ -13,11 +13,12 @@ struct SemidiscretizationCoupled{S, I} <: AbstractSemidiscretization
   semis::S
   u_indices::I # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
   performance_counter::PerformanceCounter
+  equation_list::Vector
 end
 
 
 """
-    SemidiscretizationCoupled(semis)
+    SemidiscretizationCoupled(semis, other_list)
 
 Create a coupled semidiscretization that consists of the semidiscretizations contained in the tuple `semis`.
 """
@@ -45,7 +46,7 @@ function SemidiscretizationCoupled(semis, other_list)
 
   performance_counter = PerformanceCounter()
 
-  SemidiscretizationCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices, performance_counter)
+  SemidiscretizationCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices, performance_counter, equation_list)
 end
 
 
@@ -154,12 +155,28 @@ end
 function integrate(func::Func, u_ode::AbstractVector, semi::SemidiscretizationCoupled; normalize=true) where {Func}
   @unpack semis, u_indices = semi
 
-  integral = sum(1:nmeshes(semi)) do i
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
-    u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
+  # print("nmeshes(semi) = ", nmeshes(semi), "\n")
+  # integral = sum(1:nmeshes(semi)) do i
+  #   mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
+  #   u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
 
-    integrate(func, u, mesh, equations, solver, cache, normalize=false)
-  end
+  #   # print("size(u) = ", size(u), "; equation = ", equations, "; mesh.cells_per_dimension = ", mesh.cells_per_dimension, "\n")
+  #   integrate(func, u, mesh, equations, solver, cache, normalize=false)
+  #   # @infiltrate
+  #   # sleep(1)
+    print("nmeshes(semi) = ", nmeshes(semi), "\n")
+    integral1 = sum(1:1) do i
+      mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
+      u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)  
+      integrate(func, u, mesh, equations, solver, cache, normalize=false)
+    end
+    integral2 = sum(2:2) do i
+      mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
+      u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)  
+      integrate(func, u, mesh, equations, solver, cache, normalize=false)
+    end
+    @infiltrate
+    vcat(integral1, integral2)
 
   # Normalize with total volume
   if normalize
