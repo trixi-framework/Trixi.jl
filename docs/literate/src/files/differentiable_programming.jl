@@ -353,7 +353,7 @@ round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits=5)
 import Pkg
 Pkg.update()
 
-using Trixi, OrdinaryDiffEq, Measurement, Plots, LaTeXStrings
+using Trixi, OrdinaryDiffEq, Measurements, Plots, LaTeXStrings
 
 equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1)
 
