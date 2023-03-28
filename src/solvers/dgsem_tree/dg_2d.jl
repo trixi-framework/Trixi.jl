@@ -1609,14 +1609,29 @@ end
   if indicator.Plotting
     @unpack alpha_mean = indicator.cache.ContainerShockCapturingIndicator
     # Interfaces contribute with 1.0
-    for i in eachnode(dg)
-      alpha_mean[:, i, 1, element] .+= 1.0
-      alpha_mean[:, i, nnodes(dg), element] .+= 1.0
-      alpha_mean[:, 1, i, element] .+= 1.0
-      alpha_mean[:, nnodes(dg), i, element] .+= 1.0
+    if indicator.DensityLimiter || indicator.DensityPositivityLimiter
+      for i in eachnode(dg)
+        alpha_mean[1, i, 1, element] += 1.0
+        alpha_mean[1, i, nnodes(dg), element] += 1.0
+        alpha_mean[1, 1, i, element] += 1.0
+        alpha_mean[1, nnodes(dg), i, element] += 1.0
+      end
+      for j in eachnode(dg), i in eachnode(dg)
+        alpha_mean[1, i, j, element] /= 4
+      end
     end
-    for j in eachnode(dg), i in eachnode(dg)
-      alpha_mean[:, i, j, element] ./= 4
+    if indicator.SequentialLimiter || indicator.ConservativeLimiter
+      for v in 2:nvariables(equations)
+        for i in eachnode(dg)
+          alpha_mean[v, i, 1, element] += 1.0
+          alpha_mean[v, i, nnodes(dg), element] += 1.0
+          alpha_mean[v, 1, i, element] += 1.0
+          alpha_mean[v, nnodes(dg), i, element] += 1.0
+        end
+        for j in eachnode(dg), i in eachnode(dg)
+          alpha_mean[v, i, j, element] /= 4
+        end
+      end
     end
   end
 
