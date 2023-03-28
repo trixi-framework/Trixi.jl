@@ -350,8 +350,10 @@ round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits=5)
 # sine wave as initial condition, solve the ODE, and plot the resulting uncertainties
 # in the primitive variables.
 
-using Trixi, OrdinaryDiffEq, Plots, LaTeXStrings
-using Measurements: Measurement, ±
+import Pkg
+Pkg.update()
+
+using Trixi, OrdinaryDiffEq, Measurement, Plots, LaTeXStrings
 
 equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1)
 
