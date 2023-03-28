@@ -301,6 +301,7 @@ struct IndicatorMCL{RealT<:Real, Cache, Indicator} <: AbstractIndicator
   PressurePositivityLimiterKuzminExact::Bool  # Only for PressurePositivityLimiterKuzmin=true: Use the exact calculation of alpha
   PressurePositivityLimiter::Bool        # synchronized pressure limiting
   DensityPositivityLimiter::Bool
+  DensityPositivityCorrelationFactor::RealT
   SemiDiscEntropyLimiter::Bool           # synchronized semidiscrete entropy fix
   IDPCheckBounds::Bool
   indicator_smooth::Bool   # activates smoothness indicator: IndicatorHennemannGassner
@@ -319,6 +320,7 @@ function IndicatorMCL(equations::AbstractEquations, basis;
                       PressurePositivityLimiterKuzminExact=true,# Only for PressurePositivityLimiterKuzmin=true: Use the exact calculation of alpha
                       PressurePositivityLimiter=false,      # Impose positivity for pressure
                       DensityPositivityLimiter=false,       # Impose positivity for cons(1)
+                      DensityPositivityCorrelationFactor=0.0,# Correlation Factor for DensityPositivityLimiter in [0,1)
                       SemiDiscEntropyLimiter=false,
                       IDPCheckBounds=false,
                       indicator_smooth=false, thr_smooth=0.1, variable_smooth=density_pressure,
@@ -339,7 +341,7 @@ function IndicatorMCL(equations::AbstractEquations, basis;
   IndicatorMCL{typeof(thr_smooth), typeof(cache), typeof(IndicatorHG)}(cache,
     DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
     PressurePositivityLimiterKuzmin, PressurePositivityLimiterKuzminExact, PressurePositivityLimiter,
-    DensityPositivityLimiter, SemiDiscEntropyLimiter,
+    DensityPositivityLimiter, DensityPositivityCorrelationFactor, SemiDiscEntropyLimiter,
     IDPCheckBounds, indicator_smooth, thr_smooth, IndicatorHG, Plotting)
 end
 
@@ -360,6 +362,7 @@ function Base.show(io::IO, indicator::IndicatorMCL)
   end
   indicator.PressurePositivityLimiter && print(io, "; pres")
   indicator.DensityPositivityLimiter && print(io, "; dens pos")
+  (indicator.DensityPositivityCorrelationFactor != 0.0) && print(io, " with correlation factor $(indicator.DensityPositivityCorrelationFactor)")
   indicator.SemiDiscEntropyLimiter && print(io, "; semid. entropy")
   indicator.indicator_smooth && print(io, "; Smoothness indicator: ", indicator.IndicatorHG,
     " with threshold ", indicator.thr_smooth)

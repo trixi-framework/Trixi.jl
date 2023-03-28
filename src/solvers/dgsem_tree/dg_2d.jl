@@ -1521,16 +1521,17 @@ end
 
   # Density positivity limiter
   if indicator.DensityPositivityLimiter
+    beta = indicator.DensityPositivityCorrelationFactor
     for j in eachnode(dg), i in 2:nnodes(dg)
       lambda = lambda1[i, j, element]
       bar_state_rho = bar_states1[1, i, j, element]
       # Limit density
       if antidiffusive_flux1[1, i, j, element] > 0
-        f_max = lambda * bar_state_rho
+        f_max = (1 - beta) * lambda * bar_state_rho
         f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
         flux_limited = min(antidiffusive_flux1[1, i, j, element], max(f_max, 0.0))
       else
-        f_min = -lambda * bar_state_rho
+        f_min = - (1 - beta) * lambda * bar_state_rho
         f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
         flux_limited = max(antidiffusive_flux1[1, i, j, element], min(f_min, 0.0))
       end
@@ -1567,11 +1568,11 @@ end
       bar_state_rho = bar_states2[1, i, j, element]
       # Limit density
       if antidiffusive_flux2[1, i, j, element] > 0
-        f_max = lambda * bar_state_rho
+        f_max = (1 - beta) * lambda * bar_state_rho
         f_max = isapprox(f_max, 0.0, atol=eps()) ? 0.0 : f_max
         flux_limited = min(antidiffusive_flux2[1, i, j, element], max(f_max, 0.0))
       else
-        f_min = -lambda * bar_state_rho
+        f_min = - (1 - beta) * lambda * bar_state_rho
         f_min = isapprox(f_min, 0.0, atol=eps()) ? 0.0 : f_min
         flux_limited = max(antidiffusive_flux2[1, i, j, element], min(f_min, 0.0))
       end
