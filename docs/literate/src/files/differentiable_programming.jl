@@ -350,7 +350,8 @@ round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits=5)
 # sine wave as initial condition, solve the ODE, and plot the resulting uncertainties
 # in the primitive variables.
 
-using Trixi, OrdinaryDiffEq, Measurements, Plots, LaTeXStrings
+using Trixi, OrdinaryDiffEq, Plots, LaTeXStrings
+using Measurements: Measurement, ±
 
 equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1)
 
@@ -359,7 +360,7 @@ mesh = TreeMesh((-1.0,), (1.0,), n_cells_max=10^5, initial_refinement_level=5)
 solver = DGSEM(3)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver; uEltype=Measurement{Float64})
+                                    solver, uEltype=Measurement{Float64})
 
 ode = semidiscretize(semi, (0.0, 1.5))
 
