@@ -2441,22 +2441,23 @@ end
     end
 
     # Limited bar states \bar{u}^{Lim} = \bar{u} + Δf^{Lim} / λ
+    beta = indicator.DensityPositivityCorrelationFactor
     # Checking the bounds for...
     # - density (rho):
-    #   0 <= \bar{rho}^{Lim}
+    #   beta * \bar{rho} <= \bar{rho}^{Lim}
     for element in eachelement(solver, cache)
       for j in eachnode(solver), i in eachnode(solver)
         # -x
-        rho_limited = bar_states1[1, i, j, element] - antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
+        rho_limited = (1 - beta) * bar_states1[1, i, j, element] - antidiffusive_flux1[1, i, j, element] / lambda1[i, j, element]
         deviation_min[1] = max(deviation_min[1], -rho_limited)
         # +x
-        rho_limited = bar_states1[1, i+1, j, element] + antidiffusive_flux1[1, i+1, j, element] / lambda1[i+1, j, element]
+        rho_limited = (1 - beta) * bar_states1[1, i+1, j, element] + antidiffusive_flux1[1, i+1, j, element] / lambda1[i+1, j, element]
         deviation_min[1] = max(deviation_min[1], -rho_limited)
         # -y
-        rho_limited = bar_states2[1, i, j, element] - antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
+        rho_limited = (1 - beta) * bar_states2[1, i, j, element] - antidiffusive_flux2[1, i, j, element] / lambda2[i, j, element]
         deviation_min[1] = max(deviation_min[1], -rho_limited)
         # +y
-        rho_limited = bar_states2[1, i, j+1, element] + antidiffusive_flux2[1, i, j+1, element] / lambda2[i, j+1, element]
+        rho_limited = (1 - beta) * bar_states2[1, i, j+1, element] + antidiffusive_flux2[1, i, j+1, element] / lambda2[i, j+1, element]
         deviation_min[1] = max(deviation_min[1], -rho_limited)
       end
     end
