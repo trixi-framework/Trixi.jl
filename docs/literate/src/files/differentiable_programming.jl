@@ -350,8 +350,8 @@ round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits=5)
 # sine wave as initial condition, solve the ODE, and plot the resulting uncertainties
 # in the primitive variables.
 
-import Pkg
-Pkg.update()
+using Pkg #hide #md
+Pkg.add(name="Measurements", version="2.8.0") #hide #md
 
 using Trixi, OrdinaryDiffEq, Measurements, Plots, LaTeXStrings
 
