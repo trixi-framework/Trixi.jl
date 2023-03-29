@@ -309,7 +309,9 @@ end
 end
 
 
-# Convert conservative variables to primitive
+"""
+Convert conservative variables to primitive
+"""
 function cons2prim(u, equations::IdealGlmMhdMultiIonEquations1D)
   @unpack gammas = equations
   B1, B2, B3, _ = u
@@ -332,16 +334,40 @@ end
 
 """
 Convert conservative variables to entropy
-!!!ATTENTION: Provisory. TODO: Change
 """
 @inline function cons2entropy(u, equations::IdealGlmMhdMultiIonEquations1D)
+  @unpack gammas = equations
   B1, B2, B3, _ = u
+
+  prim = cons2prim(u, equations)
+  entropy = ()
+  rho_p_plus = zero(u[1])
+  for k in eachcomponent(equations)
+    rho, v1, v2, v3, p = get_component(k, prim, equations)
+    s = log(p) - gammas[k] * log(rho)
+    rho_p = rho / p
+    w1 = (gammas[k] - s) / (gammas[k] - 1) - 0.5 * rho_p * (v1^2 + v2^2 + v3^2)
+    w2 = rho_p * v1
+    w3 = rho_p * v2
+    w4 = rho_p * v3
+    w5 = -rho_p
+    rho_p_plus += rho_p
+    entropy = (entropy..., w1, w2, w3, w4, w5)
+  end
+
+  # Additional non-conservative variables
+  w6 = rho_p_plus * B1
+  w7 = rho_p_plus * B2
+  w8 = rho_p_plus * B3
+  entropy = (w6, w7, w8, entropy...)
   
-  return SVector{nvariables(equations), real(equations)}(zeros(typeof(u[1]), nvariables(equations)))
+  return SVector{nvariables(equations), real(equations)}(entropy)
 end
 
 
-# # Convert primitive to conservative variables
+"""
+Convert primitive to conservative variables
+"""
 @inline function prim2cons(prim, equations::IdealGlmMhdMultiIonEquations1D)
   @unpack gammas = equations
   B1, B2, B3, _ = prim
@@ -360,17 +386,6 @@ end
 
   return SVector{nvariables(equations), real(equations)}(cons)
 end
-
-
-# @inline function density_pressure(u, equations::IdealGlmMhdMultiIonEquations1D)
-#   rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
-#   rho = density(u, equations)
-#   gamma = totalgamma(u, equations)
-#   p = (gamma - 1)*(rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-#                                    - 0.5 * (B1^2 + B2^2 + B3^2)
-#                                    )
-#   return rho * p
-# end
 
 """
 Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
@@ -402,38 +417,6 @@ Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoaco
 
   return c_f
 end
-
-
-# @inline function density(u, equations::IdealGlmMhdMultiIonEquations1D)
-#   rho = zero(u[1])
-
-#   for i in eachcomponent(equations)
-#     rho += u[i+7]
-#   end
-
-#   return rho
-#  end
-
-
-#  @inline function totalgamma(u, equations::IdealGlmMhdMultiIonEquations1D)
-#   @unpack cv, gammas = equations
-
-#   help1 = zero(u[1])
-#   help2 = zero(u[1])
-
-#   for i in eachcomponent(equations)
-#     help1 += u[i+7] * cv[i] * gammas[i]
-#     help2 += u[i+7] * cv[i]
-#   end
-
-#   return help1/help2
-# end
-
-
-# @inline function densities(u, v, equations::IdealGlmMhdMultiIonEquations1D)
-
-#   return SVector{ncomponents(equations), real(equations)}(u[i+7]*v for i in eachcomponent(equations))
-# end
 
 """
 Routine to compute the auxiliary variables:
