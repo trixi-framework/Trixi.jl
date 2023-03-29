@@ -42,7 +42,7 @@ end
 
 @inline Base.real(::IdealGlmMhdMultiIonEquations1D{NVARS, NCOMP, RealT}) where {NVARS, NCOMP, RealT} = RealT
 
-have_nonconservative_terms(::IdealGlmMhdMultiIonEquations1D) = True()
+have_nonconservative_terms(::IdealGlmMhdMultiIonEquations1D) = False() #TODO: Change to True() after testing fluxes
 
 function varnames(::typeof(cons2cons), equations::IdealGlmMhdMultiIonEquations1D)
 
@@ -89,38 +89,40 @@ end
 # end
 
 
-# """
-#     initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMultiIonEquations1D)
+"""
+    initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMultiIonEquations1D)
 
-# A weak blast wave adapted from
-# - Sebastian Hennemann, Gregor J. Gassner (2020)
-#   A provably entropy stable subcell shock capturing approach for high order split form DG
-#   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
-# """
-# function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMultiIonEquations1D)
-#   # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
-#   # Same discontinuity in the velocities but with magnetic fields
-#   # Set up polar coordinates
-#   inicenter = (0)
-#   x_norm = x[1] - inicenter[1]
-#   r = sqrt(x_norm^2)
-#   phi = atan(x_norm)
+A weak blast wave adapted from
+- Sebastian Hennemann, Gregor J. Gassner (2020)
+  A provably entropy stable subcell shock capturing approach for high order split form DG
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMultiIonEquations1D)
+  # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+  # Same discontinuity in the velocities but with magnetic fields
+  # Set up polar coordinates
+  inicenter = (0)
+  x_norm = x[1] - inicenter[1]
+  r = sqrt(x_norm^2)
+  phi = atan(x_norm)
 
-#   # Calculate primitive variables
-#   if r > 0.5
-#     rho = 1.0
-#     prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-#   else
-#     rho = 1.1691
-#     prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-#   end
-#   v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-#   p = r > 0.5 ? 1.0 : 1.245
+  # Calculate primitive variables
+  rho = zero(real(equations))
+  if r > 0.5
+    rho = 1.0
+  else
+    rho = 1.1691
+  end
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+  p = r > 0.5 ? 1.0 : 1.245
 
-#   prim_other = SVector{7, real(equations)}(v1, 0.0, 0.0, p, 1.0, 1.0, 1.0)
+  prim = (1.0, 1.0, 1.0)
+  for i in eachcomponent(equations)
+    prim = (prim..., 2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho, v1, 0.0, 0.0, p)
+  end
 
-#   return prim2cons(vcat(prim_other, prim_rho), equations)
-# end
+  return prim2cons(SVector{nvariables(equations), real(equations)}(prim), equations)
+end
 
 
 # Calculate 1D flux in for a single point
@@ -156,7 +158,7 @@ end
     f = (f..., f1, f2, f3, f4, f5)
   end
 
-  return SVector{equations.NVARS, real(equations)}(f)
+  return SVector{nvariables(equations), real(equations)}(f)
 end
 
 """
@@ -165,10 +167,10 @@ Total non-conservative two-point flux
 @inline function flux_nonconservative_all(u_ll, u_rr, orientation::Integer,
   equations::ShallowWaterEquations1D)
 
-  # Compute Powell
+  # Compute Powell (only needed for non-constant B1)
 
   # Compute term 2
-
+  
   # Compute term 3
 
   return f
@@ -185,9 +187,9 @@ end
 # """
 # function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
 #   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
-#   rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll = u_ll
-#   rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr = u_rr
-#   @unpack gammas, gas_constants, cv = equations
+#   B1_ll, B2_ll, B3_ll, _ = u_ll
+#   B1_rr, B2_rr, B3_rr, _ = u_rr
+#   @unpack gammas = equations
 
 #   rho_ll = density(u_ll, equations)
 #   rho_rr = density(u_rr, equations)
@@ -268,119 +270,96 @@ end
 #   return vcat(f_other, f_rho)
 # end
 
+"""
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-# TODO: Check if this maximum wave speed is right
+  !!!ATTENTION: This routine is provisory. TODO: Update with the right max_abs_speed
+"""
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
-  rho_v1_ll, _ = u_ll
-  rho_v1_rr, _ = u_rr
-
-  rho_ll   = density(u_ll, equations)
-  rho_rr   = density(u_rr, equations)
-
-  # Calculate velocities (ignore orientation since it is always "1" in 1D)
-  # and fast magnetoacoustic wave speeds
+  # Calculate fast magnetoacoustic wave speeds
   # left
-  v_ll = rho_v1_ll / rho_ll
   cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
   # right
-  v_rr = rho_v1_rr / rho_rr
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+
+  # Calculate velocities (ignore orientation since it is always "1" in 1D)
+  v_ll = zero(u_ll[1])
+  v_rr = zero(u_rr[1])
+  for k in eachcomponent(equations)
+    rho, rho_v1, _ = get_component(k, u_ll, equations)
+    v_ll = max(v_ll, abs(rho_v1 / rho))
+    rho, rho_v1, _ = get_component(k, u_rr, equations)
+    v_rr = max(v_rr, abs(rho_v1 / rho))
+  end
 
   λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
 
-# @inline function max_abs_speeds(u, equations::IdealGlmMhdMultiIonEquations1D)
-#   rho_v1, _ = u
+@inline function max_abs_speeds(u, equations::IdealGlmMhdMultiIonEquations1D)
+  
+  v1 = zero(u[1])
+  for k in eachcomponent(equations)
+    rho, rho_v1, _ = get_component(k, u, equations)
+    v1 = max(v1, abs(rho_v1 / rho))
+  end
 
-#   rho = density(u, equations)
+  cf_x_direction = calc_fast_wavespeed(u, 1, equations)
 
-#   v1 = rho_v1 / rho
-
-#   cf_x_direction = calc_fast_wavespeed(u, 1, equations)
-
-#   return (abs(v1) + cf_x_direction, )
-# end
+  return (abs(v1) + cf_x_direction, )
+end
 
 
-# # Convert conservative variables to primitive
-# function cons2prim(u, equations::IdealGlmMhdMultiIonEquations1D)
-#   rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
+# Convert conservative variables to primitive
+function cons2prim(u, equations::IdealGlmMhdMultiIonEquations1D)
+  @unpack gammas = equations
+  B1, B2, B3, _ = u
 
-#   prim_rho = SVector{ncomponents(equations), real(equations)}(u[i+7] for i in eachcomponent(equations))
-#   rho = density(u, equations)
+  prim = (B1, B2, B3)
+  for k in eachcomponent(equations)
+    rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
+    srho = 1 / rho
+    v1 = srho * rho_v1
+    v2 = srho * rho_v2
+    v3 = srho * rho_v3
 
-#   v1 = rho_v1 / rho
-#   v2 = rho_v2 / rho
-#   v3 = rho_v3 / rho
+    p = (gammas[k] - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
+                                 + B1 * B1 + B2 * B2 + B3 * B3))
+    prim = (prim..., rho, v1, v2, v3, p)
+  end
 
-#   gamma = totalgamma(u, equations)
+  return SVector{nvariables(equations), real(equations)}(prim)
+end
 
-#   p = (gamma - 1) * (rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - 0.5*(B1^2 + B2^2 + B3^2))
-#   prim_other =  SVector{7, real(equations)}(v1, v2, v3, p, B1, B2, B3)
-#   return vcat(prim_other, prim_rho)
-# end
-
-# # Convert conservative variables to entropy
-# @inline function cons2entropy(u, equations::IdealGlmMhdMultiIonEquations1D)
-#   rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
-#   @unpack cv, gammas, gas_constants = equations
-
-#   rho = density(u, equations)
-
-#   v1 = rho_v1 / rho
-#   v2 = rho_v2 / rho
-#   v3 = rho_v3 / rho
-#   v_square = v1^2 + v2^2 + v3^2
-#   gamma = totalgamma(u, equations)
-#   p = (gamma - 1) * (rho_e - 0.5*rho*v_square - 0.5*(B1^2 + B2^2 + B3^2))
-#   s = log(p) - gamma*log(rho)
-#   rho_p = rho / p
-
-#   # MultiIon stuff
-#   help1 = zero(v1)
-
-#   for i in eachcomponent(equations)
-#     help1 += u[i+7] * cv[i]
-#   end
-
-#   T         = (rho_e - 0.5 * rho * v_square - 0.5*(B1^2 + B2^2 + B3^2)) / (help1)
-
-#   entrop_rho  = SVector{ncomponents(equations), real(equations)}( -1.0 * (cv[i] * log(T) - gas_constants[i] * log(u[i+7])) + gas_constants[i] + cv[i] - (v_square / (2*T)) for i in eachcomponent(equations))
-
-#   w1 = v1 / T
-#   w2 = v2 / T
-#   w3 = v3 / T
-#   w4 = -1.0 / T
-#   w5 = B1 / T
-#   w6 = B2 / T
-#   w7 = B3 / T
-
-#   entrop_other = SVector{7, real(equations)}(w1, w2, w3, w4, w5, w6, w7)
-
-#   return vcat(entrop_other, entrop_rho)
-# end
+"""
+Convert conservative variables to entropy
+!!!ATTENTION: Provisory. TODO: Change
+"""
+@inline function cons2entropy(u, equations::IdealGlmMhdMultiIonEquations1D)
+  B1, B2, B3, _ = u
+  
+  return SVector{nvariables(equations), real(equations)}(zeros(typeof(u[1]), nvariables(equations)))
+end
 
 
 # # Convert primitive to conservative variables
-# @inline function prim2cons(prim, equations::IdealGlmMhdMultiIonEquations1D)
-#   v1, v2, v3, p, B1, B2, B3 = prim
+@inline function prim2cons(prim, equations::IdealGlmMhdMultiIonEquations1D)
+  @unpack gammas = equations
+  B1, B2, B3, _ = prim
 
-#   cons_rho = SVector{ncomponents(equations), real(equations)}(prim[i+7] for i in eachcomponent(equations))
-#   rho = density(prim, equations)
+  cons = (B1, B2, B3)
+  for k in eachcomponent(equations)
+    rho, v1, v2, v3, p = get_component(k, prim, equations)
+    rho_v1 = rho * v1
+    rho_v2 = rho * v2
+    rho_v3 = rho * v3
 
-#   rho_v1 = rho * v1
-#   rho_v2 = rho * v2
-#   rho_v3 = rho * v3
+    rho_e = p/(gammas[k] - 1.0) + 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
+                                  0.5 * (B1^2 + B2^2 + B3^2)
+    cons = (cons..., rho, rho_v1, rho_v2, rho_v3, rho_e)
+  end
 
-#   gamma = totalgamma(prim, equations)
-#   rho_e = p/(gamma-1) + 0.5 * (rho_v1*v1 + rho_v2*v2 + rho_v3*v3) +
-#                                  0.5 * (B1^2 + B2^2 + B3^2)
-
-#   cons_other = SVector{7, real(equations)}(rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3)
-
-#   return vcat(cons_other, cons_rho)
-# end
+  return SVector{nvariables(equations), real(equations)}(cons)
+end
 
 
 # @inline function density_pressure(u, equations::IdealGlmMhdMultiIonEquations1D)
@@ -393,28 +372,36 @@ end
 #   return rho * p
 # end
 
+"""
+Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
+  !!! ATTENTION: This routine is provisory.. Change once the fastest wave speed is known!!
+"""
+@inline function calc_fast_wavespeed(cons, direction, equations::IdealGlmMhdMultiIonEquations1D)
+  B1, B2, B3, _ = cons
 
-# # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
-# @inline function calc_fast_wavespeed(cons, direction, equations::IdealGlmMhdMultiIonEquations1D)
-#   rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = cons
-#   rho = density(cons, equations)
-#   v1 = rho_v1 / rho
-#   v2 = rho_v2 / rho
-#   v3 = rho_v3 / rho
-#   v_mag = sqrt(v1^2 + v2^2 + v3^2)
-#   gamma = totalgamma(cons, equations)
-#   p = (gamma - 1)*(rho_e - 0.5*rho*v_mag^2 - 0.5*(B1^2 + B2^2 + B3^2))
-#   a_square = gamma * p / rho
-#   sqrt_rho = sqrt(rho)
-#   b1 = B1 / sqrt_rho
-#   b2 = B2 / sqrt_rho
-#   b3 = B3 / sqrt_rho
-#   b_square = b1^2 + b2^2 + b3^2
+  c_f = zero(cons[1])
+  for k in eachcomponent(equations)
+    rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, cons, equations)
+    
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    v_mag = sqrt(v1^2 + v2^2 + v3^2)
+    gamma = equations.gammas[k]
+    p = (gamma - 1)*(rho_e - 0.5*rho*v_mag^2 - 0.5*(B1^2 + B2^2 + B3^2))
+    a_square = gamma * p / rho
+    sqrt_rho = sqrt(rho)
 
-#   c_f = sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b1^2))
+    b1 = B1 / sqrt_rho
+    b2 = B2 / sqrt_rho
+    b3 = B3 / sqrt_rho
+    b_square = b1^2 + b2^2 + b3^2
 
-#   return c_f
-# end
+    c_f = max(c_f, sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b1^2)))
+  end
+
+  return c_f
+end
 
 
 # @inline function density(u, equations::IdealGlmMhdMultiIonEquations1D)
@@ -458,9 +445,9 @@ Routine to compute the auxiliary variables:
 
   total_electron_charge = zero(u[1])
   
-  vk1_plus = zeros(equations.NCOMP,u[1])
-  vk2_plus = zeros(equations.NCOMP,u[1])
-  vk3_plus = zeros(equations.NCOMP,u[1])
+  vk1_plus = zeros(typeof(u[1]), ncomponents(equations))
+  vk2_plus = zeros(typeof(u[1]), ncomponents(equations))
+  vk3_plus = zeros(typeof(u[1]), ncomponents(equations))
 
   for k in eachcomponent(equations)
     rho_k = u[(k-1)*5+4]

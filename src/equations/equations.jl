@@ -357,6 +357,17 @@ In particular, not the components themselves are returned.
 """
 @inline eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations) = Base.OneTo(ncomponents(equations))
 
+# Retrieve number of components from equation instance for the multi-ion case
+@inline ncomponents(::AbstractIdealGlmMhdMultiIonEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+"""
+    eachcomponent(equations::AbstractIdealGlmMhdMultiIonEquations)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the components in `AbstractIdealGlmMhdMultiIonEquations`. 
+In particular, not the components themselves are returned.
+"""
+@inline eachcomponent(equations::AbstractIdealGlmMhdMultiIonEquations) = Base.OneTo(ncomponents(equations))
+
 # Diffusion equation: first order hyperbolic system
 abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("hyperbolic_diffusion_1d.jl")
