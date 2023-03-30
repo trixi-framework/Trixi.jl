@@ -93,37 +93,28 @@ The commands above can also be used to update Trixi. A brief list of notable
 changes to Trixi is available in [`NEWS.md`](https://github.com/trixi-framework/Trixi.jl/NEWS.md).
 
 ### [For developers](@id for-developers)
-If you plan on editing Trixi itself, you have two options: installing it as a
-`dev` package or cloning it to a local folder.
+If you plan on editing Trixi itself, you can download Trixi to a local folder
+and use the code from the cloned directory:
+```bash
+git clone git@github.com:trixi-framework/Trixi.jl.git
+cd Trixi.jl
+mkdir run
+cd run
+julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))'
+```
+If you installed Trixi this way, you always have to start Julia with the `--project`
+flag set to your `run` directory, e.g.,
+```bash
+julia --project=.
+```
+if already inside the `run` directory.
 
-1. **Install Trixi as a `dev` package**: You can install Trixi as a `dev` package by running
-   ```julia
-   julia> using Pkg
+The advantage of using a separate `run` directory is that you can also add other
+related packages (see below, e.g., for time integration or visualization) to the
+project in the `run` folder and always have a reproducible environment at hand
+to share with others.
 
-   julia> Pkg.develop("Trixi")
-   ```
-   This will download and install Trixi to a designated package development directory
-   (usually `.julia/dev`, but you can determine the path on your system with
-   `Pkg.devdir()`). As opposed to using the `Pkg.add` method as described above,
-   packages installed via `Pkg.develop` may have their files edited locally.
-
-2. **Install Trixi in a local folder**: Alternatively, you can download Trixi
-   locally and use it from within the cloned directory:
-   ```bash
-   git clone git@github.com:trixi-framework/Trixi.jl.git
-   cd Trixi.jl
-   julia --project=@. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
-   ```
-   The last line can also be used to *update* the dependencies if they have changed
-   since you first installed Trixi.
-
-   If you installed Trixi this way, you always have to start Julia with the `--project`
-   flag set to your local Trixi clone, e.g.,
-   ```bash
-   julia --project=.
-   ```
-
-Either way, since the postprocessing tool Trixi2Vtk typically does not need to be modified,
+Since the postprocessing tool Trixi2Vtk typically does not need to be modified,
 it is recommended to install it as a normal package by executing
 ```julia
 julia> using Pkg

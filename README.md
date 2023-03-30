@@ -99,20 +99,23 @@ The commands above can also be used to update Trixi. A brief list of notable
 changes to Trixi is available in [`NEWS.md`](NEWS.md).
 
 ### For developers
-If you plan on editing Trixi itself, you can download Trixi locally and run it from
-within the cloned directory:
+If you plan on editing Trixi itself, you can download Trixi locally and use the
+code from the cloned directory:
 ```bash
 git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
-julia --project=@. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
-julia -e 'import Pkg; Pkg.add(["Trixi2Vtk", "Plots"])' # Install postprocessing tools
-julia -e 'import Pkg; Pkg.add("OrdinaryDiffEq")' # Install time integration schemes
+mkdir run 
+cd run
+julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi clone
+julia -e 'using Pkg; Pkg.add(["Trixi2Vtk", "Plots"])' # Install postprocessing tools
+julia -e 'using Pkg; Pkg.add("OrdinaryDiffEq")' # Install time integration schemes
 ```
 If you installed Trixi this way, you always have to start Julia with the `--project`
-flag set to your local Trixi clone, e.g.,
+flag set to your `run` directory, e.g.,
 ```bash
 julia --project=.
 ```
+if already inside the `run` directory.
 Further details can be found in the [documentation](#documentation).
 
 
