@@ -168,9 +168,9 @@ end
 Total non-conservative two-point "flux"" as described in 
 - Rueda-Ramírez et al. (2023)
 The term is composed of three parts
-* The Powell term: Only needed in 1D for non-constant B1
-* The MHD term: The only one implemented so far.. and without the electron pressure.
-* The "term 3"
+* The Powell term: Only needed in 1D for non-constant B1 (TODO)
+* The MHD term: Implemented without the electron pressure (TODO).
+* The "term 3": Implemented
 """
 @inline function flux_nonconservative_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
   @unpack charge_to_mass = equations
@@ -186,7 +186,7 @@ The term is composed of three parts
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
   mag_norm_avg = 0.5*(mag_norm_ll+mag_norm_rr)
 
-  # Compute charge ratio of u_ll
+  # Compute charge ratio of u_ll (merge into auxiliary_variables)
   charge_ratio = zeros(typeof(u_ll[1]), ncomponents(equations))
   total_electron_charge = zero(u_ll[1])
   for k in eachcomponent(equations)
@@ -195,6 +195,10 @@ The term is composed of three parts
     total_electron_charge += charge_ratio[k]
   end
   charge_ratio ./= total_electron_charge
+
+  # Compute auxiliary variables
+  total_electron_charge_ll, v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = auxiliary_variables(u_ll, equations)
+  total_electron_charge_rr, v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = auxiliary_variables(u_rr, equations)
   
   f = (zero(u_ll[1]), zero(u_ll[1]), zero(u_ll[1]))
   # TODO: Add entries of Powell term for induction equation
@@ -210,13 +214,23 @@ The term is composed of three parts
     f5 = zero(u_ll[1]) # TODO! pe_mean
 
     # Compute term 3 (only needed for NCOMP>1)
-    # TODO
+    vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
+    vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
+    vk3_minus_ll = v3_plus_ll - vk3_plus_ll[k]
+    vk1_minus_rr = v1_plus_rr- vk1_plus_rr[k]
+    vk2_minus_rr = v2_plus_rr- vk2_plus_rr[k]
+    vk3_minus_rr = v3_plus_rr- vk3_plus_rr[k]
+    vk1_minus_avg = 0.5 * (vk1_minus_ll + vk1_minus_rr)
+    vk2_minus_avg = 0.5 * (vk2_minus_ll + vk2_minus_rr)
+    vk3_minus_avg = 0.5 * (vk3_minus_ll + vk3_minus_rr)
+    f5 += B2_ll *  (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) + B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg)
 
     # Adjust non-conservative term to Trixi discretization: CHANGE!!
     f2 = 2 * f2 - charge_ratio[k] * (0.5 * mag_norm_ll - B1_ll * B1_ll)
     f3 = 2 * f3 + charge_ratio[k] * B1_ll * B2_ll
     f4 = 2 * f4 + charge_ratio[k] * B1_ll * B3_ll
-
+    f5 = 2 * f5 - B2_ll * (vk1_minus_ll * B2_ll - vk2_minus_ll * B1_ll) - B3_ll * (vk1_minus_ll * B3_ll - vk3_minus_ll * B1_ll)
+    
     # Append to the flux vector
     f = (f..., zero(u_ll[1]), f2, f3, f4, f5)
   end
@@ -236,7 +250,6 @@ This flux (together with the MHD non-conservative term) is consistent in the cas
   Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
   divergence diminishing ideal magnetohydrodynamics equations for multi-ion
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
-!!! ATENTION: The additional induction terms depending on v_minus are missing. TODO: add!
 """
 function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
   @unpack gammas = equations
@@ -303,6 +316,16 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
     vk1_plus_avg = 0.5*(vk1_plus_ll[k] + vk1_plus_rr[k])
     vk2_plus_avg = 0.5*(vk2_plus_ll[k] + vk2_plus_rr[k])
     vk3_plus_avg = 0.5*(vk3_plus_ll[k] + vk3_plus_rr[k])
+    # v_minus
+    vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
+    vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
+    vk3_minus_ll = v3_plus_ll - vk3_plus_ll[k]
+    vk1_minus_rr = v1_plus_rr- vk1_plus_rr[k]
+    vk2_minus_rr = v2_plus_rr- vk2_plus_rr[k]
+    vk3_minus_rr = v3_plus_rr- vk3_plus_rr[k]
+    vk1_minus_avg = 0.5 * (vk1_minus_ll + vk1_minus_rr)
+    vk2_minus_avg = 0.5 * (vk2_minus_ll + vk2_minus_rr)
+    vk3_minus_avg = 0.5 * (vk3_minus_ll + vk3_minus_rr)
 
     # Ignore orientation since it is always "1" in 1D
     f1 = rho_mean*v1_avg
@@ -317,7 +340,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
     # MHD part
     f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5 * v1_plus_mag_avg + B1_avg * vel_dot_mag_avg                                               # Same terms as in Derigs (but with v_plus)
            + 0.5 * vk1_plus_avg * mag_norm_avg - vk1_plus_avg * B1_avg * B1_avg - vk2_plus_avg * B1_avg * B2_avg - vk3_plus_avg * B1_avg * B3_avg   # Additional terms coming from the MHD non-conservative term (momentum eqs)
-          ) # Terms coming from the non-conservative term 3 (induction equation! TODO!!!)
+           - B2_avg *  (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) - B3_avg * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg) )             # Terms coming from the non-conservative term 3 (induction equation!)
 
     f = (f..., f1, f2, f3, f4, f5)
   end
