@@ -42,7 +42,7 @@ end
 
 @inline Base.real(::IdealGlmMhdMultiIonEquations1D{NVARS, NCOMP, RealT}) where {NVARS, NCOMP, RealT} = RealT
 
-have_nonconservative_terms(::IdealGlmMhdMultiIonEquations1D) = False() #TODO: Change to True() after testing fluxes
+have_nonconservative_terms(::IdealGlmMhdMultiIonEquations1D) = True()
 
 function varnames(::typeof(cons2cons), equations::IdealGlmMhdMultiIonEquations1D)
 
@@ -116,11 +116,12 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMultiIonE
   v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
   p = r > 0.5 ? 1.0 : 1.245
 
-  prim = (0.01, 0.01, 0.01)
+  #prim = (0.01, 0.01, 0.01)
+  prim = (1.0, 1.0, 1.0)
   for i in eachcomponent(equations)
-    #prim = (prim..., 2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho, v1, 0.0, 0.0, p)
+    prim = (prim..., 2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho, v1, 0.0, 0.0, p)
     #prim = (prim..., rho, v1, 0.0, 0.0, p)
-    prim = (prim..., 1.0, 1.0, 0.0, 0.0, 100.0)
+    #prim = (prim..., 1.0, 1.0, 0.0, 0.0, 100.0)
   end
 
   return prim2cons(SVector{nvariables(equations), real(equations)}(prim), equations)
@@ -164,25 +165,69 @@ end
 end
 
 """
-Total non-conservative two-point flux
+Total non-conservative two-point "flux"" as described in 
+- Rueda-Ramírez et al. (2023)
+The term is composed of three parts
+* The Powell term: Only needed in 1D for non-constant B1
+* The MHD term: The only one implemented so far.. and without the electron pressure.
+* The "term 3"
 """
-@inline function flux_nonconservative_ec(u_ll, u_rr, orientation::Integer,
-  equations::ShallowWaterEquations1D)
+@inline function flux_nonconservative_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
+  @unpack charge_to_mass = equations
+  # Unpack left and right states to get the magnetic field
+  B1_ll, B2_ll, B3_ll, _ = u_ll
+  B1_rr, B2_rr, B3_rr, _ = u_rr
+
+  # Compute important averages
+  B1_avg = 0.5*(B1_ll+B1_rr)
+  B2_avg = 0.5*(B2_ll+B2_rr)
+  B3_avg = 0.5*(B3_ll+B3_rr)
+  mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
+  mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
+  mag_norm_avg = 0.5*(mag_norm_ll+mag_norm_rr)
+
+  # Compute charge ratio of u_ll
+  charge_ratio = zeros(typeof(u_ll[1]), ncomponents(equations))
+  total_electron_charge = zero(u_ll[1])
+  for k in eachcomponent(equations)
+    rho_k = u_ll[(k-1)*5+4]
+    charge_ratio[k] = rho_k * charge_to_mass[k]
+    total_electron_charge += charge_ratio[k]
+  end
+  charge_ratio ./= total_electron_charge
   
-  # Compute Powell (only needed for non-constant B1)
+  f = (zero(u_ll[1]), zero(u_ll[1]), zero(u_ll[1]))
+  # TODO: Add entries of Powell term for induction equation
+  for k in eachcomponent(equations)
+    # Compute Powell (only needed for non-constant B1)
+    # TODO
 
-  # Compute term 2
-  #f2 = + 0.5*mag_norm_avg - B1_avg*B1_avg
-  #f3 = - B1_avg*B2_avg
-  #f4 = - B1_avg*B3_avg
+    # Compute term 2 (MHD)
+    # TODO: Add electron pressure term
+    f2 = charge_ratio[k] * (0.5 * mag_norm_avg - B1_avg * B1_avg) # + pe_mean
+    f3 = charge_ratio[k] * (- B1_avg * B2_avg)
+    f4 = charge_ratio[k] * (- B1_avg * B3_avg)
+    f5 = zero(u_ll[1]) # TODO! pe_mean
 
-  # Compute term 3 (only needed for NCOMP>1)
+    # Compute term 3 (only needed for NCOMP>1)
+    # TODO
 
-  return f
+    # Adjust non-conservative term to Trixi discretization: CHANGE!!
+    f2 = 2 * f2 - charge_ratio[k] * (0.5 * mag_norm_ll - B1_ll * B1_ll)
+    f3 = 2 * f3 + charge_ratio[k] * B1_ll * B2_ll
+    f4 = 2 * f4 + charge_ratio[k] * B1_ll * B3_ll
+
+    # Append to the flux vector
+    f = (f..., zero(u_ll[1]), f2, f3, f4, f5)
+  end
+
+  # Adjust non-conservative term to Trixi standard:
+
+  return SVector{nvariables(equations), real(equations)}(f)
 end
 
 """
-    flux_ec(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations1D)
+flux_ruedaramirez_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations1D)
 
 Entropy conserving two-point flux adapted by:
 - Rueda-Ramírez et al. (2023)
@@ -191,7 +236,7 @@ This flux (together with the MHD non-conservative term) is consistent in the cas
   Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
   divergence diminishing ideal magnetohydrodynamics equations for multi-ion
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
-  !!! ATENTION: The additional induction terms depending on v_minus are missing. TODO: add!
+!!! ATENTION: The additional induction terms depending on v_minus are missing. TODO: add!
 """
 function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
   @unpack gammas = equations
@@ -214,7 +259,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
   mag_norm_avg = 0.5*(mag_norm_ll+mag_norm_rr)
 
   # Magnetic field components from f^MHD
-  f6 = 0.0
+  f6 = zero(u_ll[1])
   f7 = v1_plus_avg * B2_avg - v2_plus_avg * B1_avg
   f8 = v1_plus_avg * B3_avg - v3_plus_avg * B1_avg
 
