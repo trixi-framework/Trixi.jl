@@ -68,7 +68,7 @@ can install Trixi, the visualization tool
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
 by executing the following commands in the Julia REPL:
 ```julia
-julia> import Pkg
+julia> using Pkg
 
 julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
 ```
@@ -83,7 +83,7 @@ visualize Trixi's results from the REPL.
 work, verify that you are using a recent Trixi release by comparing the
 installed Trixi version from
 ```julia
-julia> import Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
+julia> using Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
 ```
 to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
 If the installed version does not match the current release, please check the
@@ -98,7 +98,7 @@ If you plan on editing Trixi itself, you have two options: installing it as a
 
 1. **Install Trixi as a `dev` package**: You can install Trixi as a `dev` package by running
    ```julia
-   julia> import Pkg
+   julia> using Pkg
 
    julia> Pkg.develop("Trixi")
    ```
@@ -120,13 +120,13 @@ If you plan on editing Trixi itself, you have two options: installing it as a
    If you installed Trixi this way, you always have to start Julia with the `--project`
    flag set to your local Trixi clone, e.g.,
    ```bash
-   julia --project=@.
+   julia --project=.
    ```
 
 Either way, since the postprocessing tool Trixi2Vtk typically does not need to be modified,
 it is recommended to install it as a normal package by executing
 ```julia
-julia> import Pkg
+julia> using Pkg
 
 julia> Pkg.add("Trixi2Vtk")
 ```
@@ -135,7 +135,7 @@ in the Julia REPL. Likewise, you can install
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
 as ordinary packages with the following REPL commands:
 ```julia
-julia> import Pkg
+julia> using Pkg
 
 julia> Pkg.add("OrdinaryDiffEq"); Pkg.add("Plots")
 ```

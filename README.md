@@ -74,7 +74,7 @@ can install Trixi, the visualization tool
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
 by executing the following commands in the Julia REPL:
 ```julia
-julia> import Pkg
+julia> using Pkg
 
 julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
 ```
@@ -89,7 +89,7 @@ visualize Trixi's results from the REPL.
 work, verify that you are using a recent Trixi release by comparing the
 installed Trixi version from
 ```julia
-julia> import Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
+julia> using Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
 ```
 to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
 If the installed version does not match the current release, please check the
@@ -111,7 +111,7 @@ julia -e 'import Pkg; Pkg.add("OrdinaryDiffEq")' # Install time integration sche
 If you installed Trixi this way, you always have to start Julia with the `--project`
 flag set to your local Trixi clone, e.g.,
 ```bash
-julia --project=@.
+julia --project=.
 ```
 Further details can be found in the [documentation](#documentation).
 
