@@ -48,7 +48,7 @@ function varnames(::typeof(cons2cons), equations::IdealGlmMhdMultiIonEquations1D
 
   cons  = ("B1", "B2", "B3")
   for i in eachcomponent(equations)
-    cons = (cons..., tuple("rho" * string(i),"rho_v1" * string(i), "rho_v2" * string(i), "rho_v3" * string(i), "rho_e" * string(i))...)
+    cons = (cons..., tuple("rho_" * string(i),"rho_v1_" * string(i), "rho_v2_" * string(i), "rho_v3_" * string(i), "rho_e_" * string(i))...)
   end
   
   return cons
@@ -58,7 +58,7 @@ function varnames(::typeof(cons2prim), equations::IdealGlmMhdMultiIonEquations1D
 
   prim  = ("B1", "B2", "B3")
   for i in eachcomponent(equations)
-    prim = (prim..., tuple("rho" * string(i),"v1" * string(i), "v2" * string(i), "v3" * string(i), "p" * string(i))...)
+    prim = (prim..., tuple("rho_" * string(i),"v1_" * string(i), "v2_" * string(i), "v3_" * string(i), "p_" * string(i))...)
   end
   
   return prim
@@ -165,7 +165,7 @@ end
 end
 
 """
-Total non-conservative two-point "flux"" as described in 
+Total entropy-conserving non-conservative two-point "flux"" as described in 
 - Rueda-Ramírez et al. (2023)
 The term is composed of three parts
 * The Powell term: Only needed in 1D for non-constant B1 (TODO)
@@ -187,14 +187,14 @@ The term is composed of three parts
   mag_norm_avg = 0.5*(mag_norm_ll+mag_norm_rr)
 
   # Compute charge ratio of u_ll (merge into auxiliary_variables)
-  charge_ratio = zeros(typeof(u_ll[1]), ncomponents(equations))
+  charge_ratio_ll = zeros(typeof(u_ll[1]), ncomponents(equations))
   total_electron_charge = zero(u_ll[1])
   for k in eachcomponent(equations)
     rho_k = u_ll[(k-1)*5+4]
-    charge_ratio[k] = rho_k * charge_to_mass[k]
-    total_electron_charge += charge_ratio[k]
+    charge_ratio_ll[k] = rho_k * charge_to_mass[k]
+    total_electron_charge += charge_ratio_ll[k]
   end
-  charge_ratio ./= total_electron_charge
+  charge_ratio_ll ./= total_electron_charge
 
   # Compute auxiliary variables
   total_electron_charge_ll, v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = auxiliary_variables(u_ll, equations)
@@ -208,10 +208,10 @@ The term is composed of three parts
 
     # Compute term 2 (MHD)
     # TODO: Add electron pressure term
-    f2 = charge_ratio[k] * (0.5 * mag_norm_avg - B1_avg * B1_avg) # + pe_mean
-    f3 = charge_ratio[k] * (- B1_avg * B2_avg)
-    f4 = charge_ratio[k] * (- B1_avg * B3_avg)
-    f5 = zero(u_ll[1]) # TODO! pe_mean
+    f2 = charge_ratio_ll[k] * (0.5 * mag_norm_avg - B1_avg * B1_avg) # + pe_mean)
+    f3 = charge_ratio_ll[k] * (- B1_avg * B2_avg)
+    f4 = charge_ratio_ll[k] * (- B1_avg * B3_avg)
+    f5 = zero(u_ll[1]) # TODO! charge_ratio_ll[k] * pe_mean
 
     # Compute term 3 (only needed for NCOMP>1)
     vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
@@ -226,16 +226,73 @@ The term is composed of three parts
     f5 += B2_ll *  (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) + B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg)
 
     # Adjust non-conservative term to Trixi discretization: CHANGE!!
-    f2 = 2 * f2 - charge_ratio[k] * (0.5 * mag_norm_ll - B1_ll * B1_ll)
-    f3 = 2 * f3 + charge_ratio[k] * B1_ll * B2_ll
-    f4 = 2 * f4 + charge_ratio[k] * B1_ll * B3_ll
+    f2 = 2 * f2 - charge_ratio_ll[k] * (0.5 * mag_norm_ll - B1_ll * B1_ll)
+    f3 = 2 * f3 + charge_ratio_ll[k] * B1_ll * B2_ll
+    f4 = 2 * f4 + charge_ratio_ll[k] * B1_ll * B3_ll
     f5 = 2 * f5 - B2_ll * (vk1_minus_ll * B2_ll - vk2_minus_ll * B1_ll) - B3_ll * (vk1_minus_ll * B3_ll - vk3_minus_ll * B1_ll)
     
     # Append to the flux vector
     f = (f..., zero(u_ll[1]), f2, f3, f4, f5)
   end
 
-  # Adjust non-conservative term to Trixi standard:
+  return SVector{nvariables(equations), real(equations)}(f)
+end
+
+"""
+Total central non-conservative two-point "flux"", where the symmetric parts are computed with standard averages
+The term is composed of three parts
+* The Powell term: Only needed in 1D for non-constant B1 (TODO). The central Powell "flux" is equivalent to the EC Powell "flux".
+* The MHD term: Implemented without the electron pressure (TODO).
+* The "term 3": Implemented
+"""
+@inline function flux_nonconservative_central(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
+  @unpack charge_to_mass = equations
+  # Unpack left and right states to get the magnetic field
+  B1_ll, B2_ll, B3_ll, _ = u_ll
+  B1_rr, B2_rr, B3_rr, _ = u_rr
+
+  # Compute important averages
+  mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
+
+  # Compute charge ratio of u_ll (merge into auxiliary_variables)
+  charge_ratio_ll = zeros(typeof(u_ll[1]), ncomponents(equations))
+  total_electron_charge = zero(u_ll[1])
+  for k in eachcomponent(equations)
+    rho_k = u_ll[(k-1)*5+4]
+    charge_ratio_ll[k] = rho_k * charge_to_mass[k]
+    total_electron_charge += charge_ratio_ll[k]
+  end
+  charge_ratio_ll ./= total_electron_charge
+
+  # Compute auxiliary variables
+  total_electron_charge_ll, v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = auxiliary_variables(u_ll, equations)
+  total_electron_charge_rr, v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = auxiliary_variables(u_rr, equations)
+  
+  f = (zero(u_ll[1]), zero(u_ll[1]), zero(u_ll[1]))
+  # TODO: Add entries of Powell term for induction equation
+  for k in eachcomponent(equations)
+    # Compute Powell (only needed for non-constant B1)
+    # TODO
+
+    # Compute term 2 (MHD)
+    # TODO: Add electron pressure term
+    f2 = charge_ratio_ll[k] * (0.5 * mag_norm_rr - B1_rr * B1_rr) # + pe_mean)
+    f3 = charge_ratio_ll[k] * (- B1_rr * B2_rr)
+    f4 = charge_ratio_ll[k] * (- B1_rr * B3_rr)
+    f5 = zero(u_ll[1]) # TODO! charge_ratio_ll[k] * pe_mean
+
+    # Compute term 3 (only needed for NCOMP>1)
+    vk1_minus_rr = v1_plus_rr- vk1_plus_rr[k]
+    vk2_minus_rr = v2_plus_rr- vk2_plus_rr[k]
+    vk3_minus_rr = v3_plus_rr- vk3_plus_rr[k]
+    f5 += (B2_ll * (vk1_minus_rr * B2_rr - vk2_minus_rr * B1_rr) + 
+           B3_ll * (vk1_minus_rr * B3_rr - vk3_minus_rr * B1_rr) )
+
+    # It's not needed to adjust to Trixi's non-conservative form
+
+    # Append to the flux vector
+    f = (f..., zero(u_ll[1]), f2, f3, f4, f5)
+  end
 
   return SVector{nvariables(equations), real(equations)}(f)
 end
