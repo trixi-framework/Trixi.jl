@@ -143,7 +143,7 @@ export GradientVariablesPrimitive, GradientVariablesEntropy
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
-       flux_nonconservative_powell, flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal, flux_nonconservative_central
+       flux_nonconservative_powell, flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal, flux_nonconservative_central, 
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
        flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
@@ -174,7 +174,7 @@ export boundary_condition_do_nothing,
        boundary_condition_wall,
        BoundaryConditionNavierStokesWall, NoSlip, Adiabatic, Isothermal
 
-export initial_condition_convergence_test, source_terms_convergence_test
+export initial_condition_convergence_test, source_terms_convergence_test, source_terms_standard
 export source_terms_harmonic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler

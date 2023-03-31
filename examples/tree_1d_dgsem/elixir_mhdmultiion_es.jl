@@ -21,7 +21,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=10_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    source_terms=source_terms_standard)
 
 
 ###############################################################################

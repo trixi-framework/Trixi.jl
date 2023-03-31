@@ -24,6 +24,9 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
+# In the one-species case, the source terms are not really needed, but this variant produces the same results:
+# semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+#                                     source_terms=source_terms_standard) 
 
 ###############################################################################
 # ODE solvers, callbacks etc.

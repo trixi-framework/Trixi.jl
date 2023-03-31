@@ -165,6 +165,35 @@ end
 end
 
 """
+Standard source terms of the multi-ion MHD equations
+"""
+function source_terms_standard(u, x, t, equations::IdealGlmMhdMultiIonEquations1D)
+  @unpack charge_to_mass = equations
+  B1, B2, B3, _ = u
+  total_electron_charge, v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = auxiliary_variables(u, equations)
+
+  s = (zero(u[1]), zero(u[1]), zero(u[1]))
+  for k in eachcomponent(equations)
+    rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    v1_diff = v1_plus - v1
+    v2_diff = v2_plus - v2
+    v3_diff = v3_plus - v3
+    r_rho = charge_to_mass[k] * rho
+    s2 = r_rho * (v2_diff * B3 - v3_diff - B2)
+    s3 = r_rho * (v3_diff * B1 - v1_diff - B3)
+    s4 = r_rho * (v1_diff * B2 - v2_diff - B1)
+    s5 = v1 * s2 + v2 * s3 + v3 * s4
+
+    s = (s..., zero(u[1]), s2, s3, s4, s5)
+  end
+
+  return SVector{nvariables(equations), real(equations)}(s)
+end
+
+"""
 Total entropy-conserving non-conservative two-point "flux"" as described in 
 - Rueda-Ramírez et al. (2023)
 The term is composed of three parts
