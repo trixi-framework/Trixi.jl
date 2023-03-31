@@ -13,7 +13,7 @@ The ideal compressible multi-ion GLM-MHD equations in one space dimension.
 * Until now, actually without GLM
 """
 mutable struct IdealGlmMhdMultiIonEquations1D{NVARS, NCOMP, RealT<:Real} <: AbstractIdealGlmMhdMultiIonEquations{1, NVARS, NCOMP}
-  gammas            ::SVector{NCOMP, RealT} # Heat capacity rations
+  gammas            ::SVector{NCOMP, RealT} # Heat capacity ratios
   charge_to_mass    ::SVector{NCOMP, RealT} # Charge to mass ratios
 
   function IdealGlmMhdMultiIonEquations1D{NVARS, NCOMP, RealT}(gammas       ::SVector{NCOMP, RealT},
@@ -156,7 +156,7 @@ end
     f2 = rho_v1*v1 + p #+ mag_en - B1^2
     f3 = rho_v1*v2 #- B1*B2
     f4 = rho_v1*v3 #- B1*B3
-    f5 = (kin_en + gamma*p/(gamma - 1))*v1 + + 2 * mag_en * vk1_plus[k] - B1*(vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3)
+    f5 = (kin_en + gamma*p/(gamma - 1))*v1 + 2 * mag_en * vk1_plus[k] - B1*(vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3)
 
     f = (f..., f1, f2, f3, f4, f5)
   end
@@ -623,6 +623,22 @@ Get the flow variables of component k
 """
 @inline function get_component(k, u, equations::IdealGlmMhdMultiIonEquations1D)
   return SVector{5, real(equations)}(u[(k-1)*5+4:(k-1)*5+8])
+end
+
+@inline function density_product(u, equations::IdealGlmMhdMultiIonEquations1D)
+  prod = one(u[1])
+  for k in eachcomponent(equations)
+    prod *= u[(k-1)*5+4]
+  end
+  return prod
+end
+
+@inline function density(u, equations::IdealGlmMhdMultiIonEquations1D)
+  rho = zero(u[1])
+  for k in eachcomponent(equations)
+    rho += u[(k-1)*5+4]
+  end
+  return rho
 end
 
 end # @muladd
