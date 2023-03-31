@@ -128,7 +128,7 @@ as ordinary packages with the following REPL commands:
 ```julia
 julia> using Pkg
 
-julia> Pkg.add("OrdinaryDiffEq"); Pkg.add("Plots")
+julia> Pkg.add(["OrdinaryDiffEq", "Plots"])
 ```
 
 
