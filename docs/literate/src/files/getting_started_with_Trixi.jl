@@ -228,21 +228,24 @@ plot(sol) #hide #md
 
 # Now you cloned Trixi and only need to add Trixi packages to Julia.
 # - Open Terminal using `Win+R` and `cmd`. Navigate to the folder with cloned Trixi using `cd`.
-# - Start Julia with the `--project` flag set to your local Trixi clone, e.g.,
+# - Create new directory and start Julia with the `--project` flag set to your local Trixi clone.
 #   ````
-#   julia --project=@.
+#   mkdir run 
+#   cd run
+#   julia --project=.
 #   ````
 # - Run following commands in Julia REPL:
 #   ````
-#   import Pkg; Pkg.instantiate()
-#   Pkg.add(["Trixi2Vtk", "Plots", "OrdinaryDiffEq"])
+#   using Pkg; Pkg.develop(PackageSpec(path="..")) # Install local Trixi clone
+#   Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])  # Install additional packages
 #   ````
 
 # Now you already installed Trixi from your local clone. Note that if you installed Trixi this way,
-# you always have to start Julia with the `--project` flag set to your local Trixi clone, e.g.,
+# you always have to start Julia with the `--project` flag set to your 'run' directory, e.g.,
 # ````
-# julia --project=@.
+# julia --project=.
 # ````
+# if already inside the 'run' directory.
 
 # #### Linux
 
@@ -251,15 +254,17 @@ plot(sol) #hide #md
 # git clone git@github.com:trixi-framework/Trixi.jl.git 
 # # In case of an error, use following: git clone https://github.com/trixi-framework/Trixi.jl
 # cd Trixi.jl
-# julia --project=@. -e 'import Pkg; Pkg.instantiate()'
-# julia -e 'import Pkg; Pkg.add(["Trixi2Vtk", "Plots"])'
-# julia -e 'import Pkg; Pkg.add("OrdinaryDiffEq")'
+# mkdir run 
+# cd run
+# julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi clone
+# julia -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])' # Install additional packages'
 # ````
 # Note that if you installed Trixi this way,
-# you always have to start Julia with the `--project` flag set to your local Trixi clone, e.g.,
+# you always have to start Julia with the `--project` flag set to your 'run' directory, e.g.,
 # ````
-# julia --project=@.
+# julia --project=.
 # ````
+# if already inside the 'run' directory.
 
 # ### For further reading
 
@@ -268,7 +273,7 @@ plot(sol) #hide #md
 #   is about how to set up a simple way to approximate the solution of a hyperbolic partial
 #   differential equation. It will be esspecialy useful to learn about
 #   [`Discontinuous Galerkin method`](https://en.wikipedia.org/wiki/Discontinuous_Galerkin_method)
-#   and how it implemented in Trixi. Detailed explanation of code provides quick start with Trixi.
+#   and way of implementation in Trixi. Detailed explanation of code provides quick start with Trixi.
 # - [`Adding a new scalar conservation law`](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/adding_new_scalar_equations/)
 #   and
 #   [`Adding a non-conservative equation`](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/adding_nonconservative_equation/)
