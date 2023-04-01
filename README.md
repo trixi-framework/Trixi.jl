@@ -107,9 +107,11 @@ cd Trixi.jl
 mkdir run 
 cd run
 julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi clone
-julia -e 'using Pkg; Pkg.add(["Trixi2Vtk", "Plots"])' # Install postprocessing tools
-julia -e 'using Pkg; Pkg.add("OrdinaryDiffEq")' # Install time integration schemes
+julia -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])' # Install additional packages
 ```
+Note that the postprocessing tools Trixi2Vtk.jl and Plots.jl are optional and
+can be omitted.
+
 If you installed Trixi this way, you always have to start Julia with the `--project`
 flag set to your `run` directory, e.g.,
 ```bash

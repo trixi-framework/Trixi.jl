@@ -114,22 +114,18 @@ related packages (see below, e.g., for time integration or visualization) to the
 project in the `run` folder and always have a reproducible environment at hand
 to share with others.
 
-Since the postprocessing tool Trixi2Vtk typically does not need to be modified,
-it is recommended to install it as a normal package by executing
-```julia
-julia> using Pkg
-
-julia> Pkg.add("Trixi2Vtk")
-```
-in the Julia REPL. Likewise, you can install
+Since the postprocessing tool Trixi2Vtk.jl typically does not need to be modified,
+it is recommended to install it as a normal package.  Likewise, you can install
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
-as ordinary packages with the following REPL commands:
+as ordinary packages. To achieve this, use the following REPL commands:
 ```julia
 julia> using Pkg
 
-julia> Pkg.add(["OrdinaryDiffEq", "Plots"])
+julia> Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])
 ```
+Note that the postprocessing tools Trixi2Vtk.jl and Plots.jl are optional and
+can be omitted.
 
 
 
