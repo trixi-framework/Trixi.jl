@@ -60,11 +60,11 @@ recompiled and thus execute much faster after the first run.
 
 ### Manually starting Trixi in the local environment
 If you followed the [installation instructions for developers](@ref for-developers), execute
-Julia with the project directory set to the package directory of the
+Julia with the project directory set to the `run` directory of the
 program/tool you want to use.
 For example, to run Trixi this way, you need to start the REPL with
 ```bash
-julia --project=path/to/Trixi.jl/
+julia --project=path/to/Trixi.jl/run
 ```
 and execute
 ```julia-repl
