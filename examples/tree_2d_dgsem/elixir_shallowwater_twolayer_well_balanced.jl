@@ -18,7 +18,7 @@ function initial_condition_well_balanced(x, t, equations::ShallowWaterTwoLayerEq
   v1_lower = 0.0
   v2_lower = 0.0
   b = (((x[1] - 0.5)^2 + (x[2] - 0.5)^2) < 0.04 ? 0.2 * (cos(4 * pi * sqrt((x[1] - 0.5)^2 + (x[2] +
-        -0.5)^2)) + 1) : 0)
+        -0.5)^2)) + 1) : 0.0)
   
   return prim2cons(SVector(H_upper, v1_upper, v2_upper, H_lower, v1_lower, v2_lower, b), equations)
 end

@@ -4,8 +4,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-# TODO: Update variables in docstring
-# TODO: Check Variables
 @doc raw"""
     ShallowWaterTwoLayerEquations1D(gravity, H0, rho_upper, rho_lower)
 
@@ -278,7 +276,7 @@ formulation.
   #                                        0, g*h_lower*(b+r*h_upper)_x, 0)
   f = SVector(
     z,
-    g * h_upper_ll * (b_ll + h_lower_ll)     + g * h_upper_average * (b_jump + h_lower_jump),
+    g * h_upper_ll * (b_ll + h_lower_ll) + g * h_upper_average * (b_jump + h_lower_jump),
     z,
     g * h_lower_ll * (b_ll + equations.r * h_upper_ll) + g * h_lower_average * (b_jump +
         equations.r * h_upper_jump),
@@ -399,14 +397,13 @@ formulation.
   # Compute entropy conservative flux but without the bottom topography
   f_ec = flux_fjordholm_etal(u_ll, u_rr,
                               orientation,
-                              equations)[1:4]
+                              equations)
 
   # Get maximum signal velocity
   λ = max_abs_speed_naive(u_ll, u_rr, orientation, equations)
-
   # Get entropy variables but without the bottom topography
-  q_rr = cons2entropy(u_rr,equations)[1:4]
-  q_ll = cons2entropy(u_ll,equations)[1:4]
+  q_rr = cons2entropy(u_rr,equations)
+  q_ll = cons2entropy(u_ll,equations)
 
   # Average values from left and right
   u_avg = (u_ll + u_rr) / 2
@@ -418,28 +415,30 @@ formulation.
   drho = rho_upper - rho_lower
 
   # Entropy Jacobian matrix
-  H = MArray{Tuple{4,4}, eltype(u_ll), 2}(undef)
-  # Use symmetry properties to compute matrix
-  H[:,1] = 
+  H = @SMatrix [
     [-rho_lower/(g*rho_upper*drho);;
-    -rho_lower*u_avg[2]/(g*rho_upper*u_avg[1]*drho);;
-      1.0/(g*drho);;
-      u_avg[4]/(g*u_avg[3]*drho)]
-  H[:,2] = 
-    [H[2,1];;
-      (g*rho_upper*u_avg[1]^3 - g*rho_lower*u_avg[1]^3 - rho_lower*u_avg[2]^2)/(g*rho_upper*u_avg[1]^2*drho);;
-      u_avg[2]/(g*u_avg[1]*drho);;
-      u_avg[2]*u_avg[4]/(g*u_avg[1]*u_avg[3]*drho)]
-  H[:,3] =
-    [H[3,1];;
-      H[3,2];;
-    -1.0/(g*drho);;
-    -u_avg[4]/(g*u_avg[3]*drho)]
-  H[:,4] = 
-    [H[4,1];;
-      H[4,2];;
-      H[4,3];;
-      (g*rho_upper*u_avg[3]^3 - g*rho_lower*u_avg[3]^3 - rho_lower*u_avg[4]^2)/(g*rho_lower*u_avg[3]^2*drho)]
+     -rho_lower*u_avg[2]/(g*rho_upper*u_avg[1]*drho);;
+     1.0/(g*drho);;
+     u_avg[4]/(g*u_avg[3]*drho);;
+     0];
+    [-rho_lower*u_avg[2]/(g*rho_upper*u_avg[1]*drho);;
+     (g*rho_upper*u_avg[1]^3 - g*rho_lower*u_avg[1]^3 +
+         -rho_lower*u_avg[2]^2)/(g*rho_upper*u_avg[1]^2*drho);;
+     u_avg[2]/(g*u_avg[1]*drho);;
+     u_avg[2]*u_avg[4]/(g*u_avg[1]*u_avg[3]*drho);;
+     0];
+    [1.0/(g*drho);;
+     u_avg[2]/(g*u_avg[1]*drho);;
+     -1.0/(g*drho);;
+     -u_avg[4]/(g*u_avg[3]*drho);;
+     0];
+    [u_avg[4]/(g*u_avg[3]*drho);;
+     u_avg[2]*u_avg[4]/(g*u_avg[1]*u_avg[3]*drho);;
+     -u_avg[4]/(g*u_avg[3]*drho);;
+     (g*rho_upper*u_avg[3]^3 - g*rho_lower*u_avg[3]^3 +
+         -rho_lower*u_avg[4]^2)/(g*rho_lower*u_avg[3]^2*drho);;
+     0];
+    [0;;0;;0;;0;;0]]
 
   # Add dissipation to entropy conservative flux to obtain entropy stable flux
   f_es = f_ec - 0.5 * λ * H * (q_rr - q_ll)
