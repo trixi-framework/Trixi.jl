@@ -902,7 +902,7 @@ end
 
   # Headline
   if x > 0 && iter == 1
-    open("$output_directory/alphas.txt", "a") do f;
+    open("$output_directory/alphas_min.txt", "a") do f;
       println(f, "# iter, simu_time, alpha_max, alpha_avg");
     end
   end
@@ -910,7 +910,7 @@ end
   if x == 0 || iter % x != 0
     return nothing
   end
-  open("$output_directory/alphas.txt", "a") do f;
+  open("$output_directory/alphas_min.txt", "a") do f;
     println(f, iter, ", ", time, ", ", alpha_max_avg[1], ", ", alpha_max_avg[2]);
   end
 

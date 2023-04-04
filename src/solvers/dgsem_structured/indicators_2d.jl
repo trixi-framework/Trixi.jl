@@ -313,7 +313,7 @@ end
     end
   end
 
-  open("$output_directory/alphas.txt", "a") do f;
+  open("$output_directory/alphas_min.txt", "a") do f;
     print(f, iter, ", ", time)
     for v in eachvariable(equations)
       print(f, ", ", minimum(view(alpha, v, ntuple(_ -> :, n_vars)...)));
