@@ -532,8 +532,8 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 end
 
 # interpolate back to Lobatto nodes after applying the inverse Jacobian at Gauss points
-function invert_jacobian_and_interpolate!(du, mesh::DGMultiMesh{NDIMS, NonAffine}, equations,
-                                          dg::DGMultiFluxDiff{<:GaussSBP}, cache; scaling=-1) where {NDIMS}
+function invert_jacobian_and_interpolate!(du, mesh::DGMultiMesh, equations,
+                                          dg::DGMultiFluxDiff{<:GaussSBP}, cache; scaling=-1)
 
   (; interp_matrix_gauss_to_lobatto, rhs_volume_local_threaded, invJ) = cache
 
