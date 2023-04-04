@@ -128,8 +128,8 @@ function reset_du!(du, dg::DGMulti, other_args...)
   return du
 end
 
-function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT, uEltype)
-
+# Constructs cache variables that are shared between affine and non-affine (curved) DGMultiMeshes
+function _create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT, uEltype)
   rd = dg.basis
   md = mesh.md
 
@@ -154,9 +154,28 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT, 
   # local storage for volume integral and source computations
   local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
 
-  return (; md, weak_differentiation_matrices, invJ = inv.(md.J), lift_scalings,
-            u_values, u_face_values, flux_face_values,
-            local_values_threaded)
+  return (; md, weak_differentiation_matrices, lift_scalings,
+            u_values, u_face_values, flux_face_values, local_values_threaded)
+end
+
+# cache constructor for a non-curved `DGMultiMesh`
+function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT, uEltype)
+  md = mesh.md
+  return (; _create_cache(mesh, equations, dg, RealT, uEltype)..., invJ = inv.(md.J))
+end
+
+# cache constructor for a non-curved `DGMultiMesh`
+function create_cache(mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
+                      dg::DGMultiWeakForm, RealT, uEltype) where {NDIMS}
+  rd = dg.basis
+  md = mesh.md
+
+  # for curved meshes, we interpolate geometric terms from nodal points to to quadrature points.
+  dxidxhatj = map(x -> rd.Vq * x, md.rstxyzJ)
+  invJ = inv.(rd.Vq * md.J)
+
+  return (; _create_cache(mesh, equations, dg, RealT, uEltype)...,
+            invJ, dxidxhatj)
 end
 
 function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
