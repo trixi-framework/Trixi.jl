@@ -445,11 +445,36 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
 end
 
 
-# Todo: DGMulti. Specialize for modal DG on curved meshes using WADG
 # inverts Jacobian and scales by -1.0
 function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache; scaling=-1)
   @threaded for i in each_dof_global(mesh, dg, cache)
     du[i] *= scaling * cache.invJ[i]
+  end
+end
+
+# inverts Jacobian using weight-adjusted DG, and scales by -1.0.
+# - Chan, Jesse, Russell J. Hewett, and Timothy Warburton.
+#   "Weight-adjusted discontinuous Galerkin methods: curvilinear meshes."
+#   https://doi.org/10.1137/16M1089198
+function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
+                          dg::DGMulti, cache; scaling=-1) where {NDIMS}
+  # Vq = interpolation matrix to quadrature points, Pq = quadrature-based L2 projection matrix
+  (; Pq, Vq) = dg.basis
+  (; local_values_threaded, invJ) = cache
+
+  @threaded for e in eachelement(mesh, dg, cache)
+    du_at_quad_points = local_values_threaded[Threads.threadid()]
+
+    # interpolate solution to quadrature
+    apply_to_each_field(mul_by!(Vq), du_at_quad_points, view(du, :, e))
+
+    # scale by quadrature points
+    for i in eachindex(du_at_quad_points)
+      du_at_quad_points[i] *= scaling * invJ[i, e]
+    end
+
+    # project back to polynomials
+    apply_to_each_field(mul_by!(Pq), view(du, :, e), du_at_quad_points)
   end
 end
 
