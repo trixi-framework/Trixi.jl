@@ -1949,6 +1949,25 @@ end
     else # orientation_or_normal isa Integer
       return SVector(u_inner[1], -u_inner[2], -u_inner[3], u_inner[4])
     end
+  elseif boundary_condition == boundary_condition_mixed_dirichlet_wall
+    x = get_node_coords(cache.elements.node_coordinates, equations, dg, indices...)
+    if x[1] < 1 / 6 # BoundaryConditionCharacteristic
+      u_outer = Trixi.characteristic_boundary_value_function(initial_condition_double_mach_reflection,
+                                                             u_inner, orientation_or_normal, direction, x, t, equations)
+
+      return u_outer
+    else # x[1] >= 1 / 6 # boundary_condition_slip_wall
+      if orientation_or_normal isa AbstractArray
+        u_rotate = rotate_to_x(u_inner, orientation_or_normal, equations)
+
+        return SVector(u_inner[1],
+                       u_inner[2] - 2.0 * u_rotate[2],
+                       u_inner[3] - 2.0 * u_rotate[3],
+                       u_inner[4])
+      else # orientation_or_normal isa Integer
+        return SVector(u_inner[1], -u_inner[2], -u_inner[3], u_inner[4])
+      end
+    end
   end
 
   return u_inner

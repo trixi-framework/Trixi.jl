@@ -150,6 +150,25 @@ end
 
 
 """
+    initial_condition_density_wave_highdensity(x, t, equations::CompressibleEulerEquations2D)
+
+A sine wave in the density with constant velocity and pressure; reduces the
+compressible Euler equations to the linear advection equations.
+High density version of [`initial_condition_density_wave`](@ref).
+"""
+function initial_condition_density_wave_highdensity(x, t, equations::CompressibleEulerEquations2D)
+  v1 = 0.1
+  v2 = 0.2
+  rho = 2.0 + 0.98 * sinpi(2 * (x[1] + x[2] - t * (v1 + v2)))
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  p = 20
+  rho_e = p / (equations.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
+  return SVector(rho, rho_v1, rho_v2, rho_e)
+end
+
+
+"""
     initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEquations2D)
 
 A weak blast wave taken from
@@ -461,6 +480,45 @@ end
   end
 
   return cons
+end
+
+@inline function initial_condition_double_mach_reflection(x, t, equations::CompressibleEulerEquations2D)
+
+  if x[1] < 1 / 6 + (x[2] + 20 * t) / sqrt(3)
+    phi = pi / 6
+    sin_phi, cos_phi = sincos(phi)
+
+    rho =  8
+    v1  =  8.25 * cos_phi
+    v2  = -8.25 * sin_phi
+    p   =  116.5
+  else
+    rho = 1.4
+    v1  = 0
+    v2  = 0
+    p   = 1
+  end
+
+  prim = SVector(rho, v1, v2, p)
+  return prim2cons(prim, equations)
+end
+
+@inline function boundary_condition_mixed_dirichlet_wall(u_inner, normal_direction::AbstractVector, direction,
+                                                         x, t, surface_flux_function,
+                                                         equations::CompressibleEulerEquations2D)
+  if x[1] < 1 / 6
+    # From the BoundaryConditionCharacteristic
+    # get the external state of the solution
+    u_boundary = Trixi.characteristic_boundary_value_function(initial_condition_double_mach_reflection,
+                                                              u_inner, normal_direction, direction, x, t, equations)
+    # Calculate boundary flux
+    flux = surface_flux_function(u_boundary, u_inner, normal_direction, equations)
+  else # x[1] >= 1 / 6
+    # Use the free slip wall BC otherwise
+    flux = boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t, surface_flux_function, equations)
+  end
+
+  return flux
 end
 
 # Calculate 2D flux for a single point

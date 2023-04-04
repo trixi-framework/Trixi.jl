@@ -266,7 +266,10 @@ end
 
   # Headline
   if iter == 1 && x > 0
-    open("$output_directory/alphas.txt", "a") do f;
+    open("$output_directory/alphas_min.txt", "a") do f;
+      println(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
+    end
+    open("$output_directory/alphas_mean.txt", "a") do f;
       print(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
       if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
         print(f, ", alpha_min_pressure, alpha_avg_pressure")
@@ -275,9 +278,6 @@ end
         print(f, ", alpha_min_entropy, alpha_avg_entropy")
       end
       println(f)
-    end
-    open("$output_directory/alphas_mean.txt", "a") do f;
-      println(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
     end
     open("$output_directory/alphas_eff.txt", "a") do f;
       println(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
@@ -319,13 +319,6 @@ end
       print(f, ", ", minimum(view(alpha, v, ntuple(_ -> :, n_vars)...)));
       print(f, ", ", alpha_avg[v] / total_volume);
     end
-    if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
-      print(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
-    end
-    if indicator.SemiDiscEntropyLimiter
-      k = n_vars + (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin) + 1
-      print(f, ", ", minimum(alpha_entropy), ", ", alpha_avg[k] / total_volume)
-    end
     println(f)
   end
   open("$output_directory/alphas_mean.txt", "a") do f;
@@ -333,6 +326,13 @@ end
     for v in eachvariable(equations)
       print(f, ", ", minimum(view(alpha_mean, v, ntuple(_ -> :, n_vars - 1)...)));
       print(f, ", ", alpha_mean_avg[v] / total_volume);
+    end
+    if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+      print(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
+    end
+    if indicator.SemiDiscEntropyLimiter
+      k = n_vars + (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin) + 1
+      print(f, ", ", minimum(alpha_entropy), ", ", alpha_avg[k] / total_volume)
     end
     println(f)
   end

@@ -47,9 +47,10 @@ indicator_sc = IndicatorMCL(equations, basis;
                             SequentialLimiter=true,
                             ConservativeLimiter=false,
                             DensityPositivityLimiter=false,
-                            PressurePositivityLimiterKuzmin=true,
+                            PressurePositivityLimiterKuzmin=true, PressurePositivityLimiterKuzminExact=true,
                             SemiDiscEntropyLimiter=true,
                             IDPCheckBounds=true,
+                            indicator_smooth=false,
                             Plotting=true)
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,
@@ -59,7 +60,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-2.0, -2.0)
 coordinates_max = ( 2.0,  2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=6,
+                initial_refinement_level=3,
                 n_cells_max=100_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -87,8 +88,8 @@ stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
-                        stepsize_callback)
+                        stepsize_callback,
+                        save_solution)
 ###############################################################################
 # run the simulation
 

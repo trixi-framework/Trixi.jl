@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -33,17 +32,18 @@ initial_condition = initial_condition_kelvin_helmholtz_instability
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_ranocha
-polydeg = 3
+polydeg = 7
 basis = LobattoLegendreBasis(polydeg)
 
 indicator_sc = IndicatorMCL(equations, basis;
-                            DensityLimiter=false,
+                            DensityLimiter=true,
                             DensityAlphaForAll=false,
-                            SequentialLimiter=false,
+                            SequentialLimiter=true,
                             ConservativeLimiter=false,
-                            PressurePositivityLimiterKuzmin=true, PressurePositivityLimiterKuzminExact=true,
-                            DensityPositivityLimiter=true,
+                            PressurePositivityLimiterKuzmin=false,
+                            DensityPositivityLimiter=false,
                             SemiDiscEntropyLimiter=false,
+                            indicator_smooth=false,
                             IDPCheckBounds=true,
                             Plotting=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
@@ -70,19 +70,21 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=5000,
+save_solution = SaveSolutionCallback(output_directory="out_t3_7/",
+                                     interval=5000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-save_restart = SaveRestartCallback(interval=50000,
+save_restart = SaveRestartCallback(output_directory="out_t3_7/",
+                                   interval=50000,
                                    save_final_restart=true)
 
 stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
                         stepsize_callback,
+                        analysis_callback, alive_callback,
                         save_restart, save_solution)
 
 
@@ -91,5 +93,5 @@ callbacks = CallbackSet(summary_callback,
 
 sol = Trixi.solve(ode,
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  maxiters=1e7, callback=callbacks);
+                  maxiters=1_000_000, callback=callbacks);
 summary_callback() # print the timer summary
