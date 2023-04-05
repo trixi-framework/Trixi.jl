@@ -30,6 +30,9 @@
 # a starting step size. If this heuristic fails in your case, you can specify an appropriately
 # small initial step size as keyword argument `dt=...` of `solve`.
 
+# If you run Trixi in parallel with MPI you need to pass `internalnorm=ode_norm` and you should pass `unstable_check=ode_unstable_check`
+# to enable MPI aware error-based adaptive step size control. These keyword arguments are also included in the [`ode_default_options`](@ref).
+
 
 # # CFL-based step size control
 # The SciML ecosystem also provides time integration algorithms without adaptive time stepping on

@@ -146,6 +146,15 @@ given in the Trixi documentation regarding unstructured meshes.
 default_example_unstructured() = joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
 
 
+"""
+    ode_default_options()
+
+Return the default options for OrdinaryDiffEq's `solve`. Pass `ode_default_options()...` to `solve`
+to only return the solution at the final time and enable **MPI aware** error-based step size control.
+"""
+ode_default_options() = (; save_everystep = false, internalnorm = ode_norm, unstable_check = ode_unstable_check)
+
+
 # Print informative message at startup
 function print_startup_message()
   s = """
