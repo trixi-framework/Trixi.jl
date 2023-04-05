@@ -3,6 +3,9 @@ using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
+# This is a DGMulti version of the UnstructuredMesh2D elixir `elixir_euler_basic.jl`,
+# which can be found at `examples/unstructured_2d_dgsem/elixir_euler_basic.jl`.
+
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
