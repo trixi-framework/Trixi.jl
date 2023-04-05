@@ -8,10 +8,8 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-initial_condition = initial_condition_constant
-source_terms = nothing
-# initial_condition = initial_condition_convergence_test
-# source_terms = source_terms_convergence_test
+initial_condition = initial_condition_convergence_test
+source_terms = source_terms_convergence_test
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :Slant  => boundary_condition_convergence_test,
@@ -64,8 +62,8 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-7
+time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol,
-            save_everystep=false, callback=callbacks)
+            dt = time_int_tol, save_everystep=false, callback=callbacks)
 
 summary_callback() # print the timer summary
