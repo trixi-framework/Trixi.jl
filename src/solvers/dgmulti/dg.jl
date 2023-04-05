@@ -164,18 +164,29 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT, 
   return (; _create_cache(mesh, equations, dg, RealT, uEltype)..., invJ = inv.(md.J))
 end
 
-# cache constructor for a non-curved `DGMultiMesh`
+# cache constructor for a curved `DGMultiMesh`
 function create_cache(mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
                       dg::DGMultiWeakForm, RealT, uEltype) where {NDIMS}
   rd = dg.basis
   md = mesh.md
 
   # for curved meshes, we interpolate geometric terms from nodal points to to quadrature points.
-  dxidxhatj = map(x -> rd.Vq * x, md.rstxyzJ)
+  # The curved DGMultiMesh constructor interpolates md.rstxyzJ to *both* volume and face points
+  # TODO: fix this by moving interpolation of rstxyzJ to cache.
+  dxidxhatj = map(x -> getindex(x, 1:rd.Nq, :), md.rstxyzJ)
+
+  # interpolate J to quadrature points for WADG
   invJ = inv.(rd.Vq * md.J)
 
+  nvars = nvariables(equations)
+
+  flux_threaded =
+    [[allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:NDIMS] for _ in 1:Threads.nthreads()]
+  rotated_flux_threaded =
+    [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
+
   return (; _create_cache(mesh, equations, dg, RealT, uEltype)...,
-            invJ, dxidxhatj)
+            invJ, dxidxhatj, flux_threaded, rotated_flux_threaded)
 end
 
 function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
@@ -262,6 +273,7 @@ function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
   apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
 end
 
+# version for affine meshes
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
@@ -275,16 +287,63 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
   # interpolate to quadrature points
   apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
-  # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
 
     flux_values = local_values_threaded[Threads.threadid()]
     for i in eachdim(mesh)
       flux_values .= flux.(view(u_values,:,e), i, equations)
       for j in eachdim(mesh)
-        apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], rstxyzJ[i,j][1,e]),
-                            view(du,:,e), flux_values)
+        dxidxhatj = mesh.md.rstxyzJ[i, j][1, e]
+        apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], dxidxhatj),
+                            view(du, :, e), flux_values)
       end
+    end
+  end
+end
+
+# version for curved meshes
+function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
+                               have_nonconservative_terms::False, equations,
+                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
+                               cache) where {NDIMS}
+
+  rd = dg.basis
+  (; weak_differentiation_matrices, u_values) = cache
+  (; dxidxhatj) = cache
+
+  # interpolate to quadrature points
+  apply_to_each_field(mul_by!(rd.Vq), u_values, u)
+
+  @threaded for e in eachelement(mesh, dg, cache)
+
+    flux_values = cache.flux_threaded[Threads.threadid()]
+    for i in eachdim(mesh)
+      flux_values[i] .= flux.(view(u_values, :, e), i, equations)
+    end
+
+    # rotate flux with sum_j d(x_i)/d(x̂_j) * d(f)/d(x̂_h).
+    # Example:    dr/dx * df_x/dr + ds/dx * df_x/ds
+    #           + dr/dy * df_y/dr + ds/dy * df_y/ds
+    #           = Dr * (dr/dx * fx + dr/dy * fy) + Ds * (...)
+    #           = Dr * (f_r) + Ds * (f_s)
+
+    rotated_flux_values = cache.rotated_flux_threaded[Threads.threadid()]
+    for j in eachdim(mesh)
+
+      fill!(rotated_flux_values, zero(eltype(rotated_flux_values)))
+
+      # compute rotated fluxes
+      for i in eachdim(mesh)
+        for ii in eachindex(rotated_flux_values)
+          flux_i_node = flux_values[i][ii]
+          dxidxhatj_node = dxidxhatj[i, j][ii, e]
+          rotated_flux_values[ii] = rotated_flux_values[ii] + dxidxhatj_node * flux_i_node
+        end
+      end
+
+      # apply weak differentiation matrices to rotated fluxes
+      apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j]),
+                          view(du, :, e), rotated_flux_values)
     end
   end
 end
