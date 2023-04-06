@@ -1,6 +1,6 @@
 # Development
 
-## Interactive use of Julia
+## [Interactive use of Julia](@id interactive-use-of-julia)
 When a Julia program is executed, Julia first loads and parses all code. Then,
 the just-in-time compiler has to compile all functions at their first use, which
 incurs an overhead each time a program is run. For proper packages and commands
@@ -18,7 +18,7 @@ package, which tracks changed files and re-loads them automatically. Therefore,
 it is *highly recommended* to first install Revise with the following command in Julia:
 To enter the package REPL mode, press `]` in the standard Julia REPL mode. Then, execute
 ```julia-repl
-(@v1.7) pkg> add Revise
+(@v1.8) pkg> add Revise
 ```
 Now you are able to run Trixi from the REPL, change Trixi code between runs,
 **and** enjoy the advantages of the compilation cache! Before you start using
@@ -28,7 +28,7 @@ Another recommended package for working from the REPL is
 [OhMyREPL.jl](https://github.com/KristofferC/OhMyREPL.jl). It can be installed
 by running
 ```julia-repl
-(@v1.7) pkg> add OhMyREPL
+(@v1.8) pkg> add OhMyREPL
 ```
 and adds syntax highlighting, bracket highlighting, and other helpful
 improvements for using Julia interactively. To automatically use OhMyREPL when
@@ -60,11 +60,11 @@ recompiled and thus execute much faster after the first run.
 
 ### Manually starting Trixi in the local environment
 If you followed the [installation instructions for developers](@ref for-developers), execute
-Julia with the project directory set to the package directory of the
+Julia with the project directory set to the `run` directory of the
 program/tool you want to use.
 For example, to run Trixi this way, you need to start the REPL with
 ```bash
-julia --project=path/to/Trixi.jl/
+julia --project=path/to/Trixi.jl/run
 ```
 and execute
 ```julia-repl
@@ -228,6 +228,62 @@ corresponding Vim plugin
 mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
 
 
+## Debugging
+Julia offers several options for debugging. A classical debugger is available with the
+[Debugger.jl](https://github.com/JuliaDebug/Debugger.jl) package or in the
+[Julia extension for VS Code](https://www.julia-vscode.org/docs/stable/userguide/debugging/).
+However, it can be quite slow and, at the time of writing (January 2023), currently does not work
+properly with Trixi. The [Infiltrator.jl](https://github.com/JuliaDebug/Infiltrator.jl) package on
+the other hand does not offer all features of a full debugger, but is a fast and simple tool that
+allows users to set breakpoints to open a local REPL session and access the call stack and variables.
+
+### Infiltrator
+The Infiltrator package provides fast, interactive breakpoints using the ```@infiltrate``` command,
+which drops the user into a local REPL session. From there, it is possible to access local variables,
+see the call stack, and execute statements.
+
+The package can be installed in the Julia REPL by executing
+```julia-repl
+(@v1.8) pkg> add Infiltrator
+```
+
+To load the package in the Julia REPL execute
+```julia-repl
+julia> using Infiltrator
+```
+
+Breakpoints can be set by adding a line with the ```@infiltrate``` macro at the respective position
+in the code. Use [Revise](@ref interactive-use-of-julia) if you want to set and delete breakpoints
+in your package without having to restart Julia.
+
+!!! note
+    When running Julia inside a package environment, the ```@infiltrate``` macro only works if `Infiltrator`
+    has been added to the dependencies. Another work around when using Revise is to first load the
+    package and then add breakpoints with `Main.@infiltrate` to the code. If this is not
+    desired, the functional form
+    ```julia
+    if isdefined(Main, :Infiltrator)
+      Main.Infiltrator.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+    end
+    ```
+    can be used to set breakpoints when working with Trixi or other packages.
+
+Triggering the breakpoint starts a REPL session where it is possible to interact with the current
+local scope. Possible commands are:
+- ```@locals```: Print the local variables.
+- ```@exfiltrate```: Save the local variables to a global storage, which can be accessed with
+  the ```safehouse``` variable outside the Infiltrator session.
+- ```@trace```: Print the current stack trace.
+- Execute other arbitrary statements
+- ```?```: Print a help list with all options
+
+To finish a debugging session, either use ```@continue``` to continue and eventually stop at the
+next breakpoint or ```@exit``` to skip further breakpoints. After the code has finished, local
+variables saved with ```@exfiltrate``` can be accessed in the REPL using the ```safehouse``` variable.
+
+Limitations of using Infiltrator.jl are that local variables cannot be changed, and that it is not
+possible to step into further calls or access other function scopes.
+
 
 ## Releasing a new version of Trixi, Trixi2Vtk
 
@@ -255,7 +311,8 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
 
 You can build the documentation of Trixi.jl locally by running
 ```bash
-julia --project=docs -e 'using Pkg; Pkg.instantiate(); include("docs/make.jl")'
+julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+julia --project=docs --color=yes docs/make.jl
 ```
 from the Trixi.jl main directory. Then, you can look at the html files generated in
 `docs/build`.
@@ -275,5 +332,5 @@ in Trixi2Vtk.
 To use a locally modified Trixi clone instead of a Trixi release, one can tell Pkg
 to use the local source code of Trixi instead of a registered version by running
 ```julia-repl
-(@v1.7) pkg> develop path/to/Trixi.jl
+(@v1.8) pkg> develop path/to/Trixi.jl
 ```

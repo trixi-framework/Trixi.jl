@@ -2,7 +2,7 @@
 
 Trixi is an open-source project and we are very happy to accept contributions
 from the community. Please feel free to open issues or submit patches (preferably
-as merge requests) any time. For planned larger contributions, it is often
+as pull requests) any time. For planned larger contributions, it is often
 beneficial to get in contact with one of the principal developers first (see
 [AUTHORS.md](AUTHORS.md)).
 

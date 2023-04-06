@@ -43,11 +43,29 @@ that there is no need to install MPI yourself. However, it is also possible to
 instead use an existing MPI installation, which is recommended if you are
 running MPI programs on a cluster or supercomputer
 ([see the MPI.jl docs](https://juliaparallel.github.io/MPI.jl/stable/configuration/)
-to find out how to select the employed MPI library).
+to find out how to select the employed MPI library). Additional notes on how to use
+a system-provided MPI installation with Trixi.jl can be found in the following subsection.
 
 !!! warning "Work in progress"
     MPI-based parallelization is work in progress and not finished yet. Nothing
     related to MPI is part of the official API of Trixi yet.
+
+
+### [Using a system-provided MPI installation](@id parallel_system_MPI)
+
+When using Trixi.jl with a system-provided MPI backend the underlying [`p4est`](https://github.com/cburstedde/p4est)
+library needs to be compiled with the same MPI installation. Therefore, you also need to use
+a system-provided `p4est` installation (for notes on how to install `p4est` see e.g.
+[here](https://github.com/cburstedde/p4est/blob/master/README), use the configure option
+`--enable-mpi`). In addition, [P4est.jl](https://github.com/trixi-framework/P4est.jl) needs to
+be configured to use the custom `p4est` installation. Follow the steps described
+[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md) for the configuration.
+In total, in your active Julia project you should have a LocalPreferences.toml file with sections
+`[MPIPreferences]` and `[P4est]` as well as an entry `MPIPreferences` in your Project.toml to
+use a custom MPI installation.
+
+
+### [Usage](@id parallel_usage)
 
 To start Trixi in parallel with MPI, there are three options:
 
@@ -91,7 +109,7 @@ To start Trixi in parallel with MPI, there are three options:
    which are usually available through a package manager. Once you have
    installed both tools, you need to configure MPI.jl to use the OpenMPI for
    your system, which is explained
-   [here](https://juliaparallel.github.io/MPI.jl/stable/configuration/#Using-a-system-provided-MPI).
+   [here](https://juliaparallel.org/MPI.jl/stable/configuration/#Using-a-system-provided-MPI-backend).
    Then, you can download and install the
    [tmpi](https://github.com/Azrael3000/tmpi)
    script by executing
@@ -110,11 +128,15 @@ To start Trixi in parallel with MPI, there are three options:
    documentation for `tmux`
    [available](https://github.com/tmux/tmux/wiki/Getting-Started) and once you
    get the hang of it, developing Trixi in parallel becomes much smoother this
-   way.
+   way. Some helpful commands are the following. To close a single pane you can press `Ctrl+b`
+   and then `x` followed by `y` to confirm. To quit the whole session you press `Ctrl+b` followed
+   by `:kill-session`. Often you would like to scroll up. You can do that by pressing `Ctrl+b` and then `[`,
+   which allows you to use the arrow keys to scroll up and down. To leave the scroll mode you press `q`.
+   Switching between panes can be done by `Ctrl+b` followed by `o`.
    As of March 2022, newer versions of tmpi also support mpich, which is the default
    backend of MPI.jl (via MPICH_Jll.jl). To use this setup, you need to install
    `mpiexecjl` as described in the 
-   [documentation of MPI.jl](https://juliaparallel.github.io/MPI.jl/latest/configuration/#Julia-wrapper-for-mpiexec)
+   [documentation of MPI.jl](https://juliaparallel.org/MPI.jl/v0.20/usage/#Julia-wrapper-for-mpiexec)
    and make it available as `mpirun`, e.g., via a symlink of the form
    ```bash
    ln -s ~/.julia/bin/mpiexecjl /somewhere/in/your/path/mpirun
@@ -127,3 +149,9 @@ To start Trixi in parallel with MPI, there are three options:
     `julia --threads=2` instead of `julia --threads=1` used in the examples above.
     In that case, you should make sure that your system supports the number of processes/threads
     that you try to start.
+
+
+### [Performance](@id parallel_performance)
+For information on how to evaluate the parallel performance of Trixi, please
+have a look at the [Performance metrics of the `AnalysisCallback`](@ref)
+section, specifically at the descriptions of the performance index (PID).

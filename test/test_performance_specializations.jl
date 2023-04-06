@@ -32,7 +32,7 @@ isdir(outdir) && rm(outdir, recursive=true)
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
-      du_specialized = du[:, :, :, :, 1]
+      du_specialized = du[:, :, :, 1]
 
       # Call the plain version - note the argument type `Function` of
       # `semi.solver.volume_integral.volume_flux`
@@ -44,7 +44,7 @@ isdir(outdir) && rm(outdir, recursive=true)
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
-      du_baseline = du[:, :, :, :, 1]
+      du_baseline = du[:, :, :, 1]
 
       @test du_specialized ≈ du_baseline
     end
@@ -71,7 +71,7 @@ isdir(outdir) && rm(outdir, recursive=true)
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
-      du_specialized = du[:, :, :, :, 1]
+      du_specialized = du[:, :, :, 1]
 
       # Call the plain version - note the argument type `Function` of
       # `semi.solver.volume_integral.volume_flux`
@@ -83,7 +83,7 @@ isdir(outdir) && rm(outdir, recursive=true)
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
-      du_baseline = du[:, :, :, :, 1]
+      du_baseline = du[:, :, :, 1]
 
       @test du_specialized ≈ du_baseline
     end
@@ -110,7 +110,7 @@ isdir(outdir) && rm(outdir, recursive=true)
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
-      du_specialized = du[:, :, :, :, 1]
+      du_specialized = du[:, :, :, 1]
 
       # Call the plain version - note the argument type `Function` of
       # `semi.solver.volume_integral.volume_flux`
@@ -122,7 +122,7 @@ isdir(outdir) && rm(outdir, recursive=true)
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
-      du_baseline = du[:, :, :, :, 1]
+      du_baseline = du[:, :, :, 1]
 
       @test du_specialized ≈ du_baseline
     end
@@ -149,7 +149,7 @@ isdir(outdir) && rm(outdir, recursive=true)
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
-      du_specialized = du[:, :, :, :, 1]
+      du_specialized = du[:, :, :, 1]
 
       # Call the plain version - note the argument type `Function` of
       # `semi.solver.volume_integral.volume_flux`
@@ -161,7 +161,7 @@ isdir(outdir) && rm(outdir, recursive=true)
         du, u, 1, semi.mesh,
         nonconservative_terms, semi.equations,
         semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
-      du_baseline = du[:, :, :, :, 1]
+      du_baseline = du[:, :, :, 1]
 
       @test du_specialized ≈ du_baseline
     end
