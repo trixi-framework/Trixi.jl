@@ -51,7 +51,7 @@ In particular, not the dimensions themselves are returned.
     eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the elements in `mesh`. 
+for the elements in `mesh`.
 In particular, not the elements themselves are returned.
 """
 @inline eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(mesh.md.num_elements)
@@ -63,7 +63,7 @@ In particular, not the elements themselves are returned.
     each_face_node(mesh::DGMultiMesh, dg::DGMulti, other_args...)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the face nodes in `dg`. 
+for the face nodes in `dg`.
 In particular, not the face_nodes themselves are returned.
 """
 @inline each_face_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq)
@@ -72,7 +72,7 @@ In particular, not the face_nodes themselves are returned.
     each_quad_node(mesh::DGMultiMesh, dg::DGMulti, other_args...)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the quadrature nodes in `dg`. 
+for the quadrature nodes in `dg`.
 In particular, not the quadrature nodes themselves are returned.
 """
 @inline each_quad_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq)
@@ -82,7 +82,7 @@ In particular, not the quadrature nodes themselves are returned.
     each_dof_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the degrees of freedom (DOF) in `dg`. 
+for the degrees of freedom (DOF) in `dg`.
 In particular, not the DOFs themselves are returned.
 """
 @inline each_dof_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(ndofs(mesh, dg, other_args...))
@@ -92,7 +92,7 @@ In particular, not the DOFs themselves are returned.
     each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the global quadrature nodes in `mesh`. 
+for the global quadrature nodes in `mesh`.
 In particular, not the quadrature nodes themselves are returned.
 """
 @inline each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
@@ -101,7 +101,7 @@ In particular, not the quadrature nodes themselves are returned.
     each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the face nodes in `mesh`. 
+for the face nodes in `mesh`.
 In particular, not the face nodes themselves are returned.
 """
 @inline each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
@@ -261,10 +261,10 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
     flux_values = local_values_threaded[Threads.threadid()]
     for i in eachdim(mesh)
-      flux_values .= flux.(view(u_values,:,e), i, equations)
+      flux_values .= flux.(view(u_values, :, e), i, equations)
       for j in eachdim(mesh)
-        apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], rstxyzJ[i,j][1,e]),
-                            view(du,:,e), flux_values)
+        apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], rstxyzJ[i, j][1,e]),
+                            view(du, :, e), flux_values)
       end
     end
   end
