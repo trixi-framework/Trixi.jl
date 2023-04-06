@@ -345,6 +345,23 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
             local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
 end
 
+# append curved geometric terms to the non-curved cache
+function create_cache(mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
+                      dg::DGMultiFluxDiff, RealT, uEltype) where {NDIMS}
+
+  # call non-curved create_cache
+  cache = invoke(create_cache,
+                 Tuple{DGMultiMesh{NDIMS, Affine}, typeof(equations),
+                 typeof(dg), typeof(RealT), typeof(uEltype)},
+                 mesh, equations, dg, RealT, uEltype)
+
+  # interpolate geometric terms to both quadrature and face values
+  (; Vq, Vf) = dg.basis
+  interpolated_geometric_terms = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
+
+  return (; cache..., dxidxhatj = interpolated_geometric_terms)
+end
+
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti)
 
