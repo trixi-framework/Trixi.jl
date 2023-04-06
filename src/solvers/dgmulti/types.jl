@@ -154,9 +154,8 @@ function DGMultiMesh(dg::DGMulti{2, Tri}, triangulateIO, boundary_dict::Dict{Sym
   return DGMultiMesh(dg, GeometricTermsType(TriangulateIO(), dg), md, boundary_faces)
 end
 
-# TODO: DGMulti. Make `cells_per_dimension` a non-keyword argument for easier dispatch.
 """
-    DGMultiMesh(dg::DGMulti; cells_per_dimension,
+    DGMultiMesh(dg::DGMulti, cells_per_dimension;
                 coordinates_min=(-1.0, -1.0), coordinates_max=(1.0, 1.0),
                 is_on_boundary=nothing,
                 periodicity=ntuple(_ -> false, NDIMS))
@@ -242,14 +241,6 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, filename;
   boundary_faces = Dict(Pair.(keys(md.mesh_type.boundary_faces), values(md.mesh_type.boundary_faces)))
   return DGMultiMesh(dg, GeometricTermsType(Curved(), dg), md, boundary_faces)
 end
-
-# TODO: deprecations introduced in Trixi.jl v0.6
-@deprecate DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension, kwargs...) where {NDIMS} DGMultiMesh(dg, cells_per_dimension; kwargs...)
-
-# TODO: deprecations introduced in Trixi.jl v0.5
-@deprecate DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS}; kwargs...) where {NDIMS} DGMultiMesh(dg, vertex_coordinates, EToV; kwargs...)
-@deprecate DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int}; kwargs...) DGMultiMesh(dg, triangulateIO, boundary_dict; kwargs...)
-
 
 # Matrix type for lazy construction of physical differentiation matrices
 # Constructs a lazy linear combination of B = ∑_i coeffs[i] * A[i]
@@ -369,3 +360,11 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
 end
 
 end # @muladd
+
+# TODO: deprecations introduced in Trixi.jl v0.6
+@deprecate DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension, kwargs...) where {NDIMS} DGMultiMesh(dg, cells_per_dimension; kwargs...)
+
+# TODO: deprecations introduced in Trixi.jl v0.5
+@deprecate DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS}; kwargs...) where {NDIMS} DGMultiMesh(dg, vertex_coordinates, EToV; kwargs...)
+@deprecate DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int}; kwargs...) DGMultiMesh(dg, triangulateIO, boundary_dict; kwargs...)
+
