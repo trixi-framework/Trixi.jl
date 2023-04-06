@@ -100,6 +100,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_euler_curved.jl (Triangular elements, SBP, weak formulation)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      element_type = Tri(), approximation_type = Polynomial(), volume_integral = VolumeIntegralWeakForm(),
+      l2 = [2.514680005317396e-6, 2.8651612678675357e-6, 2.865161269271603e-6, 1.0004319930916973e-5],
+      linf = [7.71736791915778e-6, 1.0558193409782035e-5, 1.0558193404008875e-5, 3.293301194862153e-5]
+    )
+  end
+
   @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
     mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"), 2)
     @test isapprox(mean_convergence[:l2], [4.243843382379403, 4.128314378833922, 4.128314378397532, 4.081366752807379], rtol=0.05)
