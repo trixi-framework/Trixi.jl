@@ -108,6 +108,13 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_euler_hohqmesh.jl (Quadrilateral elements, SBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_hohqmesh.jl"),
+      l2 = [0.0008153911341517156, 0.0007768159701964676, 0.00047902606811690694, 0.0015551846076348535],
+      linf = [0.0029301131365355726, 0.0034427051471457304, 0.0028721569841545502, 0.011125365074589944]
+    )
+  end
+
   @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
     mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"), 2)
     @test isapprox(mean_convergence[:l2], [4.243843382379403, 4.128314378833922, 4.128314378397532, 4.081366752807379], rtol=0.05)
