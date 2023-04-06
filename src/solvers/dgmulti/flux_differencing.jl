@@ -405,7 +405,6 @@ end
 # FD SBP methods have sparse operators
 @inline has_sparse_operators(::Union{Line, Quad, Hex}, approx_type::AbstractDerivativeOperator) = True()
 
-# Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # Computes flux differencing contribution from each Cartesian direction over a single element.
 # For dense operators, we do not use sum factorization.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
@@ -443,7 +442,6 @@ end
   end
 end
 
-# Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # When the operators are sparse, we use the sum-factorization approach to
 # computing flux differencing.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
