@@ -166,7 +166,7 @@ the tensor product of the intervals `[coordinates_min[i], coordinates_max[i]]`.
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
 - `periodicity` is a tuple of `Bool`s specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
-function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
+function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension;
                      coordinates_min=ntuple(_ -> -one(real(dg)), NDIMS),
                      coordinates_max=ntuple(_ -> one(real(dg)), NDIMS),
                      is_on_boundary=nothing,
@@ -243,7 +243,13 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, filename;
   return DGMultiMesh(dg, GeometricTermsType(Curved(), dg), md, boundary_faces)
 end
 
-# Todo: DGMulti. Add traits for dispatch on affine/curved meshes here.
+# TODO: deprecations introduced in Trixi.jl v0.6
+@deprecate DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension, kwargs...) where {NDIMS} DGMultiMesh(dg, cells_per_dimension; kwargs...)
+
+# TODO: deprecations introduced in Trixi.jl v0.5
+@deprecate DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS}; kwargs...) where {NDIMS} DGMultiMesh(dg, vertex_coordinates, EToV; kwargs...)
+@deprecate DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int}; kwargs...) DGMultiMesh(dg, triangulateIO, boundary_dict; kwargs...)
+
 
 # Matrix type for lazy construction of physical differentiation matrices
 # Constructs a lazy linear combination of B = ∑_i coeffs[i] * A[i]
@@ -363,7 +369,3 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
 end
 
 end # @muladd
-
-# TODO: deprecations introduced in Trixi.jl v0.5
-@deprecate DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS}; kwargs...) where {NDIMS} DGMultiMesh(dg, vertex_coordinates, EToV; kwargs...)
-@deprecate DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int}; kwargs...) DGMultiMesh(dg, triangulateIO, boundary_dict; kwargs...)
