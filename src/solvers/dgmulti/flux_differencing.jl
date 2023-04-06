@@ -222,7 +222,7 @@ end
 # and jth reference coordinate, respectively. These are geometric terms which
 # appear when using the chain rule to compute physical derivatives as a linear
 # combination of reference derivatives.
-@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}) where {NDIMS}
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}, args...) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ], so that this will return
   # SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
 
@@ -231,11 +231,13 @@ end
   return SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element))
 end
 
-@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine}) where {NDIMS}
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine}, cache) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
 
   # assumes geometric terms vary spatially over each element
-  @unpack rstxyzJ = mesh.md
+  # TODO: retrieve this data from cache instead of mesh.md
+  # @unpack rstxyzJ = mesh.md
+  rstxyzJ = cache.dxidxhatj
   return SVector{NDIMS}(view.(rstxyzJ[:, orientation], :, element))
 end
 
@@ -465,7 +467,7 @@ end
     # Thus, we use the second option below (which basically corresponds to the
     # well-known sum factorization on tensor product elements).
     # Note that there is basically no difference for dense derivative operators.
-    normal_direction = get_contravariant_vector(element_index, dim, mesh)
+    normal_direction = get_contravariant_vector(element_index, dim, mesh, cache)
     Q_skew = Qrst_skew[dim]
 
     # True() indicates the flux is symmetric
@@ -482,7 +484,7 @@ end
   @unpack Qrst_skew = cache
   flux_conservative, flux_nonconservative = volume_integral.volume_flux
   for dim in eachdim(mesh)
-    normal_direction = get_contravariant_vector(element_index, dim, mesh)
+    normal_direction = get_contravariant_vector(element_index, dim, mesh, cache)
     Q_skew = Qrst_skew[dim]
 
     # True() indicates the flux is symmetric
