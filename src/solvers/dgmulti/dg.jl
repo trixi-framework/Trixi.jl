@@ -170,12 +170,12 @@ function create_cache(mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
   rd = dg.basis
   md = mesh.md
 
-  # for curved meshes, we interpolate geometric terms from nodal points to to quadrature points.
+  # For curved meshes, we interpolate geometric terms from nodal points to quadrature points.
   # The curved DGMultiMesh constructor interpolates md.rstxyzJ to *both* volume and face points
   # TODO: fix this by moving interpolation of rstxyzJ to cache.
   dxidxhatj = map(x -> getindex(x, 1:rd.Nq, :), md.rstxyzJ)
 
-  # interpolate J to quadrature points for WADG
+  # interpolate J to quadrature points for weight-adjusted DG (WADG)
   invJ = inv.(rd.Vq * md.J)
 
   nvars = nvariables(equations)
