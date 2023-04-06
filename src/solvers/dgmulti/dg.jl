@@ -321,11 +321,11 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
       flux_values[i] .= flux.(view(u_values, :, e), i, equations)
     end
 
-    # rotate flux with sum_j d(x_i)/d(x̂_j) * d(f)/d(x̂_h).
-    # Example:    dr/dx * df_x/dr + ds/dx * df_x/ds
-    #           + dr/dy * df_y/dr + ds/dy * df_y/ds
-    #           = Dr * (dr/dx * fx + dr/dy * fy) + Ds * (...)
-    #           = Dr * (f_r) + Ds * (f_s)
+    # rotate flux with df_i/dx_i = sum_j d(x_i)/d(x̂_j) * d(f_i)/d(x̂_j).
+    # Example: df_x/dx + df_y/dy = dr/dx * df_x/dr + ds/dx * df_x/ds
+    #                  + dr/dy * df_y/dr + ds/dy * df_y/ds
+    #                  = Dr * (dr/dx * fx + dr/dy * fy) + Ds * (...)
+    #                  = Dr * (f_r) + Ds * (f_s)
 
     rotated_flux_values = cache.rotated_flux_threaded[Threads.threadid()]
     for j in eachdim(mesh)
