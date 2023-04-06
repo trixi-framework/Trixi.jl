@@ -572,6 +572,7 @@ end
 # Specializes on Polynomial (e.g., modal) DG methods with a flux differencing volume integral, e.g.,
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection!`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
+# Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff, cache) where {Source, BC}
 
