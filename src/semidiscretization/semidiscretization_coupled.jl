@@ -65,11 +65,13 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
     summary_header(io, "SemidiscretizationCoupled")
     summary_line(io, "#spatial dimensions", ndims(semi.semis[1]))
     summary_line(io, "#meshes", nmeshes(semi))
-    summary_line(io, "equations", mesh_equations_solver_cache(semi.semis[1])[2] |> typeof |> nameof)
-    summary_line(io, "initial conditions", semi.semis[1].initial_condition)
-    # TODO boundary conditions? That will be 36 BCs for a cubed sphere
-    summary_line(io, "source terms", semi.semis[1].source_terms)
-    summary_line(io, "solvers", mesh_equations_solver_cache(semi.semis[1])[3] |> typeof |> nameof)
+    for i = 1:nmeshes(semi)
+      summary_line(io, "equations", mesh_equations_solver_cache(semi.semis[i])[2] |> typeof |> nameof)
+      summary_line(io, "initial conditions", semi.semis[i].initial_condition)
+      # TODO boundary conditions? That will be 36 BCs for a cubed sphere
+      summary_line(io, "source terms", semi.semis[i].source_terms)
+      summary_line(io, "solvers", mesh_equations_solver_cache(semi.semis[i])[3] |> typeof |> nameof)
+    end
     summary_line(io, "total #DOFs", ndofs(semi))
     summary_footer(io)
   end
@@ -79,14 +81,15 @@ end
 function summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_context)
   show(io_context, MIME"text/plain"(), semi)
   println(io, "\n")
-  mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[1])
-  # TODO other meshes?
-  show(io_context, MIME"text/plain"(), mesh)
-  println(io, "\n")
-  show(io_context, MIME"text/plain"(), equations)
-  println(io, "\n")
-  show(io_context, MIME"text/plain"(), solver)
-  println(io, "\n")
+  for i = 1:nmeshes(semi)
+    mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
+    show(io_context, MIME"text/plain"(), mesh)
+    println(io, "\n")
+    show(io_context, MIME"text/plain"(), equations)
+    println(io, "\n")
+    show(io_context, MIME"text/plain"(), solver)
+    println(io, "\n")
+  end
 end
 
 function Base.summary(semi::SemidiscretizationCoupled)
@@ -125,6 +128,7 @@ end
 # TODO: Find out where this is being used.
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationCoupled)
   _, equations, _, _ = mesh_equations_solver_cache(semi.semis[1])
+
   return nothing, equations, nothing, nothing
 end
 
@@ -155,28 +159,12 @@ end
 function integrate(func::Func, u_ode::AbstractVector, semi::SemidiscretizationCoupled; normalize=true) where {Func}
   @unpack semis, u_indices = semi
 
-  # print("nmeshes(semi) = ", nmeshes(semi), "\n")
-  # integral = sum(1:nmeshes(semi)) do i
-  #   mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
-  #   u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
-
-  #   # print("size(u) = ", size(u), "; equation = ", equations, "; mesh.cells_per_dimension = ", mesh.cells_per_dimension, "\n")
-  #   integrate(func, u, mesh, equations, solver, cache, normalize=false)
-  #   # @infiltrate
-  #   # sleep(1)
-    print("nmeshes(semi) = ", nmeshes(semi), "\n")
-    integral1 = sum(1:1) do i
+  integral = []
+  for i = 1:nmeshes(semi)
       mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
       u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)  
-      integrate(func, u, mesh, equations, solver, cache, normalize=false)
-    end
-    integral2 = sum(2:2) do i
-      mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
-      u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)  
-      integrate(func, u, mesh, equations, solver, cache, normalize=false)
-    end
-    @infiltrate
-    vcat(integral1, integral2)
+      integral = vcat(integral, integrate(func, u, mesh, equations, solver, cache, normalize=false))
+  end
 
   # Normalize with total volume
   if normalize
@@ -223,6 +211,7 @@ function allocate_coupled_boundary_conditions(semi, semi_other)
 
     allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, equations_other, solver)
   end
+
 end
 
 function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, equations_other, solver) end
@@ -234,6 +223,7 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
   else
     cell_size = size(mesh, 1)
   end
+
   boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations), nnodes(dg), cell_size)
 end
 
@@ -328,8 +318,9 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{2
 
     for i in eachnode(solver)
       for v in 1:size(u, 1)
-        boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node, 
-                                                      linear_indices[i_cell, j_cell]]
+        # boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node, 
+        #                                               linear_indices[i_cell, j_cell]]
+        boundary_condition.u_boundary[v, i, cell] = 1.0
       end
       i_node += i_node_step
       j_node += j_node_step
@@ -370,9 +361,16 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledAB
   i_cell = i_cell_start
   j_cell = j_cell_start
 
-  # print("size(u) = ", size(u),
-  #       " size(u_boundary) = ", size(boundary_condition.u_boundary),
-  #       " length(u_ode[u_indices[other_semi_index]]) = ", length(u_ode[u_indices[other_semi_index]]), "\n" )
+  # TODO: This should be computed in the coupled equations module.
+  if boundary_condition.other_semi_index == 2
+    coupled_index_offset = 4
+  else
+    coupled_index_offset = 0
+  end
+
+  if any(isnan, u)
+    print("u has NaNs\n")
+  end
 
   for cell in cells
     i_node = i_node_start
@@ -380,8 +378,9 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledAB
 
     for i in eachnode(solver)
       for v in 1:size(u, 1)
-        boundary_condition.u_boundary[v, i, cell] = u[v, Int(ceil(i_node)), Int(ceil(j_node)), 
-                                                      Int(ceil(linear_indices[i_cell, j_cell]))]
+        boundary_condition.u_boundary[v+coupled_index_offset, i, cell] = u[v, i_node, j_node, 
+                                                                           linear_indices[i_cell, j_cell]] * 0
+        # print(v, " ", i+coupled_index_offset, " ", cell, "; ", v, " ", i_node, " ", j_node, " ", linear_indices[i_cell, j_cell], "\n")
       end
       i_node += i_node_step
       j_node += j_node_step
