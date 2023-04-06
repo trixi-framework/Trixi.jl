@@ -100,11 +100,11 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
-  @trixi_testset "elixir_euler_curved.jl (Triangular elements, SBP, weak formulation)" begin
+  @trixi_testset "elixir_euler_curved.jl (Triangular elements, Polynomial, weak formulation)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
       element_type = Tri(), approximation_type = Polynomial(), volume_integral = VolumeIntegralWeakForm(),
-      l2 = [2.514680005317396e-6, 2.8651612678675357e-6, 2.865161269271603e-6, 1.0004319930916973e-5],
-      linf = [7.71736791915778e-6, 1.0558193409782035e-5, 1.0558193404008875e-5, 3.293301194862153e-5]
+      l2 = [7.905498158659466e-6, 8.731690809663625e-6, 8.731690811576996e-6, 2.9113296018693953e-5],
+      linf = [3.298811230090237e-5, 4.032272476939269e-5, 4.032272526011127e-5, 0.00012013725458537294]
     )
   end
 
