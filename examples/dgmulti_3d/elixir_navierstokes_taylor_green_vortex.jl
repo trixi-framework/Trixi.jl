@@ -40,9 +40,10 @@ dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = GaussSBP(),
 
 coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = ( 1.0,  1.0,  1.0) .* pi
-mesh = DGMultiMesh(dg; coordinates_min, coordinates_max,
-                       cells_per_dimension=(8, 8, 8),
-                       periodicity=(true, true, true))
+cells_per_dimension = (8, 8, 8)
+mesh = DGMultiMesh(dg, cells_per_dimension;
+                   coordinates_min, coordinates_max,
+                   periodicity=(true, true, true))
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, dg)

@@ -27,8 +27,9 @@ dg = DGMulti(polydeg = 3,
              surface_flux = flux_lax_friedrichs,
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
+cells_per_dimension = (32, 32)
 mesh = DGMultiMesh(dg,
-                   cells_per_dimension=(32, 32), # initial_refinement_level = 5
+                   cells_per_dimension, # initial_refinement_level = 5
                    coordinates_min=(-2.0, -2.0),
                    coordinates_max=( 2.0,  2.0),
                    periodicity=true)
@@ -75,8 +76,9 @@ dg = DGMulti(polydeg = 3,
              surface_flux = flux_lax_friedrichs,
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
+cells_per_dimension = (32, 32)
 mesh = DGMultiMesh(dg,
-             cells_per_dimension=(32, 32), # initial_refinement_level = 5
+             cells_per_dimension, # initial_refinement_level = 5
              coordinates_min=(-2.0, -2.0),
              coordinates_max=( 2.0,  2.0),
              periodicity=true)
@@ -114,8 +116,9 @@ dg = DGMulti(polydeg = 3,
              surface_flux = flux_lax_friedrichs,
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
+cells_per_dimension = (32, 32)
 mesh = DGMultiMesh(dg,
-                   cells_per_dimension=(32, 32), # initial_refinement_level = 5
+                   cells_per_dimension, # initial_refinement_level = 5
                    coordinates_min=(-2.0, -2.0),
                    coordinates_max=( 2.0,  2.0),
                    periodicity=true)

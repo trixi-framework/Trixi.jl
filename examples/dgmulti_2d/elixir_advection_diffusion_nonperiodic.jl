@@ -36,8 +36,12 @@ top(x, tol=50*eps()) = abs(x[2] - 0.5) < tol
 entire_boundary(x, tol=50*eps()) = true
 is_on_boundary = Dict(:left => left, :right => right, :top => top, :bottom => bottom,
                       :entire_boundary => entire_boundary)
-mesh = DGMultiMesh(dg; coordinates_min=(-1.0, -0.5), coordinates_max=(0.0, 0.5),
-                   cells_per_dimension=(16, 16), is_on_boundary)
+
+cells_per_dimension = (16, 16)
+mesh = DGMultiMesh(dg, cells_per_dimension;
+                   coordinates_min=(-1.0, -0.5),
+                   coordinates_max=(0.0, 0.5),
+                   is_on_boundary)
 
 # BC types
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
