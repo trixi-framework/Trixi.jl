@@ -16,7 +16,9 @@ right(x, tol=50*eps()) = abs(x[1] - 1) < tol
 bottom(x, tol=50*eps()) = abs(x[2] + 1) < tol
 top(x, tol=50*eps()) = abs(x[2] - 1) < tol
 is_on_boundary = Dict(:left => left, :right => right, :top => top, :bottom => bottom)
-mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16); is_on_boundary)
+
+cells_per_dimension = (16, 16)
+mesh = DGMultiMesh(dg, cells_per_dimension; is_on_boundary)
 
 # BC types
 boundary_condition_left = BoundaryConditionDirichlet((x, t, equations) -> SVector(1 + 0.1 * x[2]))

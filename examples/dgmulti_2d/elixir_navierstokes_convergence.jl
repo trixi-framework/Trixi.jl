@@ -20,7 +20,9 @@ dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(
 
 top_bottom(x, tol=50*eps()) = abs(abs(x[2]) - 1) < tol
 is_on_boundary = Dict(:top_bottom => top_bottom)
-mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16); periodicity=(true, false), is_on_boundary)
+
+cells_per_dimension = (16, 16)
+mesh = DGMultiMesh(dg, cells_per_dimension; periodicity=(true, false), is_on_boundary)
 
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion2D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion2D`)
