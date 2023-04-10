@@ -19,6 +19,9 @@ for human readability.
 - The macro `@unpack` (re-exported originally from UnPack.jl) is deprecated and
   will be removed. Consider using Julia's standard destructuring syntax
   `(; a, b) = stuff` instead of `@unpack a, b = stuff`.
+- The constructor `DGMultiMesh(dg; cells_per_dimension, kwargs...)` is deprecated
+  and will be removed. The new constructor `DGMultiMesh(dg, cells_per_dimension; kwargs...)`
+  does not have `cells_per_dimesion` as a keyword argument.
 
 #### Removed
 
