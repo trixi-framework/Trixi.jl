@@ -64,7 +64,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi works
-with Julia v1.7.
+with Julia v1.8.
 
 ### For users
 Trixi and its related tools are registered Julia packages. Hence, you
@@ -74,7 +74,7 @@ can install Trixi, the visualization tool
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
 by executing the following commands in the Julia REPL:
 ```julia
-julia> import Pkg
+julia> using Pkg
 
 julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
 ```
@@ -89,7 +89,7 @@ visualize Trixi's results from the REPL.
 work, verify that you are using a recent Trixi release by comparing the
 installed Trixi version from
 ```julia
-julia> import Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
+julia> using Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
 ```
 to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
 If the installed version does not match the current release, please check the
@@ -99,20 +99,25 @@ The commands above can also be used to update Trixi. A brief list of notable
 changes to Trixi is available in [`NEWS.md`](NEWS.md).
 
 ### For developers
-If you plan on editing Trixi itself, you can download Trixi locally and run it from
-within the cloned directory:
+If you plan on editing Trixi itself, you can download Trixi locally and use the
+code from the cloned directory:
 ```bash
 git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
-julia --project=@. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
-julia -e 'import Pkg; Pkg.add(["Trixi2Vtk", "Plots"])' # Install postprocessing tools
-julia -e 'import Pkg; Pkg.add("OrdinaryDiffEq")' # Install time integration schemes
+mkdir run 
+cd run
+julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi clone
+julia -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])' # Install additional packages
 ```
+Note that the postprocessing tools Trixi2Vtk.jl and Plots.jl are optional and
+can be omitted.
+
 If you installed Trixi this way, you always have to start Julia with the `--project`
-flag set to your local Trixi clone, e.g.,
+flag set to your `run` directory, e.g.,
 ```bash
-julia --project=@.
+julia --project=.
 ```
+if already inside the `run` directory.
 Further details can be found in the [documentation](#documentation).
 
 

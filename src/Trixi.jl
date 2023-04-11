@@ -61,14 +61,15 @@ using Triangulate: Triangulate, TriangulateIO, triangulate
 export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
-@reexport using UnPack: @unpack
-using UnPack: @pack!
+@reexport using SimpleUnPack: @unpack
+using SimpleUnPack: @pack!
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,
   AbstractNonperiodicDerivativeOperator, DerivativeOperator,
   AbstractPeriodicDerivativeOperator, PeriodicDerivativeOperator, grid
 import SummationByPartsOperators: integrate, semidiscretize,
+                                  compute_coefficients, compute_coefficients!,
                                   left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
   SummationByPartsOperators, derivative_operator, periodic_derivative_operator,

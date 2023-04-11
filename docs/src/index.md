@@ -58,7 +58,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi works
-with Julia v1.7.
+with Julia v1.8.
 
 ### For users
 Trixi and its related tools are registered Julia packages. Hence, you
@@ -68,7 +68,7 @@ can install Trixi, the visualization tool
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
 by executing the following commands in the Julia REPL:
 ```julia
-julia> import Pkg
+julia> using Pkg
 
 julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
 ```
@@ -83,7 +83,7 @@ visualize Trixi's results from the REPL.
 work, verify that you are using a recent Trixi release by comparing the
 installed Trixi version from
 ```julia
-julia> import Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
+julia> using Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
 ```
 to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
 If the installed version does not match the current release, please check the
@@ -93,52 +93,39 @@ The commands above can also be used to update Trixi. A brief list of notable
 changes to Trixi is available in [`NEWS.md`](https://github.com/trixi-framework/Trixi.jl/NEWS.md).
 
 ### [For developers](@id for-developers)
-If you plan on editing Trixi itself, you have two options: installing it as a
-`dev` package or cloning it to a local folder.
-
-1. **Install Trixi as a `dev` package**: You can install Trixi as a `dev` package by running
-   ```julia
-   julia> import Pkg
-
-   julia> Pkg.develop("Trixi")
-   ```
-   This will download and install Trixi to a designated package development directory
-   (usually `.julia/dev`, but you can determine the path on your system with
-   `Pkg.devdir()`). As opposed to using the `Pkg.add` method as described above,
-   packages installed via `Pkg.develop` may have their files edited locally.
-
-2. **Install Trixi in a local folder**: Alternatively, you can download Trixi
-   locally and use it from within the cloned directory:
-   ```bash
-   git clone git@github.com:trixi-framework/Trixi.jl.git
-   cd Trixi.jl
-   julia --project=@. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
-   ```
-   The last line can also be used to *update* the dependencies if they have changed
-   since you first installed Trixi.
-
-   If you installed Trixi this way, you always have to start Julia with the `--project`
-   flag set to your local Trixi clone, e.g.,
-   ```bash
-   julia --project=@.
-   ```
-
-Either way, since the postprocessing tool Trixi2Vtk typically does not need to be modified,
-it is recommended to install it as a normal package by executing
-```julia
-julia> import Pkg
-
-julia> Pkg.add("Trixi2Vtk")
+If you plan on editing Trixi itself, you can download Trixi to a local folder
+and use the code from the cloned directory:
+```bash
+git clone git@github.com:trixi-framework/Trixi.jl.git
+cd Trixi.jl
+mkdir run
+cd run
+julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))'
 ```
-in the Julia REPL. Likewise, you can install
+If you installed Trixi this way, you always have to start Julia with the `--project`
+flag set to your `run` directory, e.g.,
+```bash
+julia --project=.
+```
+if already inside the `run` directory.
+
+The advantage of using a separate `run` directory is that you can also add other
+related packages (see below, e.g., for time integration or visualization) to the
+project in the `run` folder and always have a reproducible environment at hand
+to share with others.
+
+Since the postprocessing tool Trixi2Vtk.jl typically does not need to be modified,
+it is recommended to install it as a normal package.  Likewise, you can install
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
-as ordinary packages with the following REPL commands:
+as ordinary packages. To achieve this, use the following REPL commands:
 ```julia
-julia> import Pkg
+julia> using Pkg
 
-julia> Pkg.add("OrdinaryDiffEq"); Pkg.add("Plots")
+julia> Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])
 ```
+Note that the postprocessing tools Trixi2Vtk.jl and Plots.jl are optional and
+can be omitted.
 
 
 
