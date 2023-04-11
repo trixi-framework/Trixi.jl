@@ -6,6 +6,7 @@
 
 
 include("positivity_zhang_shu.jl")
+include("positivity_adaptive_filter.jl")
 
 
 end # @muladd

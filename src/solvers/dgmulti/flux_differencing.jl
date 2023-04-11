@@ -362,6 +362,30 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
   return nothing
 end
 
+# TODO: REFACTOR. redundant with entropy_projection!
+function local_entropy_projection!(cache, u_e, e, mesh::DGMultiMesh, equations, dg::DGMulti)
+
+  rd = dg.basis
+  @unpack Vq = rd
+  @unpack VhP, entropy_var_values, u_values = cache
+  @unpack projected_entropy_var_values, entropy_projected_u_values = cache
+
+  u_values_e                     = view(u_values, :, e)
+  entropy_var_values_e           = view(entropy_var_values, :, e)
+  projected_entropy_var_values_e = view(projected_entropy_var_values, :, e)
+  entropy_projected_u_values_e   = view(entropy_projected_u_values, :, e)
+
+  apply_to_each_field(mul_by!(Vq), u_values_e, u_e)
+
+  cons2entropy!(entropy_var_values_e, u_values_e, equations)
+
+  # "VhP" fuses the projection "P" with interpolation to volume and face quadrature "Vh"
+  apply_to_each_field(mul_by!(VhP), projected_entropy_var_values_e, entropy_var_values_e)
+
+  entropy2cons!(entropy_projected_u_values_e, projected_entropy_var_values_e, equations)
+  return nothing
+end
+
 @inline function cons2entropy!(entropy_var_values::StructArray,
                                u_values          ::StructArray,
                                equations)
