@@ -21,7 +21,9 @@ dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = GaussSBP()
 top(x, tol=50*eps()) = abs(x[2] - 1) < tol
 rest_of_boundary(x, tol=50*eps()) = !top(x, tol)
 is_on_boundary = Dict(:top => top, :rest_of_boundary => rest_of_boundary)
-mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16); is_on_boundary)
+
+cells_per_dimension = (16, 16)
+mesh = DGMultiMesh(dg, cells_per_dimension; is_on_boundary)
 
 function initial_condition_cavity(x, t, equations::CompressibleEulerEquations2D)
   Ma = 0.1
