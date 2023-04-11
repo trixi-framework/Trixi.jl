@@ -67,6 +67,17 @@ function DGMulti(; polydeg=nothing,
 end
 
 # dispatchable constructor for DGMulti to allow for specialization
+function DGMulti(element_type::AbstractElemShape, 
+  approximation_type::TensorProductWedge, 
+  volume_integral,
+  surface_integral;
+  polydeg=nothing, 
+  kwargs...)
+rd = RefElemData(element_type, approximation_type; kwargs...)
+return DG(rd, nothing, surface_integral,volume_integral)
+end
+
+# dispatchable constructor for DGMulti to allow for specialization
 function DGMulti(element_type::AbstractElemShape,
                  approximation_type,
                  volume_integral,
