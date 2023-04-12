@@ -255,7 +255,7 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 
 ## Acknowledgments
-<p float="center">
+<p align="center">
   <!-- BMBF -->
   <img align="middle" src="https://user-images.githubusercontent.com/3637659/231436391-b28a76a4-f027-40f9-bd28-14e3a2f3e16a.png" height="140"/>
 
