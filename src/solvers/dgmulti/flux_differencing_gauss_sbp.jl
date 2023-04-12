@@ -318,17 +318,13 @@ end
 function create_cache(mesh::DGMultiMesh, equations,
                       dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Quad, Hex}}, RealT, uEltype)
 
-  rd = dg.basis
-  @unpack md = mesh
-
+  # call general Polynomial flux differencing constructor
   cache = invoke(create_cache, Tuple{typeof(mesh), typeof(equations),
                  DGMultiFluxDiff, typeof(RealT), typeof(uEltype)},
                  mesh, equations, dg, RealT, uEltype)
 
-  # Interpolate the Jacobian to Gauss points. Since we initialize `cache.invJ = inv.(md.J)`
-  # in the `invoke` call to `create_cache`, it should be the right size since the number of
-  # Gauss points is the same as the number of nodal Lobatto points.
-  cache.invJ .= inv.(rd.Vq * md.J)
+  rd = dg.basis
+  @unpack md = mesh
 
   # for change of basis prior to the volume integral and entropy projection
   r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))

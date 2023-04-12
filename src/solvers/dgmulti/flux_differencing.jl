@@ -338,9 +338,10 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
   # interpolate geometric terms to both quadrature and face values for curved meshes
   (; Vq, Vf) = dg.basis
   interpolated_geometric_terms = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
+  J = rd.Vq * md.J
 
   return (; md, Qrst_skew, VhP, Ph,
-            invJ = inv.(md.J), dxidxhatj = interpolated_geometric_terms,
+            invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
             entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
             u_values, u_face_values, flux_face_values,
             local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
