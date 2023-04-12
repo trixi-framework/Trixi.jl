@@ -227,20 +227,17 @@ end
   # SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
 
   # assumes geometric terms are constant on each element
-  @unpack rstxyzJ = mesh.md
-  return SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element))
+  (; dxidxhatj) = cache
+  return SVector{NDIMS}(getindex.(dxidxhatj[:, orientation], 1, element))
 end
 
 @inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine}, cache) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
 
   # assumes geometric terms vary spatially over each element
-  # TODO: retrieve this data from cache instead of mesh.md
-  # @unpack rstxyzJ = mesh.md
-  rstxyzJ = cache.dxidxhatj
-  return SVector{NDIMS}(view.(rstxyzJ[:, orientation], :, element))
+  (; dxidxhatj) = cache
+  return SVector{NDIMS}(view.(dxidxhatj[:, orientation], :, element))
 end
-
 
 # use hybridized SBP operators for general flux differencing schemes.
 function compute_flux_differencing_SBP_matrices(dg::DGMulti)
@@ -297,7 +294,7 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, Real
   # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
   fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq) for _ in 1:Threads.nthreads()]
 
-  return (; md, Qrst_skew,
+  return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
             u_values, u_face_values, flux_face_values,
             local_values_threaded, fluxdiff_local_threaded)
@@ -338,29 +335,17 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
   fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total) for _ in 1:Threads.nthreads()]
   rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (num_quad_points_total,), dg)  for _ in 1:Threads.nthreads()]
 
-  return (; md, Qrst_skew,
-            VhP, Ph, invJ = inv.(md.J),
-            entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
-            u_values, u_face_values,  flux_face_values,
-            local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
-end
-
-# append curved geometric terms to the non-curved cache
-function create_cache(mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
-                      dg::DGMultiFluxDiff, RealT, uEltype) where {NDIMS}
-
-  # call non-curved create_cache
-  cache = invoke(create_cache,
-                 Tuple{DGMultiMesh{NDIMS, Affine}, typeof(equations),
-                 typeof(dg), typeof(RealT), typeof(uEltype)},
-                 mesh, equations, dg, RealT, uEltype)
-
-  # interpolate geometric terms to both quadrature and face values
+  # interpolate geometric terms to both quadrature and face values for curved meshes
   (; Vq, Vf) = dg.basis
   interpolated_geometric_terms = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
 
-  return (; cache..., dxidxhatj = interpolated_geometric_terms)
+  return (; md, Qrst_skew, VhP, Ph,
+            invJ = inv.(md.J), dxidxhatj = interpolated_geometric_terms,
+            entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
+            u_values, u_face_values, flux_face_values,
+            local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
 end
+
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti)
