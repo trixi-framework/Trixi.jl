@@ -237,6 +237,9 @@ function max_dt(u, t, mesh::DGMultiMesh,
   # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
   # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
   # the number of 1D nodes for `DGSEM` solvers.
+  # For tensor-product elements the maximum of the polynomial degrees is used to ensure
+  # that the timestep is feasable for both elements of the tensor-product. For the
+  # other elements taking the maximum has no effect.
   polydeg = maximum(rd.N)
   return 2 * dt_min / (polydeg + 1)
 end
@@ -260,6 +263,9 @@ function max_dt(u, t, mesh::DGMultiMesh,
   # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
   # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
   # the number of 1D nodes for `DGSEM` solvers.
+  # For tensor-product elements the maximum of the polynomial degrees is used to ensure
+  # that the timestep is feasable for both elements of the tensor-product.For the
+  # other elements taking the maximum has no effect.
   polydeg = maximum(rd.N)
   return 2 * dt_min / (polydeg + 1)
 end
