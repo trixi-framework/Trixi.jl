@@ -222,7 +222,7 @@ end
 # and jth reference coordinate, respectively. These are geometric terms which
 # appear when using the chain rule to compute physical derivatives as a linear
 # combination of reference derivatives.
-@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}, args...) where {NDIMS}
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}, cache) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ], so that this will return
   # SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
 
