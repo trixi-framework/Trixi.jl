@@ -880,6 +880,42 @@ function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes
   return calc_arc_length(curve), data_on_curve, mesh_vertices_x
 end
 
+# Convert 3d unstructured data from a general mesh to 2d data at a plane.
+function unstructured_3d_to_2d_plane(nodes, data; elevations=nothing, slice=:yz, point=(0,0,0), nvisnodes=32)
+  # Set dimensions according to 'slice'.
+  if slice === :yz
+    slice_dimension = 1
+    other_dimensions = [2, 3]
+  elseif slice === :xz
+    slice_dimension = 2
+    other_dimensions = [1, 3]
+  elseif slice === :xy
+    slice_dimension = 3
+    other_dimensions = [1, 2]
+  else
+    throw(ArgumentError("illegal dimension '$slice', supported dimensions are :yz, :xz, and :xy"))
+  end
+
+  if elevations !== nothing
+    nvisnodes = size(elevations, 1)
+    plane = create_plane(nodes[1,:,:,:,:], nodes[2,:,:,:,:], nodes[3,:,:,:,:], point, nvisnodes, slice_dimension, other_dimensions)
+    plane[slice_dimension, :, :] = elevations
+  else
+    plane = create_plane(nodes[1,:,:,:,:], nodes[2,:,:,:,:], nodes[3,:,:,:,:], point, nvisnodes, slice_dimension, other_dimensions)
+  end
+
+  n_variables = size(data, 1)
+  data_on_plane = zeros(nvisnodes, nvisnodes, n_variables)
+
+  for i in 1:nvisnodes
+    for j in 1:nvisnodes
+      data_on_plane[i, j, :] .= get_value_at_point(plane[:, i, j], nodes, data)
+    end
+  end
+
+  return data_on_plane, plane[other_dimensions, :, :]
+end
+
 # Check if the first 'amount'-many points can still form a valid tetrahedron.
 function is_valid_tetrahedron(amount, coordinates; tol=10^-4)
   a = coordinates[:,1]; b = coordinates[:,2]; c = coordinates[:,3]; d = coordinates[:,4];
@@ -1471,6 +1507,21 @@ function axis_curve(nodes_x, nodes_y, nodes_z, slice, point, n_points)
   end
 
   return curve
+end
+
+# Create a grid consisting of three matrices holding the x, y and z coordinates of a plane in 3D-space.
+function create_plane(nodes_x, nodes_y, nodes_z, point, nvisnodes, slice_dimension, other_dimensions)
+  node_extrema = [extrema(nodes_x), extrema(nodes_y), extrema(nodes_z)]
+  plane = zeros(3, nvisnodes, nvisnodes)
+
+  for i in 1:nvisnodes
+    plane[other_dimensions[1], i, :] = collect(range(node_extrema[other_dimensions[1]][1], node_extrema[other_dimensions[1]][2], length=nvisnodes))
+    plane[other_dimensions[2], :, i] = collect(range(node_extrema[other_dimensions[2]][1], node_extrema[other_dimensions[2]][2], length=nvisnodes))
+  end
+
+  plane[slice_dimension, :, :] .= point[slice_dimension]
+
+  return plane
 end
 
 end # @muladd
