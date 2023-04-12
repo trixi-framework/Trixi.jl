@@ -50,7 +50,7 @@ different features on different mesh types.
 | Feature                                                      | [`TreeMesh`](@ref) | [`StructuredMesh`](@ref) | [`UnstructuredMesh2D`](@ref) | [`P4estMesh`](@ref) | [`DGMultiMesh`](@ref) | Further reading
 |:-------------------------------------------------------------|:------------------:|:------------------------:|:----------------------------:|:-------------------:|:--------------------------:|:-----------------------------------------
 | Spatial dimension                                            |     1D, 2D, 3D     |        1D, 2D, 3D        |              2D              |        2D, 3D       |          1D, 2D, 3D        |
-| Coordinates                                                  |      Cartesian     |        curvilinear       |          curvilinear         |     curvilinear     |            affine          |
+| Coordinates                                                  |      Cartesian     |        curvilinear       |          curvilinear         |     curvilinear     |         curvilinear        |
 | Connectivity                                                 |  *h*-nonconforming |        conforming        |          conforming          |  *h*-nonconforming  |          conforming        |
 | Element type                                                 | line, square, cube |     line, quadᵃ, hexᵃ    |             quadᵃ            |     quadᵃ, hexᵃ     |    simplex, quadᵃ, hexᵃ    |
 | Adaptive mesh refinement                                     |          ✅         |             ❌            |               ❌              |          ✅          |               ❌            | [`AMRCallback`](@ref)
