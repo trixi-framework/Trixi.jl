@@ -7,7 +7,15 @@ using Trixi
 # discontinuous bottom topography function to test entropy conservation
 
 equations = ShallowWaterTwoLayerEquations1D(gravity_constant=9.81, H0=2.0, rho_upper=0.9, rho_lower=1.0)
-# This initial condition will be overwritten with the discontinuous initial_condition_dam_break
+
+###############################################################################
+# Workaround to set a discontinuous bottom topography and initial condition.
+
+# This test case uses a special work around to setup a truly discontinuous bottom topography 
+# function and initial condition for this academic testcase of entropy conservation. First, a 
+# dummy initial condition is introduced to create the semidiscretization. Then the initial condition 
+# is reset with the true discontinuous values from initial_condition_dam_break. Note, that this
+# initial condition only works for TreeMesh1D with `initial_refinement_level=5`.
 initial_condition = initial_condition_convergence_test
 
 ###############################################################################

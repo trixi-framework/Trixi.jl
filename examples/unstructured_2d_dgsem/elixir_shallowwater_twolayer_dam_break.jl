@@ -9,8 +9,11 @@ using Trixi
 
 equations = ShallowWaterTwoLayerEquations2D(gravity_constant=1.0, rho_upper=0.9, rho_lower=1.0)
 
-# This initial condition will be overwritten with the true discontinuous condition from 
-# initial_condition_discontinuous_dam_break
+# This test case uses a special work around to setup a truly discontinuous bottom topography 
+# function and initial condition for this academic testcase of entropy conservation. First, a 
+# dummy initial_condition_dam_break is introduced to create the semidiscretization. Then the initial
+# condition is reset with the true discontinuous values from initial_condition_discontinuous_dam_break.
+
 function initial_condition_dam_break(x, t,equations::ShallowWaterTwoLayerEquations2D)
   if x[1] < sqrt(2)/2
     H_upper = 1.0

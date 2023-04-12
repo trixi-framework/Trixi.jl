@@ -38,7 +38,7 @@ Two-Layer Shallow water equations (2LSWE) in two space dimension. The equations 
 ```
 The unknown quantities of the 2LSWE are the water heights of the lower layer ``h_{lower}`` and the 
 upper 
-layer ``h_{upper}`` and the respective velocities in x-Direction ``v_{1,lower}`` and ``v_{1,upper}`` and in y-Direction
+layer ``h_{upper}`` and the respective velocities in x-direction ``v_{1,lower}`` and ``v_{1,upper}`` and in y-direction
 ``v_{2,lower}`` and ``v_{2,upper}``. The gravitational constant is denoted by `g`, the layer densitites by 
 ``\rho_{upper}``and ``\rho_{lower}`` and the (possibly) variable bottom topography function by ``b(x)``. 
 Conservative variable water height ``h_{lower}`` is measured from the bottom topography ``b`` and ``h_{upper}`` 
@@ -72,20 +72,20 @@ A good introduction for the 2LSWE is available in Chapter 12 of the book:
     ISBN: 978-0-12-088759-0
 """
 struct ShallowWaterTwoLayerEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 7}
-  gravity::RealT # gravitational constant
-  H0::RealT      # constant "lake-at-rest" total water height
-  rho_upper::RealT    # lower layer density
-  rho_lower::RealT    # upper layer density
-  r::RealT       # ratio of rho_upper / rho_lower
+  gravity::RealT   # gravitational constant
+  H0::RealT        # constant "lake-at-rest" total water height
+  rho_upper::RealT # lower layer density
+  rho_lower::RealT # upper layer density
+  r::RealT         # ratio of rho_upper / rho_lower
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
 # well-balancedness test cases. Densities must be specificed such that rho_upper < rho_lower.
-function ShallowWaterTwoLayerEquations2D(; gravity_constant, H0=0.0, rho_upper, rho_lower)
-  # Assign density ratio if rho_upper <= rho_2
-  if rho_upper / rho_lower > 1
+function ShallowWaterTwoLayerEquations2D(; gravity_constant, H0=zero(gravity_constant), rho_upper, rho_lower)
+  # Assign density ratio if rho_upper <= rho_lower
+  if rho_upper > rho_lower
     error("Invalid input: Densities must be chosen such that rho_upper <= rho_lower")
   else
     r = rho_upper / rho_lower
@@ -832,7 +832,7 @@ end
   v1_lower = h_v1_lower / h_lower
   v2_lower = h_v2_lower / h_lower
 
-  return v1_upper, v2_upper, v1_lower, v2_lower
+  return SVector(v1_upper, v2_upper, v1_lower, v2_lower)
 end
 
 
@@ -887,7 +887,7 @@ end
 
 
 @inline function waterheight(u, equations::ShallowWaterTwoLayerEquations2D)
-  return u[1], u[4]
+  return SVector(u[1], u[4])
 end
 
 

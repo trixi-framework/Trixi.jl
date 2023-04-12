@@ -58,20 +58,20 @@ A good introduction for the 2LSWE is available in Chapter 12 of the book:
   ISBN: 978-0-12-088759-0
 """
 struct ShallowWaterTwoLayerEquations1D{RealT<:Real} <: AbstractShallowWaterEquations{1,5}
-  gravity::RealT # gravitational constant
-  H0::RealT      # constant "lake-at-rest" total water height
-  rho_upper::RealT    # lower layer density
-  rho_lower::RealT    # upper layer density
-  r::RealT       # ratio of rho_upper / rho_lower
+  gravity::RealT   # gravitational constant
+  H0::RealT        # constant "lake-at-rest" total water height
+  rho_upper::RealT # lower layer density
+  rho_lower::RealT # upper layer density
+  r::RealT         # ratio of rho_upper / rho_lower
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
 # well-balancedness test cases. Densities must be specificed such that rho_upper <= rho_lower.
-function ShallowWaterTwoLayerEquations1D(; gravity_constant, H0=0.0, rho_upper, rho_lower)
-  # Assign density ratio if rho_upper <= rho_2
-  if rho_upper / rho_lower > 1
+function ShallowWaterTwoLayerEquations1D(; gravity_constant, H0=zero(gravity_constant), rho_upper, rho_lower)
+  # Assign density ratio if rho_upper <= rho_lower
+  if rho_upper > rho_lower
     error("Invalid input: Densities must be chosen such that rho_upper <= rho_lower")
   else
     r = rho_upper / rho_lower
@@ -505,7 +505,7 @@ end
 
   v1_upper = h_v1_upper / h_upper
   v1_lower = h_v2_lower / h_lower
-  return v1_upper, v1_lower
+  return SVector(v1_upper, v1_lower)
 end
 
 
@@ -548,7 +548,7 @@ end
 
 
 @inline function waterheight(u, equations::ShallowWaterTwoLayerEquations1D)
-  return u[1], u[3]
+  return SVector(u[1], u[3])
 end
 
 
