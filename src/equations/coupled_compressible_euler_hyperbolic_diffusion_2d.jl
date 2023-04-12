@@ -60,8 +60,6 @@
     rho, rho_v1, rho_v2, rho_e, phi, q1, q2 = u 
     rho, v1, v2, p, phi, q1, q2 = cons2prim(u, equations)
 
-    print(u, "\n")
-    
     v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
     rho_v_normal = rho * v_normal
     f1 = 0.0

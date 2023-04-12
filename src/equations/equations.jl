@@ -378,16 +378,21 @@ function (boundary_condition::BoundaryConditionCoupledAB)(u_inner, orientation, 
   # but we don't have a solver here
   u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, surface_node_indices..., cell_indices...],
                               Val(nvariables(boundary_condition.equations_coupled))))
-  # print("maximum(boundary_condition.u_boundary) = ", maximum(boundary_condition.u_boundary), "\n")
-  u_boundary = SVector(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
+  # TODO: This should be computed in the coupled equations module.
+  if boundary_condition.other_semi_index == 2
+    u_inner_long = vcat(u_inner, zeros(3))
+  else
+    u_inner_long = vcat(zeros(4), u_inner)
+  end
+  
   # Calculate boundary flux
   if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    # flux = surface_flux_function(vcat(u_inner, u_boundary[length(u_inner):end]), u_boundary, orientation, boundary_condition.equations_coupled)
-    flux = surface_flux_function(zeros(length(u_boundary)), u_boundary, orientation, boundary_condition.equations_coupled)
+    # flux = surface_flux_function(zeros(length(u_boundary)), u_boundary, orientation, boundary_condition.equations_coupled)
+    flux = surface_flux_function(u_inner_long, u_boundary, orientation, boundary_condition.equations_coupled)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    # flux = surface_flux_function(u_boundary, vcat(u_inner, u_boundary[length(u_inner):end]), orientation, boundary_condition.equations_coupled)
-    flux = surface_flux_function(u_boundary, zeros(length(u_boundary)), orientation, boundary_condition.equations_coupled)
+    # flux = surface_flux_function(u_boundary, zeros(length(u_boundary)), orientation, boundary_condition.equations_coupled)
+    flux = surface_flux_function(u_boundary, u_inner_long, orientation, boundary_condition.equations_coupled)
   end
 
   return flux

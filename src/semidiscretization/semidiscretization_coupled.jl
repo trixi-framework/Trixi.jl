@@ -233,6 +233,7 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
   else
     cell_size = size(mesh, 1)
   end
+
   boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations) + nvariables(equations_other), nnodes(dg), cell_size)
 end
 
@@ -318,9 +319,8 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{2
 
     for i in eachnode(solver)
       for v in 1:size(u, 1)
-        # boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node, 
-        #                                               linear_indices[i_cell, j_cell]]
-        boundary_condition.u_boundary[v, i, cell] = 1.0
+        boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node, 
+                                                      linear_indices[i_cell, j_cell]]
       end
       i_node += i_node_step
       j_node += j_node_step
@@ -338,8 +338,6 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledAB
 
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
   @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
-  # @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, boundary_condition.equations_coupled, solver, cache)
-  # @views u = wrap_array(u_ode, mesh, boundary_condition.equations_coupled, solver, cache)
 
   linear_indices = LinearIndices(size(mesh))
 
@@ -368,10 +366,6 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledAB
     coupled_index_offset = 0
   end
 
-  if any(isnan, u)
-    print("u has NaNs\n")
-  end
-
   for cell in cells
     i_node = i_node_start
     j_node = j_node_start
@@ -379,8 +373,7 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledAB
     for i in eachnode(solver)
       for v in 1:size(u, 1)
         boundary_condition.u_boundary[v+coupled_index_offset, i, cell] = u[v, i_node, j_node, 
-                                                                           linear_indices[i_cell, j_cell]] * 0
-        # print(v, " ", i+coupled_index_offset, " ", cell, "; ", v, " ", i_node, " ", j_node, " ", linear_indices[i_cell, j_cell], "\n")
+                                                                           linear_indices[i_cell, j_cell]]
       end
       i_node += i_node_step
       j_node += j_node_step
