@@ -68,7 +68,7 @@ end
 
 # dispatchable constructor for DGMulti to allow for specialization
 function DGMulti(element_type::AbstractElemShape, 
-  approximation_type::TensorProductWedge, 
+  approximation_type=Polynomial(), 
   volume_integral,
   surface_integral;
   polydeg=nothing, 
