@@ -150,11 +150,17 @@ default_example_unstructured() = joinpath(examples_dir(), "unstructured_2d_dgsem
     ode_default_options()
 
 Return the default options for OrdinaryDiffEq's `solve`. Pass `ode_default_options()...` to `solve`
-to only return the solution at the final time and enable **MPI aware** error-based step size control.
+to only return the solution at the final time and enable **MPI aware** error-based step size control,
+whenever MPI is used.
 For example, use `solve(ode, alg; ode_default_options()...)`
 """
-ode_default_options() = (; save_everystep = false, internalnorm = ode_norm, unstable_check = ode_unstable_check)
-
+function ode_default_options()
+  if mpi_isparallel()
+    return (; save_everystep = false, internalnorm = ode_norm, unstable_check = ode_unstable_check)
+  else
+    return (; save_everystep = false)
+  end
+end
 
 # Print informative message at startup
 function print_startup_message()
