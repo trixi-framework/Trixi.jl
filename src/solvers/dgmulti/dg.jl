@@ -156,10 +156,12 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
 
     # For curved meshes, we interpolate geometric terms from nodal points to quadrature points.
   # For affine meshes, we just access one element of this interpolated data.
-  dxidxhatj = map(x -> rd.Vq * x, md.rstxyzJ)
+  # dxidxhatj = map(x -> rd.Vq * x, md.rstxyzJ)
+  dxidxhatj = map(x -> x, md.rstxyzJ)
 
   # interpolate J to quadrature points for weight-adjusted DG (WADG)
-  invJ = inv.(rd.Vq * md.J)
+  #invJ = inv.(rd.Vq * md.J)
+  invJ = inv.(md.J)
 
   # for scaling by curved geometric terms (not used by affine DGMultiMesh)
   flux_threaded =
@@ -488,8 +490,10 @@ end
 
 # inverts Jacobian and scales by -1.0
 function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache; scaling=-1)
-  @threaded for i in each_dof_global(mesh, dg, cache)
-    du[i] *= scaling * cache.invJ[i]
+  @threaded for e in eachelement(mesh, dg, cache)
+    for i in axes(du, 1)
+      du[i, e] *= scaling * cache.invJ[i, e]
+    end
   end
 end
 
