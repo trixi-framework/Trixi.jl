@@ -104,7 +104,7 @@ code from the cloned directory:
 ```bash
 git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
-mkdir run 
+mkdir run
 cd run
 julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi clone
 julia -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])' # Install additional packages
@@ -285,8 +285,9 @@ ERC Starting Grant "An Exascale aware and Un-crashable Space-Time-Adaptive
 Discontinuous Spectral Element Solver for Non-Linear Conservation Laws" (Extreme),
 ERC grant agreement no. 714487.
 
-This project has benefited from funding from Vetenskapsrådet (VR, Swedish Research Council), Sweden grant
-agreement 2020-03642 VR.
+This project has benefited from funding from Vetenskapsrådet (VR, Swedish Research Council), Sweden
+through the VR Starting Grant "Shallow water flows including sediment transport and morphodynamics",
+VR grant agreement 2020-03642 VR.
 
 This project has benefited from funding from the United States National Science Foundation under awards
 DMS-1719818 and DMS-1943186.
