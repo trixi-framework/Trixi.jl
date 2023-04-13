@@ -61,8 +61,8 @@ using Triangulate: Triangulate, TriangulateIO, triangulate
 export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
-@reexport using UnPack: @unpack
-using UnPack: @pack!
+@reexport using SimpleUnPack: @unpack
+using SimpleUnPack: @pack!
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,

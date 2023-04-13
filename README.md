@@ -64,7 +64,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi works
-with Julia v1.7.
+with Julia v1.8.
 
 ### For users
 Trixi and its related tools are registered Julia packages. Hence, you
@@ -74,7 +74,7 @@ can install Trixi, the visualization tool
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
 by executing the following commands in the Julia REPL:
 ```julia
-julia> import Pkg
+julia> using Pkg
 
 julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
 ```
@@ -89,7 +89,7 @@ visualize Trixi's results from the REPL.
 work, verify that you are using a recent Trixi release by comparing the
 installed Trixi version from
 ```julia
-julia> import Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
+julia> using Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
 ```
 to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
 If the installed version does not match the current release, please check the
@@ -99,20 +99,25 @@ The commands above can also be used to update Trixi. A brief list of notable
 changes to Trixi is available in [`NEWS.md`](NEWS.md).
 
 ### For developers
-If you plan on editing Trixi itself, you can download Trixi locally and run it from
-within the cloned directory:
+If you plan on editing Trixi itself, you can download Trixi locally and use the
+code from the cloned directory:
 ```bash
 git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
-julia --project=@. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
-julia -e 'import Pkg; Pkg.add(["Trixi2Vtk", "Plots"])' # Install postprocessing tools
-julia -e 'import Pkg; Pkg.add("OrdinaryDiffEq")' # Install time integration schemes
+mkdir run
+cd run
+julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi clone
+julia -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])' # Install additional packages
 ```
+Note that the postprocessing tools Trixi2Vtk.jl and Plots.jl are optional and
+can be omitted.
+
 If you installed Trixi this way, you always have to start Julia with the `--project`
-flag set to your local Trixi clone, e.g.,
+flag set to your `run` directory, e.g.,
 ```bash
-julia --project=@.
+julia --project=.
 ```
+if already inside the `run` directory.
 Further details can be found in the [documentation](#documentation).
 
 
@@ -250,17 +255,44 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 
 ## Acknowledgments
+<p align="center">
+  <!-- BMBF -->
+  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231436391-b28a76a4-f027-40f9-bd28-14e3a2f3e16a.png" height="140"/>
+
+  <!-- DFG -->
+  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231429826-31fd7e78-19b4-4bac-8d4c-d292c6570d93.jpg" height="120"/>
+
+  <!-- SRC -->
+  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231433851-97dd9d3e-4f66-4a8c-a4ee-aca262a2e505.png" height="80"/>
+
+  <!-- ERC -->
+  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231434670-64b3644f-9860-4139-a54d-13b538711e1b.jpg" height="140"/>
+
+  <!-- NSF -->
+  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231508947-e3d119c8-bafb-472c-b6fb-18eda2009a55.jpg" height="100"/>
+</p>
+
 This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
 under Germany's Excellence Strategy EXC 2044-390685587, Mathematics Münster:
 Dynamics-Geometry-Structure.
+
+This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
+through the research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
+Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
 
 This project has benefited from funding from the European Research Council through the
 ERC Starting Grant "An Exascale aware and Un-crashable Space-Time-Adaptive
 Discontinuous Spectral Element Solver for Non-Linear Conservation Laws" (Extreme),
 ERC grant agreement no. 714487.
 
-This project has benefited from funding from Vetenskapsrådet (VR, Swedish Research Council), Sweden grant
-agreement 2020-03642 VR.
+This project has benefited from funding from Vetenskapsrådet (VR, Swedish Research Council), Sweden
+through the VR Starting Grant "Shallow water flows including sediment transport and morphodynamics",
+VR grant agreement 2020-03642 VR.
 
 This project has benefited from funding from the United States National Science Foundation under awards
 DMS-1719818 and DMS-1943186.
+
+This project has benefited from funding from the German Federal Ministry of
+Education and Research through the project grant "Adaptive earth system modeling
+with significantly reduced computation time for exascale supercomputers
+(ADAPTEX)" (funding id: 16ME0668K).
