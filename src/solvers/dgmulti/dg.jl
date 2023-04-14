@@ -154,14 +154,12 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
   # local storage for volume integral and source computations
   local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
 
-    # For curved meshes, we interpolate geometric terms from nodal points to quadrature points.
+  # For curved meshes, we interpolate geometric terms from nodal points to quadrature points.
   # For affine meshes, we just access one element of this interpolated data.
-  # dxidxhatj = map(x -> rd.Vq * x, md.rstxyzJ)
-  dxidxhatj = map(x -> x, md.rstxyzJ)
+  dxidxhatj = map(x -> rd.Vq * x, md.rstxyzJ)
 
   # interpolate J to quadrature points for weight-adjusted DG (WADG)
-  #invJ = inv.(rd.Vq * md.J)
-  invJ = inv.(md.J)
+  invJ = inv.(rd.Vq * md.J)
 
   # for scaling by curved geometric terms (not used by affine DGMultiMesh)
   flux_threaded =
