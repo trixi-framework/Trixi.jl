@@ -18,7 +18,7 @@
 # and [low-storage methods](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Low-Storage-Methods).
 # There are some differences regarding the choice of the used time step.
 
-# # Error-based adaptive step sizes
+# # [Error-based adaptive step sizes](@id adaptive_step_sizes)
 # First, we treat time integration algorithms with adaptive step sizes, such as `SSPRK43`. It is used in
 # some elixirs, like [`elixir_euler_colliding_flow.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_colliding_flow.jl)
 # or [`elixir_euler_astro_jet_amr.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_astro_jet_amr.jl).
