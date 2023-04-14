@@ -227,7 +227,7 @@ end
   # SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
 
   # assumes geometric terms are constant on each element
-  (; dxidxhatj) = cache
+  dxidxhatj = mesh.md.rstxyzJ
   return SVector{NDIMS}(getindex.(dxidxhatj[:, orientation], 1, element))
 end
 
