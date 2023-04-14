@@ -104,7 +104,7 @@ code from the cloned directory:
 ```bash
 git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
-mkdir run 
+mkdir run
 cd run
 julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi clone
 julia -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])' # Install additional packages
@@ -255,17 +255,44 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 
 ## Acknowledgments
+<p align="center">
+  <!-- BMBF -->
+  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231436391-b28a76a4-f027-40f9-bd28-14e3a2f3e16a.png" height="140"/>
+
+  <!-- DFG -->
+  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231429826-31fd7e78-19b4-4bac-8d4c-d292c6570d93.jpg" height="120"/>
+
+  <!-- SRC -->
+  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231433851-97dd9d3e-4f66-4a8c-a4ee-aca262a2e505.png" height="80"/>
+
+  <!-- ERC -->
+  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231434670-64b3644f-9860-4139-a54d-13b538711e1b.jpg" height="140"/>
+
+  <!-- NSF -->
+  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231508947-e3d119c8-bafb-472c-b6fb-18eda2009a55.jpg" height="100"/>
+</p>
+
 This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
 under Germany's Excellence Strategy EXC 2044-390685587, Mathematics Münster:
 Dynamics-Geometry-Structure.
+
+This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
+through the research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
+Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
 
 This project has benefited from funding from the European Research Council through the
 ERC Starting Grant "An Exascale aware and Un-crashable Space-Time-Adaptive
 Discontinuous Spectral Element Solver for Non-Linear Conservation Laws" (Extreme),
 ERC grant agreement no. 714487.
 
-This project has benefited from funding from Vetenskapsrådet (VR, Swedish Research Council), Sweden grant
-agreement 2020-03642 VR.
+This project has benefited from funding from Vetenskapsrådet (VR, Swedish Research Council), Sweden
+through the VR Starting Grant "Shallow water flows including sediment transport and morphodynamics",
+VR grant agreement 2020-03642 VR.
 
 This project has benefited from funding from the United States National Science Foundation under awards
 DMS-1719818 and DMS-1943186.
+
+This project has benefited from funding from the German Federal Ministry of
+Education and Research through the project grant "Adaptive earth system modeling
+with significantly reduced computation time for exascale supercomputers
+(ADAPTEX)" (funding id: 16ME0668K).
