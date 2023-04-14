@@ -1,12 +1,12 @@
 # Contributing
 
-Trixi is an open-source project and we are very happy to accept contributions
+Trixi.jl is an open-source project and we are very happy to accept contributions
 from the community. Please feel free to open issues or submit patches (preferably
 as merge requests) any time. For planned larger contributions, it is often
 beneficial to get in contact with one of the principal developers first (see
 [Authors](@ref)).
 
-Trixi and its contributions are licensed under the MIT license (see
+Trixi.jl and its contributions are licensed under the MIT license (see
 [License](@ref)). As a contributor, you certify that all your
 contributions are in conformance with the *Developer Certificate of Origin
 (Version 1.1)*, which is reproduced below.
