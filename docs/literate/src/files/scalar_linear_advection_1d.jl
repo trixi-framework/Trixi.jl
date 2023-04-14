@@ -341,7 +341,7 @@ using OrdinaryDiffEq
 tspan = (0.0, 2.0)
 ode = ODEProblem(rhs!, u0, tspan, x)
 
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false)
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode_default_options()...)
 @test maximum(abs.(u0 - sol.u[end])) < 5e-5 #src
 
 plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft, lw=3)
@@ -384,7 +384,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave
 tspan = (0.0, 2.0)
 ode_trixi  = semidiscretize(semi, tspan)
 
-sol_trixi = solve(ode_trixi, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false);
+sol_trixi = solve(ode_trixi, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode_default_options()...);
 
 # We add a plot of the new approximated solution to the one calculated before.
 plot!(sol_trixi, label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
@@ -475,7 +475,7 @@ tspan = (0.0, 2.0)
 ode = ODEProblem(rhs!, u0, tspan, x)
 
 ## solve
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false)
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode_default_options()...)
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
 
 plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft, lw=3)
@@ -506,7 +506,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave
 ## solve
 tspan = (0.0, 2.0)
 ode_trixi  = semidiscretize(semi, tspan)
-sol_trixi  = solve(ode_trixi, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false);
+sol_trixi  = solve(ode_trixi, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode_default_options()...);
 
 plot!(sol_trixi, label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src

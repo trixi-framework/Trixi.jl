@@ -155,7 +155,7 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6)
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43(stage_limiter!),
-            save_everystep=false, callback=callbacks,
+sol = solve(ode, SSPRK43(stage_limiter!);
+            ode_default_options()..., callback=callbacks,
             maxiters=999999);
 summary_callback() # print the timer summary

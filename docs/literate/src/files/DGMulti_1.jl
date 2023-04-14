@@ -92,8 +92,8 @@ alive_callback = AliveCallback(alive_interval=10)
 analysis_callback = AnalysisCallback(semi, interval=100, uEltype=real(dg))
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
-            callback=callbacks, save_everystep=false);
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=callbacks);
 #-
 using Plots
 pd = PlotData2D(sol)
@@ -132,8 +132,8 @@ alive_callback = AliveCallback(alive_interval=10)
 analysis_callback = AnalysisCallback(semi, interval=100, uEltype=real(dg))
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
-            callback=callbacks, save_everystep=false);
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=callbacks);
 #-
 using Plots
 pd = PlotData2D(sol)

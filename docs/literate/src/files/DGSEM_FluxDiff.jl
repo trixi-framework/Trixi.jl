@@ -183,8 +183,8 @@ ode = semidiscretize(semi, tspan);
 analysis_callback = AnalysisCallback(semi, interval=100);
 
 # We now run the simulation using `flux_ranocha` for both surface and volume flux.
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
-            callback=analysis_callback, save_everystep=false);
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=analysis_callback);
 # A look at the change in entropy $\sum \partial S/\partial U \cdot U_t$ in the analysis callback
 # confirms that the flux is entropy conserving since the change is about machine precision.
 
@@ -222,8 +222,8 @@ ode = semidiscretize(semi, tspan);
 analysis_callback = AnalysisCallback(semi, interval=100);
 
 # We now run the simulation using the volume flux `flux_ranocha` and surface flux `flux_lax_friedrichs`.
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
-            callback=analysis_callback, save_everystep=false);
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=analysis_callback);
 # The change in entropy confirms the expected entropy stability.
 
 using Plots

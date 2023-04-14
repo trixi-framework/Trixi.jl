@@ -152,8 +152,8 @@ tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 callbacks = CallbackSet(SummaryCallback())
 time_int_tol = 1.0e-6
-sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol,
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
+            ode_default_options()..., callback=callbacks);
 
 using Plots
 plot(sol)

@@ -129,10 +129,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       Trixi.mpi_isroot() && println("-"^100)
       Trixi.mpi_isroot() && println("elixir_euler_ec.jl with error-based step size control")
 
-      sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
-                  save_everystep=false, callback=callbacks,
-                  internalnorm=ode_norm,
-                  unstable_check=ode_unstable_check); summary_callback()
+      sol = solve(ode, RDPK3SpFSAL35(); abstol=1.0e-4, reltol=1.0e-4,
+                  ode_default_options()...,, callback=callbacks); summary_callback()
       errors = analysis_callback(sol)
       if Trixi.mpi_isroot()
         @test errors.l2   ≈ [0.061653630426688116, 0.05006930431098764, 0.05007694316484242, 0.22550689872331683] rtol=1.0e-4
