@@ -4,9 +4,7 @@
 # inside the @muladd block is edited. See https://github.com/trixi-framework/Trixi.jl/issues/801
 # for more details.
 
-# GaussSBP ApproximationType: e.g., Gauss nodes on quads/hexes
-# struct GaussSBP end
-# `GaussSBP` is a type alias for a StartUpDG type
+# `GaussSBP` is a type alias for a StartUpDG type (e.g., Gauss nodes on quads/hexes)
 const GaussSBP = Polynomial{Gauss}
 
 function tensor_product_quadrature(element_type::Line, r1D, w1D)
