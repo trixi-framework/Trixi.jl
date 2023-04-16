@@ -214,12 +214,6 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
   end
   md_curved = MeshData(dg.basis, md, xyz...)
 
-  # interpolate geometric terms to both volume and face cubature points
-  @unpack rstxyzJ = md_curved
-  @unpack Vq, Vf = dg.basis
-  rstxyzJ_interpolated = map(x -> [Vq; Vf] * x, rstxyzJ)
-  md_curved = @set md_curved.rstxyzJ = rstxyzJ_interpolated
-
   boundary_faces = StartUpDG.tag_boundary_faces(md_curved, is_on_boundary)
   return DGMultiMesh(dg, GeometricTermsType(Curved(), dg), md_curved, boundary_faces)
 end

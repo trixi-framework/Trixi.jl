@@ -4,8 +4,8 @@
 # inside the @muladd block is edited. See https://github.com/trixi-framework/Trixi.jl/issues/801
 # for more details.
 
-# GaussSBP ApproximationType: e.g., Gauss nodes on quads/hexes
-struct GaussSBP end
+# `GaussSBP` is a type alias for a StartUpDG type (e.g., Gauss nodes on quads/hexes)
+const GaussSBP = Polynomial{Gauss}
 
 function tensor_product_quadrature(element_type::Line, r1D, w1D)
   return r1D, w1D
@@ -311,85 +311,18 @@ end
   end
 end
 
-# Since GaussSBP uses Gauss quadrature which is exact for polynomials of degree N, the
-# inverse trace constants for GaussSBP are identical to polynomial inverse trace constants
-# in StartUpDG.jl, which have explicit formulas. These inverse trace constants are used in
-# CFL-based control of the time-step size.
-import StartUpDG: inverse_trace_constant
-inverse_trace_constant(rd::RefElemData{2, Quad, <:GaussSBP}) = (rd.N + 1) * (rd.N + 2)
-inverse_trace_constant(rd::RefElemData{3, Hex, <:GaussSBP}) = 3 * (rd.N + 1) * (rd.N + 2) / 2
-
-function DGMulti(element_type::Line,
-                 approximation_type::GaussSBP,
-                 volume_integral, surface_integral;
-                 polydeg::Integer,
-                 surface_flux=flux_central,
-                 kwargs...)
-
-  # explicitly specify Gauss quadrature rule with polydeg+1 points
-  rd = RefElemData(element_type, Polynomial(), polydeg,
-                   quad_rule_vol=StartUpDG.gauss_quad(0, 0, polydeg),
-                   kwargs...)
-
-  # Since there is no dedicated GaussSBP approximation type implemented in StartUpDG, we simply
-  # initialize `rd = RefElemData(...)` with the appropriate quadrature rules and modify the
-  # rd.approximation_type manually so we can dispatch on the `GaussSBP` type.
-  # This uses the Setfield @set macro, which behaves similarly to `Trixi.remake`.
-  rd_gauss = @set rd.approximation_type = GaussSBP()
-
-  # We will modify the face interpolation operator of rd_gauss later, but want to do so only after
-  # the mesh is initialized, since the face interpolation operator is used for that.
-  return DG(rd_gauss, nothing #= mortar =#, surface_integral, volume_integral)
-end
-
-# Specialized constructor for GaussSBP approximation type on quad elements.
-# TODO: I believe this is restricted to `VolumeIntegralFluxDifferencing` for now
-# since there isn't a way to exploit this structure for VolumeIntegralWeakForm yet.
-
-function DGMulti(element_type::Union{Quad, Hex},
-                 approximation_type::GaussSBP,
-                 volume_integral, surface_integral;
-                 polydeg::Integer,
-                 surface_flux=flux_central,
-                 kwargs...)
-
-  # explicitly create tensor product Gauss quadrature rule with polydeg+1 points
-  r1D, w1D = StartUpDG.gauss_quad(0, 0, polydeg)
-  gauss_rule_vol = tensor_product_quadrature(element_type, r1D, w1D)
-  gauss_rule_face = tensor_product_quadrature(StartUpDG.face_type(element_type), r1D, w1D)
-
-  rd = RefElemData(element_type, Polynomial(), polydeg,
-                   quad_rule_vol=gauss_rule_vol,
-                   quad_rule_face=gauss_rule_face,
-                   kwargs...)
-
-  # Since there is no dedicated GaussSBP approximation type implemented in StartUpDG, we simply
-  # initialize `rd = RefElemData(...)` with the appropriate quadrature rules and modify the
-  # rd.approximation_type manually so we can dispatch on the `GaussSBP` type.
-  # This uses the Setfield @set macro, which behaves similarly to `Trixi.remake`.
-  rd_gauss = @set rd.approximation_type = GaussSBP()
-
-  # We will modify the face interpolation operator of rd_gauss later, but want to do so only after
-  # the mesh is initialized, since the face interpolation operator is used for that.
-  return DG(rd_gauss, nothing #= mortar =#, surface_integral, volume_integral)
-end
-
 # For now, this is mostly the same as `create_cache` for DGMultiFluxDiff{<:Polynomial}.
 # In the future, we may modify it so that we can specialize additional parts of GaussSBP() solvers.
 function create_cache(mesh::DGMultiMesh, equations,
                       dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Quad, Hex}}, RealT, uEltype)
 
-  rd = dg.basis
-  @unpack md = mesh
-
+  # call general Polynomial flux differencing constructor
   cache = invoke(create_cache, Tuple{typeof(mesh), typeof(equations),
                  DGMultiFluxDiff, typeof(RealT), typeof(uEltype)},
                  mesh, equations, dg, RealT, uEltype)
 
-  # Interpolate the Jacobian to Gauss points. Since we initialize `cache.invJ = inv.(md.J)`
-  # in the `invoke` call to `create_cache`, it should be the right size since the number of
-  # Gauss points is the same as the number of nodal Lobatto points.
-  cache.invJ .= inv.(rd.Vq * md.J)
+  rd = dg.basis
+  @unpack md = mesh
 
   # for change of basis prior to the volume integral and entropy projection
   r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
