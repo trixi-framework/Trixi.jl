@@ -39,7 +39,7 @@ summary_callback = SummaryCallback()
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval=100)
 
-# The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
+# The SaveRestartCallback allows to save a file from which a Trixi.jl simulation can be restarted
 save_restart = SaveRestartCallback(interval=100,
                                    save_final_restart=true)
 

@@ -14,7 +14,7 @@
 
 `include` the file `elixir` and evaluate its content in the global scope of module `mod`.
 You can override specific assignments in `elixir` by supplying keyword arguments.
-It's basic purpose is to make it easier to modify some parameters while running Trixi from the
+It's basic purpose is to make it easier to modify some parameters while running Trixi.jl from the
 REPL. Additionally, this is used in tests to reduce the computational burden for CI while still
 providing examples with sensible default values for users.
 
@@ -48,7 +48,7 @@ trixi_include(elixir::AbstractString; kwargs...) = trixi_include(Main, elixir; k
 """
     convergence_test([mod::Module=Main,] elixir::AbstractString, iterations; kwargs...)
 
-Run `iterations` Trixi simulations using the setup given in `elixir` and compute
+Run `iterations` Trixi.jl simulations using the setup given in `elixir` and compute
 the experimental order of convergence (EOC) in the ``L^2`` and ``L^\\infty`` norm.
 In each iteration, the resolution of the respective mesh will be doubled.
 Additional keyword arguments `kwargs...` and the optional module `mod` are passed directly

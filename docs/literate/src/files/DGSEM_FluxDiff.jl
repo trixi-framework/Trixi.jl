@@ -115,7 +115,7 @@
 
 
 
-# ## [Implementation in Trixi](@id fluxDiffExample)
+# ## [Implementation in Trixi.jl](@id fluxDiffExample)
 # Now, we have a look at the implementation of DGSEM with flux differencing with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl).
 using OrdinaryDiffEq, Trixi
 
@@ -146,10 +146,10 @@ equations = CompressibleEulerEquations2D(gamma)
 # ```
 # with $\phi = \tan^{-1}(\frac{x_2}{x_1})$.
 
-# This initial condition is implemented in Trixi under the name [`initial_condition_weak_blast_wave`](@ref).
+# This initial condition is implemented in Trixi.jl under the name [`initial_condition_weak_blast_wave`](@ref).
 initial_condition = initial_condition_weak_blast_wave
 
-# In Trixi, flux differencing for the volume integral can be implemented with
+# In Trixi.jl, flux differencing for the volume integral can be implemented with
 # [`VolumeIntegralFluxDifferencing`](@ref) using symmetric two-point volume fluxes.
 # First, we set up a simulation with the entropy conserving and kinetic energy preserving
 # flux [`flux_ranocha`](@ref) by [Hendrik Ranocha (2018)](https://cuvillier.de/en/shop/publications/7743)
@@ -161,7 +161,7 @@ volume_flux = flux_ranocha # = f_vol
 solver = DGSEM(polydeg=3, surface_flux=volume_flux,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-# Now, we implement Trixi's `mesh`, `semi` and `ode` in a simple framework. For more information please
+# Now, we implement Trixi.jl's `mesh`, `semi` and `ode` in a simple framework. For more information please
 # have a look at the documentation, the basic tutorial [introduction to DG methods](@ref scalar_linear_advection_1d)
 # or some basic elixirs.
 coordinates_min = (-2.0, -2.0)
@@ -232,7 +232,7 @@ plot(sol)
 
 # Of course, you can use more than these two fluxes in Trixi. Here, we will give a short list
 # of possible fluxes for the compressible Euler equations.
-# For the volume flux Trixi provides for example [`flux_ranocha`](@ref), [`flux_shima_etal`](@ref),
+# For the volume flux Trixi.jl provides for example [`flux_ranocha`](@ref), [`flux_shima_etal`](@ref),
 # [`flux_chandrashekar`](@ref), [`flux_kennedy_gruber`](@ref).
 # As surface flux you can use all volume fluxes and additionally for instance [`flux_lax_friedrichs`](@ref),
 # [`flux_hll`](@ref), [`flux_hllc`](@ref).
