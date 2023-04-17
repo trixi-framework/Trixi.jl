@@ -55,9 +55,9 @@ function prolong2interfaces!(u_face_values, u, mesh::DGMultiMesh, equations::Abs
   apply_to_each_field(mul_by!(dg.basis.Vf), u_face_values, u)
 end
 
-function calc_gradient_surface_integral(gradients, u, scalar_flux_face_values,
-                                        mesh, equations::AbstractEquationsParabolic,
-                                        dg::DGMulti, cache, cache_parabolic)
+function calc_gradient_surface_integral!(gradients, u, scalar_flux_face_values,
+                                         mesh, equations::AbstractEquationsParabolic,
+                                         dg::DGMulti, cache, cache_parabolic)
   @unpack local_flux_face_values_threaded = cache_parabolic
   @threaded for e in eachelement(mesh, dg)
     local_flux_values = local_flux_face_values_threaded[Threads.threadid()]
@@ -113,8 +113,8 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
                       mesh, equations, dg, cache, cache_parabolic)
 
   # compute surface contributions
-  calc_gradient_surface_integral(gradients, u, scalar_flux_face_values,
-                                 mesh, equations, dg, cache, cache_parabolic)
+  calc_gradient_surface_integral!(gradients, u, scalar_flux_face_values,
+                                  mesh, equations, dg, cache, cache_parabolic)
 
   for dim in eachdim(mesh)
     invert_jacobian!(gradients[dim], mesh, equations, dg, cache; scaling=1.0)
