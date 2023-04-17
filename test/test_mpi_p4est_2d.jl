@@ -8,29 +8,34 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "p4est_2d_dgsem")
 
+# Needed to skip certain tests on Windows CI
+import ..CI_ON_WINDOWS
+
 @testset "P4estMesh MPI 2D" begin
 
 # Run basic tests
 @testset "Examples 2D" begin
   # Linear scalar advection
-  @trixi_testset "elixir_advection_basic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      # Expected errors are exactly the same as with TreeMesh!
-      l2   = [8.311947673061856e-6],
-      linf = [6.627000273229378e-5])
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_advection_basic.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+        # Expected errors are exactly the same as with TreeMesh!
+        l2   = [8.311947673061856e-6],
+        linf = [6.627000273229378e-5])
 
-    @testset "error-based step size control" begin
-      Trixi.mpi_isroot() && println("-"^100)
-      Trixi.mpi_isroot() && println("elixir_advection_basic.jl with error-based step size control")
+      @testset "error-based step size control" begin
+        Trixi.mpi_isroot() && println("-"^100)
+        Trixi.mpi_isroot() && println("elixir_advection_basic.jl with error-based step size control")
 
-      sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
-                  save_everystep=false, callback=callbacks,
-                  internalnorm=ode_norm,
-                  unstable_check=ode_unstable_check); summary_callback()
-      errors = analysis_callback(sol)
-      if Trixi.mpi_isroot()
-        @test errors.l2 ≈ [3.3022040342579066e-5]    rtol=1.0e-4
-        @test errors.linf ≈ [0.00011787417954578494] rtol=1.0e-4
+        sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
+                    save_everystep=false, callback=callbacks,
+                    internalnorm=ode_norm,
+                    unstable_check=ode_unstable_check); summary_callback()
+        errors = analysis_callback(sol)
+        if Trixi.mpi_isroot()
+          @test errors.l2 ≈ [3.3022040342579066e-5]    rtol=1.0e-4
+          @test errors.linf ≈ [0.00011787417954578494] rtol=1.0e-4
+        end
       end
     end
   end
