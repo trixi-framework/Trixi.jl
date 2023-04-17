@@ -162,3 +162,10 @@ If you use error-based step size control (see also the section on [error-based a
 together with MPI you need to pass `internalnorm=ode_norm` and you should pass
 `unstable_check=ode_unstable_check` to OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/),
 which are both included in [`ode_default_options`](@ref).
+
+### Using parallel input and output
+Trixi.jl allows parallel I/O using MPI by leveraging parallel HDF5.jl. To enable this, you first need
+to use a system-provided MPI library, see also [here](@ref parallel_system_MPI) and you need to tell
+HDF5.jl to use this libary. To do so, set the environment variable `JULIA_HDF5_PATH` to the local path
+that contains the `libhdf5.so` shared object file and build HDF5.jl by executing `using Pkg; Pkg.build("HDF5")`.
+For more information see also the [documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/).
