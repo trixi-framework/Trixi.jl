@@ -9,7 +9,7 @@ end
 using Trixi
 using Trixi2Vtk
 
-# Get Trixi root directory
+# Get Trixi.jl root directory
 trixi_root_dir = dirname(@__DIR__)
 
 include(joinpath(trixi_root_dir, "docs", "literate", "make.jl"))
@@ -75,7 +75,7 @@ tutorials = create_tutorials(files)
 makedocs(
     # Specify modules for which docstrings should be shown
     modules = [Trixi, Trixi2Vtk],
-    # Set sitename to Trixi
+    # Set sitename to Trixi.jl
     sitename="Trixi.jl",
     # Provide additional formatting options
     format = Documenter.HTML(

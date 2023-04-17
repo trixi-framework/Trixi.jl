@@ -5,7 +5,7 @@ using Trixi
 
 Convert a Trixi.jl solution array `u` for a given semidiscretization `semi` into a point-based
 Tecplot ASCII file and store it as `filename`. Instead of manually extracting `u` and `semi`, you
-can also just pass `sol` instead, i.e., the usual variable name used in Trixi's elixirs for the
+can also just pass `sol` instead, i.e., the usual variable name used in Trixi.jl's elixirs for the
 solution data.
 
 You can optionally pass a `title` (by default the file portion of the filename is used). Further,

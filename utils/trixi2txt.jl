@@ -175,7 +175,7 @@ function read_meshfile(filename::String)
     if haskey(attributes(file), "ndims")
       ndims_ = read(attributes(file)["ndims"])
     else
-      ndims_ = read(attributes(file)["ndim"]) # FIXME once Trixi's 3D branch is merged & released
+      ndims_ = read(attributes(file)["ndim"]) # FIXME once Trixi.jl's 3D branch is merged & released
     end
     if ndims_ != 1
       error("currently only 1D files can be processed, but '$filename' is $(ndims_)D")

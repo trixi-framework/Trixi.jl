@@ -7,7 +7,7 @@
 # ````julia
 # solve(ode, alg; kwargs...)
 # ````
-# In Trixi, the ODE problem is created by `semidiscretize(semi, tspan)` for a semidiscretization
+# In Trixi.jl, the ODE problem is created by `semidiscretize(semi, tspan)` for a semidiscretization
 # `semi` and the time span `tspan`. In particular, [`semidiscretize`](@ref) returns an `ODEProblem`
 # used by OrdinaryDiffEq.jl.
 
@@ -49,7 +49,7 @@
 # We compute $\Delta x_i$ by scaling the element size by a factor of $1/(N+1)$, cf. 
 # [Gassner and Kopriva (2011)](https://doi.org/10.1137/100807211), Section 5.
 
-# Trixi provides such a CFL-based step size control. It is implemented as the callback
+# Trixi.jl provides such a CFL-based step size control. It is implemented as the callback
 # [`StepsizeCallback`](@ref).
 # ````julia
 # stepsize_callback = StepsizeCallback(; cfl=1.0)

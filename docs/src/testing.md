@@ -1,17 +1,17 @@
 # Testing
 
-During the development of Trixi, we rely on
+During the development of Trixi.jl, we rely on
 [continuous testing](https://en.wikipedia.org/wiki/Continuous_testing) to ensure
 that modifications or new features do not break existing
 functionality or add other errors. In the main
-[Trixi](https://github.com/trixi-framework/Trixi.jl) repository (and the
+[Trixi.jl](https://github.com/trixi-framework/Trixi.jl) repository (and the
 repositories for the visualization tool
 [Trixi2Vtk](https://github.com/trixi-framework/Trixi.jl)), this is facilitated by
 [GitHub Actions](https://docs.github.com/en/free-pro-team@latest/actions),
 which allows to run tests automatically upon certain events. When, how, and what
 is tested by GitHub Actions is controlled by the workflow file
 [`.github/workflows/ci.yml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.github/workflows/ci.yml).
-In Trixi and its related repositories, tests are triggered by
+In Trixi.jl and its related repositories, tests are triggered by
 * each `git push` to `main` and
 * each `git push` to any pull request.
 Besides checking functionality, we also analyse the [Test coverage](@ref) to
@@ -62,7 +62,7 @@ when creating new tests.
 
 Since we want to test as much as possible, we have a lot of tests and
 frequently create new ones. Naturally, this increases the time to wait for all
-tests to pass with each novel feature added to Trixi. Therefore, new tests should be as
+tests to pass with each novel feature added to Trixi.jl. Therefore, new tests should be as
 short as reasonably possible, i.e., without being too insensitive to pick up
 changes or errors in the code.
 
@@ -88,7 +88,7 @@ job (see [Testing setup](@ref)), which can usually be ignored since they only
 cover parts of the code by definition, and a cumulative coverage result named
 `coverage/coveralls`. The "Details" link takes you to a detailed report on
 which lines of code are covered by tests, which ones are missed, and especially
-which *new* lines the pull requests adds to Trixi's code base that are not yet
+which *new* lines the pull requests adds to Trixi.jl's code base that are not yet
 covered by testing.
 !!! note "Coverage requirements"
     In general, we require pull requests to *not decrease* the overall
