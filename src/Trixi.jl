@@ -15,6 +15,8 @@ See also: [trixi-framework/Trixi.jl](https://github.com/trixi-framework/Trixi.jl
 """
 module Trixi
 
+# FIXME Remove me before merge!
+
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 

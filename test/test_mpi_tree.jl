@@ -96,11 +96,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   # Compressible Euler
   # Note: Some tests here have manually increased relative tolerances since reduction via MPI can
   #       slightly change the L2 error norms (different floating point truncation errors)
-  @trixi_testset "elixir_euler_source_terms.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-      l2   = [9.321181253186009e-7, 1.4181210743438511e-6, 1.4181210743487851e-6, 4.824553091276693e-6],
-      linf = [9.577246529612893e-6, 1.1707525976012434e-5, 1.1707525976456523e-5, 4.8869615580926506e-5],
-      rtol = 2000*sqrt(eps()))
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_euler_source_terms.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+        l2   = [9.321181253186009e-7, 1.4181210743438511e-6, 1.4181210743487851e-6, 4.824553091276693e-6],
+        linf = [9.577246529612893e-6, 1.1707525976012434e-5, 1.1707525976456523e-5, 4.8869615580926506e-5],
+        rtol = 2000*sqrt(eps()))
+    end
   end
 
   # This example file is only for testing purposes and has no practical use
