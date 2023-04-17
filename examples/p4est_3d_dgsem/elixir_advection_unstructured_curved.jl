@@ -72,7 +72,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-# The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
+# The SaveRestartCallback allows to save a file from which a Trixi.jl simulation can be restarted
 save_restart = SaveRestartCallback(interval=100,
                                    save_final_restart=true)
 

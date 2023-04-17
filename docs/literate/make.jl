@@ -25,7 +25,7 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     # Generate notebook file
     function preprocess_notebook(content)
         warning = "# **Note:** To improve responsiveness via caching, the notebooks are updated only once a week. They are only
-        # available for the latest stable release of Trixi at the time of caching.\n\n"
+        # available for the latest stable release of Trixi.jl at the time of caching.\n\n"
         return string("# # $title\n\n", warning, content)
     end
     Literate.notebook(joinpath(repo_src, folder, file), joinpath(notebooks_dir, folder); execute=false, preprocess=preprocess_notebook, credit=false)

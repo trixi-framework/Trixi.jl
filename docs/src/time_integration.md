@@ -1,6 +1,6 @@
 # [Time integration methods](@id time-integration)
 
-Trixi is compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/).
+Trixi.jl is compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/).
 In particular, explicit Runge-Kutta methods from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 are tested extensively.
 Interesting classes of time integration schemes are
@@ -22,13 +22,13 @@ are the following. Further documentation can be found in the
 - You can set the maximal number of time steps via `maxiters=...`.
 - SSP methods and many low-storage methods from OrdinaryDiffEq.jl support
   `stage_limiter!`s and `step_limiter!`s, e.g., [`PositivityPreservingLimiterZhangShu`](@ref)
-  from Trixi.
+  from Trixi.jl.
 - If you start Julia with multiple threads and want to use them also in the time 
   integration method from OrdinaryDiffEq.jl, you need to pass the keyword argument
   `thread=OrdinaryDiffEq.True()` to the algorithm, e.g., 
   `RDPK3SpFSAL49(thread=OrdinaryDiffEq.True())` or 
   `CarpenterKennedy2N54(thread=OrdinaryDiffEq.True(), williamson_condition=false)`.
-  For more information on using thread-based parallelism in Trixi, please refer to 
+  For more information on using thread-based parallelism in Trixi.jl, please refer to 
   [Shared-memory parallelization with threads](@ref).
 
 !!! note "Number of `rhs!` calls"
@@ -36,4 +36,4 @@ are the following. Further documentation can be found in the
     the total number of `rhs!` calls can be (slightly) bigger than the number of steps times the number
     of stages, e.g. to allow for interpolation (dense output), root-finding for continuous callbacks,
     and error-based time step control. In general, you often should not need to worry about this if you
-    use Trixi.
+    use Trixi.jl.
