@@ -1,5 +1,5 @@
 using OrdinaryDiffEq
-using Trixi, StartUpDG
+using Trixi
 using LinearAlgebra
 
 ###############################################################################
