@@ -201,7 +201,7 @@ end
 
 # for the stepsize callback
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_speed::False, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+                constant_speed::False, equations, dg::DGMulti{NDIMS}, polydeg::Int, cache) where {NDIMS}
 
   @unpack md = mesh
   rd = dg.basis
@@ -220,15 +220,12 @@ function max_dt(u, t, mesh::DGMultiMesh,
   # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
   # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
   # the number of 1D nodes for `DGSEM` solvers.
-  # For tensor-product elements the maximum of the polynomial degrees is used to ensure
-  # that the timestep is feasable for both elements of the tensor-product. For the
-  # other elements taking the maximum has no effect.
-  polydeg = maximum(rd.N)
   return 2 * dt_min / (polydeg + 1)
 end
 
+
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_speed::True, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+                constant_speed::True, equations, dg::DGMulti{NDIMS}, polydeg::Int, cache) where {NDIMS}
 
   @unpack md = mesh
   rd = dg.basis
@@ -246,12 +243,24 @@ function max_dt(u, t, mesh::DGMultiMesh,
   # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
   # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
   # the number of 1D nodes for `DGSEM` solvers.
-  # For tensor-product elements the maximum of the polynomial degrees is used to ensure
-  # that the timestep is feasable for both elements of the tensor-product.For the
-  # other elements taking the maximum has no effect.
-  polydeg = maximum(rd.N)
   return 2 * dt_min / (polydeg + 1)
 end
+
+function max_dt(u, t, mesh::DGMultiMesh,
+  constant_speed, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+  rd = dg.basis
+  polydeg=Int8
+  if dg.basis.approximation_type isa TensorProductWedge
+    # For tensor-product elements the maximum of the polynomial degrees is used to ensure
+    # that the timestep is feasable for both elements of the tensor-product. For the
+    # other elements taking the maximum has no effect.
+    polydeg=maximum(rd.N)
+  else
+    polydeg = rd.N
+  end
+  return max_dt(u, t, mesh, constant_speed, equations, dg, polydeg, cache)
+end
+
 
 # interpolates from solution coefficients to face quadrature points
 # We pass the `surface_integral` argument solely for dispatch
