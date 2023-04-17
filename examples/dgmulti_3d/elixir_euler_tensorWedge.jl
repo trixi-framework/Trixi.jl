@@ -14,7 +14,7 @@ tensor_polydeg = (2, 3)
 dg = DGMulti(element_type = Wedge(),
             approximation_type = Polynomial(),
             surface_flux = flux_lax_friedrichs,
-            polydeg=(2,3))
+            polydeg=(2, 3))
 
 
 coordinates_min = (-1.0, -1.0, -1.0)
