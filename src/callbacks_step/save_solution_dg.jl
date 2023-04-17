@@ -103,28 +103,8 @@ function save_solution_file(u, time, dt, timestep,
     n_vars = size(data, 1)
   end
 
-  # Calculate element and node counts by MPI rank
-  element_size = nnodes(dg)^ndims(mesh)
-  element_counts = convert(Vector{Cint}, collect(cache.mpi_cache.n_elements_by_rank))
-  node_counts = element_counts * Cint(element_size)
-
-  # non-root ranks only send data
-  if !mpi_isroot()
-    # Send nodal data to root
-    for v in 1:n_vars
-      MPI.Gatherv!(vec(data[v, .., :]), nothing, mpi_root(), mpi_comm())
-    end
-
-    # Send element data to root
-    for (key, element_variable) in element_variables
-      MPI.Gatherv!(element_variable, nothing, mpi_root(), mpi_comm())
-    end
-
-    return filename
-  end
-
-  # Open file (clobber existing content)
-  h5open(filename, "w") do file
+  # Open file using parallel HDF5 (clobber existing content)
+  h5open(filename, "w", mpi_comm()) do file
     # Add context information as attributes
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["equations"] = get_name(equations)
@@ -139,25 +119,27 @@ function save_solution_file(u, time, dt, timestep,
 
     # Store each variable of the solution data
     for v in 1:n_vars
-      # Convert to 1D array
-      recv = Vector{eltype(data)}(undef, sum(node_counts))
-      MPI.Gatherv!(vec(data[v, .., :]), MPI.VBuffer(recv, node_counts), mpi_root(), mpi_comm())
-      file["variables_$v"] = recv
+      # Need to create dataset explicitly in parallel case
+      var = create_dataset(file, "/variables_$v", datatype(eltype(data)), dataspace((ndofsglobal(mesh, dg, cache),)))
 
+      # Write data of each process in slices
+      slice = mpi_rank()*ndofs(mesh, dg, cache) + 1:(mpi_rank() + 1)*ndofs(mesh, dg, cache)
+      # Convert to 1D array
+      var[slice] = vec(data[v, .., :])
       # Add variable name as attribute
-      var = file["variables_$v"]
       attributes(var)["name"] = varnames(solution_variables, equations)[v]
     end
 
     # Store element variables
     for (v, (key, element_variable)) in enumerate(element_variables)
-      # Add to file
-      recv = Vector{eltype(data)}(undef, sum(element_counts))
-      MPI.Gatherv!(element_variable, MPI.VBuffer(recv, element_counts), mpi_root(), mpi_comm())
-      file["element_variables_$v"] = recv
+      # Need to create dataset explicitly in parallel case
+      var = create_dataset(file, "/element_variables_$v", datatype(eltype(element_variable)), dataspace((nelementsglobal(dg, cache),)))
 
+      # Write data of each process in slices
+      slice = mpi_rank()*nelements(dg, cache) + 1:(mpi_rank() + 1)*nelements(dg, cache)
+      # Add to file
+      var[slice] = element_variable
       # Add variable name as attribute
-      var = file["element_variables_$v"]
       attributes(var)["name"] = string(key)
     end
   end

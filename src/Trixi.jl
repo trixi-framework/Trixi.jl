@@ -25,6 +25,9 @@ using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, dropt
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
+# MPI needs to be imported before HDF5 to be able to use parallel HDF5
+using MPI: MPI
+
 using SciMLBase: CallbackSet, DiscreteCallback,
                  ODEProblem, ODESolution, ODEFunction,
                  SplitODEProblem
@@ -37,12 +40,11 @@ using ConstructionBase: ConstructionBase
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
-using HDF5: h5open, attributes
+using HDF5: h5open, attributes, create_dataset, datatype, dataspace
 using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
-using MPI: MPI
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...

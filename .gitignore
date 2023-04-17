@@ -29,3 +29,5 @@ coverage_report/
 
 run
 run/*
+
+LocalPreferences.toml
