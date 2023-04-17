@@ -1,6 +1,6 @@
 # [Unstructured meshes and the `DGMulti` solver](@id DGMulti)
 
-Trixi includes support for simplicial and tensor product meshes via the `DGMulti` solver type,
+Trixi.jl includes support for simplicial and tensor product meshes via the `DGMulti` solver type,
 which is based on the [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl) package.
 `DGMulti` solvers also provide support for quadrilateral and hexahedral meshes, though this
 feature is currently restricted to Cartesian grids.
@@ -21,7 +21,7 @@ around Jonathan Shewchuk's [Triangle](https://www.cs.cmu.edu/~quake/triangle.htm
 
 ## The `DGMulti` solver type
 
-Trixi solvers on simplicial meshes use the `[DGMulti](@ref)` solver type, which allows users to specify
+Trixi.jl solvers on simplicial meshes use the `[DGMulti](@ref)` solver type, which allows users to specify
 `element_type` and `approximation_type` in addition to `polydeg`, `surface_flux`, `surface_integral`,
 and `volume_integral`.
 
@@ -46,7 +46,7 @@ Here, `element_type` can be `Tri()`, `Quad()`, `Tet()`, or `Hex()`, and `approxi
   [Chen and Shu](https://doi.org/10.1016/j.jcp.2017.05.025).
   More detailed descriptions of each SBP node set can be found in the
   [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/RefElemData/#RefElemData-based-on-SBP-finite-differences).
-  Trixi will also specialize certain parts of the solver based on the `SBP` approximation type.
+  Trixi.jl will also specialize certain parts of the solver based on the `SBP` approximation type.
 * a (periodic or non-periodic) derivative operator from
   [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl),
   usually constructed as `D = derivative_operator(...)`. In this case, you do not need to
@@ -78,7 +78,7 @@ results in a more accurate solution. Roughly speaking, an entropy stable Gauss c
 will yield results similar to a modal entropy stable scheme using a `Polynomial()` approximation
 type, but will be more efficient at high orders of approximation.
 
-## Trixi elixirs on simplicial and tensor product element meshes
+## Trixi.jl elixirs on simplicial and tensor product element meshes
 
 Example elixirs with triangular, quadrilateral, and tetrahedral meshes can be found in
 the `examples/dgmulti_2d` and `examples/dgmulti_3d` folders. Some key elixirs to look at:
@@ -100,7 +100,7 @@ the `examples/dgmulti_2d` and `examples/dgmulti_3d` folders. Some key elixirs to
 
 ## `DGMultiMesh` wrapper type
 
-`DGMulti` meshes in Trixi are represented using a `DGMultiMesh{NDIMS, ...}` type.
+`DGMulti` meshes in Trixi.jl are represented using a `DGMultiMesh{NDIMS, ...}` type.
 This mesh type is assumed to have fields `md::MeshData`, which contains geometric terms
 derived from the mapping between the reference and physical elements, and `boundary_faces`, which
 contains a `Dict` of boundary segment names (symbols) and list of faces which lie on that boundary

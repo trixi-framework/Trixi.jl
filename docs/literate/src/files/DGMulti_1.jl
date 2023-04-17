@@ -92,8 +92,8 @@ alive_callback = AliveCallback(alive_interval=10)
 analysis_callback = AnalysisCallback(semi, interval=100, uEltype=real(dg))
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
-            callback=callbacks, save_everystep=false);
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=callbacks);
 #-
 using Plots
 pd = PlotData2D(sol)
@@ -132,8 +132,8 @@ alive_callback = AliveCallback(alive_interval=10)
 analysis_callback = AnalysisCallback(semi, interval=100, uEltype=real(dg))
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
-            callback=callbacks, save_everystep=false);
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=callbacks);
 #-
 using Plots
 pd = PlotData2D(sol)
@@ -144,7 +144,7 @@ plot!(getmesh(pd))
 
 
 # ## Triangular meshes on non-Cartesian domains
-# To use triangular meshes on a non-Cartesian domain, Trixi uses the package [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl).
+# To use triangular meshes on a non-Cartesian domain, Trixi.jl uses the package [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl).
 # The following example is based on [`elixir_euler_triangulate_pkg_mesh.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_euler_triangulate_pkg_mesh.jl)
 # and uses a pre-defined mesh from StartUpDG.jl.
 using Trixi, OrdinaryDiffEq
@@ -167,7 +167,7 @@ dg = DGMulti(polydeg = 3, element_type = Tri(),
 meshIO = StartUpDG.triangulate_domain(StartUpDG.RectangularDomainWithHole());
 
 # The pre-defined Triangulate geometry in StartUpDG has integer boundary tags. With [`DGMultiMesh`](@ref)
-# we assign boundary faces based on these integer boundary tags and create a mesh compatible with Trixi.
+# we assign boundary faces based on these integer boundary tags and create a mesh compatible with Trixi.jl.
 mesh = DGMultiMesh(meshIO, dg, Dict(:outer_boundary=>1, :inner_boundary=>2))
 #-
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
