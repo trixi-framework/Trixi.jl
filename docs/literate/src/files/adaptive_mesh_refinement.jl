@@ -5,10 +5,10 @@
 # of the domain, we want the simulation to use elements with smaller mesh sizes compared to other
 # regions. This should be automatically and dynamically adapted during the run of the simulation.
 
-# # Implementation in Trixi
+# # Implementation in Trixi.jl
 # In [Trixi.jl](https://github.com/trixi-framework/Trixi.jl), AMR is possible for the mesh types
 # [`TreeMesh`](@ref) and [`P4estMesh`](@ref). Both meshes are organized in a tree structure
-# and therefore, each element can be refined independently. In Trixi, AMR is restricted
+# and therefore, each element can be refined independently. In Trixi.jl, AMR is restricted
 # to a 2:1 refinement ratio between neighbor elements. This means that the maximum resolution
 # difference of neighboring elements is a factor of two.
 
@@ -17,7 +17,7 @@
 
 # ### Indicators
 # An indicator estimates the current accuracy of the numerical approximation. It indicates which regions
-# of the domain need finer or coarser resolutions. In Trixi, you can use for instance
+# of the domain need finer or coarser resolutions. In Trixi.jl, you can use for instance
 # [`IndicatorLöhner`](@ref) and [`IndicatorHennemannGassner`](@ref).
 
 # `IndicatorLöhner` (also callable with `IndicatorLoehner`) is an interpretation and adaptation of
@@ -45,7 +45,7 @@
 
 # Another indicator is the very basic `IndicatorMax`. It indicates the maximal value of a variable
 # and is therefore mostly used for verification and testing. But it might be useful for the basic
-# understanding of the implementation of indicators and AMR in Trixi.
+# understanding of the implementation of indicators and AMR in Trixi.jl.
 # ````julia
 # amr_indicator = IndicatorMax(semi, variable=variable)
 # ````
@@ -57,12 +57,12 @@
 # For instance, a mesh element of level `3` has double resolution in each direction compared to
 # another element with level `2`.
 
-# To map specific indicator values to a desired level of refinement, Trixi uses controllers.
+# To map specific indicator values to a desired level of refinement, Trixi.jl uses controllers.
 # They are build in three levels: There is a base level of refinement `base_level`, which is the
 # minimum allowed refinement level. Then, there is a medium level `med_level`, which corresponds
 # to the initial level of refinement, for indicator values above the threshold `med_threshold`
 # and equally, a maximal level `max_level` for values above `max_threshold`.
-# This variant of controller is called [`ControllerThreeLevel`](@ref) in Trixi.
+# This variant of controller is called [`ControllerThreeLevel`](@ref) in Trixi.jl.
 # ````julia
 # amr_controller = ControllerThreeLevel(semi, amr_indicator;
 #                                       base_level=4,
@@ -164,13 +164,13 @@ plot!(getmesh(pd))
 
 
 # # More examples
-# Trixi provides many elixirs using AMR. We want to give some examples for different mesh types:
+# Trixi.jl provides many elixirs using AMR. We want to give some examples for different mesh types:
 # - `elixir_euler_blast_wave_amr.jl` for [`TreeMesh`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_blast_wave_amr.jl)
 #   and [`P4estMesh`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/p4est_2d_dgsem/elixir_euler_blast_wave_amr.jl)
 # - [`elixir_euler_kelvin_helmholtz_instability_amr.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_kelvin_helmholtz_instability_amr.jl) for `TreeMesh`
 # - [`elixir_euler_double_mach_amr.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/p4est_2d_dgsem/elixir_euler_double_mach_amr.jl) for `P4estMesh`
 
-# Animations of more interesting and complicated AMR simulations can be found below and on Trixi's youtube channel
+# Animations of more interesting and complicated AMR simulations can be found below and on Trixi.jl's youtube channel
 # ["Trixi Framework"](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg).
 
 # First, we give a [purely hyperbolic simulation of a Sedov blast wave with self-gravity](https://www.youtube.com/watch?v=dxgzgteJdOA).
@@ -186,7 +186,7 @@ plot!(getmesh(pd))
 #   -->
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/dxgzgteJdOA' frameborder='0' allowfullscreen></iframe></div>
 # ```
-# Source: Trixi's YouTube channel [`Trixi Framework`](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg)
+# Source: Trixi.jl's YouTube channel [`Trixi Framework`](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg)
 
 # The next example is a numerical simulation of an [ideal MHD rotor on an unstructured AMR mesh](https://www.youtube.com/watch?v=Iei7e9oQ0hs).
 # The used mesh type is a `P4estMesh`.
@@ -199,6 +199,6 @@ plot!(getmesh(pd))
 #   -->
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/Iei7e9oQ0hs' frameborder='0' allowfullscreen></iframe></div>
 # ```
-# Source: Trixi's YouTube channel [`Trixi Framework`](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg)
+# Source: Trixi.jl's YouTube channel [`Trixi Framework`](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg)
 
 # For more information, please have a look at the respective links.

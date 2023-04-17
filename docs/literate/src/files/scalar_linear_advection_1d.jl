@@ -298,7 +298,7 @@ function rhs!(du, u, x, t)
 
     ## Calculate interface and boundary fluxes, $u^* = (u^*|_{-1}, 0, ..., 0, u^*|^1)^T$
     ## Since we use the flux Lax-Friedrichs from Trixi.jl, we have to pass some extra arguments.
-    ## Trixi needs the equation we are dealing with and an additional `1`, that indicates the
+    ## Trixi.jl needs the equation we are dealing with and an additional `1`, that indicates the
     ## first coordinate direction.
     equations = LinearScalarAdvectionEquation1D(1.0)
     for element in 2:n_elements-1
@@ -374,7 +374,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=30_000) # set maximum capacity of tree data structure (only needed for AMR)
 
 # A semidiscretization collects data structures and functions for the spatial discretization.
-# In Trixi, an initial condition has the following parameter structure and is of the type `SVector`.
+# In Trixi.jl, an initial condition has the following parameter structure and is of the type `SVector`.
 initial_condition_sine_wave(x, t, equations) = SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)

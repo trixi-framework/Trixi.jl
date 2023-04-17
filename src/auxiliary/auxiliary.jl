@@ -95,7 +95,7 @@ end
 """
     examples_dir()
 
-Return the directory where the example files provided with Trixi.jl are located. If Trixi is
+Return the directory where the example files provided with Trixi.jl are located. If Trixi.jl is
 installed as a regular package (with `]add Trixi`), these files are read-only and should *not* be
 modified. To find out which files are available, use, e.g., `readdir`:
 
@@ -110,7 +110,7 @@ examples_dir() = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 """
     get_examples()
 
-Return a list of all example elixirs that are provided by Trixi. See also
+Return a list of all example elixirs that are provided by Trixi.jl. See also
 [`examples_dir`](@ref) and [`default_example`](@ref).
 """
 function get_examples()
@@ -130,7 +130,7 @@ end
 """
     default_example()
 
-Return the path to an example elixir that can be used to quickly see Trixi in action on a
+Return the path to an example elixir that can be used to quickly see Trixi.jl in action on a
 [`TreeMesh`]@(ref). See also [`examples_dir`](@ref) and [`get_examples`](@ref).
 """
 default_example() = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
@@ -139,9 +139,9 @@ default_example() = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_
 """
     default_example_unstructured()
 
-Return the path to an example elixir that can be used to quickly see Trixi in action on an
+Return the path to an example elixir that can be used to quickly see Trixi.jl in action on an
 [`UnstructuredMesh2D`]@(ref). This simulation is run on the example curved, unstructured mesh
-given in the Trixi documentation regarding unstructured meshes.
+given in the Trixi.jl documentation regarding unstructured meshes.
 """
 default_example_unstructured() = joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
 
@@ -251,7 +251,7 @@ end
 # [TimerOutputs.jl](https://github.com/KristofferC/TimerOutputs.jl),
 # but without `try ... finally ... end` block. Thus, it's not exception-safe,
 # but it also avoids some related performance problems. Since we do not use
-# exception handling in Trixi, that's not really an issue.
+# exception handling in Trixi.jl, that's not really an issue.
 macro trixi_timeit(timer_output, label, expr)
   timeit_block = quote
     if timeit_debug_enabled()

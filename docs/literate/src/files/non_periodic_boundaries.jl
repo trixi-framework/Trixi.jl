@@ -104,7 +104,7 @@ end
 
 
 # # Other available example elixirs with non-trivial BC
-# Moreover, there are other boundary conditions in Trixi. For instance, you can use the slip wall
+# Moreover, there are other boundary conditions in Trixi.jl. For instance, you can use the slip wall
 # boundary condition [`boundary_condition_slip_wall`](@ref).
 
 # Trixi.jl provides some interesting examples with different combinations of boundary conditions, e.g.
@@ -123,7 +123,7 @@ end
 #   -->
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/glAug1aIxio' frameborder='0' allowfullscreen></iframe></div>
 # ```
-# Source: [`Video`](https://www.youtube.com/watch?v=glAug1aIxio) on Trixi's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
+# Source: [`Video`](https://www.youtube.com/watch?v=glAug1aIxio) on Trixi.jl's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
 
 # A double Mach reflection problem for the 2D compressible Euler equations
 # [`elixir_euler_double_mach_amr.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/p4est_2d_dgsem/elixir_euler_double_mach_amr.jl)
@@ -138,7 +138,7 @@ end
 #   -->
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/WElqqdMhY4A' frameborder='0' allowfullscreen></iframe></div>
 # ```
-# Source: [`Video`](https://www.youtube.com/watch?v=WElqqdMhY4A) on Trixi's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
+# Source: [`Video`](https://www.youtube.com/watch?v=WElqqdMhY4A) on Trixi.jl's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
 
 # A channel flow around a cylinder at Mach 3
 # [`elixir_euler_supersonic_cylinder.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/p4est_2d_dgsem/elixir_euler_supersonic_cylinder.jl)
@@ -154,4 +154,4 @@ end
 #   -->
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/w0A9X38cSe4' frameborder='0' allowfullscreen></iframe></div>
 # ```
-# Source: [`Video`](https://www.youtube.com/watch?v=w0A9X38cSe4) on Trixi's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
+# Source: [`Video`](https://www.youtube.com/watch?v=w0A9X38cSe4) on Trixi.jl's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
