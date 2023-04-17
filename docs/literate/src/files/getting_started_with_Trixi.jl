@@ -56,7 +56,7 @@
 # [`OrdinaryDiffEq`](https://github.com/SciML/OrdinaryDiffEq.jl) and 
 # [`Plots`](https://github.com/JuliaPlots/Plots.jl).
 
-# - Open a Terminal: type `Win + R` and enter `cmd`.
+# - Open a Terminal.
 # - Invoke Julia executing `julia`.
 # - Execute following commands:
 #   ````
@@ -92,8 +92,7 @@
 # with
 # [`weak blast wave initial condition`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.initial_condition_weak_blast_wave-Tuple{Any,%20Any,%20CompressibleEulerEquations2D})
 
-# Invoke Julia in a Terminal. (Open a Terminal: `Win+R` and enter `cmd`, invoke Julia in terminal: 
-# `julia`).
+# Invoke Julia in a Terminal.
 # And execute following code. (*Remark:* you can ignore all arguments of trixi_include() except
 # path to the file) 
 
@@ -162,7 +161,7 @@ get_examples()
 # p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
 # ```
 # the pressure.
-# So this means that an initial condition consists of initial values for ``\rho``, ``\rho v_1``,
+# Initial condition consists of initial values for ``\rho``, ``\rho v_1``,
 # ``\rho v_2`` and ``\rho e``.
 # One of the common initial condition for compressible Euler equations is density wave.
 # Let's implement it.
@@ -276,7 +275,8 @@ plot(sol) #hide #md
 #   is about how to set up a simple way to approximate the solution of a hyperbolic partial
 #   differential equation. It will be esspecialy useful to learn about the
 #   [`Discontinuous Galerkin method`](https://en.wikipedia.org/wiki/Discontinuous_Galerkin_method)
-#   and way of implementation in Trixi. Detailed explanation of code provides a quick start with Trixi.
+#   and way of its implementation in Trixi. Detailed explanation of code provides a quick start
+#   with Trixi.
 # - [`Adding a new scalar conservation law`](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/adding_new_scalar_equations/)
 #   and
 #   [`Adding a non-conservative equation`](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/adding_nonconservative_equation/)
