@@ -8,6 +8,9 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_dgsem")
 
+# Needed to skip certain tests on Windows CI
+import ..CI_ON_WINDOWS
+
 @testset "TreeMesh MPI" begin
 
 # Run basic tests
