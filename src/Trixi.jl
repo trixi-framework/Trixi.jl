@@ -76,7 +76,7 @@ import SummationByPartsOperators: integrate, semidiscretize,
   upwind_operators
 
 # DGMulti solvers
-@reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
+@reexport using StartUpDG: StartUpDG, Polynomial, Gauss, SBP, Line, Tri, Quad, Hex, Tet
 using StartUpDG: RefElemData, MeshData, AbstractElemShape
 
 # TODO: include_optimized
