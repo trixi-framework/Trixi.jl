@@ -155,3 +155,10 @@ To start Trixi.jl in parallel with MPI, there are three options:
 For information on how to evaluate the parallel performance of Trixi.jl, please
 have a look at the [Performance metrics of the `AnalysisCallback`](@ref)
 section, specifically at the descriptions of the performance index (PID).
+
+
+### Using error-based step size control with MPI
+If you use error-based step size control (see also the section on [error-based adaptive step sizes](@ref adaptive_step_sizes))
+together with MPI you need to pass `internalnorm=ode_norm` and you should pass
+`unstable_check=ode_unstable_check` to OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/),
+which are both included in [`ode_default_options`](@ref).
