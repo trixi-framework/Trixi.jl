@@ -71,15 +71,10 @@ function calc_gradient_surface_integral(gradients, u, scalar_flux_face_values,
   end
 end
 
-function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
-                        equations::AbstractEquationsParabolic,
-                        boundary_conditions, dg::DGMulti, cache, cache_parabolic)
+function calc_gradient_volume_integral!(gradients, u, mesh::DGMultiMesh, equations,
+                                        dg::DGMulti, cache, cache_parabolic)
 
-  @unpack weak_differentiation_matrices = cache_parabolic
-
-  for dim in eachindex(gradients)
-    reset_du!(gradients[dim], dg)
-  end
+  (; weak_differentiation_matrices) = cache_parabolic
 
   # compute volume contributions to gradients
   @threaded for e in eachelement(mesh, dg)
@@ -89,6 +84,17 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
                           view(gradients[i], :, e), view(u, :, e))
     end
   end
+end
+
+function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
+                        equations::AbstractEquationsParabolic,
+                        boundary_conditions, dg::DGMulti, cache, cache_parabolic)
+
+  for dim in eachindex(gradients)
+    reset_du!(gradients[dim], dg)
+  end
+
+  calc_gradient_volume_integral!(gradients, u, mesh, equations, dg, cache, cache_parabolic)
 
   @unpack u_face_values = cache_parabolic
   prolong2interfaces!(u_face_values, u, mesh, equations, dg.surface_integral, dg, cache)
@@ -189,7 +195,8 @@ function calc_viscous_fluxes!(flux_viscous, u, gradients, mesh::DGMultiMesh,
     end
 
     # interpolate u and gradient to quadrature points, store in `local_flux_viscous`
-    apply_to_each_field(mul_by!(dg.basis.Vq), local_u_values, view(u, :, e)) # TODO: DGMulti. Specialize for nodal collocation methods (SBP, GaussSBP)
+    # TODO: DGMulti. Specialize for nodal collocation methods (SBP, GaussSBP)?
+    apply_to_each_field(mul_by!(dg.basis.Vq), local_u_values, view(u, :, e))
     for dim in eachdim(mesh)
       apply_to_each_field(mul_by!(dg.basis.Vq), local_flux_viscous[dim], view(gradients[dim], :, e))
     end
@@ -233,14 +240,9 @@ function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, bounda
   return nothing
 end
 
-
-function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh,
-                          equations::AbstractEquationsParabolic,
-                          boundary_conditions, dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
-
-  @unpack weak_differentiation_matrices = cache_parabolic
-
-  reset_du!(du, dg)
+function calc_divergence_volume_integral!(du, u, flux_viscous, mesh::DGMultiMesh, equations,
+                                          dg::DGMulti, cache, cache_parabolic)
+  (; weak_differentiation_matrices) = cache_parabolic
 
   # compute volume contributions to divergence
   @threaded for e in eachelement(mesh, dg)
@@ -250,6 +252,15 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
                                 view(du, :, e), view(flux_viscous[i], :, e))
     end
   end
+end
+
+function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh,
+                          equations::AbstractEquationsParabolic,
+                          boundary_conditions, dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
+
+  reset_du!(du, dg)
+
+  calc_divergence_volume_integral!(du, u, flux_viscous, mesh, equations, dg, cache, cache_parabolic)
 
   # interpolates from solution coefficients to face quadrature points
   flux_viscous_face_values = cache_parabolic.gradients_face_values # reuse storage
