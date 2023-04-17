@@ -19,7 +19,7 @@ dg = DGMulti(element_type = Wedge(),
 
 coordinates_min = (-1.0, -1.0, -1.0)
 coordinates_max = (1.0, 1.0, 1.0)
-num_cells = (8,8,8)
+num_cells = (8, 8, 8)
 cells_per_dimension = num_cells
 mesh = DGMultiMesh(dg, 
                 cells_per_dimension = cells_per_dimension, 
