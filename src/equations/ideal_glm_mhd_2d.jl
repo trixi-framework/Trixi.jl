@@ -1045,4 +1045,51 @@ end
 end
 
 
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+                                 equations::IdealGlmMhdEquations2D)
+
+Determine the boundary numerical surface flux for a slip wall condition.
+Imposes a zero normal velocity and zero normal magentic field at the wall.
+Density is taken from the internal solution state, while pressure and
+magnetic field are computed such that the result is entropy dissipative under
+a local Lax-Friedrichs (e.g., Rusanov) flux.
+
+Derived by Andrew Winters 4/18/23.
+
+Should be used together with [`UnstructuredMesh2D`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              x, t,
+                                              surface_flux_function,
+                                              equations::IdealGlmMhdEquations2D)
+
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal = normal_direction / norm_
+
+  # rotate the internal solution state
+  u_local = rotate_to_x(u_inner, normal, equations)
+
+  # compute the primitive variables
+  rho, v_normal, v_tangent, v3, B_normal, B_tangent, B3, psi = cons2prim(u_local, equations)
+
+  lambda_max = calc_fast_wavespeed(u_local, 1, equations)
+  B_norm = B_normal^2 + B_tangent^2 + B3^2
+  p_star = p + 0.5 * B_norm + rho * v_normal * (v_normal - lambda_max) - B_normal^2
+  B_star = equations.c_h * psi + lambda_max * B_normal
+
+  # For the slip wall we directly set the flux as the normal velocity is zero
+  return SVector(zero(eltype(u_inner)),
+                 p_star * normal[1],
+                 p_star * normal[2],
+                 zero(eltype(u_inner)), # assuming n_z = 0
+                 zero(eltype(u_inner)),
+                 B_star * normal[1],
+                 B_star * normal[2],
+                 zero(eltype(u_inner)), # assuming n_z = 0
+                 zero(eltype(u_inner))) * norm_
+end
+
+
 end # @muladd
