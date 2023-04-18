@@ -201,7 +201,7 @@ end
 
 # for the stepsize callback
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_speed::False, equations, dg::DGMulti{NDIMS}, polydeg::Int, cache) where {NDIMS}
+                constant_speed::False, equations, dg::DGMulti{NDIMS}, polydeg::Integer, cache) where {NDIMS}
 
   @unpack md = mesh
   rd = dg.basis
@@ -225,7 +225,7 @@ end
 
 
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_speed::True, equations, dg::DGMulti{NDIMS}, polydeg::Int, cache) where {NDIMS}
+                constant_speed::True, equations, dg::DGMulti{NDIMS}, polydeg::Integer, cache) where {NDIMS}
 
   @unpack md = mesh
   rd = dg.basis
@@ -247,9 +247,8 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 function max_dt(u, t, mesh::DGMultiMesh,
-  constant_speed, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+                constant_speed, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
   rd = dg.basis
-  polydeg=Int8
   if dg.basis.approximation_type isa TensorProductWedge
     # For tensor-product elements the maximum of the polynomial degrees is used to ensure
     # that the timestep is feasable for both elements of the tensor-product. For the
