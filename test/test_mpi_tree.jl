@@ -88,11 +88,13 @@ import ..CI_ON_WINDOWS
       linf = [5.5227409524905013e-5, 0.0001454489597927185, 0.00032396328684569653])
   end
 
-  @trixi_testset "elixir_hypdiff_godunov.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_godunov.jl"),
-      l2   = [5.868147556427088e-6, 3.80517927324465e-5, 3.805179273249344e-5],
-      linf = [3.701965498725812e-5, 0.0002122422943138247, 0.00021224229431116015],
-      atol = 2.0e-12 #= required for CI on macOS =#)
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_hypdiff_godunov.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_godunov.jl"),
+        l2   = [5.868147556427088e-6, 3.80517927324465e-5, 3.805179273249344e-5],
+        linf = [3.701965498725812e-5, 0.0002122422943138247, 0.00021224229431116015],
+        atol = 2.0e-12 #= required for CI on macOS =#)
+    end
   end
 
 
