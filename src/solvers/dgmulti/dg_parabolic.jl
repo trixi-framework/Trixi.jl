@@ -6,11 +6,11 @@ function create_cache_parabolic(mesh::DGMultiMesh,
   # TODO: parabolic; utilize the parabolic variables in `equations_parabolic` to reduce memory usage in the parabolic cache
   nvars = nvariables(equations_hyperbolic)
 
-  @unpack M, Drst = dg.basis
+  (; M, Drst) = dg.basis
   weak_differentiation_matrices = map(A -> -M \ (A' * M), Drst)
 
   # u_transformed stores "transformed" variables for computing the gradient
-  @unpack md = mesh
+  (; md) = mesh
   u_transformed = allocate_nested_array(uEltype, nvars, size(md.x), dg)
   gradients = ntuple(_ -> similar(u_transformed), ndims(mesh))
   flux_viscous = similar.(gradients)
@@ -71,7 +71,8 @@ function calc_gradient_surface_integral!(gradients, u, scalar_flux_face_values,
   end
 end
 
-function calc_gradient_volume_integral!(gradients, u, mesh::DGMultiMesh, equations,
+function calc_gradient_volume_integral!(gradients, u, mesh::DGMultiMesh,
+                                        equations::AbstractEquationsParabolic,
                                         dg::DGMulti, cache, cache_parabolic)
 
   (; weak_differentiation_matrices) = cache_parabolic
@@ -240,7 +241,7 @@ function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, bounda
   return nothing
 end
 
-function calc_divergence_volume_integral!(du, u, flux_viscous, mesh::DGMultiMesh, equations,
+function calc_divergence_volume_integral!(du, u, flux_viscous, mesh::DGMultiMesh,
                                           dg::DGMulti, cache, cache_parabolic)
   (; weak_differentiation_matrices) = cache_parabolic
 
