@@ -9,7 +9,7 @@ initial_condition = initial_condition_convergence_test
 
 # Define the polynomial degrees for the polynoms of the triangular base and the line
 # of the tensor-prism
-tensor_polydeg = (2, 3)
+tensor_polydeg = (3, 2)
 
 dg = DGMulti(element_type = Wedge(),
             approximation_type = Polynomial(),
