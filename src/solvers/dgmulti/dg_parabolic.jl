@@ -2,6 +2,7 @@ function create_cache_parabolic(mesh::DGMultiMesh,
                                 equations_hyperbolic::AbstractEquations,
                                 equations_parabolic::AbstractEquationsParabolic,
                                 dg::DGMulti, parabolic_scheme, RealT, uEltype)
+
   # default to taking derivatives of all hyperbolic terms
   # TODO: parabolic; utilize the parabolic variables in `equations_parabolic` to reduce memory usage in the parabolic cache
   nvars = nvariables(equations_hyperbolic)
@@ -23,17 +24,8 @@ function create_cache_parabolic(mesh::DGMultiMesh,
   local_flux_viscous_threaded = [ntuple(_ -> similar(u_transformed, dg.basis.Nq), ndims(mesh)) for _ in 1:Threads.nthreads()]
   local_flux_face_values_threaded = [similar(scalar_flux_face_values[:, 1]) for _ in 1:Threads.nthreads()]
 
-  # precompute 1 / h for penalty terms
-  inv_h = similar(mesh.md.Jf)
-  J = dg.basis.Vf * mesh.md.J # interp to face nodes
-  for e in eachelement(mesh, dg)
-    for i in each_face_node(mesh, dg)
-      inv_h[i, e] = mesh.md.Jf[i, e] / J[i, e]
-    end
-  end
-
   return (; u_transformed, gradients, flux_viscous,
-            weak_differentiation_matrices, inv_h,
+            weak_differentiation_matrices,
             u_face_values, gradients_face_values, scalar_flux_face_values,
             local_u_values_threaded, local_flux_viscous_threaded, local_flux_face_values_threaded)
 end
@@ -230,18 +222,18 @@ function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, bounda
                                mesh, equations::AbstractEquationsParabolic, dg::DGMulti,
                                parabolic_scheme, cache, cache_parabolic)
   # compute fluxes at interfaces
-  @unpack scalar_flux_face_values, inv_h = cache_parabolic
+  @unpack scalar_flux_face_values = cache_parabolic
   @unpack mapM, mapP = mesh.md
   @threaded for face_node_index in each_face_node_global(mesh, dg)
     idM, idP = mapM[face_node_index], mapP[face_node_index]
     uM, uP = u_face_values[idM], u_face_values[idP]
-    inv_h_face = inv_h[face_node_index]
-    scalar_flux_face_values[idM] = scalar_flux_face_values[idM] + penalty(uP, uM, inv_h_face, equations, parabolic_scheme)
+    scalar_flux_face_values[idM] = scalar_flux_face_values[idM] + penalty(uP, uM, equations, parabolic_scheme)
   end
   return nothing
 end
 
 function calc_divergence_volume_integral!(du, u, flux_viscous, mesh::DGMultiMesh,
+                                          equations::AbstractEquationsParabolic,
                                           dg::DGMulti, cache, cache_parabolic)
   (; weak_differentiation_matrices) = cache_parabolic
 
