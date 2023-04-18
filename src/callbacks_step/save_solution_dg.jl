@@ -78,7 +78,7 @@ function save_solution_file(u, time, dt, timestep,
                             mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
-  if has_parallel()
+  if HDF5.has_parallel()
     save_solution_file_parallel(u, time, dt, timestep, mesh, equations, dg, cache, solution_callback, element_variables; system=system)
   else
     save_solution_file_on_root(u, time, dt, timestep, mesh, equations, dg, cache, solution_callback, element_variables; system=system)

@@ -40,7 +40,7 @@ using ConstructionBase: ConstructionBase
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
-using HDF5: h5open, attributes, create_dataset, datatype, dataspace, has_parallel
+using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
