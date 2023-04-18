@@ -1072,12 +1072,17 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
   u_local = rotate_to_x(u_inner, normal, equations)
 
   # compute the primitive variables
-  rho, v_normal, v_tangent, v3, B_normal, B_tangent, B3, psi = cons2prim(u_local, equations)
+  rho, v_normal, v_tangent, v3, p, B_normal, B_tangent, B3, psi = cons2prim(u_local, equations)
 
-  lambda_max = calc_fast_wavespeed(u_local, 1, equations)
-  B_norm = B_normal^2 + B_tangent^2 + B3^2
-  p_star = p + 0.5 * B_norm + rho * v_normal * (v_normal - lambda_max) - B_normal^2
-  B_star = equations.c_h * psi + lambda_max * B_normal
+  # EC version for testing
+  B_norm_squared = B_normal^2 + B_tangent^2 + B3^2
+  p_star = p + 0.5 * B_norm_squared
+  B_star = equations.c_h * psi
+
+  # # Entropy dissipative version
+  # p_star = p + 0.5 * B_norm_squared + rho * v_normal * (v_normal - lambda_max) - B_normal^2
+  # lambda_max = calc_fast_wavespeed(u_local, 1, equations)
+  # B_star = equations.c_h * psi + lambda_max * B_normal
 
   # For the slip wall we directly set the flux as the normal velocity is zero
   return SVector(zero(eltype(u_inner)),
