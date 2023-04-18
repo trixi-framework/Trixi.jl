@@ -78,18 +78,6 @@ function save_solution_file(u, time, dt, timestep,
                             mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
-  if HDF5.has_parallel()
-    save_solution_file_parallel(u, time, dt, timestep, mesh, equations, dg, cache, solution_callback, element_variables; system=system)
-  else
-    save_solution_file_on_root(u, time, dt, timestep, mesh, equations, dg, cache, solution_callback, element_variables; system=system)
-  end
-end
-
-
-function save_solution_file_parallel(u, time, dt, timestep,
-                                     mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
-                                     solution_callback, element_variables=Dict{Symbol,Any}();
-                                     system="")
   @unpack output_directory, solution_variables = solution_callback
 
   # Filename without extension based on current time step
@@ -115,6 +103,17 @@ function save_solution_file_parallel(u, time, dt, timestep,
     n_vars = size(data, 1)
   end
 
+  if HDF5.has_parallel()
+    save_solution_file_parallel(data, time, dt, timestep, n_vars, mesh, equations, dg, cache, solution_variables, filename, element_variables)
+  else
+    save_solution_file_on_root(data, time, dt, timestep, n_vars, mesh, equations, dg, cache, solution_variables, filename, element_variables)
+  end
+end
+
+
+function save_solution_file_parallel(data, time, dt, timestep, n_vars,
+                                     mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
+                                     solution_variables, filename, element_variables=Dict{Symbol,Any}())
   # Open file using parallel HDF5 (clobber existing content)
   h5open(filename, "w", mpi_comm()) do file
     # Add context information as attributes
@@ -160,35 +159,9 @@ function save_solution_file_parallel(u, time, dt, timestep,
 end
 
 
-function save_solution_file_on_root(u, time, dt, timestep,
+function save_solution_file_on_root(data, time, dt, timestep, n_vars,
                                     mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
-                                    solution_callback, element_variables=Dict{Symbol,Any}();
-                                    system="")
-  @unpack output_directory, solution_variables = solution_callback
-
-  # Filename without extension based on current time step
-  if isempty(system)
-    filename = joinpath(output_directory, @sprintf("solution_%06d.h5", timestep))
-  else
-    filename = joinpath(output_directory, @sprintf("solution_%s_%06d.h5", system, timestep))
-  end
-
-  # Convert to different set of variables if requested
-  if solution_variables === cons2cons
-    data = u
-    n_vars = nvariables(equations)
-  else
-    # Reinterpret the solution array as an array of conservative variables,
-    # compute the solution variables via broadcasting, and reinterpret the
-    # result as a plain array of floating point numbers
-    data = Array(reinterpret(eltype(u),
-           solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
-                      Ref(equations))))
-
-    # Find out variable count by looking at output from `solution_variables` function
-    n_vars = size(data, 1)
-  end
-
+                                    solution_variables, filename, element_variables=Dict{Symbol,Any}())
   # Calculate element and node counts by MPI rank
   element_size = nnodes(dg)^ndims(mesh)
   element_counts = convert(Vector{Cint}, collect(cache.mpi_cache.n_elements_by_rank))
