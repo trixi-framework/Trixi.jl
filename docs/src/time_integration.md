@@ -30,11 +30,11 @@ are the following. Further documentation can be found in the
   `CarpenterKennedy2N54(thread=OrdinaryDiffEq.True(), williamson_condition=false)`.
   For more information on using thread-based parallelism in Trixi.jl, please refer to 
   [Shared-memory parallelization with threads](@ref).
-- If you use error-based step size control (see also see also the section on
-  [error-based adaptive step sizes](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/time_stepping/#Error-based-adaptive-step-sizes))
-  together with MPI, you need to pass `internalnorm=ode_norm` and you should pass
-  `unstable_check=ode_unstable_check` to OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/),
-  which are both included in [`ode_default_options`](@ref).
+- If you use error-based step size control (see also the section on
+  [error-based adaptive step sizes](@ref adaptive_step_sizes) together with MPI, you need to
+  pass `internalnorm=ode_norm` and you should pass `unstable_check=ode_unstable_check` to
+  OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/), which are both
+  included in [`ode_default_options`](@ref).
 
 !!! note "Number of `rhs!` calls"
     If you use explicit Runge-Kutta methods from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
