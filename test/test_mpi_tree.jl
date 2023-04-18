@@ -168,11 +168,13 @@ import ..CI_ON_WINDOWS
       coverage_override = (maxiters=6,))
   end
 
-  @trixi_testset "elixir_euler_vortex_shockcapturing.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_shockcapturing.jl"),
-      l2   = [0.0017158367642679273, 0.09619888722871434, 0.09616432767924141, 0.17553381166255197],
-      linf = [0.021853862449723982, 0.9878047229255944, 0.9880191167111795, 2.2154030488035588],
-      rtol = 0.001)
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_euler_vortex_shockcapturing.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_shockcapturing.jl"),
+        l2   = [0.0017158367642679273, 0.09619888722871434, 0.09616432767924141, 0.17553381166255197],
+        linf = [0.021853862449723982, 0.9878047229255944, 0.9880191167111795, 2.2154030488035588],
+        rtol = 0.001)
+    end
   end
 end
 
