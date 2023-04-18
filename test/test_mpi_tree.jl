@@ -111,13 +111,15 @@ import ..CI_ON_WINDOWS
   end
 
   # This example file is only for testing purposes and has no practical use
-  @trixi_testset "elixir_euler_source_terms_amr_refine_coarsen.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_amr_refine_coarsen.jl"),
-      l2   = [4.8226610349853444e-5, 4.117706709270575e-5, 4.1177067092959676e-5, 0.00012205252427437389],
-      linf = [0.0003543874851490436, 0.0002973166773747593, 0.0002973166773760916, 0.001154106793870291],
-      # Let this test run until the end to cover the time-dependent lines
-      # of the indicator and the MPI-specific AMR code.
-      coverage_override = (maxiters=10^5,))
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_euler_source_terms_amr_refine_coarsen.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_amr_refine_coarsen.jl"),
+        l2   = [4.8226610349853444e-5, 4.117706709270575e-5, 4.1177067092959676e-5, 0.00012205252427437389],
+        linf = [0.0003543874851490436, 0.0002973166773747593, 0.0002973166773760916, 0.001154106793870291],
+        # Let this test run until the end to cover the time-dependent lines
+        # of the indicator and the MPI-specific AMR code.
+        coverage_override = (maxiters=10^5,))
+    end
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
