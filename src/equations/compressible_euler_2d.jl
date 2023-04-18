@@ -324,14 +324,14 @@ end
 
 """
     boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
-                                 surface_flux_function, equations::CompressibleEulerEquations2D)
+                                 surface_flux_function, equations::AbstractEquations{2})
 
 Should be used together with [`TreeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, orientation,
                                               direction, x, t,
                                               surface_flux_function,
-                                              equations::CompressibleEulerEquations2D)
+                                              equations::AbstractEquations{2})
   # get the appropriate normal vector from the orientation
   if orientation == 1
     normal_direction = SVector(1, 0)
