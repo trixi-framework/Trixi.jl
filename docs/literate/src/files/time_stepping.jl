@@ -18,7 +18,7 @@
 # and [low-storage methods](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Low-Storage-Methods).
 # There are some differences regarding the choice of the used time step.
 
-# # Error-based adaptive step sizes
+# # [Error-based adaptive step sizes](@id adaptive_step_sizes)
 # First, we treat time integration algorithms with adaptive step sizes, such as `SSPRK43`. It is used in
 # some elixirs, like [`elixir_euler_colliding_flow.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_colliding_flow.jl)
 # or [`elixir_euler_astro_jet_amr.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_astro_jet_amr.jl).
@@ -29,6 +29,9 @@
 # They already contain an error-based adaptive step size control and heuristics to guess
 # a starting step size. If this heuristic fails in your case, you can specify an appropriately
 # small initial step size as keyword argument `dt=...` of `solve`.
+
+# If you run Trixi in parallel with MPI you need to pass `internalnorm=ode_norm` and you should pass `unstable_check=ode_unstable_check`
+# to enable MPI aware error-based adaptive step size control. These keyword arguments are also included in [`ode_default_options`](@ref).
 
 
 # # CFL-based step size control

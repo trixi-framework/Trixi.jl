@@ -231,7 +231,7 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
 export PositivityPreservingLimiterZhangShu
 
 export trixi_include, examples_dir, get_examples, default_example,
-       default_example_unstructured
+       default_example_unstructured, ode_default_options
 
 export ode_norm, ode_unstable_check
 
