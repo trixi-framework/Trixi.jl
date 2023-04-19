@@ -62,11 +62,13 @@ import ..CI_ON_WINDOWS
     end
   end
 
-  @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_unstructured_flag.jl"),
-      l2   = [0.0012766060609964525],
-      linf = [0.01750280631586159],
-      coverage_override = (maxiters=6,))
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_unstructured_flag.jl"),
+        l2   = [0.0012766060609964525],
+        linf = [0.01750280631586159],
+        coverage_override = (maxiters=6,))
+    end
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
