@@ -38,12 +38,12 @@ p = \kappa\rho^\gamma
 the pressure, which we replaced using this relation.
 
 """
-struct PolytropicEulerEquations2D{RealT<:Real, RealT<:Real} <: AbstractCompressibleEulerEquations{2, 3}
+struct PolytropicEulerEquations2D{RealT<:Real, RealT<:Real} <: AbstractPolytropicEulerEquations{2, 3}
   gamma::RealT               # ratio of specific heats
   kappa::RealT               # fluid scaling factor
   inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
 
-  function PolytropicEulerEquations2D(gamma, kapp)
+  function PolytropicEulerEquations2D(gamma, kappa)
     new{typeof(gamma), typeof(kappa)}(gamma, kappa)
   end
 end
@@ -249,6 +249,55 @@ end
   f1 = rho_v_normal
   f2 = rho_v_normal * v1 + p * normal_direction[1]
   f3 = rho_v_normal * v2 + p * normal_direction[2]
+  return SVector(f1, f2, f3)
+end
+
+
+"""
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction,
+                 equations::PolytropicEulerEquations2D)
+
+Entropy conserving and kinetic energy preserving two-point flux by
+- Hendrik Ranocha (2018)
+  Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
+  for Hyperbolic Balance Laws
+  [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+See also
+- Hendrik Ranocha (2020)
+  Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
+  the Euler Equations Using Summation-by-Parts Operators
+  [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+"""
+@inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::PolytropicEulerEquations2D)
+  # Unpack left and right state
+  rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr = cons2prim(u_rr, equations)
+  p_ll = equations.kappa*rho_ll^equations.gamma
+  p_rr = equations.kappa*rho_rr^equations.gamma
+
+  # Compute the necessary mean values
+  rho_mean = ln_mean(rho_ll, rho_rr)
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  p_avg  = 0.5 * (p_ll + p_rr)
+  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    f1 = rho_mean * v1_avg
+    f2 = f1 * v1_avg + p_avg
+    f3 = f1 * v2_avg
+  else
+    f1 = rho_mean * v2_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_avg
+  end
+
   return SVector(f1, f2, f3)
 end
 
