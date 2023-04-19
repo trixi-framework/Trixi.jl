@@ -128,8 +128,8 @@ function reset_du!(du, dg::DGMulti, other_args...)
   return du
 end
 
-# Constructs cache variables that are shared between affine and non-affine (curved) DGMultiMeshes
-function _create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT, uEltype)
+# Constructs cache variables for both affine and non-affine (curved) DGMultiMeshes
+function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, RealT, uEltype) where {NDIMS}
   rd = dg.basis
   md = mesh.md
 
@@ -154,39 +154,22 @@ function _create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT,
   # local storage for volume integral and source computations
   local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
 
-  return (; md, weak_differentiation_matrices, lift_scalings,
-            u_values, u_face_values, flux_face_values, local_values_threaded)
-end
-
-# cache constructor for a non-curved `DGMultiMesh`
-function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT, uEltype)
-  md = mesh.md
-  return (; _create_cache(mesh, equations, dg, RealT, uEltype)..., invJ = inv.(md.J))
-end
-
-# cache constructor for a curved `DGMultiMesh`
-function create_cache(mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
-                      dg::DGMultiWeakForm, RealT, uEltype) where {NDIMS}
-  rd = dg.basis
-  md = mesh.md
-
   # For curved meshes, we interpolate geometric terms from nodal points to quadrature points.
-  # The curved DGMultiMesh constructor interpolates md.rstxyzJ to *both* volume and face points
-  # TODO: fix this by moving interpolation of rstxyzJ to cache.
-  dxidxhatj = map(x -> getindex(x, 1:rd.Nq, :), md.rstxyzJ)
+  # For affine meshes, we just access one element of this interpolated data.
+  dxidxhatj = map(x -> rd.Vq * x, md.rstxyzJ)
 
   # interpolate J to quadrature points for weight-adjusted DG (WADG)
   invJ = inv.(rd.Vq * md.J)
 
-  nvars = nvariables(equations)
-
+  # for scaling by curved geometric terms (not used by affine DGMultiMesh)
   flux_threaded =
     [[allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:NDIMS] for _ in 1:Threads.nthreads()]
   rotated_flux_threaded =
     [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
 
-  return (; _create_cache(mesh, equations, dg, RealT, uEltype)...,
-            invJ, dxidxhatj, flux_threaded, rotated_flux_threaded)
+  return (; md, weak_differentiation_matrices, lift_scalings, invJ, dxidxhatj,
+            u_values, u_face_values, flux_face_values,
+            local_values_threaded, flux_threaded, rotated_flux_threaded)
 end
 
 function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
@@ -281,7 +264,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
   rd = dg.basis
   md = mesh.md
-  @unpack weak_differentiation_matrices, u_values, local_values_threaded = cache
+  @unpack weak_differentiation_matrices, dxidxhatj, u_values, local_values_threaded = cache
   @unpack rstxyzJ = md # geometric terms
 
   # interpolate to quadrature points
@@ -291,10 +274,9 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
     flux_values = local_values_threaded[Threads.threadid()]
     for i in eachdim(mesh)
-      flux_values .= flux.(view(u_values,:,e), i, equations)
+      flux_values .= flux.(view(u_values, :, e), i, equations)
       for j in eachdim(mesh)
-        dxidxhatj = mesh.md.rstxyzJ[i, j][1, e]
-        apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], dxidxhatj),
+        apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], dxidxhatj[i, j][1, e]),
                             view(du, :, e), flux_values)
       end
     end
@@ -506,8 +488,10 @@ end
 
 # inverts Jacobian and scales by -1.0
 function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache; scaling=-1)
-  @threaded for i in each_dof_global(mesh, dg, cache)
-    du[i] *= scaling * cache.invJ[i]
+  @threaded for e in eachelement(mesh, dg, cache)
+    for i in axes(du, 1)
+      du[i, e] *= scaling * cache.invJ[i, e]
+    end
   end
 end
 

@@ -13,7 +13,7 @@ using Test: @test #src
 
 # ## Forward mode automatic differentiation
 
-# Trixi integrates well with [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
+# Trixi.jl integrates well with [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
 # for forward mode AD.
 
 
@@ -124,7 +124,7 @@ condition_number = cond(V)
 
 # ### Computing other derivatives
 
-# It is also possible to compute derivatives of other dependencies using AD in Trixi. For example,
+# It is also possible to compute derivatives of other dependencies using AD in Trixi.jl. For example,
 # you can compute the gradient of an entropy-dissipative semidiscretization with respect to the
 # ideal gas constant of the compressible Euler equations as described in the following. This example
 # is also available as the elixir
@@ -208,7 +208,7 @@ round.(extrema(J), sigdigits=2)
 norm(J[1:4:end])
 @test norm(J[1:4:end]) == 0.0 #src
 
-# Here, we used some knowledge about the internal memory layout of Trixi, an array of structs
+# Here, we used some knowledge about the internal memory layout of Trixi.jl, an array of structs
 # with the conserved variables as fastest-varying index in memory.
 
 
@@ -322,12 +322,12 @@ end;
 
 # The semidiscretization `semi` uses some internal caches to avoid repeated allocations
 # and speed up the computations, e.g. for numerical fluxes at interfaces. Thus, we
-# need to tell Trixi to allow `ForwardDiff.Dual` numbers in these caches. That's what
+# need to tell Trixi.jl to allow `ForwardDiff.Dual` numbers in these caches. That's what
 # the keyword argument `uEltype=typeof(k)` in
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     uEltype=typeof(k));
 
-# does. This is basically the only part where you need to modify your standard Trixi
+# does. This is basically the only part where you need to modify your standard Trixi.jl
 # code to enable automatic differentiation. From there on, the remaining steps
 ode = semidiscretize(semi, (0.0, 1.0))
 sol = solve(ode, BS3(), save_everystep=false)
@@ -343,7 +343,7 @@ round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits=5)
 # [![Error bars by Randall Munroe](https://imgs.xkcd.com/comics/error_bars.png)](https://xkcd.com/2110/)
 # "Error bars" by Randall Munroe, linked from https://xkcd.com/2110
 
-# Similar to AD, Trixi also allows propagating uncertainties using linear error propagation
+# Similar to AD, Trixi.jl also allows propagating uncertainties using linear error propagation
 # theory via [Measurements.jl](https://github.com/JuliaPhysics/Measurements.jl).
 # As an example, let's create a system representing the linear advection equation
 # in 1D with an uncertain velocity. Then, we create a semidiscretization using a
@@ -381,7 +381,7 @@ plot(sol)
 
 # ## Finite difference approximations
 
-# Trixi provides the convenience function [`jacobian_fd`](@ref) to approximate the Jacobian
+# Trixi.jl provides the convenience function [`jacobian_fd`](@ref) to approximate the Jacobian
 # via central finite differences.
 
 using Trixi, LinearAlgebra
@@ -413,7 +413,7 @@ relative_difference = norm(J_fd - J_ad) / size(J_fd, 1)
 # \partial_t u(t) = A u(t) + b,
 # ```
 
-# where `A` is a linear operator ("matrix") and `b` is a vector. Trixi allows you
+# where `A` is a linear operator ("matrix") and `b` is a vector. Trixi.jl allows you
 # to obtain this linear structure in a matrix-free way by using [`linear_structure`](@ref).
 # The resulting operator `A` can be used in multiplication, e.g. `mul!` from
 # LinearAlgebra, converted to a sparse matrix using `sparse` from SparseArrays,

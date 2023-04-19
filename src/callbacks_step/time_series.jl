@@ -145,7 +145,7 @@ function TimeSeriesCallback(semi, point_coordinates; kwargs...)
 end
 
 
-# Convenience constructor that converts a vector of points into a Trixi-style coordinate array
+# Convenience constructor that converts a vector of points into a Trixi.jl-style coordinate array
 function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates::AbstractVector;
                             kwargs...)
   # Coordinates are usually stored in [ndims, n_points], but here as [n_points, ndims]

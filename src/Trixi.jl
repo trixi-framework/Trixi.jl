@@ -4,10 +4,10 @@
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws. A key objective for the framework is to be useful to both scientists
 and students. Therefore, next to having an extensible design with a fast
-implementation, Trixi is focused on being easy to use for new or inexperienced
+implementation, Trixi.jl is focused on being easy to use for new or inexperienced
 users, including the installation and postprocessing procedures.
 
-To get started, run your first simulation with Trixi using
+To get started, run your first simulation with Trixi.jl using
 
     trixi_include(default_example())
 
@@ -15,7 +15,7 @@ See also: [trixi-framework/Trixi.jl](https://github.com/trixi-framework/Trixi.jl
 """
 module Trixi
 
-# Include other packages that are used in Trixi
+# Include other packages that are used in Trixi.jl
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
 using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling, det
@@ -76,7 +76,7 @@ import SummationByPartsOperators: integrate, semidiscretize,
   upwind_operators
 
 # DGMulti solvers
-@reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
+@reexport using StartUpDG: StartUpDG, Polynomial, Gauss, SBP, Line, Tri, Quad, Hex, Tet
 using StartUpDG: RefElemData, MeshData, AbstractElemShape
 
 # TODO: include_optimized
@@ -122,7 +122,7 @@ include("auxiliary/special_elixirs.jl")
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
 
-# export types/functions that define the public API of Trixi
+# export types/functions that define the public API of Trixi.jl
 
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
@@ -230,7 +230,7 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
 export PositivityPreservingLimiterZhangShu
 
 export trixi_include, examples_dir, get_examples, default_example,
-       default_example_unstructured
+       default_example_unstructured, ode_default_options
 
 export ode_norm, ode_unstable_check
 
