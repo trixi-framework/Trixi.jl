@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the Lattice-Boltzmann equations for the D2Q9 scheme
 
-equations = LatticeBoltzmannEquations2D(Ma=0.1, Re=1000)
+equations = LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000)
 
 """
     initial_condition_lid_driven_cavity(x, t, equations::LatticeBoltzmannEquations2D)
@@ -42,7 +42,7 @@ end
 function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x, t,
                                              surface_flux_function,
                                              equations::LatticeBoltzmannEquations2D)
-  @assert direction == 4 "moving wall assumed in +y direction"
+  @assert direction==4 "moving wall assumed in +y direction"
 
   @unpack rho0, u0, weights, c_s = equations
   cs_squared = c_s^2
@@ -62,26 +62,22 @@ function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x,
   # Calculate boundary flux (u_inner is "left" of boundary, u_boundary is "right" of boundary)
   return surface_flux_function(u_inner, u_boundary, orientation, equations)
 end
-boundary_conditions = (
-                       x_neg=boundary_condition_noslip_wall,
-                       x_pos=boundary_condition_noslip_wall,
-                       y_neg=boundary_condition_noslip_wall,
-                       y_pos=boundary_condition_lid_driven_cavity,
-                      )
+boundary_conditions = (x_neg = boundary_condition_noslip_wall,
+                       x_pos = boundary_condition_noslip_wall,
+                       y_neg = boundary_condition_noslip_wall,
+                       y_pos = boundary_condition_lid_driven_cavity)
 
-solver = DGSEM(polydeg=5, surface_flux=flux_godunov)
+solver = DGSEM(polydeg = 5, surface_flux = flux_godunov)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
-                periodicity=false,
-                n_cells_max=10_000,)
-
+                initial_refinement_level = 4,
+                periodicity = false,
+                n_cells_max = 10_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions=boundary_conditions)
-
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -92,16 +88,16 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 1000
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=1000,
-                                     save_initial_solution=true,
-                                     save_final_solution=true,
-                                     solution_variables=cons2macroscopic)
+save_solution = SaveSolutionCallback(interval = 1000,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2macroscopic)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 collision_callback = LBMCollisionCallback()
 
@@ -111,11 +107,10 @@ callbacks = CallbackSet(summary_callback,
                         stepsize_callback,
                         collision_callback)
 
-
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary
