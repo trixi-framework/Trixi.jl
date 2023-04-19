@@ -68,12 +68,12 @@ function limiter_shallow_water!(u, threshold::Real, variable,
     for i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, element)
 
-      h, v, b = u_node
+      h, hv, b = u_node
 
       h = h * Int32(h > threshold) + threshold * Int32(h <= threshold)
-      v = v * Int32(h > threshold)
+      hv = hv * Int32(h > threshold)
 
-      u_node = SVector(h, v, b)
+      u_node = SVector(h, hv, b)
 
       set_node_vars!(u, u_node, equations, dg, i, element)
     end
