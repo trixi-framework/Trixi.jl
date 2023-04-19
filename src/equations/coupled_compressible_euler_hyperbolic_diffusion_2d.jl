@@ -37,16 +37,16 @@
       f1 = 0.0
       f2 = 0.0
       f3 = 0.0
-      f4 = -equations.coupling_nu*q1
-      f5 = equations.coupling_nu*q1
+      f4 = -equations.coupling_nu*phi
+      f5 = equations.coupling_nu*phi
       f6 = 0.0
       f7 = 0.0
     else
       f1 = 0.0
       f2 = 0.0
       f3 = 0.0
-      f4 = -equations.coupling_nu*q2
-      f5 = equations.coupling_nu*q2
+      f4 = -equations.coupling_nu*phi
+      f5 = equations.coupling_nu*phi
       f6 = 0.0
       f7 = 0.0
     end
@@ -65,8 +65,9 @@
     f1 = 0.0
     f2 = 0.0
     f3 = 0.0
-    f4 = -equations.coupling_nu * (q1*normal_direction[1] + q2*normal_direction[2])
-    f5 = equations.coupling_nu * (q1*normal_direction[1] + q2*normal_direction[2])
+    f4 = -equations.coupling_nu * phi
+    
+    f5 = equations.coupling_nu * phi
     f6 = 0.0
     f7 = 0.0
   
@@ -76,12 +77,21 @@
   
   # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
   @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CouplingCompressibleEulerHyperbolicDiffusion2D)
-    sqrt(equations.coupling_nu)
+    return equations.coupling_nu
   end
   
 
   @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::CouplingCompressibleEulerHyperbolicDiffusion2D)
-    sqrt(equations.coupling_nu) * norm(normal_direction)
+    # rho, rho_v1, rho_v2, rho_e, phi, q1, q2 = (u_ll + u_rr)
+    # rho, v1, v2, p, phi, q1, q2 = (cons2prim(u_ll, equations) + cons2prim(u_rr, equations))/2
+
+    # v = (q1 * normal_direction[1] + q2 * normal_direction[2])
+
+    # @infiltrate
+
+    # return abs(v) * norm(normal_direction)
+
+    return equations.coupling_nu
   end
   
    
@@ -89,6 +99,7 @@
   
 
   @inline function max_abs_speeds(eq::CouplingCompressibleEulerHyperbolicDiffusion2D)
+    @infiltrate
     λ = sqrt(eq.nu * eq.inv_Tr)
     return λ, λ
   end
