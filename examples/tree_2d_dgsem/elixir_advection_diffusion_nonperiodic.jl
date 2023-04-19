@@ -10,16 +10,16 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-1.0, -0.5) # minimum coordinates (min(x), min(y))
-coordinates_max = (0.0, 0.5) # maximum coordinates (max(x), max(y))
+coordinates_max = ( 0.0,  0.5) # maximum coordinates (max(x), max(y))
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                periodicity = false,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+                initial_refinement_level=4,
+                periodicity=false,
+                n_cells_max=30_000) # set maximum capacity of tree data structure
 
 # Example setup taken from
 # - Truman Ellis, Jesse Chan, and Leszek Demkowicz (2016).
@@ -41,9 +41,9 @@ end
 initial_condition = initial_condition_eriksson_johnson
 
 boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
-                       y_neg = BoundaryConditionDirichlet(initial_condition),
-                       y_pos = BoundaryConditionDirichlet(initial_condition),
-                       x_pos = boundary_condition_do_nothing)
+                         y_neg = BoundaryConditionDirichlet(initial_condition),
+                         y_pos = BoundaryConditionDirichlet(initial_condition),
+                         x_pos = boundary_condition_do_nothing)
 
 boundary_conditions_parabolic = BoundaryConditionDirichlet(initial_condition)
 
@@ -51,8 +51,9 @@ boundary_conditions_parabolic = BoundaryConditionDirichlet(initial_condition)
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions_parabolic))
+                                             boundary_conditions=(boundary_conditions,
+                                                                  boundary_conditions_parabolic))
+
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -67,21 +68,22 @@ summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 # The AliveCallback prints short status information in regular intervals
-alive_callback = AliveCallback(analysis_interval = analysis_interval)
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
+
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-11
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
-            ode_default_options()..., callback = callbacks)
+sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
+            ode_default_options()..., callback=callbacks)
 
 # Print the timer summary
 summary_callback()

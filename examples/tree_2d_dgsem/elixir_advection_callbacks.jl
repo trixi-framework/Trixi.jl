@@ -2,6 +2,7 @@
 using OrdinaryDiffEq
 using Trixi
 
+
 # define new structs inside a module to allow re-evaluating the file
 module TrixiExtensionExample
 
@@ -29,6 +30,7 @@ end
 # which gets called after every RK stage. There is no specific initialization
 # method for such `stage_limiter!`s in OrdinaryDiffEq.jl.
 function (example_stage_callback::ExampleStageCallback)(u_ode, _, semi, t)
+
   min_val, max_val = extrema(u_ode)
   push!(example_stage_callback.times, t)
   push!(example_stage_callback.min_values, min_val)
@@ -36,6 +38,7 @@ function (example_stage_callback::ExampleStageCallback)(u_ode, _, semi, t)
 
   return nothing
 end
+
 
 # This is an example implementation for a simple step callback (i.e., a callable
 # that is potentially executed after each Runge-Kutta *step*), which records
@@ -86,8 +89,8 @@ function ExampleStepCallback(; message::String)
   example_callback = ExampleStepCallback(message)
 
   DiscreteCallback(condition, example_callback,
-                   save_positions = (false, false),
-                   initialize = initialize)
+                   save_positions=(false,false),
+                   initialize=initialize)
 end
 
 end # module TrixiExtensionExample
@@ -101,15 +104,17 @@ advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-1.0, -1.0)
-coordinates_max = (1.0, 1.0)
+coordinates_max = ( 1.0,  1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 30_000)
+                initial_refinement_level=4,
+                n_cells_max=30_000)
+
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -120,19 +125,19 @@ ode = semidiscretize(semi, tspan);
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_integrals = (entropy, energy_total))
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     extra_analysis_integrals=(entropy, energy_total))
 
-alive_callback = AliveCallback(analysis_interval = analysis_interval)
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2cons)
+save_solution = SaveSolutionCallback(interval=100,
+                                     save_initial_solution=true,
+                                     save_final_solution=true,
+                                     solution_variables=cons2cons)
 
-example_callback = TrixiExtensionExample.ExampleStepCallback(message = "안녕하세요?")
+example_callback = TrixiExtensionExample.ExampleStepCallback(message="안녕하세요?")
 
-stepsize_callback = StepsizeCallback(cfl = 1.6)
+stepsize_callback = StepsizeCallback(cfl=1.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -153,10 +158,9 @@ example_stage_callback! = TrixiExtensionExample.ExampleStageCallback()
 ###############################################################################
 # run the simulation
 
-sol = solve(ode,
-            CarpenterKennedy2N54(example_stage_callback!, williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(ode, CarpenterKennedy2N54(example_stage_callback!, williamson_condition=false),
+                  dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
 
 # Check whether we recorded the same values.

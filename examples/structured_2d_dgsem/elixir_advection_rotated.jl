@@ -7,6 +7,7 @@
 using OrdinaryDiffEq
 using Trixi
 
+
 # Define new structs inside a module to allow re-evaluating the file.
 # This module name needs to be unique among all examples, otherwise Julia will throw warnings
 # if multiple test cases using the same module name are run in the same session.
@@ -26,8 +27,7 @@ function InitialConditionConvergenceTestRotated(alpha)
   InitialConditionConvergenceTestRotated(sin_alpha, cos_alpha)
 end
 
-function (initial_condition::InitialConditionConvergenceTestRotated)(x, t,
-                                                                     equation::LinearScalarAdvectionEquation2D)
+function (initial_condition::InitialConditionConvergenceTestRotated)(x, t, equation::LinearScalarAdvectionEquation2D)
   sin_ = initial_condition.sin_alpha
   cos_ = initial_condition.cos_alpha
 
@@ -46,7 +46,7 @@ function (initial_condition::InitialConditionConvergenceTestRotated)(x, t,
   c = 1.0
   A = 0.5
   L = 2
-  f = 1 / L
+  f = 1/L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x_trans))
 
@@ -70,7 +70,7 @@ advection_velocity = Tuple(T * [0.2, -0.7])
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 mapping(xi, eta) = T * SVector(xi, eta)
 
@@ -81,6 +81,7 @@ mesh = StructuredMesh(cells_per_dimension, mapping)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -93,26 +94,26 @@ ode = semidiscretize(semi, (0.0, 1.0));
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval = 100)
+analysis_callback = AnalysisCallback(semi, interval=100)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
-save_solution = SaveSolutionCallback(interval = 100,
-                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(interval=100,
+                                     solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl = 1.6)
+stepsize_callback = StepsizeCallback(cfl=1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
+
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep=false, callback=callbacks);
 
 # Print the timer summary
 summary_callback()
