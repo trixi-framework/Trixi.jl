@@ -44,10 +44,12 @@ import ..CI_ON_WINDOWS
       linf = [0.00030636069494005547])
   end
 
-  @trixi_testset "elixir_advection_unstructured_flag.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
-      l2   = [0.0005379687442422346],
-      linf = [0.007438525029884735])
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_advection_unstructured_flag.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
+        l2   = [0.0005379687442422346],
+        linf = [0.007438525029884735])
+    end
   end
 
   @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
