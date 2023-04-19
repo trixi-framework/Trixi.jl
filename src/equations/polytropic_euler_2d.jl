@@ -224,7 +224,7 @@ end
   rho, rho_v1, rho_v2 = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
-  p = equations.kappa*rho^gamma
+  p = equations.kappa*rho^equations.gamma
   if orientation == 1
     f1 = rho_v1
     f2 = rho_v1 * v1 + p
@@ -260,21 +260,23 @@ Computes the HLLC flux (HLL with Contact) for compressible Euler equations devel
 [Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
 Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827593260140)
 """
-function flux_hllc(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
+function flux_hllc(u_ll, u_rr, orientation::Integer, equations::PolytropicEulerEquations2D)
     # Calculate primitive variables and speed of sound
     rho_ll, rho_v1_ll, rho_v2_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr = u_rr
   
     v1_ll = rho_v1_ll / rho_ll
     v2_ll = rho_v2_ll / rho_ll
-    e_ll  = rho_e_ll / rho_ll
-    p_ll = equtions.kappa * rho_ll^equations.gamma
+    p_ll = equations.kappa * rho_ll^equations.gamma
+    e_ll  = p_ll * rho_ll / (equations.gamma - 1)
+    rho_e_ll = rho_ll * e_ll
     c_ll = sqrt(equations.gamma*p_ll/rho_ll)
   
     v1_rr = rho_v1_rr / rho_rr
     v2_rr = rho_v2_rr / rho_rr
-    e_rr  = rho_e_rr / rho_rr
-    p_rr = equtions.kappa * rho_rr^equations.gamma
+    p_rr = equations.kappa * rho_rr^equations.gamma
+    e_rr  = p_rr * rho_rr / (equations.gamma - 1)
+    rho_e_rr = rho_rr * e_rr
     c_rr = sqrt(equations.gamma*p_rr/rho_rr)
   
     # Obtain left and right fluxes
@@ -554,7 +556,7 @@ end
 
 @inline function max_abs_speeds(u, equations::PolytropicEulerEquations2D)
   rho, v1, v2 = cons2prim(u, equations)
-  c = sqrt(equations.gamma * equations.kappa*rho^(gamma-1))
+  c = sqrt(equations.gamma * equations.kappa*rho^(equations.gamma-1))
 
   return abs(v1) + c, abs(v2) + c
 end
@@ -573,13 +575,13 @@ end
 
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::PolytropicEulerEquations2D)
-  rho, rho_v1, rho_v2, rho_e = u
+  rho, rho_v1, rho_v2 = u
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v_square = v1^2 + v2^2
-  p = equations.kappa * rho^gamma
-  s = rho/2*v_square + rho*equations.kappa*rho^(equations.gamma-1)/(gamma-1)
+  p = equations.kappa * rho^equations.gamma
+  s = rho/2*v_square + rho*equations.kappa*rho^(equations.gamma-1)/(equations.gamma-1)
   rho_p = rho / p
 
   w1 = (equations.gamma - s) * (equations.gamma - 1) - 0.5 * rho_p * v_square
