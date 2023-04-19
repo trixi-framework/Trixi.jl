@@ -4,7 +4,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{2}, equations, dg::DGSEM, cache)
   @unpack weights = dg.basis
@@ -35,13 +34,10 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
     theta = (value_mean - threshold) / (value_mean - value_min)
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, element)
-      set_node_vars!(u, theta * u_node + (1-theta) * u_mean,
+      set_node_vars!(u, theta * u_node + (1 - theta) * u_mean,
                      equations, dg, i, j, element)
     end
   end
 
   return nothing
-end
-
-
-end # @muladd
+end end # @muladd

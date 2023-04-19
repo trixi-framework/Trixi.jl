@@ -4,10 +4,8 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-
 function apply_collision!(u, dt, collision_op,
                           mesh::AbstractMesh{3}, equations, dg::DG, cache)
-
   @threaded for element in eachelement(dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -17,7 +15,4 @@ function apply_collision!(u, dt, collision_op,
   end
 
   return nothing
-end
-
-
-end # @muladd
+end end # @muladd

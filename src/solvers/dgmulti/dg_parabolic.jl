@@ -19,9 +19,12 @@ function create_cache_parabolic(mesh::DGMultiMesh,
   scalar_flux_face_values = similar(u_face_values)
   gradients_face_values = ntuple(_ -> similar(u_face_values), ndims(mesh))
 
-  local_u_values_threaded = [similar(u_transformed, dg.basis.Nq) for _ in 1:Threads.nthreads()]
-  local_flux_viscous_threaded = [ntuple(_ -> similar(u_transformed, dg.basis.Nq), ndims(mesh)) for _ in 1:Threads.nthreads()]
-  local_flux_face_values_threaded = [similar(scalar_flux_face_values[:, 1]) for _ in 1:Threads.nthreads()]
+  local_u_values_threaded = [similar(u_transformed, dg.basis.Nq)
+                             for _ in 1:Threads.nthreads()]
+  local_flux_viscous_threaded = [ntuple(_ -> similar(u_transformed, dg.basis.Nq),
+                                        ndims(mesh)) for _ in 1:Threads.nthreads()]
+  local_flux_face_values_threaded = [similar(scalar_flux_face_values[:, 1])
+                                     for _ in 1:Threads.nthreads()]
 
   # precompute 1 / h for penalty terms
   inv_h = similar(mesh.md.Jf)
@@ -33,24 +36,28 @@ function create_cache_parabolic(mesh::DGMultiMesh,
   end
 
   return (; u_transformed, gradients, flux_viscous,
-            weak_differentiation_matrices, inv_h,
-            u_face_values, gradients_face_values, scalar_flux_face_values,
-            local_u_values_threaded, local_flux_viscous_threaded, local_flux_face_values_threaded)
+          weak_differentiation_matrices, inv_h,
+          u_face_values, gradients_face_values, scalar_flux_face_values,
+          local_u_values_threaded, local_flux_viscous_threaded,
+          local_flux_face_values_threaded)
 end
 
 # Transform solution variables prior to taking the gradient
 # (e.g., conservative to primitive variables). Defaults to doing nothing.
 # TODO: can we avoid copying data?
-function transform_variables!(u_transformed, u, mesh, equations_parabolic::AbstractEquationsParabolic,
+function transform_variables!(u_transformed, u, mesh,
+                              equations_parabolic::AbstractEquationsParabolic,
                               dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
   @threaded for i in eachindex(u)
-    u_transformed[i] = gradient_variable_transformation(equations_parabolic)(u[i], equations_parabolic)
+    u_transformed[i] = gradient_variable_transformation(equations_parabolic)(u[i],
+                                                                             equations_parabolic)
   end
 end
 
 # interpolates from solution coefficients to face quadrature points
 # We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(u_face_values, u, mesh::DGMultiMesh, equations::AbstractEquationsParabolic,
+function prolong2interfaces!(u_face_values, u, mesh::DGMultiMesh,
+                             equations::AbstractEquationsParabolic,
                              surface_integral, dg::DGMulti, cache)
   apply_to_each_field(mul_by!(dg.basis.Vf), u_face_values, u)
 end
@@ -66,7 +73,8 @@ function calc_gradient_surface_integral(gradients, u, scalar_flux_face_values,
         # compute flux * (nx, ny, nz)
         local_flux_values[i] = scalar_flux_face_values[i, e] * mesh.md.nxyzJ[dim][i, e]
       end
-      apply_to_each_field(mul_by_accum!(dg.basis.LIFT), view(gradients[dim], :, e), local_flux_values)
+      apply_to_each_field(mul_by_accum!(dg.basis.LIFT), view(gradients[dim], :, e),
+                          local_flux_values)
     end
   end
 end
@@ -74,7 +82,6 @@ end
 function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
                         equations::AbstractEquationsParabolic,
                         boundary_conditions, dg::DGMulti, cache, cache_parabolic)
-
   @unpack weak_differentiation_matrices = cache_parabolic
 
   for dim in eachindex(gradients)
@@ -103,7 +110,8 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
     scalar_flux_face_values[idM] = 0.5 * (uP + uM) # TODO: use strong/weak formulation for curved meshes?
   end
 
-  calc_boundary_flux!(scalar_flux_face_values, u_face_values, t, Gradient(), boundary_conditions,
+  calc_boundary_flux!(scalar_flux_face_values, u_face_values, t, Gradient(),
+                      boundary_conditions,
                       mesh, equations, dg, cache, cache_parabolic)
 
   # compute surface contributions
@@ -111,7 +119,7 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
                                  mesh, equations, dg, cache, cache_parabolic)
 
   for dim in eachdim(mesh)
-    invert_jacobian!(gradients[dim], mesh, equations, dg, cache; scaling=1.0)
+    invert_jacobian!(gradients[dim], mesh, equations, dg, cache; scaling = 1.0)
   end
 end
 
@@ -127,7 +135,8 @@ function calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions,
                              mesh, equations, dg::DGMulti, cache, cache_parabolic)
 
   # peel off first boundary condition
-  calc_single_boundary_flux!(flux, u, t, operator_type, first(boundary_conditions), first(keys(boundary_conditions)),
+  calc_single_boundary_flux!(flux, u, t, operator_type, first(boundary_conditions),
+                             first(keys(boundary_conditions)),
                              mesh, equations, dg, cache, cache_parabolic)
 
   # recurse on the remainder of the boundary conditions
@@ -136,13 +145,17 @@ function calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions,
 end
 
 # terminate recursion
-calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions::NamedTuple{(),Tuple{}},
-                    mesh, equations, dg::DGMulti, cache, cache_parabolic) = nothing
+function calc_boundary_flux!(flux, u, t, operator_type,
+                             boundary_conditions::NamedTuple{(), Tuple{}},
+                             mesh, equations, dg::DGMulti, cache, cache_parabolic)
+  nothing
+end
 
 # TODO: DGMulti. Decide if we want to use the input `u_face_values` (currently unused)
 function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
                                     operator_type, boundary_condition, boundary_key,
-                                    mesh, equations, dg::DGMulti{NDIMS}, cache, cache_parabolic) where {NDIMS}
+                                    mesh, equations, dg::DGMulti{NDIMS}, cache,
+                                    cache_parabolic) where {NDIMS}
   rd = dg.basis
   md = mesh.md
 
@@ -152,17 +165,18 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
     for i in Base.OneTo(num_pts_per_face)
 
       # reverse engineer element + face node indices (avoids reshaping arrays)
-      e = ((f-1) ÷ rd.Nfaces) + 1
-      fid = i + ((f-1) % rd.Nfaces) * num_pts_per_face
+      e = ((f - 1) ÷ rd.Nfaces) + 1
+      fid = i + ((f - 1) % rd.Nfaces) * num_pts_per_face
 
-      face_normal = SVector{NDIMS}(getindex.(nxyzJ, fid, e)) / Jf[fid,e]
+      face_normal = SVector{NDIMS}(getindex.(nxyzJ, fid, e)) / Jf[fid, e]
       face_coordinates = SVector{NDIMS}(getindex.(xyzf, fid, e))
 
       # for both the gradient and the divergence, the boundary flux is scalar valued.
       # for the gradient, it is the solution; for divergence, it is the normal flux.
-      flux_face_values[fid,e] = boundary_condition(flux_face_values[fid,e], u_face_values[fid,e],
-                                                   face_normal, face_coordinates, t,
-                                                   operator_type, equations)
+      flux_face_values[fid, e] = boundary_condition(flux_face_values[fid, e],
+                                                    u_face_values[fid, e],
+                                                    face_normal, face_coordinates, t,
+                                                    operator_type, equations)
     end
   end
   return nothing
@@ -171,7 +185,6 @@ end
 function calc_viscous_fluxes!(flux_viscous, u, gradients, mesh::DGMultiMesh,
                               equations::AbstractEquationsParabolic,
                               dg::DGMulti, cache, cache_parabolic)
-
   for dim in eachdim(mesh)
     reset_du!(flux_viscous[dim], dg)
   end
@@ -191,7 +204,8 @@ function calc_viscous_fluxes!(flux_viscous, u, gradients, mesh::DGMultiMesh,
     # interpolate u and gradient to quadrature points, store in `local_flux_viscous`
     apply_to_each_field(mul_by!(dg.basis.Vq), local_u_values, view(u, :, e)) # TODO: DGMulti. Specialize for nodal collocation methods (SBP, GaussSBP)
     for dim in eachdim(mesh)
-      apply_to_each_field(mul_by!(dg.basis.Vq), local_flux_viscous[dim], view(gradients[dim], :, e))
+      apply_to_each_field(mul_by!(dg.basis.Vq), local_flux_viscous[dim],
+                          view(gradients[dim], :, e))
     end
 
     # compute viscous flux at quad points
@@ -206,19 +220,23 @@ function calc_viscous_fluxes!(flux_viscous, u, gradients, mesh::DGMultiMesh,
 
     # project back to the DG approximation space
     for dim in eachdim(mesh)
-      apply_to_each_field(mul_by!(dg.basis.Pq), view(flux_viscous[dim], :, e), local_flux_viscous[dim])
+      apply_to_each_field(mul_by!(dg.basis.Pq), view(flux_viscous[dim], :, e),
+                          local_flux_viscous[dim])
     end
   end
 end
 
 # no penalization for a BR1 parabolic solver
-function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, boundary_conditions,
+function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t,
+                               boundary_conditions,
                                mesh, equations::AbstractEquationsParabolic, dg::DGMulti,
-                               parabolic_scheme::ViscousFormulationBassiRebay1, cache, cache_parabolic)
+                               parabolic_scheme::ViscousFormulationBassiRebay1, cache,
+                               cache_parabolic)
   return nothing
 end
 
-function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, boundary_conditions,
+function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t,
+                               boundary_conditions,
                                mesh, equations::AbstractEquationsParabolic, dg::DGMulti,
                                parabolic_scheme, cache, cache_parabolic)
   # compute fluxes at interfaces
@@ -228,16 +246,16 @@ function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, bounda
     idM, idP = mapM[face_node_index], mapP[face_node_index]
     uM, uP = u_face_values[idM], u_face_values[idP]
     inv_h_face = inv_h[face_node_index]
-    scalar_flux_face_values[idM] = scalar_flux_face_values[idM] + penalty(uP, uM, inv_h_face, equations, parabolic_scheme)
+    scalar_flux_face_values[idM] = scalar_flux_face_values[idM] +
+                                   penalty(uP, uM, inv_h_face, equations, parabolic_scheme)
   end
   return nothing
 end
 
-
 function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh,
                           equations::AbstractEquationsParabolic,
-                          boundary_conditions, dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
-
+                          boundary_conditions, dg::DGMulti, parabolic_scheme, cache,
+                          cache_parabolic)
   @unpack weak_differentiation_matrices = cache_parabolic
 
   reset_du!(du, dg)
@@ -247,7 +265,7 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
     for i in eachdim(mesh), j in eachdim(mesh)
       dxidxhatj = mesh.md.rstxyzJ[i, j][1, e] # assumes mesh is affine
       apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], dxidxhatj),
-                                view(du, :, e), view(flux_viscous[i], :, e))
+                          view(du, :, e), view(flux_viscous[i], :, e))
     end
   end
 
@@ -275,7 +293,8 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
     scalar_flux_face_values[idM] = flux_face_value
   end
 
-  calc_boundary_flux!(scalar_flux_face_values, cache_parabolic.u_face_values, t, Divergence(),
+  calc_boundary_flux!(scalar_flux_face_values, cache_parabolic.u_face_values, t,
+                      Divergence(),
                       boundary_conditions, mesh, equations, dg, cache, cache_parabolic)
 
   calc_viscous_penalty!(scalar_flux_face_values, cache_parabolic.u_face_values, t,
@@ -289,7 +308,7 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
   # This is because the parabolic fluxes are assumed to be of the form
   #   `du/dt + df/dx = dg/dx + source(x,t)`,
   # where f(u) is the inviscid flux and g(u) is the viscous flux.
-  invert_jacobian!(du, mesh, equations, dg, cache; scaling=1.0)
+  invert_jacobian!(du, mesh, equations, dg, cache; scaling = 1.0)
 end
 
 # assumptions: parabolic terms are of the form div(f(u, grad(u))) and
@@ -298,10 +317,10 @@ end
 #               2. compute f(u, grad(u))
 #               3. compute div(u)
 # boundary conditions will be applied to both grad(u) and div(u).
-function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, equations_parabolic::AbstractEquationsParabolic,
+function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
+                        equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions, source_terms,
                         dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
-
   reset_du!(du, dg)
 
   @unpack u_transformed, gradients, flux_viscous = cache_parabolic
@@ -318,5 +337,4 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, equations_parabolic::Abstra
                    boundary_conditions, dg, parabolic_scheme, cache, cache_parabolic)
 
   return nothing
-
 end

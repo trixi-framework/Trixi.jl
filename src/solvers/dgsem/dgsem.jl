@@ -4,74 +4,70 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
+  # Include utilities
+  include("interpolation.jl")
+  include("l2projection.jl")
+  include("basis_lobatto_legendre.jl")
 
-# Include utilities
-include("interpolation.jl")
-include("l2projection.jl")
-include("basis_lobatto_legendre.jl")
+  """
+      DGSEM(; RealT=Float64, polydeg::Integer,
+              surface_flux=flux_central,
+              surface_integral=SurfaceIntegralWeakForm(surface_flux),
+              volume_integral=VolumeIntegralWeakForm(),
+              mortar=MortarL2(basis))
 
+  Create a discontinuous Galerkin spectral element method (DGSEM) using a
+  [`LobattoLegendreBasis`](@ref) with polynomials of degree `polydeg`.
+  """
+  const DGSEM = DG{Basis} where {Basis <: LobattoLegendreBasis}
 
-"""
-    DGSEM(; RealT=Float64, polydeg::Integer,
-            surface_flux=flux_central,
-            surface_integral=SurfaceIntegralWeakForm(surface_flux),
-            volume_integral=VolumeIntegralWeakForm(),
-            mortar=MortarL2(basis))
+  # TODO: Deprecated in v0.3 (no longer documented)
+  function DGSEM(basis::LobattoLegendreBasis,
+                 surface_flux = flux_central,
+                 volume_integral = VolumeIntegralWeakForm(),
+                 mortar = MortarL2(basis))
+    surface_integral = SurfaceIntegralWeakForm(surface_flux)
+    return DG{typeof(basis), typeof(mortar), typeof(surface_integral),
+              typeof(volume_integral)}(basis, mortar, surface_integral, volume_integral)
+  end
 
-Create a discontinuous Galerkin spectral element method (DGSEM) using a
-[`LobattoLegendreBasis`](@ref) with polynomials of degree `polydeg`.
-"""
-const DGSEM = DG{Basis} where {Basis<:LobattoLegendreBasis}
+  # TODO: Deprecated in v0.3 (no longer documented)
+  function DGSEM(basis::LobattoLegendreBasis,
+                 surface_integral::AbstractSurfaceIntegral,
+                 volume_integral = VolumeIntegralWeakForm(),
+                 mortar = MortarL2(basis))
+    return DG{typeof(basis), typeof(mortar), typeof(surface_integral),
+              typeof(volume_integral)}(basis, mortar, surface_integral, volume_integral)
+  end
 
-# TODO: Deprecated in v0.3 (no longer documented)
-function DGSEM(basis::LobattoLegendreBasis,
-               surface_flux=flux_central,
-               volume_integral=VolumeIntegralWeakForm(),
-               mortar=MortarL2(basis))
+  # TODO: Deprecated in v0.3 (no longer documented)
+  function DGSEM(RealT, polydeg::Integer,
+                 surface_flux = flux_central,
+                 volume_integral = VolumeIntegralWeakForm(),
+                 mortar = MortarL2(LobattoLegendreBasis(RealT, polydeg)))
+    basis = LobattoLegendreBasis(RealT, polydeg)
 
-  surface_integral = SurfaceIntegralWeakForm(surface_flux)
-  return DG{typeof(basis), typeof(mortar), typeof(surface_integral), typeof(volume_integral)}(
-    basis, mortar, surface_integral, volume_integral)
-end
+    return DGSEM(basis, surface_flux, volume_integral, mortar)
+  end
 
-# TODO: Deprecated in v0.3 (no longer documented)
-function DGSEM(basis::LobattoLegendreBasis,
-               surface_integral::AbstractSurfaceIntegral,
-               volume_integral=VolumeIntegralWeakForm(),
-               mortar=MortarL2(basis))
+  function DGSEM(polydeg, surface_flux = flux_central,
+                 volume_integral = VolumeIntegralWeakForm())
+    DGSEM(Float64, polydeg, surface_flux, volume_integral)
+  end
 
-  return DG{typeof(basis), typeof(mortar), typeof(surface_integral), typeof(volume_integral)}(
-    basis, mortar, surface_integral, volume_integral)
-end
-
-# TODO: Deprecated in v0.3 (no longer documented)
-function DGSEM(RealT, polydeg::Integer,
-               surface_flux=flux_central,
-               volume_integral=VolumeIntegralWeakForm(),
-               mortar=MortarL2(LobattoLegendreBasis(RealT, polydeg)))
-  basis = LobattoLegendreBasis(RealT, polydeg)
-
-  return DGSEM(basis, surface_flux, volume_integral, mortar)
-end
-
-DGSEM(polydeg, surface_flux=flux_central, volume_integral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
-
-# The constructor using only keyword arguments is convenient for elixirs since
-# it allows to modify the polynomial degree and other parameters via
-# `trixi_include`.
-function DGSEM(; RealT=Float64,
+  # The constructor using only keyword arguments is convenient for elixirs since
+  # it allows to modify the polynomial degree and other parameters via
+  # `trixi_include`.
+  function DGSEM(; RealT = Float64,
                  polydeg::Integer,
-                 surface_flux=flux_central,
-                 surface_integral=SurfaceIntegralWeakForm(surface_flux),
-                 volume_integral=VolumeIntegralWeakForm())
-  basis = LobattoLegendreBasis(RealT, polydeg)
-  return DGSEM(basis, surface_integral, volume_integral)
-end
+                 surface_flux = flux_central,
+                 surface_integral = SurfaceIntegralWeakForm(surface_flux),
+                 volume_integral = VolumeIntegralWeakForm())
+    basis = LobattoLegendreBasis(RealT, polydeg)
+    return DGSEM(basis, surface_integral, volume_integral)
+  end
 
-@inline polydeg(dg::DGSEM) = polydeg(dg.basis)
+  @inline polydeg(dg::DGSEM) = polydeg(dg.basis)
 
-Base.summary(io::IO, dg::DGSEM) = print(io, "DGSEM(polydeg=$(polydeg(dg)))")
-
-
-
+  Base.summary(io::IO, dg::DGSEM) = print(io, "DGSEM(polydeg=$(polydeg(dg)))")
 end # @muladd

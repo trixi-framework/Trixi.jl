@@ -4,8 +4,4 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-
-include("positivity_zhang_shu.jl")
-
-
-end # @muladd
+include("positivity_zhang_shu.jl") end # @muladd
