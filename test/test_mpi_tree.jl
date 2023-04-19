@@ -16,7 +16,6 @@ import ..CI_ON_WINDOWS
 # Run basic tests
 @testset "Examples 2D" begin
   # Linear scalar advection
-  GC.gc()
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       # Expected errors are exactly the same as in the serial test!
@@ -24,7 +23,6 @@ import ..CI_ON_WINDOWS
       linf = [6.627000273229378e-5])
   end
 
-  GC.gc()
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       # Expected errors are exactly the same as in the serial test!
@@ -32,7 +30,6 @@ import ..CI_ON_WINDOWS
       linf = [6.314906965243505e-5])
   end
 
-  GC.gc()
   @trixi_testset "elixir_advection_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
       # Expected errors are exactly the same as in the serial test!
@@ -40,7 +37,6 @@ import ..CI_ON_WINDOWS
       linf = [0.008446655719187679])
   end
 
-  GC.gc()
   @trixi_testset "elixir_advection_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
       # Expected errors are exactly the same as in the serial test!
@@ -49,7 +45,6 @@ import ..CI_ON_WINDOWS
       coverage_override = (maxiters=6,))
   end
 
-  GC.gc()
   @trixi_testset "elixir_advection_amr_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_nonperiodic.jl"),
       # Expected errors are exactly the same as in the serial test!
@@ -60,7 +55,6 @@ import ..CI_ON_WINDOWS
 
   # Linear scalar advection with AMR
   # These example files are only for testing purposes and have no practical use
-  GC.gc()
   @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_refine_twice.jl"),
       l2   = [0.00020547512522578292],
@@ -68,7 +62,6 @@ import ..CI_ON_WINDOWS
       coverage_override = (maxiters=6,))
   end
 
-  GC.gc()
   @trixi_testset "elixir_advection_amr_coarsen_twice.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_coarsen_twice.jl"),
       l2   = [0.0014321062757891826],
@@ -78,7 +71,6 @@ import ..CI_ON_WINDOWS
 
   # Hyperbolic diffusion
   if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
-  GC.gc()
     @trixi_testset "elixir_hypdiff_lax_friedrichs.jl" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
         l2   = [0.00015687751816056159, 0.001025986772217084, 0.0010259867722169909],
@@ -86,14 +78,12 @@ import ..CI_ON_WINDOWS
     end
   end
 
-  GC.gc()
   @trixi_testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_harmonic_nonperiodic.jl"),
       l2   = [8.61813235543625e-8, 5.619399844542781e-7, 5.6193998447443e-7],
       linf = [1.124861862180196e-6, 8.622436471039663e-6, 8.622436470151484e-6])
   end
 
-  GC.gc()
   @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
       l2   = [8.523077653955306e-6, 2.8779323653065056e-5, 5.4549427691297846e-5],
@@ -101,7 +91,6 @@ import ..CI_ON_WINDOWS
   end
 
   if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
-  GC.gc()
     @trixi_testset "elixir_hypdiff_godunov.jl" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_godunov.jl"),
         l2   = [5.868147556427088e-6, 3.80517927324465e-5, 3.805179273249344e-5],
@@ -115,7 +104,6 @@ import ..CI_ON_WINDOWS
   # Note: Some tests here have manually increased relative tolerances since reduction via MPI can
   #       slightly change the L2 error norms (different floating point truncation errors)
   if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
-  GC.gc()
     @trixi_testset "elixir_euler_source_terms.jl" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
         l2   = [9.321181253186009e-7, 1.4181210743438511e-6, 1.4181210743487851e-6, 4.824553091276693e-6],
@@ -126,7 +114,6 @@ import ..CI_ON_WINDOWS
 
   # This example file is only for testing purposes and has no practical use
   if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
-  GC.gc()
     @trixi_testset "elixir_euler_source_terms_amr_refine_coarsen.jl" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_amr_refine_coarsen.jl"),
         l2   = [4.8226610349853444e-5, 4.117706709270575e-5, 4.1177067092959676e-5, 0.00012205252427437389],
@@ -138,7 +125,6 @@ import ..CI_ON_WINDOWS
   end
 
   if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
-  GC.gc()
     @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
         l2   = [2.259440511766445e-6, 2.318888155713922e-6, 2.3188881557894307e-6, 6.3327863238858925e-6],
@@ -148,7 +134,6 @@ import ..CI_ON_WINDOWS
   end
 
   if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
-  GC.gc()
     @trixi_testset "elixir_euler_ec.jl" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
         l2   = [0.061751715597716854, 0.05018223615408711, 0.05018989446443463, 0.225871559730513],
@@ -169,7 +154,6 @@ import ..CI_ON_WINDOWS
     end
   end
 
-  GC.gc()
   @trixi_testset "elixir_euler_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
       l2   = [0.00013492249515826863, 0.006615696236378061, 0.006782108219800376, 0.016393831451740604],
@@ -177,7 +161,6 @@ import ..CI_ON_WINDOWS
       rtol = 0.001)
   end
 
-  GC.gc()
   @trixi_testset "elixir_euler_vortex_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
       # Expected errors are exactly the same as in the serial test!
@@ -185,7 +168,6 @@ import ..CI_ON_WINDOWS
       linf = [0.021869936355319086, 0.9956698009442038, 1.0002507727219028, 2.223249697515648])
   end
 
-  GC.gc()
   @trixi_testset "elixir_euler_vortex_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_amr.jl"),
       # Expected errors are exactly the same as in the serial test!
@@ -195,7 +177,6 @@ import ..CI_ON_WINDOWS
   end
 
   if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
-  GC.gc()
     @trixi_testset "elixir_euler_vortex_shockcapturing.jl" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_shockcapturing.jl"),
         l2   = [0.0017158367642679273, 0.09619888722871434, 0.09616432767924141, 0.17553381166255197],
