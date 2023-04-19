@@ -70,10 +70,12 @@ import ..CI_ON_WINDOWS
   end
 
   # Hyperbolic diffusion
-  @trixi_testset "elixir_hypdiff_lax_friedrichs.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
-      l2   = [0.00015687751816056159, 0.001025986772217084, 0.0010259867722169909],
-      linf = [0.0011986956416591976, 0.006423873516411049, 0.006423873516411049])
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_hypdiff_lax_friedrichs.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
+        l2   = [0.00015687751816056159, 0.001025986772217084, 0.0010259867722169909],
+        linf = [0.0011986956416591976, 0.006423873516411049, 0.006423873516411049])
+    end
   end
 
   @trixi_testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
