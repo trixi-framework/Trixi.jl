@@ -52,12 +52,14 @@ import ..CI_ON_WINDOWS
     end
   end
 
-  @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_solution_independent.jl"),
-      # Expected errors are exactly the same as with TreeMesh!
-      l2   = [4.949660644033807e-5],
-      linf = [0.0004867846262313763],
-      coverage_override = (maxiters=6,))
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_solution_independent.jl"),
+        # Expected errors are exactly the same as with TreeMesh!
+        l2   = [4.949660644033807e-5],
+        linf = [0.0004867846262313763],
+        coverage_override = (maxiters=6,))
+    end
   end
 
   @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
