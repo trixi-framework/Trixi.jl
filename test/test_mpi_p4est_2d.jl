@@ -81,10 +81,12 @@ import ..CI_ON_WINDOWS
     end
   end
 
-  @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-    l2   = [0.0034516244508588046, 0.0023420334036925493, 0.0024261923964557187, 0.004731710454271893],
-    linf = [0.04155789011775046, 0.024772109862748914, 0.03759938693042297, 0.08039824959535657])
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+      l2   = [0.0034516244508588046, 0.0023420334036925493, 0.0024261923964557187, 0.004731710454271893],
+      linf = [0.04155789011775046, 0.024772109862748914, 0.03759938693042297, 0.08039824959535657])
+    end
   end
 end
 
