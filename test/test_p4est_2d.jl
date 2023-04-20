@@ -24,7 +24,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [3.198940059144588e-5],
       linf = [0.00030636069494005547])
 
-    # Check for allocations (type instabilities) coming from mortars
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities)
     let
       t = sol.t[end]
       u_ode = sol.u[end]

@@ -38,7 +38,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.0015188466707237375],
       linf = [0.008446655719187679])
 
-    # Check for allocations (type instabilities) coming from mortars
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities)
     let
       t = sol.t[end]
       u_ode = sol.u[end]
