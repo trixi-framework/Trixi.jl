@@ -73,10 +73,12 @@ import ..CI_ON_WINDOWS
     end
   end
 
-  @trixi_testset "elixir_advection_restart.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [4.507575525876275e-6],
-      linf = [6.21489667023134e-5])
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_advection_restart.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+        l2   = [4.507575525876275e-6],
+        linf = [6.21489667023134e-5])
+    end
   end
 
   @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
