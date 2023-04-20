@@ -127,6 +127,7 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMultiIonE
   return prim2cons(SVector{nvariables(equations), real(equations)}(prim), equations)
 end
 
+# TODO: Add initial condition equilibrium
 
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
