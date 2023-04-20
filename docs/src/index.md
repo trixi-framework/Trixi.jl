@@ -342,6 +342,8 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 
 ## Acknowledgments
+<img align="middle" src="https://user-images.githubusercontent.com/25242486/233481205-7242a418-b2a8-479c-b696-092d905c1734.png" width=70%, height=auto/>
+
 This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
 under Germany's Excellence Strategy EXC 2044-390685587, Mathematics Münster:
 Dynamics-Geometry-Structure.
