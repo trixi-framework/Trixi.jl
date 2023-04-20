@@ -29,6 +29,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
       l2   = [0.00253595715323843],
       linf = [0.016486952252155795])
+
+    # Check for allocations (type instabilities) coming from mortars
+    let
+      t = sol.t[end]
+      u_ode = sol.u[end]
+      du_ode = similar(u_ode)
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
   end
 
   @trixi_testset "elixir_advection_amr.jl" begin

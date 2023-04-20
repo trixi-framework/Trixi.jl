@@ -37,6 +37,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       # Expected errors are exactly the same as in the parallel test!
       l2   = [0.0015188466707237375],
       linf = [0.008446655719187679])
+
+    # Check for allocations (type instabilities) coming from mortars
+    let
+      t = sol.t[end]
+      u_ode = sol.u[end]
+      du_ode = similar(u_ode)
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
   end
 
   @trixi_testset "elixir_advection_amr.jl" begin
