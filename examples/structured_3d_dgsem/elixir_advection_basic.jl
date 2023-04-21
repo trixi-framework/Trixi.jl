@@ -41,7 +41,7 @@ analysis_callback = AnalysisCallback(semi, interval=100)
 save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
-# The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
+# The SaveRestartCallback allows to save a file from which a Trixi.jl simulation can be restarted
 save_restart = SaveRestartCallback(interval=100,
                                    save_final_restart=true)
 

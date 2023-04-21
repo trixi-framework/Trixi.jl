@@ -5,10 +5,10 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
+# pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1d_dgsem")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
@@ -42,6 +42,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Shallow water
   include("test_tree_1d_shallowwater.jl")
+  # Two-layer Shallow Water
+  include("test_tree_1d_shallowwater_twolayer.jl")
 
   # FDSBP methods on the TreeMesh
   include("test_tree_1d_fdsbp.jl")
@@ -274,7 +276,7 @@ end
 end
 
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn rm(outdir, recursive=true)
 
 end # TreeMesh1D

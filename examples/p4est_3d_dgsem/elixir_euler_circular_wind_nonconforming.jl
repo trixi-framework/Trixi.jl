@@ -158,7 +158,7 @@ callbacks = CallbackSet(summary_callback,
 
 # Use a Runge-Kutta method with automatic (error based) time step size control
 # Enable threading of the RK method for better performance on multiple threads
-sol = solve(ode, RDPK3SpFSAL49(thread=OrdinaryDiffEq.True()), abstol=1.0e-6, reltol=1.0e-6,
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, RDPK3SpFSAL49(thread=OrdinaryDiffEq.True()); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=callbacks);
 
 summary_callback() # print the timer summary

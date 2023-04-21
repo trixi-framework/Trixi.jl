@@ -167,7 +167,7 @@ for human readability.
   `flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)`
   were actually using the logic of `flux_godunov`. Thus, they were renamed accordingly
   in [#493](https://github.com/trixi-framework/Trixi.jl/pull/493). This is considered a bugfix
-  (released in Trixi v0.3.22).
+  (released in Trixi.jl v0.3.22).
 - The required Julia version is updated to v1.6.
 
 #### Deprecated
