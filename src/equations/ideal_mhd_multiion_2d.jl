@@ -862,4 +862,28 @@ end
   return rho
 end
 
+"""
+Computes the sum of the densities times the sum of the pressures
+"""
+@inline function density_pressure(u, equations::IdealGlmMhdMultiIonEquations2D)
+  B1, B2, B3, _ = u
+  rho_total = zero(u[1])
+  p_total = zero(u[1])
+  for k in eachcomponent(equations)
+    rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
+    
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    v_mag = sqrt(v1^2 + v2^2 + v3^2)
+    gamma = equations.gammas[k]
+
+    p = (gamma - 1)*(rho_e - 0.5*rho*v_mag^2 - 0.5*(B1^2 + B2^2 + B3^2))
+    
+    rho_total += rho
+    p_total += p
+  end
+  return rho_total * p_total
+end
+
 end # @muladd
