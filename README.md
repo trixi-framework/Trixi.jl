@@ -256,7 +256,7 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 ## Acknowledgments
 <p align="center">
-  <img align="middle" src="https://user-images.githubusercontent.com/25242486/233481205-7242a418-b2a8-479c-b696-092d905c1734.png" width=auto/>
+  <img align="middle" src="https://user-images.githubusercontent.com/25242486/233799290-983514f0-a279-404d-9b69-340741d2335d.png" width=auto/>
 </p>
 
 This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)

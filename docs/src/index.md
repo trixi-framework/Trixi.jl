@@ -343,7 +343,7 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 ## Acknowledgments
 
-![funding-logo](https://user-images.githubusercontent.com/25242486/233481205-7242a418-b2a8-479c-b696-092d905c1734.png)
+![funding-logo](https://user-images.githubusercontent.com/25242486/233799290-983514f0-a279-404d-9b69-340741d2335d.png)
 
 This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
 under Germany's Excellence Strategy EXC 2044-390685587, Mathematics Münster:
