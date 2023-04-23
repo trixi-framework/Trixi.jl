@@ -171,8 +171,22 @@ function insert_maxiters(expr)
       if is_plain_solve || is_trixi_solve
         # Do nothing if `maxiters` is already set as keyword argument...
         for arg in x.args
-          if arg isa Expr && arg.head === Symbol("kw") && arg.args[1] === Symbol("maxiters")
+          # This detects the case where `maxiters` is set as keyword argument
+          # without or before a semicolon
+          if (arg isa Expr && arg.head === Symbol("kw") && arg.args[1] === Symbol("maxiters"))
             return x
+          end
+
+          # This detects the case where maxiters is set as keyword argument
+          # after a semicolon
+          if (arg isa Expr && arg.head === Symbol("parameters"))
+            # We need to check each keyword argument listed here
+            for nested_arg in arg.args
+              if (nested_arg isa Expr && nested_arg.head === Symbol("kw") &&
+                  nested_arg.args[1] === Symbol("maxiters"))
+                return x
+              end
+            end
           end
         end
 
