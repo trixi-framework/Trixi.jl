@@ -40,12 +40,7 @@ function transform_variables!(u_transformed, u, mesh, equations_parabolic::Abstr
   end
 end
 
-# interpolates from solution coefficients to face quadrature points
-# We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(u_face_values, u, mesh::DGMultiMesh, equations::AbstractEquationsParabolic,
-                             surface_integral, dg::DGMulti, cache)
-  apply_to_each_field(mul_by!(dg.basis.Vf), u_face_values, u)
-end
+# TODO: reuse entropy projection computations for DGMultiFluxDiff{<:Polynomial} (including `GaussSBP` solvers)
 
 function calc_gradient_surface_integral!(gradients, u, scalar_flux_face_values,
                                          mesh, equations::AbstractEquationsParabolic,
@@ -89,8 +84,8 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
 
   calc_gradient_volume_integral!(gradients, u, mesh, equations, dg, cache, cache_parabolic)
 
-  @unpack u_face_values = cache_parabolic
-  prolong2interfaces!(u_face_values, u, mesh, equations, dg.surface_integral, dg, cache)
+  (; u_face_values) = cache_parabolic
+  apply_to_each_field(mul_by!(dg.basis.Vf), u_face_values, u)
 
   # compute fluxes at interfaces
   @unpack scalar_flux_face_values = cache_parabolic
@@ -258,8 +253,7 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
   # interpolates from solution coefficients to face quadrature points
   flux_viscous_face_values = cache_parabolic.gradients_face_values # reuse storage
   for dim in eachdim(mesh)
-    prolong2interfaces!(flux_viscous_face_values[dim], flux_viscous[dim], mesh, equations,
-                        dg.surface_integral, dg, cache)
+    apply_to_each_field(mul_by!(dg.basis.Vf), flux_viscous_face_values[dim], flux_viscous[dim])
   end
 
   # compute fluxes at interfaces
