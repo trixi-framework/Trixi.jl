@@ -41,7 +41,7 @@ using HDF5: h5open, attributes
 using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
-using LoopVectorization.ArrayInterface: static_length
+using StaticArrayInterface: static_length # used by LoopVectorization
 using MPI: MPI
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
@@ -133,7 +133,7 @@ export AcousticPerturbationEquations2D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
-       ShallowWaterEquations1D, ShallowWaterEquations2D, 
+       ShallowWaterEquations1D, ShallowWaterEquations2D,
        ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
        LinearizedEulerEquations2D
 
