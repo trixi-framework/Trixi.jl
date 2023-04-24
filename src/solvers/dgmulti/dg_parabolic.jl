@@ -156,7 +156,7 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
   md = mesh.md
 
   num_pts_per_face = rd.Nfq ÷ rd.Nfaces
-  @unpack xyzf, nxyz = md
+  (; xyzf, nxyz) = md
   for f in mesh.boundary_faces[boundary_key]
     for i in Base.OneTo(num_pts_per_face)
 
@@ -225,8 +225,8 @@ function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, bounda
                                mesh, equations::AbstractEquationsParabolic, dg::DGMulti,
                                parabolic_scheme, cache, cache_parabolic)
   # compute fluxes at interfaces
-  @unpack scalar_flux_face_values = cache_parabolic
-  @unpack mapM, mapP = mesh.md
+  (; scalar_flux_face_values) = cache_parabolic
+  (; mapM, mapP) = mesh.md
   @threaded for face_node_index in each_face_node_global(mesh, dg)
     idM, idP = mapM[face_node_index], mapP[face_node_index]
     uM, uP = u_face_values[idM], u_face_values[idP]
@@ -313,7 +313,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, equations_parabolic::Abstra
 
   reset_du!(du, dg)
 
-  @unpack u_transformed, gradients, flux_viscous = cache_parabolic
+  (; u_transformed, gradients, flux_viscous) = cache_parabolic
   transform_variables!(u_transformed, u, mesh, equations_parabolic,
                        dg, parabolic_scheme, cache, cache_parabolic)
 
