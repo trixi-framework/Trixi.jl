@@ -12,6 +12,7 @@ function create_cache_parabolic(mesh::DGMultiMesh,
   weak_differentiation_matrices = map(A -> (M \ (-A' * M)), Drst)
   strong_differentiation_matrices = Drst
   lift_matrix = dg.basis.LIFT
+  projection_face_interpolation_matrix = dg.basis.Vf * dg.basis.Pq
 
   # u_transformed stores "transformed" variables for computing the gradient
   (; md) = mesh
@@ -263,9 +264,11 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
   calc_divergence_volume_integral!(du, u, flux_viscous, mesh, equations, dg, cache, cache_parabolic)
 
   # interpolates from solution coefficients to face quadrature points
+  (; projection_face_interpolation_matrix) = cache_parabolic
   flux_viscous_face_values = cache_parabolic.gradients_face_values # reuse storage
   for dim in eachdim(mesh)
-    apply_to_each_field(mul_by!(dg.basis.Vf), flux_viscous_face_values[dim], flux_viscous[dim])
+    # TODO: optimize this!!
+    apply_to_each_field(mul_by!(projection_face_interpolation_matrix), flux_viscous_face_values[dim], flux_viscous[dim])
   end
 
   # compute fluxes at interfaces
