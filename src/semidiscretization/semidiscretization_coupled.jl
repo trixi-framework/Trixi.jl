@@ -361,7 +361,7 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledAB
 
   # TODO: This should be computed in the coupled equations module.
   if boundary_condition.other_semi_index == 2
-    coupled_index_offset = 4
+    coupled_index_offset = 3
   else
     coupled_index_offset = 0
   end

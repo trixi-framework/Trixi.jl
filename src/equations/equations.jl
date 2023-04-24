@@ -383,7 +383,7 @@ function (boundary_condition::BoundaryConditionCoupledAB)(u_inner, orientation, 
   if boundary_condition.other_semi_index == 2
     u_inner_long = vcat(u_inner, zeros(3))
   else
-    u_inner_long = vcat(zeros(4), u_inner)
+    u_inner_long = vcat(zeros(3), u_inner)
   end
   
   # Calculate boundary flux
@@ -470,5 +470,6 @@ include("acoustic_perturbation_2d.jl")
 # Coupling equations.
 abstract type AbstractCouplingEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("coupled_compressible_euler_hyperbolic_diffusion_2d.jl")
+include("coupled_polytropic_euler_2d.jl")
 
 end # @muladd
