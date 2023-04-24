@@ -242,7 +242,7 @@ end
 @inline function flux(u, normal_direction::AbstractVector, equations::PolytropicEulerEquations2D)
   rho_e = last(u)
   rho, v1, v2 = cons2prim(u, equations)
-  p = equations.kappa*rho^gamma
+  p = equations.kappa*rho^equations.gamma
 
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
   rho_v_normal = rho * v_normal
@@ -405,8 +405,8 @@ end
 
 @inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::PolytropicEulerEquations2D)
   # Unpack left and right state
-  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
-  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+  rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr = cons2prim(u_rr, equations)
   p_ll = equations.kappa*rho_ll^equations.gamma
   p_rr = equations.kappa*rho_rr^equations.gamma
   v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
@@ -479,8 +479,8 @@ end
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::PolytropicEulerEquations2D)
-  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
-  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+  rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr = cons2prim(u_rr, equations)
   p_ll = equations.kappa*rho_ll^equations.gamma
   p_rr = equations.kappa*rho_rr^equations.gamma
 
@@ -497,8 +497,8 @@ end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::PolytropicEulerEquations2D)
-  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
-  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+  rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr = cons2prim(u_rr, equations)
   p_ll = equations.kappa*rho_ll^equations.gamma
   p_rr = equations.kappa*rho_rr^equations.gamma
 
