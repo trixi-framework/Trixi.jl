@@ -154,10 +154,10 @@ See [issue #1329](https://github.com/trixi-framework/Trixi.jl/issues/1329).
 ## Installing and updating everything takes a lot of time
 
 Julia compiles code to get good (C/Fortran-like) performance. At the same time,
-Julia provides a dynamic environment and usually compiles code jost before using
+Julia provides a dynamic environment and usually compiles code just before using
 it. Over time, Julia has improved its caching infrastructure, allowing to store
-and reuse more results from (pre-) compilation. This often results in an
-increased time to install/update packages, in particular when updating from
+and reuse more results from (pre-)compilation. This often results in an
+increased time to install/update packages, in particular when updating
 to Julia v1.8 or v1.9 from older versions.
 
 Some packages used together with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl)
@@ -187,4 +187,4 @@ set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileNoSpec
 
 This disables precompilation of all implicit methods. This should usually not affect
 the runtime latency with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl)
-significantly since most setups use explicit time integration methods.
+since most setups use explicit time integration methods.
