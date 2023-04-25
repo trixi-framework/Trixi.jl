@@ -25,9 +25,9 @@ The additional quantity ``H_0`` is also available to store a reference value for
 is useful to set initial conditions or test the "lake-at-rest" well-balancedness.
 
 Also, there are two thresholds which prevent numerical problems as well as instabilities. Both of them do not
-have to be passed, as default values are defined within the struct. The first one, threshold_limiter, is
+have to be passed, as default values are defined within the struct. The first one, `threshold_limiter`, is
 used in [`PositivityPreservingLimiterShallowWater`](@ref) on the water height, as a (small) shift on the initial 
-condition and cutoff before the next time step. The second one, threshold_wet, is applied on the water height to
+condition and cutoff before the next time step. The second one, `threshold_wet`, is applied on the water height to
 define when the flow is "wet" before calculating the numerical flux.
 
 The bottom topography function ``b(x)`` is set inside the initial condition routine
@@ -360,7 +360,7 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
   #        cross-averaging across a discontinuous bottom topography
   #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
   return SVector(z,
-                 equations.gravity * h_ll * b_ll - equations.gravity * (h_ll_star+h_ll) * (b_ll-b_star),
+                 equations.gravity * h_ll * b_ll - equations.gravity * (h_ll_star + h_ll) * (b_ll - b_star),
                  z)
 
 end
@@ -587,8 +587,8 @@ end
                               equations::ShallowWaterEquations1D)
 
 The approximated speeds for the HLL type numerical flux used by Chen and Noelle for their 
-hydrostatic reconstruction. As they state in the paper, those speeds are chosen for the numerical
-flux to show positivity and an entropy inequality.
+hydrostatic reconstruction. As they state in the paper, these speeds are chosen for the numerical
+flux to ensure positivity and to satisfy an entropy inequality.
 
 Further details on this hydrostatic reconstruction and its motivation can be found in
 - Guoxian Chen and Sebastian Noelle (2017) 

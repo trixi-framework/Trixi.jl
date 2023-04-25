@@ -29,7 +29,7 @@
   to the last conservation variable.
   After the limiting process is applied to all degrees of freedom, for safety reasons,
   the wet/dry threshold is applied again on all the DG nodes in order to avoid dry nodes.
-  In the case where value_mean < threshold before applying imiter, there could still be dry nodes
+  In the case where value_mean < threshold before limiting, there could still be dry nodes
   afterwards due to the logic of the limiter.
   """
   struct PositivityPreservingLimiterShallowWater{N, Thresholds<:NTuple{N,<:Real}, Variables<:NTuple{N,Any}}
