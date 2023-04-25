@@ -35,12 +35,13 @@ function create_cache_parabolic(mesh::DGMultiMesh,
   gradients_face_values = ntuple(_ -> similar(u_face_values), NDIMS)
 
   local_u_values_threaded = [similar(u_transformed, dg.basis.Nq) for _ in 1:Threads.nthreads()]
-  local_flux_viscous_threaded = [ntuple(_ -> similar(u_transformed, dg.basis.Nq), NDIMS) for _ in 1:Threads.nthreads()]
+  local_flux_viscous_threaded = [SVector{NDIMS}(ntuple(_ -> similar(u_transformed, dg.basis.Nq), NDIMS)) for _ in 1:Threads.nthreads()]
   local_flux_face_values_threaded = [similar(scalar_flux_face_values[:, 1]) for _ in 1:Threads.nthreads()]
 
   return (; u_transformed, gradients, flux_viscous,
             weak_differentiation_matrices, strong_differentiation_matrices,
             gradient_lift_matrix, projection_face_interpolation_matrix, divergence_lift_matrix,
+            dxidxhatj, J, invJ, # geometric terms
             u_face_values, gradients_face_values, scalar_flux_face_values,
             local_u_values_threaded, local_flux_viscous_threaded, local_flux_face_values_threaded)
 end
