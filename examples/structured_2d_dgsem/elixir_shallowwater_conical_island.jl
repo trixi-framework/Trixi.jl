@@ -11,7 +11,7 @@ equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=1.4)
     initial_condition_conical_island(x, t, equations::ShallowWaterEquations2D)
 
 Initial condition [`ShallowWaterEquations2D`](@ref) to test the [`hydrostatic_reconstruction_chen_noelle`](@ref)
-and their handling of discontinuous water heights at the start in combination with wetting and
+and its handling of discontinuous water heights at the start in combination with wetting and
 drying. The bottom topography is given by a conical island in the middle of the domain. Around that
 island, there is a cylindrical water column at t=0 and the rest of the domain is dry. This
 discontinuous water height is smoothed by a logistic function. This simulation uses periodic

@@ -14,7 +14,7 @@ equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=1.875,
     initial_condition_three_mounds(x, t, equations::ShallowWaterEquations2D)
 
 Initial condition simulating a dam break. The bottom topography is given by one large and two smaller
-mounds. It is downloaded if not locally available.
+mounds.
 The mounds are flooded by the water for t > 0. To smooth the discontinuity, a logistic function
 is applied.
 

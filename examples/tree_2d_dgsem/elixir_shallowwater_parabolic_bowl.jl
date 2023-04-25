@@ -11,7 +11,7 @@ equations = ShallowWaterEquations2D(gravity_constant=9.81)
     initial_condition_parabolic_bowl(x, t, equations:: ShallowWaterEquations2D)
 
 Well-known initial condition to test the [`hydrostatic_reconstruction_chen_noelle`](@ref) and its
-wet-dry mechanics. This test has analytical solutions. The initial condition is defined by the 
+wet-dry mechanics. This test has an analytical solution. The initial condition is defined by the 
 analytical solution at time t=0. The bottom topography defines a bowl and the water level is given
 by an oscillating lake.
 The original test and its analytical solution are taken out of section 6.2 from the paper:

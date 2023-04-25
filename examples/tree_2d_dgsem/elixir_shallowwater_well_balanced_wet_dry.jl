@@ -13,7 +13,7 @@ equations = ShallowWaterEquations2D(gravity_constant=9.812)
 Initial condition with a complex (discontinuous) bottom topography to test the well-balanced
 property for the [`hydrostatic_reconstruction_chen_noelle`](@ref) including dry areas within the 
 domain. The errors from the analysis callback are not important but the error for this 
-lake at rest test case `∑|H0-(h+b)|` should be around machine roundoff.
+lake-at-rest test case `∑|H0-(h+b)|` should be around machine roundoff.
 The initial condition was found in the section 5.2 of the paper:
 - Guoxian Chen and Sebastian Noelle (2017) 
   A new hydrostatic reconstruction scheme based on subcell reconstructions

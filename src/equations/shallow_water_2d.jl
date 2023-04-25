@@ -6,7 +6,7 @@
 
 
 @doc raw"""
-    ShallowWaterEquations1D(gravity, H0, threshold_limiter, threshold_wet)
+    ShallowWaterEquations2D(gravity, H0, threshold_limiter, threshold_wet)
 
 Shallow water equations (SWE) in two space dimensions. The equations are given by
 ```math
@@ -28,9 +28,9 @@ The additional quantity ``H_0`` is also available to store a reference value for
 is useful to set initial conditions or test the "lake-at-rest" well-balancedness.
 
 Also, there are two thresholds which prevent numerical problems as well as instabilities. Both of them do not
-have to be passed, as default values are defined within the struct. The first one, threshold_limiter, is
+have to be passed, as default values are defined within the struct. The first one, `threshold_limiter`, is
 used in [`PositivityPreservingLimiterShallowWater`](@ref) on the water height, as a (small) shift on the initial
-condition and cutoff before the next time step. The second one, threshold_wet, is applied on the water height to
+condition and cutoff before the next time step. The second one, `threshold_wet`, is applied on the water height to
 define when the flow is "wet" before calculating the numerical flux.
 
 The bottom topography function ``b(x,y)`` is set inside the initial condition routine
@@ -452,7 +452,7 @@ end
                                            equations::ShallowWaterEquations2D)
 
 A particular type of hydrostatic reconstruction on the water height to guarantee well-balancedness
-for a general bottom topography [`ShallowWaterEquations1D`](@ref). The reconstructed solution states
+for a general bottom topography [`ShallowWaterEquations2D`](@ref). The reconstructed solution states
 `u_ll_star` and `u_rr_star` variables are used to evaluate the surface numerical flux at the interface.
 The key idea is a linear reconstruction of the bottom and water height at the interfaces using subcells.
 Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).
@@ -930,7 +930,7 @@ end
 
 The approximated speeds for the HLL type numerical flux used by Chen and Noelle for their 
 hydrostatic reconstruction. As they state in the paper, those speeds are chosen for the numerical
-flux to show positivity and an entropy inequality.
+flux to ensure positivity and satisfy an entropy inequality.
 
 Further details on this hydrostatic reconstruction and its motivation can be found in
 - Guoxian Chen and Sebastian Noelle (2017) 
