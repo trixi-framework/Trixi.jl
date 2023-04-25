@@ -53,7 +53,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
     Trixi.calc_gradient!(gradients, ode.u0, t, mesh, equations_parabolic,
                          boundary_condition_periodic, dg, cache, cache_parabolic)
-    @unpack xq, yq = mesh.md
+    @unpack x, y, xq, yq = mesh.md
     @test getindex.(gradients[1], 1) ≈ 2 * xq .* yq
     @test getindex.(gradients[2], 1) ≈ xq.^2
 
@@ -66,7 +66,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     du = similar(ode.u0)
     Trixi.calc_divergence!(du, ode.u0, t, u_flux, mesh, equations_parabolic, boundary_condition_periodic,
                            dg, semi.solver_parabolic, cache, cache_parabolic)
-    @test getindex.(du, 1) ≈ 2 * yq
+    @test getindex.(du, 1) ≈ 2 * y
   end
 
   @trixi_testset "DGMulti: elixir_advection_diffusion.jl" begin
