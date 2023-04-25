@@ -293,7 +293,30 @@ function calc_divergence_volume_integral!(du, u, flux_viscous, mesh::DGMultiMesh
     for i in eachdim(mesh), j in eachdim(mesh)
       dxidxhatj = mesh.md.rstxyzJ[i, j][1, e] # assumes mesh is affine
       apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], dxidxhatj),
-                                view(du, :, e), view(flux_viscous[i], :, e))
+                          view(du, :, e), view(flux_viscous[i], :, e))
+    end
+  end
+end
+
+function calc_divergence_volume_integral!(du, u, flux_viscous, mesh::DGMultiMesh{NDIMS, <:NonAffine},
+                                          equations::AbstractEquationsParabolic,
+                                          dg::DGMulti, cache, cache_parabolic) where {NDIMS}
+  (; weak_differentiation_matrices, dxidxhatj, local_flux_viscous_threaded) = cache_parabolic
+
+  # compute volume contributions to divergence
+  @threaded for e in eachelement(mesh, dg)
+
+    local_viscous_flux = local_flux_viscous_threaded[Threads.threadid()][1]
+    for i in eachdim(mesh)
+      # rotate flux to reference coordinates
+      fill!(local_viscous_flux, zero(eltype(local_viscous_flux)))
+      for j in eachdim(mesh)
+        @. local_viscous_flux = local_viscous_flux + dxidxhatj[j, i][:, e] * flux_viscous[j][:, e]
+      end
+
+      # differentiate with respect to reference coordinates
+      apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[i]),
+                          view(du, :, e), local_viscous_flux)
     end
   end
 end
