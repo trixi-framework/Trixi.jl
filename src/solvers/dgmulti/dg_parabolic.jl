@@ -19,8 +19,13 @@ function create_cache_parabolic(mesh::DGMultiMesh,
   divergence_lift_matrix = dg.basis.LIFT
   projection_face_interpolation_matrix = dg.basis.Vf * dg.basis.Pq
 
-  # u_transformed stores "transformed" variables for computing the gradient
+  # evaluate geometric terms at quadrature points in case the mesh is curved
   (; md) = mesh
+  J = dg.basis.Vq * md.J
+  invJ = inv.(J)
+  dxidxhatj = map(x -> dg.basis.Vq * x, md.rstxyzJ)
+
+  # u_transformed stores "transformed" variables for computing the gradient
   u_transformed = allocate_nested_array(uEltype, nvars, size(md.x), dg)
   gradients = SVector{NDIMS}(ntuple(_ -> similar(u_transformed, (dg.basis.Nq, mesh.md.num_elements)), NDIMS))
   flux_viscous = similar.(gradients)
