@@ -366,6 +366,7 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupledAB
     coupled_index_offset = 0
   end
 
+  fill!(boundary_condition.u_boundary, zero(eltype(boundary_condition.u_boundary)))
   for cell in cells
     i_node = i_node_start
     j_node = j_node_start
