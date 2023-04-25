@@ -66,7 +66,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     du = similar(ode.u0)
     Trixi.calc_divergence!(du, ode.u0, t, u_flux, mesh, equations_parabolic, boundary_condition_periodic,
                            dg, semi.solver_parabolic, cache, cache_parabolic)
-    @test getindex.(du, 1) ≈ 2 * y
+    @test getindex.(du, 1) ≈ 2 * yq
   end
 
   @trixi_testset "DGMulti: elixir_advection_diffusion.jl" begin
