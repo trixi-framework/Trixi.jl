@@ -90,9 +90,9 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 ###############################################################################
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
 
-default_meshfile = joinpath(@__DIR__, "ThreeMound.mesh")
+default_meshfile = joinpath(@__DIR__, "mesh_three_mound.mesh")
 
-isfile(default_meshfile) || download("https://gist.githubusercontent.com/svengoldberg/c3c87fecb3fc6e46be7f0d1c7cb35f83/raw/df5b4d65d5fc90b2d6d6859972948fee258fe805/ThreeMound.mesh",
+isfile(default_meshfile) || download("https://gist.githubusercontent.com/svengoldberg/c3c87fecb3fc6e46be7f0d1c7cb35f83/raw/e817ecd9e6c4686581d63c46128f9b6468d396d3/mesh_three_mound.mesh",
                                       default_meshfile)
 
 meshfile = default_meshfile                          
