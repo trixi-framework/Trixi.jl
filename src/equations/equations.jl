@@ -328,7 +328,7 @@ include("compressible_euler_multicomponent_2d.jl")
     eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractCompressibleEulerMulticomponentEquations`. 
+for the components in `AbstractCompressibleEulerMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations) = Base.OneTo(ncomponents(equations))
@@ -350,7 +350,7 @@ include("ideal_glm_mhd_multicomponent_2d.jl")
     eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractIdealGlmMhdMulticomponentEquations`. 
+for the components in `AbstractIdealGlmMhdMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations) = Base.OneTo(ncomponents(equations))
@@ -374,6 +374,7 @@ include("acoustic_perturbation_2d.jl")
 abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("linearized_euler_2d.jl")
 
-abstract type AbstractEquationsParabolic{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} <: AbstractEquations{NDIMS, NVARS} end
+# Here
 
 end # @muladd

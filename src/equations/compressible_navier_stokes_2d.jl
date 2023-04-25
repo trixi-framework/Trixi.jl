@@ -76,7 +76,7 @@ w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = -\frac{\rho}{p}
 #!!! warning "Experimental code"
 #    This code is experimental and may be changed or removed in any future release.
 """
-struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesDiffusion{2, 4}
+struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesDiffusion{2, 4, GradientVariables}
   # TODO: parabolic
   # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
   # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
@@ -106,8 +106,8 @@ formulation from
 
 Under `GradientVariablesEntropy`, the Navier-Stokes discretization is provably entropy stable.
 """
-struct GradientVariablesPrimitive end
-struct GradientVariablesEntropy end
+struct GradientVariablesPrimitive <: AbstractGradientVariable end
+struct GradientVariablesEntropy <: AbstractGradientVariable end
 
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquations2D;
