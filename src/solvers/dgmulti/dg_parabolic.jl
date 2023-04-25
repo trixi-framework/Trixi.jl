@@ -142,11 +142,31 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
   calc_gradient_surface_integral!(gradients, u, scalar_flux_face_values,
                                   mesh, equations, dg, cache, cache_parabolic)
 
-  for dim in eachdim(mesh)
-    @threaded for e in eachelement(mesh, dg)
-      invJ = cache.invJ[1, e]
+  invert_jacobian_gradient!(gradients, mesh, equations, dg, cache, cache_parabolic)
+
+end
+
+# affine mesh - constant Jacobian version
+function invert_jacobian_gradient!(gradients, mesh::DGMultiMesh, equations, dg::DGMulti,
+                                   cache, cache_parabolic)
+  @threaded for e in eachelement(mesh, dg)
+    invJ = cache_parabolic.invJ[1, e]
+    for dim in eachdim(mesh)
       for i in axes(gradients[dim], 1)
         gradients[dim][i, e] = gradients[dim][i, e] * invJ
+      end
+    end
+  end
+end
+
+# non-affine mesh - variable Jacobian version
+function invert_jacobian_gradient!(gradients, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
+                                   dg::DGMulti, cache, cache_parabolic) where {NDIMS}
+  (; invJ) = cache_parabolic
+  @threaded for e in eachelement(mesh, dg)
+    for dim in eachdim(mesh)
+      for i in axes(gradients[dim], 1)
+        gradients[dim][i, e] = gradients[dim][i, e] * invJ[i, e]
       end
     end
   end
