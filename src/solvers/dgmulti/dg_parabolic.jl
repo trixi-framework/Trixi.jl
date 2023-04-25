@@ -57,7 +57,6 @@ function transform_variables!(u_transformed, u, mesh, equations_parabolic::Abstr
 end
 
 # TODO: reuse entropy projection computations for DGMultiFluxDiff{<:Polynomial} (including `GaussSBP` solvers)
-
 function calc_gradient_surface_integral!(gradients, u, scalar_flux_face_values,
                                          mesh, equations::AbstractEquationsParabolic,
                                          dg::DGMulti, cache, cache_parabolic)
@@ -86,6 +85,29 @@ function calc_gradient_volume_integral!(gradients, u, mesh::DGMultiMesh,
       dxidxhatj = mesh.md.rstxyzJ[i, j][1, e] # TODO: DGMulti. Assumes mesh is affine here.
       apply_to_each_field(mul_by_accum!(strong_differentiation_matrices[j], dxidxhatj),
                           view(gradients[i], :, e), view(u, :, e))
+    end
+  end
+end
+
+function calc_gradient_volume_integral!(gradients, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
+                                        equations::AbstractEquationsParabolic,
+                                        dg::DGMulti, cache, cache_parabolic) where {NDIMS}
+
+  (; strong_differentiation_matrices, dxidxhatj, local_flux_viscous_threaded) = cache_parabolic
+
+  # compute volume contributions to gradients
+  @threaded for e in eachelement(mesh, dg)
+
+    # compute gradients with respect to reference coordinates
+    local_reference_gradients = local_flux_viscous_threaded[Threads.threadid()]
+    for i in eachdim(mesh)
+      apply_to_each_field(mul_by!(strong_differentiation_matrices[i]),
+                                  local_reference_gradients[i], view(u, :, e))
+    end
+
+    # rotate to physical frame on each element
+    for i in eachdim(mesh), j in eachdim(mesh)
+      @. gradients[i][:, e] = gradients[i][:, e] + dxidxhatj[i, j][:, e] * local_reference_gradients[j]
     end
   end
 end
