@@ -140,7 +140,7 @@ export AcousticPerturbationEquations2D,
 export LaplaceDiffusion2D,
        CompressibleNavierStokesDiffusion2D, CompressibleNavierStokesDiffusion3D
 
-export GradientVariablesPrimitive, GradientVariablesEntropy
+export GradientVariablesConservative, GradientVariablesPrimitive, GradientVariablesEntropy
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
