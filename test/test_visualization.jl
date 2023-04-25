@@ -11,10 +11,10 @@ using CairoMakie
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
+# pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_dgsem")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
@@ -30,7 +30,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   )
 
   @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
-    # Run Trixi
+    # Run Trixi.jl
     directory, elixir = test_examples_2d[mesh]
     @test_nowarn_mod trixi_include(@__MODULE__, joinpath(examples_dir(), directory, elixir),
                                      tspan=(0,0.1))
@@ -122,7 +122,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @timed_testset "PlotData1D, PlotDataSeries, PlotMesh" begin
-    # Run Trixi
+    # Run Trixi.jl
     @test_nowarn_mod trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_1d_dgsem", "elixir_euler_blast_wave.jl"),
                                      tspan=(0,0.1))
 

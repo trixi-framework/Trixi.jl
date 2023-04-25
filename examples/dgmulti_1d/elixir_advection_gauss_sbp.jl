@@ -21,10 +21,9 @@ dg = DGMulti(polydeg = 3,
 ###############################################################################
 #  setup the 1D mesh
 
-mesh = DGMultiMesh(dg,
-                   cells_per_dimension=(8,),
-                   coordinates_min=(-1.0,),
-                   coordinates_max=(1.0,),
+cells_per_dimension = (8,)
+mesh = DGMultiMesh(dg, cells_per_dimension,
+                   coordinates_min=(-1.0,), coordinates_max=(1.0,),
                    periodicity=true)
 
 ###############################################################################

@@ -7,7 +7,7 @@ include("test_trixi.jl")
 
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmulti_3d")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
@@ -50,8 +50,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_curved.jl (Hex elements, GaussSBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
       approximation_type=GaussSBP(),
-      l2 = [0.0026494857810114266, 0.002939931029796175, 0.0029403438438330687, 0.002646448702532443, 0.007067017671076421],
-      linf = [0.021424273409065275, 0.02133519628006386, 0.021304710093764, 0.02080983064200792, 0.05344736080482182]
+      l2 = [0.002631131519508634, 0.0029144224044954105, 0.002913889110662827, 0.002615140832314194, 0.006881528610614373],
+      linf = [0.020996114874140215, 0.021314522450134543, 0.021288322783006297, 0.020273381695435244, 0.052598740390024545]
     )
   end
 
@@ -137,7 +137,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 end
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive=true)
 
 end # module

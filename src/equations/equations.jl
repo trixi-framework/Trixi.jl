@@ -308,6 +308,8 @@ include("inviscid_burgers_1d.jl")
 abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("shallow_water_1d.jl")
 include("shallow_water_2d.jl")
+include("shallow_water_two_layer_1d.jl")
+include("shallow_water_two_layer_2d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
