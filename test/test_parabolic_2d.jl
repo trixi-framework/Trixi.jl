@@ -101,6 +101,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "DGMulti: elixir_navierstokes_convergence_curved.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_navierstokes_convergence_curved.jl"),
+      cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
+      l2 = [0.004255101916146187, 0.011118488923215765, 0.011281831283462686, 0.03573656447388509],
+      linf = [0.015071710669706473, 0.04103132025858458, 0.03990424085750277, 0.1309401718598764],
+    )
+  end
+
   @trixi_testset "DGMulti: elixir_navierstokes_lid_driven_cavity.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_navierstokes_lid_driven_cavity.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.5),
