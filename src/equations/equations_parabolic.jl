@@ -5,8 +5,7 @@ gradient_variable_transformation(::AbstractEquationsParabolic) = cons2cons
 # By default, the gradients are taken with respect to the conservative variables.
 # this is reflected by the type parameter `GradientVariablesConservative` in the abstract
 # type `AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative}`.
-abstract type AbstractGradientVariable end
-struct GradientVariablesConservative <: AbstractGradientVariable end
+struct GradientVariablesConservative end
 
 # Linear scalar diffusion for use in linear scalar advection-diffusion problems
 abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <: AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative} end
