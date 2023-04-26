@@ -2,7 +2,7 @@
 function create_cache_parabolic(mesh::DGMultiMesh,
                                 equations_hyperbolic::AbstractEquations,
                                 equations_parabolic::AbstractEquationsParabolic,
-                                dg::DGMulti{NDIMS}, parabolic_scheme, RealT, uEltype) where {NDIMS}
+                                dg::DGMulti, parabolic_scheme, RealT, uEltype)
 
   # default to taking derivatives of all hyperbolic variables
   # TODO: parabolic; utilize the parabolic variables in `equations_parabolic` to reduce memory usage in the parabolic cache
@@ -27,15 +27,15 @@ function create_cache_parabolic(mesh::DGMultiMesh,
 
   # u_transformed stores "transformed" variables for computing the gradient
   u_transformed = allocate_nested_array(uEltype, nvars, size(md.x), dg)
-  gradients = SVector{NDIMS}(ntuple(_ -> similar(u_transformed, (dg.basis.Nq, mesh.md.num_elements)), NDIMS))
+  gradients = SVector{ndims(mesh)}(ntuple(_ -> similar(u_transformed, (dg.basis.Nq, mesh.md.num_elements)), ndims(mesh)))
   flux_viscous = similar.(gradients)
 
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
   scalar_flux_face_values = similar(u_face_values)
-  gradients_face_values = ntuple(_ -> similar(u_face_values), NDIMS)
+  gradients_face_values = ntuple(_ -> similar(u_face_values), ndims(mesh))
 
   local_u_values_threaded = [similar(u_transformed, dg.basis.Nq) for _ in 1:Threads.nthreads()]
-  local_flux_viscous_threaded = [SVector{NDIMS}(ntuple(_ -> similar(u_transformed, dg.basis.Nq), NDIMS)) for _ in 1:Threads.nthreads()]
+  local_flux_viscous_threaded = [SVector{ndims(mesh)}(ntuple(_ -> similar(u_transformed, dg.basis.Nq), ndims(mesh))) for _ in 1:Threads.nthreads()]
   local_flux_face_values_threaded = [similar(scalar_flux_face_values[:, 1]) for _ in 1:Threads.nthreads()]
 
   return (; u_transformed, gradients, flux_viscous,
