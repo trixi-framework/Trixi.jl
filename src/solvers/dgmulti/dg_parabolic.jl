@@ -150,7 +150,11 @@ end
 function invert_jacobian_gradient!(gradients, mesh::DGMultiMesh, equations, dg::DGMulti,
                                    cache, cache_parabolic)
   @threaded for e in eachelement(mesh, dg)
+
+    # Here, we exploit the fact that J is constant on for affine elements,
+    # so we only have to access invJ once per element.
     invJ = cache_parabolic.invJ[1, e]
+
     for dim in eachdim(mesh)
       for i in axes(gradients[dim], 1)
         gradients[dim][i, e] = gradients[dim][i, e] * invJ
