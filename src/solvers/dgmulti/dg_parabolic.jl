@@ -398,19 +398,26 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, equations_parabolic::Abstra
 
   reset_du!(du, dg)
 
-  (; u_transformed, gradients, flux_viscous) = cache_parabolic
-  transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                       dg, parabolic_scheme, cache, cache_parabolic)
+  @trixi_timeit timer() "transform variables" begin
+    (; u_transformed, gradients, flux_viscous) = cache_parabolic
+    transform_variables!(u_transformed, u, mesh, equations_parabolic,
+                        dg, parabolic_scheme, cache, cache_parabolic)
+  end
 
-  calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
-                 boundary_conditions, dg, cache, cache_parabolic)
+  @trixi_timeit timer() "calc gradient" begin
+    calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
+                  boundary_conditions, dg, cache, cache_parabolic)
+  end
 
-  calc_viscous_fluxes!(flux_viscous, u_transformed, gradients,
-                       mesh, equations_parabolic, dg, cache, cache_parabolic)
+  @trixi_timeit timer() "calc viscous fluxes" begin
+    calc_viscous_fluxes!(flux_viscous, u_transformed, gradients,
+                        mesh, equations_parabolic, dg, cache, cache_parabolic)
+  end
 
-  calc_divergence!(du, u_transformed, t, flux_viscous, mesh, equations_parabolic,
-                   boundary_conditions, dg, parabolic_scheme, cache, cache_parabolic)
-
+  @trixi_timeit timer() "calc divergence" begin
+    calc_divergence!(du, u_transformed, t, flux_viscous, mesh, equations_parabolic,
+                    boundary_conditions, dg, parabolic_scheme, cache, cache_parabolic)
+  end
   return nothing
 
 end
