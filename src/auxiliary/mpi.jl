@@ -48,7 +48,7 @@ const MPI_IS_ROOT = Ref(true)
 # This is not type-stable but that's okay since we want to get rid of it anyway
 # and it's not used in performance-critical parts. The alternative we used before,
 # calling something like `eval(:(mpi_parallel() = True()))` in `init_mpi()`,
-# causes invalidations and slows down the first call to Trixi.
+# causes invalidations and slows down the first call to Trixi.jl.
 function mpi_parallel()
   if mpi_isparallel()
     return True()
@@ -87,10 +87,7 @@ You must pass this function as a keyword argument
 to OrdinaryDiffEq.jl's `solve` when using error-based step size control with MPI
 parallel execution of Trixi.jl.
 
-See [`https://diffeq.sciml.ai/stable/basics/common_solver_opts/#advanced_adaptive_stepsize_control`](https://diffeq.sciml.ai/stable/basics/common_solver_opts/#advanced_adaptive_stepsize_control)
-
-!!! warning "Experimental code"
-    This code is experimental and may be changed or removed in any future release.
+See the "Advanced Adaptive Stepsize Control" section of the [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/)
 """
 ode_norm(u::Number, t) = @fastmath abs(u)
 function ode_norm(u::AbstractArray, t)
@@ -140,9 +137,6 @@ You should pass this function as a keyword argument
 to OrdinaryDiffEq.jl's  `solve` when using error-based step size control with MPI
 parallel execution of Trixi.jl.
 
-See [`https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous`](https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous)
-
-!!! warning "Experimental code"
-    This code is experimental and may be changed or removed in any future release.
+See the "Miscellaneous" section of the [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/)
 """
 ode_unstable_check(dt, u, semi, t) = isnan(dt)

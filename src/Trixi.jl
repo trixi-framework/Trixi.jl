@@ -4,10 +4,10 @@
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws. A key objective for the framework is to be useful to both scientists
 and students. Therefore, next to having an extensible design with a fast
-implementation, Trixi is focused on being easy to use for new or inexperienced
+implementation, Trixi.jl is focused on being easy to use for new or inexperienced
 users, including the installation and postprocessing procedures.
 
-To get started, run your first simulation with Trixi using
+To get started, run your first simulation with Trixi.jl using
 
     trixi_include(default_example())
 
@@ -15,7 +15,7 @@ See also: [trixi-framework/Trixi.jl](https://github.com/trixi-framework/Trixi.jl
 """
 module Trixi
 
-# Include other packages that are used in Trixi
+# Include other packages that are used in Trixi.jl
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
 using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling, det
@@ -42,7 +42,7 @@ using HDF5: h5open, attributes
 using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
-using LoopVectorization.ArrayInterface: static_length
+using StaticArrayInterface: static_length # used by LoopVectorization
 using MPI: MPI
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
@@ -62,21 +62,22 @@ using Triangulate: Triangulate, TriangulateIO, triangulate
 export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
-@reexport using UnPack: @unpack
-using UnPack: @pack!
+@reexport using SimpleUnPack: @unpack
+using SimpleUnPack: @pack!
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,
   AbstractNonperiodicDerivativeOperator, DerivativeOperator,
   AbstractPeriodicDerivativeOperator, PeriodicDerivativeOperator, grid
 import SummationByPartsOperators: integrate, semidiscretize,
+                                  compute_coefficients, compute_coefficients!,
                                   left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
   SummationByPartsOperators, derivative_operator, periodic_derivative_operator,
   upwind_operators
 
 # DGMulti solvers
-@reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
+@reexport using StartUpDG: StartUpDG, Polynomial, Gauss, SBP, Line, Tri, Quad, Hex, Tet
 using StartUpDG: RefElemData, MeshData, AbstractElemShape
 
 # TODO: include_optimized
@@ -122,7 +123,7 @@ include("auxiliary/special_elixirs.jl")
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
 
-# export types/functions that define the public API of Trixi
+# export types/functions that define the public API of Trixi.jl
 
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
@@ -134,6 +135,7 @@ export AcousticPerturbationEquations2D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
+       ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
        LinearizedEulerEquations2D
 
 export LaplaceDiffusion2D,
@@ -145,7 +147,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, 
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
        flux_nonconservative_powell,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
-       flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
+       flux_fjordholm_etal, flux_nonconservative_fjordholm_etal, flux_es_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
@@ -229,7 +231,7 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
 export PositivityPreservingLimiterZhangShu
 
 export trixi_include, examples_dir, get_examples, default_example,
-       default_example_unstructured
+       default_example_unstructured, ode_default_options
 
 export ode_norm, ode_unstable_check
 
