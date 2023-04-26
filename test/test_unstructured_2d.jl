@@ -160,8 +160,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_three_mound_dam_break.jl"),
       l2   = [0.08930693825236688, 0.30651613731260685, 2.7127640453081046e-15, 0.0008778654298684622],
       linf = [0.85066759484775, 2.3308973454414836, 6.441069096428372e-14, 0.04326237921249021],
-      tspan = (0.0, 0.25),
-      basis = LobattoLegendreBasis(3))
+      basis = LobattoLegendreBasis(3),
+      tspan = (0.0, 0.25))
+  end
 
   @trixi_testset "elixir_shallowwater_twolayer_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_twolayer_convergence.jl"),
