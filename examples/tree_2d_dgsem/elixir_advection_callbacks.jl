@@ -12,7 +12,7 @@ using OrdinaryDiffEq: DiscreteCallback, u_modified!
 # This is an example implementation for a simple stage callback (i.e., a callable
 # that is executed after each Runge-Kutta *stage*), which records some values
 # each time it is called. Its sole purpose here is to showcase how to implement
-# a stage callback for Trixi.
+# a stage callback for Trixi.jl.
 struct ExampleStageCallback
   times::Vector{Float64}
   min_values::Vector{Float64}
@@ -43,7 +43,7 @@ end
 # This is an example implementation for a simple step callback (i.e., a callable
 # that is potentially executed after each Runge-Kutta *step*), which records
 # some values each time it is called. Its sole purpose here is to showcase
-# how to implement a step callback for Trixi.
+# how to implement a step callback for Trixi.jl.
 struct ExampleStepCallback
   message::String
   times::Vector{Float64}

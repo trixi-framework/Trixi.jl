@@ -627,13 +627,13 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg:
 end
 
 
-# Discretizations specific to each mesh type of Trixi
+# Discretizations specific to each mesh type of Trixi.jl
 # If some functionality is shared by multiple combinations of meshes/solvers,
 # it is defined in the directory of the most basic mesh and solver type.
-# The most basic solver type in Trixi is DGSEM (historic reasons and background
+# The most basic solver type in Trixi.jl is DGSEM (historic reasons and background
 # of the main contributors).
 # We consider the `TreeMesh` to be the most basic mesh type since it is Cartesian
-# and was the first mesh in Trixi. The order of the other mesh types is the same
+# and was the first mesh in Trixi.jl. The order of the other mesh types is the same
 # as the include order below.
 include("dgsem_tree/dg.jl")
 include("dgsem_structured/dg.jl")

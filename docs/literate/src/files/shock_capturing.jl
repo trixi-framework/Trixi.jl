@@ -22,7 +22,7 @@
 # Since the surface integral is equal for both the DG and the subcell FV method, only the volume integral divides
 # between the two methods.
 
-# This strategy for the volume integral is implemented in Trixi under the name of
+# This strategy for the volume integral is implemented in Trixi.jl under the name of
 # [`VolumeIntegralShockCapturingHG`](@ref) with the three parameters of the indicator and the volume fluxes for
 # the DG and the subcell FV method.
 
@@ -74,7 +74,7 @@
 # `density`, `pressure` or both with `density_pressure` for the compressible Euler equations.
 # For every equation there is also the option to use the first conservation variable with `first`.
 
-# This indicator is implemented in Trixi and called [`IndicatorHennemannGassner`](@ref) with the parameters
+# This indicator is implemented in Trixi.jl and called [`IndicatorHennemannGassner`](@ref) with the parameters
 # `equations`, `basis`, `alpha_max`, `alpha_min`, `alpha_smooth` and `variable`.
 # ````julia
 # indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -92,7 +92,7 @@
 # or density for the compressible Euler equations. This often results in crashed simulations since
 # the calculation of numerical fluxes or stable time steps uses mathematical operations like roots or
 # logarithms. One option to avoid these cases are a-posteriori positivity preserving limiters.
-# Trixi provides the fully-discrete positivity-preserving limiter of
+# Trixi.jl provides the fully-discrete positivity-preserving limiter of
 # [Zhang, Shu (2011)](https://doi.org/10.1098/rspa.2011.0153).
 
 # It works the following way. For every passed (scalar) variable and for every DG element we calculate
@@ -117,7 +117,7 @@
 # compressible Euler equations `density`, `pressure` or the combined variable `density_pressure`
 # are a reasonable choice.
 
-# You can implement the limiter in Trixi using [`PositivityPreservingLimiterZhangShu`](@ref) with parameters
+# You can implement the limiter in Trixi.jl using [`PositivityPreservingLimiterZhangShu`](@ref) with parameters
 # `threshold` and `variables`.
 # ````julia
 # stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=thresholds,
@@ -191,7 +191,7 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
 
-# We finalize the discretization by implementing Trixi's `solver`, `mesh`, `semi` and `ode`,
+# We finalize the discretization by implementing Trixi.jl's `solver`, `mesh`, `semi` and `ode`,
 # while `solver` now has the extra parameter `volume_integral`.
 solver = DGSEM(basis, surface_flux, volume_integral)
 

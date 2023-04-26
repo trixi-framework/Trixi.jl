@@ -93,7 +93,7 @@ end
 
 
 mutable struct SimpleIntegrator3SstarOptions{Callback}
-  callback::Callback # callbacks; used in Trixi
+  callback::Callback # callbacks; used in Trixi.jl
   adaptive::Bool # whether the algorithm is adaptive; ignored
   dtmax::Float64 # ignored
   maxiters::Int # maximal numer of time steps
@@ -114,7 +114,7 @@ mutable struct SimpleIntegrator3Sstar{RealT<:Real, uType, Params, Sol, F, Alg, S
   dt::RealT # current time step
   dtcache::RealT # ignored
   iter::Int # current number of time step (iteration)
-  p::Params # will be the semidiscretization from Trixi
+  p::Params # will be the semidiscretization from Trixi.jl
   sol::Sol # faked
   f::F
   alg::Alg
@@ -122,9 +122,9 @@ mutable struct SimpleIntegrator3Sstar{RealT<:Real, uType, Params, Sol, F, Alg, S
   finalstep::Bool # added for convenience
 end
 
-# Forward integrator.destats.naccept to integrator.iter (see GitHub PR#771)
+# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
 function Base.getproperty(integrator::SimpleIntegrator3Sstar, field::Symbol)
-  if field === :destats
+  if field === :stats
     return (naccept = getfield(integrator, :iter),)
   end
   # general fallback
