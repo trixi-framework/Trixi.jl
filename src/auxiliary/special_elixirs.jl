@@ -14,13 +14,13 @@
 
 `include` the file `elixir` and evaluate its content in the global scope of module `mod`.
 You can override specific assignments in `elixir` by supplying keyword arguments.
-It's basic purpose is to make it easier to modify some parameters while running Trixi from the
+It's basic purpose is to make it easier to modify some parameters while running Trixi.jl from the
 REPL. Additionally, this is used in tests to reduce the computational burden for CI while still
 providing examples with sensible default values for users.
 
 Before replacing assignments in `elixir`, the keyword argument `maxiters` is inserted
 into calls to `solve` and `Trixi.solve` with it's default value used in the SciML ecosystem
-for ODEs, see https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous.
+for ODEs, see the "Miscellaneous" section of the [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
 
 # Examples
 
@@ -48,7 +48,7 @@ trixi_include(elixir::AbstractString; kwargs...) = trixi_include(Main, elixir; k
 """
     convergence_test([mod::Module=Main,] elixir::AbstractString, iterations; kwargs...)
 
-Run `iterations` Trixi simulations using the setup given in `elixir` and compute
+Run `iterations` Trixi.jl simulations using the setup given in `elixir` and compute
 the experimental order of convergence (EOC) in the ``L^2`` and ``L^\\infty`` norm.
 In each iteration, the resolution of the respective mesh will be doubled.
 Additional keyword arguments `kwargs...` and the optional module `mod` are passed directly
@@ -171,8 +171,22 @@ function insert_maxiters(expr)
       if is_plain_solve || is_trixi_solve
         # Do nothing if `maxiters` is already set as keyword argument...
         for arg in x.args
-          if arg isa Expr && arg.head === Symbol("kw") && arg.args[1] === Symbol("maxiters")
+          # This detects the case where `maxiters` is set as keyword argument
+          # without or before a semicolon
+          if (arg isa Expr && arg.head === Symbol("kw") && arg.args[1] === Symbol("maxiters"))
             return x
+          end
+
+          # This detects the case where maxiters is set as keyword argument
+          # after a semicolon
+          if (arg isa Expr && arg.head === Symbol("parameters"))
+            # We need to check each keyword argument listed here
+            for nested_arg in arg.args
+              if (nested_arg isa Expr && nested_arg.head === Symbol("kw") &&
+                  nested_arg.args[1] === Symbol("maxiters"))
+                return x
+              end
+            end
           end
         end
 

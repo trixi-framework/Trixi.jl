@@ -42,8 +42,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::Union{TreeMesh{1}, S
   parameter_s = log((1 - 0.0001)/0.0001)
 
   @threaded for element in eachelement(dg, cache)
-    indicator  = indicator_threaded[Threads.threadid()]
-    modal      = modal_threaded[Threads.threadid()]
+    indicator = indicator_threaded[Threads.threadid()]
+    modal     = modal_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
     for i in eachnode(dg)
@@ -69,8 +69,17 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::Union{TreeMesh{1}, S
     end
 
     # Calculate energy in higher modes
-    energy = max((total_energy - total_energy_clip1) / total_energy,
-                 (total_energy_clip1 - total_energy_clip2) / total_energy_clip1)
+    if !(iszero(total_energy))
+      energy_frac_1 = (total_energy - total_energy_clip1) / total_energy
+    else
+      energy_frac_1 = zero(total_energy)
+    end
+    if !(iszero(total_energy_clip1))
+      energy_frac_2 = (total_energy_clip1 - total_energy_clip2) / total_energy_clip1
+    else
+      energy_frac_2 = zero(total_energy_clip1)
+    end
+    energy = max(energy_frac_1, energy_frac_2)
 
     alpha_element = 1 / (1 + exp(-parameter_s / threshold * (energy - threshold)))
 

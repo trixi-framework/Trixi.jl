@@ -10,19 +10,19 @@
 
 Linearized euler equations in two space dimensions. The equations are given by
 ```math
-\partial t
+\partial_t
 \begin{pmatrix}
     \rho' \\ v_1' \\ v_2' \\ p'
 \end{pmatrix}
 +
-\partial x
+\partial_x
 \begin{pmatrix}
-    \bar{\rho} v_1' + \bar{v_1} /rho' \\ \bar{v_1} v_1' + \frac{p'}{\bar{\rho}} \\ \bar{v_1} v_2' \\ \bar{v_1} p' + c^2 \bar{\rho} v_1'
+    \bar{\rho} v_1' + \bar{v_1} \rho ' \\ \bar{v_1} v_1' + \frac{p'}{\bar{\rho}} \\ \bar{v_1} v_2' \\ \bar{v_1} p' + c^2 \bar{\rho} v_1'
 \end{pmatrix}
 +
-\partial y
+\partial_y
 \begin{pmatrix}
-    \bar{\rho} v_2' + \bar{v_2} /rho' \\ \bar{v_2} v_1' \\ \bar{v_2} v_2' + \frac{p'}{\bar{\rho}} \\ \bar{v_2} p' + c^2 \bar{\rho} v_2'
+    \bar{\rho} v_2' + \bar{v_2} \rho ' \\ \bar{v_2} v_1' \\ \bar{v_2} v_2' + \frac{p'}{\bar{\rho}} \\ \bar{v_2} p' + c^2 \bar{\rho} v_2'
 \end{pmatrix}
 =
 \begin{pmatrix}
