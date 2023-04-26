@@ -229,7 +229,10 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
                                                    face_normal, face_coordinates, t,
                                                    operator_type, equations)
 
-      # use "strong form" for the Gradient ("weak form" for Divergence)
+      # Here, we use the "strong form" for the Gradient (and the "weak form" for Divergence).
+      # `flux_face_values` should contain the boundary values for `u`, and we
+      # subtract off `u_face_values[fid, e]` because we are using the strong formulation to
+      # compute the gradient.
       if operator_type isa Gradient
         flux_face_values[fid, e] = flux_face_values[fid, e] - u_face_values[fid, e]
       end
