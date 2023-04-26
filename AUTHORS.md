@@ -27,6 +27,7 @@ are listed in alphabetical order:
 * Jesse Chan
 * Lars Christmann
 * Christof Czernik
+* Patrick Ersing
 * Erik Faulhaber
 * Gregor Gassner
 * Lucas Gemein
