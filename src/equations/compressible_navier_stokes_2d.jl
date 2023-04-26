@@ -106,9 +106,6 @@ formulation from
 
 Under `GradientVariablesEntropy`, the Navier-Stokes discretization is provably entropy stable.
 """
-struct GradientVariablesPrimitive <: AbstractGradientVariable end
-struct GradientVariablesEntropy <: AbstractGradientVariable end
-
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquations2D;
                                              mu, Prandtl,
