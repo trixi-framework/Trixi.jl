@@ -205,7 +205,6 @@ end
 calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions::NamedTuple{(),Tuple{}},
                     mesh, equations, dg::DGMulti, cache, cache_parabolic) = nothing
 
-# TODO: DGMulti. Decide if we want to use the input `u_face_values` (currently unused)
 function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
                                     operator_type, boundary_condition, boundary_key,
                                     mesh, equations, dg::DGMulti{NDIMS}, cache, cache_parabolic) where {NDIMS}
