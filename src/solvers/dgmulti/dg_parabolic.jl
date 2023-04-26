@@ -344,7 +344,6 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
   (; projection_face_interpolation_matrix) = cache_parabolic
   flux_viscous_face_values = cache_parabolic.gradients_face_values # reuse storage
   for dim in eachdim(mesh)
-    # TODO: optimize this!!
     apply_to_each_field(mul_by!(projection_face_interpolation_matrix), flux_viscous_face_values[dim], flux_viscous[dim])
   end
 
@@ -360,7 +359,7 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
     for dim in eachdim(mesh)
       fM = flux_viscous_face_values[dim][idM]
       fP = flux_viscous_face_values[dim][idP]
-      # TODO: use strong/weak formulation to ensure stability on curved meshes?
+      # Here, we use the "weak" formulation to compute the divergence (to ensure stability on curved meshes).
       flux_face_value = flux_face_value + 0.5 * (fP + fM) * nxyzJ[dim][face_node_index]
     end
     scalar_flux_face_values[idM] = flux_face_value
