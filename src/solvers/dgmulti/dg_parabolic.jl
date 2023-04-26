@@ -110,7 +110,9 @@ function calc_gradient_volume_integral!(gradients, u, mesh::DGMultiMesh{NDIMS, <
 
     # rotate to physical frame on each element
     for i in eachdim(mesh), j in eachdim(mesh)
-      @. gradients[i][:, e] = gradients[i][:, e] + dxidxhatj[i, j][:, e] * local_reference_gradients[j]
+      for node in eachindex(local_reference_gradients[j])
+        gradients[i][node, e] = gradients[i][node, e] + dxidxhatj[i, j][node, e] * local_reference_gradients[j][node]
+      end
     end
   end
 end
@@ -322,7 +324,9 @@ function calc_divergence_volume_integral!(du, u, flux_viscous, mesh::DGMultiMesh
       # rotate flux to reference coordinates
       fill!(local_viscous_flux, zero(eltype(local_viscous_flux)))
       for j in eachdim(mesh)
-        @. local_viscous_flux = local_viscous_flux + dxidxhatj[j, i][:, e] * flux_viscous[j][:, e]
+        for node in eachindex(local_viscous_flux)
+          local_viscous_flux[node] = local_viscous_flux[node] + dxidxhatj[j, i][node, e] * flux_viscous[j][node, e]
+        end
       end
 
       # differentiate with respect to reference coordinates
