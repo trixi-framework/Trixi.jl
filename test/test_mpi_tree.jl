@@ -9,7 +9,7 @@ include("test_trixi.jl")
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_dgsem")
 
 # Needed to skip certain tests on Windows CI
-import ..CI_ON_WINDOWS
+CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
 
 @testset "TreeMesh MPI" begin
 
