@@ -82,7 +82,10 @@ function calc_gradient_volume_integral!(gradients, u, mesh::DGMultiMesh,
   # compute volume contributions to gradients
   @threaded for e in eachelement(mesh, dg)
     for i in eachdim(mesh), j in eachdim(mesh)
-      dxidxhatj = mesh.md.rstxyzJ[i, j][1, e] # TODO: DGMulti. Assumes mesh is affine here.
+
+      # We assume each element is affine (e.g., constant geometric terms) here.
+      dxidxhatj = mesh.md.rstxyzJ[i, j][1, e]
+
       apply_to_each_field(mul_by_accum!(strong_differentiation_matrices[j], dxidxhatj),
                           view(gradients[i], :, e), view(u, :, e))
     end
@@ -132,7 +135,9 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
     idM, idP = mapM[face_node_index], mapP[face_node_index]
     uM = u_face_values[idM]
     uP = u_face_values[idP]
-    scalar_flux_face_values[idM] = 0.5 * (uP - uM) # TODO: use strong/weak formulation for curved meshes?
+    # Here, we use the "strong" formulation to compute the gradient. This guarantees that the parabolic
+    # formulation is symmetric and stable on curved meshes with variable geometric terms.
+    scalar_flux_face_values[idM] = 0.5 * (uP - uM)
   end
 
   calc_boundary_flux!(scalar_flux_face_values, u_face_values, t, Gradient(), boundary_conditions,
