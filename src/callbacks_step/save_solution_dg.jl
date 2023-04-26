@@ -114,6 +114,15 @@ end
 function save_solution_file_parallel(data, time, dt, timestep, n_vars,
                                      mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                                      solution_variables, filename, element_variables=Dict{Symbol,Any}())
+  # Calculate element and node counts by MPI rank
+  element_size = nnodes(dg)^ndims(mesh)
+  element_counts = cache.mpi_cache.n_elements_by_rank
+  node_counts = element_counts * element_size
+  # Cumulative sum of elements per rank starting with an additional 0
+  cum_element_counts = append!(zeros(eltype(node_counts), 1), cumsum(element_counts))
+  # Cumulative sum of nodes per rank starting with an additional 0
+  cum_node_counts = append!(zeros(eltype(node_counts), 1), cumsum(node_counts))
+
   # Open file using parallel HDF5 (clobber existing content)
   h5open(filename, "w", mpi_comm()) do file
     # Add context information as attributes
@@ -132,9 +141,8 @@ function save_solution_file_parallel(data, time, dt, timestep, n_vars,
     for v in 1:n_vars
       # Need to create dataset explicitly in parallel case
       var = create_dataset(file, "/variables_$v", datatype(eltype(data)), dataspace((ndofsglobal(mesh, dg, cache),)))
-
-      # Write data of each process in slices
-      slice = mpi_rank()*ndofs(mesh, dg, cache) + 1:(mpi_rank() + 1)*ndofs(mesh, dg, cache)
+      # Write data of each process in slices (ranks start with 0)
+      slice = (cum_node_counts[mpi_rank() + 1] + 1):cum_node_counts[mpi_rank() + 2]
       # Convert to 1D array
       var[slice] = vec(data[v, .., :])
       # Add variable name as attribute
@@ -146,8 +154,8 @@ function save_solution_file_parallel(data, time, dt, timestep, n_vars,
       # Need to create dataset explicitly in parallel case
       var = create_dataset(file, "/element_variables_$v", datatype(eltype(element_variable)), dataspace((nelementsglobal(dg, cache),)))
 
-      # Write data of each process in slices
-      slice = mpi_rank()*nelements(dg, cache) + 1:(mpi_rank() + 1)*nelements(dg, cache)
+      # Write data of each process in slices (ranks start with 0)
+      slice = (cum_element_counts[mpi_rank() + 1] + 1):cum_element_counts[mpi_rank() + 2]
       # Add to file
       var[slice] = element_variable
       # Add variable name as attribute
