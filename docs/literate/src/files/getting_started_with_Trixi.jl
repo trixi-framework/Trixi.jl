@@ -6,7 +6,6 @@
 # and run simulations.
 # **Trixi.jl** is a numerical simulation framework for hyperbolic conservation laws 
 # written in [`Julia`](https://julialang.org/).
-# This means that Julia have to be installed on a PC to work with Trixi. 
 
 # ## Julia installation
 
