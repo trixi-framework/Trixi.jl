@@ -53,7 +53,7 @@
 
 # Note, that further in the tutorial Julia will invoked only typing `julia` in a terminal.
 # To enable that, you have to add
-# [Julia to PATH](https://julialang.org/downloads/platform/#linux_and_freebsd).
+# [Julia to the PATH](https://julialang.org/downloads/platform/#linux_and_freebsd).
 
 # ## Trixi.jl installation
 
