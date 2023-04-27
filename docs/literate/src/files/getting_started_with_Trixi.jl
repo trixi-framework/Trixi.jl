@@ -69,7 +69,7 @@
 
 # ## Usage
 
-# ### Files execution
+# ### Running a simulation
 
 # Trixi has a big set
 # of [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples), that can be taken
