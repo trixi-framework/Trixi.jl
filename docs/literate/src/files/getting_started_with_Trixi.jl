@@ -35,7 +35,7 @@
 
 # ### Linux
 
-# - Open a Terminal and navigate (using `cd`) to the directory, where you want to save Julia.
+# - Open a terminal and navigate (using `cd`) to the directory, where you want to store Julia.
 #   Or you can open a file manager, find this directory, right-click inside and 
 #   choose `Open Terminal Here`.
 # - To install Julia execute the following commands in a Terminal:
