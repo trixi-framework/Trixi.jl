@@ -10,7 +10,7 @@
 # ## Julia installation
 
 # Trixi works with the current stable Julia release. More information about Julia support can be
-# found in [`README`](https://github.com/trixi-framework/Trixi.jl#installation).
+# found in the [`README.md`](https://github.com/trixi-framework/Trixi.jl#installation) file.
 # The most fully explained installation process can be found in
 # [`Julia installation instruction`](https://julialang.org/downloads/platform/).
 # But you can follow also our short installation instruction.
