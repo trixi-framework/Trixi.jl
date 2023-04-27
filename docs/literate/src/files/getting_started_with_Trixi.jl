@@ -36,8 +36,6 @@
 # ### Linux
 
 # - Open a terminal and navigate (using `cd`) to the directory, where you want to store Julia.
-#   Or you can open a file manager, find this directory, right-click inside and 
-#   choose `Open Terminal Here`.
 # - To install Julia execute the following commands in a Terminal:
 #   ````
 #   wget https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.5-linux-x86_64.tar.gz
