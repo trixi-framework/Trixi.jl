@@ -53,7 +53,7 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 # ### ii. Polynomial approach
 # Now, we want to approximate the solution in each element $Q_l$ by a polynomial of degree $N$. Since we transformed
 # the equation, we can use the same polynomial approach for the reference coordinate $\xi\in[-1, 1]$ in every
-# physical element $Q_l$. This saves a lot of ressources by reducing the amount of calculations needed
+# physical element $Q_l$. This saves a lot of resources by reducing the amount of calculations needed
 # and storing less information.
 
 # For DGSEM we choose [Lagrange basis functions](https://en.wikipedia.org/wiki/Lagrange_polynomial)
@@ -63,7 +63,7 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 # u(x(\xi), t)\big|_{Q_l} \approx u^{Q_l}(\xi, t) = \sum_{j=0}^N u_j^{Q_l}(t) l_j(\xi)
 # ```
 # with $N+1$ coefficients $\{u_j^{Q_l}\}_{j=0}^N$.
-# By contruction the Lagrange basis has some useful advantages. This basis is defined by $N+1$ nodes, which
+# By construction the Lagrange basis has some useful advantages. This basis is defined by $N+1$ nodes, which
 # fulfill a Kronecker property at the exact same nodes. Let $\{\xi_i\}_{i=0}^N$ be these nodes.
 # ```math
 # l_j(\xi_i) = \delta_{i,j} =
@@ -186,7 +186,7 @@ M = diagm(weights)
 # is called mass lumping and has the big advantage of an easy invertation of the matrix.
 
 # #### Term II:
-# We use spatial partial intergration for the second term:
+# We use spatial partial integration for the second term:
 # ```math
 # \int_{-1}^1 u'(\xi, t) l_i(\xi) d\xi = [u l_i]_{-1}^1 - \int_{-1}^1 u l_i'd\xi
 # ```
