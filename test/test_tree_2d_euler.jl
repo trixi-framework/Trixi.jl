@@ -36,8 +36,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-      l2   = [0.061751715597716854, 0.05018223615408711, 0.05018989446443463, 0.225871559730513],
-      linf = [0.29347582879608825, 0.31081249232844693, 0.3107380389947736, 1.0540358049885143])
+      l2   = [0.061752962336292204, 0.05018369293009108, 0.050191348860490585, 0.22587623712957716],
+      linf = [0.2935349458436739, 0.31120362638442955, 0.3111440207911993, 1.0542231110988718])
   end
 
   @trixi_testset "elixir_euler_ec.jl with flux_kennedy_gruber" begin
