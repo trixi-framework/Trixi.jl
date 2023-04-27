@@ -2,10 +2,10 @@
 
 Run the following commands from the Julia REPL. The code used in the
 [paper](https://arxiv.org/abs/2008.10593)
-was written for Trixi `v0.2`. Since breaking changes were introduced
-in Trixi `v0.3`, the code provided below does not reproduce the examples
+was written for Trixi.jl `v0.2`. Since breaking changes were introduced
+in Trixi.jl `v0.3`, the code provided below does not reproduce the examples
 exactly. Complete instructions how to reproduce the numerical experiments
-using an older version of Trixi are available at
+using an older version of Trixi.jl are available at
 https://doi.org/10.5281/zenodo.3996575.
 
 ## Sec. 4.1.1, Table 2, EOC tests compressible Euler
@@ -54,7 +54,7 @@ julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_eul
 ```
 
 ## Sec. 4.1.3, Table 5, EOC tests coupled Euler-gravity (update gravity once per step)
-This is only available in Trixi `v0.2`.
+This is only available in Trixi.jl `v0.2`.
 
 ## Sec. 4.2.1, Figures 3 + 5a, Jeans energies with Euler/CK45 and gravity/CK45
 ```julia
@@ -64,7 +64,7 @@ julia> trixi_include("examples/paper_self_gravitating_gas_dynamics/elixir_eulerg
 ```
 
 ## Sec. 4.2.1, Figure 4, Jeans energies with Euler/CK45 and gravity/CK45 (update gravity once per step)
-This is only available in Trixi `v0.2`.
+This is only available in Trixi.jl `v0.2`.
 
 ## Sec. 4.2.1, Figure 5b, Jeans energies with Euler/CK45 and gravity/RK3S*
 ```julia

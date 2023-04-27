@@ -289,7 +289,7 @@ adapt_to_mesh_level(sol::TrixiODESolution, level) = adapt_to_mesh_level(sol.u[en
 # - x vertices for mesh visualization
 # - y vertices for mesh visualization
 #
-# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+# Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, levels, ndims,
                      unstructured_data, n_nodes,
@@ -404,7 +404,7 @@ end
 
 # Change order of dimensions (variables are now last) and convert data to `solution_variables`
 #
-# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+# Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function get_unstructured_data(u, solution_variables, mesh, equations, solver, cache)
 
@@ -445,7 +445,7 @@ end
 # Convert cell-centered values to node-centered values by averaging over all
 # four neighbors and making use of the periodicity of the solution
 #
-# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+# Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function cell2node(cell_centered_data)
   # Create temporary data structure to make the averaging algorithm as simple
@@ -500,7 +500,7 @@ end
 # Additional to the new unstructured data updated coordinates, levels and
 # center coordinates are returned.
 #
-# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+# Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function unstructured_3d_to_2d(unstructured_data, coordinates, levels,
                                length_level_0, center_level_0, slice,
@@ -633,7 +633,7 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
     error("illegal dimension '$slice', supported dimensions are :x and :y")
   end
 
-  # Set up data structures to stroe new 1D data.
+  # Set up data structures to store new 1D data.
   @views new_unstructured_data = similar(unstructured_data[1, ..])
   @views new_nodes = similar(original_nodes[1, 1, ..])
 
@@ -720,7 +720,7 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
             .<= max))) "Some coordinates from `curve` are outside of the domain.."
   end
 
-  # Set nodes acording to the length of the curve.
+  # Set nodes according to the length of the curve.
   arc_length = calc_arc_length(curve)
 
   # Setup data structures.
@@ -779,7 +779,7 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
   n_variables = length(pd.data[1, 1])
   n_points_curve = size(curve, 2)
 
-  # Set nodes acording to the length of the curve.
+  # Set nodes according to the length of the curve.
   arc_length = calc_arc_length(curve)
 
   # Setup data structures.
@@ -821,7 +821,7 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
             .<= max))) "Some coordinates from `curve` are outside of the domain.."
   end
 
-  # Set nodes acording to the length of the curve.
+  # Set nodes according to the length of the curve.
   arc_length = calc_arc_length(curve)
 
   # Setup data structures.
@@ -1004,7 +1004,7 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
     error("illegal dimension '$slice', supported dimensions are :x, :y and :z")
   end
 
-  # Set up data structures to stroe new 1D data.
+  # Set up data structures to store new 1D data.
   @views new_unstructured_data = similar(unstructured_data[1, 1, ..])
   @views temp_unstructured_data = similar(unstructured_data[1, ..])
   @views new_nodes = similar(original_nodes[1, 1, 1,..])
@@ -1075,10 +1075,10 @@ end
 
 # Interpolate unstructured DG data to structured data (cell-centered)
 #
-# This function takes DG data in an unstructured, Cartesian layout and converts it to a uniformely
+# This function takes DG data in an unstructured, Cartesian layout and converts it to a uniformly
 # distributed 2D layout.
 #
-# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+# Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function unstructured2structured(unstructured_data, normalized_coordinates,
                                  levels, resolution, nvisnodes_per_level)
@@ -1133,7 +1133,7 @@ end
 # For a given normalized element coordinate, return the index of its lower left
 # contribution to the global data structure
 #
-# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+# Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function element2index(normalized_coordinates, levels, resolution, nvisnodes_per_level)
   @assert size(normalized_coordinates, 1) == 2 "only works in 2D"
@@ -1161,7 +1161,7 @@ end
 
 # Find 2D array index for a 2-tuple of normalized, cell-centered coordinates (i.e., in [-1,1])
 #
-# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+# Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function coordinate2index(coordinate, resolution::Integer)
   # Calculate 1D normalized coordinates
@@ -1177,7 +1177,7 @@ end
 
 # Calculate the vertices for each mesh cell such that it can be visualized as a closed box
 #
-# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+# Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function calc_vertices(coordinates, levels, length_level_0)
   ndim = size(coordinates, 1)
@@ -1214,7 +1214,7 @@ end
 
 # Calculate the vertices to plot each grid line for StructuredMesh
 #
-# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+# Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function calc_vertices(node_coordinates, mesh)
   @unpack cells_per_dimension = mesh
