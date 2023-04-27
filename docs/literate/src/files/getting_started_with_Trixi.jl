@@ -31,7 +31,7 @@
 # - Enter `cmd` in opened window.
 # - Enter in a terminal `julia`. 
 
-# Then Julia will be invoked. To close Julia enter `exit()`. 
+# Then Julia will be invoked. To close Julia enter `exit()` or press `Ctrl+d`. 
 
 # ### Linux
 
