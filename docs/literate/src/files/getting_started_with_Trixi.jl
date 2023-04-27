@@ -47,12 +47,12 @@
 
 # ## Trixi installation
 
-# Trixi and its related tools are registered Julia packages. So installation of them is
-# running inside Julia. For appropriate work of Trixi you need to install 
-# [`Trixi`](https://github.com/trixi-framework/Trixi.jl),
-# [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl),
-# [`OrdinaryDiffEq`](https://github.com/SciML/OrdinaryDiffEq.jl) and 
-# [`Plots`](https://github.com/JuliaPlots/Plots.jl).
+# Trixi and its related tools are registered Julia packages, thus their installation
+# happens inside Julia.
+# For a smooth workflow experience with Trixi.jl, you need to install 
+# [Trixi.jl](https://github.com/trixi-framework/Trixi.jl),
+# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and 
+# [Plots.jl](https://github.com/JuliaPlots/Plots.jl).
 
 # - Open a Terminal.
 # - Invoke Julia executing `julia`.
