@@ -51,7 +51,7 @@
 # Julia is installed.
 # Then Julia will be invoked. To close Julia, enter `exit()` or press `Ctrl+d`.
 
-# Note, that further in the tutorial Julia will invoked only typing `julia` in a terminal.
+# Note, that further in the tutorial Julia will be invoked only typing `julia` in a terminal.
 # To enable that, you have to add
 # [Julia to the PATH](https://julialang.org/downloads/platform/#linux_and_freebsd).
 

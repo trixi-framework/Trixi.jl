@@ -27,5 +27,5 @@ coverage_report/
 
 .DS_Store
 
-run
-run/*
+trixi
+trixi/*
