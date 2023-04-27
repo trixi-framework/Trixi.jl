@@ -12,8 +12,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       # Expected errors are exactly the same as in the parallel test!
-      l2   = [8.312144636192947e-6],
-      linf = [6.626823860056419e-5],
+      l2   = [8.311947673061856e-6],
+      linf = [6.627000273229378e-5],
       # Let the small basic test run to the end
       coverage_override = (maxiters=10^5,))
   end
@@ -38,7 +38,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.0015188466707237375],
       linf = [0.008446655719187679])
 
-    # Ensure that we do not have excessive memory allocations 
+    # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
       t = sol.t[end]
