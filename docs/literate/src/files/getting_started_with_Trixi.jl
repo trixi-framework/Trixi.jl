@@ -27,7 +27,7 @@
 # - Select `Next`, then Julia will be installed.
 
 # Now you can verify, that Julia is installed:
-# - Type `Win+R` on a keyboard.
+# - Press `Win+R` on a keyboard.
 # - Enter `cmd` in opened window.
 # - Enter in a terminal `julia`. 
 
