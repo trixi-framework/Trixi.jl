@@ -106,7 +106,7 @@ plot(sol)
 
 # To obtain list of all Trixi elixirs execute
 # [`get_examples()`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.get_examples-Tuple{}).
-# This will return pathes to all examples.
+# This will return paths to all examples.
 
 get_examples()
 
