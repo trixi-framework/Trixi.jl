@@ -61,7 +61,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-64.0, -64.0)
 coordinates_max = ( 64.0,  64.0)
 
-# only refinment in a patch. Needs x=-17/+17 to trigger refinment due to coarse base mesh
+# only refinement in a patch. Needs x=-17/+17 to trigger refinement due to coarse base mesh
 refinement_patches = (
   (type="box", coordinates_min=(-17, -64), coordinates_max=(17, 64)),
   (type="box", coordinates_min=(-17, -64), coordinates_max=(17, 64)),
