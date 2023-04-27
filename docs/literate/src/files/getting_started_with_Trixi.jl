@@ -1,4 +1,4 @@
-#src # Getting started with Trixi.jl
+#src # Getting started
 
 # This tutorial is intended for beginners in Julia and Trixi.jl.
 # After reading it, you will install Julia and Trixi on your PC and will be able to download files
