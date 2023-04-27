@@ -13,7 +13,7 @@
 # found in the [`README.md`](https://github.com/trixi-framework/Trixi.jl#installation) file.
 # A detailed description of the installation process can be found in the
 # [Julia installation instructions](https://julialang.org/downloads/platform/).
-# But you can follow also our short installation guidelines below.
+# But you can follow also our short installation guidelines for Windows and Linux below.
 
 # ### Windows
 
@@ -36,14 +36,24 @@
 # ### Linux
 
 # - Open a terminal and navigate (using `cd`) to the directory, where you want to store Julia.
-# - To install Julia execute the following commands in a terminal:
+# - To install Julia, get a link to the latest version of Julia from the
+#   [Julia website](https://julialang.org/downloads/), then download an archive file by executing:
 #   ````
-#   wget https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.5-linux-x86_64.tar.gz
-#   tar zxvf julia-1.8.5-linux-x86_64.tar.gz
+#   wget https://julialang-s3.julialang.org/bin/linux/... # your link goes here
 #   ````
-#   Now you can verify that Julia is installed entering `julia` command in a terminal.
+# - Unpack the downloaded file with: 
+#   ````
+#   tar xf julia-....tar.gz # your archive filename goes here
+#   ````
 
+# Now you can verify that Julia is installed entering `<Julia directory>/bin/julia`
+# (e.g. `julia-1.8.5/bin/julia`) command in a terminal. `<Julia directory>` is the directory where
+# Julia is installed.
 # Then Julia will be invoked. To close Julia, enter `exit()` or press `Ctrl+d`.
+
+# Note, that further in the tutorial Julia will invoked only typing `julia` in a terminal.
+# To enable that, you have to add
+# [Julia to PATH](https://julialang.org/downloads/platform/#linux_and_freebsd).
 
 # ## Trixi.jl installation
 
@@ -54,8 +64,7 @@
 # [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and 
 # [Plots.jl](https://github.com/JuliaPlots/Plots.jl).
 
-# - Open a terminal.
-# - Invoke Julia executing `julia`.
+# - Open a terminal and invoke Julia (Windows and Linux: type `julia`).
 # - Execute following commands:
 #   ````
 #   import Pkg
@@ -263,16 +272,17 @@ plot(sol) #hide #md
 # ### For further reading
 
 # To get deeper into Trixi.jl, you may have a look at following tutorials.
-# - [Introduction to DG methods](@ref) on how to set up a simple way to approximate the
-#   solution of a hyperbolic partial differential equation. It will be esspecialy useful to learn
-#   about the 
+# - [Introduction to DG methods](@ref scalar_linear_advection_1d) on how to set up a simple way to
+#   approximate the solution of a hyperbolic partial differential equation. It will be esspecialy
+#   useful to learn about the 
 #   [Discontinuous Galerkin method](https://en.wikipedia.org/wiki/Discontinuous_Galerkin_method)
 #   and way of its implementation in Trixi.jl. Detailed explanation of code provides a quick start
 #   with Trixi.jl.
-# - [Adding a new scalar conservation law](@ref) and [Adding a non-conservative equation](@ref)
+# - [Adding a new scalar conservation law](@ref adding_new_scalar_equations) and
+#   [Adding a non-conservative equation](@ref adding_nonconservative_equation)
 #   describe how to add a new physics model that's not included in Trixi.jl yet.
-# - [Callbacks](@ref) gives an overview of an algorithmic entity called callback that gets passed
-#   to the ODE solver and is called at specific points during execution to perform certain tasks.
-#   It extends Trixi.jl without modifying the internal source code.
+# - [Callbacks](@ref callbacks) gives an overview of an algorithmic entity called callback that
+#   gets passed to the ODE solver and is called at specific points during execution to perform
+#   certain tasks. It extends Trixi.jl without modifying the internal source code.
 
 Sys.rm("out"; recursive=true, force=true) #hide #md
