@@ -90,12 +90,10 @@
 # with a weak blast wave as the initial condition.
 
 # Invoke Julia in a Terminal.
-# And execute following code. (*Remark:* you can ignore all arguments of trixi_include() except
-# path to the file) 
+# And execute following code.
 
 using Trixi, OrdinaryDiffEq
-trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"),
- callbacks=CallbackSet(StepsizeCallback(cfl=1.0)))
+trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
 
 # To observe the result of the computation, we need to use the `Plots` package and the function 
 # `plot()`, that builds a graphical representation of the solution. `sol` is a variable defined in
@@ -282,3 +280,5 @@ plot(sol) #hide #md
 #   gives an overview of an algorithmic entity called callback that gets passed to the ODE solver
 #   and is called at specific points during execution to perform certain tasks.
 #   It extends Trixi without modifying the internal source code.
+
+Sys.rm("out"; recursive=true, force=true) #hide #md
