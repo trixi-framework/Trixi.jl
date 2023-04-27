@@ -281,7 +281,7 @@ plot(sol) #hide #md
 # - [Adding a new scalar conservation law](@ref adding_new_scalar_equations) and
 #   [Adding a non-conservative equation](@ref adding_nonconservative_equation)
 #   describe how to add a new physics model that's not included in Trixi.jl yet.
-# - [Callbacks](@ref callbacks) gives an overview of an algorithmic entity called callback that
+# - [Callbacks](@ref callbacks-id) gives an overview of an algorithmic entity called callback that
 #   gets passed to the ODE solver and is called at specific points during execution to perform
 #   certain tasks. It extends Trixi.jl without modifying the internal source code.
 
