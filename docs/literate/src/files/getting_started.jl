@@ -1,15 +1,15 @@
 #src # Getting started
 
+# Trixi.jl is a numerical simulation framework for conservation laws and
+# is written in the [Julia programming language](https://julialang.org/).
 # This tutorial is intended for beginners in Julia and Trixi.jl.
 # After reading it, you will know how to install Julia and Trixi.jl on your computer,
 # and you will be able to download setup files from our GitHub repository, modify them,
 # and run simulations.
-# **Trixi.jl** is a numerical simulation framework for hyperbolic conservation laws 
-# written in [`Julia`](https://julialang.org/).
 
 # ## Julia installation
 
-# Trixi works with the current stable Julia release. More information about Julia support can be
+# Trixi.jl works with the current stable Julia release. More information about Julia support can be
 # found in the [`README.md`](https://github.com/trixi-framework/Trixi.jl#installation) file.
 # A detailed description of the installation process can be found in the
 # [Julia installation instructions](https://julialang.org/downloads/platform/).
@@ -36,18 +36,18 @@
 # ### Linux
 
 # - Open a terminal and navigate (using `cd`) to the directory, where you want to store Julia.
-# - To install Julia execute the following commands in a Terminal:
+# - To install Julia execute the following commands in a terminal:
 #   ````
 #   wget https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.5-linux-x86_64.tar.gz
 #   tar zxvf julia-1.8.5-linux-x86_64.tar.gz
 #   ````
-#   Now you can verify that Julia is installed entering `julia` command in a Terminal.
+#   Now you can verify that Julia is installed entering `julia` command in a terminal.
 
 # Then Julia will be invoked. To close Julia, enter `exit()` or press `Ctrl+d`.
 
-# ## Trixi installation
+# ## Trixi.jl installation
 
-# Trixi and its related tools are registered Julia packages, thus their installation
+# Trixi.jl and its related tools are registered Julia packages, thus their installation
 # happens inside Julia.
 # For a smooth workflow experience with Trixi.jl, you need to install 
 # [Trixi.jl](https://github.com/trixi-framework/Trixi.jl),
@@ -89,7 +89,7 @@
 # the compressible Euler equations in 2D for an ideal gas ([`CompressibleEulerEquations2D`](@ref))
 # with a weak blast wave as the initial condition.
 
-# Invoke Julia in a Terminal.
+# Invoke Julia in a terminal.
 # And execute following code.
 
 using Trixi, OrdinaryDiffEq
@@ -102,19 +102,18 @@ trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_eule
 using Plots
 plot(sol)
 
-# To obtain list of all Trixi elixirs execute
-# [`get_examples()`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.get_examples-Tuple{}).
-# This will return paths to all examples.
+# To obtain list of all Trixi.jl elixirs execute
+# [`get_examples`](@ref). It returns paths to all examples.
 
 get_examples()
 
-# Editing Trixi examples is the best way to start your first own investigation using Trixi.
+# Editing Trixi.jl examples is the best way to start your first own investigation using Trixi.jl.
 
 # ### Files downloading
 
 # To edit example files you have to download them. Let's have a look how to download
 # `elixir_euler_ec.jl` used in the previous section from the
-# [`Trixi github`](https://github.com/trixi-framework/Trixi.jl).
+# [Trixi.jl github](https://github.com/trixi-framework/Trixi.jl).
 
 # - All examples are located inside
 #   the [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples) folder.
@@ -166,9 +165,7 @@ get_examples()
 #   ````
 #   initial_condition = initial_condition_weak_blast_wave
 #   ````
-#   Here
-#   [`initial_condition_weak_blast_wave`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.initial_condition_weak_blast_wave-Tuple{Any,%20Any,%20CompressibleEulerEquations2D})
-#   is used.
+#   Here [`initial_condition_weak_blast_wave`](@ref) is used.
 # - Comment out this line using # symbol:
 #   ````
 #   # initial_condition = initial_condition_weak_blast_wave
@@ -203,29 +200,29 @@ plot(sol) #hide #md
 # Feel free to add
 # changes into `initial_condition` to observe different solutions.
 
-# Now you are able to download, edit and execute Trixi code.
+# Now you are able to download, edit and execute Trixi.jl code.
 
 # ## Next steps
 
-# If you plan on editing Trixi itself, you can download Trixi locally and run it from
+# If you plan on editing Trixi.jl itself, you can download Trixi.jl locally and run it from
 # the cloned directory:
 
-# ### Cloning Trixi
+# ### Cloning Trixi.jl
 
 # #### Windows
 
-# If you are using Windows OS, you can clone Trixi directory using a Github Desktop.
+# If you are using Windows OS, you can clone Trixi.jl directory using a Github Desktop.
 # - If you haven't any github account yet, you have to create it on
-#   the [`Github website`](https://github.com/join).
-# - Download and install [`Github Desktop`](https://desktop.github.com/) and then login into
+#   the [Github website](https://github.com/join).
+# - Download and install [Github Desktop](https://desktop.github.com/) and then login into
 #   your account.
-# - Open an installed Github Desktop, type `Ctrl+Shift+O`.
+# - Open an installed Github Desktop, press `Ctrl+Shift+O`.
 # - In opened window paste `trixi-framework/Trixi.jl` and choose path to the folder, where you want
-#   to save Trixi. Then click `Clone` and Trixi will be cloned to PC. 
+#   to save Trixi.jl. Then click `Clone` and Trixi.jl will be cloned to your computer. 
 
-# Now you cloned Trixi and only need to add Trixi packages to Julia.
-# - Open a Terminal using `Win+R` and `cmd`. Navigate to the folder with cloned Trixi using `cd`.
-# - Create new directory and start Julia with the `--project` flag set to your local Trixi clone.
+# Now you cloned Trixi.jl and only need to add Trixi.jl packages to Julia.
+# - Open a terminal using `Win+R` and `cmd`. Navigate to the folder with cloned Trixi.jl using `cd`.
+# - Create new directory and start Julia with the `--project` flag set to your local Trixi.jl clone.
 #   ````
 #   mkdir run 
 #   cd run
@@ -233,12 +230,12 @@ plot(sol) #hide #md
 #   ````
 # - Run following commands in Julia REPL:
 #   ````
-#   using Pkg; Pkg.develop(PackageSpec(path="..")) # Install local Trixi clone
+#   using Pkg; Pkg.develop(PackageSpec(path="..")) # Install local Trixi.jl clone
 #   Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])  # Install additional packages
 #   ````
 
-# Now you already installed Trixi from your local clone. Note that if you installed Trixi this way,
-# you always have to start Julia with the `--project` flag set to your `run` directory, e.g.,
+# Now you already installed Trixi.jl from your local clone. Note that if you installed Trixi.jl this
+# way, you always have to start Julia with the `--project` flag set to your `run` directory, e.g.,
 # ````
 # julia --project=.
 # ````
@@ -246,17 +243,17 @@ plot(sol) #hide #md
 
 # #### Linux
 
-# You can clone Trixi to PC executing following commands:
+# You can clone Trixi.jl to your computer executing following commands:
 # ````
 # git clone git@github.com:trixi-framework/Trixi.jl.git 
 # # In case of an error, use following: git clone https://github.com/trixi-framework/Trixi.jl
 # cd Trixi.jl
 # mkdir run 
 # cd run
-# julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi clone
+# julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi.jl clone
 # julia -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])' # Install additional packages'
 # ````
-# Note that if you installed Trixi this way,
+# Note that if you installed Trixi.jl this way,
 # you always have to start Julia with the `--project` flag set to your `run` directory, e.g.,
 # ````
 # julia --project=.
@@ -265,20 +262,17 @@ plot(sol) #hide #md
 
 # ### For further reading
 
-# To get deeper into Trixi, you may have a look at following tutorials.
-# - [`Introduction to DG methods`](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/scalar_linear_advection_1d/)
-#   is about how to set up a simple way to approximate the solution of a hyperbolic partial
-#   differential equation. It will be esspecialy useful to learn about the
-#   [`Discontinuous Galerkin method`](https://en.wikipedia.org/wiki/Discontinuous_Galerkin_method)
-#   and way of its implementation in Trixi. Detailed explanation of code provides a quick start
-#   with Trixi.
-# - [`Adding a new scalar conservation law`](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/adding_new_scalar_equations/)
-#   and
-#   [`Adding a non-conservative equation`](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/adding_nonconservative_equation/)
+# To get deeper into Trixi.jl, you may have a look at following tutorials.
+# - [Introduction to DG methods](@ref) on how to set up a simple way to approximate the
+#   solution of a hyperbolic partial differential equation. It will be esspecialy useful to learn
+#   about the 
+#   [Discontinuous Galerkin method](https://en.wikipedia.org/wiki/Discontinuous_Galerkin_method)
+#   and way of its implementation in Trixi.jl. Detailed explanation of code provides a quick start
+#   with Trixi.jl.
+# - [Adding a new scalar conservation law](@ref) and [Adding a non-conservative equation](@ref)
 #   describe how to add a new physics model that's not included in Trixi.jl yet.
-# - [`Callbacks`](https://trixi-framework.github.io/Trixi.jl/stable/callbacks/)
-#   gives an overview of an algorithmic entity called callback that gets passed to the ODE solver
-#   and is called at specific points during execution to perform certain tasks.
-#   It extends Trixi without modifying the internal source code.
+# - [Callbacks](@ref) gives an overview of an algorithmic entity called callback that gets passed
+#   to the ODE solver and is called at specific points during execution to perform certain tasks.
+#   It extends Trixi.jl without modifying the internal source code.
 
 Sys.rm("out"; recursive=true, force=true) #hide #md
