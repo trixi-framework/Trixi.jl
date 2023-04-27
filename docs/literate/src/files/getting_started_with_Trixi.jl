@@ -59,7 +59,7 @@
 # - Execute following commands:
 #   ````
 #   import Pkg
-#   Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
+#   Pkg.add(["OrdinaryDiffEq", "Plots", "Trixi"])
 #   ````
 
 # Now you have installed all these 
