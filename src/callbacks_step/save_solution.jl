@@ -104,6 +104,7 @@ function SaveSolutionCallback(; interval::Integer=0,
 
   # Expected most frequent behavior comes first
   if isnothing(dt)
+    # Save every `interval` (accepted) time steps
     # The first one is the condition, the second the affect!
     return DiscreteCallback(solution_callback, solution_callback,
                             save_positions=(false,false),
