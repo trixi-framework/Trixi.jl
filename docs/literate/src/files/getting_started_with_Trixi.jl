@@ -77,8 +77,7 @@
 # In Trixi.jl, we call these setup files "elixirs", since they contain Julia code that
 # takes parts of Trixi.jl and combines them into something new.
 
-# Now execute one of them using 
-# [`trixi_include(...)`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.trixi_include-Tuple{Module,%20AbstractString})
+# Now execute one of the examples using the [`trixi_include`](@ref)
 # function. `trixi_include(...)` expects
 # a single string argument with a path to a text file containing Julia code.
 # `joinpath(...)` join a path components into a full path. 
