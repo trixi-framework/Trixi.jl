@@ -74,7 +74,7 @@ ode = semidiscretize(semi, tspan)
 # Workaround to set a discontinuous bottom topography and initial condition for debugging and testing.
 
 # alternative version of the initial conditinon used to setup a truly discontinuous
-# test case and initial condtion.
+# test case and initial condition.
 # In contrast to the usual signature of initial conditions, this one get passed the
 # `element_id` explicitly. In particular, this initial conditions works as intended
 # only for the specific mesh loaded above!

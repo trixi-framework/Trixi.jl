@@ -488,7 +488,7 @@ end
                                           med_level=base_level, med_threshold=0.0,
                                           max_level=base_level, max_threshold=1.0)
 
-An AMR controller based on three levels (in decending order of precedence):
+An AMR controller based on three levels (in descending order of precedence):
 - set the target level to `max_level` if `indicator > max_threshold`
 - set the target level to `med_level` if `indicator > med_threshold`;
   if `med_level < 0`, set the target level to the current level
@@ -656,7 +656,7 @@ end
                                  max_level=base_level, max_threshold=1.0,
                                  max_threshold_secondary=1.0)
 
-An AMR controller based on three levels (in decending order of precedence):
+An AMR controller based on three levels (in descending order of precedence):
 - set the target level to `max_level` if `indicator_primary > max_threshold`
 - set the target level to `med_level` if `indicator_primary > med_threshold`;
   if `med_level < 0`, set the target level to the current level

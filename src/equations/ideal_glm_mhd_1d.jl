@@ -450,7 +450,7 @@ as given by
   H_ll  = (rho_e_ll + p_total_ll) / rho_ll
   H_rr  = (rho_e_rr + p_total_rr) / rho_rr
   H_roe = H_ll * rho_ll_roe + H_rr * rho_rr_roe
-  # temporary vairable see equations (4.12) in Cargo and Gallice
+  # temporary variable see equations (4.12) in Cargo and Gallice
   X = 0.5 * ( (B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2 ) * inv_sqrt_rho_add^2
   # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
   b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
@@ -517,7 +517,7 @@ end
 end
 
 
-# Calcluate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
+# Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
 @inline function cross_helicity(cons, ::IdealGlmMhdEquations1D)
   return (cons[2]*cons[6] + cons[3]*cons[7] + cons[4]*cons[8]) / cons[1]
 end

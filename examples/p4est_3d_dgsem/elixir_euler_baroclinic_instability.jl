@@ -28,7 +28,7 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   # Make sure that the r is not smaller than radius_earth
   z = max(r - radius_earth, 0.0)
 
-  # Unperturbated basic state
+  # Unperturbed basic state
   rho, u, p = basic_state_baroclinic_instability_longitudinal_velocity(lon, lat, z)
 
   # Stream function type perturbation
@@ -52,7 +52,7 @@ function steady_state_baroclinic_instability(x, t, equations::CompressibleEulerE
   # Make sure that the r is not smaller than radius_earth
   z = max(r - radius_earth, 0.0)
 
-  # Unperturbated basic state
+  # Unperturbed basic state
   rho, u, p = basic_state_baroclinic_instability_longitudinal_velocity(lon, lat, z)
 
   # Convert spherical velocity to Cartesian
@@ -74,7 +74,7 @@ function cartesian_to_sphere(x)
   return lambda, phi, r
 end
 
-# Unperturbated balanced steady-state.
+# Unperturbed balanced steady-state.
 # Returns primitive variables with only the velocity in longitudinal direction (rho, u, p).
 # The other velocity components are zero.
 function basic_state_baroclinic_instability_longitudinal_velocity(lon, lat, z)
