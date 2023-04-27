@@ -85,10 +85,9 @@
 # [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples) folder
 # that has been locally downloaded while installing Trixi.jl.
 
-# Let's execute a short two-dimensional problem setup. Which approximates the solution of
-# [`compressible Euler equations in 2D for an ideal gas`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.CompressibleEulerEquations2D)
-# with
-# [`weak blast wave initial condition`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.initial_condition_weak_blast_wave-Tuple{Any,%20Any,%20CompressibleEulerEquations2D})
+# Let's execute a short two-dimensional problem setup. It approximates the solution of
+# the compressible Euler equations in 2D for an ideal gas ([`CompressibleEulerEquations2D`](@ref))
+# with a weak blast wave as the initial condition.
 
 # Invoke Julia in a Terminal.
 # And execute following code. (*Remark:* you can ignore all arguments of trixi_include() except
