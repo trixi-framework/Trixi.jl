@@ -343,7 +343,7 @@ function P4estMesh{NDIMS}(meshfile::String;
   # Prevent `p4est` from crashing Julia if the file doesn't exist
   @assert isfile(meshfile)
 
-  # Read in the Header of the meshfile to determine which constructor is approproate
+  # Read in the Header of the meshfile to determine which constructor is appropriate
   header = open(meshfile, "r") do io
     readline(io) # *Header of the Abaqus file; discarded
     readline(io) # Readin the actual header information
