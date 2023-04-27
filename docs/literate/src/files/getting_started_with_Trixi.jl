@@ -1,8 +1,9 @@
 #src # Getting started
 
 # This tutorial is intended for beginners in Julia and Trixi.jl.
-# After reading it, you will install Julia and Trixi on your PC and will be able to download files
-# from Trixi github, execute and edit them.
+# After reading it, you will know how to install Julia and Trixi.jl on your computer,
+# and you will be able to download setup files from our GitHub repository, modify them,
+# and run simulations.
 # **Trixi.jl** is a numerical simulation framework for hyperbolic conservation laws 
 # written in [`Julia`](https://julialang.org/).
 # This means that Julia have to be installed on a PC to work with Trixi. 
