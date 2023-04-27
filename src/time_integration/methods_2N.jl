@@ -63,7 +63,7 @@ mutable struct SimpleIntegrator2NOptions{Callback}
   callback::Callback # callbacks; used in Trixi.jl
   adaptive::Bool # whether the algorithm is adaptive; ignored
   dtmax::Float64 # ignored
-  maxiters::Int # maximal numer of time steps
+  maxiters::Int # maximal number of time steps
   tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 

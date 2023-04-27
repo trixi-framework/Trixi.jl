@@ -633,7 +633,7 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
     error("illegal dimension '$slice', supported dimensions are :x and :y")
   end
 
-  # Set up data structures to stroe new 1D data.
+  # Set up data structures to store new 1D data.
   @views new_unstructured_data = similar(unstructured_data[1, ..])
   @views new_nodes = similar(original_nodes[1, 1, ..])
 
@@ -720,7 +720,7 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
             .<= max))) "Some coordinates from `curve` are outside of the domain.."
   end
 
-  # Set nodes acording to the length of the curve.
+  # Set nodes according to the length of the curve.
   arc_length = calc_arc_length(curve)
 
   # Setup data structures.
@@ -779,7 +779,7 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
   n_variables = length(pd.data[1, 1])
   n_points_curve = size(curve, 2)
 
-  # Set nodes acording to the length of the curve.
+  # Set nodes according to the length of the curve.
   arc_length = calc_arc_length(curve)
 
   # Setup data structures.
@@ -821,7 +821,7 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
             .<= max))) "Some coordinates from `curve` are outside of the domain.."
   end
 
-  # Set nodes acording to the length of the curve.
+  # Set nodes according to the length of the curve.
   arc_length = calc_arc_length(curve)
 
   # Setup data structures.
@@ -1004,7 +1004,7 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
     error("illegal dimension '$slice', supported dimensions are :x, :y and :z")
   end
 
-  # Set up data structures to stroe new 1D data.
+  # Set up data structures to store new 1D data.
   @views new_unstructured_data = similar(unstructured_data[1, 1, ..])
   @views temp_unstructured_data = similar(unstructured_data[1, ..])
   @views new_nodes = similar(original_nodes[1, 1, 1,..])
@@ -1075,7 +1075,7 @@ end
 
 # Interpolate unstructured DG data to structured data (cell-centered)
 #
-# This function takes DG data in an unstructured, Cartesian layout and converts it to a uniformely
+# This function takes DG data in an unstructured, Cartesian layout and converts it to a uniformly
 # distributed 2D layout.
 #
 # Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may

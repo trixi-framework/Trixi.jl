@@ -36,7 +36,7 @@ end
     initial_condition_shu_osher_shock_tube_flipped(x, t, equations::IdealGlmMhdEquations1D)
 
 Extended version of the test of Shu and Osher for one dimensional ideal MHD equations
-but shock propogates from right to left.
+but shock propagates from right to left.
 
 !!! note
     This is useful to exercise some of the components of the HLL flux.
