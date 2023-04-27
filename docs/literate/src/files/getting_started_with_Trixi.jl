@@ -43,7 +43,7 @@
 #   ````
 #   Now you can verify that Julia is installed entering `julia` command in a Terminal.
 
-# Then Julia will be invoked. To close Julia enter `exit()`.
+# Then Julia will be invoked. To close Julia, enter `exit()` or press `Ctrl+d`.
 
 # ## Trixi installation
 
