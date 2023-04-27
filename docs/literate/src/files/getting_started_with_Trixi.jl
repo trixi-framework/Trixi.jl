@@ -71,9 +71,11 @@
 
 # ### Running a simulation
 
-# Trixi has a big set
-# of [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples), that can be taken
-# as basis for your future investigations.
+# To get you started, Trixi.jl has a large set
+# of [example setups](https://github.com/trixi-framework/Trixi.jl/tree/main/examples), that can be taken
+# as a basis for your future investigations.
+# In Trixi.jl, we call these setup files "elixirs", since they contain Julia code that
+# takes parts of Trixi.jl and combines them into something new.
 
 # Now execute one of them using 
 # [`trixi_include(...)`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.trixi_include-Tuple{Module,%20AbstractString})
