@@ -22,9 +22,9 @@
 # - Open the downloaded installer.
 # - Paste an installation directory path or find it using a file manager (select `Browse`).
 # - Select `Next`.
-# - Check the `Add Julia to PATH` to add Julia to the Environment Variables. 
-#   This makes possible to run Julia using Terminal from any directory only typing `julia`.
-# - Select `Next`, then Julia will be insalled.
+# - Check the `Add Julia to PATH` option to add Julia to the environment variables. 
+#   This makes it possible to run Julia in the terminal from any directory by only typing `julia`.
+# - Select `Next`, then Julia will be installed.
 
 # Now you can verify, that Julia is installed:
 # - Type `Win+R` on a keyboard.
