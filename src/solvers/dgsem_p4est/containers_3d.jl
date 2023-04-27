@@ -200,7 +200,7 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
   # orientations when looked at from the same side of the interface.
   flipped = my_right_handed == other_right_handed
 
-  # In the folowing illustrations, the face corner numbering of `p4est` is shown.
+  # In the following illustrations, the face corner numbering of `p4est` is shown.
   # ξ and η are the local coordinates of the respective face.
   # We're looking at both faces from the same side of the interface, so that "other side"
   # (in the illustrations on the left) has right-handed coordinates.

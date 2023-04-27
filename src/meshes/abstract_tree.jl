@@ -346,7 +346,7 @@ function refine_unbalanced!(t::AbstractTree, cell_ids, sorted_unique_cell_ids=so
     end
 
     # Initialize child cells (only neighbors)
-    # This separate loop is required since init_child_neighbors requires initilized parent-child
+    # This separate loop is required since init_child_neighbors requires initialized parent-child
     # relationships
     for child in 1:n_children
       child_id = cell_id + child

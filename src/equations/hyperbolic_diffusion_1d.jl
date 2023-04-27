@@ -139,7 +139,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Hyper
   C = -4.0 * G / pi # -4 * G / ndims * pi
   A = 0.1           # perturbation coefficient must match Euler setup
   rho1 = A * sinpi(x[1] - t)
-  # intialize with ansatz of gravity potential
+  # initialize with ansatz of gravity potential
   phi = C * rho1
   q1  = C * A * pi * cospi(x[1] - t) # = gravity acceleration in x-direction
 

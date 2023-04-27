@@ -16,7 +16,7 @@ struct CurvedFace{RealT<:Real}
 end
 
 
-# evalute the Gamma face interpolant at a particular point s = (s_1, s_2) and return the (x,y,z) coordinate
+# evaluate the Gamma face interpolant at a particular point s = (s_1, s_2) and return the (x,y,z) coordinate
 function evaluate_at(s, boundary_face::CurvedFace)
 
    @unpack nodes, barycentric_weights, coordinates = boundary_face

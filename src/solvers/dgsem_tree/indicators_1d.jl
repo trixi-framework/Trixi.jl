@@ -298,7 +298,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
 
     # There are two versions of the network:
-    # The first one only takes the hightest energy modes as input, the second one also the number of
+    # The first one only takes the highest energy modes as input, the second one also the number of
     # nodes. Automatically use the correct input by checking the number of inputs of the network.
     if size(params(network)[1],2) == 2
       network_input = SVector(X1, X2)
