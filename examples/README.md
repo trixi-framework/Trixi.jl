@@ -1,8 +1,8 @@
-# Example elixirs for Trixi
+# Example elixirs for Trixi.jl
 
 This folder contains example files ("elixirs") that can be used to just try out
-Trixi and that also serve as a starting point to create new simulation setups.
-Furthermore, these files are also the basis for our automated Trixi tests and
+Trixi.jl and that also serve as a starting point to create new simulation setups.
+Furthermore, these files are also the basis for our automated Trixi.jl tests and
 **each new file put in here** should be added to the test sets.
 
 In general, the elixirs are sorted by
@@ -35,4 +35,4 @@ Similar setups are available for other spatial dimensions and for other mesh typ
 In general, a good first elixir to try out as a new user is
 [`tree_2d_dgsem/elixir_advection_basic.jl`](tree_2d_dgsem/elixir_advection_basic.jl),
 as it is short, takes less than a second to run, and uses only the basic features
-of Trixi.
+of Trixi.jl.

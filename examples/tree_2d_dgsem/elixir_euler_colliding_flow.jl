@@ -61,7 +61,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-64.0, -64.0)
 coordinates_max = ( 64.0,  64.0)
 
-# only refinment in a patch. Needs x=-17/+17 to trigger refinment due to coarse base mesh
+# only refinement in a patch. Needs x=-17/+17 to trigger refinement due to coarse base mesh
 refinement_patches = (
   (type="box", coordinates_min=(-17, -64), coordinates_max=(17, 64)),
   (type="box", coordinates_min=(-17, -64), coordinates_max=(17, 64)),
@@ -105,6 +105,6 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6)
 ###############################################################################
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 5e-3
-sol = solve(ode, SSPRK43(stage_limiter!),
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, SSPRK43(stage_limiter!);
+            ode_default_options()..., callback=callbacks);
 summary_callback() # print the timer summary

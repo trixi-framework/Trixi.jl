@@ -8,7 +8,7 @@ using Trixi
 equations = InviscidBurgersEquation1D()
 
 basis = LobattoLegendreBasis(3)
-# Use shock capturing techniques to supress oscillations at discontinuities
+# Use shock capturing techniques to suppress oscillations at discontinuities
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=1.0,
                                          alpha_min=0.001,

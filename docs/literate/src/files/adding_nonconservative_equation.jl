@@ -1,7 +1,7 @@
 #src # Adding a new equation: nonconservative linear advection
 using Test: @test #src
 
-# If you want to use Trixi for your own research, you might be interested in
+# If you want to use Trixi.jl for your own research, you might be interested in
 # a new physics model that is not present in Trixi.jl. In this tutorial,
 # we will implement the nonconservative linear advection equation in a periodic domain
 # ```math
