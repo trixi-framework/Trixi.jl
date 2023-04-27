@@ -54,7 +54,7 @@
 # [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and 
 # [Plots.jl](https://github.com/JuliaPlots/Plots.jl).
 
-# - Open a Terminal.
+# - Open a terminal.
 # - Invoke Julia executing `julia`.
 # - Execute following commands:
 #   ````
