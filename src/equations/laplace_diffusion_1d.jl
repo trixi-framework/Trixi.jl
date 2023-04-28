@@ -15,7 +15,6 @@ LaplaceDiffusion1D(diffusivity, equations_hyperbolic) =
 varnames(variable_mapping, equations_parabolic::LaplaceDiffusion1D) =
   varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 
-# no orientation specified since the flux is vector-valued
 function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDiffusion1D)
   dudx = gradients
   # orientation == 1
