@@ -321,7 +321,7 @@ In addition, you can also refer to Trixi.jl directly as
 ## [Authors](@id authors-index-md)
 Trixi.jl was initiated by [Michael
 Schlottke-Lakemper](https://lakemper.eu)
-(RWTH Aachen University, Germany) and
+(RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (University of Hamburg, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
