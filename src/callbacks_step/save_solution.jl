@@ -92,10 +92,15 @@ function SaveSolutionCallback(; interval::Integer=0,
                                 output_directory="out",
                                 solution_variables=cons2prim)
 
-  if !isnothing(dt) && interval == 0
-    interval_or_dt = dt
-  else # isnothing(dt) && interval >= 0
+  if !isnothing(dt) && interval > 0
+    throw(ArgumentError("You can either set the number of steps between output (using `interval`) or the time between outputs (using `dt`) but not both simultaneously"))
+  end
+
+  # Expected most frequent behavior comes first
+  if isnothing(dt)
     interval_or_dt = interval
+  else # !isnothing(dt)
+    interval_or_dt = dt
   end
 
   solution_callback = SaveSolutionCallback(interval_or_dt,
