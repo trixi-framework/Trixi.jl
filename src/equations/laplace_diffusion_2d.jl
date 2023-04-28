@@ -28,8 +28,8 @@ end
 # TODO: parabolic; should this remain in the equations file, be moved to solvers, or live in the elixir?
 # The penalization depends on the solver, but also depends explicitly on physical parameters,
 # and would probably need to be specialized for every different equation.
-function penalty(u_outer, u_inner, equations_parabolic::LaplaceDiffusion2D, dg::ViscousFormulationLocalDG)
-  return dg.penalty_parameter * (u_outer - u_inner) * equations_parabolic.diffusivity
+function penalty(u_outer, u_inner, inv_h, equations_parabolic::LaplaceDiffusion2D, dg::ViscousFormulationLocalDG)
+  return dg.penalty_parameter * (u_outer - u_inner) * equations_parabolic.diffusivity * inv_h
 end
 
 # Dirichlet-type boundary condition for use with a parabolic solver in weak form
