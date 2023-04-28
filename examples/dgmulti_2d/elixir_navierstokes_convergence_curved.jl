@@ -29,6 +29,8 @@ end
 cells_per_dimension = (16, 16)
 mesh = DGMultiMesh(dg, cells_per_dimension, mapping; periodicity=(true, false), is_on_boundary)
 
+# This initial condition is taken from `examples/dgmulti_2d/elixir_navierstokes_convergence.jl`
+
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion2D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion2D`)
 #       and by the initial condition (which passes in `CompressibleEulerEquations2D`).
