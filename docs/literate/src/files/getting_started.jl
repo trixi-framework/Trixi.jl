@@ -252,7 +252,8 @@ plot(sol) #hide #md
 # You can clone Trixi.jl to your computer executing following commands:
 # ````
 # git clone git@github.com:trixi-framework/Trixi.jl.git 
-# # In case of an error, use following: git clone https://github.com/trixi-framework/Trixi.jl
+# # In case of an error, try the following:
+# # git clone https://github.com/trixi-framework/Trixi.jl
 # cd Trixi.jl
 # mkdir run 
 # cd run
