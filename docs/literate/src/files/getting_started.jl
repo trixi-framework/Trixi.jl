@@ -103,9 +103,9 @@
 using Trixi, OrdinaryDiffEq
 trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
 
-# To observe the result of the computation, we need to use the `Plots` package and the function 
-# `plot()`, that builds a graphical representation of the solution. `sol` is a variable defined in
-# executed example and it contains a solution at a final moment of time.
+# To analyze the result of the computation, we can use the Plots.jl package and the function 
+# `plot(...)`, which creates a graphical representation of the solution. `sol` is a variable defined in
+# executed example and it contains the solution at the final moment of the simulation.
 
 using Plots
 plot(sol)
