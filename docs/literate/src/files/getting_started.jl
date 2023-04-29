@@ -204,10 +204,9 @@ trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_eule
   callbacks=CallbackSet(StepsizeCallback(cfl=1.0)), initial_condition=initial_condition) #hide #md
 plot(sol) #hide #md
 
-# Feel free to add
-# changes into `initial_condition` to observe different solutions.
+# Feel free to make further changes to the initial condition to observe different solutions.
 
-# Now you are able to download, edit and execute Trixi.jl code.
+# Now you are able to download, modify and execute simulation setups for Trixi.jl.
 
 # ## Next steps
 
