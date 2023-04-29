@@ -128,9 +128,8 @@ get_examples()
 #   the [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples) folder.
 # - Navigate to the
 #   file [`elixir_euler_ec.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_ec.jl).
-# - Click the `Raw` button on the right side of the webpage.
-# - Right-click on any place of the newly opened webpage and choose `Save as`.
-# - Choose a folder and erase `.txt` from the file name. Save the file.
+# - Right-click the `Raw` button on the right side of the webpage and choose `Save as...` (or `Save Link As...`).
+# - Choose a folder and save the file.
 
 # ### Files editing
 
