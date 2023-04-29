@@ -208,7 +208,7 @@ plot(sol) #hide #md
 
 # Now you are able to download, modify and execute simulation setups for Trixi.jl.
 
-# ## Next steps
+# ## Next steps: changing Trixi.jl itself
 
 # If you plan on editing Trixi.jl itself, you can download Trixi.jl locally and run it from
 # the cloned directory:
