@@ -223,7 +223,7 @@ SciML ecosystem.
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
   u0_ode = compute_coefficients(first(tspan), semi)
-  # TODO: MPI, do we want to synchonize loading and print debug statements, e.g. using
+  # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
   #       mpi_isparallel() && MPI.Barrier(mpi_comm())
   #       See https://github.com/trixi-framework/Trixi.jl/issues/328
   iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!

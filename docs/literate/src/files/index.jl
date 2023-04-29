@@ -79,7 +79,7 @@
 # ### [10 Adaptive mesh refinement](@ref adaptive_mesh_refinement)
 #-
 # Adaptive mesh refinement (AMR) helps to increase the accuracy in sensitive or turbolent regions while
-# not wasting ressources for less interesting parts of the domain. This leads to much more efficient
+# not wasting resources for less interesting parts of the domain. This leads to much more efficient
 # simulations. This tutorial presents the implementation strategy of AMR in Trixi.jl, including the use of
 # different indicators and controllers.
 

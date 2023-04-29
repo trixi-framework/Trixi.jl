@@ -61,7 +61,7 @@
 # This is called the summation-by-parts (SBP) property since it mimics integration by parts on a
 # discrete level ([Gassner (2013)](https://doi.org/10.1137/120890144)).
 
-# The explicit definitions of the operators and the contruction of the 1D algorithm can be found
+# The explicit definitions of the operators and the construction of the 1D algorithm can be found
 # for instance in the tutorial [introduction to DG methods](@ref scalar_linear_advection_1d)
 # or in more detail in [Kopriva (2009)](https://link.springer.com/book/10.1007/978-90-481-2261-5).
 
