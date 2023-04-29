@@ -117,7 +117,7 @@ get_examples()
 
 # Editing an existing elixirs is the best way to start your first own investigation using Trixi.jl.
 
-# ### Files downloading
+# ### Getting an existing setup file
 
 # To edit example files you have to download them. Let's have a look how to download
 # `elixir_euler_ec.jl` used in the previous section from the
