@@ -64,12 +64,14 @@ resetting the `counter`.
 """
 struct PerformanceCounterList{N}
   counters::NTuple{N, PerformanceCounter}
+  check_ncalls_consistency::Bool
 end
 
-function PerformanceCounterList{N}() where {N}
+function PerformanceCounterList{N}(check_ncalls_consistency) where {N}
   counters = ntuple(_ -> PerformanceCounter(), Val{N}())
-  return PerformanceCounterList{N}(counters)
+  return PerformanceCounterList{N}(counters, check_ncalls_consistency)
 end
+PerformanceCounterList{N}() where {N} = PerformanceCounterList{N}(true)
 
 @inline function Base.take!(counter_list::PerformanceCounterList)
   time_per_call = 0.0
@@ -81,11 +83,15 @@ end
 
 @inline function ncalls(counter_list::PerformanceCounterList)
   ncalls_first = ncalls(first(counter_list.counters))
-  for c in counter_list.counters
-    if ncalls_first != ncalls(c)
-      error("Some counters have a different number of calls. Using `ncalls` on the counter list is undefined behavior.")
+
+  if counter_list.check_ncalls_consistency
+    for c in counter_list.counters
+      if ncalls_first != ncalls(c)
+        error("Some counters have a different number of calls. Using `ncalls` on the counter list is undefined behavior.")
+      end
     end
   end
+
   return ncalls_first
 end
 
