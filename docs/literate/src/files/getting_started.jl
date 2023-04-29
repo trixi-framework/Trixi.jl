@@ -200,9 +200,13 @@ get_examples()
 #   ```
 # Then you will obtain a new solution from running the simulation with a different initial condition.
 
-trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"), #hide #md
-  callbacks=CallbackSet(StepsizeCallback(cfl=1.0)), initial_condition=initial_condition) #hide #md
-plot(sol) #hide #md
+trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
+pd = PlotData2D(sol) #hide #md
+p1 = plot(pd["rho"]) #hide #md
+p2 = plot(pd["v1"], clim=(0.05, 0.15)) #hide #md
+p3 = plot(pd["v2"], clim=(0.15, 0.25)) #hide #md
+p4 = plot(pd["p"], clim=(10, 30)) #hide #md
+plot(p1, p2, p3, p4) #hide #md
 
 # Feel free to make further changes to the initial condition to observe different solutions.
 
