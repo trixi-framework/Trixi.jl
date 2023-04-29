@@ -228,12 +228,12 @@ plot(sol) #hide #md
 
 # Now you cloned Trixi.jl and only need to tell Julia to use the local clone as the package sources:
 # - Open a terminal using `Win+R` and `cmd`. Navigate to the folder with cloned Trixi.jl using `cd`.
-# - Create new directory and start Julia with the `--project` flag set to your local Trixi.jl clone.
-#   ````
+# - Create new directory `run`, enter it, and start Julia with the `--project=.` flag:
+#   ```shell
 #   mkdir run 
 #   cd run
 #   julia --project=.
-#   ````
+#   ```
 # - Run following commands in Julia REPL:
 #   ````
 #   using Pkg; Pkg.develop(PackageSpec(path="..")) # Install local Trixi.jl clone
