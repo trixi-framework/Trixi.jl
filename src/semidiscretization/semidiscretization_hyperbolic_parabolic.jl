@@ -45,7 +45,7 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
 
     # Todo: assert nvariables(equations)==nvariables(equations_parabolic)
 
-    performance_counter = PerformanceCounterList{2}()
+    performance_counter = PerformanceCounterList{2}(false)
 
     new(mesh, equations, equations_parabolic, initial_condition,
         boundary_conditions, boundary_conditions_parabolic,
