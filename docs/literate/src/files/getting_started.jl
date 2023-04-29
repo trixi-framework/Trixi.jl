@@ -173,7 +173,7 @@ get_examples()
 #   initial_condition = initial_condition_weak_blast_wave
 #   ````
 #   Here, [`initial_condition_weak_blast_wave`](@ref) is used as the initial condition.
-# - Comment out this line using # symbol:
+# - Comment out the line using the `#` symbol:
 #   ````
 #   # initial_condition = initial_condition_weak_blast_wave
 #   ````
