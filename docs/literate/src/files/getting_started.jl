@@ -258,7 +258,7 @@ plot(sol) #hide #md
 # mkdir run 
 # cd run
 # julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi.jl clone
-# julia -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])' # Install additional packages'
+# julia -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Plots"])' # Install additional packages'
 # ````
 # Note that if you installed Trixi.jl this way,
 # you always have to start Julia with the `--project` flag set to your `run` directory, e.g.,
