@@ -28,6 +28,6 @@ coverage_report/
 .DS_Store
 
 run
-run/
+run/*
 trixi
 trixi/*
