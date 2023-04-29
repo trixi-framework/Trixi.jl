@@ -131,7 +131,7 @@ get_examples()
 # - Right-click the `Raw` button on the right side of the webpage and choose `Save as...` (or `Save Link As...`).
 # - Choose a folder and save the file.
 
-# ### Files editing
+# ### Modifying an existing setup
 
 # For example, we will change the initial condition for calculations that occur in
 # `elixir_euler_ec.jl`. In this example we consider the compressible Euler equations:
