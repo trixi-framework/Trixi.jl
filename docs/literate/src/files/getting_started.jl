@@ -153,7 +153,7 @@ get_examples()
 # =
 # \begin{pmatrix}
 # 0 \\ 0 \\ 0 \\ 0
-# \end{pmatrix}
+# \end{pmatrix},
 # ```
 # for an ideal gas with ratio of specific heats ``\gamma`` 
 # in two space dimensions.
