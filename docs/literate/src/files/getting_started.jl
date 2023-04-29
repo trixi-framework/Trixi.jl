@@ -156,12 +156,12 @@ get_examples()
 # \end{pmatrix},
 # ```
 # for an ideal gas with the specific heat ratio ``\gamma``.
-# Here, ``\rho`` is the density, ``v_1``, ``v_2`` the velocities, ``e`` the specific total
+# Here, ``\rho`` is the density, ``v_1`` and ``v_2`` are the velocities, ``e`` is the specific total
 # energy, and
 # ```math
 # p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
 # ```
-# the pressure.
+# is the pressure.
 # Initial condition consists of initial values for ``\rho``, ``\rho v_1``,
 # ``\rho v_2`` and ``\rho e``.
 # One of the common initial condition for compressible Euler equations is density wave.
