@@ -208,7 +208,6 @@ p3 = plot(pd["v2"], clim=(0.15, 0.25)) #hide #md
 p4 = plot(pd["p"], clim=(10, 30)) #hide #md
 plot(p1, p2, p3, p4) #hide #md
 
-
 # Feel free to make further changes to the initial condition to observe different solutions.
 
 # Now you are able to download, modify and execute simulation setups for Trixi.jl.
