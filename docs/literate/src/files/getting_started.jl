@@ -111,7 +111,7 @@ using Plots
 plot(sol)
 
 # To obtain list of all Trixi.jl elixirs execute
-# [`get_examples`](@ref). It returns paths to all examples.
+# [`get_examples`](@ref). It returns the path to all example setups.
 
 get_examples()
 
