@@ -167,7 +167,7 @@ get_examples()
 # One of the common initial conditions for the compressible Euler equations is a simple density wave.
 # Let's implement it.
 
-# - Open the downloaded file with notepad or any other text editor.
+# - Open the downloaded file `elixir_euler_ec.jl` with a text editor.
 # - And go to the 9th line with following code:
 #   ````
 #   initial_condition = initial_condition_weak_blast_wave
