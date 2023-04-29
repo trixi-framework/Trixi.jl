@@ -177,7 +177,7 @@ get_examples()
 #   ````
 #   # initial_condition = initial_condition_weak_blast_wave
 #   ````
-# - Now you can create your own initial conditions. Write following code into a file after the
+# - Now you can create your own initial conditions. Add the following code after the
 #   commented line:
 
     function initial_condition_density_waves(x,t,equations::CompressibleEulerEquations2D)
