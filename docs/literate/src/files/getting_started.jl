@@ -217,13 +217,13 @@ plot(sol) #hide #md
 
 # #### Windows
 
-# If you are using Windows OS, you can clone Trixi.jl directory using a Github Desktop.
-# - If you haven't any github account yet, you have to create it on
-#   the [Github website](https://github.com/join).
-# - Download and install [Github Desktop](https://desktop.github.com/) and then login into
+# If you are using Windows, you can clone Trixi.jl by using the GitHub Desktop tool:
+# - If you do not have a GitHub account yet, create it on
+#   the [GitHub website](https://github.com/join).
+# - Download and install [GitHub Desktop](https://desktop.github.com/) and then log in into
 #   your account.
-# - Open an installed Github Desktop, press `Ctrl+Shift+O`.
-# - In opened window paste `trixi-framework/Trixi.jl` and choose path to the folder, where you want
+# - Open GitHub Desktop, press `Ctrl+Shift+O`.
+# - In the opened window, paste `trixi-framework/Trixi.jl` and choose the path to the folder where you want
 #   to save Trixi.jl. Then click `Clone` and Trixi.jl will be cloned to your computer. 
 
 # Now you cloned Trixi.jl and only need to add Trixi.jl packages to Julia.
