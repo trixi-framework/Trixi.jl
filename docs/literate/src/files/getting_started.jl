@@ -155,8 +155,7 @@ get_examples()
 # 0 \\ 0 \\ 0 \\ 0
 # \end{pmatrix},
 # ```
-# for an ideal gas with ratio of specific heats ``\gamma`` 
-# in two space dimensions.
+# for an ideal gas with the specific heat ratio ``\gamma``.
 # Here, ``\rho`` is the density, ``v_1``, ``v_2`` the velocities, ``e`` the specific total
 # energy, and
 # ```math
