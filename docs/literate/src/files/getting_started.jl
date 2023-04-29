@@ -190,15 +190,15 @@ get_examples()
     end
     initial_condition=initial_condition_density_waves
 
-# - Execute following code one more time, but instead of `path_to_file` paste the path to the
-#   `elixir_euler_ec.jl` file from the current folder.
+# - Execute the following code one more time, but instead of `path/to/file` paste the path to the
+#   `elixir_euler_ec.jl` file that you just edited.
 #   ````
 #   using Trixi
-#   trixi_include(path_to_file)
+#   trixi_include(path/to/file)
 #   using Plots
 #   plot(sol)
 #   ````
-# Then you will obtain new solution.
+# Then you will obtain a new solution from running the simulation with a different initial condition.
 
 trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"), #hide #md
   callbacks=CallbackSet(StepsizeCallback(cfl=1.0)), initial_condition=initial_condition) #hide #md
