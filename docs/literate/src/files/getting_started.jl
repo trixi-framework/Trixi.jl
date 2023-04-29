@@ -38,13 +38,13 @@
 # - Open a terminal and navigate (using `cd`) to the directory, where you want to store Julia.
 # - To install Julia, get a link to the latest version of Julia from the
 #   [Julia website](https://julialang.org/downloads/), then download an archive file by executing:
-#   ````
+#   ```shell
 #   wget https://julialang-s3.julialang.org/bin/linux/... # your link goes here
-#   ````
+#   ```
 # - Unpack the downloaded file with: 
-#   ````
+#   ```shell
 #   tar xf julia-....tar.gz # your archive filename goes here
-#   ````
+#   ```
 
 # Now you can verify that Julia is installed entering `<Julia directory>/bin/julia`
 # (e.g. `julia-1.8.5/bin/julia`) command in a terminal. `<Julia directory>` is the directory where
@@ -66,10 +66,10 @@
 
 # - Open a terminal and invoke Julia (Windows and Linux: type `julia`).
 # - Execute following commands:
-#   ````
+#   ```julia
 #   import Pkg
 #   Pkg.add(["OrdinaryDiffEq", "Plots", "Trixi"])
-#   ````
+#   ```
 
 # Now you have installed all these 
 # packages. [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) provides time integration schemes
@@ -169,14 +169,14 @@ get_examples()
 
 # - Open the downloaded file `elixir_euler_ec.jl` with a text editor.
 # - Go to the line with the following code:
-#   ````
+#   ```julia
 #   initial_condition = initial_condition_weak_blast_wave
-#   ````
+#   ```
 #   Here, [`initial_condition_weak_blast_wave`](@ref) is used as the initial condition.
 # - Comment out the line using the `#` symbol:
-#   ````
+#   ```julia
 #   # initial_condition = initial_condition_weak_blast_wave
-#   ````
+#   ```
 # - Now you can create your own initial conditions. Add the following code after the
 #   commented line:
 
@@ -192,12 +192,12 @@ get_examples()
 
 # - Execute the following code one more time, but instead of `path/to/file` paste the path to the
 #   `elixir_euler_ec.jl` file that you just edited.
-#   ````
+#   ```julia
 #   using Trixi
 #   trixi_include(path/to/file)
 #   using Plots
 #   plot(sol)
-#   ````
+#   ```
 # Then you will obtain a new solution from running the simulation with a different initial condition.
 
 trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"), #hide #md
@@ -235,16 +235,16 @@ plot(sol) #hide #md
 #   julia --project=.
 #   ```
 # - Now run the following commands to install all relevant packages:
-#   ````
+#   ```julia
 #   using Pkg; Pkg.develop(PackageSpec(path="..")) # Install local Trixi.jl clone
 #   Pkg.add(["OrdinaryDiffEq", "Plots"])  # Install additional packages
-#   ````
+#   ```
 
 # Now you already installed Trixi.jl from your local clone. Note that if you installed Trixi.jl this
 # way, you always have to start Julia with the `--project` flag set to your `run` directory, e.g.,
-# ````
+# ```shell
 # julia --project=.
-# ````
+# ```
 # if already inside the `run` directory.
 
 # #### Linux
