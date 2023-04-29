@@ -162,9 +162,9 @@ get_examples()
 # p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
 # ```
 # is the pressure.
-# Initial condition consists of initial values for ``\rho``, ``\rho v_1``,
+# Initial conditions consist of initial values for ``\rho``, ``\rho v_1``,
 # ``\rho v_2`` and ``\rho e``.
-# One of the common initial condition for compressible Euler equations is density wave.
+# One of the common initial conditions for the compressible Euler equations is a simple density wave.
 # Let's implement it.
 
 # - Open the downloaded file with notepad or any other text editor.
