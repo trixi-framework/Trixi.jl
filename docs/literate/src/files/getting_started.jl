@@ -234,10 +234,10 @@ plot(sol) #hide #md
 #   cd run
 #   julia --project=.
 #   ```
-# - Run following commands in Julia REPL:
+# - Now run the following commands to install all relevant packages:
 #   ````
 #   using Pkg; Pkg.develop(PackageSpec(path="..")) # Install local Trixi.jl clone
-#   Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])  # Install additional packages
+#   Pkg.add(["OrdinaryDiffEq", "Plots"])  # Install additional packages
 #   ````
 
 # Now you already installed Trixi.jl from your local clone. Note that if you installed Trixi.jl this
