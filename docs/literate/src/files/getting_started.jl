@@ -226,7 +226,7 @@ plot(sol) #hide #md
 # - In the opened window, paste `trixi-framework/Trixi.jl` and choose the path to the folder where you want
 #   to save Trixi.jl. Then click `Clone` and Trixi.jl will be cloned to your computer. 
 
-# Now you cloned Trixi.jl and only need to add Trixi.jl packages to Julia.
+# Now you cloned Trixi.jl and only need to tell Julia to use the local clone as the package sources:
 # - Open a terminal using `Win+R` and `cmd`. Navigate to the folder with cloned Trixi.jl using `cd`.
 # - Create new directory and start Julia with the `--project` flag set to your local Trixi.jl clone.
 #   ````
