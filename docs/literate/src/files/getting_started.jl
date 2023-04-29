@@ -115,7 +115,7 @@ plot(sol)
 
 get_examples()
 
-# Editing Trixi.jl examples is the best way to start your first own investigation using Trixi.jl.
+# Editing an existing elixirs is the best way to start your first own investigation using Trixi.jl.
 
 # ### Files downloading
 
