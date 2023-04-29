@@ -269,18 +269,17 @@ plot(sol) #hide #md
 
 # ### For further reading
 
-# To get deeper into Trixi.jl, you may have a look at following tutorials.
-# - [Introduction to DG methods](@ref scalar_linear_advection_1d) on how to set up a simple way to
-#   approximate the solution of a hyperbolic partial differential equation. It will be esspecialy
+# To further delve into Trixi.jl, you may have a look at following tutorials.
+# - [Introduction to DG methods](@ref scalar_linear_advection_1d) will teach you how to set up a simple way to
+#   approximate the solution of a hyperbolic partial differential equation. It will be especially
 #   useful to learn about the 
 #   [Discontinuous Galerkin method](https://en.wikipedia.org/wiki/Discontinuous_Galerkin_method)
-#   and way of its implementation in Trixi.jl. Detailed explanation of code provides a quick start
+#   and the way it is implemented in Trixi.jl. Detailed explanations of the code provide a quick start
 #   with Trixi.jl.
 # - [Adding a new scalar conservation law](@ref adding_new_scalar_equations) and
 #   [Adding a non-conservative equation](@ref adding_nonconservative_equation)
-#   describe how to add a new physics model that's not included in Trixi.jl yet.
-# - [Callbacks](@ref callbacks-id) gives an overview of an algorithmic entity called callback that
-#   gets passed to the ODE solver and is called at specific points during execution to perform
-#   certain tasks. It extends Trixi.jl without modifying the internal source code.
+#   describe how to add new physics models that are not yet included in Trixi.jl.
+# - [Callbacks](@ref callbacks-id) gives an overview of how to regularly execute specific actions
+#   during a simulation, e.g., to store the solution or the adapt the mesh.
 
 Sys.rm("out"; recursive=true, force=true) #hide #md
