@@ -98,8 +98,7 @@
 # the compressible Euler equations in 2D for an ideal gas ([`CompressibleEulerEquations2D`](@ref))
 # with a weak blast wave as the initial condition.
 
-# Invoke Julia in a terminal.
-# And execute following code.
+# Start Julia in a terminal and execute following code:
 
 using Trixi, OrdinaryDiffEq
 trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
