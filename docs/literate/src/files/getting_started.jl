@@ -200,7 +200,8 @@ get_examples()
 #   ```
 # Then you will obtain a new solution from running the simulation with a different initial condition.
 
-trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
+trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"), #hide #md
+ initial_condition=initial_condition) #hide #md
 pd = PlotData2D(sol) #hide #md
 p1 = plot(pd["rho"]) #hide #md
 p2 = plot(pd["v1"], clim=(0.05, 0.15)) #hide #md
