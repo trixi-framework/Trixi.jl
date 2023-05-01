@@ -12,7 +12,16 @@ for human readability.
 
 #### Changed
 
+- The required Julia version is updated to v1.8 in Trixi.jl v0.5.13.
+
 #### Deprecated
+
+- The macro `@unpack` (re-exported originally from UnPack.jl) is deprecated and
+  will be removed. Consider using Julia's standard destructuring syntax
+  `(; a, b) = stuff` instead of `@unpack a, b = stuff`.
+- The constructor `DGMultiMesh(dg; cells_per_dimension, kwargs...)` is deprecated
+  and will be removed. The new constructor `DGMultiMesh(dg, cells_per_dimension; kwargs...)`
+  does not have `cells_per_dimesion` as a keyword argument.
 
 #### Removed
 
@@ -158,7 +167,7 @@ for human readability.
   `flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)`
   were actually using the logic of `flux_godunov`. Thus, they were renamed accordingly
   in [#493](https://github.com/trixi-framework/Trixi.jl/pull/493). This is considered a bugfix
-  (released in Trixi v0.3.22).
+  (released in Trixi.jl v0.3.22).
 - The required Julia version is updated to v1.6.
 
 #### Deprecated

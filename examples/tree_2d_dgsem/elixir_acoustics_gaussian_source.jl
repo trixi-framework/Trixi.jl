@@ -64,7 +64,7 @@ save_solution = SaveSolutionCallback(interval=100,
 # The TimeSeriesCallback records the solution at the given points over time
 time_series = TimeSeriesCallback(semi, [(0.0, 0.0), (-1.0, 0.5)])
 
-# The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
+# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver

@@ -87,6 +87,7 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic"
+    include("test_parabolic_1d.jl")
     include("test_parabolic_2d.jl")
     include("test_parabolic_3d.jl")
   end
@@ -100,8 +101,12 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
     include("test_special_elixirs.jl")
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc_part3"
-    include("test_performance_specializations.jl")
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part1"
+    include("test_performance_specializations_2d.jl")
+  end
+
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part2"
+    include("test_performance_specializations_3d.jl")
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "paper_self_gravitating_gas_dynamics"

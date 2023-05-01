@@ -56,6 +56,7 @@ include("containers.jl")
 
 # 1D DG implementation
 include("dg_1d.jl")
+include("dg_1d_parabolic.jl")
 
 # 2D DG implementation
 include("dg_2d.jl")

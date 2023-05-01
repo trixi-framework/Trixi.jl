@@ -65,7 +65,8 @@ dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 num_elements = 16
-mesh = DGMultiMesh(dg, cells_per_dimension=(num_elements, 4 * num_elements),
+cells_per_dimension = (num_elements, 4 * num_elements)
+mesh = DGMultiMesh(dg, cells_per_dimension,
                    coordinates_min=(0.0, 0.0), coordinates_max=(0.25, 1.0),
                    periodicity=(true, false))
 
@@ -96,7 +97,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=callbacks);
 
 summary_callback() # print the timer summary

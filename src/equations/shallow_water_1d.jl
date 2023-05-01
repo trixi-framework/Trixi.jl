@@ -28,7 +28,7 @@ The bottom topography function ``b(x)`` is set inside the initial condition rout
 for a particular problem setup. To test the conservative form of the SWE one can set the bottom topography
 variable `b` to zero.
 
-In addition to the unknowns, Trixi currently stores the bottom topography values at the approximation points
+In addition to the unknowns, Trixi.jl currently stores the bottom topography values at the approximation points
 despite being fixed in time. This is done for convenience of computing the bottom topography gradients
 on the fly during the approximation as well as computing auxiliary quantities like the total water height ``H``
 or the entropy variables.
@@ -37,7 +37,7 @@ This affects the implementation and use of these equations in various ways:
 * The bottom topography values must be included when defining initial conditions, boundary conditions or
   source terms.
 * [`AnalysisCallback`](@ref) analyzes this variable.
-* Trixi's visualization tools will visualize the bottom topography by default.
+* Trixi.jl's visualization tools will visualize the bottom topography by default.
 
 References for the SWE are many but a good introduction is available in Chapter 13 of the book:
 - Randall J. LeVeque (2002)
@@ -502,7 +502,7 @@ end
 
 
 # Convert conservative variables to entropy
-# Note, only the first three are the entropy variables, the fourth entry still
+# Note, only the first two are the entropy variables, the third entry still
 # just carries the bottom topography values for convenience
 @inline function cons2entropy(u, equations::ShallowWaterEquations1D)
   h, h_v, b = u

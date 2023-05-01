@@ -7,20 +7,20 @@ incurs an overhead each time a program is run. For proper packages and commands
 executed in the REPL (= "return-eval-print loop", which is what the Julia
 community calls the interactive command-line prompt that opens when executing
 `julia` without any files as arguments), however, the previously compiled functions are
-cached. Therefore, Trixi should generally always be used interactively from the
+cached. Therefore, Trixi.jl should generally always be used interactively from the
 REPL without closing Julia during development, as it allows much faster turnaround times.
 
-If you naively run Trixi from the REPL, you will not be able to change your
-Trixi source files and then run the changed code without restarting the REPL,
+If you naively run Trixi.jl from the REPL, you will not be able to change your
+Trixi.jl source files and then run the changed code without restarting the REPL,
 which destroys any potential benefits from caching. However, restarting
 Julia can be avoided by using the [Revise.jl](https://github.com/timholy/Revise.jl)
 package, which tracks changed files and re-loads them automatically. Therefore,
 it is *highly recommended* to first install Revise with the following command in Julia:
 To enter the package REPL mode, press `]` in the standard Julia REPL mode. Then, execute
 ```julia-repl
-(@v1.7) pkg> add Revise
+(@v1.8) pkg> add Revise
 ```
-Now you are able to run Trixi from the REPL, change Trixi code between runs,
+Now you are able to run Trixi.jl from the REPL, change Trixi.jl code between runs,
 **and** enjoy the advantages of the compilation cache! Before you start using
 Revise regularly, please be aware of some of the [Pitfalls when using Revise](@ref).
 
@@ -28,15 +28,15 @@ Another recommended package for working from the REPL is
 [OhMyREPL.jl](https://github.com/KristofferC/OhMyREPL.jl). It can be installed
 by running
 ```julia-repl
-(@v1.7) pkg> add OhMyREPL
+(@v1.8) pkg> add OhMyREPL
 ```
 and adds syntax highlighting, bracket highlighting, and other helpful
 improvements for using Julia interactively. To automatically use OhMyREPL when
 starting the REPL, follow the instructions given in the official
 [documentation](https://kristofferc.github.io/OhMyREPL.jl/latest/).
 
-### Running Trixi interactively in the global environment
-If you've installed Trixi and Revise in your default environment,
+### Running Trixi.jl interactively in the global environment
+If you've installed Trixi.jl and Revise in your default environment,
 begin by executing:
 ```bash
 julia
@@ -54,26 +54,26 @@ modern workstation. Most of the time is spent on compilation of Julia code etc.
 If you execute the last command again in the same REPL, it will finish within a
 few milliseconds (maybe ~45 on a modern workstation).  This demonstrates the
 second reason for using the REPL: the compilation cache.  That is, those parts
-of the code that do not change between two Trixi runs do not need to be
+of the code that do not change between two Trixi.jl runs do not need to be
 recompiled and thus execute much faster after the first run.
 
 
-### Manually starting Trixi in the local environment
+### Manually starting Trixi.jl in the local environment
 If you followed the [installation instructions for developers](@ref for-developers), execute
-Julia with the project directory set to the package directory of the
+Julia with the project directory set to the `run` directory of the
 program/tool you want to use.
-For example, to run Trixi this way, you need to start the REPL with
+For example, to run Trixi.jl this way, you need to start the REPL with
 ```bash
-julia --project=path/to/Trixi.jl/
+julia --project=path/to/Trixi.jl/run
 ```
 and execute
 ```julia-repl
 julia> using Revise; using Trixi
 ```
-to load Revise and Trixi. You can then proceed with the usual commands and run Trixi as in
+to load Revise and Trixi.jl. You can then proceed with the usual commands and run Trixi.jl as in
 the example [above](#Running-Trixi-interactively-in-the-global-environment-1).
-The `--project` flag is required such that Julia can properly load Trixi and all dependencies
-if Trixi is not installed in the global environment. The same procedure also
+The `--project` flag is required such that Julia can properly load Trixi.jl and all dependencies
+if Trixi.jl is not installed in the global environment. The same procedure also
 applies should you opt to install the postprocessing tool
 [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
 manually such that you can modify their implementations.
@@ -82,7 +82,7 @@ manually such that you can modify their implementations.
 ### Pitfalls when using Revise
 While Revise is a great help for developing Julia code, there are a few
 situations to watch out for when using Revise. The following list of potential
-issues is based on personal experiences of the Trixi developers and probably
+issues is based on personal experiences of the Trixi.jl developers and probably
 incomplete.  Further information on limitations and possible issues with Revise
 can be found in the official [documentation](https://timholy.github.io/Revise.jl/stable/).
 
@@ -98,7 +98,7 @@ Revise does not stop on syntax errors, e.g., when you accidentally write
 to use the old version of your files**! This is especially dangerous for syntax
 errors, as they are detected while Revise reloads changed code, which happens in
 the beginning of a new execution. Thus, the syntax error message quickly
-disappears from the terminal once Trixi starts writing output to the screen and
+disappears from the terminal once Trixi.jl starts writing output to the screen and
 you might not even have noticed that an error occurred at all.
 
 Therefore, when you are deep in a coding/debugging session and wonder why your
@@ -107,7 +107,7 @@ check if you missed earlier syntax errors, or - if in doubt - restart your REPL.
 
 #### Files are not tracked after changing branches
 Sometimes, Revise stops tracking files when changing the Git branch. That is,
-modifications to Trixi's source files will not be reloaded by Revise and thus
+modifications to Trixi.jl's source files will not be reloaded by Revise and thus
 have no effect of a currently running REPL session. This issue is
 particularly annoying for a developer, since it **does not come with any
 warning**!  Therefore, it is good practice to always restart the REPL after
@@ -138,7 +138,7 @@ than can increase your productivity in the Julia REPL.
 
     include the file elixir and evaluate its content in the global scope of module mod. You can override specific
     assignments in elixir by supplying keyword arguments. It's basic purpose is to make it easier to modify some
-    parameters while running Trixi from the REPL. Additionally, this is used in tests to reduce the computational
+    parameters while running Trixi.jl from the REPL. Additionally, this is used in tests to reduce the computational
     burden for CI while still providing examples with sensible default values for users.
 
     Examples
@@ -233,7 +233,7 @@ Julia offers several options for debugging. A classical debugger is available wi
 [Debugger.jl](https://github.com/JuliaDebug/Debugger.jl) package or in the
 [Julia extension for VS Code](https://www.julia-vscode.org/docs/stable/userguide/debugging/).
 However, it can be quite slow and, at the time of writing (January 2023), currently does not work
-properly with Trixi. The [Infiltrator.jl](https://github.com/JuliaDebug/Infiltrator.jl) package on
+properly with Trixi.jl. The [Infiltrator.jl](https://github.com/JuliaDebug/Infiltrator.jl) package on
 the other hand does not offer all features of a full debugger, but is a fast and simple tool that
 allows users to set breakpoints to open a local REPL session and access the call stack and variables.
 
@@ -266,7 +266,7 @@ in your package without having to restart Julia.
       Main.Infiltrator.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
     end
     ```
-    can be used to set breakpoints when working with Trixi or other packages.
+    can be used to set breakpoints when working with Trixi.jl or other packages.
 
 Triggering the breakpoint starts a REPL session where it is possible to interact with the current
 local scope. Possible commands are:
@@ -285,7 +285,7 @@ Limitations of using Infiltrator.jl are that local variables cannot be changed, 
 possible to step into further calls or access other function scopes.
 
 
-## Releasing a new version of Trixi, Trixi2Vtk
+## Releasing a new version of Trixi.jl, Trixi2Vtk
 
 - Check whether everything is okay, tests pass etc.
 - Set the new version number in `Project.toml` according to the Julian version of semver.
@@ -295,15 +295,15 @@ possible to step into further calls or access other function scopes.
   Wait for it to be merged.
 - Increment the version number in `Project.toml` again with suffix `-pre`. For example,
   if you have released version `v0.2.0`, use `v0.2.1-pre` as new version number.
-- When a new version of Trixi was released, check whether the `[compat]` entries
+- When a new version of Trixi.jl was released, check whether the `[compat]` entries
   in `test/Project.toml` in Trixi2Vtk should be updated.
   When a new version of Trixi2Vtk was released, check whether the `[compat]`
-  entries in `docs/Project.toml` in Trixi should be updated.
+  entries in `docs/Project.toml` in Trixi.jl should be updated.
 
   These entries will also be checked regularly by CompatHelper (once a day). Hence,
   if everything was released correctly, you should only need to do these checks manually
   if new minor versions with changes in the docs of Trixi2Vtk were released
-  but no new version of Trixi was released afterwards.
+  but no new version of Trixi.jl was released afterwards.
 
 
 
@@ -320,17 +320,17 @@ For PRs triggered from branches inside the Trixi.jl main repository previews of
 the new documentation are generated at `https://trixi-framework.github.io/Trixi.jl/previews/PRXXX`,
 where `XXX` is the number of the PR.
 This does not work for PRs from forks for security reasons (since anyone could otherwise push
-arbitrary stuff to the Trixi website, including malicious code).
+arbitrary stuff to the Trixi.jl website, including malicious code).
 
 
 
 ## [Developing Trixi2Vtk](@id trixi2vtk-dev)
 
-Trixi2Vtk has Trixi as dependency and uses Trixi's implementation to, e.g., load mesh files.
-When developing Trixi2Vtk, one may want to change functions in Trixi to allow them to be reused
+Trixi2Vtk has Trixi.jl as dependency and uses Trixi.jl's implementation to, e.g., load mesh files.
+When developing Trixi2Vtk, one may want to change functions in Trixi.jl to allow them to be reused
 in Trixi2Vtk.
-To use a locally modified Trixi clone instead of a Trixi release, one can tell Pkg
-to use the local source code of Trixi instead of a registered version by running
+To use a locally modified Trixi.jl clone instead of a Trixi.jl release, one can tell Pkg
+to use the local source code of Trixi.jl instead of a registered version by running
 ```julia-repl
-(@v1.7) pkg> develop path/to/Trixi.jl
+(@v1.8) pkg> develop path/to/Trixi.jl
 ```

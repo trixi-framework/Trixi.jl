@@ -165,8 +165,17 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
     end
 
     # Calculate energy in higher modes
-    energy = max((total_energy - total_energy_clip1) / total_energy,
-                 (total_energy_clip1 - total_energy_clip2) / total_energy_clip1)
+    if !(iszero(total_energy))
+      energy_frac_1 = (total_energy - total_energy_clip1) / total_energy
+    else
+      energy_frac_1 = zero(total_energy)
+    end
+    if !(iszero(total_energy_clip1))
+      energy_frac_2 = (total_energy_clip1 - total_energy_clip2) / total_energy_clip1
+    else
+      energy_frac_2 = zero(total_energy_clip1)
+    end
+    energy = max(energy_frac_1, energy_frac_2)
 
     alpha_element = 1 / (1 + exp(-parameter_s / threshold * (energy - threshold)))
 
