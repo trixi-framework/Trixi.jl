@@ -450,7 +450,7 @@ In particular, not the mortars themselves are returned.
 
 
 # The following functions assume an array-of-structs memory layout
-# We would like to experiment with different mamory layout choices
+# We would like to experiment with different memory layout choices
 # in the future, see
 # - https://github.com/trixi-framework/Trixi.jl/issues/88
 # - https://github.com/trixi-framework/Trixi.jl/issues/87

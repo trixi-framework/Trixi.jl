@@ -26,7 +26,7 @@ solution and integrated over the computational domain.
 See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
 information on how to create custom analysis quantities.
 
-In addition, the analysis callback records and outputs a number of quantitites that are useful for
+In addition, the analysis callback records and outputs a number of quantities that are useful for
 evaluating the computational performance, such as the total runtime, the performance index
 (time/DOF/rhs!), the time spent in garbage collection (GC), or the current memory usage (alloc'd
 memory).
@@ -363,7 +363,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
   end
 
 
-  # Conservation errror
+  # Conservation error
   if :conservation_error in analysis_errors
     @unpack initial_state_integrals = analysis_callback
     state_integrals = integrate(u_ode, semi)
