@@ -35,7 +35,7 @@ installation and postprocessing procedures. Its features include:
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
-  * Finite difference summation by parts (SBP) methods
+  * [Finite difference summation by parts (SBP) methods](https://github.com/ranocha/SummationByPartsOperators.jl)
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
@@ -234,7 +234,7 @@ In addition, you can also refer to Trixi.jl directly as
 ## Authors
 Trixi.jl was initiated by [Michael
 Schlottke-Lakemper](https://lakemper.eu)
-(RWTH Aachen University, Germany) and
+(RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (University of Hamburg, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
@@ -256,20 +256,7 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 ## Acknowledgments
 <p align="center">
-  <!-- BMBF -->
-  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231436391-b28a76a4-f027-40f9-bd28-14e3a2f3e16a.png" height="140"/>
-
-  <!-- DFG -->
-  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231429826-31fd7e78-19b4-4bac-8d4c-d292c6570d93.jpg" height="120"/>
-
-  <!-- SRC -->
-  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231433851-97dd9d3e-4f66-4a8c-a4ee-aca262a2e505.png" height="80"/>
-
-  <!-- ERC -->
-  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231434670-64b3644f-9860-4139-a54d-13b538711e1b.jpg" height="140"/>
-
-  <!-- NSF -->
-  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231508947-e3d119c8-bafb-472c-b6fb-18eda2009a55.jpg" height="100"/>
+  <img align="middle" src="https://user-images.githubusercontent.com/3637659/233821022-84910be7-8649-4999-a0ff-22d5e20f0b90.jpg" width=auto/>
 </p>
 
 This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)

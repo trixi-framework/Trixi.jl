@@ -5,8 +5,8 @@
 @muladd begin
 
 
-summary_callback(integrator) = false # when used as condition; never call the summary callback during the simulation
-summary_callback(u, t, integrator) = u_modified!(integrator, false) # the summary callback does nothing when called accidentally
+summary_callback(u, t, integrator) = false # when used as condition; never call the summary callback during the simulation
+summary_callback(integrator) = u_modified!(integrator, false) # the summary callback does nothing when called accidentally
 
 
 """

@@ -8,7 +8,7 @@ provided substantial additions or modifications. Together, these two groups form
 
 ## Principal Developers
 * [Michael Schlottke-Lakemper](https://lakemper.eu),
-  RWTH Aachen University, Germany
+  RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany
 * [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner),
   University of Cologne, Germany
 * [Hendrik Ranocha](https://ranocha.de),
@@ -27,12 +27,14 @@ are listed in alphabetical order:
 * Jesse Chan
 * Lars Christmann
 * Christof Czernik
+* Patrick Ersing
 * Erik Faulhaber
 * Gregor Gassner
 * Lucas Gemein
 * Sven Goldberg
 * Joshua Lampert
 * Julia Odenthal
+* Sigrun Ortleb
 * Hendrik Ranocha
 * Andrés M. Rueda-Ramírez
 * Felipe Santillan

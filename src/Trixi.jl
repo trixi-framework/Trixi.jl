@@ -34,6 +34,7 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
                   terminate!, remake
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
+using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
@@ -41,7 +42,7 @@ using HDF5: h5open, attributes
 using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
-using LoopVectorization.ArrayInterface: static_length
+using StaticArrayInterface: static_length # used by LoopVectorization
 using MPI: MPI
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
@@ -134,9 +135,10 @@ export AcousticPerturbationEquations2D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
+       ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
        LinearizedEulerEquations2D
 
-export LaplaceDiffusion2D,
+export LaplaceDiffusion1D, LaplaceDiffusion2D,
        CompressibleNavierStokesDiffusion2D, CompressibleNavierStokesDiffusion3D
 
 export GradientVariablesPrimitive, GradientVariablesEntropy
@@ -145,7 +147,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, 
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
        flux_nonconservative_powell,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
-       flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
+       flux_fjordholm_etal, flux_nonconservative_fjordholm_etal, flux_es_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,

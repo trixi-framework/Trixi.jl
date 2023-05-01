@@ -178,7 +178,7 @@ end
 
     # All diagonal entries of `derivative_split` are zero. Thus, we can skip
     # the computation of the diagonal terms. In addition, we use the symmetry
-    # of the `volume_flux` to save half of the possible two-poitn flux
+    # of the `volume_flux` to save half of the possible two-point flux
     # computations.
 
     # x direction

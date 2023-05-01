@@ -17,7 +17,7 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-# We start with a pressure perturbation at `(xs, 0.0)` as initial condtition.
+# We start with a pressure perturbation at `(xs, 0.0)` as initial condition.
 function initial_condition_pressure_perturbation(x, t, equations::CompressibleEulerEquations2D)
   xs = 1.5 # location of the initial disturbance on the x axis
   w = 1/8 # half width
