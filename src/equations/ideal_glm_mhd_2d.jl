@@ -1080,8 +1080,8 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
   B_star = equations.c_h * psi
 
   # # Entropy dissipative version
-  # p_star = p + 0.5 * B_norm_squared + rho * v_normal * (v_normal - lambda_max) - B_normal^2
   # lambda_max = calc_fast_wavespeed(u_local, 1, equations)
+  # p_star = p + 0.5 * B_norm_squared + rho * v_normal * (v_normal + lambda_max) - B_normal^2
   # B_star = equations.c_h * psi + lambda_max * B_normal
 
   # For the slip wall we directly set the flux as the normal velocity is zero
