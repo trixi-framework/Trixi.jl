@@ -37,7 +37,7 @@ function initial_condition_three_mounds(x, t, equations::ShallowWaterEquations2D
   
   b = max(0.0, M_1, M_2, M_3)
   
-  # use a logistic function to tranfer water height value smoothly
+  # use a logistic function to transfer water height value smoothly
   L  = equations.H0    # maximum of function
   x0 = 8  # center point of function
   k  = -75.0 # sharpness of transfer

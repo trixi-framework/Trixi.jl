@@ -11,7 +11,7 @@ function limiter_shallow_water!(u, threshold::Real, variable,
   @unpack weights = dg.basis
 
   @threaded for element in eachelement(dg, cache)
-    # dermine minimum value
+    # determine minimum value
     value_min = typemax(eltype(u))
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, element)
