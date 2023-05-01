@@ -100,8 +100,12 @@
 
 # Start Julia in a terminal and execute following code:
 
-using Trixi, OrdinaryDiffEq
-trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
+# ```julia
+# using Trixi, OrdinaryDiffEq
+# trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
+# ```
+using Trixi, OrdinaryDiffEq #hide #md
+trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
 
 # To analyze the result of the computation, we can use the Plots.jl package and the function 
 # `plot(...)`, which creates a graphical representation of the solution. `sol` is a variable defined in
