@@ -9,7 +9,8 @@ equations = CompressibleEulerEquations3D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-mesh = DGMultiMesh(dg, cells_per_dimension=(4, 4, 4), periodicity=true)
+cells_per_dimension = (4, 4, 4)
+mesh = DGMultiMesh(dg, cells_per_dimension, periodicity=true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms)

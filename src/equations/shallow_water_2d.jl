@@ -31,7 +31,7 @@ The bottom topography function ``b(x,y)`` is set inside the initial condition ro
 for a particular problem setup. To test the conservative form of the SWE one can set the bottom topography
 variable `b` to zero.
 
-In addition to the unknowns, Trixi currently stores the bottom topography values at the approximation points
+In addition to the unknowns, Trixi.jl currently stores the bottom topography values at the approximation points
 despite being fixed in time. This is done for convenience of computing the bottom topography gradients
 on the fly during the approximation as well as computing auxiliary quantities like the total water height ``H``
 or the entropy variables.
@@ -40,7 +40,7 @@ This affects the implementation and use of these equations in various ways:
 * The bottom topography values must be included when defining initial conditions, boundary conditions or
   source terms.
 * [`AnalysisCallback`](@ref) analyzes this variable.
-* Trixi's visualization tools will visualize the bottom topography by default.
+* Trixi.jl's visualization tools will visualize the bottom topography by default.
 
 References for the SWE are many but a good introduction is available in Chapter 13 of the book:
 - Randall J. LeVeque (2002)
@@ -61,7 +61,7 @@ function ShallowWaterEquations2D(; gravity_constant, H0=0.0)
 end
 
 
-have_nonconservative_terms(::ShallowWaterEquations2D) = Val(true)
+have_nonconservative_terms(::ShallowWaterEquations2D) = True()
 varnames(::typeof(cons2cons), ::ShallowWaterEquations2D) = ("h", "h_v1", "h_v2", "b")
 # Note, we use the total water height, H = h + b, as the first primitive variable for easier
 # visualization and setting initial conditions
@@ -166,11 +166,9 @@ end
 """
     boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
                                  equations::ShallowWaterEquations2D)
-
 Create a boundary state by reflecting the normal velocity component and keep
 the tangential velocity component unchanged. The boundary water height is taken from
 the internal value.
-
 For details see Section 9.2.5 of the book:
 - Eleuterio F. Toro (2001)
   Shock-Capturing Methods for Free-Surface Shallow Flows
@@ -199,6 +197,29 @@ For details see Section 9.2.5 of the book:
   return flux
 end
 
+
+"""
+    boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                 surface_flux_function, equations::ShallowWaterEquations2D)
+
+Should be used together with [`TreeMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, orientation,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::ShallowWaterEquations2D)
+  ## get the appropriate normal vector from the orientation
+  if orientation == 1
+    u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4])
+  else # orientation == 2
+    u_boundary = SVector(u_inner[1], u_inner[2], -u_inner[3], u_inner[4])
+  end
+
+  # compute and return the flux using `boundary_condition_slip_wall` routine above
+  flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+
+  return flux
+end
 
 # Calculate 1D flux for a single point
 # Note, the bottom topography has no flux
@@ -361,6 +382,7 @@ end
   # Comes in two parts:
   #   (i)  Diagonal (consistent) term from the volume flux that uses `normal_direction_average`
   #        but we use `b_ll` to avoid cross-averaging across a discontinuous bottom topography
+
   f2 = normal_direction_average[1] * equations.gravity * h_ll * b_ll
   f3 = normal_direction_average[2] * equations.gravity * h_ll * b_ll
 
@@ -377,6 +399,126 @@ end
 
   return SVector(f1, f2, f3, f4)
 end
+
+
+"""
+    hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, orientation_or_normal_direction,
+                                            equations::ShallowWaterEquations2D)
+
+A particular type of hydrostatic reconstruction on the water height to guarantee well-balancedness
+for a general bottom topography [`ShallowWaterEquations2D`](@ref). The reconstructed solution states
+`u_ll_star` and `u_rr_star` variables are used to evaluate the surface numerical flux at the interface.
+Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).
+
+Further details for the hydrostatic reconstruction and its motivation can be found in
+- Emmanuel Audusse, François Bouchut, Marie-Odile Bristeau, Rupert Klein, and Benoit Perthame (2004)
+  A fast and stable well-balanced scheme with hydrostatic reconstruction for shallow water flows
+  [DOI: 10.1137/S1064827503431090](https://doi.org/10.1137/S1064827503431090)
+"""
+@inline function hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, equations::ShallowWaterEquations2D)
+  # Unpack left and right water heights and bottom topographies
+  h_ll, _, _, b_ll = u_ll
+  h_rr, _, _, b_rr = u_rr
+
+  # Get the velocities on either side
+  v1_ll, v2_ll = velocity(u_ll, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
+
+  # Compute the reconstructed water heights
+  h_ll_star = max(zero(h_ll) , h_ll + b_ll - max(b_ll, b_rr) )
+  h_rr_star = max(zero(h_rr) , h_rr + b_rr - max(b_ll, b_rr) )
+
+  # Create the conservative variables using the reconstruted water heights
+  u_ll_star = SVector( h_ll_star , h_ll_star * v1_ll , h_ll_star * v2_ll , b_ll )
+  u_rr_star = SVector( h_rr_star , h_rr_star * v1_rr , h_rr_star * v2_rr , b_rr )
+
+  return u_ll_star, u_rr_star
+end
+
+
+"""
+    flux_nonconservative_audusse_etal(u_ll, u_rr, orientation::Integer,
+                                      equations::ShallowWaterEquations2D)
+    flux_nonconservative_audusse_etal(u_ll, u_rr,
+                                      normal_direction_ll     ::AbstractVector,
+                                      normal_direction_average::AbstractVector,
+                                      equations::ShallowWaterEquations2D)
+
+Non-symmetric two-point surface flux that discretizes the nonconservative (source) term.
+The discretization uses the `hydrostatic_reconstruction_audusse_etal` on the conservative
+variables.
+
+This hydrostatic reconstruction ensures that the finite volume numerical fluxes remain
+well-balanced for discontinuous bottom topographies [`ShallowWaterEquations2D`](@ref).
+Should be used together with [`FluxHydrostaticReconstruction`](@ref) and
+[`hydrostatic_reconstruction_audusse_etal`](@ref) in the surface flux to ensure consistency.
+
+Further details for the hydrostatic reconstruction and its motivation can be found in
+- Emmanuel Audusse, François Bouchut, Marie-Odile Bristeau, Rupert Klein, and Benoit Perthame (2004)
+  A fast and stable well-balanced scheme with hydrostatic reconstruction for shallow water flows
+  [DOI: 10.1137/S1064827503431090](https://doi.org/10.1137/S1064827503431090)
+"""
+@inline function flux_nonconservative_audusse_etal(u_ll, u_rr, orientation::Integer,
+                                                   equations::ShallowWaterEquations2D)
+  # Pull the water height and bottom topography on the left
+  h_ll, _, _, b_ll = u_ll
+
+  # Create the hydrostatic reconstruction for the left solution state
+  u_ll_star, _ = hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, equations)
+
+  # Copy the reconstructed water height for easier to read code
+  h_ll_star = u_ll_star[1]
+
+  z = zero(eltype(u_ll))
+  # Includes two parts:
+  #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
+  #        cross-averaging across a discontinuous bottom topography
+  #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
+  if orientation == 1
+    f = SVector(z,
+                equations.gravity * h_ll * b_ll + equations.gravity * ( h_ll^2 - h_ll_star^2 ),
+                z, z)
+  else # orientation == 2
+    f = SVector(z, z,
+                equations.gravity * h_ll * b_ll + equations.gravity * ( h_ll^2 - h_ll_star^2 ),
+                z)
+  end
+
+  return f
+end
+
+@inline function flux_nonconservative_audusse_etal(u_ll, u_rr,
+                                                   normal_direction_ll::AbstractVector,
+                                                   normal_direction_average::AbstractVector,
+                                                   equations::ShallowWaterEquations2D)
+  # Pull the water height and bottom topography on the left
+  h_ll, _, _, b_ll = u_ll
+
+  # Create the hydrostatic reconstruction for the left solution state
+  u_ll_star, _ = hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, equations)
+
+  # Copy the reconstructed water height for easier to read code
+  h_ll_star = u_ll_star[1]
+
+  # Comes in two parts:
+  #   (i)  Diagonal (consistent) term from the volume flux that uses `normal_direction_average`
+  #        but we use `b_ll` to avoid cross-averaging across a discontinuous bottom topography
+
+  f2 = normal_direction_average[1] * equations.gravity * h_ll * b_ll
+  f3 = normal_direction_average[2] * equations.gravity * h_ll * b_ll
+
+  #   (ii) True surface part that uses `normal_direction_ll`, `h_ll` and `h_ll_star`
+  #        to handle discontinuous bathymetry
+
+  f2 += normal_direction_ll[1] * equations.gravity * ( h_ll^2 - h_ll_star^2 )
+  f3 += normal_direction_ll[2] * equations.gravity * ( h_ll^2 - h_ll_star^2 )
+
+  # First and last equations do not have a nonconservative flux
+  f1 = f4 = zero(eltype(u_ll))
+
+  return SVector(f1, f2, f3, f4)
+end
+
 
 
 """
@@ -531,7 +673,7 @@ end
   c_ll = sqrt(equations.gravity * h_ll)
   c_rr = sqrt(equations.gravity * h_rr)
 
-  λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+  return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)

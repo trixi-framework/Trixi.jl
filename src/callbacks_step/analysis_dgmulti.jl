@@ -135,6 +135,43 @@ function analyze(::Val{:linf_divb}, du, u, t,
   return linf_divB
 end
 
+function integrate(func::typeof(enstrophy), u,
+                   mesh::DGMultiMesh,
+                   equations, equations_parabolic::CompressibleNavierStokesDiffusion3D,
+                   dg::DGMulti,
+                   cache, cache_parabolic; normalize=true)
+
+  gradients_x, gradients_y, gradients_z = cache_parabolic.gradients
+
+  # allocate local storage for gradients.
+  # TODO: can we avoid allocating here?
+  local_gradient_quadrature_values = ntuple(_ -> similar(cache_parabolic.local_u_values_threaded), 3)
+
+  integral = zero(eltype(u))
+  for e in eachelement(mesh, dg)
+    u_quadrature_values = cache_parabolic.local_u_values_threaded[Threads.threadid()]
+    gradient_x_quadrature_values = local_gradient_quadrature_values[1][Threads.threadid()]
+    gradient_y_quadrature_values = local_gradient_quadrature_values[2][Threads.threadid()]
+    gradient_z_quadrature_values = local_gradient_quadrature_values[3][Threads.threadid()]
+
+    # interpolate to quadrature on each element
+    apply_to_each_field(mul_by(dg.basis.Vq), u_quadrature_values, view(u, :, e))
+    apply_to_each_field(mul_by(dg.basis.Vq), gradient_x_quadrature_values, view(gradients_x, :, e))
+    apply_to_each_field(mul_by(dg.basis.Vq), gradient_y_quadrature_values, view(gradients_y, :, e))
+    apply_to_each_field(mul_by(dg.basis.Vq), gradient_z_quadrature_values, view(gradients_z, :, e))
+
+    # integrate over the element
+    for i in eachindex(u_quadrature_values)
+      gradients_i = SVector(gradient_x_quadrature_values[i],
+                            gradient_y_quadrature_values[i],
+                            gradient_z_quadrature_values[i])
+      integral += mesh.md.wJq[i, e] * func(u_quadrature_values[i], gradients_i, equations)
+    end
+  end
+  return integral
+end
+
+
 function create_cache_analysis(analyzer, mesh::DGMultiMesh,
                                equations, dg::DGMulti, cache,
                                RealT, uEltype)
@@ -145,6 +182,13 @@ end
 SolutionAnalyzer(rd::RefElemData) = rd
 
 nelements(mesh::DGMultiMesh, solver::DGMulti, cache) = mesh.md.num_elements
+function ndofsglobal(mesh::DGMultiMesh, solver::DGMulti, cache)
+  if mpi_isparallel()
+    error("`ndofsglobal` is not implemented for `DGMultiMesh` when used in parallel with MPI")
+  else
+    return ndofs(mesh, solver, cache)
+  end
+end
 
 
 end # @muladd

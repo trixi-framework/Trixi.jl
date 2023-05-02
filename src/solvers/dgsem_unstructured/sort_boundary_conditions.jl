@@ -41,10 +41,14 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
 
   unique_names = unique(cache.boundaries.name)
 
-  # Verify that each Dict key is a valid boundary name
-  for key in keys(boundary_dictionary)
-    if !(key in unique_names)
-      error("Key $(repr(key)) is not a valid boundary name")
+  # TODO: This needs to be handled differently for the `ParallelP4estMesh` since the boundaries
+  # are distributed and thus unique_names only contains the names of boundaries on the local process
+  # See https://github.com/trixi-framework/Trixi.jl/issues/1047
+  if !mpi_isparallel()
+    for key in keys(boundary_dictionary)
+      if !(key in unique_names)
+        error("Key $(repr(key)) is not a valid boundary name")
+      end
     end
   end
 

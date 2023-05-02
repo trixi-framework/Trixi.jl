@@ -5,10 +5,10 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
+# pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "structured_2d_dgsem")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
@@ -104,7 +104,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       l2   = [0.00016265538265929818],
       linf = [0.0015194252169410394],
-      rtol = 5e-6, # Higher tolerance to make tests pass in CI
+      rtol = 5.0e-5, # Higher tolerance to make tests pass in CI (in particular with macOS)
       elixir_file="elixir_advection_waving_flag.jl",
       restart_file="restart_000021.h5")
   end
@@ -264,6 +264,13 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.05))
   end
 
+  @trixi_testset "elixir_shallowwater_well_balanced.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
+      l2   = [0.7920927046419308, 9.92129670988898e-15, 1.0118635033124588e-14, 0.7920927046419308],
+      linf = [2.408429868800133, 5.5835419986809516e-14, 5.448874313931364e-14, 2.4084298688001335],
+      tspan = (0.0, 0.25))
+  end
+
   @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
       l2   = [0.0364192725149364, 0.0426667193422069, 0.04261673001449095, 0.025884071405646924,
@@ -275,7 +282,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 end
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn rm(outdir, recursive=true)
 
 end # module

@@ -1,9 +1,8 @@
 using Downloads: download
 using Flux
-using NNlib
 using BSON: load
 network = joinpath(@__DIR__, "modelnnrh-0.95-0.009.bson")
-download("https://gist.github.com/JuliaOd/97728c2c15d6a7255ced6e46e3a605b6/raw/modelnnrh-0.95-0.009.bson", network)
+download("https://github.com/trixi-framework/Trixi_IndicatorNeuralNetwork_networks/raw/main/networks/modelnnrh-0.95-0.009.bson", network)
 model1d = load(network, @__MODULE__)[:model1d]
 
 using OrdinaryDiffEq
@@ -11,7 +10,7 @@ using Trixi
 
 # This elixir was one of the setups used in the following master thesis:
 # - Julia Odenthal (2021)
-#   Shock capturing with artifical neural networks
+#   Shock capturing with artificial neural networks
 #   University of Cologne, advisors: Gregor Gassner, Michael Schlottke-Lakemper
 # This motivates the particular choice of fluxes, mesh resolution etc.
 

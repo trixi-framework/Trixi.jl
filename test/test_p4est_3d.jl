@@ -7,7 +7,7 @@ include("test_trixi.jl")
 
 EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
@@ -29,6 +29,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
       l2   = [0.00253595715323843],
       linf = [0.016486952252155795])
+
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities)
+    let
+      t = sol.t[end]
+      u_ode = sol.u[end]
+      du_ode = similar(u_ode)
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
   end
 
   @trixi_testset "elixir_advection_amr.jl" begin
@@ -161,7 +170,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 end
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn rm(outdir, recursive=true)
 
 end # module

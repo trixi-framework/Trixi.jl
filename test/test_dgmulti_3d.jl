@@ -7,7 +7,7 @@ include("test_trixi.jl")
 
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmulti_3d")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
@@ -37,6 +37,21 @@ isdir(outdir) && rm(outdir, recursive=true)
       # division by sqrt(8.0) corresponds to normalization by the square root of the size of the domain
       l2 = [0.00030580190715769566, 0.00040146357607439464, 0.00040146357607564597, 0.000401463576075708, 0.0015749412434154315] ./ sqrt(8),
       linf = [0.00036910287847780054, 0.00042659774184228283, 0.0004265977427213574, 0.00042659774250686233, 0.00143803344597071]
+    )
+  end
+
+  @trixi_testset "elixir_euler_curved.jl (Hex elements, SBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      l2 = [0.018354883045936066, 0.024412704052042846, 0.024408520416087945, 0.01816314570880129, 0.039342805507972006],
+      linf = [0.14862225990775757, 0.28952368161864683, 0.2912054484817035, 0.1456603133854122, 0.3315354586775472]
+    )
+  end
+
+  @trixi_testset "elixir_euler_curved.jl (Hex elements, GaussSBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      approximation_type=GaussSBP(),
+      l2 = [0.002631131519508634, 0.0029144224044954105, 0.002913889110662827, 0.002615140832314194, 0.006881528610614373],
+      linf = [0.020996114874140215, 0.021314522450134543, 0.021288322783006297, 0.020273381695435244, 0.052598740390024545]
     )
   end
 
@@ -122,7 +137,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 end
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive=true)
 
 end # module

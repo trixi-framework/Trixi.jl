@@ -11,6 +11,11 @@ function refine!(u_ode::AbstractVector, adaptor,
                  equations, dg::DGSEM, cache, elements_to_refine)
   # Return early if there is nothing to do
   if isempty(elements_to_refine)
+    if mpi_isparallel()
+      # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+      # locally (there still might be other MPI ranks that have refined elements)
+      reinitialize_containers!(mesh, equations, dg, cache)
+    end
     return
   end
 
@@ -144,6 +149,11 @@ function coarsen!(u_ode::AbstractVector, adaptor,
                   equations, dg::DGSEM, cache, elements_to_remove)
   # Return early if there is nothing to do
   if isempty(elements_to_remove)
+    if mpi_isparallel()
+      # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+      # locally (there still might be other MPI ranks that have coarsened elements)
+      reinitialize_containers!(mesh, equations, dg, cache)
+    end
     return
   end
 

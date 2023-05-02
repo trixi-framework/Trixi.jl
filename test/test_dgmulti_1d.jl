@@ -7,11 +7,20 @@ include("test_trixi.jl")
 
 EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_1d")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
 @testset "DGMulti 1D" begin
+
+  @trixi_testset "elixir_advection_gauss_sbp.jl " begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_gauss_sbp.jl"),
+      cells_per_dimension = (8,),
+      l2 = [2.9953644500009865e-5],
+      linf = [4.467840577382365e-5]
+    )
+  end
+
   @trixi_testset "elixir_euler_flux_diff.jl " begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"),
       cells_per_dimension = (16,),
@@ -71,7 +80,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 end
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive=true)
 
 end # module

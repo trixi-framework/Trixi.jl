@@ -1,5 +1,5 @@
 # Style guide
-The following lists a few coding conventions for Trixi:
+The following lists a few coding conventions for Trixi.jl:
 
   * Modules, types, structs with `CamelCase`.
   * Functions, variables with lowercase `snake_case`.

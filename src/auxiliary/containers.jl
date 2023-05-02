@@ -132,7 +132,7 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
 
 
   # Invalidate original cell locations (unless they already contain new data due to overlap)
-  # 1) If end of desination range is within original range, shift first_invalid to the right
+  # 1) If end of destination range is within original range, shift first_invalid to the right
   count = last - first + 1
   first_invalid = (first <= destination + count - 1 <= last) ? destination + count : first
   # 2) If beginning of destination range is within original range, shift last_invalid to the left

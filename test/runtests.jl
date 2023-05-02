@@ -18,10 +18,13 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
     # There are spurious test failures of Trixi.jl with MPI on Windows, see
     # https://github.com/trixi-framework/Trixi.jl/issues/901
     # To reduce their impact, we do not test MPI with coverage on Windows.
-    # This reduces the chance to hit a speurious test failure by one half.
+    # This reduces the chance to hit a spurious test failure by one half.
+    # In addition, it looks like the Linux GitHub runners run out of memory during the 3D tests
+    # with coverage, so we currently do not test MPI with coverage on Linux. For more details,
+    # see the discussion at https://github.com/trixi-framework/Trixi.jl/pull/1062#issuecomment-1035901020
     cmd = string(Base.julia_cmd())
     coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none", cmd)
-    if !(coverage && Sys.iswindows())
+    if !(coverage && Sys.iswindows()) && !(coverage && Sys.islinux())
       mpiexec() do cmd
         run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes $(abspath("test_mpi.jl"))`)
       end
@@ -83,6 +86,12 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
     include("test_dgmulti_3d.jl")
   end
 
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic"
+    include("test_parabolic_1d.jl")
+    include("test_parabolic_2d.jl")
+    include("test_parabolic_3d.jl")
+  end
+
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc_part1"
     include("test_unit.jl")
     include("test_visualization.jl")
@@ -90,7 +99,14 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc_part2"
     include("test_special_elixirs.jl")
-    include("test_performance_specializations.jl")
+  end
+
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part1"
+    include("test_performance_specializations_2d.jl")
+  end
+
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part2"
+    include("test_performance_specializations_3d.jl")
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "paper_self_gravitating_gas_dynamics"

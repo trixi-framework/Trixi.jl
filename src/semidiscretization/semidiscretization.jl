@@ -69,10 +69,11 @@ that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan)
   u0_ode = compute_coefficients(first(tspan), semi)
-  # TODO: MPI, do we want to synchonize loading and print debug statements, e.g. using
+  # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
   #       mpi_isparallel() && MPI.Barrier(mpi_comm())
   #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-  return ODEProblem(rhs!, u0_ode, tspan, semi)
+  iip = true # is-inplace, i.e., we modify a vector when calling rhs!
+  return ODEProblem{iip}(rhs!, u0_ode, tspan, semi)
 end
 
 
@@ -85,10 +86,11 @@ The initial condition etc. is taken from the `restart_file`.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan, restart_file::AbstractString)
   u0_ode = load_restart_file(semi, restart_file)
-  # TODO: MPI, do we want to synchonize loading and print debug statements, e.g. using
+  # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
   #       mpi_isparallel() && MPI.Barrier(mpi_comm())
   #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-  return ODEProblem(rhs!, u0_ode, tspan, semi)
+  iip = true # is-inplace, i.e., we modify a vector when calling rhs!
+  return ODEProblem{iip}(rhs!, u0_ode, tspan, semi)
 end
 
 

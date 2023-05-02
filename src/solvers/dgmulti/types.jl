@@ -30,7 +30,9 @@ const DGMultiSBP{ApproxType, ElemType} =
 # these are necessary for pretty printing
 polydeg(dg::DGMulti) = dg.basis.N
 Base.summary(io::IO, dg::DG) where {DG <: DGMulti} = print(io, "DGMulti(polydeg=$(polydeg(dg)))")
-Base.real(rd::RefElemData{NDIMS, Elem, ApproxType, Nfaces, RealT}) where {NDIMS, Elem, ApproxType, Nfaces, RealT} = RealT
+
+# real(rd) is the eltype of the nodes `rd.r`.
+Base.real(rd::RefElemData) = eltype(rd.r)
 
 """
     DGMulti(; polydeg::Integer,
@@ -76,58 +78,163 @@ function DGMulti(element_type::AbstractElemShape,
   return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
 end
 
+########################################
+#            DGMultiMesh
+########################################
+
 # now that `DGMulti` is defined, we can define constructors for `DGMultiMesh` which use `dg::DGMulti`
-"""
-    DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti;
-                is_on_boundary = nothing,
-                periodicity::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
 
-Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
-"""
-DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti; kwargs...) =
-  DGMultiMesh(vertex_coordinates, EToV, dg.basis; kwargs...)
+function DGMultiMesh(dg::DGMulti, geometric_term_type, md::MeshData{NDIMS}, boundary_faces) where {NDIMS}
+  return DGMultiMesh{NDIMS, typeof(geometric_term_type), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+end
+
+# Mesh types used internally for trait dispatch
+struct Cartesian end
+struct VertexMapped end # where element geometry is determined by vertices.
+struct Curved end
+
+# type parameters for dispatch using `DGMultiMesh`
+abstract type GeometricTermsType end
+struct Affine <: GeometricTermsType end # mesh produces constant geometric terms
+struct NonAffine <: GeometricTermsType end # mesh produces non-constant geometric terms
+
+# choose MeshType based on the constructor and element type
+GeometricTermsType(mesh_type, dg::DGMulti) = GeometricTermsType(mesh_type, dg.basis.element_type)
+GeometricTermsType(mesh_type::Cartesian, element_type::AbstractElemShape) = Affine()
+GeometricTermsType(mesh_type::TriangulateIO, element_type::Tri) = Affine()
+GeometricTermsType(mesh_type::VertexMapped, element_type::Union{Tri, Tet}) = Affine()
+GeometricTermsType(mesh_type::VertexMapped, element_type::Union{Quad, Hex}) = NonAffine()
+GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffine()
+
+# other potential constructor types to add later: Bilinear, Isoparametric{polydeg_geo}, Rational/Exact?
+# other potential mesh types to add later: Polynomial{polydeg_geo}?
 
 """
-    DGMultiMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int})
+  DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV;
+              is_on_boundary=nothing,
+              periodicity=ntuple(_->false, NDIMS)) where {NDIMS}
 
-Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
+- `dg::DGMulti` contains information associated with to the reference element (e.g., quadrature,
+  basis evaluation, differentiation, etc).
+- `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
+- `EToV` is a 2D array containing element-to-vertex connectivities for each element
+- `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
+- `periodicity` is a tuple of booleans specifying if the domain is periodic `true`/`false` in the
+  (x,y,z) direction.
 """
-DGMultiMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
-  DGMultiMesh(triangulateIO, dg.basis, boundary_dict)
+function DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV::AbstractArray;
+                     is_on_boundary=nothing,
+                     periodicity=ntuple(_->false, NDIMS), kwargs...) where {NDIMS}
+
+  md = MeshData(vertex_coordinates, EToV, dg.basis)
+  if NDIMS == 1
+    md = StartUpDG.make_periodic(md, periodicity...)
+  else
+    md = StartUpDG.make_periodic(md, periodicity)
+  end
+  boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
+  return DGMultiMesh(dg, GeometricTermsType(VertexMapped(), dg), md, boundary_faces)
+end
 
 """
-    DGMultiMesh(dg::DGMulti; cells_per_dimension,
+    DGMultiMesh(dg::DGMulti{2, Tri}, triangulateIO, boundary_dict::Dict{Symbol, Int})
+
+- `dg::DGMulti` contains information associated with to the reference element (e.g., quadrature,
+  basis evaluation, differentiation, etc).
+- `triangulateIO` is a `TriangulateIO` mesh representation
+- `boundary_dict` is a `Dict{Symbol, Int}` which associates each integer `TriangulateIO` boundary
+  tag with a `Symbol`.
+"""
+function DGMultiMesh(dg::DGMulti{2, Tri}, triangulateIO, boundary_dict::Dict{Symbol, Int};
+                     periodicity=(false, false))
+  vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
+  md = MeshData(vertex_coordinates, EToV, dg.basis)
+  md = StartUpDG.make_periodic(md, periodicity)
+  boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, dg.basis, md, boundary_dict)
+  return DGMultiMesh(dg, GeometricTermsType(TriangulateIO(), dg), md, boundary_faces)
+end
+
+"""
+    DGMultiMesh(dg::DGMulti, cells_per_dimension;
                 coordinates_min=(-1.0, -1.0), coordinates_max=(1.0, 1.0),
                 is_on_boundary=nothing,
                 periodicity=ntuple(_ -> false, NDIMS))
 
-Constructs a Cartesian [`DGMultiMesh`](@ref) with element type `dg.basis.elementType`. The domain is
+Constructs a Cartesian [`DGMultiMesh`](@ref) with element type `dg.basis.element_type`. The domain is
 the tensor product of the intervals `[coordinates_min[i], coordinates_max[i]]`.
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
 - `periodicity` is a tuple of `Bool`s specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
-function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
+function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension;
                      coordinates_min=ntuple(_ -> -one(real(dg)), NDIMS),
                      coordinates_max=ntuple(_ -> one(real(dg)), NDIMS),
                      is_on_boundary=nothing,
                      periodicity=ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
 
-  if haskey(kwargs, :is_periodic)
-    # TODO: DGMulti. Deprecate `is_periodic` in version 0.5
-    Base.depwarn("keyword argument `is_periodic` is now `periodicity`.", :DGMultiMesh)
-    periodicity=kwargs[:is_periodic]
-  end
-
-  vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
+  vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.element_type, cells_per_dimension...)
   domain_lengths = coordinates_max .- coordinates_min
   for i in 1:NDIMS
     @. vertex_coordinates[i] = 0.5 * (vertex_coordinates[i] + 1) * domain_lengths[i] + coordinates_min[i]
   end
 
-  return DGMultiMesh(vertex_coordinates, EToV, dg, is_on_boundary=is_on_boundary, periodicity=periodicity)
+  md = MeshData(vertex_coordinates, EToV, dg.basis)
+  if NDIMS == 1 && first(periodicity) == true
+    md = StartUpDG.make_periodic(md)
+  end
+  if NDIMS > 1
+    md = StartUpDG.make_periodic(md, periodicity)
+  end
+  boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
+  return DGMultiMesh(dg, GeometricTermsType(Cartesian(), dg), md, boundary_faces)
 end
 
-# Todo: DGMulti. Add traits for dispatch on affine/curved meshes here.
+"""
+    DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
+                is_on_boundary=nothing,
+                periodicity=ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
+
+Constructs a `Curved()` [`DGMultiMesh`](@ref) with element type `dg.basis.element_type`.
+- `mapping` is a function which maps from a reference [-1, 1]^NDIMS domain to a mapped domain,
+   e.g., `xy = mapping(x, y)` in 2D.
+- `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
+- `periodicity` is a tuple of `Bool`s specifying periodicity = `true`/`false` in the (x,y,z) direction.
+"""
+function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
+                     is_on_boundary=nothing,
+                     periodicity=ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
+
+  vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.element_type, cells_per_dimension...)
+  md = MeshData(vertex_coordinates, EToV, dg.basis)
+  md = NDIMS==1 ? StartUpDG.make_periodic(md, periodicity...) : StartUpDG.make_periodic(md, periodicity)
+
+  @unpack xyz = md
+  for i in eachindex(xyz[1])
+    new_xyz = mapping(getindex.(xyz, i)...)
+    setindex!.(xyz, new_xyz, i)
+  end
+  md_curved = MeshData(dg.basis, md, xyz...)
+
+  boundary_faces = StartUpDG.tag_boundary_faces(md_curved, is_on_boundary)
+  return DGMultiMesh(dg, GeometricTermsType(Curved(), dg), md_curved, boundary_faces)
+end
+
+"""
+    DGMultiMesh(dg::DGMulti, filename::String)
+
+- `dg::DGMulti` contains information associated with the reference element (e.g., quadrature,
+  basis evaluation, differentiation, etc).
+- `filename` is a path specifying a `.mesh` file generated by
+  [HOHQMesh](https://github.com/trixi-framework/HOHQMesh).
+"""
+function DGMultiMesh(dg::DGMulti{NDIMS}, filename::String;
+                     periodicity=ntuple(_ -> false, NDIMS)) where {NDIMS}
+
+  hohqmesh_data = StartUpDG.read_HOHQMesh(filename)
+  md = MeshData(hohqmesh_data, dg.basis)
+  md = StartUpDG.make_periodic(md, periodicity)
+  boundary_faces = Dict(Pair.(keys(md.mesh_type.boundary_faces), values(md.mesh_type.boundary_faces)))
+  return DGMultiMesh(dg, GeometricTermsType(Curved(), dg), md, boundary_faces)
+end
 
 # Matrix type for lazy construction of physical differentiation matrices
 # Constructs a lazy linear combination of B = ∑_i coeffs[i] * A[i]
@@ -176,13 +283,13 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
 
   # copy `x_in` to `tmp_storage` to avoid mutating the input
   @assert length(tmp_storage) == length(x_in)
-  for i in eachindex(tmp_storage)
+  @turbo thread=true for i in eachindex(tmp_storage)
     tmp_storage[i] = x_in[i]
   end
   x = reshape(tmp_storage, n, n)
   b = reshape(b_in, n, n)
 
-  @turbo for j in 1:n, i in 1:n
+  @turbo thread=true for j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for ii in 1:n
       tmp = tmp + A[i, ii] * x[ii, j]
@@ -190,7 +297,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
     b[i, j] = tmp
   end
 
-  @turbo for j in 1:n, i in 1:n
+  @turbo thread=true for j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for jj in 1:n
       tmp = tmp + A[j, jj] * b[i, jj]
@@ -198,7 +305,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
     x[i, j] = tmp
   end
 
-  @turbo for i in eachindex(b_in)
+  @turbo thread=true for i in eachindex(b_in)
     b_in[i] = x[i]
   end
 
@@ -213,13 +320,13 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
   n = size(A, 2)
 
   # copy `x_in` to `tmp_storage` to avoid mutating the input
-  for i in eachindex(tmp_storage)
+  @turbo thread=true for i in eachindex(tmp_storage)
     tmp_storage[i] = x_in[i]
   end
   x = reshape(tmp_storage, n, n, n)
   b = reshape(b_in, n, n, n)
 
-  @turbo for k in 1:n, j in 1:n, i in 1:n
+  @turbo thread=true for k in 1:n, j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for ii in 1:n
       tmp = tmp + A[i, ii] * x[ii, j, k]
@@ -227,7 +334,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
     b[i, j, k] = tmp
   end
 
-  @turbo for k in 1:n, j in 1:n, i in 1:n
+  @turbo thread=true for k in 1:n, j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for jj in 1:n
       tmp = tmp + A[j, jj] * b[i, jj, k]
@@ -235,7 +342,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
     x[i, j, k] = tmp
   end
 
-  @turbo for k in 1:n, j in 1:n, i in 1:n
+  @turbo thread=true for k in 1:n, j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for kk in 1:n
       tmp = tmp + A[k, kk] * x[i, j, kk]
@@ -246,6 +353,12 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
   return nothing
 end
 
-
-
 end # @muladd
+
+# TODO: deprecations introduced in Trixi.jl v0.6
+@deprecate DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension, kwargs...) where {NDIMS} DGMultiMesh(dg, cells_per_dimension; kwargs...)
+
+# TODO: deprecations introduced in Trixi.jl v0.5
+@deprecate DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS}; kwargs...) where {NDIMS} DGMultiMesh(dg, vertex_coordinates, EToV; kwargs...)
+@deprecate DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int}; kwargs...) DGMultiMesh(dg, triangulateIO, boundary_dict; kwargs...)
+
