@@ -247,17 +247,13 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_speed, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+                constant_speed, equations, dg::DGMulti{3, Wedge, <:TensorProductWedge}, cache) 
   rd = dg.basis
-  if dg.basis.approximation_type isa TensorProductWedge
-    # In the computation of max_dt the polynomial degree is used to compute the time-step.
-    # For tensor-product elements the maximum of the polynomial degrees is used to ensure
-    # that the timestep is feasable for both elements of the tensor-product. For the
-    # other elements taking the maximum has no effect.
-    polydeg=maximum(rd.N)
-  else
-    polydeg = rd.N
-  end
+  # In the computation of max_dt the polynomial degree is used to compute the time-step.
+  # For tensor-product elements the maximum of the polynomial degrees is used to ensure
+  # that the timestep is feasable for both elements of the tensor-product. For the
+  # other elements taking the maximum has no effect.
+  polydeg = maximum(rd.N)
   return max_dt(u, t, mesh, constant_speed, equations, dg, polydeg, cache)
 end
 
