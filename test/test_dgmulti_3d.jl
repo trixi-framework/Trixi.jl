@@ -136,7 +136,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @trixi_testset "elixir_euler_tensorWedge.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_tensorWedge.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_tensor_wedge.jl"),
     l2 = [9.12148144e-04] ,
     linf = [1.93128651e-03] )
   end
