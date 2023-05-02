@@ -61,7 +61,6 @@ function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x
   return flux
 end
 
-dirichlet_bc = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict( :Bottom => boundary_condition_slip_wall,
                             :Top    => boundary_condition_slip_wall,
                             :Right  => boundary_condition_outflow,
