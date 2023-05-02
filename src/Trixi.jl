@@ -180,8 +180,7 @@ export boundary_condition_do_nothing,
        boundary_condition_wall,
        BoundaryConditionNavierStokesWall, NoSlip, Adiabatic, Isothermal
        BoundaryConditionCoupled,
-       BoundaryConditionCoupledAB,
-       BoundaryConditionCoupledBA
+       BoundaryConditionCoupledAB
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export source_terms_harmonic
