@@ -61,7 +61,7 @@ integers, one per spatial dimension).
 function convergence_test(mod::Module, elixir::AbstractString, iterations; kwargs...)
   @assert(iterations > 1, "Number of iterations must be bigger than 1 for a convergence analysis")
 
-  # Types of errors to be calcuated
+  # Types of errors to be calculated
   errors = Dict(:l2 => Float64[], :linf => Float64[])
 
   initial_resolution = extract_initial_resolution(elixir, kwargs)
@@ -202,7 +202,7 @@ end
 
 # Replace assignments to `key` in `expr` by `key = val` for all `(key,val)` in `kwargs`.
 function replace_assignments(expr; kwargs...)
-  # replace explicit and keyword assignemnts
+  # replace explicit and keyword assignments
   expr = walkexpr(expr) do x
     if x isa Expr
       for (key,val) in kwargs
@@ -224,7 +224,7 @@ function find_assignment(expr, destination)
   # declare result to be able to assign to it in the closure
   local result
 
-  # find explicit and keyword assignemnts
+  # find explicit and keyword assignments
   walkexpr(expr) do x
     if x isa Expr
       if (x.head === Symbol("=") || x.head === :kw) && x.args[1] === Symbol(destination)
