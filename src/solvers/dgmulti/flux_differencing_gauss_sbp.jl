@@ -4,8 +4,8 @@
 # inside the @muladd block is edited. See https://github.com/trixi-framework/Trixi.jl/issues/801
 # for more details.
 
-# GaussSBP ApproximationType: e.g., Gauss nodes on quads/hexes
-struct GaussSBP end
+# `GaussSBP` is a type alias for a StartUpDG type (e.g., Gauss nodes on quads/hexes)
+const GaussSBP = Polynomial{Gauss}
 
 function tensor_product_quadrature(element_type::Line, r1D, w1D)
   return r1D, w1D
@@ -28,17 +28,20 @@ end
 # type parameters for `TensorProductFaceOperator`.
 abstract type AbstractGaussOperator end
 struct Interpolation <: AbstractGaussOperator end
-# - `Projection{ScaleByFaceWeights=Static.False()}` corresponds to the operator `Pf = M \ Vf'`,
+# - `Projection{ScaleByFaceWeights=Static.False()}` corresponds to the operator `projection_matrix_gauss_to_face = M \ Vf'`,
 #   which is used in `VolumeIntegralFluxDifferencing`.
 # - `Projection{ScaleByFaceWeights=Static.True()}` corresponds to the quadrature-based lifting
 #   operator `LIFT = M \ (Vf' * diagm(rd.wf))`, which is used in `SurfaceIntegralWeakForm`
 struct Projection{ScaleByFaceWeights}  <: AbstractGaussOperator end
 
+# used to dispatch for different Gauss interpolation operators
+abstract type AbstractTensorProductGaussOperator end
+
 #   TensorProductGaussFaceOperator{Tmat, Ti}
 #
 # Data for performing tensor product interpolation from volume nodes to face nodes.
 struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperator,
-                                      Tmat, Tweights, Tfweights, Tindices}
+                                      Tmat, Tweights, Tfweights, Tindices} <: AbstractTensorProductGaussOperator
   interp_matrix_gauss_to_face_1d::Tmat
   inv_volume_weights_1d::Tweights
   face_weights::Tfweights
@@ -59,7 +62,7 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
 
   # Permutation of indices in a tensor product form
   indices = reshape(1:length(rd.rf), nnodes_1d, rd.Nfaces)
-  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, ndims(rd.elementType))
+  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, ndims(rd.element_type))
   for i in 1:nnodes_1d # loop over nodes in one face
     face_indices_tensor_product[:, i, 1] .= indices[i, 1:2]
     face_indices_tensor_product[:, i, 2] .= indices[i, 3:4]
@@ -88,7 +91,7 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
 
   # Permutation of indices in a tensor product form
   indices = reshape(1:length(rd.rf), nnodes_1d, nnodes_1d, rd.Nfaces)
-  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, nnodes_1d, ndims(rd.elementType))
+  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, nnodes_1d, ndims(rd.element_type))
   for j in 1:nnodes_1d, i in 1:nnodes_1d # loop over nodes in one face
     face_indices_tensor_product[:, i, j, 1] .= indices[i, j, 1:2]
     face_indices_tensor_product[:, i, j, 2] .= indices[i, j, 3:4]
@@ -106,13 +109,13 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
                                                                  nnodes_1d, rd.Nfaces)
 end
 
-# specialize behavior of `mul_by!(A::TensorProductGaussFaceOperator)`
-@inline function mul_by!(A::TensorProductGaussFaceOperator)
+# specialize behavior of `mul_by!(A)` where `A isa TensorProductGaussFaceOperator)`
+@inline function mul_by!(A::AbstractTensorProductGaussOperator)
   return (out, x) -> tensor_product_gauss_face_operator!(out, A, x)
 end
 
 @inline function tensor_product_gauss_face_operator!(out::AbstractMatrix,
-                                                     A::TensorProductGaussFaceOperator,
+                                                     A::AbstractTensorProductGaussOperator,
                                                      x::AbstractMatrix)
   @threaded for col in Base.OneTo(size(out, 2))
     tensor_product_gauss_face_operator!(view(out, :, col), A, view(x, :, col))
@@ -308,64 +311,34 @@ end
   end
 end
 
-# Specialized constructor for GaussSBP approximation type on quad elements. Restricting to
-# VolumeIntegralFluxDifferencing for now since there isn't a way to exploit this structure
-# for VolumeIntegralWeakForm yet.
-function DGMulti(element_type::Union{Quad, Hex},
-                 approximation_type::GaussSBP,
-                 volume_integral::VolumeIntegralFluxDifferencing,
-                 surface_integral=SurfaceIntegralWeakForm(surface_flux);
-                 polydeg::Integer,
-                 surface_flux=flux_central,
-                 kwargs...)
-
-  # explicitly create tensor product Gauss quadrature rule with polydeg+1 points
-  r1D, w1D = StartUpDG.gauss_quad(0, 0, polydeg)
-  gauss_rule_vol = tensor_product_quadrature(element_type, r1D, w1D)
-  gauss_rule_face = tensor_product_quadrature(StartUpDG.face_type(element_type), r1D, w1D)
-
-  rd = RefElemData(element_type, Polynomial(), polydeg,
-                   quad_rule_vol=gauss_rule_vol,
-                   quad_rule_face=gauss_rule_face,
-                   kwargs...)
-
-  # Since there is no dedicated GaussSBP approximation type implemented in StartUpDG, we simply
-  # initialize `rd = RefElemData(...)` with the appropriate quadrature rules and modify the
-  # rd.approximationType manually so we can dispatch on the `GaussSBP` type.
-  # This uses the Setfield @set macro, which behaves similarly to `Trixi.remake`.
-  rd_gauss = @set rd.approximationType = GaussSBP()
-
-  # We will modify the face interpolation operator of rd_gauss later, but want to do so only after
-  # the mesh is initialized, since the face interpolation operator is used for that.
-  return DG(rd_gauss, nothing #= mortar =#, surface_integral, volume_integral)
-end
-
 # For now, this is mostly the same as `create_cache` for DGMultiFluxDiff{<:Polynomial}.
 # In the future, we may modify it so that we can specialize additional parts of GaussSBP() solvers.
 function create_cache(mesh::DGMultiMesh, equations,
                       dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Quad, Hex}}, RealT, uEltype)
 
+  # call general Polynomial flux differencing constructor
+  cache = invoke(create_cache, Tuple{typeof(mesh), typeof(equations),
+                 DGMultiFluxDiff, typeof(RealT), typeof(uEltype)},
+                 mesh, equations, dg, RealT, uEltype)
+
   rd = dg.basis
   @unpack md = mesh
-
-  cache = invoke(create_cache, Tuple{typeof(mesh), typeof(equations), DGMultiFluxDiff, typeof(RealT), typeof(uEltype)},
-                 mesh, equations, dg, RealT, uEltype)
 
   # for change of basis prior to the volume integral and entropy projection
   r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
   rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
   interp_matrix_lobatto_to_gauss_1D = polynomial_interpolation_matrix(r1D, rq1D)
   interp_matrix_gauss_to_lobatto_1D = polynomial_interpolation_matrix(rq1D, r1D)
-  NDIMS = ndims(rd.elementType)
+  NDIMS = ndims(rd.element_type)
   interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS, interp_matrix_lobatto_to_gauss_1D, uEltype)
   interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS, interp_matrix_gauss_to_lobatto_1D, uEltype)
   inv_gauss_weights = inv.(rd.wq)
 
   # specialized operators to perform tensor product interpolation to faces for Gauss nodes
   interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
-  Pf = TensorProductGaussFaceOperator(Projection{Static.False()}(), dg)
+  projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{Static.False()}(), dg)
 
-  # `LIFT` matrix for Gauss nodes - this is equivalent to `Pf` scaled by `diagm(rd.wf)`,
+  # `LIFT` matrix for Gauss nodes - this is equivalent to `projection_matrix_gauss_to_face` scaled by `diagm(rd.wf)`,
   # where `rd.wf` are Gauss node face quadrature weights.
   gauss_LIFT = TensorProductGaussFaceOperator(Projection{Static.True()}(), dg)
 
@@ -373,7 +346,7 @@ function create_cache(mesh::DGMultiMesh, equations,
   rhs_volume_local_threaded   = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
   gauss_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
 
-  return (; cache..., Pf, gauss_LIFT, inv_gauss_weights,
+  return (; cache..., projection_matrix_gauss_to_face, gauss_LIFT, inv_gauss_weights,
          rhs_volume_local_threaded, gauss_volume_local_threaded,
          interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
          interp_matrix_gauss_to_face)
@@ -418,11 +391,11 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
 end
 
 # Assumes cache.flux_face_values is already computed.
-# Enables tensor product evaluation of `LIFT::TensorProductGaussFaceOperator`.
+# Enables tensor product evaluation of `LIFT isa TensorProductGaussFaceOperator`.
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
                                 mesh::DGMultiMesh, equations,
                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache)
-  @unpack gauss_volume_local_threaded, rhs_volume_local_threaded = cache
+  @unpack gauss_volume_local_threaded = cache
   @unpack interp_matrix_gauss_to_lobatto, gauss_LIFT = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
@@ -431,28 +404,24 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
     gauss_volume_local = gauss_volume_local_threaded[Threads.threadid()]
     apply_to_each_field(mul_by!(gauss_LIFT), gauss_volume_local, view(cache.flux_face_values, :, e))
 
-    # interpolate result back to Lobatto nodes for ease of analysis, visualization
-    rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
-    apply_to_each_field(mul_by!(interp_matrix_gauss_to_lobatto), rhs_volume_local, gauss_volume_local)
-
-    for i in eachindex(rhs_volume_local)
-      du[i, e] = du[i, e] + rhs_volume_local[i]
+    for i in eachindex(gauss_volume_local)
+      du[i, e] = du[i, e] + gauss_volume_local[i]
     end
+
   end
 end
 
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms::Val{false}, equations,
+                               have_nonconservative_terms, equations,
                                volume_integral, dg::DGMultiFluxDiff{<:GaussSBP},
                                cache)
 
   @unpack entropy_projected_u_values = cache
   @unpack fluxdiff_local_threaded, rhs_local_threaded, rhs_volume_local_threaded = cache
 
-  # After computing the volume integral, we transform back to Lobatto nodes.
-  # This allows us to reuse the other DGMulti routines as-is.
-  @unpack interp_matrix_gauss_to_lobatto = cache
-  @unpack Ph, Pf, inv_gauss_weights = cache
+  # After computing the volume integral, the rhs values are stored at Gauss nodes.
+  # We transform from Gauss nodes back to Lobatto nodes in `invert_jacobian!`.
+  @unpack projection_matrix_gauss_to_face, inv_gauss_weights = cache
 
   rd = dg.basis
   volume_indices = Base.OneTo(rd.Nq)
@@ -479,23 +448,79 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
 
     # Here, we exploit that under a Gauss nodal basis the structure of the projection
-    # matrix `Ph = [diagm(1 ./ wq), Pf]` such that `Ph * [u; uf] = (u ./ wq) + Pf * uf`.
+    # matrix `Ph = [diagm(1 ./ wq), projection_matrix_gauss_to_face]` such that `Ph * [u; uf] = (u ./ wq) + projection_matrix_gauss_to_face * uf`.
     local_volume_flux = view(rhs_local, volume_indices)
     local_face_flux = view(rhs_local, face_indices)
 
-    # initialize rhs_volume_local = Pf * local_face_flux
-    apply_to_each_field(mul_by!(Pf), rhs_volume_local, local_face_flux)
+    # initialize rhs_volume_local = projection_matrix_gauss_to_face * local_face_flux
+    apply_to_each_field(mul_by!(projection_matrix_gauss_to_face), rhs_volume_local, local_face_flux)
 
-    # accumulate volume contributions
+    # accumulate volume contributions at Gauss nodes
     for i in eachindex(rhs_volume_local)
-      rhs_volume_local[i] = rhs_volume_local[i] + local_volume_flux[i] * inv_gauss_weights[i]
+      du[i, e] = rhs_volume_local[i] + local_volume_flux[i] * inv_gauss_weights[i]
     end
 
-    # transform rhs back to Lobatto nodes
+  end
+
+end
+
+# interpolate back to Lobatto nodes after applying the inverse Jacobian at Gauss points
+function invert_jacobian_and_interpolate!(du, mesh::DGMultiMesh, equations,
+                                          dg::DGMultiFluxDiff{<:GaussSBP}, cache; scaling=-1)
+
+  (; interp_matrix_gauss_to_lobatto, rhs_volume_local_threaded, invJ) = cache
+
+  @threaded for e in eachelement(mesh, dg, cache)
+    rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
+
+    # At this point, `rhs_volume_local` should still be stored at Gauss points.
+    # We scale it by the inverse Jacobian before transforming back to Lobatto.
+    for i in eachindex(rhs_volume_local)
+      rhs_volume_local[i] = du[i, e] * invJ[i, e] * scaling
+    end
+
+    # Interpolate result back to Lobatto nodes for ease of analysis, visualization
     apply_to_each_field(mul_by!(interp_matrix_gauss_to_lobatto),
                         view(du, :, e), rhs_volume_local)
   end
 
+end
+
+# Specialize RHS so that we can call `invert_jacobian_and_interpolate!` instead of just `invert_jacobian!`,
+# since `invert_jacobian!` is also used in other places (e.g., parabolic terms).
+function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
+              source_terms::Source, dg::DGMultiFluxDiff{<:GaussSBP}, cache) where {Source, BC}
+
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+
+  # this function evaluates the solution at volume and face quadrature points (which was previously
+  # done in `prolong2interfaces` and `calc_volume_integral`)
+  @trixi_timeit timer() "entropy_projection!" entropy_projection!(cache, u, mesh, equations, dg)
+
+  # `du` is stored at Gauss nodes here
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(
+    du, u, mesh, have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
+
+  # the following functions are the same as in VolumeIntegralWeakForm, and can be reused from dg.jl
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(cache, dg.surface_integral, mesh,
+                                                              have_nonconservative_terms(equations),
+                                                              equations, dg)
+
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
+                                                            mesh, equations, dg)
+
+  # `du` is stored at Gauss nodes here
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, dg.surface_integral,
+                                                                  mesh, equations, dg, cache)
+
+  # invert Jacobian and map `du` from Gauss to Lobatto nodes
+  @trixi_timeit timer() "Jacobian" invert_jacobian_and_interpolate!(du, mesh, equations, dg, cache)
+
+  @trixi_timeit timer() "source terms" calc_sources!(du, u, t, source_terms,
+                                                     mesh, equations, dg, cache)
+
+  return nothing
 end
 
 

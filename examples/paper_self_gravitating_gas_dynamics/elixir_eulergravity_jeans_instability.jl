@@ -31,7 +31,7 @@ function initial_condition_jeans_instability(x, t,
   dens0  = 1.5e7 # g/cm^3
   pres0  = 1.5e7 # dyn/cm^2
   delta0 = 1e-3
-  # set wave vector values for pertubation (units 1/cm)
+  # set wave vector values for perturbation (units 1/cm)
   # see FLASH manual: https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
   kx = 2.0*pi/0.5 # 2π/λ_x, λ_x = 0.5
   ky = 0.0   # 2π/λ_y, λ_y = 1e10
@@ -53,7 +53,7 @@ function initial_condition_jeans_instability(x, t,
   rho0   = 1.5e7
   delta0 = 1e-3
 
-  phi = rho0*delta0 # constant background pertubation magnitude
+  phi = rho0*delta0 # constant background perturbation magnitude
   q1  = 0.0
   q2  = 0.0
   return (phi, q1, q2)

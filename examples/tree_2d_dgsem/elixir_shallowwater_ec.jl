@@ -41,7 +41,7 @@ ode = semidiscretize(semi, tspan)
 # Workaround to set a discontinuous bottom topography and initial condition for debugging and testing.
 
 # alternative version of the initial conditinon used to setup a truly discontinuous
-# bottom topography function and initial condtion for this academic testcase of entropy conservation.
+# bottom topography function and initial condition for this academic testcase of entropy conservation.
 # The errors from the analysis callback are not important but `∑∂S/∂U ⋅ Uₜ` should be around machine roundoff
 # In contrast to the usual signature of initial conditions, this one get passed the
 # `element_id` explicitly. In particular, this initial conditions works as intended
@@ -97,7 +97,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=100,
+save_solution = SaveSolutionCallback(dt=0.2,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 

@@ -12,7 +12,7 @@ abstract type SimpleAlgorithm3Sstar end
 """
     HypDiffN3Erk3Sstar52()
 
-Five stage, second-order acurate explicit Runge-Kutta scheme with stability region optimized for
+Five stage, second-order accurate explicit Runge-Kutta scheme with stability region optimized for
 the hyperbolic diffusion equation with LLF flux and polynomials of degree polydeg=3.
 """
 struct HypDiffN3Erk3Sstar52 <: SimpleAlgorithm3Sstar
@@ -93,10 +93,10 @@ end
 
 
 mutable struct SimpleIntegrator3SstarOptions{Callback}
-  callback::Callback # callbacks; used in Trixi
+  callback::Callback # callbacks; used in Trixi.jl
   adaptive::Bool # whether the algorithm is adaptive; ignored
   dtmax::Float64 # ignored
-  maxiters::Int # maximal numer of time steps
+  maxiters::Int # maximal number of time steps
   tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
@@ -105,7 +105,7 @@ function SimpleIntegrator3SstarOptions(callback, tspan; maxiters=typemax(Int), k
     callback, false, Inf, maxiters, [last(tspan)])
 end
 
-mutable struct SimpleIntegrator3Sstar{RealT<:Real, uType, Params, Sol, Alg, SimpleIntegrator3SstarOptions}
+mutable struct SimpleIntegrator3Sstar{RealT<:Real, uType, Params, Sol, F, Alg, SimpleIntegrator3SstarOptions}
   u::uType #
   du::uType
   u_tmp1::uType
@@ -114,16 +114,17 @@ mutable struct SimpleIntegrator3Sstar{RealT<:Real, uType, Params, Sol, Alg, Simp
   dt::RealT # current time step
   dtcache::RealT # ignored
   iter::Int # current number of time step (iteration)
-  p::Params # will be the semidiscretization from Trixi
+  p::Params # will be the semidiscretization from Trixi.jl
   sol::Sol # faked
+  f::F
   alg::Alg
   opts::SimpleIntegrator3SstarOptions
   finalstep::Bool # added for convenience
 end
 
-# Forward integrator.destats.naccept to integrator.iter (see GitHub PR#771)
+# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
 function Base.getproperty(integrator::SimpleIntegrator3Sstar, field::Symbol)
-  if field === :destats
+  if field === :stats
     return (naccept = getfield(integrator, :iter),)
   end
   # general fallback
@@ -140,7 +141,7 @@ function solve(ode::ODEProblem, alg::T;
   t = first(ode.tspan)
   iter = 0
   integrator = SimpleIntegrator3Sstar(u, du, u_tmp1, u_tmp2, t, dt, zero(dt), iter, ode.p,
-                  (prob=ode,), alg,
+                  (prob=ode,), ode.f, alg,
                   SimpleIntegrator3SstarOptions(callback, ode.tspan; kwargs...), false)
 
   # initialize callbacks

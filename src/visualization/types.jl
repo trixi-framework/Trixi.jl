@@ -1,12 +1,12 @@
-# Convenience type to allow dispatch on solution objects that were created by Trixi
+# Convenience type to allow dispatch on solution objects that were created by Trixi.jl
 #
-# This is a union of a Trixi-specific SciMLBase.ODESolution and of Trixi's own
+# This is a union of a Trixi.jl-specific SciMLBase.ODESolution and of Trixi.jl's own
 # TimeIntegratorSolution.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where
     {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
-     {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_<:ODEFunction{true, typeof(rhs!)}}}, TimeIntegratorSolution}
+     {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_}}, TimeIntegratorSolution}
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -226,7 +226,6 @@ julia> plot(pd["scalar"]) # To plot only a single variable
 julia> plot!(getmesh(pd)) # To add grid lines to the plot
 ```
 """
-
 PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array_native(u_ode, semi),
                                                 mesh_equations_solver_cache(semi)...;
                                                 kwargs...)
@@ -277,7 +276,7 @@ end
     PlotData2D(sol; kwargs...)
 
 Create a `PlotData2D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
-returns a `SciMLBase.ODESolution`) or Trixi's own `solve!` (which returns a
+returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
 
 !!! warning "Experimental implementation"
@@ -445,6 +444,12 @@ struct ScalarData{T}
   data::T
 end
 
+"""
+    ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...)
+
+Returns an `PlotData2DTriangulated` object which is used to visualize a single scalar field.
+`u` should be an array whose entries correspond to values of the scalar field at nodal points.
+"""
 ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...) =
   ScalarPlotData2D(u, mesh_equations_solver_cache(semi)...; kwargs...)
 
@@ -534,7 +539,7 @@ When visualizing data from a two-dimensional simulation, a 1D slice is extracted
 `slice` specifies the axis along which the slice is extracted and may be `:x`, or `:y`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0)`.
 Both of these values are ignored when visualizing 1D data.
-This applies analogously to three-dimensonal simulations, where `slice` may be `xy:`, `:xz`, or `:yz`.
+This applies analogously to three-dimensional simulations, where `slice` may be `:xy`, `:xz`, or `:yz`.
 
 Another way to visualize 2D/3D data is by creating a plot along a given curve.
 This is done with the keyword argument `curve`. It can be set to a list of 2D/3D points
@@ -595,9 +600,13 @@ function PlotData1D(u, mesh, equations, solver, cache;
   if ndims(mesh) == 1
     x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
     orientation_x = 1
-  else # ndims(mesh) == 2
+  elseif ndims(mesh) == 2
+    # Create a 'PlotData2DTriangulated' object so a triangulation can be used when extracting relevant data.
     pd = PlotData2DTriangulated(u, mesh, equations, solver, cache; solution_variables, nvisnodes)
-    x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point)
+    x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point, nvisnodes)
+  else # ndims(mesh) == 3
+    # Extract the information required to create a PlotData1D object.
+    x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, u, curve, slice, point, nvisnodes)
   end
 
   return PlotData1D(x, data, variable_names, mesh_vertices_x,
@@ -649,7 +658,7 @@ end
     PlotData1D(sol; kwargs...)
 
 Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!`
-(which returns a `SciMLBase.ODESolution`) or Trixi's own `solve!` (which returns a
+(which returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
 
 !!! warning "Experimental implementation"

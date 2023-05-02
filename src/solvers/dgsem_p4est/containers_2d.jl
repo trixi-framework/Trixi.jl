@@ -53,7 +53,7 @@ function calc_node_coordinates!(node_coordinates,
   p4est_root_len = 1 << P4EST_MAXLEVEL
   p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
 
-  trees = unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
+  trees = unsafe_wrap_sc(p4est_tree_t, unsafe_load(mesh.p4est).trees)
 
   for tree in eachindex(trees)
     offset = trees[tree].quadrants_offset
@@ -141,8 +141,7 @@ end
 
 # Initialize node_indices of mortar container
 # faces[1] is expected to be the face of the small side.
-@inline function init_mortar_node_indices!(mortars::P4estMortarContainer{2},
-                                           faces, orientation, mortar_id)
+@inline function init_mortar_node_indices!(mortars, faces, orientation, mortar_id)
   for side in 1:2
     # Align mortar in positive coordinate direction of small side.
     # For orientation == 1, the large side needs to be indexed backwards

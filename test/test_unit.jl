@@ -1,17 +1,13 @@
 module TestUnit
 
 using Test
-using Cassette
 using Trixi
 
 include("test_trixi.jl")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
-
-# Create a Cassette context that will be used for mocking Trixi.mpi_nranks
-Cassette.@context Ctx
 
 # Run various unit (= non-elixir-triggered) tests
 @testset "Unit tests" begin
@@ -66,8 +62,8 @@ Cassette.@context Ctx
   @timed_testset "ParallelTreeMesh" begin
     @testset "partition!" begin
       @testset "mpi_nranks() = 2" begin
-        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 2
-        Cassette.overdub(Ctx(), () -> begin
+        Trixi.mpi_nranks() = 2
+        let
           @test Trixi.mpi_nranks() == 2
 
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(30, (0.0, 0.0), 1)
@@ -89,13 +85,14 @@ Cassette.@context Ctx
           @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
           @test parent(mesh.first_cell_by_rank) == [1, 12]
-        end)
+        end
+        Trixi.mpi_nranks() = Trixi.MPI_SIZE[] # restore the original behavior
       end
 
       @testset "mpi_nranks() = 3" begin
-        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 3
-        Cassette.overdub(Ctx(), () -> begin
-        @test Trixi.mpi_nranks() == 3
+        Trixi.mpi_nranks() = 3
+        let
+          @test Trixi.mpi_nranks() == 3
 
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
           # Refine twice
@@ -116,13 +113,14 @@ Cassette.@context Ctx
           @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
           @test parent(mesh.first_cell_by_rank) == [1, 10, 16]
-        end)
+        end
+        Trixi.mpi_nranks() = Trixi.MPI_SIZE[] # restore the original behavior
       end
 
       @testset "mpi_nranks() = 9" begin
-        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 9
-        Cassette.overdub(Ctx(), () -> begin
-        @test Trixi.mpi_nranks() == 9
+        Trixi.mpi_nranks() = 9
+        let
+          @test Trixi.mpi_nranks() == 9
 
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(1000, (0.0, 0.0), 1)
           # Refine twice
@@ -136,12 +134,13 @@ Cassette.@context Ctx
           # Use parent for OffsetArray
           @test parent(mesh.n_cells_by_rank) == [44, 37, 38, 37, 37, 37, 38, 37, 36]
           @test parent(mesh.first_cell_by_rank) == [1, 45, 82, 120, 157, 194, 231, 269, 306]
-        end)
+        end
+        Trixi.mpi_nranks() = Trixi.MPI_SIZE[] # restore the original behavior
       end
 
       @testset "mpi_nranks() = 3 non-uniform" begin
-        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 3
-        Cassette.overdub(Ctx(), () -> begin
+        Trixi.mpi_nranks() = 3
+        let
           @test Trixi.mpi_nranks() == 3
 
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
@@ -162,12 +161,13 @@ Cassette.@context Ctx
           @test parent(mesh.n_cells_by_rank) == [5, 2, 2]
           @test mesh.tree.mpi_ranks[1:9] == [0, 0, 0, 0, 0, 1, 1, 2, 2]
           @test parent(mesh.first_cell_by_rank) == [1, 6, 8]
-        end)
+        end
+        Trixi.mpi_nranks() = Trixi.MPI_SIZE[] # restore the original behavior
       end
 
       @testset "not enough ranks" begin
-        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 3
-        Cassette.overdub(Ctx(), () -> begin
+        Trixi.mpi_nranks() = 3
+        let
           @test Trixi.mpi_nranks() == 3
 
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
@@ -183,7 +183,8 @@ Cassette.@context Ctx
           @test_throws AssertionError(
             "Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
           @test_nowarn Trixi.partition!(mesh; allow_coarsening=false)
-        end)
+        end
+        Trixi.mpi_nranks() = Trixi.MPI_SIZE[] # restore the original behavior
       end
     end
   end
@@ -523,10 +524,27 @@ Cassette.@context Ctx
   @timed_testset "Shallow water conversion between conservative/entropy variables" begin
     H, v1, v2, b = 3.5, 0.25, 0.1, 0.4
 
+    let equations = ShallowWaterEquations1D(gravity_constant=9.8)
+      cons_vars = prim2cons(SVector(H, v1, b),equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+
+      total_energy = energy_total(cons_vars, equations)
+      @test total_energy ≈ entropy(cons_vars, equations)
+
+      # test tuple args
+      cons_vars = prim2cons((H, v1, b), equations)
+      entropy_vars = cons2entropy(cons_vars, equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
+
     let equations = ShallowWaterEquations2D(gravity_constant=9.8)
       cons_vars = prim2cons(SVector(H,v1,v2,b),equations)
       entropy_vars = cons2entropy(cons_vars,equations)
       @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+
+      total_energy = energy_total(cons_vars, equations)
+      @test total_energy ≈ entropy(cons_vars, equations)
 
       # test tuple args
       cons_vars = prim2cons((H, v1, v2, b), equations)
@@ -535,8 +553,26 @@ Cassette.@context Ctx
     end
   end
 
+  @timed_testset "boundary_condition_do_nothing" begin
+    rho, v1, v2, p = 1.0, 0.1, 0.2, 0.3, 2.0
+
+    let equations = CompressibleEulerEquations2D(1.4)
+      u = prim2cons(SVector(rho, v1, v2, p), equations)
+      x = SVector(1.0, 2.0)
+      t = 0.5
+      surface_flux = flux_lax_friedrichs
+
+      outward_direction = SVector(0.2, -0.3)
+      @test flux(u, outward_direction, equations) ≈ boundary_condition_do_nothing(u, outward_direction, x, t, surface_flux, equations)
+
+      orientation = 2
+      direction = 4
+      @test flux(u, orientation, equations) ≈ boundary_condition_do_nothing(u, orientation, direction, x, t, surface_flux, equations)
+    end
+  end
+
   @timed_testset "TimeSeriesCallback" begin
-    @test_nowarn_debug trixi_include(@__MODULE__,
+    @test_nowarn_mod trixi_include(@__MODULE__,
                                      joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"),
                                      tspan=(0, 0.05))
 
@@ -548,6 +584,171 @@ Cassette.@context Ctx
     @test_nowarn show(stdout, time_series)
     @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval=-1)
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
+  end
+
+  @timed_testset "Consistency check for HLLE flux" begin
+    # Set up equations and dummy conservative variables state
+    equations = CompressibleEulerEquations1D(1.4)
+    u = SVector(1.1, 2.34, 5.5)
+
+    orientations = [1]
+    for orientation in orientations
+      @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
+    equations = CompressibleEulerEquations2D(1.4)
+    u = SVector(1.1, -0.5, 2.34, 5.5)
+
+    orientations = [1, 2]
+    for orientation in orientations
+      @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
+    equations = CompressibleEulerEquations3D(1.4)
+    u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
+
+    orientations = [1, 2, 3]
+    for orientation in orientations
+      @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+  end
+
+  @timed_testset "Consistency check for Godunov flux" begin
+    # Set up equations and dummy conservative variables state
+    # Burgers' Equation
+
+    equation = InviscidBurgersEquation1D()
+    u_values = [SVector(42.0), SVector(-42.0)]
+
+    orientations = [1]
+    for orientation in orientations, u in u_values
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    # Linear Advection 1D
+    equation = LinearScalarAdvectionEquation1D(-4.2)
+    u = SVector(3.14159)
+
+    orientations = [1]
+    for orientation in orientations
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    # Linear Advection 2D
+    equation = LinearScalarAdvectionEquation2D(-4.2, 2.4)
+    u = SVector(3.14159)
+
+    orientations = [1, 2]
+    for orientation in orientations
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    normal_directions = [SVector(1.0, 0.0),
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+      @test flux_godunov(u, u, normal_direction, equation) ≈ flux(u, normal_direction, equation)
+    end
+
+    # Linear Advection 3D
+    equation = LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
+    u = SVector(3.14159)
+
+    orientations = [1, 2, 3]
+    for orientation in orientations
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    normal_directions = [SVector(1.0, 0.0, 0.0),
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
+
+    for normal_direction in normal_directions
+      @test flux_godunov(u, u, normal_direction, equation) ≈ flux(u, normal_direction, equation)
+    end
+  end
+
+  @timed_testset "Consistency check for Engquist-Osher flux" begin
+    # Set up equations and dummy conservative variables state
+    equation = InviscidBurgersEquation1D()
+    u_values = [SVector(42.0), SVector(-42.0)]
+
+    orientations = [1]
+    for orientation in orientations, u in u_values
+      @test Trixi.flux_engquist_osher(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    equation = LinearScalarAdvectionEquation1D(-4.2)
+    u = SVector(3.14159)
+
+    orientations = [1]
+    for orientation in orientations
+      @test Trixi.flux_engquist_osher(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+  end
+
+  @testset "Equivalent Fluxes" begin
+    # Set up equations and dummy conservative variables state
+    # Burgers' Equation
+
+    equation = InviscidBurgersEquation1D()
+    u_values = [SVector(42.0), SVector(-42.0)]
+
+    orientations = [1]
+    for orientation in orientations, u in u_values
+      @test flux_godunov(0.75*u, u, orientation, equation) ≈ Trixi.flux_engquist_osher(0.75*u, u, orientation, equation)
+    end
+
+    # Linear Advection 1D
+    equation = LinearScalarAdvectionEquation1D(-4.2)
+    u = SVector(3.14159)
+
+    orientations = [1]
+    for orientation in orientations
+      @test flux_godunov(0.5*u, u, orientation, equation) ≈ flux_lax_friedrichs(0.5*u, u, orientation, equation)
+      @test flux_godunov(2*u, u, orientation, equation) ≈ Trixi.flux_engquist_osher(2*u, u, orientation, equation)
+    end
+
+    # Linear Advection 2D
+    equation = LinearScalarAdvectionEquation2D(-4.2, 2.4)
+    u = SVector(3.14159)
+
+    orientations = [1, 2]
+    for orientation in orientations
+      @test flux_godunov(0.25*u, u, orientation, equation) ≈ flux_lax_friedrichs(0.25*u, u, orientation, equation)
+    end
+
+    normal_directions = [SVector(1.0, 0.0),
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+      @test flux_godunov(3*u, u, normal_direction, equation) ≈ flux_lax_friedrichs(3*u, u, normal_direction, equation)
+    end
+
+    # Linear Advection 3D
+    equation = LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
+    u = SVector(3.14159)
+
+    orientations = [1, 2, 3]
+    for orientation in orientations
+      @test flux_godunov(1.5*u, u, orientation, equation) ≈ flux_lax_friedrichs(1.5*u, u, orientation, equation)
+    end
+
+    normal_directions = [SVector(1.0, 0.0, 0.0),
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
+
+    for normal_direction in normal_directions
+      @test flux_godunov(1.3*u, u, normal_direction, equation) ≈ flux_lax_friedrichs(1.3*u, u, normal_direction, equation)
+    end
   end
 
   @testset "FluxRotated vs. direct implementation" begin
@@ -653,6 +854,16 @@ Cassette.@context Ctx
                  xmin=0.0, xmax=1.0, N=10))
 
     @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
+  end
+
+  @testset "1D non-periodic DGMultiMesh" begin
+    # checks whether or not boundary faces are initialized correctly for DGMultiMesh in 1D
+    dg = DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),
+                 surface_integral = SurfaceIntegralWeakForm(flux_central),
+                 volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    mesh = DGMultiMesh(dg, cells_per_dimension=(1,), periodicity=false)
+
+    @test mesh.boundary_faces[:entire_boundary] == [1, 2]
   end
 
 end

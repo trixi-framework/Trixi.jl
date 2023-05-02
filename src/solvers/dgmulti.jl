@@ -9,3 +9,6 @@ include("dgmulti/sbp.jl")
 
 # specialization of DGMulti to specific equations
 include("dgmulti/flux_differencing_compressible_euler.jl")
+
+# parabolic terms for DGMulti solvers
+include("dgmulti/dg_parabolic.jl")

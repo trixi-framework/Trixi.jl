@@ -138,8 +138,8 @@ failing precompile statements, cf. https://timholy.github.io/SnoopCompile.jl/sta
 If any assertions below fail, it is generally safe to just disable the failing call
 to precompile (or to not include precompile.jl at all).
 To still get the same latency reductions, you should consider to adapt the failing precompile
-statements in accordance with the changes in Trixi's source code. Please, feel free to ping
-the core developers of Trixi to get help with that.
+statements in accordance with the changes in Trixi.jl's source code. Please, feel free to ping
+the core developers of Trixi.jl to get help with that.
 =#
 
 

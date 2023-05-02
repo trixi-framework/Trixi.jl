@@ -24,9 +24,9 @@ timer() = main_timer
 
 
 """
-    PerformanceCounter
+    PerformanceCounter()
 
-A `PerformanceCounter` be used to track the runtime performance of some calls.
+A `PerformanceCounter` can be used to track the runtime performance of some calls.
 Add a new runtime measurement via `put!(counter, runtime)` and get the averaged
 runtime of all measurements added so far via `take!(counter)`, resetting the
 `counter`.
@@ -38,24 +38,70 @@ end
 
 PerformanceCounter() = PerformanceCounter(0, 0.0)
 
-function Base.take!(counter::PerformanceCounter)
+@inline function Base.take!(counter::PerformanceCounter)
   time_per_call = counter.runtime / counter.ncalls_since_readout
   counter.ncalls_since_readout = 0
   counter.runtime = 0.0
   return time_per_call
 end
 
-function Base.put!(counter::PerformanceCounter, runtime::Real)
+@inline function Base.put!(counter::PerformanceCounter, runtime::Real)
   counter.ncalls_since_readout += 1
   counter.runtime += runtime
 end
+
+@inline ncalls(counter::PerformanceCounter) = counter.ncalls_since_readout
+
+
+"""
+    PerformanceCounterList{N}()
+
+A `PerformanceCounterList{N}` can be used to track the runtime performance of
+calls to multiple functions, adding them up.
+Add a new runtime measurement via `put!(counter.counters[i], runtime)` and get
+the averaged runtime of all measurements added so far via `take!(counter)`,
+resetting the `counter`.
+"""
+struct PerformanceCounterList{N}
+  counters::NTuple{N, PerformanceCounter}
+  check_ncalls_consistency::Bool
+end
+
+function PerformanceCounterList{N}(check_ncalls_consistency) where {N}
+  counters = ntuple(_ -> PerformanceCounter(), Val{N}())
+  return PerformanceCounterList{N}(counters, check_ncalls_consistency)
+end
+PerformanceCounterList{N}() where {N} = PerformanceCounterList{N}(true)
+
+@inline function Base.take!(counter_list::PerformanceCounterList)
+  time_per_call = 0.0
+  for c in counter_list.counters
+    time_per_call += take!(c)
+  end
+  return time_per_call
+end
+
+@inline function ncalls(counter_list::PerformanceCounterList)
+  ncalls_first = ncalls(first(counter_list.counters))
+
+  if counter_list.check_ncalls_consistency
+    for c in counter_list.counters
+      if ncalls_first != ncalls(c)
+        error("Some counters have a different number of calls. Using `ncalls` on the counter list is undefined behavior.")
+      end
+    end
+  end
+
+  return ncalls_first
+end
+
 
 
 
 """
     examples_dir()
 
-Return the directory where the example files provided with Trixi.jl are located. If Trixi is
+Return the directory where the example files provided with Trixi.jl are located. If Trixi.jl is
 installed as a regular package (with `]add Trixi`), these files are read-only and should *not* be
 modified. To find out which files are available, use, e.g., `readdir`:
 
@@ -70,7 +116,7 @@ examples_dir() = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 """
     get_examples()
 
-Return a list of all example elixirs that are provided by Trixi. See also
+Return a list of all example elixirs that are provided by Trixi.jl. See also
 [`examples_dir`](@ref) and [`default_example`](@ref).
 """
 function get_examples()
@@ -90,7 +136,7 @@ end
 """
     default_example()
 
-Return the path to an example elixir that can be used to quickly see Trixi in action on a
+Return the path to an example elixir that can be used to quickly see Trixi.jl in action on a
 [`TreeMesh`]@(ref). See also [`examples_dir`](@ref) and [`get_examples`](@ref).
 """
 default_example() = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
@@ -99,12 +145,28 @@ default_example() = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_
 """
     default_example_unstructured()
 
-Return the path to an example elixir that can be used to quickly see Trixi in action on an
+Return the path to an example elixir that can be used to quickly see Trixi.jl in action on an
 [`UnstructuredMesh2D`]@(ref). This simulation is run on the example curved, unstructured mesh
-given in the Trixi documentation regarding unstructured meshes.
+given in the Trixi.jl documentation regarding unstructured meshes.
 """
 default_example_unstructured() = joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
 
+
+"""
+    ode_default_options()
+
+Return the default options for OrdinaryDiffEq's `solve`. Pass `ode_default_options()...` to `solve`
+to only return the solution at the final time and enable **MPI aware** error-based step size control,
+whenever MPI is used.
+For example, use `solve(ode, alg; ode_default_options()...)`
+"""
+function ode_default_options()
+  if mpi_isparallel()
+    return (; save_everystep = false, internalnorm = ode_norm, unstable_check = ode_unstable_check)
+  else
+    return (; save_everystep = false)
+  end
+end
 
 # Print informative message at startup
 function print_startup_message()
@@ -195,7 +257,7 @@ end
 # [TimerOutputs.jl](https://github.com/KristofferC/TimerOutputs.jl),
 # but without `try ... finally ... end` block. Thus, it's not exception-safe,
 # but it also avoids some related performance problems. Since we do not use
-# exception handling in Trixi, that's not really an issue.
+# exception handling in Trixi.jl, that's not really an issue.
 macro trixi_timeit(timer_output, label, expr)
   timeit_block = quote
     if timeit_debug_enabled()

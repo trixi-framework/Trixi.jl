@@ -35,13 +35,13 @@
 # There is a default example for this mesh type that can be executed by
 
 using Trixi
-redirect_stdout(devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 trixi_include(default_example_unstructured())
 end #hide #md
 
 # This will compute a smooth, manufactured solution test case for the 2D compressible Euler equations
 # on the curved quadrilateral mesh described in the
-# [Trixi documentation](https://trixi-framework.github.io/Trixi.jl/stable/meshes/unstructured_quad_mesh/).
+# [Trixi.jl documentation](https://trixi-framework.github.io/Trixi.jl/stable/meshes/unstructured_quad_mesh/).
 
 # Apart from the usual error and timing output provided by the Trixi.jl run, it is useful to visualize and inspect
 # the solution. One option available in the Trixi.jl framework to visualize the solution on
@@ -49,10 +49,10 @@ end #hide #md
 # Trixi.jl output file(s) with the [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl) tool
 # and plotting them with [ParaView](https://www.paraview.org/download/).
 
-# To convert the HDF5-formatted `.h5` output file(s) from Trixi into VTK format execute the following
+# To convert the HDF5-formatted `.h5` output file(s) from Trixi.jl into VTK format execute the following
 
 using Trixi2Vtk
-redirect_stdout(devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 trixi2vtk("out/solution_000180.h5", output_directory="out")
 end #hide #md
 
@@ -62,7 +62,7 @@ end #hide #md
 # where the new files will be saved; it defaults to the current directory. (2) Specifying a higher number of
 # visualization nodes. For instance, if we want to use 12 uniformly spaced nodes for visualization we can execute
 
-redirect_stdout(devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 trixi2vtk("out/solution_000180.h5", output_directory="out", nvisnodes=12)
 end #hide #md
 
@@ -71,7 +71,7 @@ end #hide #md
 
 # Finally, if you want to convert all the solution files to VTK execute
 
-redirect_stdout(devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 trixi2vtk("out/solution_000*.h5", output_directory="out", nvisnodes=12)
 end #hide #md
 
@@ -93,7 +93,7 @@ end #hide #md
 # ![mesh_boundary_cartoon](https://user-images.githubusercontent.com/25242486/129603954-9788500d-bba8-49be-8e6f-7555099dbf7c.png)
 
 # The associated `ice_cream_straight_sides.control` file is created below.
-open("out/ice_cream_straight_sides.control", "w") do io 
+open("out/ice_cream_straight_sides.control", "w") do io
   println(io, raw"""
 \begin{CONTROL_INPUT}
     \begin{RUN_PARAMETERS}
@@ -173,12 +173,12 @@ end
 # available if you wish to also save a collection of mesh statistics. For this example it is deactivated.
 # These file names given within `RUN_PARAMETERS` **should match** that of the control file, and although this is not required by
 # HOHQMesh, it is a useful style convention.
-# The mesh file format `ISM-v2` in the format currently required by Trixi. The `polynomial order` prescribes the order
+# The mesh file format `ISM-v2` in the format currently required by Trixi.jl. The `polynomial order` prescribes the order
 # of an interpolant constructed on the Chebyshev-Gauss-Lobatto nodes that is used to represent any curved boundaries on a particular element.
 # The plot file format of `skeleton` means that visualizing the plot file will only draw the element boundaries (and no internal nodes).
 # Alternatively, the format can be set to `sem` to visualize the interior nodes of the approximation as well.
 
-# The second block of information in `BACKGOUND_GRID` is
+# The second block of information in `BACKGROUND_GRID` is
 # ```
 # \begin{BACKGROUND_GRID}
 #   x0 = [-8.0, -8.0, 0.0]
@@ -364,7 +364,7 @@ stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback, save_solution, stepsize_callback)
 
-redirect_stdout(devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 ## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
@@ -387,7 +387,7 @@ end #hide #md
 
 # We create the new control file `ice_cream_curved_sides.control` file below and will then highlight the
 # major differences compared to `ice_cream_straight_sides.control`.
-open("out/ice_cream_curved_sides.control", "w") do io 
+open("out/ice_cream_curved_sides.control", "w") do io
   println(io, raw"""
 \begin{CONTROL_INPUT}
     \begin{RUN_PARAMETERS}
@@ -457,7 +457,7 @@ open("out/ice_cream_curved_sides.control", "w") do io
 end
 
 # The first alteration is that we have altered the second block of information
-# `BACKGOUND_GRID` within the `CONTROL_INPUT` to be
+# `BACKGROUND_GRID` within the `CONTROL_INPUT` to be
 # ```
 # \begin{BACKGROUND_GRID}
 #    background grid size = [1.0, 1.0, 0.0]
@@ -497,7 +497,7 @@ output = generate_mesh(control_file);
 
 # We can reuse much of the elixir file to setup the uniform flow over an ice cream cone from the
 # previous part of this tutorial. The only component of the elixir file that must be changed is the boundary condition
-# dictionary because we now have a boundary named `OuterCirle` instead of four edges of a bounding box.
+# dictionary because we now have a boundary named `OuterCircle` instead of four edges of a bounding box.
 
 ## boundary condition dictionary
 boundary_conditions = Dict( :OuterCircle => boundary_condition_uniform_flow,
@@ -516,3 +516,53 @@ mesh = UnstructuredMesh2D(mesh_file);
 # We can then post-process the solution file at the final time on the new mesh with `Trixi2Vtk` and visualize with ParaView.
 
 # ![simulation_curved_sides](https://user-images.githubusercontent.com/25242486/129733924-778795c1-9119-419a-8b89-bcbe13e33cd7.png)
+
+
+# ## Setting up a simulation with AMR via `P4estMesh`
+# The above explained mesh file format of `ISM-V2` only works with `UnstructuredMesh2D` and so does
+# not support AMR. On the other hand, the mesh type [`P4estMesh`](@ref) allows AMR. The mesh
+# constructor for the `P4estMesh` imports an unstructured, conforming mesh from an Abaqus mesh file
+# (`.inp`).
+
+# As described above, the first block of the HOHQMesh control file contains the parameter
+# `mesh file format`. If you set `mesh file format = ABAQUS` instead of `ISM-V2`,
+# HOHQMesh.jl's function `generate_mesh` creates an Abaqus mesh file `.inp`.
+# ```julia
+# using HOHQMesh
+# control_file = joinpath("out", "ice_cream_straight_sides.control")
+# output = generate_mesh(control_file);
+# ```
+
+# Now, you can create a `P4estMesh` from your mesh file. It is described in detail in the
+# [P4est-based mesh](https://trixi-framework.github.io/Trixi.jl/stable/meshes/p4est_mesh/#P4est-based-mesh)
+# part of the Trixi.jl docs.
+# ```julia
+# using Trixi
+# mesh_file = joinpath("out", "ice_cream_straight_sides.inp")
+# mesh = P4estMesh{2}(mesh_file)
+# ```
+
+# Since `P4estMesh` supports AMR, we just have to extend the setup from the first example by the
+# standard AMR procedure. For more information about AMR in Trixi.jl, see the [matching tutorial](@ref adaptive_mesh_refinement).
+
+# ```julia
+# amr_indicator = IndicatorLöhner(semi, variable=density)
+
+# amr_controller = ControllerThreeLevel(semi, amr_indicator,
+#                                       base_level=0,
+#                                       med_level =1, med_threshold=0.05,
+#                                       max_level =3, max_threshold=0.1)
+
+# amr_callback = AMRCallback(semi, amr_controller,
+#                            interval=5,
+#                            adapt_initial_condition=true,
+#                            adapt_initial_condition_only_refine=true)
+
+# callbacks = CallbackSet(..., amr_callback)
+# ```
+
+# We can then post-process the solution file at the final time on the new mesh with `Trixi2Vtk` and visualize
+# with ParaView, see the appropriate [visualization section](https://trixi-framework.github.io/Trixi.jl/stable/visualization/#Trixi2Vtk)
+# for details.
+
+# ![simulation_straight_sides_p4est_amr](https://user-images.githubusercontent.com/74359358/168049930-8abce6ac-cd47-4d04-b40b-0fa459bbd98d.png)

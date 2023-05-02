@@ -182,7 +182,6 @@ end
 
 Base.show(io::IO, f::FluxLaxFriedrichs) = print(io, "FluxLaxFriedrichs(", f.dissipation.max_abs_speed, ")")
 
-# TODO: Shall we deprecate `flux_lax_friedrichs`?
 """
     flux_lax_friedrichs
 
@@ -238,7 +237,6 @@ end
 
 Base.show(io::IO, numflux::FluxHLL) = print(io, "FluxHLL(", numflux.min_max_speed, ")")
 
-# TODO: Shall we deprecate `flux_hll`?
 """
     flux_hll
 
@@ -271,6 +269,78 @@ increase runtime efficiency on modern hardware.
 @inline function flux_ranocha_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
   flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
+
+
+"""
+    FluxHydrostaticReconstruction(numerical_flux, hydrostatic_reconstruction)
+
+!!! warning "Experimental code"
+    This numerical flux is experimental and may change in any future release.
+
+Allow for some kind of hydrostatic reconstruction of the solution state prior to the
+surface flux computation. This is a particular strategy to ensure that the method remains
+well-balanced for the shallow water equations, see [`ShallowWaterEquations1D`](@ref)
+or [`ShallowWaterEquations2D`](@ref).
+
+For example, the hydrostatic reconstruction from Audusse et al. is implemented
+in one and two spatial dimensions, see [`hydrostatic_reconstruction_audusse_etal`](@ref) or
+the original paper
+- Emmanuel Audusse, François Bouchut, Marie-Odile Bristeau, Rupert Klein, and Benoit Perthame (2004)
+  A fast and stable well-balanced scheme with hydrostatic reconstruction for shallow water flows
+  [DOI: 10.1137/S1064827503431090](https://doi.org/10.1137/S1064827503431090)
+
+Other hydrostatic reconstruction techniques are available, particularly to handle wet / dry
+fronts. A good overview of the development and application of hydrostatic reconstruction can be found in
+- Guoxian Chen and Sebastian Noelle
+  A unified surface-gradient and hydrostatic reconstruction scheme for the shallow water equations (2021)
+  [RWTH Aachen preprint](https://www.igpm.rwth-aachen.de/forschung/preprints/517)
+- Andreas Buttinger-Kreuzhuber, Zsolt Horváth, Sebastian Noelle, Günter Blöschl and Jürgen Waser (2019)
+  A fast second-order shallow water scheme on two-dimensional structured grids over abrupt topography
+  [DOI: 10.1016/j.advwatres.2019.03.010](https://doi.org/10.1016/j.advwatres.2019.03.010)
+"""
+struct FluxHydrostaticReconstruction{NumericalFlux, HydrostaticReconstruction}
+  numerical_flux::NumericalFlux
+  hydrostatic_reconstruction::HydrostaticReconstruction
+end
+
+@inline function (numflux::FluxHydrostaticReconstruction)(u_ll, u_rr,
+                                                          orientation_or_normal_direction,
+                                                          equations::AbstractEquations)
+  @unpack numerical_flux, hydrostatic_reconstruction = numflux
+
+  # Create the reconstructed left/right solution states in conservative form
+  u_ll_star, u_rr_star = hydrostatic_reconstruction(u_ll, u_rr, equations)
+
+  # Use the reconstructed states to compute the numerical surface flux
+  return numerical_flux(u_ll_star, u_rr_star, orientation_or_normal_direction, equations)
+end
+
+
+"""
+    FluxUpwind(splitting)
+
+A numerical flux `f(u_left, u_right) = f⁺(u_left) + f⁻(u_right)` based on
+flux vector splitting.
+
+The [`SurfaceIntegralUpwind`](@ref) with a given `splitting` is equivalent to
+the [`SurfaceIntegralStrongForm`](@ref) with `FluxUpwind(splitting)`
+as numerical flux (up to floating point differences).
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+"""
+struct FluxUpwind{Splitting}
+  splitting::Splitting
+end
+
+@inline function (numflux::FluxUpwind)(u_ll, u_rr, orientation::Int, equations)
+  @unpack splitting = numflux
+  fm = splitting(u_rr, Val{:minus}(), orientation, equations)
+  fp = splitting(u_ll, Val{:plus}(),  orientation, equations)
+  return fm + fp
+end
+
+Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(",  f.splitting, ")")
 
 
 end # @muladd

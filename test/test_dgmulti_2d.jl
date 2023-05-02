@@ -7,11 +7,12 @@ include("test_trixi.jl")
 
 EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_2d")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
 @testset "DGMulti 2D" begin
+
   @trixi_testset "elixir_euler_weakform.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4, 4),
@@ -74,6 +75,43 @@ isdir(outdir) && rm(outdir, recursive=true)
       # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.0029373718090697975, 0.0030629360605489465, 0.003062936060545615, 0.0068486089344859755] ./ 2.0,
       linf = [0.01360165305316885, 0.01267402847925303, 0.012674028479251254, 0.02210545278615017]
+    )
+  end
+
+  @trixi_testset "elixir_euler_bilinear.jl (Bilinear quadrilateral elements, SBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_bilinear.jl"),
+      l2 = [1.0259435706215337e-5, 9.014090233720625e-6, 9.014090233223014e-6, 2.738953587401793e-5],
+      linf = [7.362609083649829e-5, 6.874188055272512e-5, 6.874188052830021e-5, 0.0001912435192696904]
+    )
+  end
+
+  @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      l2 = [1.720476068165337e-5, 1.592168205710526e-5, 1.592168205812963e-5, 4.894094865697305e-5],
+      linf = [0.00010525416930584619, 0.00010003778091061122, 0.00010003778085621029, 0.00036426282101720275]
+    )
+  end
+
+  @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, GaussSBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      approximation_type = GaussSBP(),
+      l2 = [3.4666312082010235e-6, 3.439277448411873e-6, 3.439277448308561e-6, 1.0965598425655705e-5],
+      linf = [1.1327280369899384e-5, 1.1343911921146699e-5, 1.1343911907157889e-5, 3.6795826181545976e-5]
+    )
+  end
+
+  @trixi_testset "elixir_euler_curved.jl (Triangular elements, Polynomial, weak formulation)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      element_type = Tri(), approximation_type = Polynomial(), volume_integral = VolumeIntegralWeakForm(),
+      l2 = [7.905498158659466e-6, 8.731690809663625e-6, 8.731690811576996e-6, 2.9113296018693953e-5],
+      linf = [3.298811230090237e-5, 4.032272476939269e-5, 4.032272526011127e-5, 0.00012013725458537294]
+    )
+  end
+
+  @trixi_testset "elixir_euler_hohqmesh.jl (Quadrilateral elements, SBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_hohqmesh.jl"),
+      l2 = [0.0008153911341517156, 0.0007768159701964676, 0.00047902606811690694, 0.0015551846076348535],
+      linf = [0.0029301131365355726, 0.0034427051471457304, 0.0028721569841545502, 0.011125365074589944]
     )
   end
 
@@ -295,7 +333,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 end
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive=true)
 
 end # module

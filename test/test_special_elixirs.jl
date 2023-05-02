@@ -8,11 +8,11 @@ import ForwardDiff
 
 include("test_trixi.jl")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
+# pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
 cmd = string(Base.julia_cmd())
@@ -55,10 +55,10 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
     else
       # Without coverage, just run simple convergence tests to cover
       # the convergence test logic
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 2, initial_refinement_level=0, tspan=(0.0, 0.1))
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 2, cells_per_dimension=(1, 1), tspan=(0.0, 0.1))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 2, initial_refinement_level=0, tspan=(0.0, 0.1))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 2, cells_per_dimension=(1, 1), tspan=(0.0, 0.1))
     end
   end
 
@@ -129,10 +129,8 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
                         surface_integral = SurfaceIntegralWeakForm(flux_central),
                         volume_integral = VolumeIntegralWeakForm())
 
-        # StartUpDG.uniform_mesh is on [-1, 1]^ndims by default
-        cells_per_dimension = (2, 2)
-        vertex_coordinates, EToV = StartUpDG.uniform_mesh(solver.basis.elementType, cells_per_dimension...)
-        mesh = DGMultiMesh(vertex_coordinates, EToV, solver, periodicity=(true,true))
+         # DGMultiMesh is on [-1, 1]^ndims by default
+        mesh = DGMultiMesh(solver, cells_per_dimension=(2, 2), periodicity=(true, true))
 
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -150,10 +148,8 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
                         surface_integral = SurfaceIntegralWeakForm(flux_central),
                         volume_integral = VolumeIntegralFluxDifferencing(flux_central))
 
-        # StartUpDG.uniform_mesh is on [-1, 1]^ndims by default
-        cells_per_dimension = (2, 2)
-        vertex_coordinates, EToV = StartUpDG.uniform_mesh(solver.basis.elementType, cells_per_dimension...)
-        mesh = DGMultiMesh(vertex_coordinates, EToV, solver, periodicity=(true,true))
+         # DGMultiMesh is on [-1, 1]^ndims by default
+        mesh = DGMultiMesh(solver, cells_per_dimension=(2, 2), periodicity=(true, true))
 
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -259,7 +255,7 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
 end
 
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn rm(outdir, recursive=true)
 
 end #module

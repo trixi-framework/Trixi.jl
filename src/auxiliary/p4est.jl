@@ -13,7 +13,8 @@ This function will check if `p4est` is already initialized
 and if yes, do nothing, thus it is safe to call it multiple times.
 """
 function init_p4est()
-  if p4est_package_id()[] >= 0
+  p4est_package_id = P4est.package_id()
+  if p4est_package_id >= 0
     return nothing
   end
 
@@ -25,28 +26,39 @@ end
 
 
 # Convert sc_array of type T to Julia array
-function unsafe_wrap_sc(::Type{T}, sc_array) where T
-  element_count = sc_array.elem_count
+function unsafe_wrap_sc(::Type{T}, sc_array::Ptr{sc_array}) where T
+  sc_array_obj = unsafe_load(sc_array)
+  return unsafe_wrap_sc(T, sc_array_obj)
+end
 
-  return [unsafe_load_sc(T, sc_array, i) for i in 1:element_count]
+function unsafe_wrap_sc(::Type{T}, sc_array_obj::sc_array) where T
+  elem_count = sc_array_obj.elem_count
+  array = sc_array_obj.array
+
+  return unsafe_wrap(Array, Ptr{T}(array), elem_count)
 end
 
 
 # Load the ith element (1-indexed) of an sc array of type T
-function unsafe_load_sc(::Type{T}, sc_array, i=1) where T
-  element_size = sc_array.elem_size
+function unsafe_load_sc(::Type{T}, sc_array::Ptr{sc_array}, i=1) where T
+  sc_array_obj = unsafe_load(sc_array)
+  return unsafe_load_sc(T, sc_array_obj, i)
+end
 
+function unsafe_load_sc(::Type{T}, sc_array_obj::sc_array, i=1) where T
+  element_size = sc_array_obj.elem_size
   @assert element_size == sizeof(T)
 
-  return unsafe_load(Ptr{T}(sc_array.array), i)
+  return unsafe_load(Ptr{T}(sc_array_obj.array), i)
 end
 
 
 # Create new `p4est` from a p4est_connectivity
 # 2D
-function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
-  p4est_new_ext(0, # No MPI communicator
-                conn,
+function new_p4est(connectivity::Ptr{p4est_connectivity_t}, initial_refinement_level)
+  comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi.jl's MPI communicator if p4est supports MPI
+  p4est_new_ext(comm,
+                connectivity,
                 0, # No minimum initial qudrants per processor
                 initial_refinement_level,
                 true, # Refine uniformly
@@ -56,8 +68,9 @@ function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
 end
 
 # 3D
-function new_p4est(conn::Ptr{p8est_connectivity_t}, initial_refinement_level)
-  p8est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
+function new_p4est(connectivity::Ptr{p8est_connectivity_t}, initial_refinement_level)
+  comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi.jl's MPI communicator if p4est supports MPI
+  p8est_new_ext(comm, connectivity, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
 end
 
 
@@ -79,13 +92,15 @@ end
 # 2D
 function load_p4est(file, ::Val{2})
   conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
-  p4est_load(file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
+  comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi.jl's MPI communicator if p4est supports MPI
+  p4est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
 end
 
 # 3D
 function load_p4est(file, ::Val{3})
   conn_vec = Vector{Ptr{p8est_connectivity_t}}(undef, 1)
-  p8est_load(file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
+  comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi.jl's MPI communicator if p4est supports MPI
+  p8est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
 end
 
 
@@ -110,10 +125,51 @@ coarsen_p4est!(p4est::Ptr{p4est_t}, recursive, coarsen_fn_c, init_fn_c) = p4est_
 coarsen_p4est!(p8est::Ptr{p8est_t}, recursive, coarsen_fn_c, init_fn_c) = p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
 
 
+# Create new ghost layer from p4est, only connections via faces are relevant
+# 2D
+ghost_new_p4est(p4est::Ptr{p4est_t}) = p4est_ghost_new(p4est, P4est.P4EST_CONNECT_FACE)
+# 3D
+# In 3D it is not sufficient to use `P8EST_CONNECT_FACE`. Consider the neighbor elements of a mortar
+# in 3D. We have to determine which MPI ranks are involved in this mortar.
+# ┌─────────────┬─────────────┐  ┌───────────────────────────┐
+# │             │             │  │                           │
+# │    small    │    small    │  │                           │
+# │      3      │      4      │  │                           │
+# │             │             │  │           large           │
+# ├─────────────┼─────────────┤  │             5             │
+# │             │             │  │                           │
+# │    small    │    small    │  │                           │
+# │      1      │      2      │  │                           │
+# │             │             │  │                           │
+# └─────────────┴─────────────┘  └───────────────────────────┘
+# Suppose one process only owns element 1. Since element 4 is not connected to element 1 via a face,
+# there is no guarantee that element 4 will be in the ghost layer, if it is constructed with
+# `P8EST_CONNECT_FACE`. But if it is not in the ghost layer, it will not be available in
+# `iterate_p4est` and thus we cannot determine its MPI rank
+# (see https://github.com/cburstedde/p4est/blob/439bc9aae849555256ddfe4b03d1f9fe8d18ff0e/src/p8est_iterate.h#L66-L72).
+ghost_new_p4est(p8est::Ptr{p8est_t}) = p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FULL)
+
+# Check if ghost layer is valid
+# 2D
+function ghost_is_valid_p4est(p4est::Ptr{p4est_t}, ghost_layer::Ptr{p4est_ghost_t})
+  return p4est_ghost_is_valid(p4est, ghost_layer)
+end
+# 3D
+function ghost_is_valid_p4est(p4est::Ptr{p8est_t}, ghost_layer::Ptr{p8est_ghost_t})
+  return p8est_ghost_is_valid(p4est, ghost_layer)
+end
+
+# Destroy ghost layer
+# 2D
+ghost_destroy_p4est(ghost_layer::Ptr{p4est_ghost_t}) = p4est_ghost_destroy(ghost_layer)
+# 3D
+ghost_destroy_p4est(ghost_layer::Ptr{p8est_ghost_t}) = p8est_ghost_destroy(ghost_layer)
+
+
 # Let `p4est` iterate over each cell volume and cell face.
 # Call iter_volume_c for each cell and iter_face_c for each face.
 # 2D
-function iterate_p4est(p4est::Ptr{p4est_t}, user_data;
+function iterate_p4est(p4est::Ptr{p4est_t}, user_data; ghost_layer=C_NULL,
                        iter_volume_c=C_NULL, iter_face_c=C_NULL)
   if user_data === C_NULL
     user_data_ptr = user_data
@@ -125,7 +181,7 @@ function iterate_p4est(p4est::Ptr{p4est_t}, user_data;
 
   GC.@preserve user_data begin
     p4est_iterate(p4est,
-                  C_NULL, # ghost layer
+                  ghost_layer,
                   user_data_ptr,
                   iter_volume_c, # iter_volume
                   iter_face_c, # iter_face
@@ -136,7 +192,7 @@ function iterate_p4est(p4est::Ptr{p4est_t}, user_data;
 end
 
 # 3D
-function iterate_p4est(p8est::Ptr{p8est_t}, user_data;
+function iterate_p4est(p8est::Ptr{p8est_t}, user_data; ghost_layer=C_NULL,
                        iter_volume_c=C_NULL, iter_face_c=C_NULL)
   if user_data === C_NULL
     user_data_ptr = user_data
@@ -148,7 +204,7 @@ function iterate_p4est(p8est::Ptr{p8est_t}, user_data;
 
   GC.@preserve user_data begin
     p8est_iterate(p8est,
-                  C_NULL, # ghost layer
+                  ghost_layer,
                   user_data_ptr,
                   iter_volume_c, # iter_volume
                   iter_face_c, # iter_face
@@ -163,24 +219,24 @@ end
 # Load i-th element of the sc_array info.sides of the type p[48]est_iter_face_side_t
 # 2D version
 function unsafe_load_side(info::Ptr{p4est_iter_face_info_t}, i=1)
-  return unsafe_load_sc(p4est_iter_face_side_t, info.sides, i)
+  return unsafe_load_sc(p4est_iter_face_side_t, unsafe_load(info).sides, i)
 end
 
 # 3D version
 function unsafe_load_side(info::Ptr{p8est_iter_face_info_t}, i=1)
-  return unsafe_load_sc(p8est_iter_face_side_t, info.sides, i)
+  return unsafe_load_sc(p8est_iter_face_side_t, unsafe_load(info).sides, i)
 end
 
 
 # Load i-th element of the sc_array p4est.trees of the type p[48]est_tree_t
 # 2D version
 function unsafe_load_tree(p4est::Ptr{p4est_t}, i=1)
-  return unsafe_load_sc(p4est_tree_t, p4est.trees, i)
+  return unsafe_load_sc(p4est_tree_t, unsafe_load(p4est).trees, i)
 end
 
 # 3D version
 function unsafe_load_tree(p8est::Ptr{p8est_t}, i=1)
-  return unsafe_load_sc(p8est_tree_t, p8est.trees, i)
+  return unsafe_load_sc(p8est_tree_t, unsafe_load(p8est).trees, i)
 end
 
 

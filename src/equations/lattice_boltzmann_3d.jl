@@ -368,7 +368,7 @@ end
 
 
 
-@inline have_constant_speed(::LatticeBoltzmannEquations3D) = Val(true)
+@inline have_constant_speed(::LatticeBoltzmannEquations3D) = True()
 
 @inline function max_abs_speeds(equations::LatticeBoltzmannEquations3D)
   @unpack c = equations

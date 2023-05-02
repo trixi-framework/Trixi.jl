@@ -8,7 +8,7 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     if !isempty(folder)
         notebook_filename = joinpath(folder, notebook_filename)
     end
-    
+
     binder_logo   = "https://mybinder.org/badge_logo.svg"
     nbviewer_logo = "https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg"
     download_logo = "https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e"
@@ -21,11 +21,11 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     binder_badge   = "# [![]($binder_logo)]($binder_url)"
     nbviewer_badge = "# [![]($nbviewer_logo)]($nbviewer_url)"
     download_badge = "# [![]($download_logo)]($download_url)"
-    
+
     # Generate notebook file
     function preprocess_notebook(content)
         warning = "# **Note:** To improve responsiveness via caching, the notebooks are updated only once a week. They are only
-        # available for the latest stable release of Trixi at the time of caching.\n\n"
+        # available for the latest stable release of Trixi.jl at the time of caching.\n\n"
         return string("# # $title\n\n", warning, content)
     end
     Literate.notebook(joinpath(repo_src, folder, file), joinpath(notebooks_dir, folder); execute=false, preprocess=preprocess_notebook, credit=false)
@@ -68,7 +68,7 @@ function create_tutorials(files)
 
     # Create markdown and notebook files for tutorials
     for (i, (title, filename)) in enumerate(files)
-        # Several files of one topic are created seperately and pushed to `pages` together.
+        # Several files of one topic are created separately and pushed to `pages` together.
         if filename isa Vector
             vector = []
             for j in eachindex(filename)

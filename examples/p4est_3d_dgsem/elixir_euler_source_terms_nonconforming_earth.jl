@@ -131,7 +131,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # Use a Runge-Kutta method with automatic (error based) time step size control
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=callbacks);
 
 summary_callback() # print the timer summary

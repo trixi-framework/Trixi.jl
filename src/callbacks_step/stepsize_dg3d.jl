@@ -6,7 +6,7 @@
 
 
 function max_dt(u, t, mesh::TreeMesh{3},
-                constant_speed::Val{false}, equations, dg::DG, cache)
+                constant_speed::False, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -29,7 +29,7 @@ end
 
 
 function max_dt(u, t, mesh::TreeMesh{3},
-                constant_speed::Val{true}, equations, dg::DG, cache)
+                constant_speed::True, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -45,7 +45,7 @@ end
 
 
 function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                constant_speed::Val{false}, equations, dg::DG, cache)
+                constant_speed::False, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -80,7 +80,7 @@ end
 
 
 function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                constant_speed::Val{true}, equations, dg::DG, cache)
+                constant_speed::True, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -106,6 +106,38 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
   end
 
   return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+
+function max_dt(u, t, mesh::ParallelP4estMesh{3},
+                constant_speed::False, equations, dg::DG, cache)
+  # call the method accepting a general `mesh::P4estMesh{3}`
+  # TODO: MPI, we should improve this; maybe we should dispatch on `u`
+  #       and create some MPI array type, overloading broadcasting and mapreduce etc.
+  #       Then, this specific array type should also work well with DiffEq etc.
+  dt = invoke(max_dt,
+    Tuple{typeof(u), typeof(t), P4estMesh{3},
+          typeof(constant_speed), typeof(equations), typeof(dg), typeof(cache)},
+    u, t, mesh, constant_speed, equations, dg, cache)
+  dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
+
+  return dt
+end
+
+
+function max_dt(u, t, mesh::ParallelP4estMesh{3},
+                constant_speed::True, equations, dg::DG, cache)
+  # call the method accepting a general `mesh::P4estMesh{3}`
+  # TODO: MPI, we should improve this; maybe we should dispatch on `u`
+  #       and create some MPI array type, overloading broadcasting and mapreduce etc.
+  #       Then, this specific array type should also work well with DiffEq etc.
+  dt = invoke(max_dt,
+    Tuple{typeof(u), typeof(t), P4estMesh{3},
+          typeof(constant_speed), typeof(equations), typeof(dg), typeof(cache)},
+    u, t, mesh, constant_speed, equations, dg, cache)
+  dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
+
+  return dt
 end
 
 

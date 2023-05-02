@@ -194,10 +194,26 @@ end
 
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
-                   equations, dg::DGSEM, cache; normalize=true) where {Func}
+                   equations, dg::DG, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, j, k, element)
     return func(u_local, equations)
+  end
+end
+
+
+function integrate(func::Func, u,
+                   mesh::TreeMesh{3},
+                   equations, equations_parabolic,
+                   dg::DGSEM,
+                   cache, cache_parabolic; normalize=true) where {Func}
+  gradients_x, gradients_y, gradients_z = cache_parabolic.gradients
+  integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
+    u_local = get_node_vars(u, equations, dg, i, j, k, element)
+    gradients_1_local = get_node_vars(gradients_x, equations_parabolic, dg, i, j, k, element)
+    gradients_2_local = get_node_vars(gradients_y, equations_parabolic, dg, i, j, k, element)
+    gradients_3_local = get_node_vars(gradients_z, equations_parabolic, dg, i, j, k, element)
+    return func(u_local, (gradients_1_local, gradients_2_local, gradients_3_local), equations_parabolic)
   end
 end
 
@@ -225,7 +241,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
     for l in eachnode(dg)
       divb += ( derivative_matrix[i, l] * u[6, l, j, k, element] +
                 derivative_matrix[j, l] * u[7, i, l, k, element] +
-                derivative_matrix[k, l] * u[7, i, j, l, element] )
+                derivative_matrix[k, l] * u[8, i, j, l, element] )
     end
     divb *= cache.elements.inverse_jacobian[element]
     divb^2
@@ -248,7 +264,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
                 derivative_matrix[j, l] * (Ja21 * u[6, i, l, k, element] + Ja22 * u[7, i, l, k, element] + Ja23 * u[8, i, l, k, element]) +
                 derivative_matrix[k, l] * (Ja31 * u[6, i, j, l, element] + Ja32 * u[7, i, j, l, element] + Ja33 * u[8, i, j, l, element]) )
     end
-    divb *= cache.elements.inverse_jacobian[element]
+    divb *= cache.elements.inverse_jacobian[i, j, k, element]
     divb^2
   end |> sqrt
 end
@@ -267,7 +283,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
       for l in eachnode(dg)
         divb += ( derivative_matrix[i, l] * u[6, l, j, k, element] +
                   derivative_matrix[j, l] * u[7, i, l, k, element] +
-                  derivative_matrix[k, l] * u[7, i, j, l, element] )
+                  derivative_matrix[k, l] * u[8, i, j, l, element] )
       end
       divb *= cache.elements.inverse_jacobian[element]
       linf_divb = max(linf_divb, abs(divb))
@@ -298,7 +314,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
                   derivative_matrix[j, l] * (Ja21 * u[6, i, l, k, element] + Ja22 * u[7, i, l, k, element] + Ja23 * u[8, i, l, k, element]) +
                   derivative_matrix[k, l] * (Ja31 * u[6, i, j, l, element] + Ja32 * u[7, i, j, l, element] + Ja33 * u[8, i, j, l, element]) )
       end
-      divb *= cache.elements.inverse_jacobian[element]
+      divb *= cache.elements.inverse_jacobian[i, j, k, element]
       linf_divb = max(linf_divb, abs(divb))
     end
   end

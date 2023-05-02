@@ -126,12 +126,12 @@ function (visualization_callback::VisualizationCallback)(u, t, integrator)
   @unpack interval = visualization_callback
 
   # With error-based step size control, some steps can be rejected. Thus,
-  #   `integrator.iter >= integrator.destats.naccept`
+  #   `integrator.iter >= integrator.stats.naccept`
   #    (total #steps)       (#accepted steps)
   # We need to check the number of accepted steps since callbacks are not
   # activated after a rejected step.
-  return interval > 0 && ( (integrator.destats.naccept % interval == 0 &&
-                           !(integrator.destats.naccept == 0 && integrator.iter > 0)) ||
+  return interval > 0 && ( (integrator.stats.naccept % interval == 0 &&
+                           !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
                           isfinished(integrator))
 end
 
@@ -153,7 +153,7 @@ function (visualization_callback::VisualizationCallback)(integrator)
   # Create plot
   plot_creator(plot_data, variable_names;
                show_mesh=show_mesh, plot_arguments=plot_arguments,
-               time=integrator.t, timestep=integrator.destats.naccept)
+               time=integrator.t, timestep=integrator.stats.naccept)
 
   # avoid re-evaluating possible FSAL stages
   u_modified!(integrator, false)
@@ -189,6 +189,20 @@ function show_plot(plot_data, variable_names;
   if show_mesh
     push!(plots, Plots.plot(getmesh(plot_data); plot_arguments...))
   end
+
+  # Note, for the visualization callback to work for general equation systems
+  # this layout construction would need to use the if-logic below.
+  # Currently, there is no use case for this so it is left here as a note.
+  #
+  # Determine layout
+  # if length(plots) <= 3
+  #   cols = length(plots)
+  #   rows = 1
+  # else
+  #   cols = ceil(Int, sqrt(length(plots)))
+  #   rows = div(length(plots), cols, RoundUp)
+  # end
+  # layout = (rows, cols)
 
   # Determine layout
   cols = ceil(Int, sqrt(length(plots)))

@@ -25,7 +25,8 @@ mesh = P4estMesh(trees_per_dimension, polydeg=3,
 
 # Refine bottom left quadrant of each tree to level 3
 function refine_fn(p8est, which_tree, quadrant)
-  if quadrant.x == 0 && quadrant.y == 0 && quadrant.z == 0 && quadrant.level < 3
+  quadrant_obj = unsafe_load(quadrant)
+  if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 && quadrant_obj.level < 3
     # return true (refine)
     return Cint(1)
   else
@@ -61,7 +62,7 @@ analysis_callback = AnalysisCallback(semi, interval=100)
 save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
-# The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
+# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver

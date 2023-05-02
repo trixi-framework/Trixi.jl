@@ -6,12 +6,12 @@
 
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::TreeMesh, output_directory, timestep=0; system="")
-  save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh); system=system)
+function save_mesh_file(mesh::Union{TreeMesh, P4estMesh}, output_directory, timestep=0)
+  save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
 end
 
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
-                        mpi_parallel::Val{false}; system="")
+                        mpi_parallel::False)
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -53,7 +53,7 @@ end
 
 # Save current mesh with some context information as an HDF5 file.
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
-                        mpi_parallel::Val{true}; system="")
+                        mpi_parallel::True)
   # Create output directory (if it does not exist)
   mpi_isroot() && mkpath(output_directory)
 
@@ -160,7 +160,7 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0; system="")
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_parallel::False)
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -199,6 +199,46 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0; system=""
   return filename
 end
 
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_parallel::True)
+  # Create output directory (if it does not exist)
+  mpi_isroot() && mkpath(output_directory)
+
+  # Determine file name based on existence of meaningful time step
+  if timestep > 0
+    filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+    p4est_filename = @sprintf("p4est_data_%06d", timestep)
+  else
+    filename = joinpath(output_directory, "mesh.h5")
+    p4est_filename = "p4est_data"
+  end
+
+  p4est_file = joinpath(output_directory, p4est_filename)
+
+  # Save the complete connectivity/p4est data to disk.
+  save_p4est!(p4est_file, mesh.p4est)
+
+  # Since the mesh attributes are replicated on all ranks, only save from MPI root
+  if !mpi_isroot()
+    return filename
+  end
+
+  # Open file (clobber existing content)
+  h5open(filename, "w") do file
+    # Add context information as attributes
+    attributes(file)["mesh_type"] = get_name(mesh)
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["p4est_file"] = p4est_filename
+
+    file["tree_node_coordinates"] = mesh.tree_node_coordinates
+    file["nodes"] = Vector(mesh.nodes) # the mesh uses `SVector`s for the nodes
+                                       # to increase the runtime performance
+                                       # but HDF5 can only handle plain arrays
+    file["boundary_names"] = mesh.boundary_names .|> String
+  end
+
+  return filename
+end
+
 
 """
     load_mesh(restart_file::AbstractString; n_cells_max)
@@ -206,14 +246,13 @@ end
 Load the mesh from the `restart_file`.
 """
 function load_mesh(restart_file::AbstractString; n_cells_max=0, RealT=Float64)
-  # Determine mesh filename
-  mesh_file = get_restart_mesh_filename(restart_file, Val(mpi_isparallel()))
-
   if mpi_isparallel()
+    mesh_file = get_restart_mesh_filename(restart_file, True())
     return load_mesh_parallel(mesh_file; n_cells_max=n_cells_max, RealT=RealT)
+  else
+    mesh_file = get_restart_mesh_filename(restart_file, False())
+    load_mesh_serial(mesh_file; n_cells_max=n_cells_max, RealT=RealT)
   end
-
-  load_mesh_serial(mesh_file; n_cells_max=n_cells_max, RealT=RealT)
 end
 
 function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
@@ -292,7 +331,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     p4est = load_p4est(p4est_file, Val(ndims))
 
     mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
-                            nodes, boundary_names, "", false)
+                            nodes, boundary_names, "", false, true)
   else
     error("Unknown mesh type!")
   end
@@ -329,19 +368,62 @@ end
 
 function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
   if mpi_isroot()
-    ndims_, n_cells = h5open(mesh_file, "r") do file
-      read(attributes(file)["ndims"]),
-      read(attributes(file)["n_cells"])
+    ndims_, mesh_type = h5open(mesh_file, "r") do file
+      return read(attributes(file)["ndims"]),
+            read(attributes(file)["mesh_type"])
     end
     MPI.Bcast!(Ref(ndims_), mpi_root(), mpi_comm())
-    MPI.Bcast!(Ref(n_cells), mpi_root(), mpi_comm())
+    MPI.bcast(mesh_type, mpi_root(), mpi_comm())
   else
     ndims_ = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
-    n_cells = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
+    mesh_type = MPI.bcast(nothing, mpi_root(), mpi_comm())
   end
 
-  mesh = TreeMesh(ParallelTree{ndims_}, max(n_cells, n_cells_max))
-  load_mesh!(mesh, mesh_file)
+  if mesh_type == "TreeMesh"
+    if mpi_isroot()
+      n_cells = h5open(mesh_file, "r") do file
+        read(attributes(file)["n_cells"])
+      end
+      MPI.Bcast!(Ref(ndims_), mpi_root(), mpi_comm())
+      MPI.Bcast!(Ref(n_cells), mpi_root(), mpi_comm())
+    else
+      ndims_ = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
+      n_cells = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
+    end
+
+    mesh = TreeMesh(ParallelTree{ndims_}, max(n_cells, n_cells_max))
+    load_mesh!(mesh, mesh_file)
+  elseif mesh_type == "P4estMesh"
+    if mpi_isroot()
+      p4est_filename, tree_node_coordinates,
+          nodes, boundary_names_ = h5open(mesh_file, "r") do file
+        return read(attributes(file)["p4est_file"]),
+              read(file["tree_node_coordinates"]),
+              read(file["nodes"]),
+              read(file["boundary_names"])
+      end
+
+      boundary_names = boundary_names_ .|> Symbol
+
+      p4est_file = joinpath(dirname(mesh_file), p4est_filename)
+
+      data = (p4est_file, tree_node_coordinates, nodes, boundary_names)
+      MPI.bcast(data, mpi_root(), mpi_comm())
+    else
+      data = MPI.bcast(nothing, mpi_root(), mpi_comm())
+      p4est_file, tree_node_coordinates, nodes, boundary_names = data
+    end
+
+    # Prevent Julia crashes when `p4est` can't find the file
+    @assert isfile(p4est_file)
+
+    p4est = load_p4est(p4est_file, Val(ndims_))
+
+    mesh = P4estMesh{ndims_}(p4est, tree_node_coordinates,
+                            nodes, boundary_names, "", false, true)
+  else
+    error("Unknown mesh type!")
+  end
 
   return mesh
 end

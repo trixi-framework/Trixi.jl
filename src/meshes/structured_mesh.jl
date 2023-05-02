@@ -24,7 +24,7 @@ end
 
 
 """
-    StructuredMesh(cells_per_dimension, mapping, RealT; unsaved_changes=true, mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
+    StructuredMesh(cells_per_dimension, mapping; RealT=Float64, unsaved_changes=true, mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
 
 Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
@@ -65,7 +65,7 @@ end
 
 
 """
-    StructuredMesh(cells_per_dimension, faces, RealT; unsaved_changes=true, faces_as_string=faces2string(faces))
+    StructuredMesh(cells_per_dimension, faces; RealT=Float64, unsaved_changes=true, faces_as_string=faces2string(faces))
 
 Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
@@ -106,7 +106,7 @@ end
 
 
 """
-    StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+    StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max; periodicity=true)
 
 Create a StructuredMesh that represents a uncurved structured mesh with a rectangular domain.
 
@@ -132,6 +132,18 @@ end
 # Extract a string of the code that defines the mapping function
 mapping2string(mapping, ndims) = string(code_string(mapping, ntuple(_ -> Float64, ndims)))
 
+# An internal function wrapping `CodeTracking.code_string` with additional
+# error checking to avoid some problems when calling this function in
+# Jupyter notebooks or Documenter.jl environments. See
+# - https://github.com/trixi-framework/Trixi.jl/issues/931
+# - https://github.com/trixi-framework/Trixi.jl/pull/1084
+function code_string(f, t)
+  try
+    return CodeTracking.code_string(f, t)
+  catch e
+    return ""
+  end
+end
 
 # Interpolate linearly between left and right value where s should be between -1 and 1
 linear_interpolate(s, left_value, right_value) = 0.5 * ((1 - s) * left_value + (1 + s) * right_value)

@@ -16,7 +16,7 @@ struct CurvedSurface{RealT<:Real}
 end
 
 
-# evalute the Gamma curve interpolant at a particular point s and return the (x,y) coordinate
+# evaluate the Gamma curve interpolant at a particular point s and return the (x,y) coordinate
 function evaluate_at(s, boundary_curve::CurvedSurface)
 
    @unpack nodes, barycentric_weights, coordinates = boundary_curve
@@ -30,7 +30,7 @@ function evaluate_at(s, boundary_curve::CurvedSurface)
 end
 
 
-# evalute the derivative of a Gamma curve interpolant at a particular point s
+# evaluate the derivative of a Gamma curve interpolant at a particular point s
 # and return the (x,y) coordinate
 function derivative_at(s, boundary_curve::CurvedSurface)
 
