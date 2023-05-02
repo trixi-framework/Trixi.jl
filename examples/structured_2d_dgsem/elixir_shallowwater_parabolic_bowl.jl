@@ -27,11 +27,11 @@ function initial_condition_parabolic_bowl(x, t, equations:: ShallowWaterEquation
   ω = sqrt(2 * equations.gravity * h_0) / a
 
   v1 = -sigma * ω * sin(ω * t)
-  v2 = -sigma * ω * cos(ω * t)
+  v2 = sigma * ω * cos(ω * t)
 
-  b = 0.5 * (h_0 * ((2 * x[1])^2 + (2 * x[2])^2) / a^2)
+  b = h_0 * ((x[1])^2 + (x[2])^2) / a^2
 
-  H = 0.5 * (sigma * h_0 / a^2 * (4 * x[1] * cos(ω * t) + 4 * x[2] * sin(ω * t)- sigma) + h_0)
+  H = sigma * h_0 / a^2 * (2 * x[1] * cos(ω * t) + 2 * x[2] * sin(ω * t) - sigma) + h_0
 
   # It is mandatory to shift the water level at dry areas to make sure the water height h
   # stays positive. The system would not be stable for h set to a hard 0 due to division by h in 
@@ -68,8 +68,8 @@ solver = DGSEM(basis, surface_flux, volume_integral)
             
 ###############################################################################
 
-coordinates_min = (-1.0, -1.0)
-coordinates_max = (1.0, 1.0)
+coordinates_min = (-2.0, -2.0)
+coordinates_max = (2.0, 2.0)
 
 cells_per_dimension = (150, 150)
 
