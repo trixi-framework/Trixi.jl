@@ -6,7 +6,7 @@ Julia packages via the package manager, e.g., by running
 ```julia
 julia> import Pkg; Pkg.update()
 ```
-If you do  not use the latest stable release of Julia from the 
+If you do not use the latest stable release of Julia from the
 [official website](https://julialang.org/downloads/#current_stable_release),
 consider updating your Julia installation.
 
@@ -148,3 +148,43 @@ are kept on the same MPI rank to be able to coarsen them easily. This might caus
 distribution of cells on different ranks. For 2D meshes, this also means that *initially* each rank will
 at least own 4 cells, and for 3D meshes, *initially* each rank will at least own 8 cells.
 See [issue #1329](https://github.com/trixi-framework/Trixi.jl/issues/1329).
+
+
+
+## Installing and updating everything takes a lot of time
+
+Julia compiles code to get good (C/Fortran-like) performance. At the same time,
+Julia provides a dynamic environment and usually compiles code just before using
+it. Over time, Julia has improved its caching infrastructure, allowing to store
+and reuse more results from (pre-)compilation. This often results in an
+increased time to install/update packages, in particular when updating
+to Julia v1.8 or v1.9 from older versions.
+
+Some packages used together with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl)
+provide options to configure the amount of precompilation. For example,
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) precompiles
+many ODE solvers for a good runtime experience of average users. Currently,
+[Trixi.jl](https://github.com/trixi-framework/Trixi.jl) does not use all of
+the available solvers. Thus, you can save some time at every update by setting
+their [precompilation options](https://docs.sciml.ai/DiffEqDocs/stable/features/low_dep/).
+
+At the time of writing, this could look as follows. First, you need to activate
+the environment where you have installed
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl). Then, you need
+to execute the following Julia code.
+
+```julia
+using Preferences, UUIDs
+set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileNonStiff" => true)
+set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileStiff" => false)
+set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileAutoSwitch" => false)
+set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileLowStorage" => true)
+set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileDefaultSpecialize" => true)
+set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileAutoSpecialize" => false)
+set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileFunctionWrapperSpecialize" => false)
+set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileNoSpecialize" => false)
+```
+
+This disables precompilation of all implicit methods. This should usually not affect
+the runtime latency with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl)
+since most setups use explicit time integration methods.

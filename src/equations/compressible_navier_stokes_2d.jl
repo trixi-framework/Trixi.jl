@@ -150,7 +150,7 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleNavierS
   # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
   rho, v1, v2, _ = convert_transformed_to_primitive(u, equations)
   # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)
-  # either computed directly or reverse engineered from the gradient of the entropy vairables
+  # either computed directly or reverse engineered from the gradient of the entropy variables
   # by way of the `convert_gradient_variables` function.
   _, dv1dx, dv2dx, dTdx = convert_derivative_to_primitive(u, gradients[1], equations)
   _, dv1dy, dv2dy, dTdy = convert_derivative_to_primitive(u, gradients[2], equations)
@@ -172,7 +172,7 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleNavierS
   q1 = equations.kappa * dTdx
   q2 = equations.kappa * dTdy
 
-  # Constant dynamic viscosity is copied to a variable for readibility.
+  # Constant dynamic viscosity is copied to a variable for readability.
   # Offers flexibility for dynamic viscosity via Sutherland's law where it depends
   # on temperature and reference values, Ts and Tref such that mu(T)
   mu = equations.mu

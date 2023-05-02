@@ -504,8 +504,9 @@ end
 # inverts Jacobian and scales by -1.0
 function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache; scaling=-1)
   @threaded for e in eachelement(mesh, dg, cache)
+    invJ = cache.invJ[1, e]
     for i in axes(du, 1)
-      du[i, e] *= scaling * cache.invJ[i, e]
+      du[i, e] *= scaling * invJ
     end
   end
 end
