@@ -87,8 +87,6 @@
 
     # v = (q1 * normal_direction[1] + q2 * normal_direction[2])
 
-    # @infiltrate
-
     # return abs(v) * norm(normal_direction)
 
     return equations.coupling_nu
@@ -99,7 +97,6 @@
   
 
   @inline function max_abs_speeds(eq::CouplingCompressibleEulerHyperbolicDiffusion2D)
-    @infiltrate
     λ = sqrt(eq.nu * eq.inv_Tr)
     return λ, λ
   end
