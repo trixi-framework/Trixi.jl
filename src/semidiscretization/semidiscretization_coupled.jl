@@ -198,8 +198,8 @@ function compute_coefficients(t, semi::SemidiscretizationCoupled)
 end
 
 
-# Don't do anything for other BCs than BoundaryConditionCoupled
-function allocate_coupled_boundary_conditions(semi, semi_other) end
+# # Don't do anything for other BCs than BoundaryConditionCoupled
+# function allocate_coupled_boundary_conditions(semi, semi_other) end
 
 function allocate_coupled_boundary_conditions(semi, semi_other)
   n_boundaries = 2 * ndims(semi)
