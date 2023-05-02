@@ -213,14 +213,15 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
   rd = dg.basis
   md = mesh.md
 
-  num_pts_per_face = rd.Nfq ÷ rd.Nfaces
+  num_faces = StartUpDG.num_faces(rd.element_type)
+  num_pts_per_face = rd.Nfq ÷ num_faces
   (; xyzf, nxyz) = md
   for f in mesh.boundary_faces[boundary_key]
     for i in Base.OneTo(num_pts_per_face)
 
       # reverse engineer element + face node indices (avoids reshaping arrays)
-      e = ((f-1) ÷ rd.Nfaces) + 1
-      fid = i + ((f-1) % rd.Nfaces) * num_pts_per_face
+      e = ((f-1) ÷ num_faces) + 1
+      fid = i + ((f-1) % num_faces) * num_pts_per_face
 
       face_normal = SVector{NDIMS}(getindex.(nxyz, fid, e))
       face_coordinates = SVector{NDIMS}(getindex.(xyzf, fid, e))
