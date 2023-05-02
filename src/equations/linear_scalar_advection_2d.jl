@@ -270,14 +270,14 @@ end
 # """
 # Define one coupling flux for the interface.
 # We are free to define and name coupling fluxes as we please.
-# A coupling flux from domain B to domain A takes all vriables from domain A and
+# A coupling flux from domain B to domain A takes all variables from domain A and
 # a vector for shape (flux_A, flux_B).
 # So, we are dealing with a larger array.
 # Currently there is no preferred place where to put these.
 # This test flux is placed here, sine we coupling two scalar advection fluxes in 2d.
 # """
 # struct CouplingLinearScalarAdvectionEquation2D{RealT<:Real} <: AbstractLinearScalarAdvectionEquation{2, 2}
-#   # The coupling strength is effectively a factor in fron of the coupling term on the RHS of the equation,
+#   # The coupling strength is effectively a factor in from of the coupling term on the RHS of the equation,
 #   # i.e. du_a/dt + \nab f_a(u_a) + coupling_strength * \nab f_ba(u_a, u_b).
 #   coupling_strength::RealT
 # end

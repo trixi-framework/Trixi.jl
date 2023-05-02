@@ -7,7 +7,7 @@ using Trixi
 
 
 """
-Coupled two polytropic Euler sustems.
+Coupled two polytropic Euler systems.
 """
 
 
@@ -133,7 +133,7 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 save_solution = SaveSolutionCallback(interval=5,
                                      solution_variables=cons2prim)
 
-# The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
+# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver

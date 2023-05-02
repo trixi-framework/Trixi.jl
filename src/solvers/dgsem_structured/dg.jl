@@ -103,7 +103,7 @@ end
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices, surface_node_indices, element)
   @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
-  # Override the passed surface_itegral.
+  # Override the passed surface_integral.
   @unpack surface_flux = surface_integral
 
   cell_indices = get_boundary_indices(element, orientation, mesh)
