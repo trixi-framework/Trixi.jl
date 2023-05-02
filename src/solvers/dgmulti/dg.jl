@@ -251,7 +251,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
   rd = dg.basis
   # In the computation of max_dt the polynomial degree is used to compute the time-step.
   # For tensor-product elements the maximum of the polynomial degrees is used to ensure
-  # that the timestep is feasable for both elements of the tensor-product. For the
+  # that the timestep is feasible for both elements of the tensor-product. For the
   # other elements taking the maximum has no effect.
   polydeg = maximum(rd.N)
   return max_dt(u, t, mesh, constant_speed, equations, dg, polydeg, cache)
