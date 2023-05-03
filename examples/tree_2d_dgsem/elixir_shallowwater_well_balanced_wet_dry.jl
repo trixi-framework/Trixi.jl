@@ -157,7 +157,7 @@ sol = solve(ode, SSPRK43(stage_limiter!), dt=1.0,
 summary_callback() # print the timer summary
 
 ###############################################################################
-# workaround to compute the well-balancedness error for this partiular problem
+# Workaround to compute the well-balancedness error for this partiular problem
 # that has two reference water heights. One for a lake to the left of the
 # discontinuous bottom topography `H0_upper = 2.5` and another for a lake to the
 # right of the discontinuous bottom topography `H0_lower = 1.5`.
