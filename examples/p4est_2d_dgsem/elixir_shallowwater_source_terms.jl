@@ -23,12 +23,11 @@ solver = DGSEM(polydeg=3, surface_flux=(flux_lax_friedrichs, flux_nonconservativ
 coordinates_min = (0.0, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (sqrt(2.0), sqrt(2.0))  # maximum coordinates (max(x), max(y))
 
-trees_per_dimension = (8, 8)
-
 # Create P4estMesh with 8 x 8 trees and 16 x 16 elements
+trees_per_dimension = (8, 8)
 mesh = P4estMesh(trees_per_dimension, polydeg=3,
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max,
-                 initial_refinement_level=3)
+                 initial_refinement_level=1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
