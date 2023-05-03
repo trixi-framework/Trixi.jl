@@ -1095,7 +1095,7 @@ end
   h, _, _, b = u
 
   # For well-balancedness testing with possible wet/dry regions the reference
-  # water height `H0` accounts for the possiblity that the bottom topography
+  # water height `H0` accounts for the possibility that the bottom topography
   # can emerge out of the water as well as for the threshold offset to avoid
   # division by a "hard" zero water heights as well.
   H0_wet_dry = max( equations.H0 , b + equations.threshold_limiter )
