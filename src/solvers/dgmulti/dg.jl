@@ -200,7 +200,7 @@ function estimate_dt(mesh::DGMultiMesh, dg::DGMulti)
 end
 
 # for the stepsize callback
-function max_dt(u, t, mesh::DGMultiMesh,
+function max_dt_ext(u, t, mesh::DGMultiMesh,
                 constant_speed::False, equations, dg::DGMulti{NDIMS}, polydeg::Integer, cache) where {NDIMS}
 
   @unpack md = mesh
@@ -224,7 +224,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 
-function max_dt(u, t, mesh::DGMultiMesh,
+function max_dt_ext(u, t, mesh::DGMultiMesh,
                 constant_speed::True, equations, dg::DGMulti{NDIMS}, polydeg::Integer, cache) where {NDIMS}
 
   @unpack md = mesh
@@ -246,15 +246,22 @@ function max_dt(u, t, mesh::DGMultiMesh,
   return 2 * dt_min / (polydeg + 1)
 end
 
+function max_dt(u, t, mesh::DGMultiMesh, 
+                constant_speed, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+  rd = dg.basis
+  polydeg = rd.N
+  return max_dt_ext(u, t, mesh, constant_speed, equations, dg, polydeg, cache)
+end
+
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_speed, equations, dg::DGMulti{3, Wedge, <:TensorProductWedge}, cache) 
+                constant_speed, equations, dg::DGMulti{<:Wedge}, cache) 
   rd = dg.basis
   # In the computation of max_dt the polynomial degree is used to compute the time-step.
   # For tensor-product elements the maximum of the polynomial degrees is used to ensure
   # that the timestep is feasible for both elements of the tensor-product. For the
   # other elements taking the maximum has no effect.
   polydeg = maximum(rd.N)
-  return max_dt(u, t, mesh, constant_speed, equations, dg, polydeg, cache)
+  return max_dt_ext(u, t, mesh, constant_speed, equations, dg, polydeg, cache)
 end
 
 
