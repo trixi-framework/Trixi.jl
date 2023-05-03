@@ -57,7 +57,7 @@ struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 
   gravity::RealT # gravitational constant
   H0::RealT      # constant "lake-at-rest" total water height
   threshold_limiter::RealT  # Threshold to use in PositivityPreservingLimiterShallowWater on water height,
-                             # as a (small) shift on the initial condition and cutoff before the 
+                             # as a (small) shift on the initial condition and cutoff before the
                              # next time step.
    threshold_wet::RealT      # Threshold to be applied on water height to define when the flow is "wet"
                              # before calculating the numerical flux.
@@ -458,7 +458,7 @@ The key idea is a linear reconstruction of the bottom and water height at the in
 Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).
 
 Further details on this hydrostatic reconstruction and its motivation can be found in
-- Guoxian Chen and Sebastian Noelle (2017) 
+- Guoxian Chen and Sebastian Noelle (2017)
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
@@ -475,7 +475,7 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   H_rr = b_rr + h_rr
 
   b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
-  
+
   # Compute the reconstructed water heights
   h_ll_star = min( H_ll - b_star, h_ll )
   h_rr_star = min( H_rr - b_star, h_rr )
@@ -603,7 +603,7 @@ Should be used together with [`FluxHydrostaticReconstruction`](@ref) and
 [`hydrostatic_reconstruction_chen_noelle`](@ref) in the surface flux to ensure consistency.
 
 Further details on the hydrostatic reconstruction and its motivation can be found in
-- Guoxian Chen and Sebastian Noelle (2017) 
+- Guoxian Chen and Sebastian Noelle (2017)
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
@@ -654,7 +654,7 @@ end
   H_rr = h_rr + b_rr
 
   b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
-  
+
   # Create the hydrostatic reconstruction for the left solution state
   u_ll_star, _ = hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, equations)
 
@@ -928,16 +928,16 @@ end
     min_max_speed_chen_noelle(u_ll, u_rr, normal_direction::AbstractVector,
                               equations::ShallowWaterEquations2D)
 
-The approximated speeds for the HLL type numerical flux used by Chen and Noelle for their 
+The approximated speeds for the HLL type numerical flux used by Chen and Noelle for their
 hydrostatic reconstruction. As they state in the paper, those speeds are chosen for the numerical
 flux to ensure positivity and satisfy an entropy inequality.
 
 Further details on this hydrostatic reconstruction and its motivation can be found in
-- Guoxian Chen and Sebastian Noelle (2017) 
+- Guoxian Chen and Sebastian Noelle (2017)
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
-@inline function min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer, 
+@inline function min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer,
                                            equations::ShallowWaterEquations2D)
   h_ll = waterheight(u_ll, equations)
   v1_ll, v2_ll = velocity(u_ll, equations)
@@ -948,7 +948,7 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   a_rr = sqrt(equations.gravity * h_rr)
 
   if orientation == 1 # x-direction
-    λ_min = min( v1_ll - a_ll, v1_rr - a_rr, zero(eltype(u_ll)) ) 
+    λ_min = min( v1_ll - a_ll, v1_rr - a_rr, zero(eltype(u_ll)) )
     λ_max = max( v1_ll + a_ll, v1_rr + a_rr, zero(eltype(u_ll)) )
   else # y-direction
     λ_min = min( v2_ll - a_ll, v2_rr - a_rr, zero(eltype(u_ll)) )
@@ -972,7 +972,7 @@ end
   a_ll = sqrt(equations.gravity * h_ll) * norm_
   a_rr = sqrt(equations.gravity * h_rr) * norm_
 
-  λ_min = min( v_normal_ll - a_ll, v_normal_rr - a_rr, zero(eltype(u_ll)) ) 
+  λ_min = min( v_normal_ll - a_ll, v_normal_rr - a_rr, zero(eltype(u_ll)) )
   λ_max = max( v_normal_ll + a_ll, v_normal_rr + a_rr, zero(eltype(u_ll)) )
 
   return λ_min, λ_max
@@ -1089,15 +1089,19 @@ end
 
 
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
-# be a constant value over time
-@inline function lake_at_rest_error(u, u_exact, equations::ShallowWaterEquations2D)
+# be a constant value over time. Note, assumes there is a single reference
+# water height `H0` with which to compare.
+@inline function lake_at_rest_error(u, equations::ShallowWaterEquations2D)
   h, _, _, b = u
-  h_exact, _, _, b_exact= u_exact
 
-  H = h + b
-  H_exact = h_exact + b_exact
+  # For well-balancedness testing with possible wet/dry regions the reference
+  # water height `H0` accounts for the possiblity that the bottom topography
+  # can emerge out of the water as well as for the threshold offset to avoid
+  # division by a "hard" zero water heights as well.
+  H0_wet_dry = max( equations.H0 , b + equations.threshold_limiter )
 
-  return abs(H - H_exact)
+  return abs(H0_wet_dry - (h + b))
 end
+
 
 end # @muladd

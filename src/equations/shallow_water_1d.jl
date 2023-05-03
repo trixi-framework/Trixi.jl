@@ -581,22 +581,19 @@ end
 
 
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
-# be a constant value over time
+# be a constant value over time. Note, assumes there is a single reference
+# water height `H0` with which to compare.
 @inline function lake_at_rest_error(u, equations::ShallowWaterEquations1D)
   h, _, b = u
-  return abs(equations.H0 - (h + b))
+
+  # For well-balancedness testing with possible wet/dry regions the reference
+  # water height `H0` accounts for the possiblity that the bottom topography
+  # can emerge out of the water as well as for the threshold offset to avoid
+  # division by a "hard" zero water heights as well.
+  H0_wet_dry = max( equations.H0 , b + equations.threshold_limiter )
+
+  return abs(H0_wet_dry - (h + b))
 end
 
-# Calculate the error for the "lake-at-rest" test case where H = h+b should
-# be a constant value over time
-@inline function lake_at_rest_error(u, u_exact, equations::ShallowWaterEquations1D)
-  h, _, b = u
-  h_exact, _, b_exact= u_exact
-
-  H = h + b
-  H_exact = h_exact + b_exact
-
-  return abs(H - H_exact)
-end
 
 end # @muladd
