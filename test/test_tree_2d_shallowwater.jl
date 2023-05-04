@@ -74,8 +74,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 
   @trixi_testset "elixir_shallowwater_parabolic_bowl.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_parabolic_bowl.jl"),
-      l2   = [0.009551029879419562, 0.0022746779961813663, 0.006093909535093138, 3.649315951724414e-17],
-      linf = [0.037838314224258915, 0.008905881822753982, 0.02385742969303331, 2.7755575615628914e-16],
+      l2   = [0.0004025343845970671, 0.00012612935902146682, 0.00024957470981317847, 7.298631903448828e-17],
+      linf = [0.006161863298804658, 0.0015326964874439984, 0.00400268569085629, 5.551115123125783e-16],
       tspan = (0.0, 0.25),
       basis = LobattoLegendreBasis(3))
   end
