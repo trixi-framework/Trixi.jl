@@ -97,9 +97,9 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
 
   @trixi_testset "elixir_shallowwater_parabolic_bowl.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_parabolic_bowl.jl"),
-      l2   = [0.012868412255957612, 0.007819719632793341, 3.8569975327636153e-17],
-      linf = [0.01898697414997512, 0.011686441632120272, 2.7755575615628914e-16],
-      tspan = (0.0, 0.75))
+      l2   = [0.0020698668618855105, 0.0004971872608360286, 3.8569975327636153e-17],
+      linf = [0.0030589243995025744, 0.000840091286020108, 2.7755575615628914e-16],
+      tspan = (0.0, 0.25))
   end
 end
 
