@@ -11,12 +11,12 @@ equations = ShallowWaterEquations2D(gravity_constant=9.81)
     initial_condition_parabolic_bowl(x, t, equations:: ShallowWaterEquations2D)
 
 Well-known initial condition to test the [`hydrostatic_reconstruction_chen_noelle`](@ref) and its
-wet-dry mechanics. This test has an analytical solution. The initial condition is defined by the 
+wet-dry mechanics. This test has an analytical solution. The initial condition is defined by the
 analytical solution at time t=0. The bottom topography defines a bowl and the water level is given
 by an oscillating lake.
 The original test and its analytical solution are taken out of section 6.2 from the paper:
   - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and Timothy Warburton (2018)
-    An entropy stable discontinuous Galerkin method for the shallow water equations on 
+    An entropy stable discontinuous Galerkin method for the shallow water equations on
     curvilinear meshes with wet/dry fronts accelerated by GPUs\n
     [DOI: 10.1016/j.jcp.2018.08.038](https://doi.org/10.1016/j.jcp.2018.08.038)
 """
@@ -34,9 +34,9 @@ function initial_condition_parabolic_bowl(x, t, equations:: ShallowWaterEquation
   H = sigma * h_0 / a^2 * (2 * x[1] * cos(ω * t) + 2 * x[2] * sin(ω * t) - sigma) + h_0
 
   # It is mandatory to shift the water level at dry areas to make sure the water height h
-  # stays positive. The system would not be stable for h set to a hard 0 due to division by h in 
+  # stays positive. The system would not be stable for h set to a hard 0 due to division by h in
   # the computation of velocity, e.g., (h v1) / h. Therefore, a small dry state threshold
-  # (1e-13 per default, set in the constructor for the ShallowWaterEquations) is added if h = 0. 
+  # (1e-13 per default, set in the constructor for the ShallowWaterEquations) is added if h = 0.
   # This default value can be changed within the constructor call depending on the simulation setup.
   H = max(H, b + equations.threshold_limiter)
   return prim2cons(SVector(H, v1, v2, b), equations)
@@ -65,7 +65,7 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-            
+
 ###############################################################################
 
 coordinates_min = (-2.0, -2.0)
@@ -106,7 +106,7 @@ stage_limiter! = PositivityPreservingLimiterShallowWater(thresholds=(equations.t
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(stage_limiter!), dt=1.0,
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, SSPRK43(stage_limiter!);
+            ode_default_options()..., callback=callbacks);
 
 summary_callback() # print the timer summary
