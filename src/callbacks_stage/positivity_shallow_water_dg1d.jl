@@ -50,7 +50,7 @@ function limiter_shallow_water!(u, threshold::Real, variable,
       u_node = SVector(h_node, h_v_node, b_node)
       u_mean = SVector(h_mean, h_v_mean, zero(eltype(u)))
 
-      # When velocity is cut off, the only value beeing averaged is the waterheight,
+      # When velocity is cut off, the only averaged value is the waterheight,
       # because the velocity is set to zero and this value is passed.
       # Otherwise, the velocity is averaged, as well.
       # Note that the auxiliary bottom topography variable `b` is never limited.
