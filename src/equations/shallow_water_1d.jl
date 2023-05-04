@@ -54,7 +54,7 @@ struct ShallowWaterEquations1D{RealT<:Real} <: AbstractShallowWaterEquations{1, 
   gravity::RealT # gravitational constant
   H0::RealT      # constant "lake-at-rest" total water height
   threshold_limiter::RealT  # Threshold to use in PositivityPreservingLimiterShallowWater on water height,
-                            # as a (small) shift on the initial condition and cutoff before the 
+                            # as a (small) shift on the initial condition and cutoff before the
                             # next time step.
   threshold_wet::RealT      # Threshold to be applied on water height to define when the flow is "wet"
                             # before calculating the numerical flux.
@@ -331,7 +331,7 @@ Should be used together with [`FluxHydrostaticReconstruction`](@ref) and
 [`hydrostatic_reconstruction_chen_noelle`](@ref) in the surface flux to ensure consistency.
 
 Further details on the hydrostatic reconstruction and its motivation can be found in
-- Guoxian Chen and Sebastian Noelle (2017) 
+- Guoxian Chen and Sebastian Noelle (2017)
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
@@ -477,7 +477,7 @@ The key idea is a linear reconstruction of the bottom and water height at the in
 Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).
 
 Further details on this hydrostatic reconstruction and its motivation can be found in
-- Guoxian Chen and Sebastian Noelle (2017) 
+- Guoxian Chen and Sebastian Noelle (2017)
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
@@ -586,12 +586,12 @@ end
     min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer,
                               equations::ShallowWaterEquations1D)
 
-The approximated speeds for the HLL type numerical flux used by Chen and Noelle for their 
+The approximated speeds for the HLL type numerical flux used by Chen and Noelle for their
 hydrostatic reconstruction. As they state in the paper, these speeds are chosen for the numerical
 flux to ensure positivity and to satisfy an entropy inequality.
 
 Further details on this hydrostatic reconstruction and its motivation can be found in
-- Guoxian Chen and Sebastian Noelle (2017) 
+- Guoxian Chen and Sebastian Noelle (2017)
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
@@ -607,7 +607,7 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   a_ll = sqrt(equations.gravity * h_ll)
   a_rr = sqrt(equations.gravity * h_rr)
 
-  λ_min = min( v_ll - a_ll, v_rr - a_rr, zero(eltype(u_ll)) ) 
+  λ_min = min( v_ll - a_ll, v_rr - a_rr, zero(eltype(u_ll)) )
   λ_max = max( v_ll + a_ll, v_rr + a_rr, zero(eltype(u_ll)) )
 
   return λ_min, λ_max
@@ -723,15 +723,18 @@ end
 
 
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
-# be a constant value over time
-@inline function lake_at_rest_error(u, u_exact, equations::ShallowWaterEquations1D)
+# be a constant value over time. Note, assumes there is a single reference
+# water height `H0` with which to compare.
+@inline function lake_at_rest_error(u, equations::ShallowWaterEquations1D)
   h, _, b = u
-  h_exact, _, b_exact= u_exact
 
-  H = h + b
-  H_exact = h_exact + b_exact
+  # For well-balancedness testing with possible wet/dry regions the reference
+  # water height `H0` accounts for the possibility that the bottom topography
+  # can emerge out of the water as well as for the threshold offset to avoid
+  # division by a "hard" zero water heights as well.
+  H0_wet_dry = max( equations.H0 , b + equations.threshold_limiter )
 
-  return abs(H - H_exact)
+  return abs(H0_wet_dry - (h + b))
 end
 
 end # @muladd

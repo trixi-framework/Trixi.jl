@@ -874,21 +874,18 @@ end
 
 
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
-# be a constant value over time
+# be a constant value over time. Note, assumes there is a single reference
+# water height `H0` with which to compare.
 @inline function lake_at_rest_error(u, equations::ShallowWaterEquations2D)
   h, _, _, b = u
+
+  #
+  #  TODO: Compute this the proper way with
+  #        H0_wet_dry = max( equations.H0 , b + equations.threshold_limiter )
+  #        once PR for wet/dry `ShallowWaterEquations2D` is merged into this PR
+  #
+
   return abs(equations.H0 - (h + b))
-end
-
-@inline function lake_at_rest_error(u, u_exact, equations::ShallowWaterEquations2D)
-  h, _, _, b = u
-  
-  h_exact, _, _, b_exact= u_exact
-
-  H = h + b
-  H_exact = h_exact + b_exact
-
-  return abs(H - H_exact)
 end
 
 end # @muladd

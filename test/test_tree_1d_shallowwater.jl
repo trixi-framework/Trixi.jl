@@ -30,10 +30,10 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       tspan = (0.0, 0.25))
   end
 
-  @trixi_testset "elixir_shallowwater_well_balanced_wet_dry.jl" begin
+  @trixi_testset "elixir_shallowwater_well_balanced_wet_dry.jl with FluxHydrostaticReconstruction" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced_wet_dry.jl"),
-      l2   = [0.027869290160397523, 4.848702566024514e-14, 0.10911645796834736],
-      linf = [0.28423245872819947, 2.305820093827649e-13, 1.119394067096447],
+      l2   = [0.009657871671690443, 5.403349017029091e-15, 0.03857583749209983],
+      linf = [0.49999999999990025, 3.344735163283149e-14, 1.9999999999999998],
       tspan = (0.0, 0.25))
   end
 
