@@ -73,9 +73,9 @@ function DGMulti(element_type::Wedge,
                  surface_integral;
                  polydeg::Tuple,
                  kwargs...)
-  
   factor_a = RefElemData(Tri(), approximation_type, polydeg[1]; kwargs...)
   factor_b = RefElemData(Line(), approximation_type, polydeg[2]; kwargs...)
+  
   tensor = TensorProductWedge(factor_a, factor_b)
   rd = RefElemData(element_type, tensor; kwargs...)
   return DG(rd, nothing, surface_integral,volume_integral)
