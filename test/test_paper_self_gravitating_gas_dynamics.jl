@@ -5,11 +5,11 @@ using Trixi
 
 include("test_trixi.jl")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
+# pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "paper_self_gravitating_gas_dynamics")
 
 # Numerical examples from the Euler-gravity paper
@@ -128,7 +128,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 end
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn rm(outdir, recursive=true)
 
 end #module

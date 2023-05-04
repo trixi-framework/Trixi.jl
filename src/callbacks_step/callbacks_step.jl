@@ -44,7 +44,7 @@ end
 # * `AMRCallback` really belongs to the next time step already, as it should be the "first" callback
 #   in a time step loop (however, callbacks are always executed *after* a step, thus it comes near
 #   the end here)
-# * `StepsizeCallback` must come after AMR to accomodate potential changes in the minimum cell size
+# * `StepsizeCallback` must come after AMR to accommodate potential changes in the minimum cell size
 # * `GlmSpeedCallback` must come after computing time step size because it affects the value of c_h
 # * `LBMCollisionCallback` must come after computing time step size because it is already part of
 #    the next time step calculation

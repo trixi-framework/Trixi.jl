@@ -153,6 +153,8 @@ macro test_nowarn_mod(expr, additional_ignore_content=String[])
           "WARNING: importing deprecated binding Colors.RGB4 into PlotUtils.\n",
           r"┌ Warning: Keyword argument letter not supported with Plots.+\n└ @ Plots.+\n",
           r"┌ Warning: `parse\(::Type, ::Coloarant\)` is deprecated.+\n│.+\n│.+\n└ @ Plots.+\n",
+          # TODO: Silence warning introduced by Flux v0.13.13. Should be properly fixed.
+          r"┌ Warning: Layer with Float32 parameters got Float64 input.+\n│.+\n│.+\n│.+\n└ @ Flux.+\n",
         ]
         append!(ignore_content, $additional_ignore_content)
         for pattern in ignore_content

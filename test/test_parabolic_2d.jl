@@ -6,7 +6,7 @@ using Trixi
 include("test_trixi.jl")
 
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
@@ -53,9 +53,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
     Trixi.calc_gradient!(gradients, ode.u0, t, mesh, equations_parabolic,
                          boundary_condition_periodic, dg, cache, cache_parabolic)
-    @unpack x, y = mesh.md
-    @test getindex.(gradients[1], 1) ≈ 2 * x .* y
-    @test getindex.(gradients[2], 1) ≈ x.^2
+    @unpack x, y, xq, yq = mesh.md
+    @test getindex.(gradients[1], 1) ≈ 2 * xq .* yq
+    @test getindex.(gradients[2], 1) ≈ xq.^2
 
     u_flux = similar.(gradients)
     Trixi.calc_viscous_fluxes!(u_flux, ode.u0, gradients, mesh, equations_parabolic,
@@ -98,6 +98,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
       l2 = [0.0015355076812510957, 0.0033843168272696756, 0.0036531858107443434, 0.009948436427519214],
       linf = [0.005522560467190019, 0.013425258500730508, 0.013962115643482154, 0.027483102120502423]
+    )
+  end
+
+  @trixi_testset "DGMulti: elixir_navierstokes_convergence_curved.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_navierstokes_convergence_curved.jl"),
+      cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
+      l2 = [0.004255101916146187, 0.011118488923215765, 0.011281831283462686, 0.03573656447388509],
+      linf = [0.015071710669706473, 0.04103132025858458, 0.03990424085750277, 0.1309401718598764],
     )
   end
 
@@ -178,7 +186,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 end
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive=true)
 
 end # module
