@@ -38,7 +38,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.0015188466707237375],
       linf = [0.008446655719187679])
 
-    # Ensure that we do not have excessive memory allocations 
+    # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
       t = sol.t[end]
