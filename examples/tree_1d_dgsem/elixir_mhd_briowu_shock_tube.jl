@@ -10,7 +10,7 @@ equations = IdealGlmMhdEquations1D(gamma)
 """
     initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
 
-Compound shock tube test case for one dimensional ideal MHD equations. It is bascially an
+Compound shock tube test case for one dimensional ideal MHD equations. It is basically an
 MHD extension of the Sod shock tube. Taken from Section V of the article
 - Brio and Wu (1988)
   An Upwind Differencing Scheme for the Equations of Ideal Magnetohydrodynamics

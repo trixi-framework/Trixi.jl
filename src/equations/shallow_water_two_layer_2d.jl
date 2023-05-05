@@ -82,7 +82,7 @@ end
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
-# well-balancedness test cases. Densities must be specificed such that rho_upper < rho_lower.
+# well-balancedness test cases. Densities must be specified such that rho_upper < rho_lower.
 function ShallowWaterTwoLayerEquations2D(; gravity_constant, H0=zero(gravity_constant), rho_upper, rho_lower)
   # Assign density ratio if rho_upper <= rho_lower
   if rho_upper > rho_lower
@@ -97,7 +97,7 @@ end
 have_nonconservative_terms(::ShallowWaterTwoLayerEquations2D) = True()
 varnames(::typeof(cons2cons), ::ShallowWaterTwoLayerEquations2D) = (
     "h_upper", "h_v1_upper", "h_v2_upper", "h_lower", "h_v1_lower", "h_v2_lower", "b")                                                             
-# Note, we use the total water height, H_upper = h_upper + h_lower + b, and first layer total heigth
+# Note, we use the total water height, H_upper = h_upper + h_lower + b, and first layer total height
 # H_lower = h_lower + b as the first primitive variable for easier visualization and setting initial
 # conditions
 varnames(::typeof(cons2prim), ::ShallowWaterTwoLayerEquations2D) = (

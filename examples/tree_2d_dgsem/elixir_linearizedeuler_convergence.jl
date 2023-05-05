@@ -45,7 +45,7 @@ save_solution = SaveSolutionCallback(interval=analysis_interval, solution_variab
 # The AliveCallback prints short status information in regular intervals
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-# The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
+# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=0.8)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
