@@ -108,7 +108,7 @@ end
 
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}}, alpha, alpha_tmp, dg, cache)
+function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, alpha, alpha_tmp, dg, cache)
   # Copy alpha values such that smoothing is indpedenent of the element access order
   alpha_tmp .= alpha
 

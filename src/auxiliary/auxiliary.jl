@@ -278,5 +278,16 @@ macro trixi_timeit(timer_output, label, expr)
   end
 end
 
+function split_filename(filename)
+
+  i = findlast(==('.'),filename)
+
+  if isnothing(i)
+    return filename
+  end
+
+  return filename[1:i-1],filename[i+1:end]
+
+end
 
 end # @muladd
