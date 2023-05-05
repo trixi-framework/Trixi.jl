@@ -64,6 +64,8 @@ function varnames(::typeof(cons2prim), equations::IdealGlmMhdMultiIonEquations2D
   return prim
 end
 
+default_analysis_integrals(::IdealGlmMhdMultiIonEquations2D)  = (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
+
 
 # """
 #     initial_condition_convergence_test(x, t, equations::IdealGlmMhdMultiIonEquations2D)
@@ -135,7 +137,7 @@ end
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdMultiIonEquations2D)
   B1, B2, B3, _ = u
   
-  total_electron_charge, v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = auxiliary_variables(u, equations)
+  v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u, equations)
 
   mag_en = 0.5*(B1^2 + B2^2 + B3^2)
 
@@ -202,7 +204,7 @@ Standard source terms of the multi-ion MHD equations
 function source_terms_standard(u, x, t, equations::IdealGlmMhdMultiIonEquations2D)
   @unpack charge_to_mass = equations
   B1, B2, B3, _ = u
-  total_electron_charge, v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = auxiliary_variables(u, equations)
+  v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u, equations)
 
   s = (zero(u[1]), zero(u[1]), zero(u[1]))
   for k in eachcomponent(equations)
@@ -247,7 +249,7 @@ The term is composed of three parts
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
   mag_norm_avg = 0.5*(mag_norm_ll+mag_norm_rr)
 
-  # Compute charge ratio of u_ll (merge into auxiliary_variables)
+  # Compute charge ratio of u_ll
   charge_ratio_ll = zeros(typeof(u_ll[1]), ncomponents(equations))
   total_electron_charge = zero(u_ll[1])
   for k in eachcomponent(equations)
@@ -258,8 +260,8 @@ The term is composed of three parts
   charge_ratio_ll ./= total_electron_charge
 
   # Compute auxiliary variables
-  total_electron_charge_ll, v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = auxiliary_variables(u_ll, equations)
-  total_electron_charge_rr, v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = auxiliary_variables(u_rr, equations)
+  v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll, equations)
+  v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr, equations)
   
   if orientation == 1
     # Entries of Powell term for induction equation (already in Trixi's non-conservative form)
@@ -280,9 +282,9 @@ The term is composed of three parts
       vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
       vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
       vk3_minus_ll = v3_plus_ll - vk3_plus_ll[k]
-      vk1_minus_rr = v1_plus_rr- vk1_plus_rr[k]
-      vk2_minus_rr = v2_plus_rr- vk2_plus_rr[k]
-      vk3_minus_rr = v3_plus_rr- vk3_plus_rr[k]
+      vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
+      vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
+      vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
       vk1_minus_avg = 0.5 * (vk1_minus_ll + vk1_minus_rr)
       vk2_minus_avg = 0.5 * (vk2_minus_ll + vk2_minus_rr)
       vk3_minus_avg = 0.5 * (vk3_minus_ll + vk3_minus_rr)
@@ -325,9 +327,9 @@ The term is composed of three parts
       vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
       vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
       vk3_minus_ll = v3_plus_ll - vk3_plus_ll[k]
-      vk1_minus_rr = v1_plus_rr- vk1_plus_rr[k]
-      vk2_minus_rr = v2_plus_rr- vk2_plus_rr[k]
-      vk3_minus_rr = v3_plus_rr- vk3_plus_rr[k]
+      vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
+      vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
+      vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
       vk1_minus_avg = 0.5 * (vk1_minus_ll + vk1_minus_rr)
       vk2_minus_avg = 0.5 * (vk2_minus_ll + vk2_minus_rr)
       vk3_minus_avg = 0.5 * (vk3_minus_ll + vk3_minus_rr)
@@ -371,7 +373,7 @@ The term is composed of three parts
   # Compute important averages
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
 
-  # Compute charge ratio of u_ll (merge into auxiliary_variables)
+  # Compute charge ratio of u_ll
   charge_ratio_ll = zeros(typeof(u_ll[1]), ncomponents(equations))
   total_electron_charge = zero(u_ll[1])
   for k in eachcomponent(equations)
@@ -382,8 +384,8 @@ The term is composed of three parts
   charge_ratio_ll ./= total_electron_charge
 
   # Compute auxiliary variables
-  total_electron_charge_ll, v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = auxiliary_variables(u_ll, equations)
-  total_electron_charge_rr, v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = auxiliary_variables(u_rr, equations)
+  v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll, equations)
+  v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr, equations)
   
   if orientation == 1
     # Entries of Powell term for induction equation (already in Trixi's non-conservative form)
@@ -400,9 +402,9 @@ The term is composed of three parts
       f5 = zero(u_ll[1]) # TODO! charge_ratio_ll[k] * pe_mean
 
       # Compute term 3 (only needed for NCOMP>1)
-      vk1_minus_rr = v1_plus_rr- vk1_plus_rr[k]
-      vk2_minus_rr = v2_plus_rr- vk2_plus_rr[k]
-      vk3_minus_rr = v3_plus_rr- vk3_plus_rr[k]
+      vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
+      vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
+      vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
       f5 += (B2_ll * (vk1_minus_rr * B2_rr - vk2_minus_rr * B1_rr) + 
              B3_ll * (vk1_minus_rr * B3_rr - vk3_minus_rr * B1_rr) )
 
@@ -433,9 +435,9 @@ The term is composed of three parts
       f5 = zero(u_ll[1]) # TODO! charge_ratio_ll[k] * pe_mean
 
       # Compute term 3 (only needed for NCOMP>1)
-      vk1_minus_rr = v1_plus_rr- vk1_plus_rr[k]
-      vk2_minus_rr = v2_plus_rr- vk2_plus_rr[k]
-      vk3_minus_rr = v3_plus_rr- vk3_plus_rr[k]
+      vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
+      vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
+      vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
       f5 += (B1_ll * (vk2_minus_rr * B1_rr - vk1_minus_rr * B2_rr) + 
              B3_ll * (vk2_minus_rr * B3_rr - vk3_minus_rr * B2_rr) )
 
@@ -472,8 +474,8 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
   B1_ll, B2_ll, B3_ll, _ = u_ll
   B1_rr, B2_rr, B3_rr, _ = u_rr
   
-  total_electron_charge_ll, v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = auxiliary_variables(u_ll, equations)
-  total_electron_charge_rr, v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = auxiliary_variables(u_rr, equations)
+  v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll, equations)
+  v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr, equations)
 
   # Compute averages for global variables
   v1_plus_avg = 0.5*(v1_plus_ll+v1_plus_rr)
@@ -536,9 +538,9 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
       vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
       vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
       vk3_minus_ll = v3_plus_ll - vk3_plus_ll[k]
-      vk1_minus_rr = v1_plus_rr- vk1_plus_rr[k]
-      vk2_minus_rr = v2_plus_rr- vk2_plus_rr[k]
-      vk3_minus_rr = v3_plus_rr- vk3_plus_rr[k]
+      vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
+      vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
+      vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
       vk1_minus_avg = 0.5 * (vk1_minus_ll + vk1_minus_rr)
       vk2_minus_avg = 0.5 * (vk2_minus_ll + vk2_minus_rr)
       vk3_minus_avg = 0.5 * (vk3_minus_ll + vk3_minus_rr)
@@ -610,9 +612,9 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
       vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
       vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
       vk3_minus_ll = v3_plus_ll - vk3_plus_ll[k]
-      vk1_minus_rr = v1_plus_rr- vk1_plus_rr[k]
-      vk2_minus_rr = v2_plus_rr- vk2_plus_rr[k]
-      vk3_minus_rr = v3_plus_rr- vk3_plus_rr[k]
+      vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
+      vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
+      vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
       vk1_minus_avg = 0.5 * (vk1_minus_ll + vk1_minus_rr)
       vk2_minus_avg = 0.5 * (vk2_minus_ll + vk2_minus_rr)
       vk3_minus_avg = 0.5 * (vk3_minus_ll + vk3_minus_rr)
@@ -804,12 +806,11 @@ Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoaco
 end
 
 """
-Routine to compute the auxiliary variables:
-* total_electron_charge
+Routine to compute the Charge-averaged velocities:
 * v*_plus: Charge-averaged velocity
 * vk*_plus: Contribution of each species to the charge-averaged velocity
 """
-@inline function auxiliary_variables(u, equations::IdealGlmMhdMultiIonEquations2D)
+@inline function charge_averaged_velocities(u, equations::IdealGlmMhdMultiIonEquations2D)
 
   total_electron_charge = zero(u[1])
   
@@ -834,9 +835,9 @@ Routine to compute the auxiliary variables:
   v2_plus = sum(vk2_plus)
   v3_plus = sum(vk3_plus)
 
-  return total_electron_charge, v1_plus, v2_plus, v3_plus, SVector{ncomponents(equations), real(equations)}(vk1_plus),
-                                                           SVector{ncomponents(equations), real(equations)}(vk2_plus),
-                                                           SVector{ncomponents(equations), real(equations)}(vk3_plus)
+  return v1_plus, v2_plus, v3_plus, SVector{ncomponents(equations), real(equations)}(vk1_plus),
+                                    SVector{ncomponents(equations), real(equations)}(vk2_plus),
+                                    SVector{ncomponents(equations), real(equations)}(vk3_plus)
 end
 
 """
