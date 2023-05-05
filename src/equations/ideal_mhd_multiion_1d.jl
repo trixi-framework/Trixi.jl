@@ -6,17 +6,15 @@
 
 
 @doc raw"""
-    IdealGlmMhdMultiIonEquations1D
+    IdealMhdMultiIonEquations1D
 
-The ideal compressible multi-ion GLM-MHD equations in one space dimension.
-
-* Until now, actually without GLM
+The ideal compressible multi-ion MHD equations in one space dimension.
 """
-mutable struct IdealGlmMhdMultiIonEquations1D{NVARS, NCOMP, RealT<:Real} <: AbstractIdealGlmMhdMultiIonEquations{1, NVARS, NCOMP}
+mutable struct IdealMhdMultiIonEquations1D{NVARS, NCOMP, RealT<:Real} <: AbstractIdealMhdMultiIonEquations{1, NVARS, NCOMP}
   gammas            ::SVector{NCOMP, RealT} # Heat capacity ratios
   charge_to_mass    ::SVector{NCOMP, RealT} # Charge to mass ratios
 
-  function IdealGlmMhdMultiIonEquations1D{NVARS, NCOMP, RealT}(gammas       ::SVector{NCOMP, RealT},
+  function IdealMhdMultiIonEquations1D{NVARS, NCOMP, RealT}(gammas       ::SVector{NCOMP, RealT},
                                                                      charge_to_mass::SVector{NCOMP, RealT}) where {NVARS, NCOMP, RealT<:Real}
 
     NCOMP >= 1 || throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
@@ -25,7 +23,7 @@ mutable struct IdealGlmMhdMultiIonEquations1D{NVARS, NCOMP, RealT<:Real} <: Abst
   end
 end
 
-function IdealGlmMhdMultiIonEquations1D(; gammas, charge_to_mass)
+function IdealMhdMultiIonEquations1D(; gammas, charge_to_mass)
 
   _gammas         = promote(gammas...)
   _charge_to_mass = promote(charge_to_mass...)
@@ -37,14 +35,14 @@ function IdealGlmMhdMultiIonEquations1D(; gammas, charge_to_mass)
   __gammas        = SVector(map(RealT, _gammas))
   __charge_to_mass = SVector(map(RealT, _charge_to_mass))
 
-  return IdealGlmMhdMultiIonEquations1D{NVARS, NCOMP, RealT}(__gammas, __charge_to_mass)
+  return IdealMhdMultiIonEquations1D{NVARS, NCOMP, RealT}(__gammas, __charge_to_mass)
 end
 
-@inline Base.real(::IdealGlmMhdMultiIonEquations1D{NVARS, NCOMP, RealT}) where {NVARS, NCOMP, RealT} = RealT
+@inline Base.real(::IdealMhdMultiIonEquations1D{NVARS, NCOMP, RealT}) where {NVARS, NCOMP, RealT} = RealT
 
-have_nonconservative_terms(::IdealGlmMhdMultiIonEquations1D) = True()
+have_nonconservative_terms(::IdealMhdMultiIonEquations1D) = True()
 
-function varnames(::typeof(cons2cons), equations::IdealGlmMhdMultiIonEquations1D)
+function varnames(::typeof(cons2cons), equations::IdealMhdMultiIonEquations1D)
 
   cons  = ("B1", "B2", "B3")
   for i in eachcomponent(equations)
@@ -54,7 +52,7 @@ function varnames(::typeof(cons2cons), equations::IdealGlmMhdMultiIonEquations1D
   return cons
 end
 
-function varnames(::typeof(cons2prim), equations::IdealGlmMhdMultiIonEquations1D)
+function varnames(::typeof(cons2prim), equations::IdealMhdMultiIonEquations1D)
 
   prim  = ("B1", "B2", "B3")
   for i in eachcomponent(equations)
@@ -66,11 +64,11 @@ end
 
 
 # """
-#     initial_condition_convergence_test(x, t, equations::IdealGlmMhdMultiIonEquations1D)
+#     initial_condition_convergence_test(x, t, equations::IdealMhdMultiIonEquations1D)
 
 # An Alfvén wave as smooth initial condition used for convergence tests.
 # """
-# function initial_condition_convergence_test(x, t, equations::IdealGlmMhdMultiIonEquations1D)
+# function initial_condition_convergence_test(x, t, equations::IdealMhdMultiIonEquations1D)
 #   # smooth Alfvén wave test from Derigs et al. FLASH (2016)
 #   # domain must be set to [0, 1], γ = 5/3
 
@@ -90,14 +88,14 @@ end
 
 
 """
-    initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMultiIonEquations1D)
+    initial_condition_weak_blast_wave(x, t, equations::IdealMhdMultiIonEquations1D)
 
 A weak blast wave adapted from
 - Sebastian Hennemann, Gregor J. Gassner (2020)
   A provably entropy stable subcell shock capturing approach for high order split form DG
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMultiIonEquations1D)
+function initial_condition_weak_blast_wave(x, t, equations::IdealMhdMultiIonEquations1D)
   # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Same discontinuity in the velocities but with magnetic fields
   # Set up polar coordinates
@@ -130,7 +128,7 @@ end
 # TODO: Add initial condition equilibrium
 
 # Calculate 1D flux in for a single point
-@inline function flux(u, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
+@inline function flux(u, orientation::Integer, equations::IdealMhdMultiIonEquations1D)
   B1, B2, B3, _ = u
   
   v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u, equations)
@@ -168,7 +166,7 @@ end
 """
 Standard source terms of the multi-ion MHD equations
 """
-function source_terms_standard(u, x, t, equations::IdealGlmMhdMultiIonEquations1D)
+function source_terms_standard(u, x, t, equations::IdealMhdMultiIonEquations1D)
   @unpack charge_to_mass = equations
   B1, B2, B3, _ = u
   v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u, equations)
@@ -202,7 +200,7 @@ The term is composed of three parts
 * The MHD term: Implemented without the electron pressure (TODO).
 * The "term 3": Implemented
 """
-@inline function flux_nonconservative_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
+@inline function flux_nonconservative_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::IdealMhdMultiIonEquations1D)
   @unpack charge_to_mass = equations
   # Unpack left and right states to get the magnetic field
   B1_ll, B2_ll, B3_ll, _ = u_ll
@@ -275,7 +273,7 @@ The term is composed of three parts
 * The MHD term: Implemented without the electron pressure (TODO).
 * The "term 3": Implemented
 """
-@inline function flux_nonconservative_central(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
+@inline function flux_nonconservative_central(u_ll, u_rr, orientation::Integer, equations::IdealMhdMultiIonEquations1D)
   @unpack charge_to_mass = equations
   # Unpack left and right states to get the magnetic field
   B1_ll, B2_ll, B3_ll, _ = u_ll
@@ -327,7 +325,7 @@ The term is composed of three parts
 end
 
 """
-flux_ruedaramirez_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations1D)
+flux_ruedaramirez_etal(u_ll, u_rr, orientation, equations::IdealMhdMultiIonEquations1D)
 
 Entropy conserving two-point flux adapted by:
 - Rueda-Ramírez et al. (2023)
@@ -337,7 +335,7 @@ This flux (together with the MHD non-conservative term) is consistent in the cas
   divergence diminishing ideal magnetohydrodynamics equations for multi-ion
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
+function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::IdealMhdMultiIonEquations1D)
   @unpack gammas = equations
   # Unpack left and right states to get the magnetic field
   B1_ll, B2_ll, B3_ll, _ = u_ll
@@ -436,9 +434,9 @@ end
 
 """
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-  !!!ATTENTION: This routine is provisory. TODO: Update with the right max_abs_speed
+  !!!ATTENTION: This routine is provisional. TODO: Update with the right max_abs_speed
 """
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMultiIonEquations1D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealMhdMultiIonEquations1D)
   # Calculate fast magnetoacoustic wave speeds
   # left
   cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
@@ -459,7 +457,7 @@ end
 end
 
 
-@inline function max_abs_speeds(u, equations::IdealGlmMhdMultiIonEquations1D)
+@inline function max_abs_speeds(u, equations::IdealMhdMultiIonEquations1D)
   
   v1 = zero(u[1])
   for k in eachcomponent(equations)
@@ -476,7 +474,7 @@ end
 """
 Convert conservative variables to primitive
 """
-function cons2prim(u, equations::IdealGlmMhdMultiIonEquations1D)
+function cons2prim(u, equations::IdealMhdMultiIonEquations1D)
   @unpack gammas = equations
   B1, B2, B3, _ = u
 
@@ -499,7 +497,7 @@ end
 """
 Convert conservative variables to entropy
 """
-@inline function cons2entropy(u, equations::IdealGlmMhdMultiIonEquations1D)
+@inline function cons2entropy(u, equations::IdealMhdMultiIonEquations1D)
   @unpack gammas = equations
   B1, B2, B3, _ = u
 
@@ -532,7 +530,7 @@ end
 """
 Convert primitive to conservative variables
 """
-@inline function prim2cons(prim, equations::IdealGlmMhdMultiIonEquations1D)
+@inline function prim2cons(prim, equations::IdealMhdMultiIonEquations1D)
   @unpack gammas = equations
   B1, B2, B3, _ = prim
 
@@ -553,9 +551,9 @@ end
 
 """
 Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
-  !!! ATTENTION: This routine is provisory.. Change once the fastest wave speed is known!!
+  !!! ATTENTION: This routine is provisional.. Change once the fastest wave speed is known!!
 """
-@inline function calc_fast_wavespeed(cons, direction, equations::IdealGlmMhdMultiIonEquations1D)
+@inline function calc_fast_wavespeed(cons, direction, equations::IdealMhdMultiIonEquations1D)
   B1, B2, B3, _ = cons
 
   c_f = zero(cons[1])
@@ -587,7 +585,7 @@ Routine to compute the charge-averaged velocities:
 * v*_plus: Charge-averaged velocity
 * vk*_plus: Contribution of each species to the charge-averaged velocity
 """
-@inline function charge_averaged_velocities(u, equations::IdealGlmMhdMultiIonEquations1D)
+@inline function charge_averaged_velocities(u, equations::IdealMhdMultiIonEquations1D)
 
   total_electron_charge = zero(u[1])
   
@@ -620,11 +618,11 @@ end
 """
 Get the flow variables of component k
 """
-@inline function get_component(k, u, equations::IdealGlmMhdMultiIonEquations1D)
+@inline function get_component(k, u, equations::IdealMhdMultiIonEquations1D)
   return SVector{5, real(equations)}(u[(k-1)*5+4:(k-1)*5+8])
 end
 
-@inline function density_product(u, equations::IdealGlmMhdMultiIonEquations1D)
+@inline function density_product(u, equations::IdealMhdMultiIonEquations1D)
   prod = one(u[1])
   for k in eachcomponent(equations)
     prod *= u[(k-1)*5+4]
@@ -632,7 +630,7 @@ end
   return prod
 end
 
-@inline function density(u, equations::IdealGlmMhdMultiIonEquations1D)
+@inline function density(u, equations::IdealMhdMultiIonEquations1D)
   rho = zero(u[1])
   for k in eachcomponent(equations)
     rho += u[(k-1)*5+4]
