@@ -79,7 +79,7 @@ function calc_volume_integral!(du, u,
 end
 
 
-# 2D volume integral contributions for `VolumeIntegralUpwind`.
+# 1D volume integral contributions for `VolumeIntegralUpwind`.
 # Note that the plus / minus notation of the operators does not refer to the
 # upwind / downwind directions of the fluxes.
 # Instead, the plus / minus refers to the direction of the biasing within
@@ -166,7 +166,7 @@ end
 
 # Specialized interface flux computation because the upwind solver does
 # not require a standard numerical flux (Riemann solver). The flux splitting
-# already separates the solution infomation into right-traveling and
+# already separates the solution information into right-traveling and
 # left-traveling information. So we only need to compute the appropriate
 # flux information at each side of an interface.
 function calc_interface_flux!(surface_flux_values,

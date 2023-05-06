@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
+# pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "p4est_2d_dgsem")
 
 @testset "P4estMesh MPI 2D" begin
@@ -23,10 +23,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       Trixi.mpi_isroot() && println("-"^100)
       Trixi.mpi_isroot() && println("elixir_advection_basic.jl with error-based step size control")
 
-      sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
-                  save_everystep=false, callback=callbacks,
-                  internalnorm=ode_norm,
-                  unstable_check=ode_unstable_check); summary_callback()
+      sol = solve(ode, RDPK3SpFSAL35(); abstol=1.0e-4, reltol=1.0e-4,
+                  ode_default_options()..., callback=callbacks); summary_callback()
       errors = analysis_callback(sol)
       if Trixi.mpi_isroot()
         @test errors.l2 ≈ [3.3022040342579066e-5]    rtol=1.0e-4

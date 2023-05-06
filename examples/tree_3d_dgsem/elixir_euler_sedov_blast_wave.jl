@@ -29,7 +29,7 @@ function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEuler
   p_ambient = 1e-5 # = true Sedov setup
 
   # Calculate primitive variables
-  # use a logistic function to tranfer density value smoothly
+  # use a logistic function to transfer density value smoothly
   L  = 1.0    # maximum of function
   x0 = 1.0    # center point of function
   k  = -50.0 # sharpness of transfer
@@ -42,7 +42,7 @@ function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEuler
   v2 = 0.0
   v3 = 0.0
 
-  # use a logistic function to tranfer pressure value smoothly
+  # use a logistic function to transfer pressure value smoothly
   logistic_function_p = p_inner/(1.0 + exp(-k*(r - r0)))
   p = max(logistic_function_p, p_ambient)
 
