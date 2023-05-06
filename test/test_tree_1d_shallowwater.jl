@@ -59,7 +59,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       tspan = (0.0, 0.025))
   end
 
-  @trixi_testset "elixir_shallowwater_well_balanced_nonperiodic.jl with dirichlet boundary" begin
+  @trixi_testset "elixir_shallowwater_well_balanced_nonperiodic.jl with Dirichlet boundary" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced_nonperiodic.jl"),
       l2   = [1.725964362045055e-8, 5.0427180314307505e-16, 1.7259643530442137e-8],
       linf = [3.844551077492042e-8, 3.469453422316143e-15, 3.844551077492042e-8],
