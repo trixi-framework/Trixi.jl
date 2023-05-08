@@ -1460,7 +1460,7 @@ end
 
 function update_ghost_layer!(mesh::P4estMesh)
   ghost_destroy_p4est(mesh.ghost)
-  mesh.ghost = ghost_new_p4est(mesh.p4est)
+  mesh.ghost = PointerWrapper(ghost_new_p4est(mesh.p4est))
 end
 
 
