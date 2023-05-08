@@ -273,11 +273,12 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
   # surfaces at once or any subset of them, some of the unpacked values above may be `nothing` if
   # they're not supposed to be initialized during this call. That is why we need additional
   # `!== nothing` checks below before initializing individual faces.
-  if unsafe_load(info).sides.elem_count == 2
+  info_pw = PointerWrapper(info)
+  if info_pw.sides.elem_count[] == 2
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
-    sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
+    sides = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
 
     if sides[1].is_hanging == false && sides[2].is_hanging == false
       # No hanging nodes => normal interface or MPI interface
@@ -317,7 +318,7 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
         init_mortars_iter_face_inner(info, sides, user_data)
       end
     end
-  elseif unsafe_load(info).sides.elem_count == 1
+  elseif info_pw.sides.elem_count[] == 1
     # One neighboring elements => boundary
     if boundaries !== nothing
       init_boundaries_iter_face_inner(info, user_data)
@@ -370,7 +371,7 @@ function init_mpi_interfaces_iter_face_inner(info, sides, user_data)
 
   # Save mpi_interfaces.node_indices dimension specific in containers_[23]d_parallel.jl
   init_mpi_interface_node_indices!(mpi_interfaces, faces, local_side,
-                                   unsafe_load(info).orientation,
+                                   PointerWrapper(info).orientation[],
                                    mpi_interface_id)
 
   return nothing
@@ -430,7 +431,7 @@ function init_mpi_mortars_iter_face_inner(info, sides, user_data)
 
   # init_mortar_node_indices! expects side 1 to contain small elements
   faces = (sides[hanging_side].face, sides[full_side].face)
-  init_mortar_node_indices!(mpi_mortars, faces, unsafe_load(info).orientation, mpi_mortar_id)
+  init_mortar_node_indices!(mpi_mortars, faces, PointerWrapper(info).orientation[], mpi_mortar_id)
 
   return nothing
 end
@@ -444,24 +445,25 @@ end
 # - (MPI) mortars at subdomain boundaries
 # and collect the numbers in `user_data` in this order.
 function count_surfaces_iter_face_parallel(info, user_data)
-  if unsafe_load(info).sides.elem_count == 2
+  info_pw = PointerWrapper(info)
+  if info_pw.sides.elem_count[] == 2
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
-    sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
+    sides = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
 
     if sides[1].is_hanging == false && sides[2].is_hanging == false
       # No hanging nodes => normal interface or MPI interface
       if sides[1].is.full.is_ghost == true || sides[2].is.full.is_ghost == true # remote side => MPI interface
         # Unpack user_data = [mpi_interface_count] and increment mpi_interface_count
-        ptr = Ptr{Int}(user_data)
-        id = unsafe_load(ptr, 4)
-        unsafe_store!(ptr, id + 1, 4)
+        pw = PointerWrapper(Ptr{Int}(user_data))
+        id = pw[4]
+        pw[4] = id + 1
       else
         # Unpack user_data = [interface_count] and increment interface_count
-        ptr = Ptr{Int}(user_data)
-        id = unsafe_load(ptr, 1)
-        unsafe_store!(ptr, id + 1, 1)
+        pw = PointerWrapper(Ptr{Int}(user_data))
+        id = pw[1]
+        pw[1] = id + 1
       end
     else
       # Hanging nodes => mortar or MPI mortar
@@ -485,23 +487,23 @@ function count_surfaces_iter_face_parallel(info, user_data)
       end
       if face_has_ghost_side
         # Unpack user_data = [mpi_mortar_count] and increment mpi_mortar_count
-        ptr = Ptr{Int}(user_data)
-        id = unsafe_load(ptr, 5)
-        unsafe_store!(ptr, id + 1, 5)
+        pw = PointerWrapper(Ptr{Int}(user_data))
+        id = pw[5]
+        pw[5] = id + 1
       else
         # Unpack user_data = [mortar_count] and increment mortar_count
-        ptr = Ptr{Int}(user_data)
-        id = unsafe_load(ptr, 2)
-        unsafe_store!(ptr, id + 1, 2)
+        pw = PointerWrapper(Ptr{Int}(user_data))
+        id = pw[2]
+        pw[2] = id + 1
       end
     end
-  elseif unsafe_load(info).sides.elem_count == 1
+  elseif info_pw.sides.elem_count == 1
     # One neighboring elements => boundary
 
     # Unpack user_data = [boundary_count] and increment boundary_count
-    ptr = Ptr{Int}(user_data)
-    id = unsafe_load(ptr, 3)
-    unsafe_store!(ptr, id + 1, 3)
+    pw = PointerWrapper(Ptr{Int}(user_data))
+    id = pw[3]
+    pw[3] = id + 1
   end
 
   return nothing

@@ -251,12 +251,12 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelP4estMesh,
                              ndims(mesh), nvars, n_nodes, uEltype)
 
   # Determine local and total number of elements
-  n_elements_global = Int(unsafe_load(mesh.p4est).global_num_quadrants)
-  n_elements_by_rank = vcat(Int.(unsafe_wrap(Array, unsafe_load(mesh.p4est).global_first_quadrant, mpi_nranks())),
+  n_elements_global = Int(mesh.p4est.global_num_quadrants[])
+  n_elements_by_rank = vcat(Int.(unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks())),
                             n_elements_global) |> diff # diff sufficient due to 0-based quad indices
   n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
   # Account for 1-based indexing in Julia
-  first_element_global_id = Int(unsafe_load(unsafe_load(mesh.p4est).global_first_quadrant, mpi_rank() + 1)) + 1
+  first_element_global_id = Int(mesh.p4est.global_first_quadrant[mpi_rank() + 1]) + 1
   @assert n_elements_global == sum(n_elements_by_rank) "error in total number of elements"
 
   # TODO reuse existing structures
@@ -344,11 +344,12 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
   @unpack interfaces, interface_id, global_interface_ids, neighbor_ranks_interface,
           mortars, mortar_id, global_mortar_ids, neighbor_ranks_mortar, mesh = user_data
 
+  info_pw = PointerWrapper(info)
   # Get the global interface/mortar ids and neighbor rank if current face belongs to an MPI
   # interface/mortar
-  if unsafe_load(info).sides.elem_count == 2 # MPI interfaces/mortars have two neighboring elements
+  if info_pw.sides.elem_count[] == 2 # MPI interfaces/mortars have two neighboring elements
     # Extract surface data
-    sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
+    sides = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
 
     if sides[1].is_hanging == false && sides[2].is_hanging == false # No hanging nodes for MPI interfaces
       if sides[1].is.full.is_ghost == true
@@ -368,7 +369,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
 
       # Get neighbor ID from ghost layer
       proc_offsets = unsafe_wrap(Array,
-                                 unsafe_load(unsafe_load(info).ghost_layer).proc_offsets,
+                                 info_pw.ghost_layer.proc_offsets,
                                  mpi_nranks() + 1)
       ghost_id = sides[remote_side].is.full.quadid # indexes the ghost layer, 0-based
       neighbor_rank = findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r+1],
@@ -378,11 +379,11 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
       # Global interface id is the globally unique quadrant id of the quadrant on the primary
       # side (1) multiplied by the number of faces per quadrant plus face
       if local_side == 1
-        offset = unsafe_load(unsafe_load(mesh.p4est).global_first_quadrant, mpi_rank() + 1) # one-based indexing
+        offset = mesh.p4est.global_first_quadrant[mpi_rank() + 1] # one-based indexing
         primary_quad_id = offset + local_quad_id
       else
-        offset = unsafe_load(unsafe_load(mesh.p4est).global_first_quadrant, neighbor_rank + 1) # one-based indexing
-        primary_quad_id = offset + unsafe_load(sides[1].is.full.quad.p.piggy3.local_num)
+        offset = mesh.p4est.global_first_quadrant[neighbor_rank + 1] # one-based indexing
+        primary_quad_id = offset + sides[1].is.full.quad.p.piggy3.local_num
       end
       global_interface_id = 2 * ndims(mesh) * primary_quad_id + sides[1].face
       global_interface_ids[interface_id] = global_interface_id
@@ -410,7 +411,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
       # Find small quads that are remote and determine which rank owns them
       remote_small_quad_positions = findall(sides[hanging_side].is.hanging.is_ghost .== true)
       proc_offsets = unsafe_wrap(Array,
-                                 unsafe_load(unsafe_load(info).ghost_layer).proc_offsets,
+                                 info_pw.ghost_layer.proc_offsets,
                                  mpi_nranks() + 1)
       # indices of small remote quads inside the ghost layer, 0-based
       ghost_ids = map(pos -> sides[hanging_side].is.hanging.quadid[pos], remote_small_quad_positions)
@@ -426,10 +427,10 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
                                           1:mpi_nranks()) - 1 # MPI ranks are 0-based
         push!(neighbor_ranks, large_quad_owner_rank)
 
-        offset = unsafe_load(unsafe_load(mesh.p4est).global_first_quadrant, large_quad_owner_rank + 1) # one-based indexing
-        large_quad_id = offset + unsafe_load(sides[full_side].is.full.quad.p.piggy3.local_num)
+        offset = mesh.p4est.global_first_quadrant[large_quad_owner_rank + 1] # one-based indexing
+        large_quad_id = offset + sides[full_side].is.full.quad.p.piggy3.local_num
       else
-        offset = unsafe_load(unsafe_load(mesh.p4est).global_first_quadrant, mpi_rank() + 1) # one-based indexing
+        offset = mesh.p4est.global_first_quadrant[mpi_rank() + 1] # one-based indexing
         large_quad_id = offset + trees[full_side].quadrants_offset + sides[full_side].is.full.quadid
       end
       neighbor_ranks_mortar[mortar_id] = neighbor_ranks

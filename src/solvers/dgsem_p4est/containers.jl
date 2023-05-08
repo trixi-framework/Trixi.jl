@@ -247,7 +247,8 @@ end
 # Function barrier for type stability
 function init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
   # Extract boundary data
-  side = unsafe_load_side(info)
+  info_pw = PointerWrapper(info)
+  side = unsafe_load_side(info_pw)
   # Get local tree, one-based indexing
   tree = unsafe_load_tree(mesh.p4est, side.treeid + 1)
   # Quadrant numbering offset of this quadrant
@@ -435,13 +436,14 @@ cfunction(::typeof(init_surfaces_iter_face), ::Val{3}) = @cfunction(init_surface
 # Function barrier for type stability
 function init_surfaces_iter_face_inner(info, user_data)
   @unpack interfaces, mortars, boundaries = user_data
-  elem_count = unsafe_load(info).sides.elem_count
+  info_pw = PointerWrapper(info)
+  elem_count = info_pw.sides.elem_count[]
 
   if elem_count == 2
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
-    sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
+    sides = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
 
     if sides[1].is_hanging == false && sides[2].is_hanging == false
       # No hanging nodes => normal interface
@@ -502,7 +504,7 @@ function init_interfaces_iter_face_inner(info, sides, user_data)
 
   # Save interfaces.node_indices dimension specific in containers_[23]d.jl
   init_interface_node_indices!(interfaces, faces,
-    unsafe_load(info).orientation, interface_id)
+    PointerWrapper(info).orientation[], interface_id)
 
   return nothing
 end
@@ -513,8 +515,9 @@ function init_boundaries_iter_face_inner(info, user_data)
   @unpack boundaries, boundary_id, mesh = user_data
   user_data.boundary_id += 1
 
+  info_pw = PointerWrapper(info)
   # Extract boundary data
-  side = unsafe_load_side(info)
+  side = unsafe_load_side(info_pw)
   # Get local tree, one-based indexing
   tree = unsafe_load_tree(mesh.p4est, side.treeid + 1)
   # Quadrant numbering offset of this quadrant
@@ -587,7 +590,7 @@ function init_mortars_iter_face_inner(info, sides, user_data)
   # Last entry is the large element
   mortars.neighbor_ids[end, mortar_id] = large_quad_id + 1
 
-  init_mortar_node_indices!(mortars, faces, unsafe_load(info).orientation, mortar_id)
+  init_mortar_node_indices!(mortars, faces, PointerWrapper(info).orientation[], mortar_id)
 
   return nothing
 end
@@ -599,34 +602,35 @@ end
 # - boundaries
 # and collect the numbers in `user_data` in this order.
 function count_surfaces_iter_face(info, user_data)
-  elem_count = unsafe_load(info).sides.elem_count
+  info_pw = PointerWrapper(info)
+  elem_count = info_pw.sides.elem_count[]
 
   if elem_count == 2
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
-    sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
+    sides = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
 
     if sides[1].is_hanging == false && sides[2].is_hanging == false
       # No hanging nodes => normal interface
       # Unpack user_data = [interface_count] and increment interface_count
-      ptr = Ptr{Int}(user_data)
-      id = unsafe_load(ptr, 1)
-      unsafe_store!(ptr, id + 1, 1)
+      pw = PointerWrapper(Ptr{Int}(user_data))
+      id = pw[1]
+      pw[1] = id + 1
     else
       # Hanging nodes => mortar
       # Unpack user_data = [mortar_count] and increment mortar_count
-      ptr = Ptr{Int}(user_data)
-      id = unsafe_load(ptr, 2)
-      unsafe_store!(ptr, id + 1, 2)
+      pw = PointerWrapper(Ptr{Int}(user_data))
+      id = pw[2]
+      pw[2] = id + 1
     end
   elseif elem_count == 1
     # One neighboring elements => boundary
 
     # Unpack user_data = [boundary_count] and increment boundary_count
-    ptr = Ptr{Int}(user_data)
-    id = unsafe_load(ptr, 3)
-    unsafe_store!(ptr, id + 1, 3)
+    pw = PointerWrapper(Ptr{Int}(user_data))
+    id = pw[3]
+    pw[3] = id + 1
   end
 
   return nothing
