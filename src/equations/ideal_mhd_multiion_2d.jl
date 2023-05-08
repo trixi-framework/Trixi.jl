@@ -76,7 +76,7 @@ default_analysis_integrals(::IdealMhdMultiIonEquations2D)  = (entropy_timederiva
 
 #   rho = 1.0
 #   prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-#   v1 = 0.0
+#   v1 = 0
 #   si, co = sincos(2 * pi * x[1])
 #   v2 = 0.1 * si
 #   v3 = 0.1 * co
@@ -108,22 +108,22 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealMhdMultiIonEqua
   phi = atan(y_norm, x_norm)
 
   # Calculate primitive variables
-  rho = zero(real(equations))
+  rho = 0
   if r > 0.5
     rho = 1.0
   else
     rho = 1.1691
   end
-  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+  v1 = r > 0.5 ? 0 : 0.1882 * cos(phi)
+  v2 = r > 0.5 ? 0 : 0.1882 * sin(phi)
   p = r > 0.5 ? 1.0 : 1.245
 
   #prim = (0.01, 0.01, 0.01)
   prim = (1.0, 1.0, 1.0)
   for i in eachcomponent(equations)
-    prim = (prim..., 2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho, v1, v2, 0.0, p)
-    #prim = (prim..., rho, v1, 0.0, 0.0, p)
-    #prim = (prim..., 1.0, 1.0, 0.0, 0.0, 100.0)
+    prim = (prim..., 2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho, v1, v2, 0, p)
+    #prim = (prim..., rho, v1, 0, 0, p)
+    #prim = (prim..., 1.0, 1.0, 0, 0, 100)
   end
 
   return prim2cons(SVector{nvariables(equations), real(equations)}(prim), equations)
@@ -226,7 +226,7 @@ function source_terms_standard(u, x, t, equations::IdealMhdMultiIonEquations2D)
     s4 = r_rho * (v1_diff * B2 - v2_diff - B1)
     s5 = v1 * s2 + v2 * s3 + v3 * s4
 
-    s[3 + (k - 1) * 5 + 1] = zero(u[1])
+    s[3 + (k - 1) * 5 + 1] = 0
     s[3 + (k - 1) * 5 + 2] = s2
     s[3 + (k - 1) * 5 + 3] = s3
     s[3 + (k - 1) * 5 + 4] = s4
@@ -261,7 +261,7 @@ The term is composed of three parts
   # Compute charge ratio of u_ll
   #
   charge_ratio_ll = zeros(MVector{ncomponents(equations), eltype(u_ll)})
-  total_electron_charge = zero(u_ll[1])
+  total_electron_charge = 0
   for k in eachcomponent(equations)
     rho_k = u_ll[(k-1)*5+4]
     charge_ratio_ll[k] = rho_k * charge_to_mass[k]
@@ -287,7 +287,7 @@ The term is composed of three parts
       f2 = charge_ratio_ll[k] * (0.5 * mag_norm_avg - B1_avg * B1_avg) # + pe_mean)
       f3 = charge_ratio_ll[k] * (- B1_avg * B2_avg)
       f4 = charge_ratio_ll[k] * (- B1_avg * B3_avg)
-      f5 = zero(u_ll[1]) # TODO! charge_ratio_ll[k] * pe_mean
+      f5 = 0 # TODO: Add "average" of electron pressure! charge_ratio_ll[k] * pe_mean
 
       # Compute term 3 (only needed for NCOMP>1)
       vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
@@ -316,7 +316,7 @@ The term is composed of three parts
       f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B1_rr
 
       # Append to the flux vector
-      f[3 + (k - 1) * 5 + 1] = zero(u_ll[1])
+      f[3 + (k - 1) * 5 + 1] = 0
       f[3 + (k - 1) * 5 + 2] = f2
       f[3 + (k - 1) * 5 + 3] = f3
       f[3 + (k - 1) * 5 + 4] = f4
@@ -335,7 +335,7 @@ The term is composed of three parts
       f2 = charge_ratio_ll[k] * (- B2_avg * B1_avg) 
       f3 = charge_ratio_ll[k] * (- B2_avg * B2_avg + 0.5 * mag_norm_avg) # + pe_mean)
       f4 = charge_ratio_ll[k] * (- B2_avg * B3_avg)
-      f5 = zero(u_ll[1]) # TODO! charge_ratio_ll[k] * pe_mean
+      f5 = 0 # TODO: Add average of electron pressure! charge_ratio_ll[k] * pe_mean
 
       # Compute term 3 (only needed for NCOMP>1)
       vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
@@ -364,7 +364,7 @@ The term is composed of three parts
       f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B2_rr
       
       # Append to the flux vector
-      f[3 + (k - 1) * 5 + 1] = zero(u_ll[1])
+      f[3 + (k - 1) * 5 + 1] = 0
       f[3 + (k - 1) * 5 + 2] = f2
       f[3 + (k - 1) * 5 + 3] = f3
       f[3 + (k - 1) * 5 + 4] = f4
@@ -393,7 +393,7 @@ The term is composed of three parts
 
   # Compute charge ratio of u_ll
   charge_ratio_ll = zeros(MVector{ncomponents(equations), eltype(u_ll)})
-  total_electron_charge = zero(u_ll[1])
+  total_electron_charge = 0
   for k in eachcomponent(equations)
     rho_k = u_ll[(k-1)*5+4]
     charge_ratio_ll[k] = rho_k * charge_to_mass[k]
@@ -418,7 +418,7 @@ The term is composed of three parts
       f2 = charge_ratio_ll[k] * (0.5 * mag_norm_rr - B1_rr * B1_rr) # + pe_mean)
       f3 = charge_ratio_ll[k] * (- B1_rr * B2_rr)
       f4 = charge_ratio_ll[k] * (- B1_rr * B3_rr)
-      f5 = zero(u_ll[1]) # TODO! charge_ratio_ll[k] * pe_mean
+      f5 = 0 # TODO! charge_ratio_ll[k] * pe_mean
 
       # Compute term 3 (only needed for NCOMP>1)
       vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
@@ -436,7 +436,7 @@ The term is composed of three parts
       # It's not needed to adjust to Trixi's non-conservative form
 
       # Append to the flux vector
-      f[3 + (k - 1) * 5 + 1] = zero(u_ll[1])
+      f[3 + (k - 1) * 5 + 1] = 0
       f[3 + (k - 1) * 5 + 2] = f2
       f[3 + (k - 1) * 5 + 3] = f3
       f[3 + (k - 1) * 5 + 4] = f4
@@ -454,7 +454,7 @@ The term is composed of three parts
       f2 = charge_ratio_ll[k] * (- B2_rr * B1_rr) 
       f3 = charge_ratio_ll[k] * (- B2_rr * B2_rr + 0.5 * mag_norm_rr) # + pe_mean)
       f4 = charge_ratio_ll[k] * (- B2_rr * B3_rr)
-      f5 = zero(u_ll[1]) # TODO! charge_ratio_ll[k] * pe_mean
+      f5 = 0 # TODO! charge_ratio_ll[k] * pe_mean
 
       # Compute term 3 (only needed for NCOMP>1)
       vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
@@ -472,7 +472,7 @@ The term is composed of three parts
       # It's not needed to adjust to Trixi's non-conservative form
 
       # Append to the flux vector
-      f[3 + (k - 1) * 5 + 1] = zero(u_ll[1])
+      f[3 + (k - 1) * 5 + 1] = 0
       f[3 + (k - 1) * 5 + 2] = f2
       f[3 + (k - 1) * 5 + 3] = f3
       f[3 + (k - 1) * 5 + 4] = f4
@@ -518,7 +518,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
 
   if orientation == 1
     # Magnetic field components from f^MHD
-    f6 = zero(u_ll[1])
+    f6 = 0
     f7 = v1_plus_avg * B2_avg - v2_plus_avg * B1_avg
     f8 = v1_plus_avg * B3_avg - v3_plus_avg * B1_avg
 
@@ -599,7 +599,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
   else #if orientation == 2
     # Magnetic field components from f^MHD
     f6 = v2_plus_avg * B1_avg - v1_plus_avg * B2_avg
-    f7 = zero(u_ll[1])
+    f7 = 0
     f8 = v2_plus_avg * B3_avg - v3_plus_avg * B2_avg
 
     # Start building the flux
@@ -693,8 +693,8 @@ end
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
   # Calculate velocities
-  v_ll = zero(u_ll[1])
-  v_rr = zero(u_rr[1])
+  v_ll = 0
+  v_rr = 0
   if orientation == 1
     for k in eachcomponent(equations)
       rho, rho_v1, _ = get_component(k, u_ll, equations)
@@ -717,8 +717,8 @@ end
 
 @inline function max_abs_speeds(u, equations::IdealMhdMultiIonEquations2D)
   
-  v1 = zero(u[1])
-  v2 = zero(u[1])
+  v1 = 0
+  v2 = 0
   for k in eachcomponent(equations)
     rho, rho_v1, rho_v2, _ = get_component(k, u, equations)
     v1 = max(v1, abs(rho_v1 / rho))
@@ -764,7 +764,7 @@ Convert conservative variables to entropy
 
   prim = cons2prim(u, equations)
   entropy = ()
-  rho_p_plus = zero(u[1])
+  rho_p_plus = 0
   for k in eachcomponent(equations)
     rho, v1, v2, v3, p = get_component(k, prim, equations)
     s = log(p) - gammas[k] * log(rho)
@@ -817,7 +817,7 @@ Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoaco
 @inline function calc_fast_wavespeed(cons, orientation::Integer, equations::IdealMhdMultiIonEquations2D)
   B1, B2, B3, _ = cons
 
-  c_f = zero(cons[1])
+  c_f = 0
   for k in eachcomponent(equations)
     rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, cons, equations)
     
@@ -852,7 +852,7 @@ Routine to compute the Charge-averaged velocities:
 """
 @inline function charge_averaged_velocities(u, equations::IdealMhdMultiIonEquations2D)
 
-  total_electron_charge = zero(eltype(u))
+  total_electron_charge = 0
   
   vk1_plus = zeros(MVector{ncomponents(equations), eltype(u)})
   vk2_plus = zeros(MVector{ncomponents(equations), eltype(u)})
@@ -898,7 +898,7 @@ end
 end
 
 @inline function density(u, equations::IdealMhdMultiIonEquations2D)
-  rho = zero(u[1])
+  rho = 0
   for k in eachcomponent(equations)
     rho += u[(k-1)*5+4]
   end
@@ -910,8 +910,8 @@ Computes the sum of the densities times the sum of the pressures
 """
 @inline function density_pressure(u, equations::IdealMhdMultiIonEquations2D)
   B1, B2, B3, _ = u
-  rho_total = zero(u[1])
-  p_total = zero(u[1])
+  rho_total = 0
+  p_total = 0
   for k in eachcomponent(equations)
     rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
     
