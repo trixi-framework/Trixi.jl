@@ -369,7 +369,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
 
       # Get neighbor ID from ghost layer
       proc_offsets = unsafe_wrap(Array,
-                                 info_pw.ghost_layer.proc_offsets,
+                                 info_pw.ghost_layer.proc_offsets[],
                                  mpi_nranks() + 1)
       ghost_id = sides[remote_side].is.full.quadid # indexes the ghost layer, 0-based
       neighbor_rank = findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r+1],
@@ -411,7 +411,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
       # Find small quads that are remote and determine which rank owns them
       remote_small_quad_positions = findall(sides[hanging_side].is.hanging.is_ghost .== true)
       proc_offsets = unsafe_wrap(Array,
-                                 info_pw.ghost_layer.proc_offsets,
+                                 info_pw.ghost_layer.proc_offsets[],
                                  mpi_nranks() + 1)
       # indices of small remote quads inside the ghost layer, 0-based
       ghost_ids = map(pos -> sides[hanging_side].is.hanging.quadid[pos], remote_small_quad_positions)
