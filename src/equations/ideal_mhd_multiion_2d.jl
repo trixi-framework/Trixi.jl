@@ -142,7 +142,7 @@ end
   f = zeros(MVector{nvariables(equations), eltype(u)})
 
   if orientation == 1
-    f[1] = 0.0
+    f[1] = 0
     f[2] = v1_plus * B2 - v2_plus * B1
     f[3] = v1_plus * B3 - v3_plus * B1
 
@@ -172,7 +172,7 @@ end
   else #if orientation == 2
 
     f[1] = v2_plus * B1 - v1_plus * B2
-    f[2] = 0.0
+    f[2] = 0
     f[3] = v2_plus * B3 - v3_plus * B2
 
     for k in eachcomponent(equations)
