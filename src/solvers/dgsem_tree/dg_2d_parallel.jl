@@ -426,25 +426,6 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars, m
 end
 
 
-# TODO: MPI dimension agnostic
-# Initialize MPI data structures
-function init_mpi_data_structures(mpi_neighbor_interfaces, mpi_neighbor_mortars, ndims, nvars, n_nodes, uEltype)
-  data_size = nvars * n_nodes^(ndims - 1)
-  mpi_send_buffers = Vector{Vector{uEltype}}(undef, length(mpi_neighbor_interfaces))
-  mpi_recv_buffers = Vector{Vector{uEltype}}(undef, length(mpi_neighbor_interfaces))
-  for index in 1:length(mpi_neighbor_interfaces)
-    mpi_send_buffers[index] = Vector{uEltype}(undef, length(mpi_neighbor_interfaces[index]) * data_size +
-                                                     length(mpi_neighbor_mortars[index]) * 4 * data_size)
-    mpi_recv_buffers[index] = Vector{uEltype}(undef, length(mpi_neighbor_interfaces[index]) * data_size +
-                                                     length(mpi_neighbor_mortars[index]) * 4 * data_size)
-  end
-
-  mpi_send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
-  mpi_recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
-
-  return mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests
-end
-
 
 function rhs!(du, u, t,
               mesh::Union{ParallelTreeMesh{2}, ParallelP4estMesh{2}}, equations,
