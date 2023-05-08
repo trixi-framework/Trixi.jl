@@ -162,11 +162,7 @@ end
       f4 = rho_v1*v3 #- B1*B3
       f5 = (kin_en + gamma*p/(gamma - 1))*v1 + 2 * mag_en * vk1_plus[k] - B1 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3)
 
-      f[3 + (k - 1) * 5 + 1] = f1
-      f[3 + (k - 1) * 5 + 2] = f2
-      f[3 + (k - 1) * 5 + 3] = f3
-      f[3 + (k - 1) * 5 + 4] = f4
-      f[3 + (k - 1) * 5 + 5] = f5
+      set_component!(f, k, f1, f2, f3, f4, f5, equations)
     end
     
   else #if orientation == 2
@@ -191,11 +187,7 @@ end
       f4 = rho_v2*v3 #- B2*B3
       f5 = (kin_en + gamma*p/(gamma - 1))*v2 + 2 * mag_en * vk2_plus[k] - B2 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3)
 
-      f[3 + (k - 1) * 5 + 1] = f1
-      f[3 + (k - 1) * 5 + 2] = f2
-      f[3 + (k - 1) * 5 + 3] = f3
-      f[3 + (k - 1) * 5 + 4] = f4
-      f[3 + (k - 1) * 5 + 5] = f5
+      set_component!(f, k, f1, f2, f3, f4, f5, equations)
     end
   end
 
@@ -226,11 +218,7 @@ function source_terms_standard(u, x, t, equations::IdealMhdMultiIonEquations2D)
     s4 = r_rho * (v1_diff * B2 - v2_diff - B1)
     s5 = v1 * s2 + v2 * s3 + v3 * s4
 
-    s[3 + (k - 1) * 5 + 1] = 0
-    s[3 + (k - 1) * 5 + 2] = s2
-    s[3 + (k - 1) * 5 + 3] = s3
-    s[3 + (k - 1) * 5 + 4] = s4
-    s[3 + (k - 1) * 5 + 5] = s5
+    set_component!(s, k, 0, s2, s3, s4, s5, equations)
   end
 
   return SVector(s)
@@ -316,11 +304,7 @@ The term is composed of three parts
       f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B1_rr
 
       # Append to the flux vector
-      f[3 + (k - 1) * 5 + 1] = 0
-      f[3 + (k - 1) * 5 + 2] = f2
-      f[3 + (k - 1) * 5 + 3] = f3
-      f[3 + (k - 1) * 5 + 4] = f4
-      f[3 + (k - 1) * 5 + 5] = f5
+      set_component!(f, k, 0, f2, f3, f4, f5, equations)
     end
 
   else #if orientation == 2
@@ -364,11 +348,7 @@ The term is composed of three parts
       f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B2_rr
       
       # Append to the flux vector
-      f[3 + (k - 1) * 5 + 1] = 0
-      f[3 + (k - 1) * 5 + 2] = f2
-      f[3 + (k - 1) * 5 + 3] = f3
-      f[3 + (k - 1) * 5 + 4] = f4
-      f[3 + (k - 1) * 5 + 5] = f5
+      set_component!(f, k, 0, f2, f3, f4, f5, equations)
     end
   end
 
@@ -436,11 +416,7 @@ The term is composed of three parts
       # It's not needed to adjust to Trixi's non-conservative form
 
       # Append to the flux vector
-      f[3 + (k - 1) * 5 + 1] = 0
-      f[3 + (k - 1) * 5 + 2] = f2
-      f[3 + (k - 1) * 5 + 3] = f3
-      f[3 + (k - 1) * 5 + 4] = f4
-      f[3 + (k - 1) * 5 + 5] = f5
+      set_component!(f, k, 0, f2, f3, f4, f5, equations)
     end
   else #if orientation == 2
     # Entries of Powell term for induction equation (already in Trixi's non-conservative form)
@@ -472,11 +448,7 @@ The term is composed of three parts
       # It's not needed to adjust to Trixi's non-conservative form
 
       # Append to the flux vector
-      f[3 + (k - 1) * 5 + 1] = 0
-      f[3 + (k - 1) * 5 + 2] = f2
-      f[3 + (k - 1) * 5 + 3] = f3
-      f[3 + (k - 1) * 5 + 4] = f4
-      f[3 + (k - 1) * 5 + 5] = f5
+      set_component!(f, k, 0, f2, f3, f4, f5, equations)
     end
   end
 
@@ -590,11 +562,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
             + 0.5 * vk1_plus_avg * mag_norm_avg - vk1_plus_avg * B1_avg * B1_avg - vk2_plus_avg * B1_avg * B2_avg - vk3_plus_avg * B1_avg * B3_avg   # Additional terms coming from the MHD non-conservative term (momentum eqs)
             - B2_avg *  (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) - B3_avg * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg) )             # Terms coming from the non-conservative term 3 (induction equation!)
 
-      f[3 + (k - 1) * 5 + 1] = f1
-      f[3 + (k - 1) * 5 + 2] = f2
-      f[3 + (k - 1) * 5 + 3] = f3
-      f[3 + (k - 1) * 5 + 4] = f4
-      f[3 + (k - 1) * 5 + 5] = f5
+      set_component!(f, k, f1, f2, f3, f4, f5, equations)
     end
   else #if orientation == 2
     # Magnetic field components from f^MHD
@@ -670,11 +638,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
             + 0.5 * vk2_plus_avg * mag_norm_avg - vk1_plus_avg * B2_avg * B1_avg - vk2_plus_avg * B2_avg * B2_avg - vk3_plus_avg * B2_avg * B3_avg   # Additional terms coming from the MHD non-conservative term (momentum eqs)
             - B1_avg *  (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) - B3_avg * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg) )             # Terms coming from the non-conservative term 3 (induction equation!)
 
-      f[3 + (k - 1) * 5 + 1] = f1
-      f[3 + (k - 1) * 5 + 2] = f2
-      f[3 + (k - 1) * 5 + 3] = f3
-      f[3 + (k - 1) * 5 + 4] = f4
-      f[3 + (k - 1) * 5 + 5] = f5
+      set_component!(f, k, f1, f2, f3, f4, f5, equations)
     end
   end
 
@@ -882,17 +846,30 @@ end
 Get the flow variables of component k
 """
 @inline function get_component(k, u, equations::IdealMhdMultiIonEquations2D)
-  return SVector(u[(k-1)*5+4],
-                 u[(k-1)*5+5],
-                 u[(k-1)*5+6],
-                 u[(k-1)*5+7],
-                 u[(k-1)*5+8])
+  # The first 3 entries of u contain the magnetic field. The following entries contain the density, momentum (3 entries), and energy of each component.
+  return SVector(u[3 + (k - 1) * 5 + 1],
+                 u[3 + (k - 1) * 5 + 2],
+                 u[3 + (k - 1) * 5 + 3],
+                 u[3 + (k - 1) * 5 + 4],
+                 u[3 + (k - 1) * 5 + 5])
+end
+
+"""
+Set the flow variables of component k
+"""
+@inline function set_component!(u, k, u1, u2, u3, u4, u5, equations::IdealMhdMultiIonEquations2D)
+  # The first 3 entries of u contain the magnetic field. The following entries contain the density, momentum (3 entries), and energy of each component.
+  u[3 + (k - 1) * 5 + 1] = u1
+  u[3 + (k - 1) * 5 + 2] = u2
+  u[3 + (k - 1) * 5 + 3] = u3
+  u[3 + (k - 1) * 5 + 4] = u4
+  u[3 + (k - 1) * 5 + 5] = u5
 end
 
 @inline function density_product(u, equations::IdealMhdMultiIonEquations2D)
   prod = one(u[1])
   for k in eachcomponent(equations)
-    prod *= u[(k-1)*5+4]
+    prod *= u[3 + (k - 1) * 5 + 1]
   end
   return prod
 end
@@ -900,7 +877,7 @@ end
 @inline function density(u, equations::IdealMhdMultiIonEquations2D)
   rho = 0
   for k in eachcomponent(equations)
-    rho += u[(k-1)*5+4]
+    rho += u[3 + (k - 1) * 5 + 1]
   end
   return rho
 end
