@@ -524,7 +524,7 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
 
       # compute conservative and non-conservative parts separately
       flux_at_face_node = boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
-                                                 surface_flux, equations) * Jf[i,f]
+                                             surface_flux, equations) * Jf[i,f]
 
       flux_face_values[i,f] = flux_at_face_node +
                                 0.5 * boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
