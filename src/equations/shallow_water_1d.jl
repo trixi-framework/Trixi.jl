@@ -502,7 +502,7 @@ end
 
 
 # Convert conservative variables to entropy
-# Note, only the first three are the entropy variables, the fourth entry still
+# Note, only the first two are the entropy variables, the third entry still
 # just carries the bottom topography values for convenience
 @inline function cons2entropy(u, equations::ShallowWaterEquations1D)
   h, h_v, b = u

@@ -615,7 +615,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "Consistency check for Godunov flux" begin
     # Set up equations and dummy conservative variables state
-    # Burger's Equation
+    # Burgers' Equation
 
     equation = InviscidBurgersEquation1D()
     u_values = [SVector(42.0), SVector(-42.0)]
@@ -693,7 +693,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @testset "Equivalent Fluxes" begin
     # Set up equations and dummy conservative variables state
-    # Burger's Equation
+    # Burgers' Equation
 
     equation = InviscidBurgersEquation1D()
     u_values = [SVector(42.0), SVector(-42.0)]

@@ -37,6 +37,7 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
                   terminate!, remake
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
+using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
@@ -139,7 +140,7 @@ export AcousticPerturbationEquations2D,
        ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
        LinearizedEulerEquations2D
 
-export LaplaceDiffusion2D,
+export LaplaceDiffusion1D, LaplaceDiffusion2D,
        CompressibleNavierStokesDiffusion2D, CompressibleNavierStokesDiffusion3D
 
 export GradientVariablesPrimitive, GradientVariablesEntropy
