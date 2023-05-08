@@ -61,7 +61,7 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
   nnodes_1d = length(rq1D)
 
   # Permutation of indices in a tensor product form
-  num_faces = StartUpDG.element_type(rd.element_type)
+  num_faces = StartUpDG.num_faces(rd.element_type)
   indices = reshape(1:length(rd.rf), nnodes_1d, num_faces)
   face_indices_tensor_product = zeros(Int, 2, nnodes_1d, ndims(rd.element_type))
   for i in 1:nnodes_1d # loop over nodes in one face
