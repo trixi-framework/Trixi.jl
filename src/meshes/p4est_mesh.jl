@@ -1607,7 +1607,7 @@ function save_original_id_iter_volume(info, user_data)
   quad_id = offset + info_pw.quadid[]
 
   # Unpack quadrant's user data ([global quad ID, controller_value])
-  pw = PointerWrapper(Ptr{Int}(info_pw.quad.p.user_data[]))
+  pw = PointerWrapper(Int, pointer(info_pw.quad.p.user_data))
   # Save global quad ID
   pw[1] = quad_id
 
@@ -1688,7 +1688,7 @@ function collect_new_iter_volume(info, user_data)
     quad_id = offset + info_pw.quadid[]
 
     # Unpack user_data = original_cells
-    user_data_pw = PointerWrapper(Ptr{Int}(user_data))
+    user_data_pw = PointerWrapper(Int, user_data)
 
     # Mark cell as "newly created during refinement/coarsening/balancing"
     user_data_pw[quad_id + 1] = 1
