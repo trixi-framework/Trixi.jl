@@ -428,23 +428,27 @@ end
 
 # do nothing for periodic (default) boundary conditions
 calc_boundary_flux!(cache, t, boundary_conditions::BoundaryConditionPeriodic,
+                    have_nonconservative_terms,
                     mesh, equations, dg::DGMulti) = nothing
 
 # "lispy tuple programming" instead of for loop for type stability
-function calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, dg::DGMulti)
+function calc_boundary_flux!(cache, t, boundary_conditions, have_nonconservative_terms,
+                             mesh, equations, dg::DGMulti)
   # peel off first boundary condition
   calc_single_boundary_flux!(cache, t, first(boundary_conditions), first(keys(boundary_conditions)),
-                 mesh, equations, dg)
+                             have_nonconservative_terms, mesh, equations, dg)
 
   # recurse on the remainder of the boundary conditions
-  calc_boundary_flux!(cache, t, Base.tail(boundary_conditions), mesh, equations, dg)
+  calc_boundary_flux!(cache, t, Base.tail(boundary_conditions),
+                      have_nonconservative_terms, mesh, equations, dg)
 end
 
 # terminate recursion
 calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple{(),Tuple{}},
-                    mesh, equations, dg::DGMulti) = nothing
+                    have_nonconservative_terms, mesh, equations, dg::DGMulti) = nothing
 
 function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
+                                    have_nonconservative_terms::False,
                                     mesh, equations, dg::DGMulti{NDIMS}) where {NDIMS}
 
   rd = dg.basis
@@ -568,7 +572,8 @@ function rhs!(du, u, t, mesh, equations,
     have_nonconservative_terms(equations), equations, dg)
 
   @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg)
+    cache, t, boundary_conditions,
+    have_nonconservative_terms(equations), mesh, equations, dg)
 
   @trixi_timeit timer() "surface integral" calc_surface_integral!(
     du, u, dg.surface_integral, mesh, equations, dg, cache)

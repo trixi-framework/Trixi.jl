@@ -508,6 +508,7 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
                                                               equations, dg)
 
   @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
+                                                            have_nonconservative_terms(equations),
                                                             mesh, equations, dg)
 
   # `du` is stored at Gauss nodes here
