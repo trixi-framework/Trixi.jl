@@ -76,7 +76,7 @@ default_analysis_integrals(::IdealMhdMultiIonEquations2D)  = (entropy_timederiva
 
 #   rho = 1.0
 #   prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-#   v1 = 0
+#   v1 = zero(real(equations))
 #   si, co = sincos(2 * pi * x[1])
 #   v2 = 0.1 * si
 #   v3 = 0.1 * co
@@ -108,7 +108,7 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealMhdMultiIonEqua
   phi = atan(y_norm, x_norm)
 
   # Calculate primitive variables
-  rho = 0
+  rho = zero(real(equations))
   if r > 0.5
     rho = 1.0
   else
@@ -118,12 +118,9 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealMhdMultiIonEqua
   v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
   p = r > 0.5 ? 1.0 : 1.245
 
-  #prim = (0.01, 0.01, 0.01)
   prim = (1.0, 1.0, 1.0)
   for i in eachcomponent(equations)
-    prim = (prim..., 2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho, v1, v2, 0, p)
-    #prim = (prim..., rho, v1, 0, 0, p)
-    #prim = (prim..., 1.0, 1.0, 0, 0, 100)
+    prim = (prim..., 2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho, v1, v2, zero(real(equations)), p)
   end
 
   return prim2cons(SVector{nvariables(equations), real(equations)}(prim), equations)
@@ -137,7 +134,7 @@ end
   
   v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u, equations)
 
-  mag_en = 0.5*(B1^2 + B2^2 + B3^2)
+  mag_en = 0.5 * (B1^2 + B2^2 + B3^2)
 
   f = zeros(MVector{nvariables(equations), eltype(u)})
 
@@ -157,9 +154,9 @@ end
       p = (gamma - 1) * (rho_e - kin_en - mag_en)
 
       f1 = rho_v1
-      f2 = rho_v1*v1 + p #+ mag_en - B1^2
-      f3 = rho_v1*v2 #- B1*B2
-      f4 = rho_v1*v3 #- B1*B3
+      f2 = rho_v1*v1 + p
+      f3 = rho_v1*v2
+      f4 = rho_v1*v3
       f5 = (kin_en + gamma*p/(gamma - 1))*v1 + 2 * mag_en * vk1_plus[k] - B1 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3)
 
       set_component!(f, k, f1, f2, f3, f4, f5, equations)
@@ -373,7 +370,7 @@ The term is composed of three parts
 
   # Compute charge ratio of u_ll
   charge_ratio_ll = zeros(MVector{ncomponents(equations), eltype(u_ll)})
-  total_electron_charge = 0
+  total_electron_charge = zero(real(equations))
   for k in eachcomponent(equations)
     rho_k = u_ll[(k-1)*5+4]
     charge_ratio_ll[k] = rho_k * charge_to_mass[k]
@@ -681,8 +678,8 @@ end
 
 @inline function max_abs_speeds(u, equations::IdealMhdMultiIonEquations2D)
   
-  v1 = 0
-  v2 = 0
+  v1 = zero(real(equations))
+  v2 = zero(real(equations))
   for k in eachcomponent(equations)
     rho, rho_v1, rho_v2, _ = get_component(k, u, equations)
     v1 = max(v1, abs(rho_v1 / rho))
@@ -728,7 +725,7 @@ Convert conservative variables to entropy
 
   prim = cons2prim(u, equations)
   entropy = ()
-  rho_p_plus = 0
+  rho_p_plus = zero(real(equations))
   for k in eachcomponent(equations)
     rho, v1, v2, v3, p = get_component(k, prim, equations)
     s = log(p) - gammas[k] * log(rho)
@@ -781,7 +778,7 @@ Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoaco
 @inline function calc_fast_wavespeed(cons, orientation::Integer, equations::IdealMhdMultiIonEquations2D)
   B1, B2, B3, _ = cons
 
-  c_f = 0
+  c_f = zero(real(equations))
   for k in eachcomponent(equations)
     rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, cons, equations)
     
@@ -816,7 +813,7 @@ Routine to compute the Charge-averaged velocities:
 """
 @inline function charge_averaged_velocities(u, equations::IdealMhdMultiIonEquations2D)
 
-  total_electron_charge = 0
+  total_electron_charge = zero(real(equations))
   
   vk1_plus = zeros(MVector{ncomponents(equations), eltype(u)})
   vk2_plus = zeros(MVector{ncomponents(equations), eltype(u)})
@@ -875,7 +872,7 @@ end
 end
 
 @inline function density(u, equations::IdealMhdMultiIonEquations2D)
-  rho = 0
+  rho = zero(real(equations))
   for k in eachcomponent(equations)
     rho += u[3 + (k - 1) * 5 + 1]
   end
@@ -887,8 +884,8 @@ Computes the sum of the densities times the sum of the pressures
 """
 @inline function density_pressure(u, equations::IdealMhdMultiIonEquations2D)
   B1, B2, B3, _ = u
-  rho_total = 0
-  p_total = 0
+  rho_total = zero(real(equations))
+  p_total = zero(real(equations))
   for k in eachcomponent(equations)
     rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
     
