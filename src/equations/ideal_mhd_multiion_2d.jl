@@ -136,7 +136,7 @@ end
 
   mag_en = 0.5 * (B1^2 + B2^2 + B3^2)
 
-  f = zeros(MVector{nvariables(equations), eltype(u)})
+  f = zero(MVector{nvariables(equations), eltype(u)})
 
   if orientation == 1
     f[1] = 0
@@ -199,7 +199,7 @@ function source_terms_standard(u, x, t, equations::IdealMhdMultiIonEquations2D)
   B1, B2, B3, _ = u
   v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u, equations)
 
-  s = zeros(MVector{nvariables(equations), eltype(u)})
+  s = zero(MVector{nvariables(equations), eltype(u)})
 
   for k in eachcomponent(equations)
     rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
@@ -245,7 +245,7 @@ The term is composed of three parts
 
   # Compute charge ratio of u_ll
   #
-  charge_ratio_ll = zeros(MVector{ncomponents(equations), eltype(u_ll)})
+  charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
   total_electron_charge = zero(u_ll[1])
   for k in eachcomponent(equations)
     rho_k = u_ll[(k-1)*5+4]
@@ -258,7 +258,7 @@ The term is composed of three parts
   v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll, equations)
   v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr, equations)
 
-  f = zeros(MVector{nvariables(equations), eltype(u_ll)})
+  f = zero(MVector{nvariables(equations), eltype(u_ll)})
   
   if orientation == 1
     # Entries of Powell term for induction equation (already in Trixi's non-conservative form)
@@ -369,7 +369,7 @@ The term is composed of three parts
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
 
   # Compute charge ratio of u_ll
-  charge_ratio_ll = zeros(MVector{ncomponents(equations), eltype(u_ll)})
+  charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
   total_electron_charge = zero(real(equations))
   for k in eachcomponent(equations)
     rho_k = u_ll[(k-1)*5+4]
@@ -382,7 +382,7 @@ The term is composed of three parts
   v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll, equations)
   v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr, equations)
 
-  f = zeros(MVector{nvariables(equations), eltype(u_ll)})
+  f = zero(MVector{nvariables(equations), eltype(u_ll)})
   
   if orientation == 1
     # Entries of Powell term for induction equation (already in Trixi's non-conservative form)
@@ -472,7 +472,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
   v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll, equations)
   v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr, equations)
 
-  f = zeros(MVector{nvariables(equations), eltype(u_ll)})
+  f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
   # Compute averages for global variables
   v1_plus_avg = 0.5*(v1_plus_ll+v1_plus_rr)
@@ -815,9 +815,9 @@ Routine to compute the Charge-averaged velocities:
 
   total_electron_charge = zero(real(equations))
   
-  vk1_plus = zeros(MVector{ncomponents(equations), eltype(u)})
-  vk2_plus = zeros(MVector{ncomponents(equations), eltype(u)})
-  vk3_plus = zeros(MVector{ncomponents(equations), eltype(u)})
+  vk1_plus = zero(MVector{ncomponents(equations), eltype(u)})
+  vk2_plus = zero(MVector{ncomponents(equations), eltype(u)})
+  vk3_plus = zero(MVector{ncomponents(equations), eltype(u)})
 
   for k in eachcomponent(equations)
     rho_k = u[(k-1)*5+4]
