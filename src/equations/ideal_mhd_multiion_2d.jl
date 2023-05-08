@@ -114,8 +114,8 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealMhdMultiIonEqua
   else
     rho = 1.1691
   end
-  v1 = r > 0.5 ? 0 : 0.1882 * cos(phi)
-  v2 = r > 0.5 ? 0 : 0.1882 * sin(phi)
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
   p = r > 0.5 ? 1.0 : 1.245
 
   #prim = (0.01, 0.01, 0.01)
@@ -261,7 +261,7 @@ The term is composed of three parts
   # Compute charge ratio of u_ll
   #
   charge_ratio_ll = zeros(MVector{ncomponents(equations), eltype(u_ll)})
-  total_electron_charge = 0
+  total_electron_charge = zero(u_ll[1])
   for k in eachcomponent(equations)
     rho_k = u_ll[(k-1)*5+4]
     charge_ratio_ll[k] = rho_k * charge_to_mass[k]
