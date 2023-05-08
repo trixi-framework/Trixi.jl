@@ -118,12 +118,15 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealMhdMultiIonEqua
   v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
   p = r > 0.5 ? 1.0 : 1.245
 
-  prim = (1.0, 1.0, 1.0)
-  for i in eachcomponent(equations)
-    prim = (prim..., 2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho, v1, v2, zero(real(equations)), p)
+  prim = zero(MVector{nvariables(equations), real(equations)})
+  prim[1] = 1.0
+  prim[2] = 1.0
+  prim[3] = 1.0
+  for k in eachcomponent(equations)
+    set_component!(prim, k, 2^(k-1) * (1-2)/(1-2^ncomponents(equations)) * rho, v1, v2, 0, p, equations)
   end
 
-  return prim2cons(SVector{nvariables(equations), real(equations)}(prim), equations)
+  return prim2cons(SVector(prim), equations)
 end
 
 # TODO: Add initial condition equilibrium
