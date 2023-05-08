@@ -238,6 +238,11 @@ terms.
   return f
 end
 
+# TODO: is there a way to do this without manually dispatching for every non-conservative flux? We use this for the evaluation of boundary conditions.
+# if only one normal is specified, use that for `normal_direction_average`
+@inline flux_nonconservative_powell(u_ll, u_rr, normal_direction::AbstractVector, equations::IdealGlmMhdEquations2D) =
+  flux_nonconservative_powell(u_ll, u_rr, normal_direction, normal_direction, equations)
+
 @inline function flux_nonconservative_powell(u_ll, u_rr,
                                              normal_direction_ll::AbstractVector,
                                              normal_direction_average::AbstractVector,
