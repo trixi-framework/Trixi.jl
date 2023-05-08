@@ -1633,13 +1633,13 @@ function collect_changed_iter_volume(info, user_data)
 
   # The original element ID has been saved to user_data before.
   # Load original quad ID from quad's user data ([global quad ID, controller_value]).
-  quad_data_pw = PointerWrapper(Ptr{Int}(info_pw.quad.p.user_data[]))
+  quad_data_pw = PointerWrapper(Int, pointer(info_pw.quad.p.user_data))
   original_id = quad_data_pw[1]
 
   # original_id of cells that have been newly created is -1
   if original_id >= 0
     # Unpack user_data = original_cells
-    user_data_pw = PointerWrapper(Ptr{Int}(user_data))
+    user_data_pw = PointerWrapper(Int, user_data)
 
     # If quad has an original_id, it existed before refinement/coarsening,
     # and therefore wasn't changed.

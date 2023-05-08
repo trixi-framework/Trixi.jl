@@ -614,13 +614,13 @@ function count_surfaces_iter_face(info, user_data)
     if sides[1].is_hanging == false && sides[2].is_hanging == false
       # No hanging nodes => normal interface
       # Unpack user_data = [interface_count] and increment interface_count
-      pw = PointerWrapper(Ptr{Int}(user_data))
+      pw = PointerWrapper(Int, user_data)
       id = pw[1]
       pw[1] = id + 1
     else
       # Hanging nodes => mortar
       # Unpack user_data = [mortar_count] and increment mortar_count
-      pw = PointerWrapper(Ptr{Int}(user_data))
+      pw = PointerWrapper(Int, user_data)
       id = pw[2]
       pw[2] = id + 1
     end
@@ -628,7 +628,7 @@ function count_surfaces_iter_face(info, user_data)
     # One neighboring elements => boundary
 
     # Unpack user_data = [boundary_count] and increment boundary_count
-    pw = PointerWrapper(Ptr{Int}(user_data))
+    pw = PointerWrapper(Int, user_data)
     id = pw[3]
     pw[3] = id + 1
   end

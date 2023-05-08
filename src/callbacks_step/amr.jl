@@ -345,7 +345,7 @@ function copy_to_quad_iter_volume(info, user_data)
   quad_id = offset + info_pw.quadid[]
 
   # Access user_data = lambda
-  user_data_pw = PointerWrapper(Ptr{Int}(user_data))
+  user_data_pw = PointerWrapper(Int, user_data)
   # Load controller_value = lambda[quad_id + 1]
   controller_value = user_data_pw[quad_id + 1]
 
@@ -584,7 +584,7 @@ function extract_levels_iter_volume(info, user_data)
   current_level = info_pw.quad.level[]
 
   # Unpack user_data = current_levels and save current element level
-  pw = PointerWrapper(Ptr{Int}(user_data))
+  pw = PointerWrapper(Int, user_data)
   pw[element_id] = current_level
 
   return nothing
