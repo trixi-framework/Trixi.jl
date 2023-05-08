@@ -244,7 +244,6 @@ The term is composed of three parts
   mag_norm_avg = 0.5*(mag_norm_ll+mag_norm_rr)
 
   # Compute charge ratio of u_ll
-  #
   charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
   total_electron_charge = zero(u_ll[1])
   for k in eachcomponent(equations)
@@ -654,8 +653,8 @@ end
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
   # Calculate velocities
-  v_ll = 0
-  v_rr = 0
+  v_ll = zero(u_ll[1])
+  v_rr = zero(u_rr[1])
   if orientation == 1
     for k in eachcomponent(equations)
       rho, rho_v1, _ = get_component(k, u_ll, equations)
