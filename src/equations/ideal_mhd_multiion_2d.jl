@@ -699,7 +699,10 @@ function cons2prim(u, equations::IdealMhdMultiIonEquations2D)
   @unpack gammas = equations
   B1, B2, B3, _ = u
 
-  prim = (B1, B2, B3)
+  prim = zero(MVector{nvariables(equations), eltype(u)})
+  prim[1] = B1
+  prim[2] = B2
+  prim[3] = B3
   for k in eachcomponent(equations)
     rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
     srho = 1 / rho
@@ -709,10 +712,11 @@ function cons2prim(u, equations::IdealMhdMultiIonEquations2D)
 
     p = (gammas[k] - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
                                  + B1 * B1 + B2 * B2 + B3 * B3))
-    prim = (prim..., rho, v1, v2, v3, p)
+
+    set_component!(prim, k, rho, v1, v2, v3, p, equations)
   end
 
-  return SVector{nvariables(equations), real(equations)}(prim)
+  return SVector(prim)
 end
 
 """
@@ -723,7 +727,7 @@ Convert conservative variables to entropy
   B1, B2, B3, _ = u
 
   prim = cons2prim(u, equations)
-  entropy = ()
+  entropy = zero(MVector{nvariables(equations), eltype(u)})
   rho_p_plus = zero(real(equations))
   for k in eachcomponent(equations)
     rho, v1, v2, v3, p = get_component(k, prim, equations)
@@ -735,16 +739,16 @@ Convert conservative variables to entropy
     w4 = rho_p * v3
     w5 = -rho_p
     rho_p_plus += rho_p
-    entropy = (entropy..., w1, w2, w3, w4, w5)
+
+    set_component!(entropy, k, w1, w2, w3, w4, w5, equations)
   end
 
   # Additional non-conservative variables
-  w6 = rho_p_plus * B1
-  w7 = rho_p_plus * B2
-  w8 = rho_p_plus * B3
-  entropy = (w6, w7, w8, entropy...)
+  entropy[1] = rho_p_plus * B1
+  entropy[2] = rho_p_plus * B2
+  entropy[3] = rho_p_plus * B3
   
-  return SVector{nvariables(equations), real(equations)}(entropy)
+  return SVector(entropy)
 end
 
 
@@ -755,7 +759,10 @@ Convert primitive to conservative variables
   @unpack gammas = equations
   B1, B2, B3, _ = prim
 
-  cons = (B1, B2, B3)
+  cons = zero(MVector{nvariables(equations), eltype(prim)})
+  cons[1] = B1
+  cons[2] = B2
+  cons[3] = B3
   for k in eachcomponent(equations)
     rho, v1, v2, v3, p = get_component(k, prim, equations)
     rho_v1 = rho * v1
@@ -764,10 +771,11 @@ Convert primitive to conservative variables
 
     rho_e = p/(gammas[k] - 1.0) + 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
                                   0.5 * (B1^2 + B2^2 + B3^2)
-    cons = (cons..., rho, rho_v1, rho_v2, rho_v3, rho_e)
+    
+    set_component!(cons, k, rho, rho_v1, rho_v2, rho_v3, rho_e, equations)
   end
 
-  return SVector{nvariables(equations), real(equations)}(cons)
+  return SVector(cons)
 end
 
 """
