@@ -501,8 +501,8 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
 
   # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
   # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
-  num_pts_per_face = rd.Nfq ÷ rd.Nfaces
-  num_faces_total = rd.Nfaces * md.num_elements
+  num_pts_per_face = rd.Nfq ÷ StartUpDG.num_faces(rd.element_type)
+  num_faces_total = StartUpDG.num_faces(rd.element_type) * md.num_elements
 
   # This function was originally defined as
   # `reshape_by_face(u) = reshape(view(u, :), num_pts_per_face, num_faces_total)`.
