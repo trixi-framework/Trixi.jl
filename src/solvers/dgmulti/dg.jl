@@ -523,12 +523,13 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
       face_coordinates = SVector{NDIMS}(getindex.(xyzf, i, f))
 
       # compute conservative and non-conservative parts separately
-      flux_at_face_node = boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
-                                             surface_flux, equations) * Jf[i,f]
+      cons_flux_at_face_node = boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
+                                                  surface_flux, equations)
 
-      flux_face_values[i,f] = flux_at_face_node +
-                                0.5 * boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
-                                                         nonconservative_flux, equations) * Jf[i,f]
+      noncons_flux_at_face_node = boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
+                                                     nonconservative_flux, equations)
+
+      flux_face_values[i,f] = (cons_flux_at_face_node + 0.5 * noncons_flux_at_face_node) * Jf[i,f]
 
     end
   end
