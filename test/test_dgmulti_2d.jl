@@ -292,6 +292,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_mhd_reflective_BCs.jl (Quad)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_reflective_BCs.jl"),
+      cells_per_dimension = 4, element_type = Quad(), approximation_type = GaussSBP(),
+      l2 = [0.0036019562526885497, 0.0017340971255526598, 0.008375221676923516, 0.0, 0.028596802653952254, 0.0018573697892179616, 0.002080779894047767, 0.0, 5.3012597624420295e-5],
+      linf = [0.01692598382370969, 0.00936965952976002, 0.04145170727841342, 0.0, 0.11569901084179435, 0.009849648257862952, 0.011417088537134745, 0.0, 0.0002992621756978016]
+    )
+  end
+
   @trixi_testset "elixir_shallowwater_source_terms.jl (Quad, SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       cells_per_dimension = 8, element_type = Quad(), approximation_type = SBP(),
