@@ -495,8 +495,6 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
 
   rd = dg.basis
   md = mesh.md
-  (; u_face_values, flux_face_values) = cache
-  (; xyzf, nxyzJ, Jf) = md
   surface_flux, nonconservative_flux = dg.surface_integral.surface_flux
 
   # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
@@ -511,10 +509,10 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
   # https://github.com/JuliaLang/julia/issues/36313#issuecomment-782336300.
   reshape_by_face(u) = Base.ReshapedArray(u, (num_pts_per_face, num_faces_total), ())
 
-  u_face_values = reshape_by_face(u_face_values)
-  flux_face_values = reshape_by_face(flux_face_values)
-  Jf = reshape_by_face(Jf)
-  nxyzJ, xyzf = reshape_by_face.(nxyzJ), reshape_by_face.(xyzf) # broadcast over nxyzJ::NTuple{NDIMS,Matrix}
+  u_face_values = reshape_by_face(cache.u_face_values)
+  flux_face_values = reshape_by_face(cache.flux_face_values)
+  Jf = reshape_by_face(md.Jf)
+  nxyzJ, xyzf = reshape_by_face.(md.nxyzJ), reshape_by_face.(md.xyzf) # broadcast over nxyzJ::NTuple{NDIMS,Matrix}
 
   # loop through boundary faces, which correspond to columns of reshaped u_face_values, ...
   for f in mesh.boundary_faces[boundary_key]
