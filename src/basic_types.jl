@@ -77,19 +77,22 @@ struct BoundaryConditionDoNothing end
 @inline function (::BoundaryConditionDoNothing)(
     u_inner, orientation_or_normal_direction, direction::Integer, x, t, surface_flux, equations)
   return flux(u_inner, orientation_or_normal_direction, equations)
+  # TODO: should this be switched to `surface_flux(u_inner, u_inner, orientation_or_normal_direction, equations)` for consistency?
 end
 
 # This version can be called by hyperbolic solvers on unstructured, curved meshes
 @inline function (::BoundaryConditionDoNothing)(
     u_inner, outward_direction::AbstractVector, x, t, surface_flux, equations)
-  return flux(u_inner, outward_direction, equations)
+
+  # this should reduce to `flux(u_inner, outward_direction, equations)` for a consistent symmetric flux.
+  return surface_flux(u_inner, u_inner, outward_direction, equations)
 end
 
 # This version can be called by parabolic solvers
 @inline function (::BoundaryConditionDoNothing)(inner_flux_or_state, other_args...)
   return inner_flux_or_state
 end
-    
+
 """
     boundary_condition_do_nothing = Trixi.BoundaryConditionDoNothing()
 
