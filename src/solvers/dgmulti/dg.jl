@@ -489,6 +489,54 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
   # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
 end
 
+function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
+                                    have_nonconservative_terms::True,
+                                    mesh, equations, dg::DGMulti{NDIMS}) where {NDIMS}
+
+  rd = dg.basis
+  md = mesh.md
+  (; u_face_values, flux_face_values) = cache
+  (; xyzf, nxyzJ, Jf) = md
+  surface_flux, nonconservative_flux = surface_integral.surface_flux
+
+  # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
+  # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
+  num_pts_per_face = rd.Nfq ÷ rd.Nfaces
+  num_faces_total = rd.Nfaces * md.num_elements
+
+  # This function was originally defined as
+  # `reshape_by_face(u) = reshape(view(u, :), num_pts_per_face, num_faces_total)`.
+  # This results in allocations due to https://github.com/JuliaLang/julia/issues/36313.
+  # To avoid allocations, we use Tim Holy's suggestion:
+  # https://github.com/JuliaLang/julia/issues/36313#issuecomment-782336300.
+  reshape_by_face(u) = Base.ReshapedArray(u, (num_pts_per_face, num_faces_total), ())
+
+  u_face_values = reshape_by_face(u_face_values)
+  flux_face_values = reshape_by_face(flux_face_values)
+  Jf = reshape_by_face(Jf)
+  nxyzJ, xyzf = reshape_by_face.(nxyzJ), reshape_by_face.(xyzf) # broadcast over nxyzJ::NTuple{NDIMS,Matrix}
+
+  # loop through boundary faces, which correspond to columns of reshaped u_face_values, ...
+  for f in mesh.boundary_faces[boundary_key]
+    for i in Base.OneTo(num_pts_per_face)
+      face_normal = SVector{NDIMS}(getindex.(nxyzJ, i, f)) / Jf[i,f]
+      face_coordinates = SVector{NDIMS}(getindex.(xyzf, i, f))
+
+      # compute conservative and non-conservative parts separately
+      flux_at_face_node = boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
+                                                 surface_flux, equations) * Jf[i,f]
+
+      flux_face_values[i,f] = flux_at_face_node +
+                                0.5 * boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
+                                                         nonconservative_flux, equations) * Jf[i,f]
+
+    end
+  end
+
+  # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.
+  # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
+end
+
 
 # inverts Jacobian and scales by -1.0
 function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache; scaling=-1)
