@@ -14,8 +14,8 @@ mutable struct IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT<:Real} <: Abstrac
   gammas            ::SVector{NCOMP, RealT} # Heat capacity ratios
   charge_to_mass    ::SVector{NCOMP, RealT} # Charge to mass ratios
 
-  function IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT}(gammas       ::SVector{NCOMP, RealT},
-                                                                     charge_to_mass::SVector{NCOMP, RealT}) where {NVARS, NCOMP, RealT<:Real}
+  function IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{NCOMP, RealT},
+                                                            charge_to_mass::SVector{NCOMP, RealT}) where {NVARS, NCOMP, RealT<:Real}
 
     NCOMP >= 1 || throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 
@@ -24,7 +24,6 @@ mutable struct IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT<:Real} <: Abstrac
 end
 
 function IdealMhdMultiIonEquations2D(; gammas, charge_to_mass)
-
   _gammas         = promote(gammas...)
   _charge_to_mass = promote(charge_to_mass...)
   RealT           = promote_type(eltype(_gammas), eltype(_charge_to_mass))
@@ -871,6 +870,8 @@ Set the flow variables of component k
   u[3 + (k - 1) * 5 + 3] = u3
   u[3 + (k - 1) * 5 + 4] = u4
   u[3 + (k - 1) * 5 + 5] = u5
+  
+  return u
 end
 
 @inline function density_product(u, equations::IdealMhdMultiIonEquations2D)

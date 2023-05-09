@@ -29,8 +29,8 @@ function initial_condition_rotor(x, t, equations::IdealMhdMultiIonEquations2D)
   f = (0.115 - r)/0.015
   if r <= 0.1
     rho = 10.0
-    v1 = -20.0*dy
-    v2 = 20.0*dx
+    v1 = -20.0 * dy
+    v2 = 20.0 * dx
   elseif r >= 0.115
     if x[1] > 0.75
       rho = 0.49 * (tanh(50 * (x[1] - 1.0)) + 1) + 0.02
@@ -56,8 +56,8 @@ function initial_condition_rotor(x, t, equations::IdealMhdMultiIonEquations2D)
   f = (0.115 - r)/0.015
   if r <= 0.1
     rho2 = 10.0
-    v12 = -20.0*dy
-    v22 = 20.0*dx
+    v12 = -20.0 * dy
+    v22 = 20.0 * dx
   elseif r >= 0.115
     if x[1] < 0.25
       rho2 = 0.49 * (-tanh(50 * (x[1])) + 1) + 0.02
@@ -69,9 +69,9 @@ function initial_condition_rotor(x, t, equations::IdealMhdMultiIonEquations2D)
     v12 = 0.0
     v22 = 0.0
   else
-    rho2 = 1.0 + 9.0*f
-    v12 = -20.0*f*dy
-    v22 = 20.0*f*dx
+    rho2 = 1.0 + 9.0 * f
+    v12 = -20.0 * f * dy
+    v22 = 20.0 * f * dx
   end
   v3 = 0.0
   p = 1.0

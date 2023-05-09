@@ -360,6 +360,7 @@ In particular, not the components themselves are returned.
 
 # Retrieve number of components from equation instance for the multi-ion case
 @inline ncomponents(::AbstractIdealMhdMultiIonEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+
 """
     eachcomponent(equations::AbstractIdealMhdMultiIonEquations)
 
