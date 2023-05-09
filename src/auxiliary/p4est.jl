@@ -55,9 +55,9 @@ function unsafe_wrap_sc(::Type{T}, sc_array_pw::PointerWrapper{sc_array}) where 
 end
 
 
-# Load the ith element (1-indexed) of an sc array of type T
+# Load the ith element (1-indexed) of an sc array of type T as PointerWrapper
 function unsafe_load_sc(::Type{T}, sc_array::PointerWrapper{sc_array}, i::Integer=1) where T
-  return PointerWrapper(Ptr{T}(pointer(sc_array.array)))[i]
+  return PointerWrapper(T, pointer(sc_array.array) + (i - 1) * sizeof(T))
 end
 
 

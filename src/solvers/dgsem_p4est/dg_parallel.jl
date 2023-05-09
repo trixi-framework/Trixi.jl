@@ -349,13 +349,13 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
   # interface/mortar
   if info_pw.sides.elem_count[] == 2 # MPI interfaces/mortars have two neighboring elements
     # Extract surface data
-    sides = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
+    sides_pw = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
 
-    if sides[1].is_hanging == false && sides[2].is_hanging == false # No hanging nodes for MPI interfaces
-      if sides[1].is.full.is_ghost == true
+    if sides_pw[1].is_hanging[] == false && sides_pw[2].is_hanging[] == false # No hanging nodes for MPI interfaces
+      if sides_pw[1].is.full.is_ghost[] == true
         remote_side = 1
         local_side = 2
-      elseif sides[2].is.full.is_ghost == true
+      elseif sides_pw[2].is.full.is_ghost[] == true
         remote_side = 2
         local_side = 1
       else # both sides are on this rank -> skip since it's a regular interface
@@ -363,15 +363,15 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
       end
 
       # Sanity check, current face should belong to current MPI interface
-      local_tree = unsafe_load_tree(mesh.p4est, sides[local_side].treeid + 1) # one-based indexing
-      local_quad_id = local_tree.quadrants_offset + sides[local_side].is.full.quadid
+      local_tree_pw = unsafe_load_tree(mesh.p4est, sides_pw[local_side].treeid[] + 1) # one-based indexing
+      local_quad_id = local_tree_pw.quadrants_offset[] + sides_pw[local_side].is.full.quadid[]
       @assert interfaces.local_neighbor_ids[interface_id] == local_quad_id + 1 # one-based indexing
 
       # Get neighbor ID from ghost layer
       proc_offsets = unsafe_wrap(Array,
                                  info_pw.ghost_layer.proc_offsets,
                                  mpi_nranks() + 1)
-      ghost_id = sides[remote_side].is.full.quadid # indexes the ghost layer, 0-based
+      ghost_id = sides_pw[remote_side].is.full.quadid[] # indexes the ghost layer, 0-based
       neighbor_rank = findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r+1],
                                 1:mpi_nranks()) - 1 # MPI ranks are 0-based
       neighbor_ranks_interface[interface_id] = neighbor_rank
@@ -383,14 +383,14 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
         primary_quad_id = offset + local_quad_id
       else
         offset = mesh.p4est.global_first_quadrant[neighbor_rank + 1] # one-based indexing
-        primary_quad_id = offset + sides[1].is.full.quad.p.piggy3.local_num
+        primary_quad_id = offset + sides_pw[1].is.full.quad.p.piggy3.local_num[]
       end
-      global_interface_id = 2 * ndims(mesh) * primary_quad_id + sides[1].face
+      global_interface_id = 2 * ndims(mesh) * primary_quad_id + sides_pw[1].face[]
       global_interface_ids[interface_id] = global_interface_id
 
       user_data.interface_id += 1
     else # hanging node
-      if sides[1].is_hanging == true
+      if sides_pw[1].is_hanging[] == true
         hanging_side = 1
         full_side = 2
       else
@@ -398,45 +398,45 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
         full_side = 1
       end
       # Verify before accessing is.full / is.hanging
-      @assert sides[hanging_side].is_hanging == true && sides[full_side].is_hanging == false
+      @assert sides_pw[hanging_side].is_hanging[] == true && sides_pw[full_side].is_hanging[] == false
 
       # If all quadrants are locally available, this is a regular mortar -> skip
-      if sides[full_side].is.full.is_ghost == false && all(sides[hanging_side].is.hanging.is_ghost .== false)
+      if sides_pw[full_side].is.full.is_ghost[] == false && all(sides_pw[hanging_side].is.hanging.is_ghost[] .== false)
         return nothing
       end
 
-      trees = (unsafe_load_tree(mesh.p4est, sides[1].treeid + 1),
-               unsafe_load_tree(mesh.p4est, sides[2].treeid + 1))
+      trees_pw = (unsafe_load_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
+                  unsafe_load_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
 
       # Find small quads that are remote and determine which rank owns them
-      remote_small_quad_positions = findall(sides[hanging_side].is.hanging.is_ghost .== true)
+      remote_small_quad_positions = findall(sides_pw[hanging_side].is.hanging.is_ghost[] .== true)
       proc_offsets = unsafe_wrap(Array,
                                  info_pw.ghost_layer.proc_offsets,
                                  mpi_nranks() + 1)
       # indices of small remote quads inside the ghost layer, 0-based
-      ghost_ids = map(pos -> sides[hanging_side].is.hanging.quadid[pos], remote_small_quad_positions)
+      ghost_ids = map(pos -> sides_pw[hanging_side].is.hanging.quadid[pos], remote_small_quad_positions)
       neighbor_ranks = map(ghost_ids) do ghost_id
         return findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r+1],
                          1:mpi_nranks()) - 1 # MPI ranks are 0-based
       end
       # Determine global quad id of large element to determine global MPI mortar id
       # Furthermore, if large element is ghost, add its owner rank to neighbor_ranks
-      if sides[full_side].is.full.is_ghost == true
-        ghost_id = sides[full_side].is.full.quadid
+      if sides_pw[full_side].is.full.is_ghost[] == true
+        ghost_id = sides_pw[full_side].is.full.quadid[]
         large_quad_owner_rank = findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r+1],
                                           1:mpi_nranks()) - 1 # MPI ranks are 0-based
         push!(neighbor_ranks, large_quad_owner_rank)
 
         offset = mesh.p4est.global_first_quadrant[large_quad_owner_rank + 1] # one-based indexing
-        large_quad_id = offset + sides[full_side].is.full.quad.p.piggy3.local_num
+        large_quad_id = offset + sides_pw[full_side].is.full.quad.p.piggy3.local_num[]
       else
         offset = mesh.p4est.global_first_quadrant[mpi_rank() + 1] # one-based indexing
-        large_quad_id = offset + trees[full_side].quadrants_offset + sides[full_side].is.full.quadid
+        large_quad_id = offset + trees_pw[full_side].quadrants_offset[] + sides_pw[full_side].is.full.quadid[]
       end
       neighbor_ranks_mortar[mortar_id] = neighbor_ranks
       # Global mortar id is the globally unique quadrant id of the large quadrant multiplied by the
       # number of faces per quadrant plus face
-      global_mortar_ids[mortar_id] = 2 * ndims(mesh) * large_quad_id + sides[full_side].face
+      global_mortar_ids[mortar_id] = 2 * ndims(mesh) * large_quad_id + sides_pw[full_side].face[]
 
       user_data.mortar_id += 1
     end

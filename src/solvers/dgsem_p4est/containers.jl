@@ -245,19 +245,18 @@ end
 
 
 # Function barrier for type stability
-function init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
+function init_boundaries_iter_face_inner(info_pw, boundaries, boundary_id, mesh)
   # Extract boundary data
-  info_pw = PointerWrapper(info)
-  side = unsafe_load_side(info_pw)
+  side_pw = unsafe_load_side(info_pw)
   # Get local tree, one-based indexing
-  tree = unsafe_load_tree(mesh.p4est, side.treeid + 1)
+  tree_pw = unsafe_load_tree(mesh.p4est, side_pw.treeid[] + 1)
   # Quadrant numbering offset of this quadrant
-  offset = tree.quadrants_offset
+  offset = tree_pw.quadrants_offset[]
 
   # Verify before accessing is.full, but this should never happen
-  @assert side.is_hanging == false
+  @assert side_pw.is_hanging[] == false
 
-  local_quad_id = side.is.full.quadid
+  local_quad_id = side_pw.is.full.quadid[]
   # Global ID of this quad
   quad_id = offset + local_quad_id
 
@@ -266,13 +265,13 @@ function init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
   boundaries.neighbor_ids[boundary_id] = quad_id + 1
 
   # Face at which the boundary lies
-  face = side.face
+  face = side_pw.face[]
 
   # Save boundaries.node_indices dimension specific in containers_[23]d.jl
   init_boundary_node_indices!(boundaries, face, boundary_id)
 
   # One-based indexing
-  boundaries.name[boundary_id] = mesh.boundary_names[face + 1, side.treeid + 1]
+  boundaries.name[boundary_id] = mesh.boundary_names[face + 1, side_pw.treeid[] + 1]
 
   return nothing
 end
@@ -443,23 +442,23 @@ function init_surfaces_iter_face_inner(info, user_data)
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
-    sides = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
+    sides_pw = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
 
-    if sides[1].is_hanging == false && sides[2].is_hanging == false
+    if sides_pw[1].is_hanging[] == false && sides_pw[2].is_hanging[] == false
       # No hanging nodes => normal interface
       if interfaces !== nothing
-        init_interfaces_iter_face_inner(info, sides, user_data)
+        init_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
       end
     else
       # Hanging nodes => mortar
       if mortars !== nothing
-        init_mortars_iter_face_inner(info, sides, user_data)
+        init_mortars_iter_face_inner(info_pw, sides_pw, user_data)
       end
     end
   elseif elem_count == 1
     # One neighboring elements => boundary
     if boundaries !== nothing
-      init_boundaries_iter_face_inner(info, user_data)
+      init_boundaries_iter_face_inner(info_pw, user_data)
     end
   end
 
@@ -479,18 +478,18 @@ end
 
 
 # Initialization of interfaces after the function barrier
-function init_interfaces_iter_face_inner(info, sides, user_data)
+function init_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
   @unpack interfaces, interface_id, mesh = user_data
   user_data.interface_id += 1
 
   # Get Tuple of local trees, one-based indexing
-  trees = (unsafe_load_tree(mesh.p4est, sides[1].treeid + 1),
-           unsafe_load_tree(mesh.p4est, sides[2].treeid + 1))
+  trees_pw = (unsafe_load_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
+              unsafe_load_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
   # Quadrant numbering offsets of the quadrants at this interface
-  offsets = SVector(trees[1].quadrants_offset,
-                    trees[2].quadrants_offset)
+  offsets = SVector(trees_pw[1].quadrants_offset[],
+                    trees_pw[2].quadrants_offset[])
 
-  local_quad_ids = SVector(sides[1].is.full.quadid, sides[2].is.full.quadid)
+  local_quad_ids = SVector(sides_pw[1].is.full.quadid[], sides_pw[2].is.full.quadid[])
   # Global IDs of the neighboring quads
   quad_ids = offsets + local_quad_ids
 
@@ -500,33 +499,31 @@ function init_interfaces_iter_face_inner(info, sides, user_data)
   interfaces.neighbor_ids[2, interface_id] = quad_ids[2] + 1
 
   # Face at which the interface lies
-  faces = (sides[1].face, sides[2].face)
+  faces = (sides_pw[1].face[], sides_pw[2].face[])
 
   # Save interfaces.node_indices dimension specific in containers_[23]d.jl
-  init_interface_node_indices!(interfaces, faces,
-    PointerWrapper(info).orientation[], interface_id)
+  init_interface_node_indices!(interfaces, faces, info_pw.orientation[], interface_id)
 
   return nothing
 end
 
 
 # Initialization of boundaries after the function barrier
-function init_boundaries_iter_face_inner(info, user_data)
+function init_boundaries_iter_face_inner(info_pw, user_data)
   @unpack boundaries, boundary_id, mesh = user_data
   user_data.boundary_id += 1
 
-  info_pw = PointerWrapper(info)
   # Extract boundary data
-  side = unsafe_load_side(info_pw)
+  side_pw = unsafe_load_side(info_pw)
   # Get local tree, one-based indexing
-  tree = unsafe_load_tree(mesh.p4est, side.treeid + 1)
+  tree_pw = unsafe_load_tree(mesh.p4est, side_pw.treeid[] + 1)
   # Quadrant numbering offset of this quadrant
-  offset = tree.quadrants_offset
+  offset = tree_pw.quadrants_offset[]
 
   # Verify before accessing is.full, but this should never happen
-  @assert side.is_hanging == false
+  @assert side_pw.is_hanging[] == false
 
-  local_quad_id = side.is.full.quadid
+  local_quad_id = side_pw.is.full.quadid[]
   # Global ID of this quad
   quad_id = offset + local_quad_id
 
@@ -535,53 +532,53 @@ function init_boundaries_iter_face_inner(info, user_data)
   boundaries.neighbor_ids[boundary_id] = quad_id + 1
 
   # Face at which the boundary lies
-  face = side.face
+  face = side_pw.face[]
 
   # Save boundaries.node_indices dimension specific in containers_[23]d.jl
   init_boundary_node_indices!(boundaries, face, boundary_id)
 
   # One-based indexing
-  boundaries.name[boundary_id] = mesh.boundary_names[face + 1, side.treeid + 1]
+  boundaries.name[boundary_id] = mesh.boundary_names[face + 1, side_pw.treeid[] + 1]
 
   return nothing
 end
 
 
 # Initialization of mortars after the function barrier
-function init_mortars_iter_face_inner(info, sides, user_data)
+function init_mortars_iter_face_inner(info_pw, sides_pw, user_data)
   @unpack mortars, mortar_id, mesh = user_data
   user_data.mortar_id += 1
 
   # Get Tuple of local trees, one-based indexing
-  trees = (unsafe_load_tree(mesh.p4est, sides[1].treeid + 1),
-           unsafe_load_tree(mesh.p4est, sides[2].treeid + 1))
+  trees_pw = (unsafe_load_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
+              unsafe_load_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
   # Quadrant numbering offsets of the quadrants at this interface
-  offsets = SVector(trees[1].quadrants_offset,
-                    trees[2].quadrants_offset)
+  offsets = SVector(trees_pw[1].quadrants_offset[],
+                    trees_pw[2].quadrants_offset[])
 
-  if sides[1].is_hanging == true
+  if sides_pw[1].is_hanging[] == true
     # Left is small, right is large
-    faces = (sides[1].face, sides[2].face)
+    faces = (sides_pw[1].face[], sides_pw[2].face[])
 
-    local_small_quad_ids = sides[1].is.hanging.quadid
+    local_small_quad_ids = sides_pw[1].is.hanging.quadid[]
     # Global IDs of the two small quads
     small_quad_ids = offsets[1] .+ local_small_quad_ids
 
     # Just be sure before accessing is.full
-    @assert sides[2].is_hanging == false
-    large_quad_id = offsets[2] + sides[2].is.full.quadid
-  else # sides[2].is_hanging == true
+    @assert sides_pw[2].is_hanging[] == false
+    large_quad_id = offsets[2] + sides_pw[2].is.full.quadid[]
+  else # sides_pw[2].is_hanging[] == true
     # Right is small, left is large.
     # init_mortar_node_indices! below expects side 1 to contain the small elements.
-    faces = (sides[2].face, sides[1].face)
+    faces = (sides_pw[2].face[], sides_pw[1].face[])
 
-    local_small_quad_ids = sides[2].is.hanging.quadid
+    local_small_quad_ids = sides_pw[2].is.hanging.quadid[]
     # Global IDs of the two small quads
     small_quad_ids = offsets[2] .+ local_small_quad_ids
 
     # Just be sure before accessing is.full
-    @assert sides[1].is_hanging == false
-    large_quad_id = offsets[1] + sides[1].is.full.quadid
+    @assert sides_pw[1].is_hanging[] == false
+    large_quad_id = offsets[1] + sides_pw[1].is.full.quadid[]
   end
 
   # Write data to mortar container, 1 and 2 are the small elements
@@ -590,7 +587,7 @@ function init_mortars_iter_face_inner(info, sides, user_data)
   # Last entry is the large element
   mortars.neighbor_ids[end, mortar_id] = large_quad_id + 1
 
-  init_mortar_node_indices!(mortars, faces, PointerWrapper(info).orientation[], mortar_id)
+  init_mortar_node_indices!(mortars, faces, info_pw.orientation[], mortar_id)
 
   return nothing
 end
@@ -609,9 +606,9 @@ function count_surfaces_iter_face(info, user_data)
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
-    sides = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
+    sides_pw = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
 
-    if sides[1].is_hanging == false && sides[2].is_hanging == false
+    if sides_pw[1].is_hanging[] == false && sides_pw[2].is_hanging[] == false
       # No hanging nodes => normal interface
       # Unpack user_data = [interface_count] and increment interface_count
       pw = PointerWrapper(Int, user_data)
