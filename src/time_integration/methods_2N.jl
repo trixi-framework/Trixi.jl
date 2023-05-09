@@ -60,10 +60,10 @@ end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
 mutable struct SimpleIntegrator2NOptions{Callback}
-  callback::Callback # callbacks; used in Trixi
+  callback::Callback # callbacks; used in Trixi.jl
   adaptive::Bool # whether the algorithm is adaptive; ignored
   dtmax::Float64 # ignored
-  maxiters::Int # maximal numer of time steps
+  maxiters::Int # maximal number of time steps
   tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
@@ -75,7 +75,7 @@ end
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
-# which are used in Trixi.
+# which are used in Trixi.jl.
 mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, F, Alg, SimpleIntegrator2NOptions}
   u::uType #
   du::uType
@@ -84,7 +84,7 @@ mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, F, Alg, Simpl
   dt::RealT # current time step
   dtcache::RealT # ignored
   iter::Int # current number of time steps (iteration)
-  p::Params # will be the semidiscretization from Trixi
+  p::Params # will be the semidiscretization from Trixi.jl
   sol::Sol # faked
   f::F
   alg::Alg
@@ -92,9 +92,9 @@ mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, F, Alg, Simpl
   finalstep::Bool # added for convenience
 end
 
-# Forward integrator.destats.naccept to integrator.iter (see GitHub PR#771)
+# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
 function Base.getproperty(integrator::SimpleIntegrator2N, field::Symbol)
-  if field === :destats
+  if field === :stats
     return (naccept = getfield(integrator, :iter),)
   end
   # general fallback

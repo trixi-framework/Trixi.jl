@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 
@@ -124,7 +124,7 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
   end
 end
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 Trixi.mpi_isroot() && isdir(outdir) && @test_nowarn rm(outdir, recursive=true)
 
 end # module

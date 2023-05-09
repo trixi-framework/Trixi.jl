@@ -309,7 +309,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     p4est = load_p4est(p4est_file, Val(ndims))
 
     mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
-                            nodes, boundary_names, "", false)
+                            nodes, boundary_names, "", false, true)
   else
     error("Unknown mesh type!")
   end
@@ -398,7 +398,7 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
     p4est = load_p4est(p4est_file, Val(ndims_))
 
     mesh = P4estMesh{ndims_}(p4est, tree_node_coordinates,
-                            nodes, boundary_names, "", false)
+                            nodes, boundary_names, "", false, true)
   else
     error("Unknown mesh type!")
   end

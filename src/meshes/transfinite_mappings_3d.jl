@@ -82,7 +82,7 @@ end
 # (x,y,z) in physical coordinate space for a hexahedral element with general curved sides
 # See Section 4.3
 # - Andrew R. Winters (2014)
-#   Discontinous Galerkin spectral element approximations for the reflection and
+#   Discontinuous Galerkin spectral element approximations for the reflection and
 #   transmission of waves from moving material interfaces
 #   [PhD thesis, Florida State University](https://diginole.lib.fsu.edu/islandora/object/fsu%3A185342)
 function transfinite_hex_map(xi, eta, zeta, face_curves::AbstractVector{<:CurvedFace})

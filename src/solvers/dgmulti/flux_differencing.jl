@@ -222,23 +222,22 @@ end
 # and jth reference coordinate, respectively. These are geometric terms which
 # appear when using the chain rule to compute physical derivatives as a linear
 # combination of reference derivatives.
-@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}) where {NDIMS}
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}, cache) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ], so that this will return
   # SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
 
   # assumes geometric terms are constant on each element
-  @unpack rstxyzJ = mesh.md
-  return SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element))
+  dxidxhatj = mesh.md.rstxyzJ
+  return SVector{NDIMS}(getindex.(dxidxhatj[:, orientation], 1, element))
 end
 
-@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine}) where {NDIMS}
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine}, cache) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
 
   # assumes geometric terms vary spatially over each element
-  @unpack rstxyzJ = mesh.md
-  return SVector{NDIMS}(view.(rstxyzJ[:, orientation], :, element))
+  (; dxidxhatj) = cache
+  return SVector{NDIMS}(view.(dxidxhatj[:, orientation], :, element))
 end
-
 
 # use hybridized SBP operators for general flux differencing schemes.
 function compute_flux_differencing_SBP_matrices(dg::DGMulti)
@@ -295,7 +294,7 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, Real
   # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
   fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq) for _ in 1:Threads.nthreads()]
 
-  return (; md, Qrst_skew,
+  return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
             u_values, u_face_values, flux_face_values,
             local_values_threaded, fluxdiff_local_threaded)
@@ -336,12 +335,18 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
   fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total) for _ in 1:Threads.nthreads()]
   rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (num_quad_points_total,), dg)  for _ in 1:Threads.nthreads()]
 
-  return (; md, Qrst_skew,
-            VhP, Ph, invJ = inv.(md.J),
+  # interpolate geometric terms to both quadrature and face values for curved meshes
+  (; Vq, Vf) = dg.basis
+  interpolated_geometric_terms = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
+  J = rd.Vq * md.J
+
+  return (; md, Qrst_skew, VhP, Ph,
+            invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
             entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
-            u_values, u_face_values,  flux_face_values,
+            u_values, u_face_values, flux_face_values,
             local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
 end
+
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti)
@@ -405,7 +410,6 @@ end
 # FD SBP methods have sparse operators
 @inline has_sparse_operators(::Union{Line, Quad, Hex}, approx_type::AbstractDerivativeOperator) = True()
 
-# Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # Computes flux differencing contribution from each Cartesian direction over a single element.
 # For dense operators, we do not use sum factorization.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
@@ -443,7 +447,6 @@ end
   end
 end
 
-# Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # When the operators are sparse, we use the sum-factorization approach to
 # computing flux differencing.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
@@ -467,7 +470,7 @@ end
     # Thus, we use the second option below (which basically corresponds to the
     # well-known sum factorization on tensor product elements).
     # Note that there is basically no difference for dense derivative operators.
-    normal_direction = get_contravariant_vector(element_index, dim, mesh)
+    normal_direction = get_contravariant_vector(element_index, dim, mesh, cache)
     Q_skew = Qrst_skew[dim]
 
     # True() indicates the flux is symmetric
@@ -484,7 +487,7 @@ end
   @unpack Qrst_skew = cache
   flux_conservative, flux_nonconservative = volume_integral.volume_flux
   for dim in eachdim(mesh)
-    normal_direction = get_contravariant_vector(element_index, dim, mesh)
+    normal_direction = get_contravariant_vector(element_index, dim, mesh, cache)
     Q_skew = Qrst_skew[dim]
 
     # True() indicates the flux is symmetric
@@ -572,6 +575,7 @@ end
 # Specializes on Polynomial (e.g., modal) DG methods with a flux differencing volume integral, e.g.,
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection!`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
+# Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff, cache) where {Source, BC}
 

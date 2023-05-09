@@ -5,8 +5,11 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
+# pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_dgsem")
+
+# Needed to skip certain tests on Windows CI
+CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
 
 @testset "TreeMesh MPI" begin
 
@@ -67,10 +70,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
   # Hyperbolic diffusion
-  @trixi_testset "elixir_hypdiff_lax_friedrichs.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
-      l2   = [0.00015687751816056159, 0.001025986772217084, 0.0010259867722169909],
-      linf = [0.0011986956416591976, 0.006423873516411049, 0.006423873516411049])
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_hypdiff_lax_friedrichs.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
+        l2   = [0.00015687751816056159, 0.001025986772217084, 0.0010259867722169909],
+        linf = [0.0011986956416591976, 0.006423873516411049, 0.006423873516411049])
+    end
   end
 
   @trixi_testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
@@ -85,58 +90,66 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [5.5227409524905013e-5, 0.0001454489597927185, 0.00032396328684569653])
   end
 
-  @trixi_testset "elixir_hypdiff_godunov.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_godunov.jl"),
-      l2   = [5.868147556427088e-6, 3.80517927324465e-5, 3.805179273249344e-5],
-      linf = [3.701965498725812e-5, 0.0002122422943138247, 0.00021224229431116015],
-      atol = 2.0e-12 #= required for CI on macOS =#)
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_hypdiff_godunov.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_godunov.jl"),
+        l2   = [5.868147556427088e-6, 3.80517927324465e-5, 3.805179273249344e-5],
+        linf = [3.701965498725812e-5, 0.0002122422943138247, 0.00021224229431116015],
+        atol = 2.0e-12 #= required for CI on macOS =#)
+    end
   end
 
 
   # Compressible Euler
   # Note: Some tests here have manually increased relative tolerances since reduction via MPI can
   #       slightly change the L2 error norms (different floating point truncation errors)
-  @trixi_testset "elixir_euler_source_terms.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-      l2   = [9.321181253186009e-7, 1.4181210743438511e-6, 1.4181210743487851e-6, 4.824553091276693e-6],
-      linf = [9.577246529612893e-6, 1.1707525976012434e-5, 1.1707525976456523e-5, 4.8869615580926506e-5],
-      rtol = 2000*sqrt(eps()))
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_euler_source_terms.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+        l2   = [9.321181253186009e-7, 1.4181210743438511e-6, 1.4181210743487851e-6, 4.824553091276693e-6],
+        linf = [9.577246529612893e-6, 1.1707525976012434e-5, 1.1707525976456523e-5, 4.8869615580926506e-5],
+        rtol = 2000*sqrt(eps()))
+    end
   end
 
   # This example file is only for testing purposes and has no practical use
-  @trixi_testset "elixir_euler_source_terms_amr_refine_coarsen.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_amr_refine_coarsen.jl"),
-      l2   = [4.8226610349853444e-5, 4.117706709270575e-5, 4.1177067092959676e-5, 0.00012205252427437389],
-      linf = [0.0003543874851490436, 0.0002973166773747593, 0.0002973166773760916, 0.001154106793870291],
-      # Let this test run until the end to cover the time-dependent lines
-      # of the indicator and the MPI-specific AMR code.
-      coverage_override = (maxiters=10^5,))
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_euler_source_terms_amr_refine_coarsen.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_amr_refine_coarsen.jl"),
+        l2   = [4.8226610349853444e-5, 4.117706709270575e-5, 4.1177067092959676e-5, 0.00012205252427437389],
+        linf = [0.0003543874851490436, 0.0002973166773747593, 0.0002973166773760916, 0.001154106793870291],
+        # Let this test run until the end to cover the time-dependent lines
+        # of the indicator and the MPI-specific AMR code.
+        coverage_override = (maxiters=10^5,))
+    end
   end
 
-  @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
-      l2   = [2.259440511766445e-6, 2.318888155713922e-6, 2.3188881557894307e-6, 6.3327863238858925e-6],
-      linf = [1.498738264560373e-5, 1.9182011928187137e-5, 1.918201192685487e-5, 6.0526717141407005e-5],
-      rtol = 0.001)
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+        l2   = [2.259440511766445e-6, 2.318888155713922e-6, 2.3188881557894307e-6, 6.3327863238858925e-6],
+        linf = [1.498738264560373e-5, 1.9182011928187137e-5, 1.918201192685487e-5, 6.0526717141407005e-5],
+        rtol = 0.001)
+    end
   end
 
-  @trixi_testset "elixir_euler_ec.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-      l2   = [0.061751715597716854, 0.05018223615408711, 0.05018989446443463, 0.225871559730513],
-      linf = [0.29347582879608825, 0.31081249232844693, 0.3107380389947736, 1.0540358049885143])
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_euler_ec.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
+        l2   = [0.061751715597716854, 0.05018223615408711, 0.05018989446443463, 0.225871559730513],
+        linf = [0.29347582879608825, 0.31081249232844693, 0.3107380389947736, 1.0540358049885143])
 
-    @testset "error-based step size control" begin
-      Trixi.mpi_isroot() && println("-"^100)
-      Trixi.mpi_isroot() && println("elixir_euler_ec.jl with error-based step size control")
+      @testset "error-based step size control" begin
+        Trixi.mpi_isroot() && println("-"^100)
+        Trixi.mpi_isroot() && println("elixir_euler_ec.jl with error-based step size control")
 
-      sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
-                  save_everystep=false, callback=callbacks,
-                  internalnorm=ode_norm,
-                  unstable_check=ode_unstable_check); summary_callback()
-      errors = analysis_callback(sol)
-      if Trixi.mpi_isroot()
-        @test errors.l2   ≈ [0.061653630426688116, 0.05006930431098764, 0.05007694316484242, 0.22550689872331683] rtol=1.0e-4
-        @test errors.linf ≈ [0.28516937484583693, 0.2983633696512788, 0.297812036335975, 1.027368795517512]       rtol=1.0e-4
+        sol = solve(ode, RDPK3SpFSAL35(); abstol=1.0e-4, reltol=1.0e-4,
+                    ode_default_options()..., callback=callbacks); summary_callback()
+        errors = analysis_callback(sol)
+        if Trixi.mpi_isroot()
+          @test errors.l2   ≈ [0.061653630426688116, 0.05006930431098764, 0.05007694316484242, 0.22550689872331683] rtol=1.0e-4
+          @test errors.linf ≈ [0.28516937484583693, 0.2983633696512788, 0.297812036335975, 1.027368795517512]       rtol=1.0e-4
+        end
       end
     end
   end
@@ -163,11 +176,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       coverage_override = (maxiters=6,))
   end
 
-  @trixi_testset "elixir_euler_vortex_shockcapturing.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_shockcapturing.jl"),
-      l2   = [0.0017158367642679273, 0.09619888722871434, 0.09616432767924141, 0.17553381166255197],
-      linf = [0.021853862449723982, 0.9878047229255944, 0.9880191167111795, 2.2154030488035588],
-      rtol = 0.001)
+  if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
+    @trixi_testset "elixir_euler_vortex_shockcapturing.jl" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_shockcapturing.jl"),
+        l2   = [0.0017158367642679273, 0.09619888722871434, 0.09616432767924141, 0.17553381166255197],
+        linf = [0.021853862449723982, 0.9878047229255944, 0.9880191167111795, 2.2154030488035588],
+        rtol = 0.001)
+    end
   end
 end
 

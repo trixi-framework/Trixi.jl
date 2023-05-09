@@ -22,7 +22,7 @@ perturbed velocities ``\mathbf{v'} = (v_1', v_2')^T`` and the scaled perturbed p
 ``\tilde{p}' = \frac{p'}{\bar{c}^2}``, where ``p'`` denotes the perturbed pressure and the
 perturbed variables are defined by ``\phi' = \phi - \bar{\phi}``.
 
-In addition to the unknowns, Trixi currently stores the mean values in the state vector,
+In addition to the unknowns, Trixi.jl currently stores the mean values in the state vector,
 i.e. the state vector used internally is given by
 ```math
 \mathbf{u} =
@@ -35,7 +35,7 @@ This affects the implementation and use of these equations in various ways:
 * The mean values have to be considered when defining initial conditions, boundary conditions or
   source terms.
 * [`AnalysisCallback`](@ref) analyzes these variables too.
-* Trixi's visualization tools will visualize the mean values by default.
+* Trixi.jl's visualization tools will visualize the mean values by default.
 
 The constructor accepts a 2-tuple `v_mean_global` and scalars `c_mean_global` and `rho_mean_global`
 which can be used to make the definition of initial conditions for problems with constant mean flow

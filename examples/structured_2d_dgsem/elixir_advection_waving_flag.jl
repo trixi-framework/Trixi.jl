@@ -42,7 +42,7 @@ summary_callback = SummaryCallback()
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval=100)
 
-# The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
+# The SaveRestartCallback allows to save a file from which a Trixi.jl simulation can be restarted
 save_restart = SaveRestartCallback(interval=100,
                                    save_final_restart=true)
 
@@ -50,7 +50,7 @@ save_restart = SaveRestartCallback(interval=100,
 save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
-# The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
+# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=1.4)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver

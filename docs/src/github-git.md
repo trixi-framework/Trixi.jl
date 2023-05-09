@@ -1,10 +1,10 @@
 # GitHub & Git
 
-This page contains information on how to use GitHub and Git when developing Trixi.
+This page contains information on how to use GitHub and Git when developing Trixi.jl.
 
 ## Development workflow
 
-For adding modifications to Trixi, we generally follow these steps:
+For adding modifications to Trixi.jl, we generally follow these steps:
 
 ### Create an issue (optional)
 In many cases it makes sense to start by creating an issue on GitHub. For
@@ -53,7 +53,7 @@ changes or dive in and change something themselves.
 
 !!! warning "Avoid committing unwanted files"
     When you use `git add .` or similar catch-all versions, make sure you do not
-    accidentally commit unwanted files (e.g., Trixi output files, images or
+    accidentally commit unwanted files (e.g., Trixi.jl output files, images or
     videos etc.). If it happens anyways, you can undo the last commit (also
     multiple times) by running `git reset HEAD~` (see also [Undo last
     commit](@ref)). However, this strategy only works if you have **not yet
@@ -114,7 +114,7 @@ person developing changes: We try to review all code before it gets added to
 `main`, even from the most experienced developers. This is good practice and
 helps to keep the error rate low while ensuring the the code is developed in a
 consistent fashion. Furthermore, do not take criticism of your code personally -
-we just try to keep Trixi as accessible and easy to use for everyone.
+we just try to keep Trixi.jl as accessible and easy to use for everyone.
 
 ### Merge branch
 Once your branch is reviewed and declared ready for merging by the reviewer,
@@ -165,7 +165,7 @@ let us know as fast as possible, since the effort to fix the repository grows
 considerably over time.
 
 #### Remove large file from repository
-If a large file was accidentally committed **and pushed** to the Trixi
+If a large file was accidentally committed **and pushed** to the Trixi.jl
 repository, please talk to one of the core developers as soon as possible so that they can fix it.
 
 !!! danger "Large files"

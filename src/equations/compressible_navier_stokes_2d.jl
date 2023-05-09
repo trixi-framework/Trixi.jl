@@ -1,15 +1,14 @@
 @doc raw"""
-    CompressibleNavierStokesDiffusion2D(gamma, mu, Pr, equations,
+    CompressibleNavierStokesDiffusion2D(equations; mu, Pr,
                                         gradient_variables=GradientVariablesPrimitive())
 
-These equations contain the diffusion (i.e. parabolic) terms applied
+Contains the diffusion (i.e. parabolic) terms applied
 to mass, momenta, and total energy together with the advective terms from
 the [`CompressibleEulerEquations2D`](@ref).
 
-- `gamma`: adiabatic constant,
+- `equations`: instance of the [`CompressibleEulerEquations2D`](@ref)
 - `mu`: dynamic viscosity,
 - `Pr`: Prandtl number,
-- `equations`: instance of the [`CompressibleEulerEquations2D`](@ref)
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to `GradientVariablesPrimitive()`.
 
@@ -37,7 +36,8 @@ where the system is closed with the ideal gas assumption giving
 ```math
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
 ```
-as the pressure. The terms on the right hand side of the system above
+as the pressure. The value of the adiabatic constant `gamma` is taken from the [`CompressibleEulerEquations2D`](@ref).
+The terms on the right hand side of the system above
 are built from the viscous stress tensor
 ```math
 \underline{\tau} = \mu \left(\nabla\mathbf{v} + \left(\nabla\mathbf{v}\right)^T\right) - \frac{2}{3} \mu \left(\nabla\cdot\mathbf{v}\right)\underline{I}
@@ -142,7 +142,7 @@ gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D{GradientV
 
 
 # Explicit formulas for the diffusive Navier-Stokes fluxes are available, e.g., in Section 2
-# of the paper by Rueda-Ramíreza, Hennemann, Hindenlang, Winters, and Gassner
+# of the paper by Rueda-Ramírez, Hennemann, Hindenlang, Winters, and Gassner
 # "An Entropy Stable Nodal Discontinuous Galerkin Method for the resistive
 #  MHD Equations. Part II: Subcell Finite Volume Shock Capturing"
 # where one sets the magnetic field components equal to 0.
@@ -150,7 +150,7 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleNavierS
   # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
   rho, v1, v2, _ = convert_transformed_to_primitive(u, equations)
   # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)
-  # either computed directly or reverse engineered from the gradient of the entropy vairables
+  # either computed directly or reverse engineered from the gradient of the entropy variables
   # by way of the `convert_gradient_variables` function.
   _, dv1dx, dv2dx, dTdx = convert_derivative_to_primitive(u, gradients[1], equations)
   _, dv1dy, dv2dy, dTdy = convert_derivative_to_primitive(u, gradients[2], equations)
@@ -172,7 +172,7 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleNavierS
   q1 = equations.kappa * dTdx
   q2 = equations.kappa * dTdy
 
-  # Constant dynamic viscosity is copied to a variable for readibility.
+  # Constant dynamic viscosity is copied to a variable for readability.
   # Offers flexibility for dynamic viscosity via Sutherland's law where it depends
   # on temperature and reference values, Ts and Tref such that mu(T)
   mu = equations.mu
