@@ -70,8 +70,24 @@ end
                                                        normal_direction_avg::AbstractVector, x, t,
                                                        nonconservative_surface_flux,
                                                        equations::IdealGlmMhdEquations2D)
-  return boundary_condition_velocity_slip_wall(u_inner, normal_direction, x, t,
-                                               nonconservative_surface_flux, equations)
+    # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+    norm_ = norm(normal_direction)
+    normal = normal_direction / norm_
+    norm_avg_ = norm(normal_direction_avg)
+    normal_avg = normal_direction_avg / norm_avg_ # assume both have the same norm
+
+    # average the magnitudes of the two normals in case they differ
+    norm_ = 0.5 * (norm_ + norm_avg_)
+
+    # compute the primitive variables
+    rho, v1, v2, v3, p, B1, B2, B3, psi = cons2prim(u_inner, equations)
+
+    v_normal = dot(normal, SVector(v1, v2))
+    u_mirror = prim2cons(SVector(rho, v1 - 2 * v_normal * normal[1],
+                                      v2 - 2 * v_normal * normal[2],
+                                      v3, p, B1, B2, B3, psi), equations)
+
+    return nonconservative_surface_flux(u_inner, u_mirror, normal, normal_avg, equations) * norm_
 end
 
 boundary_conditions = (; x_neg=boundary_condition_velocity_slip_wall,
