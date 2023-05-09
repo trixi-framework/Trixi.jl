@@ -509,9 +509,8 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
                                                               have_nonconservative_terms(equations),
                                                               equations, dg)
 
-  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
-                                                            have_nonconservative_terms(equations),
-                                                            mesh, equations, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, mesh,
+                                                            have_nonconservative_terms(equations), equations, dg)
 
   # `du` is stored at Gauss nodes here
   @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, dg.surface_integral,
