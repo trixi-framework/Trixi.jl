@@ -428,8 +428,7 @@ end
 
 # do nothing for periodic (default) boundary conditions
 calc_boundary_flux!(cache, t, boundary_conditions::BoundaryConditionPeriodic,
-                    have_nonconservative_terms,
-                    mesh, equations, dg::DGMulti) = nothing
+                    mesh, have_nonconservative_terms, equations, dg::DGMulti) = nothing
 
 # "lispy tuple programming" instead of for loop for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions, have_nonconservative_terms,
