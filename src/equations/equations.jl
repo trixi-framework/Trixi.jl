@@ -171,7 +171,8 @@ end
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
                                                                   normal_direction::AbstractVector,
                                                                   x, t,
-                                                                  surface_flux_function, equations)
+                                                                  surface_flux_function,
+                                                                  equations::AbstractEquations)
   # get the external value of the solution
   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
@@ -184,7 +185,8 @@ end
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
                                                                   normal_direction::AbstractVector,
                                                                   normal_direction_avg::AbstractVector,
-                                                                  x, t, nonconservative_surface_flux, equations)
+                                                                  x, t, nonconservative_surface_flux,
+                                                                  equations::AbstractEquations)
   # get the external value of the solution
   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
