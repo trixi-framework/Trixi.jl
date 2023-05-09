@@ -74,9 +74,9 @@ mutable struct SimpleIntegratorSSP{RealT<:Real, uType, Params, Sol, F, Alg, Simp
   finalstep::Bool # added for convenience
 end
 
-# Forward integrator.destats.naccept to integrator.iter (see GitHub PR#771)
+# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
 function Base.getproperty(integrator::SimpleIntegratorSSP, field::Symbol)
-  if field === :destats
+  if field === :stats
     return (naccept = getfield(integrator, :iter),)
   end
   # general fallback
