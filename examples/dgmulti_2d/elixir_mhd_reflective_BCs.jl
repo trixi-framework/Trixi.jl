@@ -65,6 +65,15 @@ function boundary_condition_velocity_slip_wall(u_inner, normal_direction::Abstra
   return surface_flux_function(u_inner, u_mirror, normal, equations) * norm_
 end
 
+# we need to define two versions of boundary conditions when using non-conservative terms
+@inline function boundary_condition_velocity_slip_wall(u_inner, normal_direction::AbstractVector,
+                                                       normal_direction_avg::AbstractVector, x, t,
+                                                       nonconservative_surface_flux,
+                                                       equations::IdealGlmMhdEquations2D)
+  return boundary_condition_velocity_slip_wall(u_inner, normal_direction, x, t,
+                                               nonconservative_surface_flux, equations)
+end
+
 boundary_conditions = (; x_neg=boundary_condition_velocity_slip_wall,
                          x_pos=boundary_condition_velocity_slip_wall,
                          y_neg=boundary_condition_do_nothing,

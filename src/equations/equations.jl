@@ -181,6 +181,19 @@ end
   return flux
 end
 
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
+                                                                  normal_direction::AbstractVector,
+                                                                  normal_direction_avg::AbstractVector,
+                                                                  x, t, nonconservative_surface_flux, equations)
+  # get the external value of the solution
+  u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+  # Calculate boundary flux
+  flux = nonconservative_surface_flux(u_inner, u_boundary, normal_direction, normal_direction_avg, equations)
+
+  return flux
+end
+
 # operator types used for dispatch on parabolic boundary fluxes
 struct Gradient end
 struct Divergence end
@@ -328,7 +341,7 @@ include("compressible_euler_multicomponent_2d.jl")
     eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractCompressibleEulerMulticomponentEquations`. 
+for the components in `AbstractCompressibleEulerMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations) = Base.OneTo(ncomponents(equations))
@@ -350,7 +363,7 @@ include("ideal_glm_mhd_multicomponent_2d.jl")
     eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractIdealGlmMhdMulticomponentEquations`. 
+for the components in `AbstractIdealGlmMhdMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations) = Base.OneTo(ncomponents(equations))

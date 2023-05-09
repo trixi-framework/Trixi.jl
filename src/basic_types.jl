@@ -76,16 +76,26 @@ struct BoundaryConditionDoNothing end
 # This version can be called by hyperbolic solvers on logically Cartesian meshes
 @inline function (::BoundaryConditionDoNothing)(
     u_inner, orientation_or_normal_direction, direction::Integer, x, t, surface_flux, equations)
+
   return flux(u_inner, orientation_or_normal_direction, equations)
   # TODO: should this be switched to `surface_flux(u_inner, u_inner, orientation_or_normal_direction, equations)` for consistency?
 end
 
 # This version can be called by hyperbolic solvers on unstructured, curved meshes
-@inline function (::BoundaryConditionDoNothing)(
-    u_inner, outward_direction::AbstractVector, x, t, surface_flux, equations)
+@inline function (::BoundaryConditionDoNothing)(u_inner, outward_direction::AbstractVector,
+                                                x, t, surface_flux, equations)
 
   # this should reduce to `flux(u_inner, outward_direction, equations)` for a consistent flux.
   return surface_flux(u_inner, u_inner, outward_direction, equations)
+end
+
+# This version is called when passing in a non-conservative surface flux
+@inline function (::BoundaryConditionDoNothing)(u_inner, outward_direction::AbstractVector,
+                                                outward_direction_avg::AbstractVector,
+                                                x, t, nonconservative_surface_flux, equations)
+
+  return nonconservative_surface_flux(u_inner, u_inner, outward_direction,
+                                      outward_direction_avg, equations)
 end
 
 # This version can be called by parabolic solvers

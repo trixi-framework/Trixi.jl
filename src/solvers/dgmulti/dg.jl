@@ -523,8 +523,9 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
       cons_flux_at_face_node = boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
                                                   surface_flux, equations)
 
-      noncons_flux_at_face_node = boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
-                                                     nonconservative_flux, equations)
+      # the non-conservative flux involves two face normals
+      noncons_flux_at_face_node = boundary_condition(u_face_values[i,f], face_normal, face_normal,
+                                                     face_coordinates, t, nonconservative_flux, equations)
 
       flux_face_values[i,f] = (cons_flux_at_face_node + 0.5 * noncons_flux_at_face_node) * Jf[i,f]
 
