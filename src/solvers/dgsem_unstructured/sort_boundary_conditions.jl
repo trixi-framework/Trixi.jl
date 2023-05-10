@@ -46,7 +46,7 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     for i in 0:(mpi_nranks()-1)
       if i!=mpi_rank()
         MPI.isend(unique_names, i, 0, mpi_comm())
-        recv_names, _ = MPI.recv(i, 0, mpi_comm())
+        recv_names = MPI.recv(mpi_comm(); source=i, tag=0)
         unique_names = unique(vcat(unique_names, recv_names))
       end
     end
