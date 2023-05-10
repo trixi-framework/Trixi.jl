@@ -42,16 +42,11 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
   unique_names = unique(cache.boundaries.name)
 
   if mpi_isparallel()
-    # Get parameters for MPI communications
-    comm = MPI.COMM_WORLD
-    size = MPI.Comm_size(comm)
-    rank = MPI.Comm_rank(comm)
-
     # Exchange of boundaries names
     for i in 0:(size-1)
-      if i!=rank
-        MPI.isend(unique_names, i, 0, comm)
-        recv_names, _ = MPI.recv(i, 0, comm)
+      if i!=mpi_rank()
+        MPI.isend(unique_names, i, 0, mpi_comm())
+        recv_names, _ = MPI.recv(i, 0, mpi_comm())
         unique_names = unique(vcat(unique_names, recv_names))
       end
     end
