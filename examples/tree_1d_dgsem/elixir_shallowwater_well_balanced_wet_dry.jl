@@ -173,13 +173,11 @@ l1_well_balance_error = Trixi.integrate_via_indices(u, mesh, equations, semi.sol
 end
 
 # report the well-balancedness lake-at-rest error to the screen
-if Trixi.mpi_isroot()
-  Trixi.mpi_println("─"^100)
-  Trixi.mpi_println(" Lake-at-rest error for '", Trixi.get_name(equations), "' with ", Trixi.summary(solver),
-                    " at final time " * Trixi.@sprintf("%10.8e", tspan[end]))
+println("─"^100)
+println(" Lake-at-rest error for '", Trixi.get_name(equations), "' with ", Trixi.summary(solver),
+        " at final time " * Trixi.@sprintf("%10.8e", tspan[end]))
 
-  Trixi.@printf(" %-12s:", Trixi.pretty_form_utf(lake_at_rest_error))
-  Trixi.@printf("  % 10.8e", l1_well_balance_error)
-  Trixi.mpi_println()
-  Trixi.mpi_println("─"^100)
-end
+Trixi.@printf(" %-12s:", Trixi.pretty_form_utf(lake_at_rest_error))
+Trixi.@printf("  % 10.8e", l1_well_balance_error)
+println()
+println("─"^100)
