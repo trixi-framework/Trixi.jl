@@ -519,14 +519,18 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
       face_normal = SVector{NDIMS}(getindex.(nxyzJ, i, f)) / Jf[i,f]
       face_coordinates = SVector{NDIMS}(getindex.(xyzf, i, f))
 
-      # compute conservative and non-conservative parts separately
+      # Compute conservative and non-conservative fluxes separately.
+      # This imposes boundary conditions on the conservative part of the flux.
       cons_flux_at_face_node = boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
                                                   surface_flux, equations)
 
-      # specify that we are using a non-conservative flux here
-      using_nonconservative_flux = True()
-      noncons_flux_at_face_node = boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
-                                                     using_nonconservative_flux, nonconservative_flux, equations)
+      # Compute pointwise nonconservative numerical flux at the boundary.
+      # In general, nonconservative fluxes can depend on both the contravariant
+      # vectors (normal direction) at the current node and the averaged ones.
+      # However, there is only one `face_normal` at boundaries, which we pass in twice.
+      # Note: This does not set any type of boundary condition for the nonconservative term
+      noncons_flux_at_face_node = nonconservative_flux(u_face_values[i,f], u_face_values[i,f],
+                                                       face_normal, face_normal, equations)
 
       flux_face_values[i,f] = (cons_flux_at_face_node + 0.5 * noncons_flux_at_face_node) * Jf[i,f]
 
