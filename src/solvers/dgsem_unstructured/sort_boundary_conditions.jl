@@ -41,14 +41,25 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
 
   unique_names = unique(cache.boundaries.name)
 
-  # TODO: This needs to be handled differently for the `ParallelP4estMesh` since the boundaries
-  # are distributed and thus unique_names only contains the names of boundaries on the local process
-  # See https://github.com/trixi-framework/Trixi.jl/issues/1047
-  if !mpi_isparallel()
-    for key in keys(boundary_dictionary)
-      if !(key in unique_names)
-        error("Key $(repr(key)) is not a valid boundary name")
+  if mpi_isparallel()
+    # Get parameters for MPI communications
+    comm = MPI.COMM_WORLD
+    size = MPI.Comm_size(comm)
+    rank = MPI.Comm_rank(comm)
+
+    # Exchange of boundaries names
+    for i in 0:(size-1)
+      if i!=rank
+        MPI.isend(unique_names, i, 0, comm)
+        recv_names, _ = MPI.recv(i, 0, comm)
+        unique_names = unique(vcat(unique_names, recv_names))
       end
+    end
+  end
+
+  for key in keys(boundary_dictionary)
+    if !(key in unique_names)
+      error("Key $(repr(key)) is not a valid boundary name")
     end
   end
 
