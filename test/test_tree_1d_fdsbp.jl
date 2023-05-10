@@ -6,7 +6,7 @@ using Trixi
 include("test_trixi.jl")
 
 # pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1d_fdsbp")
+EXAMPLES_DIR = joinpath(pkgdir(Trixi), "examples", "tree_1d_fdsbp")
 
 @testset "Inviscid Burgers" begin
   @trixi_testset "elixir_burgers_basic.jl" begin
