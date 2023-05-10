@@ -120,7 +120,7 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealMhdMultiIonEqua
   prim[2] = 1.0
   prim[3] = 1.0
   for k in eachcomponent(equations)
-    set_component!(prim, k, 2^(k-1) * (1-2)/(1-2^ncomponents(equations)) * rho, v1, v2, 0, p, equations)
+    set_component!(prim, k, 2^(k-1) * (1 - 2)/(1 - 2^ncomponents(equations)) * rho, v1, v2, 0, p, equations)
   end
 
   return prim2cons(SVector(prim), equations)
@@ -130,7 +130,7 @@ end
 
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::IdealMhdMultiIonEquations2D)
-  B1, B2, B3, _ = u
+  B1, B2, B3 = magnetic_field(u, equations)
   
   v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u, equations)
 
@@ -145,9 +145,9 @@ end
 
     for k in eachcomponent(equations)
       rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-      v1 = rho_v1/rho
-      v2 = rho_v2/rho
-      v3 = rho_v3/rho
+      v1 = rho_v1 / rho
+      v2 = rho_v2 / rho
+      v3 = rho_v3 / rho
       kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
       
       gamma = equations.gammas[k]
@@ -157,7 +157,7 @@ end
       f2 = rho_v1*v1 + p
       f3 = rho_v1*v2
       f4 = rho_v1*v3
-      f5 = (kin_en + gamma*p/(gamma - 1))*v1 + 2 * mag_en * vk1_plus[k] - B1 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3)
+      f5 = (kin_en + gamma * p/(gamma - 1))*v1 + 2 * mag_en * vk1_plus[k] - B1 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3)
 
       set_component!(f, k, f1, f2, f3, f4, f5, equations)
     end
@@ -170,18 +170,18 @@ end
 
     for k in eachcomponent(equations)
       rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-      v1 = rho_v1/rho
-      v2 = rho_v2/rho
-      v3 = rho_v3/rho
+      v1 = rho_v1 / rho
+      v2 = rho_v2 / rho
+      v3 = rho_v3 / rho
       kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
       
       gamma = equations.gammas[k]
       p = (gamma - 1) * (rho_e - kin_en - mag_en)
 
       f1 = rho_v2
-      f2 = rho_v2*v1 # - B2*B1
-      f3 = rho_v2*v2 + p # + mag_en - B2*B2
-      f4 = rho_v2*v3 #- B2*B3
+      f2 = rho_v2 * v1
+      f3 = rho_v2 * v2 + p
+      f4 = rho_v2 * v3
       f5 = (kin_en + gamma*p/(gamma - 1))*v2 + 2 * mag_en * vk2_plus[k] - B2 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3)
 
       set_component!(f, k, f1, f2, f3, f4, f5, equations)
@@ -196,7 +196,7 @@ Standard source terms of the multi-ion MHD equations
 """
 function source_terms_standard(u, x, t, equations::IdealMhdMultiIonEquations2D)
   @unpack charge_to_mass = equations
-  B1, B2, B3, _ = u
+  B1, B2, B3 = magnetic_field(u, equations)
   v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u, equations)
 
   s = zero(MVector{nvariables(equations), eltype(u)})
@@ -232,22 +232,22 @@ The term is composed of three parts
 @inline function flux_nonconservative_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::IdealMhdMultiIonEquations2D)
   @unpack charge_to_mass = equations
   # Unpack left and right states to get the magnetic field
-  B1_ll, B2_ll, B3_ll, _ = u_ll
-  B1_rr, B2_rr, B3_rr, _ = u_rr
+  B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
+  B1_rr, B2_rr, B3_rr = magnetic_field(u_rr, equations)
 
   # Compute important averages
-  B1_avg = 0.5*(B1_ll+B1_rr)
-  B2_avg = 0.5*(B2_ll+B2_rr)
-  B3_avg = 0.5*(B3_ll+B3_rr)
+  B1_avg = 0.5 *(B1_ll + B1_rr)
+  B2_avg = 0.5 *(B2_ll + B2_rr)
+  B3_avg = 0.5 *(B3_ll + B3_rr)
   mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  mag_norm_avg = 0.5*(mag_norm_ll+mag_norm_rr)
+  mag_norm_avg = 0.5 * (mag_norm_ll + mag_norm_rr)
 
   # Compute charge ratio of u_ll
   charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
   total_electron_charge = zero(eltype(u_ll))
   for k in eachcomponent(equations)
-    rho_k = u_ll[(k-1)*5+4]
+    rho_k = u_ll[3 + (k - 1) * 5 + 1]
     charge_ratio_ll[k] = rho_k * charge_to_mass[k]
     total_electron_charge += charge_ratio_ll[k]
   end
@@ -361,8 +361,8 @@ The term is composed of three parts
 @inline function flux_nonconservative_central(u_ll, u_rr, orientation::Integer, equations::IdealMhdMultiIonEquations2D)
   @unpack charge_to_mass = equations
   # Unpack left and right states to get the magnetic field
-  B1_ll, B2_ll, B3_ll, _ = u_ll
-  B1_rr, B2_rr, B3_rr, _ = u_rr
+  B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
+  B1_rr, B2_rr, B3_rr = magnetic_field(u_rr, equations)
 
   # Compute important averages
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
@@ -371,7 +371,7 @@ The term is composed of three parts
   charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
   total_electron_charge = zero(real(equations))
   for k in eachcomponent(equations)
-    rho_k = u_ll[(k-1)*5+4]
+    rho_k = u_ll[3 + (k - 1) * 5 + 1]
     charge_ratio_ll[k] = rho_k * charge_to_mass[k]
     total_electron_charge += charge_ratio_ll[k]
   end
@@ -465,8 +465,8 @@ This flux (together with the MHD non-conservative term) is consistent in the cas
 function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::IdealMhdMultiIonEquations2D)
   @unpack gammas = equations
   # Unpack left and right states to get the magnetic field
-  B1_ll, B2_ll, B3_ll, _ = u_ll
-  B1_rr, B2_rr, B3_rr, _ = u_rr
+  B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
+  B1_rr, B2_rr, B3_rr = magnetic_field(u_rr, equations)
   
   v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll, equations)
   v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr, equations)
@@ -474,15 +474,15 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
   f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
   # Compute averages for global variables
-  v1_plus_avg = 0.5*(v1_plus_ll+v1_plus_rr)
-  v2_plus_avg = 0.5*(v2_plus_ll+v2_plus_rr)
-  v3_plus_avg = 0.5*(v3_plus_ll+v3_plus_rr)
-  B1_avg = 0.5*(B1_ll+B1_rr)
-  B2_avg = 0.5*(B2_ll+B2_rr)
-  B3_avg = 0.5*(B3_ll+B3_rr)
+  v1_plus_avg = 0.5 * (v1_plus_ll + v1_plus_rr)
+  v2_plus_avg = 0.5 * (v2_plus_ll + v2_plus_rr)
+  v3_plus_avg = 0.5 * (v3_plus_ll + v3_plus_rr)
+  B1_avg = 0.5 * (B1_ll + B1_rr)
+  B2_avg = 0.5 * (B2_ll + B2_rr)
+  B3_avg = 0.5 * (B3_ll + B3_rr)
   mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  mag_norm_avg = 0.5*(mag_norm_ll+mag_norm_rr)
+  mag_norm_avg = 0.5 * (mag_norm_ll + mag_norm_rr)
 
   if orientation == 1
     # Magnetic field components from f^MHD
@@ -501,37 +501,37 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
       rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = get_component(k, u_ll, equations)
       rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr, equations)
       
-      v1_ll = rho_v1_ll/rho_ll
-      v2_ll = rho_v2_ll/rho_ll
-      v3_ll = rho_v3_ll/rho_ll
-      v1_rr = rho_v1_rr/rho_rr
-      v2_rr = rho_v2_rr/rho_rr
-      v3_rr = rho_v3_rr/rho_rr
+      v1_ll = rho_v1_ll / rho_ll
+      v2_ll = rho_v2_ll / rho_ll
+      v3_ll = rho_v3_ll / rho_ll
+      v1_rr = rho_v1_rr / rho_rr
+      v2_rr = rho_v2_rr / rho_rr
+      v3_rr = rho_v3_rr / rho_rr
       vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
       vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
       
-      p_ll = (gammas[k] - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll)
-      p_rr = (gammas[k] - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr)
-      beta_ll = 0.5*rho_ll/p_ll
-      beta_rr = 0.5*rho_rr/p_rr
+      p_ll = (gammas[k] - 1)*(rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll)
+      p_rr = (gammas[k] - 1)*(rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr)
+      beta_ll = 0.5 * rho_ll / p_ll
+      beta_rr = 0.5 * rho_rr / p_rr
       # for convenience store vk_plus⋅B
       vel_dot_mag_ll = vk1_plus_ll[k] * B1_ll + vk2_plus_ll[k] * B2_ll + vk3_plus_ll[k] * B3_ll
       vel_dot_mag_rr = vk1_plus_rr[k] * B1_rr + vk2_plus_rr[k] * B2_rr + vk3_plus_rr[k] * B3_rr
 
       # Compute the necessary mean values needed for either direction
-      rho_avg  = 0.5*(rho_ll+rho_rr)
-      rho_mean = ln_mean(rho_ll,rho_rr)
-      beta_mean = ln_mean(beta_ll,beta_rr)
-      beta_avg = 0.5*(beta_ll+beta_rr)
-      p_mean = 0.5*rho_avg/beta_avg
-      v1_avg = 0.5*(v1_ll+v1_rr)
-      v2_avg = 0.5*(v2_ll+v2_rr)
-      v3_avg = 0.5*(v3_ll+v3_rr)
-      vel_norm_avg = 0.5*(vel_norm_ll+vel_norm_rr)
-      vel_dot_mag_avg = 0.5*(vel_dot_mag_ll+vel_dot_mag_rr)
-      vk1_plus_avg = 0.5*(vk1_plus_ll[k] + vk1_plus_rr[k])
-      vk2_plus_avg = 0.5*(vk2_plus_ll[k] + vk2_plus_rr[k])
-      vk3_plus_avg = 0.5*(vk3_plus_ll[k] + vk3_plus_rr[k])
+      rho_avg  = 0.5 * (rho_ll + rho_rr)
+      rho_mean = ln_mean(rho_ll, rho_rr)
+      beta_mean = ln_mean(beta_ll, beta_rr)
+      beta_avg = 0.5 * (beta_ll + beta_rr)
+      p_mean = 0.5 * rho_avg / beta_avg
+      v1_avg = 0.5 * (v1_ll + v1_rr)
+      v2_avg = 0.5 * (v2_ll + v2_rr)
+      v3_avg = 0.5 * (v3_ll + v3_rr)
+      vel_norm_avg = 0.5 * (vel_norm_ll + vel_norm_rr)
+      vel_dot_mag_avg = 0.5*(vel_dot_mag_ll + vel_dot_mag_rr)
+      vk1_plus_avg = 0.5 * (vk1_plus_ll[k] + vk1_plus_rr[k])
+      vk2_plus_avg = 0.5 * (vk2_plus_ll[k] + vk2_plus_rr[k])
+      vk3_plus_avg = 0.5 * (vk3_plus_ll[k] + vk3_plus_rr[k])
       # v_minus
       vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
       vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
@@ -545,9 +545,9 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
 
       # Ignore orientation since it is always "1" in 1D
       f1 = rho_mean*v1_avg
-      f2 = f1*v1_avg + p_mean
-      f3 = f1*v2_avg
-      f4 = f1*v3_avg
+      f2 = f1 * v1_avg + p_mean
+      f3 = f1 * v2_avg
+      f4 = f1 * v3_avg
       
       # total energy flux is complicated and involves the previous eight components
       v1_plus_mag_avg = 0.5*(vk1_plus_ll[k] * mag_norm_ll + vk1_plus_rr[k] * mag_norm_rr)
@@ -556,7 +556,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
       # MHD part
       f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5 * v1_plus_mag_avg + B1_avg * vel_dot_mag_avg                                               # Same terms as in Derigs (but with v_plus)
             + 0.5 * vk1_plus_avg * mag_norm_avg - vk1_plus_avg * B1_avg * B1_avg - vk2_plus_avg * B1_avg * B2_avg - vk3_plus_avg * B1_avg * B3_avg   # Additional terms coming from the MHD non-conservative term (momentum eqs)
-            - B2_avg *  (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) - B3_avg * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg) )             # Terms coming from the non-conservative term 3 (induction equation!)
+            - B2_avg * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) - B3_avg * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg) )             # Terms coming from the non-conservative term 3 (induction equation!)
 
       set_component!(f, k, f1, f2, f3, f4, f5, equations)
     end
@@ -577,37 +577,37 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
       rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = get_component(k, u_ll, equations)
       rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr, equations)
       
-      v1_ll = rho_v1_ll/rho_ll
-      v2_ll = rho_v2_ll/rho_ll
-      v3_ll = rho_v3_ll/rho_ll
-      v1_rr = rho_v1_rr/rho_rr
-      v2_rr = rho_v2_rr/rho_rr
-      v3_rr = rho_v3_rr/rho_rr
+      v1_ll = rho_v1_ll / rho_ll
+      v2_ll = rho_v2_ll / rho_ll
+      v3_ll = rho_v3_ll / rho_ll
+      v1_rr = rho_v1_rr / rho_rr
+      v2_rr = rho_v2_rr / rho_rr
+      v3_rr = rho_v3_rr / rho_rr
       vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
       vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
       
-      p_ll = (gammas[k] - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll)
-      p_rr = (gammas[k] - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr)
-      beta_ll = 0.5*rho_ll/p_ll
-      beta_rr = 0.5*rho_rr/p_rr
+      p_ll = (gammas[k] - 1)*(rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll)
+      p_rr = (gammas[k] - 1)*(rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr)
+      beta_ll = 0.5 * rho_ll / p_ll
+      beta_rr = 0.5 * rho_rr / p_rr
       # for convenience store vk_plus⋅B
       vel_dot_mag_ll = vk1_plus_ll[k] * B1_ll + vk2_plus_ll[k] * B2_ll + vk3_plus_ll[k] * B3_ll
       vel_dot_mag_rr = vk1_plus_rr[k] * B1_rr + vk2_plus_rr[k] * B2_rr + vk3_plus_rr[k] * B3_rr
 
       # Compute the necessary mean values needed for either direction
-      rho_avg  = 0.5*(rho_ll+rho_rr)
-      rho_mean = ln_mean(rho_ll,rho_rr)
-      beta_mean = ln_mean(beta_ll,beta_rr)
-      beta_avg = 0.5*(beta_ll+beta_rr)
-      p_mean = 0.5*rho_avg/beta_avg
-      v1_avg = 0.5*(v1_ll+v1_rr)
-      v2_avg = 0.5*(v2_ll+v2_rr)
-      v3_avg = 0.5*(v3_ll+v3_rr)
-      vel_norm_avg = 0.5*(vel_norm_ll+vel_norm_rr)
-      vel_dot_mag_avg = 0.5*(vel_dot_mag_ll+vel_dot_mag_rr)
-      vk1_plus_avg = 0.5*(vk1_plus_ll[k] + vk1_plus_rr[k])
-      vk2_plus_avg = 0.5*(vk2_plus_ll[k] + vk2_plus_rr[k])
-      vk3_plus_avg = 0.5*(vk3_plus_ll[k] + vk3_plus_rr[k])
+      rho_avg  = 0.5 * (rho_ll + rho_rr)
+      rho_mean = ln_mean(rho_ll, rho_rr)
+      beta_mean = ln_mean(beta_ll, beta_rr)
+      beta_avg = 0.5 * (beta_ll + beta_rr)
+      p_mean = 0.5 * rho_avg / beta_avg
+      v1_avg = 0.5 * (v1_ll + v1_rr)
+      v2_avg = 0.5 * (v2_ll + v2_rr)
+      v3_avg = 0.5 * (v3_ll + v3_rr)
+      vel_norm_avg = 0.5 * (vel_norm_ll + vel_norm_rr)
+      vel_dot_mag_avg = 0.5 * (vel_dot_mag_ll + vel_dot_mag_rr)
+      vk1_plus_avg = 0.5 * (vk1_plus_ll[k] + vk1_plus_rr[k])
+      vk2_plus_avg = 0.5 * (vk2_plus_ll[k] + vk2_plus_rr[k])
+      vk3_plus_avg = 0.5 * (vk3_plus_ll[k] + vk3_plus_rr[k])
       # v_minus
       vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
       vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
@@ -621,9 +621,9 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
 
       # Ignore orientation since it is always "1" in 1D
       f1 = rho_mean*v2_avg
-      f2 = f1*v1_avg
-      f3 = f1*v2_avg + p_mean
-      f4 = f1*v3_avg
+      f2 = f1 * v1_avg
+      f3 = f1 * v2_avg + p_mean
+      f4 = f1 * v3_avg
       
       # total energy flux is complicated and involves the previous eight components
       v2_plus_mag_avg = 0.5*(vk2_plus_ll[k] * mag_norm_ll + vk2_plus_rr[k] * mag_norm_rr)
@@ -632,7 +632,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
       # MHD part
       f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5 * v2_plus_mag_avg + B2_avg * vel_dot_mag_avg                                               # Same terms as in Derigs (but with v_plus)
             + 0.5 * vk2_plus_avg * mag_norm_avg - vk1_plus_avg * B2_avg * B1_avg - vk2_plus_avg * B2_avg * B2_avg - vk3_plus_avg * B2_avg * B3_avg   # Additional terms coming from the MHD non-conservative term (momentum eqs)
-            - B1_avg *  (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) - B3_avg * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg) )             # Terms coming from the non-conservative term 3 (induction equation!)
+            - B1_avg * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) - B3_avg * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg) )             # Terms coming from the non-conservative term 3 (induction equation!)
 
       set_component!(f, k, f1, f2, f3, f4, f5, equations)
     end
@@ -654,7 +654,7 @@ end
 
   # Calculate velocities
   v_ll = zero(eltype(u_ll))
-  v_rr = zero(u_rr[1])
+  v_rr = zero(eltype(u_rr))
   if orientation == 1
     for k in eachcomponent(equations)
       rho, rho_v1, _ = get_component(k, u_ll, equations)
@@ -696,7 +696,7 @@ Convert conservative variables to primitive
 """
 function cons2prim(u, equations::IdealMhdMultiIonEquations2D)
   @unpack gammas = equations
-  B1, B2, B3, _ = u
+  B1, B2, B3 = magnetic_field(u, equations)
 
   prim = zero(MVector{nvariables(equations), eltype(u)})
   prim[1] = B1
@@ -723,7 +723,7 @@ Convert conservative variables to entropy
 """
 @inline function cons2entropy(u, equations::IdealMhdMultiIonEquations2D)
   @unpack gammas = equations
-  B1, B2, B3, _ = u
+  B1, B2, B3 = magnetic_field(u, equations)
 
   prim = cons2prim(u, equations)
   entropy = zero(MVector{nvariables(equations), eltype(u)})
@@ -756,7 +756,7 @@ Convert primitive to conservative variables
 """
 @inline function prim2cons(prim, equations::IdealMhdMultiIonEquations2D)
   @unpack gammas = equations
-  B1, B2, B3, _ = prim
+  B1, B2, B3 = magnetic_field(prim, equations)
 
   cons = zero(MVector{nvariables(equations), eltype(prim)})
   cons[1] = B1
@@ -782,7 +782,7 @@ Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoaco
   !!! ATTENTION: This routine is provisional.. Change once the fastest wave speed is known!!
 """
 @inline function calc_fast_wavespeed(cons, orientation::Integer, equations::IdealMhdMultiIonEquations2D)
-  B1, B2, B3, _ = cons
+  B1, B2, B3 = magnetic_field(cons, equations)
 
   c_f = zero(real(equations))
   for k in eachcomponent(equations)
@@ -803,9 +803,9 @@ Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoaco
     b_square = b1^2 + b2^2 + b3^2
 
     if orientation == 1
-      c_f = max(c_f, sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b1^2)))
+      c_f = max(c_f, sqrt(0.5 * (a_square + b_square) + 0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square*b1^2)))
     else #if orientation == 2
-      c_f = max(c_f, sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b2^2)))
+      c_f = max(c_f, sqrt(0.5 * (a_square + b_square) + 0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square*b2^2)))
     end
   end
 
@@ -825,14 +825,12 @@ Routine to compute the Charge-averaged velocities:
   vk3_plus = zero(MVector{ncomponents(equations), eltype(u)})
 
   for k in eachcomponent(equations)
-    rho_k = u[(k-1)*5+4]
-    rho_v1_k = u[(k-1)*5+5]
-    rho_v2_k = u[(k-1)*5+6]
-    rho_v3_k = u[(k-1)*5+7]
-    total_electron_charge += rho_k * equations.charge_to_mass[k]
-    vk1_plus[k] = rho_v1_k * equations.charge_to_mass[k]
-    vk2_plus[k] = rho_v2_k * equations.charge_to_mass[k]
-    vk3_plus[k] = rho_v3_k * equations.charge_to_mass[k]
+    rho, rho_v1, rho_v2, rho_v3, _ = get_component(k, u, equations::IdealMhdMultiIonEquations2D)
+    
+    total_electron_charge += rho * equations.charge_to_mass[k]
+    vk1_plus[k] = rho_v1 * equations.charge_to_mass[k]
+    vk2_plus[k] = rho_v2 * equations.charge_to_mass[k]
+    vk3_plus[k] = rho_v3 * equations.charge_to_mass[k]
   end
   vk1_plus ./= total_electron_charge
   vk2_plus ./= total_electron_charge
@@ -870,6 +868,8 @@ Set the flow variables of component k
   return u
 end
 
+magnetic_field(u, equations::IdealMhdMultiIonEquations2D) = SVector(u[1], u[2], u[3])
+
 @inline function density_product(u, equations::IdealMhdMultiIonEquations2D)
   prod = one(eltype(u))
   for k in eachcomponent(equations)
@@ -890,7 +890,7 @@ end
 Computes the sum of the densities times the sum of the pressures
 """
 @inline function density_pressure(u, equations::IdealMhdMultiIonEquations2D)
-  B1, B2, B3, _ = u
+  B1, B2, B3 = magnetic_field(u, equations)
   rho_total = zero(real(equations))
   p_total = zero(real(equations))
   for k in eachcomponent(equations)
@@ -902,7 +902,7 @@ Computes the sum of the densities times the sum of the pressures
     v_mag = sqrt(v1^2 + v2^2 + v3^2)
     gamma = equations.gammas[k]
 
-    p = (gamma - 1)*(rho_e - 0.5*rho*v_mag^2 - 0.5*(B1^2 + B2^2 + B3^2))
+    p = (gamma - 1)*(rho_e - 0.5 * rho*v_mag^2 - 0.5*(B1^2 + B2^2 + B3^2))
     
     rho_total += rho
     p_total += p
