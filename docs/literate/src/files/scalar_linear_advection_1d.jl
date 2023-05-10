@@ -53,7 +53,7 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 # ### ii. Polynomial approach
 # Now, we want to approximate the solution in each element $Q_l$ by a polynomial of degree $N$. Since we transformed
 # the equation, we can use the same polynomial approach for the reference coordinate $\xi\in[-1, 1]$ in every
-# physical element $Q_l$. This saves a lot of ressources by reducing the amount of calculations needed
+# physical element $Q_l$. This saves a lot of resources by reducing the amount of calculations needed
 # and storing less information.
 
 # For DGSEM we choose [Lagrange basis functions](https://en.wikipedia.org/wiki/Lagrange_polynomial)
@@ -63,7 +63,7 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 # u(x(\xi), t)\big|_{Q_l} \approx u^{Q_l}(\xi, t) = \sum_{j=0}^N u_j^{Q_l}(t) l_j(\xi)
 # ```
 # with $N+1$ coefficients $\{u_j^{Q_l}\}_{j=0}^N$.
-# By contruction the Lagrange basis has some useful advantages. This basis is defined by $N+1$ nodes, which
+# By construction the Lagrange basis has some useful advantages. This basis is defined by $N+1$ nodes, which
 # fulfill a Kronecker property at the exact same nodes. Let $\{\xi_i\}_{i=0}^N$ be these nodes.
 # ```math
 # l_j(\xi_i) = \delta_{i,j} =
@@ -186,7 +186,7 @@ M = diagm(weights)
 # is called mass lumping and has the big advantage of an easy invertation of the matrix.
 
 # #### Term II:
-# We use spatial partial intergration for the second term:
+# We use spatial partial integration for the second term:
 # ```math
 # \int_{-1}^1 u'(\xi, t) l_i(\xi) d\xi = [u l_i]_{-1}^1 - \int_{-1}^1 u l_i'd\xi
 # ```
@@ -298,7 +298,7 @@ function rhs!(du, u, x, t)
 
     ## Calculate interface and boundary fluxes, $u^* = (u^*|_{-1}, 0, ..., 0, u^*|^1)^T$
     ## Since we use the flux Lax-Friedrichs from Trixi.jl, we have to pass some extra arguments.
-    ## Trixi needs the equation we are dealing with and an additional `1`, that indicates the
+    ## Trixi.jl needs the equation we are dealing with and an additional `1`, that indicates the
     ## first coordinate direction.
     equations = LinearScalarAdvectionEquation1D(1.0)
     for element in 2:n_elements-1
@@ -341,7 +341,7 @@ using OrdinaryDiffEq
 tspan = (0.0, 2.0)
 ode = ODEProblem(rhs!, u0, tspan, x)
 
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false)
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode_default_options()...)
 @test maximum(abs.(u0 - sol.u[end])) < 5e-5 #src
 
 plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft, lw=3)
@@ -374,7 +374,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=30_000) # set maximum capacity of tree data structure (only needed for AMR)
 
 # A semidiscretization collects data structures and functions for the spatial discretization.
-# In Trixi, an initial condition has the following parameter structure and is of the type `SVector`.
+# In Trixi.jl, an initial condition has the following parameter structure and is of the type `SVector`.
 initial_condition_sine_wave(x, t, equations) = SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
@@ -384,7 +384,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave
 tspan = (0.0, 2.0)
 ode_trixi  = semidiscretize(semi, tspan)
 
-sol_trixi = solve(ode_trixi, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false);
+sol_trixi = solve(ode_trixi, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode_default_options()...);
 
 # We add a plot of the new approximated solution to the one calculated before.
 plot!(sol_trixi, label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
@@ -475,7 +475,7 @@ tspan = (0.0, 2.0)
 ode = ODEProblem(rhs!, u0, tspan, x)
 
 ## solve
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false)
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode_default_options()...)
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
 
 plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft, lw=3)
@@ -506,7 +506,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave
 ## solve
 tspan = (0.0, 2.0)
 ode_trixi  = semidiscretize(semi, tspan)
-sol_trixi  = solve(ode_trixi, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false);
+sol_trixi  = solve(ode_trixi, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode_default_options()...);
 
 plot!(sol_trixi, label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src

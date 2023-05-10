@@ -19,7 +19,7 @@ We use the following unstructured mesh with three elements for this discussion:
 
 ![example-mesh](https://user-images.githubusercontent.com/25242486/117508011-2e2c4b80-af88-11eb-8b15-949fc2d43253.png)
 
-Further, a simulation using Trixi on this example unstructured mesh is provided in
+Further, a simulation using Trixi.jl on this example unstructured mesh is provided in
 [`examples/unstructured_2d_dgsem/elixir_euler_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/unstructured_2d_dgsem/elixir_euler_basic.jl).
 
 

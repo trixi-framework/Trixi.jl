@@ -12,7 +12,7 @@ The usual development workflow in Julia is
 
 To achieve the third step, you should be familiar with (at least) the section on
 [performance tips in the Julia manual](https://docs.julialang.org/en/v1/manual/performance-tips/).
-Here, we just list some important aspects you should consider when developing Trixi.
+Here, we just list some important aspects you should consider when developing Trixi.jl.
 
 - Consider using `@views`/`view(...)` when using array slices, except on the left-side
   of an assignment
@@ -29,7 +29,7 @@ Here, we just list some important aspects you should consider when developing Tr
 
 ## Manual benchmarking
 
-If you modify some internal parts of Trixi, you should check the impact on performance.
+If you modify some internal parts of Trixi.jl, you should check the impact on performance.
 Hence, you should at least investigate the performance roughly by comparing the reported
 timings of several elixirs. Deeper investigations and micro-benchmarks should usually use
 [BenchmarkTools.jl](https://github.com/JuliaCI/BenchmarkTools.jl).
@@ -94,7 +94,7 @@ the memory/allocs are (roughly) the same, there doesn't seem to be a significant
 You can also make it more detailed by benchmarking only, e.g., the calculation of the volume terms, but whether that's necessary depends on the modifications you made and their (potential) impact.
 
 Some more detailed description of manual profiling and benchmarking as well as
-resulting performance improvements of Trixi are given in the following blog posts.
+resulting performance improvements of Trixi.jl are given in the following blog posts.
 - [Improving performance of AMR with p4est](https://ranocha.de/blog/Optimizing_p4est_AMR/),
   cf. [#638](https://github.com/trixi-framework/Trixi.jl/pull/638)
 - [Improving performance of EC methods](https://ranocha.de/blog/Optimizing_EC_Trixi/),
@@ -104,7 +104,7 @@ resulting performance improvements of Trixi are given in the following blog post
 ## Automated benchmarking
 
 We use [PkgBenchmark.jl](https://github.com/JuliaCI/PkgBenchmark.jl) to provide a standard set of
-benchmarks for Trixi. The relevant benchmark script is
+benchmarks for Trixi.jl. The relevant benchmark script is
 [benchmark/benchmarks.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/benchmark/benchmarks.jl).
 You can run a standard set of benchmarks via
 ```julia
@@ -122,7 +122,7 @@ A particularly useful option is to specify a `BenchmarkConfig` including Julia
 command line options affecting the performance such as disabling bounds-checking
 and setting the number of threads.
 
-A useful feature when developing Trixi is to compare the performance of Trixi's
+A useful feature when developing Trixi.jl is to compare the performance of Trixi.jl's
 current state vs. the `main` branch. This can be achieved by executing
 ```julia
 julia> using PkgBenchmark, Trixi
@@ -172,7 +172,7 @@ As a rule of thumb:
 
 ## Performance metrics of the `AnalysisCallback`
 The [`AnalysisCallback`](@ref) computes two performance indicators that you can use to
-evaluate the serial and parallel performance of Trixi. They represent
+evaluate the serial and parallel performance of Trixi.jl. They represent
 measured run times that are normalized by the number of `rhs!` evaluations and
 the number of degrees of freedom of the problem setup. The normalization ensures that we can
 compare different measurements for each type of indicator independent of the number of
@@ -205,7 +205,7 @@ the indicators are repeatedly computed and can thus also be used to track the
 performance over the course of a longer simulation, e.g., to analyze setups with varying performance
 characteristics. Note that the time spent in the `AnalysisCallback` itself is always
 *excluded*, i.e., the performance measurements are not distorted by potentially
-expensive solution analysis computations. All other parts of a Trixi simulation
+expensive solution analysis computations. All other parts of a Trixi.jl simulation
 are included, however, thus make sure that you disable everything you do *not*
 want to be measured (such as I/O callbacks, visualization etc.).
 

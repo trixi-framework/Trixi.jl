@@ -21,10 +21,9 @@ dg = DGMulti(polydeg = 3,
 ###############################################################################
 #  setup the 1D mesh
 
-mesh = DGMultiMesh(dg,
-                   cells_per_dimension=(8,),
-                   coordinates_min=(-1.0,),
-                   coordinates_max=(1.0,),
+cells_per_dimension = (8,)
+mesh = DGMultiMesh(dg, cells_per_dimension,
+                   coordinates_min=(-1.0,), coordinates_max=(1.0,),
                    periodicity=true)
 
 ###############################################################################
@@ -52,7 +51,7 @@ summary_callback = SummaryCallback()
 # analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval=100, uEltype=real(dg))
 
-# handles the re-calculcation of the maximum Δt after each time step
+# handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=0.75)
 
 # collect all callbacks such that they can be passed to the ODE solver

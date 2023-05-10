@@ -1,10 +1,3 @@
-# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
-# Since these FMAs can increase the performance of many numerical algorithms,
-# we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-@muladd begin
-
-
 #=
 The code contained in this file is inspired by an analysis performed
 using SnoopCompile, although most of it is written manually.
@@ -138,8 +131,8 @@ failing precompile statements, cf. https://timholy.github.io/SnoopCompile.jl/sta
 If any assertions below fail, it is generally safe to just disable the failing call
 to precompile (or to not include precompile.jl at all).
 To still get the same latency reductions, you should consider to adapt the failing precompile
-statements in accordance with the changes in Trixi's source code. Please, feel free to ping
-the core developers of Trixi to get help with that.
+statements in accordance with the changes in Trixi.jl's source code. Please, feel free to ping
+the core developers of Trixi.jl to get help with that.
 =#
 
 
@@ -347,7 +340,7 @@ function _precompile_manual_()
   # end
   @assert Base.precompile(Tuple{typeof(SummaryCallback)})
   @assert Base.precompile(Tuple{DiscreteCallback{typeof(Trixi.summary_callback), typeof(Trixi.summary_callback), typeof(Trixi.initialize_summary_callback), typeof(SciMLBase.FINALIZE_DEFAULT)}})
-  @assert Base.precompile(Tuple{typeof(summary_box),typeof(stdout),String,Vector{Pair{String, Any}}})
+  @assert Base.precompile(Tuple{typeof(summary_box),Base.TTY,String,Vector{Pair{String, Any}}})
   # TODO: AMRCallback, ControllerThreeLevel, indicators
 
   # init_elements, interfaces, etc.
@@ -359,22 +352,26 @@ function _precompile_manual_()
     # 1D, serial
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{1,Trixi.SerialTree{1}},Trixi.ElementContainer1D{RealT,uEltype}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{1,Trixi.SerialTree{1}},Trixi.ElementContainer1D{RealT,uEltype}})
+    @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),TreeMesh{1,Trixi.SerialTree{1}},String})
 
     # 2D, serial
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype},mortar_type})
+    @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),TreeMesh{2,Trixi.SerialTree{2}},String})
 
     # 2D, parallel
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype},mortar_type})
     @assert Base.precompile(Tuple{typeof(Trixi.init_mpi_interfaces),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype}})
+    @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),TreeMesh{2,Trixi.ParallelTree{2}},String})
 
     # 3D, serial
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype},mortar_type})
+    @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),TreeMesh{3,Trixi.SerialTree{3}},String})
   end
 
   # various `show` methods
@@ -382,17 +379,17 @@ function _precompile_manual_()
     # meshes
     for NDIMS in 1:3
       # serial
-      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),TreeMesh{NDIMS,Trixi.SerialTree{NDIMS}}})
-      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",TreeMesh{NDIMS,Trixi.SerialTree{NDIMS}}})
+      @assert Base.precompile(Tuple{typeof(show),Base.TTY,TreeMesh{NDIMS,Trixi.SerialTree{NDIMS}}})
+      @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",TreeMesh{NDIMS,Trixi.SerialTree{NDIMS}}})
       # parallel
-      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),TreeMesh{NDIMS,Trixi.ParallelTree{NDIMS}}})
-      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",TreeMesh{NDIMS,Trixi.ParallelTree{NDIMS}}})
+      @assert Base.precompile(Tuple{typeof(show),Base.TTY,TreeMesh{NDIMS,Trixi.ParallelTree{NDIMS}}})
+      @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",TreeMesh{NDIMS,Trixi.ParallelTree{NDIMS}}})
     end
 
     # equations
     for eq_type in equations_types(RealT)
-      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),eq_type})
-      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",eq_type})
+      @assert Base.precompile(Tuple{typeof(show),Base.TTY,eq_type})
+      @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",eq_type})
     end
 
     # mortars, analyzers, adaptors, DG
@@ -403,61 +400,61 @@ function _precompile_manual_()
       analyzer_type = analyzer_type_dgsem(RealT, nnodes_)
       adaptor_type  = adaptor_type_dgsem(RealT, nnodes_)
 
-      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),basis_type})
-      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",basis_type})
+      @assert Base.precompile(Tuple{typeof(show),Base.TTY,basis_type})
+      @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",basis_type})
 
-      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),mortar_type})
-      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",mortar_type})
+      @assert Base.precompile(Tuple{typeof(show),Base.TTY,mortar_type})
+      @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",mortar_type})
 
-      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),analyzer_type})
-      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",analyzer_type})
+      @assert Base.precompile(Tuple{typeof(show),Base.TTY,analyzer_type})
+      @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",analyzer_type})
 
-      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),adaptor_type})
-      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",adaptor_type})
+      @assert Base.precompile(Tuple{typeof(show),Base.TTY,adaptor_type})
+      @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",adaptor_type})
 
       # we could also use more numerical fluxes and volume integral types here
-      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),DG{basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
-      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",DG{basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
+      @assert Base.precompile(Tuple{typeof(show),Base.TTY,DG{basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
+      @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",DG{basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
     end
 
     # semidiscretizations
-    @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",SemidiscretizationHyperbolic})
+    @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",SemidiscretizationHyperbolic})
 
     # callbacks
     summary_callback_type = DiscreteCallback{typeof(Trixi.summary_callback),typeof(Trixi.summary_callback),typeof(Trixi.initialize_summary_callback),typeof(SciMLBase.FINALIZE_DEFAULT)}
-    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),summary_callback_type})
-    @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",summary_callback_type})
-    @assert Base.precompile(Tuple{summary_callback_type,typeof(stdout)})
+    @assert Base.precompile(Tuple{typeof(show),Base.TTY,summary_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",summary_callback_type})
+    @assert Base.precompile(Tuple{summary_callback_type,Base.TTY})
 
     # TODO: SteadyStateCallback, AnalysisCallback
 
     alive_callback_type = DiscreteCallback{AliveCallback,AliveCallback,typeof(Trixi.initialize!),typeof(SciMLBase.FINALIZE_DEFAULT)}
-    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),alive_callback_type})
-    @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",alive_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),Base.TTY,alive_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",alive_callback_type})
 
     restart_callback_type = DiscreteCallback{SaveRestartCallback,SaveRestartCallback,typeof(Trixi.initialize!),typeof(SciMLBase.FINALIZE_DEFAULT)}
-    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),restart_callback_type})
-    @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",restart_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),Base.TTY,restart_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",restart_callback_type})
 
     for solution_variables in (cons2cons, cons2prim)
       save_solution_callback_type = DiscreteCallback{SaveSolutionCallback{typeof(solution_variables)},SaveSolutionCallback{typeof(solution_variables)},typeof(Trixi.initialize!),typeof(SciMLBase.FINALIZE_DEFAULT)}
-      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),save_solution_callback_type})
-      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",save_solution_callback_type})
+      @assert Base.precompile(Tuple{typeof(show),Base.TTY,save_solution_callback_type})
+      @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",save_solution_callback_type})
     end
 
     # TODO: AMRCallback
 
     stepsize_callback_type = DiscreteCallback{StepsizeCallback{RealT},StepsizeCallback{RealT},typeof(Trixi.initialize!),typeof(SciMLBase.FINALIZE_DEFAULT)}
-    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),stepsize_callback_type})
-    @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",stepsize_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),Base.TTY,stepsize_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",stepsize_callback_type})
 
     glm_speed_callback_type = DiscreteCallback{GlmSpeedCallback{RealT},GlmSpeedCallback{RealT},typeof(Trixi.initialize!),typeof(SciMLBase.FINALIZE_DEFAULT)}
-    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),glm_speed_callback_type})
-    @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",glm_speed_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),Base.TTY,glm_speed_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",glm_speed_callback_type})
 
     lbm_collision_callback_type = DiscreteCallback{typeof(Trixi.lbm_collision_callback),typeof(Trixi.lbm_collision_callback),typeof(Trixi.initialize!),typeof(SciMLBase.FINALIZE_DEFAULT)}
-    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),lbm_collision_callback_type})
-    @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",lbm_collision_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),Base.TTY,lbm_collision_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),IOContext{Base.TTY},MIME"text/plain",lbm_collision_callback_type})
 
     # infrastructure, special elixirs
     @assert Base.precompile(Tuple{typeof(trixi_include),String})
@@ -478,4 +475,17 @@ function _precompile_manual_()
 end
 
 
-end # @muladd
+# Explicit precompilation running code only on Julia v1.9 and newer
+using PrecompileTools: @setup_workload, @compile_workload
+
+@static if VERSION >= v"1.9.0-beta4"
+  @setup_workload begin
+    # Setup code can go here
+
+    @compile_workload begin
+      # Everything inside this block will run at precompile time, saving the
+      # binary code to a cache in newer versions of Julia.
+      DGSEM(3)
+    end
+  end
+end

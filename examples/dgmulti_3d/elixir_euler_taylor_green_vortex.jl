@@ -33,7 +33,8 @@ solver = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = Polynom
                 surface_integral= SurfaceIntegralWeakForm(surface_flux),
                 volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-mesh = DGMultiMesh(solver, cells_per_dimension=(8, 8, 8),
+cells_per_dimension = (8, 8, 8)
+mesh = DGMultiMesh(solver, cells_per_dimension,
                    coordinates_min=(-pi, -pi, -pi), coordinates_max=(pi, pi, pi),
                    periodicity=true)
 
@@ -60,6 +61,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(), abstol = 1.0e-7, reltol = 1.0e-7,
-            save_everystep = false, callback = callbacks)
+sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-7, reltol = 1.0e-7,
+            ode_default_options()..., callback = callbacks)
 summary_callback() # print the timer summary

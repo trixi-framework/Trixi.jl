@@ -10,7 +10,7 @@
 # You can download the raw notebooks from GitHub via ![](https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e).
 
 # **Note:** To improve responsiveness via caching, the notebooks are updated only once a week. They are only
-# available for the latest stable release of Trixi at the time of caching.
+# available for the latest stable release of Trixi.jl at the time of caching.
 
 # There are tutorials for the following topics:
 
@@ -25,19 +25,19 @@
 #-
 # To improve stability often the flux differencing formulation of the DGSEM (split form) is used.
 # We want to present the idea and formulation on a basic 1D level. Then, we show how this formulation
-# can be implemented in Trixi and analyse entropy conservation for two different flux combinations.
+# can be implemented in Trixi.jl and analyse entropy conservation for two different flux combinations.
 
 # ### [3 Shock capturing with flux differencing and stage limiter](@ref shock_capturing)
 #-
 # Using the flux differencing formulation, a simple procedure to capture shocks is a hybrid blending
 # of a high-order DG method and a low-order subcell finite volume (FV) method. We present the idea on a
-# very basic level and show the implementation in Trixi. Then, a positivity preserving limiter is
+# very basic level and show the implementation in Trixi.jl. Then, a positivity preserving limiter is
 # explained and added to an exemplary simulation of the Sedov blast wave with the 2D compressible Euler
 # equations.
 
 # ### [4 Non-periodic boundary conditions](@ref non_periodic_boundaries)
 #-
-# Thus far, all examples used periodic boundaries. In Trixi, you can also set up a simulation with
+# Thus far, all examples used periodic boundaries. In Trixi.jl, you can also set up a simulation with
 # non-periodic boundaries. This tutorial presents the implementation of the classical Dirichlet
 # boundary condition with a following example. Then, other non-periodic boundaries are mentioned.
 
@@ -79,13 +79,13 @@
 # ### [10 Adaptive mesh refinement](@ref adaptive_mesh_refinement)
 #-
 # Adaptive mesh refinement (AMR) helps to increase the accuracy in sensitive or turbolent regions while
-# not wasting ressources for less interesting parts of the domain. This leads to much more efficient
-# simulations. This tutorial presents the implementation strategy of AMR in Trixi, including the use of
+# not wasting resources for less interesting parts of the domain. This leads to much more efficient
+# simulations. This tutorial presents the implementation strategy of AMR in Trixi.jl, including the use of
 # different indicators and controllers.
 
 # ### [11 Structured mesh with curvilinear mapping](@ref structured_mesh_mapping)
 #-
-# In this tutorial, the use of Trixi's structured curved mesh type [`StructuredMesh`](@ref) is explained.
+# In this tutorial, the use of Trixi.jl's structured curved mesh type [`StructuredMesh`](@ref) is explained.
 # We present the two basic option to initialize such a mesh. First, the curved domain boundaries
 # of a circular cylinder are set by explicit boundary functions. Then, a fully curved mesh is
 # defined by passing the transformation mapping.
@@ -100,7 +100,7 @@
 # In the end, the tutorial briefly explains how to simulate an example using AMR via `P4estMesh`.
 
 # ### [13 Explicit time stepping](@ref time_stepping)
-# -
+#-
 # This tutorial is about time integration using [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
 # It explains how to use their algorithms and presents two types of time step choices - with error-based
 # and CFL-based adaptive step size control.
@@ -114,8 +114,8 @@
 
 
 
-# ## Examples in Trixi
-# Trixi already contains several more coding examples, the so-called `elixirs`. You can find them
+# ## Examples in Trixi.jl
+# Trixi.jl already contains several more coding examples, the so-called `elixirs`. You can find them
 # in the folder [`examples`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/).
 # They are structured by the underlying mesh type and the respective number of spatial dimensions.
 # The name of an elixir is composed of the underlying system of conservation equations (for instance

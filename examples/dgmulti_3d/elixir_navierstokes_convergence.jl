@@ -18,7 +18,9 @@ dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = Polynomial(
 
 top_bottom(x, tol=50*eps()) = abs(abs(x[2]) - 1) < tol
 is_on_boundary = Dict(:top_bottom => top_bottom)
-mesh = DGMultiMesh(dg, cells_per_dimension=(8, 8, 8); periodicity=(true, false, true), is_on_boundary)
+
+cells_per_dimension = (8, 8, 8)
+mesh = DGMultiMesh(dg, cells_per_dimension; periodicity=(true, false, true), is_on_boundary)
 
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion3D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion3D`)
@@ -248,6 +250,6 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol,
-            save_everystep=false, callback=callbacks)
+sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
+            ode_default_options()..., callback=callbacks)
 summary_callback() # print the timer summary

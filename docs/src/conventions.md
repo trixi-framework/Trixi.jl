@@ -78,14 +78,14 @@ set via the keywords
 
 To allow adaptive mesh refinement efficiently when using time integrators from
 [OrdinaryDiffEq](https://github.com/SciML/OrdinaryDiffEq.jl),
-Trixi allows to represent numerical solutions in two different ways. Some discussion
+Trixi.jl allows to represent numerical solutions in two different ways. Some discussion
 can be found [online](https://github.com/SciML/OrdinaryDiffEq.jl/pull/1275) and
 in form of comments describing `Trixi.wrap_array` and `Trixi.wrap_array_native`
-in the source code of Trixi.
+in the source code of Trixi.jl.
 The flexibility introduced by this possible wrapping enables additional
 [performance optimizations](https://github.com/trixi-framework/Trixi.jl/pull/509).
 However, it comes at the cost of some additional abstractions (and needs to be
-used with caution, as described in the source code of Trixi). Thus, we use the
+used with caution, as described in the source code of Trixi.jl). Thus, we use the
 following conventions to distinguish between arrays visible to the time integrator
 and wrapped arrays mainly used internally.
 
