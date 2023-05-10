@@ -78,7 +78,6 @@ struct BoundaryConditionDoNothing end
     u_inner, orientation_or_normal_direction, direction::Integer, x, t, surface_flux, equations)
 
   return flux(u_inner, orientation_or_normal_direction, equations)
-  # TODO: should this be switched to `surface_flux(u_inner, u_inner, orientation_or_normal_direction, equations)` for consistency?
 end
 
 # This version can be called by hyperbolic solvers on unstructured, curved meshes
