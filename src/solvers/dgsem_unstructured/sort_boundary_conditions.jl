@@ -43,7 +43,7 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
 
   if mpi_isparallel()
     # Exchange of boundaries names
-    for i in 0:(size-1)
+    for i in 0:(mpi_nranks()-1)
       if i!=mpi_rank()
         MPI.isend(unique_names, i, 0, mpi_comm())
         recv_names, _ = MPI.recv(i, 0, mpi_comm())
