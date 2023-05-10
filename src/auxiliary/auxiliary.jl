@@ -110,7 +110,7 @@ modified. To find out which files are available, use, e.g., `readdir`:
 readdir(examples_dir())
 ```
 """
-examples_dir() = joinpath(pkgdir(Trixi), "examples")
+examples_dir() = pkgdir(Trixi, "examples")
 
 
 """
