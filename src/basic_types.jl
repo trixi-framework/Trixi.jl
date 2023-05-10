@@ -85,8 +85,7 @@ end
 @inline function (::BoundaryConditionDoNothing)(u_inner, outward_direction::AbstractVector,
                                                 x, t, surface_flux, equations)
 
-  # this should reduce to `flux(u_inner, outward_direction, equations)` for a consistent flux.
-  return surface_flux(u_inner, u_inner, outward_direction, equations)
+  return flux(u_inner, outward_direction, equations)
 end
 
 # This version is called when passing in a non-conservative surface flux
