@@ -42,7 +42,6 @@ end
 have_nonconservative_terms(::IdealMhdMultiIonEquations2D) = True()
 
 function varnames(::typeof(cons2cons), equations::IdealMhdMultiIonEquations2D)
-
   cons  = ("B1", "B2", "B3")
   for i in eachcomponent(equations)
     cons = (cons..., tuple("rho_" * string(i),"rho_v1_" * string(i), "rho_v2_" * string(i), "rho_v3_" * string(i), "rho_e_" * string(i))...)
@@ -52,7 +51,6 @@ function varnames(::typeof(cons2cons), equations::IdealMhdMultiIonEquations2D)
 end
 
 function varnames(::typeof(cons2prim), equations::IdealMhdMultiIonEquations2D)
-
   prim  = ("B1", "B2", "B3")
   for i in eachcomponent(equations)
     prim = (prim..., tuple("rho_" * string(i),"v1_" * string(i), "v2_" * string(i), "v3_" * string(i), "p_" * string(i))...)
@@ -247,7 +245,7 @@ The term is composed of three parts
 
   # Compute charge ratio of u_ll
   charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
-  total_electron_charge = zero(u_ll[1])
+  total_electron_charge = zero(eltype(u_ll))
   for k in eachcomponent(equations)
     rho_k = u_ll[(k-1)*5+4]
     charge_ratio_ll[k] = rho_k * charge_to_mass[k]
@@ -655,7 +653,7 @@ end
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
   # Calculate velocities
-  v_ll = zero(u_ll[1])
+  v_ll = zero(eltype(u_ll))
   v_rr = zero(u_rr[1])
   if orientation == 1
     for k in eachcomponent(equations)
@@ -678,7 +676,6 @@ end
 
 
 @inline function max_abs_speeds(u, equations::IdealMhdMultiIonEquations2D)
-  
   v1 = zero(real(equations))
   v2 = zero(real(equations))
   for k in eachcomponent(equations)
@@ -821,7 +818,6 @@ Routine to compute the Charge-averaged velocities:
 * vk*_plus: Contribution of each species to the charge-averaged velocity
 """
 @inline function charge_averaged_velocities(u, equations::IdealMhdMultiIonEquations2D)
-
   total_electron_charge = zero(real(equations))
   
   vk1_plus = zero(MVector{ncomponents(equations), eltype(u)})
@@ -875,7 +871,7 @@ Set the flow variables of component k
 end
 
 @inline function density_product(u, equations::IdealMhdMultiIonEquations2D)
-  prod = one(u[1])
+  prod = one(eltype(u))
   for k in eachcomponent(equations)
     prod *= u[3 + (k - 1) * 5 + 1]
   end

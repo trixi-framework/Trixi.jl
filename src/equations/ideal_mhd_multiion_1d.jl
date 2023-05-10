@@ -24,7 +24,6 @@ mutable struct IdealMhdMultiIonEquations1D{NVARS, NCOMP, RealT<:Real} <: Abstrac
 end
 
 function IdealMhdMultiIonEquations1D(; gammas, charge_to_mass)
-
   _gammas         = promote(gammas...)
   _charge_to_mass = promote(charge_to_mass...)
   RealT           = promote_type(eltype(_gammas), eltype(_charge_to_mass))
@@ -53,7 +52,6 @@ function varnames(::typeof(cons2cons), equations::IdealMhdMultiIonEquations1D)
 end
 
 function varnames(::typeof(cons2prim), equations::IdealMhdMultiIonEquations1D)
-
   prim  = ("B1", "B2", "B3")
   for i in eachcomponent(equations)
     prim = (prim..., tuple("rho_" * string(i),"v1_" * string(i), "v2_" * string(i), "v3_" * string(i), "p_" * string(i))...)
@@ -215,7 +213,7 @@ The term is composed of three parts
 
   # Compute charge ratio of u_ll
   charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
-  total_electron_charge = zero(u_ll[1])
+  total_electron_charge = zero(eltype(u_ll))
   for k in eachcomponent(equations)
     rho_k = u_ll[(k-1)*5+4]
     charge_ratio_ll[k] = rho_k * charge_to_mass[k]
@@ -238,7 +236,7 @@ The term is composed of three parts
     f2 = charge_ratio_ll[k] * (0.5 * mag_norm_avg - B1_avg * B1_avg) # + pe_mean)
     f3 = charge_ratio_ll[k] * (- B1_avg * B2_avg)
     f4 = charge_ratio_ll[k] * (- B1_avg * B3_avg)
-    f5 = zero(u_ll[1]) # TODO! charge_ratio_ll[k] * pe_mean
+    f5 = zero(eltype(u_ll)) # TODO! charge_ratio_ll[k] * pe_mean
 
     # Compute term 3 (only needed for NCOMP>1)
     vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
@@ -283,7 +281,7 @@ The term is composed of three parts
 
   # Compute charge ratio of u_ll
   charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
-  total_electron_charge = zero(u_ll[1])
+  total_electron_charge = zero(eltype(u_ll))
   for k in eachcomponent(equations)
     rho_k = u_ll[(k-1)*5+4]
     charge_ratio_ll[k] = rho_k * charge_to_mass[k]
@@ -305,7 +303,7 @@ The term is composed of three parts
     f2 = charge_ratio_ll[k] * (0.5 * mag_norm_rr - B1_rr * B1_rr) # + pe_mean)
     f3 = charge_ratio_ll[k] * (- B1_rr * B2_rr)
     f4 = charge_ratio_ll[k] * (- B1_rr * B3_rr)
-    f5 = zero(u_ll[1]) # TODO! charge_ratio_ll[k] * pe_mean
+    f5 = zero(eltype(u_ll)) # TODO! charge_ratio_ll[k] * pe_mean
 
     # Compute term 3 (only needed for NCOMP>1)
     vk1_minus_rr = v1_plus_rr- vk1_plus_rr[k]
@@ -357,7 +355,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::Ide
   f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
   # Magnetic field components from f^MHD
-  f6 = zero(u_ll[1])
+  f6 = zero(eltype(u_ll))
   f7 = v1_plus_avg * B2_avg - v2_plus_avg * B1_avg
   f8 = v1_plus_avg * B3_avg - v3_plus_avg * B1_avg
 
@@ -447,7 +445,7 @@ end
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
   # Calculate velocities (ignore orientation since it is always "1" in 1D)
-  v_ll = zero(u_ll[1])
+  v_ll = zero(eltype(u_ll))
   v_rr = zero(u_rr[1])
   for k in eachcomponent(equations)
     rho, rho_v1, _ = get_component(k, u_ll, equations)
@@ -461,8 +459,7 @@ end
 
 
 @inline function max_abs_speeds(u, equations::IdealMhdMultiIonEquations1D)
-  
-  v1 = zero(u[1])
+  v1 = zero(eltype(u))
   for k in eachcomponent(equations)
     rho, rho_v1, _ = get_component(k, u, equations)
     v1 = max(v1, abs(rho_v1 / rho))
@@ -597,8 +594,7 @@ Routine to compute the charge-averaged velocities:
 * vk*_plus: Contribution of each species to the charge-averaged velocity
 """
 @inline function charge_averaged_velocities(u, equations::IdealMhdMultiIonEquations1D)
-
-  total_electron_charge = zero(u[1])
+  total_electron_charge = zero(eltype(u))
   
   vk1_plus = zero(MVector{ncomponents(equations), eltype(u)})
   vk2_plus = zero(MVector{ncomponents(equations), eltype(u)})
@@ -649,7 +645,7 @@ Set the flow variables of component k
 end
 
 @inline function density_product(u, equations::IdealMhdMultiIonEquations1D)
-  prod = one(u[1])
+  prod = one(eltype(u))
   for k in eachcomponent(equations)
     prod *= u[(k-1)*5+4]
   end
@@ -657,7 +653,7 @@ end
 end
 
 @inline function density(u, equations::IdealMhdMultiIonEquations1D)
-  rho = zero(u[1])
+  rho = zero(eltype(u))
   for k in eachcomponent(equations)
     rho += u[(k-1)*5+4]
   end

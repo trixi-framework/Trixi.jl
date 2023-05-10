@@ -4,8 +4,8 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the ideal MHD equations
-equations = IdealMhdMultiIonEquations2D(gammas           = (1.4, 1.4),
-                                                 charge_to_mass   = (1.0, 2.0))
+equations = IdealMhdMultiIonEquations2D(gammas = (1.4, 1.4),
+                                        charge_to_mass = (1.0, 2.0))
 
 """
     initial_condition_rotor(x, t, equations::IdealMhdMultiIonEquations2D)
