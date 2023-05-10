@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
@@ -16,6 +16,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = (4, 4, 4), tspan=(0.0, 0.1),
       l2 = [0.0005532847115849239, 0.000659263490965341, 0.0007776436127362806, 0.0006592634909662951, 0.0038073628897809185],
       linf = [0.0017039861523615585, 0.002628561703560073, 0.003531057425112172, 0.0026285617036090336, 0.015587829540351095]
+    )
+  end
+
+  @trixi_testset "DGMulti: elixir_navierstokes_convergence_curved.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_3d", "elixir_navierstokes_convergence_curved.jl"),
+      cells_per_dimension = (4, 4, 4), tspan=(0.0, 0.1),
+      l2 = [0.0014027227251207474, 0.0021322235533273513, 0.0027873741447455194, 0.0024587473070627423, 0.00997836818019202],
+      linf = [0.006341750402837576, 0.010306014252246865, 0.01520740250924979, 0.010968264045485565, 0.047454389831591115]
     )
   end
 
@@ -80,7 +88,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 end
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive=true)
 
 end # module

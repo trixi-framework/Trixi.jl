@@ -31,7 +31,7 @@ and want to use multiple threads therein, you need to set the keyword argument
 !!! warning
     Not everything is parallelized yet and there are likely opportunities to
     improve scalability. Multi-threading isn't considered part of the public
-    API of Trixi yet.
+    API of Trixi.jl yet.
 
 
 ## Distributed computing with MPI
@@ -48,7 +48,7 @@ a system-provided MPI installation with Trixi.jl can be found in the following s
 
 !!! warning "Work in progress"
     MPI-based parallelization is work in progress and not finished yet. Nothing
-    related to MPI is part of the official API of Trixi yet.
+    related to MPI is part of the official API of Trixi.jl yet.
 
 
 ### [Using a system-provided MPI installation](@id parallel_system_MPI)
@@ -67,7 +67,7 @@ use a custom MPI installation.
 
 ### [Usage](@id parallel_usage)
 
-To start Trixi in parallel with MPI, there are three options:
+To start Trixi.jl in parallel with MPI, there are three options:
 
 1. **Run from the REPL with `mpiexec()`:** You can start a parallel execution directly from the
    REPL by executing
@@ -78,23 +78,23 @@ To start Trixi in parallel with MPI, there are three options:
             run(`$cmd -n 3 $(Base.julia_cmd()) --threads=1 --project=@. -e 'using Trixi; trixi_include(default_example())'`)
           end
    ```
-   The parameter `-n 3` specifies that Trixi should run with three processes (or
+   The parameter `-n 3` specifies that Trixi.jl should run with three processes (or
    *ranks* in MPI parlance) and should be adapted to your available
    computing resources and problem size. The `$(Base.julia_cmd())` argument
    ensures that Julia is executed in parallel with the same optimization level
    etc. as you used for the REPL; if this is unnecessary or undesired, you can
-   also just use `julia`.  Further, if you are not running Trixi from a local
+   also just use `julia`.  Further, if you are not running Trixi.jl from a local
    clone but have installed it as a package, you need to omit the `--project=@.`.
 2. **Run from the command line with `mpiexecjl`:** Alternatively, you can
    use the `mpiexecjl` script provided by MPI.jl, which allows you to start
-   Trixi in parallel directly from the command line. As a preparation, you need to
+   Trixi.jl in parallel directly from the command line. As a preparation, you need to
    install the script *once* by running
    ```julia
    julia> using MPI
 
    julia> MPI.install_mpiexecjl(destdir="/somewhere/in/your/PATH")
    ```
-   Then, to execute Trixi in parallel, execute the following command from your
+   Then, to execute Trixi.jl in parallel, execute the following command from your
    command line:
    ```bash
    mpiexecjl -n 3 julia --threads=1 --project=@. -e 'using Trixi; trixi_include(default_example())'
@@ -127,7 +127,7 @@ To start Trixi in parallel with MPI, there are three options:
    this way feels slightly weird in the beginning. However, there is a lot of
    documentation for `tmux`
    [available](https://github.com/tmux/tmux/wiki/Getting-Started) and once you
-   get the hang of it, developing Trixi in parallel becomes much smoother this
+   get the hang of it, developing Trixi.jl in parallel becomes much smoother this
    way. Some helpful commands are the following. To close a single pane you can press `Ctrl+b`
    and then `x` followed by `y` to confirm. To quit the whole session you press `Ctrl+b` followed
    by `:kill-session`. Often you would like to scroll up. You can do that by pressing `Ctrl+b` and then `[`,
@@ -152,6 +152,13 @@ To start Trixi in parallel with MPI, there are three options:
 
 
 ### [Performance](@id parallel_performance)
-For information on how to evaluate the parallel performance of Trixi, please
+For information on how to evaluate the parallel performance of Trixi.jl, please
 have a look at the [Performance metrics of the `AnalysisCallback`](@ref)
 section, specifically at the descriptions of the performance index (PID).
+
+
+### Using error-based step size control with MPI
+If you use error-based step size control (see also the section on [error-based adaptive step sizes](@ref adaptive_step_sizes))
+together with MPI you need to pass `internalnorm=ode_norm` and you should pass
+`unstable_check=ode_unstable_check` to OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/),
+which are both included in [`ode_default_options`](@ref).

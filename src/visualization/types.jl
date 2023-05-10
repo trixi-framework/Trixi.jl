@@ -1,6 +1,6 @@
-# Convenience type to allow dispatch on solution objects that were created by Trixi
+# Convenience type to allow dispatch on solution objects that were created by Trixi.jl
 #
-# This is a union of a Trixi-specific SciMLBase.ODESolution and of Trixi's own
+# This is a union of a Trixi.jl-specific SciMLBase.ODESolution and of Trixi.jl's own
 # TimeIntegratorSolution.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
@@ -276,7 +276,7 @@ end
     PlotData2D(sol; kwargs...)
 
 Create a `PlotData2D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
-returns a `SciMLBase.ODESolution`) or Trixi's own `solve!` (which returns a
+returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
 
 !!! warning "Experimental implementation"
@@ -501,7 +501,7 @@ When visualizing data from a two-dimensional simulation, a 1D slice is extracted
 `slice` specifies the axis along which the slice is extracted and may be `:x`, or `:y`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0)`.
 Both of these values are ignored when visualizing 1D data.
-This applies analogously to three-dimensonal simulations, where `slice` may be `:xy`, `:xz`, or `:yz`.
+This applies analogously to three-dimensional simulations, where `slice` may be `:xy`, `:xz`, or `:yz`.
 
 Another way to visualize 2D/3D data is by creating a plot along a given curve.
 This is done with the keyword argument `curve`. It can be set to a list of 2D/3D points
@@ -620,7 +620,7 @@ end
     PlotData1D(sol; kwargs...)
 
 Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!`
-(which returns a `SciMLBase.ODESolution`) or Trixi's own `solve!` (which returns a
+(which returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
 
 !!! warning "Experimental implementation"

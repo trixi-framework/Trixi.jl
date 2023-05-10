@@ -249,7 +249,7 @@ end
 
     # All diagonal entries of `derivative_split` are zero. Thus, we can skip
     # the computation of the diagonal terms. In addition, we use the symmetry
-    # of the `volume_flux` to save half of the possible two-poitn flux
+    # of the `volume_flux` to save half of the possible two-point flux
     # computations.
 
     # x direction
@@ -971,7 +971,7 @@ function calc_mortar_flux!(surface_flux_values,
 
     # Add nonconservative fluxes.
     # These need to be adapted on the geometry (left/right) since the order of
-    # the arguments matters, based on the global SBP operator intepretation.
+    # the arguments matters, based on the global SBP operator interpretation.
     # The same interpretation (global SBP operators coupled discontinuously via
     # central fluxes/SATs) explains why we need the factor 0.5.
     # Alternatively, you can also follow the argumentation of Bohm et al. 2018
@@ -988,7 +988,7 @@ function calc_mortar_flux!(surface_flux_values,
         noncons_upper_right = nonconservative_flux(u_upper_right_ll, u_upper_right_rr, orientation, equations)
         noncons_lower_left  = nonconservative_flux(u_lower_left_ll,  u_lower_left_rr,  orientation, equations)
         noncons_lower_right = nonconservative_flux(u_lower_right_ll, u_lower_right_rr, orientation, equations)
-        # Add to primary and secondary temporay storage
+        # Add to primary and secondary temporary storage
         multiply_add_to_node_vars!(fstar_upper_left,  0.5, noncons_upper_left,  equations, dg, i, j)
         multiply_add_to_node_vars!(fstar_upper_right, 0.5, noncons_upper_right, equations, dg, i, j)
         multiply_add_to_node_vars!(fstar_lower_left,  0.5, noncons_lower_left,  equations, dg, i, j)
@@ -1006,7 +1006,7 @@ function calc_mortar_flux!(surface_flux_values,
         noncons_upper_right = nonconservative_flux(u_upper_right_rr, u_upper_right_ll, orientation, equations)
         noncons_lower_left  = nonconservative_flux(u_lower_left_rr,  u_lower_left_ll,  orientation, equations)
         noncons_lower_right = nonconservative_flux(u_lower_right_rr, u_lower_right_ll, orientation, equations)
-        # Add to primary and secondary temporay storage
+        # Add to primary and secondary temporary storage
         multiply_add_to_node_vars!(fstar_upper_left,  0.5, noncons_upper_left,  equations, dg, i, j)
         multiply_add_to_node_vars!(fstar_upper_right, 0.5, noncons_upper_right, equations, dg, i, j)
         multiply_add_to_node_vars!(fstar_lower_left,  0.5, noncons_lower_left,  equations, dg, i, j)

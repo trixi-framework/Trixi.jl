@@ -85,7 +85,7 @@ function (alive_callback::AliveCallback)(integrator)
   # sets the time exactly to the final time in the last iteration
   if isfinished(integrator) && mpi_isroot()
     println("─"^100)
-    println("Trixi simulation finished.  Final time: ", integrator.t,
+    println("Trixi.jl simulation finished.  Final time: ", integrator.t,
             "  Time steps: ", integrator.stats.naccept, " (accepted), ", integrator.iter, " (total)")
     println("─"^100)
     println()
