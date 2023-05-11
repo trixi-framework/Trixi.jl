@@ -43,18 +43,29 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
 
   if mpi_isparallel()
     # Exchange of boundaries names
-    for i in 0:(mpi_nranks()-1)
-      if i!=mpi_rank()
-        MPI.isend(unique_names, i, 0, mpi_comm())
-        recv_names = MPI.recv(mpi_comm(); source=i, tag=0)
-        unique_names = unique(vcat(unique_names, recv_names))
+    unique_names_byte=Vector{UInt8}(join(unique_names, "\0"))
+    push!(unique_names_byte,0)
+    if mpi_rank() == 0
+      recv_buf_size=MPI.Gather(length(unique_names_byte), mpi_comm(); root=0)
+      recv_buf=Vector{UInt8}(undef, sum(recv_buf_size))
+      MPI.Gatherv!(unique_names_byte, MPI.VBuffer(recv_buf, recv_buf_size), mpi_comm(); root=0)
+      all_names=Symbol.(split(String(recv_buf), "\0"))
+      pop!(all_names)
+      unique_names=unique(all_names)
+      for key in keys(boundary_dictionary)
+        if !(key in unique_names)
+          MPI.Abort(mpi_comm(),0)
+        end
       end
+    else
+      MPI.Gather(length(unique_names_byte), mpi_comm(); root=0)
+      MPI.Gatherv!(unique_names_byte, nothing, mpi_comm(); root=0)
     end
-  end
-
-  for key in keys(boundary_dictionary)
-    if !(key in unique_names)
-      error("Key $(repr(key)) is not a valid boundary name")
+  else
+    for key in keys(boundary_dictionary)
+      if !(key in unique_names)
+        error("Key $(repr(key)) is not a valid boundary name")
+      end
     end
   end
 
