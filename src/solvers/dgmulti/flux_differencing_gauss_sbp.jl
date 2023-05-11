@@ -349,9 +349,12 @@ function create_cache(mesh::DGMultiMesh, equations,
   return (; cache..., projection_matrix_gauss_to_face, gauss_LIFT, inv_gauss_weights,
          rhs_volume_local_threaded, gauss_volume_local_threaded,
          interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
-         interp_matrix_gauss_to_face)
+         interp_matrix_gauss_to_face,
+         create_cache(mesh, equations, dg.volume_integral, dg, uEltype)) # cache specialized on the volume integral
 end
 
+# by default, return an empty tuple for volume integral caches
+create_cache(mesh, equations, volume_integral, dg, uEltype) = NamedTuple()
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff{<:GaussSBP})
