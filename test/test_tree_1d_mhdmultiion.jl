@@ -38,6 +38,16 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
               3.53221946e-01,   3.43511206e-01,   3.75916013e-01])
   end
 
+  @trixi_testset "elixir_mhdmultiion_es_shock_capturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_es_shock_capturing.jl"),
+      l2   = [4.13046273e-17,   4.34327035e-02,   4.01429579e-02,   1.39648331e-02,   1.45589699e-01,
+              1.46145036e-01,   1.47013130e-01,   1.07647870e-01,   4.13842626e-02,   2.95252636e-01,
+              2.91824474e-01,   2.90263048e-01,   1.90199794e-01],
+      linf = [1.11022302e-16,   7.86144728e-02,   7.75970804e-02,   4.75320603e-02,   2.07019087e-01,
+              1.79245486e-01,   1.84254005e-01,   3.47166288e-01,   9.16953877e-02,   3.81637525e-01,   
+              3.53188856e-01,   3.43474263e-01,   3.75932899e-01])
+  end
+
 end 
 
 end # module

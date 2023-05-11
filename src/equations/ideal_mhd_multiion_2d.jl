@@ -870,14 +870,6 @@ end
 
 magnetic_field(u, equations::IdealMhdMultiIonEquations2D) = SVector(u[1], u[2], u[3])
 
-@inline function density_product(u, equations::IdealMhdMultiIonEquations2D)
-  prod = one(eltype(u))
-  for k in eachcomponent(equations)
-    prod *= u[3 + (k - 1) * 5 + 1]
-  end
-  return prod
-end
-
 @inline function density(u, equations::IdealMhdMultiIonEquations2D)
   rho = zero(real(equations))
   for k in eachcomponent(equations)
