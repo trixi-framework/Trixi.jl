@@ -267,7 +267,7 @@ end
 @inline function save_solution_file(semi::AbstractSemidiscretization, u_ode, solution_callback,
   integrator; system="")
   @unpack t, dt = integrator
-  iter = integrator.destats.naccept
+  iter = integrator.stats.naccept
 
   element_variables = Dict{Symbol, Any}()
   @trixi_timeit timer() "get element variables" begin
