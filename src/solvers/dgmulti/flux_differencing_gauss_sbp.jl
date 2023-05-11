@@ -367,6 +367,20 @@ function create_cache(mesh::DGMultiMesh, equations,
             interp_matrix_gauss_to_face, positivity_blending_coefficients)
 end
 
+# Determine operator blending coefficients θ such that
+#   (1 - θ) * u_face_low_order + θ * u_face_high_order
+# satisfies certain conditions or bounds. Defaults to doing nothing (sets θ = 1)
+function limit_entropy_projected_values!(cache, entropy_projected_face_values,
+                                         entropy_var_face_values, u, mesh, equations, dg)
+  (; positivity_blending_coefficients) = cache
+
+  # Setting blending coefficients to one corresponds to not modifying either
+  # `entropy_projected_face_values` or `entropy_var_face_values`.
+  fill!(positivity_blending_coefficients, one(eltype(positivity_blending_coefficients)))
+
+  # TODO: how to let users specify nodal bounds?
+end
+
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff{<:GaussSBP})
@@ -392,13 +406,6 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
   entropy_var_face_values = view(projected_entropy_var_values, face_indices, :)
   apply_to_each_field(mul_by!(interp_matrix_gauss_to_face), entropy_var_face_values, entropy_var_values)
 
-  # ensure that the entropy projected face values are positive
-  (; use_positivity_blending) = dg.basis.approximation_type
-  if use_positivity_blending
-    (; positivity_blending_coefficients) = cache
-    # TODO: add computation of blending coefficients here
-  end
-
   # directly copy over volume values (no entropy projection required)
   entropy_projected_volume_values = view(entropy_projected_u_values, volume_indices, :)
   @threaded for i in eachindex(u_values)
@@ -408,6 +415,11 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
   # transform entropy to conservative variables on face values
   entropy_projected_face_values = view(entropy_projected_u_values, face_indices, :)
   entropy2cons!(entropy_projected_face_values, entropy_var_face_values, equations)
+
+  # ensure that the entropy projected face values satisfy appropriate bounds and
+  # update blending coefficients.
+  limit_entropy_projected_values!(cache, entropy_projected_face_values,
+                                  entropy_var_face_values, u, mesh, equations, dg)
 
   return nothing
 end
