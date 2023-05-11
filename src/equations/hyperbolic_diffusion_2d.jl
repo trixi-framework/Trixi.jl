@@ -52,6 +52,14 @@ end
   return SVector(phi, q1, q2)
 end
 
+@inline function initial_condition_peak(x, t, equations::HyperbolicDiffusionEquations2D)
+  # elliptic equation: -ν Δϕ = f in Ω, u = g on ∂Ω
+  phi = exp(-x[1]^2 - (x[2] - 0.5)^2)
+  q1  = exp(-x[1]^2 - (x[2] - 0.5)^2)
+  q2  = exp(-x[1]^2 - (x[2] - 0.5)^2)
+  return SVector(phi, q1, q2)
+end
+
 @inline function source_terms_poisson_nonperiodic(u, x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -ν Δϕ = f in Ω, u = g on ∂Ω
   # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
@@ -164,6 +172,13 @@ end
   sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
 end
 
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations2D)
+  return 0, sqrt(equations.nu * equations.inv_Tr)
+end
+
+@inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::HyperbolicDiffusionEquations2D)
+  return 0, sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
+end
 
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations2D)
   # Obtain left and right fluxes

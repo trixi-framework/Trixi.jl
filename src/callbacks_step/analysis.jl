@@ -122,6 +122,61 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
 end
 
 
+function AnalysisCallback(semi::SemidiscretizationCoupled; kwargs...)
+  _, equations, _, _ = mesh_equations_solver_cache(semi)
+  AnalysisCallback(semi, equations; kwargs...)
+end
+
+
+# The SemidiscretizationCoupled needs multiple analyzers (one for each mesh)
+function AnalysisCallback(semi::SemidiscretizationCoupled, equations;
+                          interval=0,
+                          save_analysis=false,
+                          output_directory="out",
+                          analysis_filename="analysis.dat",
+                          extra_analysis_errors=Symbol[],
+                          analysis_errors=union(default_analysis_errors(equations), extra_analysis_errors),
+                          extra_analysis_integrals=(),
+                          analysis_integrals=union(default_analysis_integrals(equations), extra_analysis_integrals),
+                          RealT=real(semi),
+                          # uEltype=eltype(semi),
+                          uEltype=eltype(semi.semis[1].cache.elements),
+                          kwargs...)
+  
+  # print("typeof(semi) = ", typeof(semi), "\n")
+  # print("fieldnames(typeof(semi)) = ", fieldnames(typeof(semi)), "\n")
+  # print("typeof(semi.semis[1].cache.elements) = ", typeof(semi.semis[1].cache.elements), "\n")
+
+  # when is the callback activated
+  condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
+                                                     isfinished(integrator))
+
+  analyzers = map(semi.semis) do semi_
+    _, _, solver, _ = mesh_equations_solver_cache(semi_)
+
+    analyzer = SolutionAnalyzer(solver; kwargs...)
+  end
+
+  caches_analysis = map(semi.semis) do semi_
+    mesh, equations_, solver, cache = mesh_equations_solver_cache(semi_)
+
+    analyzer = SolutionAnalyzer(solver; kwargs...)
+    cache_analysis = create_cache_analysis(analyzer, mesh, equations_, solver, cache, RealT, uEltype)
+  end
+
+  analysis_callback = AnalysisCallback(0.0, 0.0, 0, 0.0,
+                                       interval, save_analysis, output_directory, analysis_filename,
+                                       analyzers,
+                                       analysis_errors, Tuple(analysis_integrals),
+                                       SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
+                                       caches_analysis)
+
+  DiscreteCallback(condition, analysis_callback,
+                   save_positions=(false,false),
+                   initialize=initialize!)
+end
+
+
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AnalysisCallback}
   semi = integrator.p
   initial_state_integrals = integrate(u_ode, semi)
@@ -250,7 +305,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
     mpi_println()
     mpi_println("─"^100)
     # TODO: Taal refactor, polydeg is specific to DGSEM
-    mpi_println(" Simulation running '", get_name(equations), "' with ", summary(solver))
+    # mpi_println(" Simulation running '", get_name(equations), "' with ", summary(solver))
+    mpi_println(" Simulation running '", get_name(equations), "' with ", summary(semi))
     mpi_println("─"^100)
     mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
                 "               " *
@@ -270,7 +326,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
     mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)))
 
     # Level information (only show for AMR)
-    print_amr_information(integrator.opts.callback, mesh, solver, cache)
+    # print_amr_information(integrator.opts.callback, mesh, solver, cache)
+    print_amr_information(integrator.opts.callback, semi)
     mpi_println()
 
     # Open file for appending and store time step and time information
@@ -464,6 +521,21 @@ function print_amr_information(callbacks, mesh, solver, cache)
   return nothing
 end
 
+function print_amr_information(callbacks, semi)
+  # Return early if there is nothing to print
+  uses_amr(callbacks) || return nothing
+
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  print_amr_information(mesh, equations, solver, cache)
+end
+
+function print_amr_information(mesh::TreeMesh, equations, solver, cache)
+  levels = Vector{Int}(undef, nelements(solver, cache))
+  min_level = typemax(Int)
+  max_level = typemin(Int)
+  return nothing
+end
+
 # Print level information only if AMR is enabled
 function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
 
@@ -561,6 +633,33 @@ function analyze(quantity::typeof(enstrophy), du, u, t, semi::Semidiscretization
 end
 function analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache, cache_parabolic)
   integrate(quantity, u, mesh, equations, equations_parabolic, solver, cache, cache_parabolic, normalize=true)
+end
+
+
+function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationCoupled; normalize=true)
+  @unpack semis, u_indices = semi
+
+  integral = sum(1:nmeshes(semi)) do i
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
+    # In the AnalysisCallback for SemidiscretizationCoupled, u_ode is never wrapped
+    du = wrap_array(du_ode[u_indices[i]], mesh, equations, solver, cache)
+    u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
+
+    analyze(quantity, du, u, t, mesh, equations, solver, cache, normalize=false)
+  end
+
+  if normalize
+    # Normalize with total volume
+    total_volume_ = total_volume(semi)
+    integral = integral / total_volume_
+  end
+
+  return integral
+end
+
+
+function analyze(quantity, du, u, t, mesh, equations, solver, cache; normalize=true)
+  integrate(quantity, u, mesh, equations, solver, cache, normalize=normalize)
 end
 
 

@@ -288,6 +288,134 @@ The inverse conversion is performed by [`cons2entropy`](@ref).
 """
 function entropy2cons end
 
+
+"""
+    BoundaryConditionCoupled(other_semi_index, indices, uEltype)
+Boundary condition to glue two meshes together. Solution values at the boundary
+of another mesh will be used as boundary values. This requires the use
+of [`SemidiscretizationCoupled`](@ref). The other mesh is specified by `other_semi_index`,
+which is the index of the mesh in the tuple of semidiscretizations.
+Note that the elements and nodes of the two meshes at the coupled boundary must coincide.
+This is currently only implemented for [`StructuredMesh`](@ref).
+# Arguments
+- `other_semi_index`: the index in `SemidiscretizationCoupled` of the semidiscretization
+                      from which the values are copied
+- `indices::Tuple`: node/cell indices at the boundary of the mesh in the other
+                    semidiscretization. See examples below.
+- `uEltype::Type`: element type of solution
+# Examples
+'''julia
+# Connect the left boundary of mesh 2 to our boundary such that our positive
+# boundary direction will match the positive y direction of the other boundary
+BoundaryConditionCoupled(2, (1, :i), Float64)
+# Connect the same two boundaries oppositely oriented
+BoundaryConditionCoupled(2, (1, :i_backwards), Float64)
+# Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
+BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64)
+'''
+!!! warning "Experimental code"
+    This is an experimental feature and can change any time.
+"""
+mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype<:Real, I}
+  # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
+  u_boundary       ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
+  other_semi_index ::Int
+  other_orientation::Int
+  indices          ::I
+
+  function BoundaryConditionCoupled(other_semi_index, indices, uEltype)
+    NDIMS = length(indices)
+    u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
+
+    if indices[1] in (:begin, :end)
+      other_orientation = 1
+    elseif indices[2] in (:begin, :end)
+      other_orientation = 2
+    else
+      other_orientation = 3
+    end
+
+    new{NDIMS, NDIMS*2-1, uEltype, typeof(indices)}(
+      u_boundary, other_semi_index, other_orientation, indices)
+  end
+end
+
+mutable struct BoundaryConditionCoupledAB{NDIMS, NDIMST2M1, uEltype<:Real, I, AbstractEquations, AbstractEquations}
+  # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
+  u_boundary       ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
+  other_semi_index ::Int
+  other_orientation::Int
+  indices          ::I
+  equations_other  ::AbstractEquations
+  equations_coupled::AbstractEquations
+
+  function BoundaryConditionCoupledAB(other_semi_index, indices, uEltype, equations_other, equations_coupled)
+    NDIMS = length(indices)
+    u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
+    inner_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
+    equations_other = equations_other
+    equations_coupled = equations_coupled
+
+    if indices[1] in (:begin, :end)
+      other_orientation = 1
+    elseif indices[2] in (:begin, :end)
+      other_orientation = 2
+    else
+      other_orientation = 3
+    end
+
+    new{NDIMS, NDIMS*2-1, uEltype, typeof(indices), AbstractEquations, AbstractEquations}(
+      u_boundary, other_semi_index, other_orientation, indices, equations_other, equations_coupled)
+  end
+end
+
+
+function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction,
+                                                        cell_indices, surface_node_indices,
+                                                        surface_flux_function, equations)
+  # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
+  # but we don't have a solver here
+  u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, surface_node_indices..., cell_indices...],
+                              Val(nvariables(equations))))
+
+  # Calculate boundary flux
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  end
+
+  return flux
+end
+
+function (boundary_condition::BoundaryConditionCoupledAB)(u_inner, orientation, direction,
+                                                          cell_indices, surface_node_indices,
+                                                          surface_flux_function, equations)
+  # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
+  # but we don't have a solver here
+  u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, surface_node_indices..., cell_indices...],
+                              Val(nvariables(boundary_condition.equations_coupled))))
+
+  # TODO: This should be computed in the coupled equations module.
+  if boundary_condition.other_semi_index == 2
+    u_inner_long = vcat(u_inner, zeros(3))
+  else
+    u_inner_long = vcat(zeros(3), u_inner)
+  end
+
+  # Calculate boundary flux
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    # flux = surface_flux_function(zeros(length(u_boundary)), u_boundary, orientation, boundary_condition.equations_coupled)
+    flux = surface_flux_function(u_inner_long, u_boundary, orientation, boundary_condition.equations_coupled)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    # flux = surface_flux_function(u_boundary, zeros(length(u_boundary)), orientation, boundary_condition.equations_coupled)
+    flux = surface_flux_function(u_boundary, u_inner_long, orientation, boundary_condition.equations_coupled)
+  end
+
+  return flux
+end
+
+
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
@@ -321,6 +449,10 @@ include("compressible_euler_3d.jl")
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_multicomponent_1d.jl")
 include("compressible_euler_multicomponent_2d.jl")
+
+# PolytropicEulerEquations
+abstract type AbstractPolytropicEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("polytropic_euler_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
@@ -373,6 +505,11 @@ include("acoustic_perturbation_2d.jl")
 # Linearized Euler equations
 abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("linearized_euler_2d.jl")
+
+# Coupling equations.
+abstract type AbstractCouplingEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("coupled_compressible_euler_hyperbolic_diffusion_2d.jl")
+include("coupled_polytropic_euler_2d.jl")
 
 abstract type AbstractEquationsParabolic{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 
