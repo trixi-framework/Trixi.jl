@@ -125,14 +125,16 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 stepsize_callback = StepsizeCallback(cfl=0.5)
-amr_indicator = IndicatorHennemannGassner(semi,
-                                          alpha_max=0.5,
-                                          alpha_min=0.001,
-                                          alpha_smooth=false,
-                                          variable=density_pressure)
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
+
+amr_indicator = IndicatorLöhner(semi,
+                                variable=density)
+
+amr_controller = ControllerThreeLevelCombined(semi, amr_indicator,indicator_sc,
                                       base_level=4,
-                                      max_level =7, max_threshold=0.01)
+                                      med_level =5, med_threshold=0.02, # med_level = current level
+                                      max_level =7, max_threshold=0.04,
+                                      max_threshold_secondary=0.2)
+
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=6,
                            adapt_initial_condition=true,
@@ -147,7 +149,6 @@ callbacks = CallbackSet(summary_callback,
                         save_solution,
                         save_restart,
                         stepsize_callback)
-
 
 ###############################################################################
 # run the simulation
