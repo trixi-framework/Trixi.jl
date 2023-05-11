@@ -444,28 +444,6 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
   return nothing
 end
 
-# Once the TreeMesh supports custom `uEltype`s, the following method could be used for both
-# mesh types.
-# See https://github.com/trixi-framework/Trixi.jl/pull/977#discussion_r793694635 for further
-# discussion.
-function init_mpi_data_structures(mpi_neighbor_interfaces, mpi_neighbor_mortars, n_dims, nvars, n_nodes, uEltype)
-  data_size = nvars * n_nodes^(n_dims - 1)
-  n_small_elements = 2^(n_dims-1)
-  mpi_send_buffers = Vector{Vector{uEltype}}(undef, length(mpi_neighbor_interfaces))
-  mpi_recv_buffers = Vector{Vector{uEltype}}(undef, length(mpi_neighbor_interfaces))
-  for index in 1:length(mpi_neighbor_interfaces)
-    mpi_send_buffers[index] = Vector{uEltype}(undef, length(mpi_neighbor_interfaces[index]) * data_size +
-                                                     length(mpi_neighbor_mortars[index]) * n_small_elements * 2 * data_size)
-    mpi_recv_buffers[index] = Vector{uEltype}(undef, length(mpi_neighbor_interfaces[index]) * data_size +
-                                                     length(mpi_neighbor_mortars[index]) * n_small_elements * 2 * data_size)
-  end
-
-  mpi_send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
-  mpi_recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
-
-  return mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests
-end
-
 
 # Exchange normal directions of small elements of the MPI mortars. They are needed on all involved
 # MPI ranks to calculate the mortar fluxes.
@@ -549,5 +527,6 @@ end
 
 include("dg_2d_parallel.jl")
 include("dg_3d_parallel.jl")
+
 
 end # muladd

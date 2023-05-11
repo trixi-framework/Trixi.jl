@@ -10,7 +10,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
   @unpack weights = dg.basis
 
   @threaded for element in eachelement(dg, cache)
-    # dermine minimum value
+    # determine minimum value
     value_min = typemax(eltype(u))
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, k, element)

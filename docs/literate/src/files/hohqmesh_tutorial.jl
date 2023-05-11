@@ -41,7 +41,7 @@ end #hide #md
 
 # This will compute a smooth, manufactured solution test case for the 2D compressible Euler equations
 # on the curved quadrilateral mesh described in the
-# [Trixi documentation](https://trixi-framework.github.io/Trixi.jl/stable/meshes/unstructured_quad_mesh/).
+# [Trixi.jl documentation](https://trixi-framework.github.io/Trixi.jl/stable/meshes/unstructured_quad_mesh/).
 
 # Apart from the usual error and timing output provided by the Trixi.jl run, it is useful to visualize and inspect
 # the solution. One option available in the Trixi.jl framework to visualize the solution on
@@ -49,7 +49,7 @@ end #hide #md
 # Trixi.jl output file(s) with the [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl) tool
 # and plotting them with [ParaView](https://www.paraview.org/download/).
 
-# To convert the HDF5-formatted `.h5` output file(s) from Trixi into VTK format execute the following
+# To convert the HDF5-formatted `.h5` output file(s) from Trixi.jl into VTK format execute the following
 
 using Trixi2Vtk
 redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
@@ -173,7 +173,7 @@ end
 # available if you wish to also save a collection of mesh statistics. For this example it is deactivated.
 # These file names given within `RUN_PARAMETERS` **should match** that of the control file, and although this is not required by
 # HOHQMesh, it is a useful style convention.
-# The mesh file format `ISM-v2` in the format currently required by Trixi. The `polynomial order` prescribes the order
+# The mesh file format `ISM-v2` in the format currently required by Trixi.jl. The `polynomial order` prescribes the order
 # of an interpolant constructed on the Chebyshev-Gauss-Lobatto nodes that is used to represent any curved boundaries on a particular element.
 # The plot file format of `skeleton` means that visualizing the plot file will only draw the element boundaries (and no internal nodes).
 # Alternatively, the format can be set to `sem` to visualize the interior nodes of the approximation as well.
@@ -497,7 +497,7 @@ output = generate_mesh(control_file);
 
 # We can reuse much of the elixir file to setup the uniform flow over an ice cream cone from the
 # previous part of this tutorial. The only component of the elixir file that must be changed is the boundary condition
-# dictionary because we now have a boundary named `OuterCirle` instead of four edges of a bounding box.
+# dictionary because we now have a boundary named `OuterCircle` instead of four edges of a bounding box.
 
 ## boundary condition dictionary
 boundary_conditions = Dict( :OuterCircle => boundary_condition_uniform_flow,
@@ -535,7 +535,7 @@ mesh = UnstructuredMesh2D(mesh_file);
 
 # Now, you can create a `P4estMesh` from your mesh file. It is described in detail in the
 # [P4est-based mesh](https://trixi-framework.github.io/Trixi.jl/stable/meshes/p4est_mesh/#P4est-based-mesh)
-# part of the Trixi docs.
+# part of the Trixi.jl docs.
 # ```julia
 # using Trixi
 # mesh_file = joinpath("out", "ice_cream_straight_sides.inp")
@@ -543,7 +543,7 @@ mesh = UnstructuredMesh2D(mesh_file);
 # ```
 
 # Since `P4estMesh` supports AMR, we just have to extend the setup from the first example by the
-# standard AMR procedure. For more information about AMR in Trixi, see the [matching tutorial](@ref adaptive_mesh_refinement).
+# standard AMR procedure. For more information about AMR in Trixi.jl, see the [matching tutorial](@ref adaptive_mesh_refinement).
 
 # ```julia
 # amr_indicator = IndicatorLöhner(semi, variable=density)
