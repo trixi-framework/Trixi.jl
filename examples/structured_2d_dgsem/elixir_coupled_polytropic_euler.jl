@@ -1,7 +1,7 @@
 #using Revise
 #using Infiltrator
 #using AbbreviatedStackTraces
-#using OrdinaryDiffEq
+using OrdinaryDiffEq
 #using Trixi2Vtk
 using Trixi
 
@@ -115,14 +115,12 @@ semi_coupled = SemidiscretizationCoupled((semi_A, semi_B), other_list)
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 30.0
-ode = semidiscretize(semi_coupled, (0.0, 3.0))
+tspan = (0.0, 3.0)
+ode = semidiscretize(semi_coupled, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
 summary_callback = SummaryCallback()
-
-resid_tol = 5.0e-12
-steady_state_callback = SteadyStateCallback(abstol=resid_tol, reltol=0.0)
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_interval = 100
