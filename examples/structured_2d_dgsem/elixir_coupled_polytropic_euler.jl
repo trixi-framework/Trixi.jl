@@ -1,8 +1,8 @@
-using Revise
-using Infiltrator
-using AbbreviatedStackTraces
-using OrdinaryDiffEq
-using Trixi2Vtk
+#using Revise
+#using Infiltrator
+#using AbbreviatedStackTraces
+#using OrdinaryDiffEq
+#using Trixi2Vtk
 using Trixi
 
 
@@ -155,5 +155,5 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 # Print the timer summary
 summary_callback()
 
-# Convert the snapshots into vtk format.
-trixi2vtk("out/solution_*.h5")
+## Convert the snapshots into vtk format.
+#trixi2vtk("out/solution_*.h5")
