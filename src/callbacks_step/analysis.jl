@@ -123,7 +123,7 @@ end
 
 
 function AnalysisCallback(semi::SemidiscretizationCoupled; kwargs...)
-  _, equations, _, _ = mesh_equations_solver_cache(semi)
+  _, equations, _, _ = mesh_equations_solver_cache(semi.semis[1])
   AnalysisCallback(semi, equations; kwargs...)
 end
 
@@ -135,6 +135,7 @@ function AnalysisCallback(semi::SemidiscretizationCoupled, equations;
                           output_directory="out",
                           analysis_filename="analysis.dat",
                           extra_analysis_errors=Symbol[],
+                          # TODO: add default analysis errors for a set of equations
                           analysis_errors=union(default_analysis_errors(equations), extra_analysis_errors),
                           extra_analysis_integrals=(),
                           analysis_integrals=union(default_analysis_integrals(equations), extra_analysis_integrals),

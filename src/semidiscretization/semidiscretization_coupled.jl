@@ -127,9 +127,9 @@ end
 
 # TODO: Find out where this is being used.
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationCoupled)
-  _, equations, _, _ = mesh_equations_solver_cache(semi.semis[1])
+  mesh, equations, solver, equations = mesh_equations_solver_cache(semi.semis[1])
 
-  return nothing, equations, nothing, nothing
+  return mesh, equations, solver, equations
 end
 
 
@@ -159,11 +159,17 @@ end
 function integrate(func::Func, u_ode::AbstractVector, semi::SemidiscretizationCoupled; normalize=true) where {Func}
   @unpack semis, u_indices = semi
 
-  integral = []
+  # TODO: fix issue with integral being a vector.
+  # integral = []
   for i = 1:nmeshes(semi)
       mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
-      u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)  
-      integral = vcat(integral, integrate(func, u, mesh, equations, solver, cache, normalize=false))
+      u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
+      if i == 1
+        integral = integrate(func, u, mesh, equations, solver, cache, normalize=false)
+      else
+        integral = integral + integrate(func, u, mesh, equations, solver, cache, normalize=false)
+      end
+      # integral = vcat(integral, integrate(func, u, mesh, equations, solver, cache, normalize=false))
   end
 
   # Normalize with total volume
@@ -175,6 +181,9 @@ function integrate(func::Func, u_ode::AbstractVector, semi::SemidiscretizationCo
   return integral
 end
 
+function integrate(u_ode::AbstractVector, semi::SemidiscretizationCoupled; normalize=true)
+  integrate(cons2cons, u_ode, semi; normalize=normalize)
+end
 
 function total_volume(semi::SemidiscretizationCoupled)
   sum(semi.semis) do semi_
