@@ -5,8 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_fdsbp")
+EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_fdsbp")
 
 @testset "Linear scalar advection" begin
   @trixi_testset "elixir_advection_extended.jl" begin
