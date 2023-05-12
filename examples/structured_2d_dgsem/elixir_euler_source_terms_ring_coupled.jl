@@ -108,7 +108,11 @@ semi4 = SemidiscretizationHyperbolic(mesh4, equations, initial_condition, solver
     y_pos=boundary_condition,
   ))
 
-semi = SemidiscretizationCoupled((semi1, semi2, semi3, semi4))
+
+# TODO: Once we can properly couple with multiple systems we need to change this list.
+other_list = [3, 4, 1, 2]
+
+semi = SemidiscretizationCoupled((semi1, semi2, semi3, semi4), other_list)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
