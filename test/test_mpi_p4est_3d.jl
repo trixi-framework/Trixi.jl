@@ -5,8 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
-const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "p4est_3d_dgsem")
+const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
 
 @testset "P4estMesh MPI 3D" begin
 
