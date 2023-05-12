@@ -350,7 +350,7 @@ function create_cache(mesh::DGMultiMesh, equations,
          rhs_volume_local_threaded, gauss_volume_local_threaded,
          interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
          interp_matrix_gauss_to_face,
-         create_cache(mesh, equations, dg.volume_integral, dg, uEltype)) # cache specialized on the volume integral
+         create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...) # cache specialized on the volume integral
 end
 
 # by default, return an empty tuple for volume integral caches
