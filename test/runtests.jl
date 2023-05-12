@@ -1,3 +1,6 @@
+import Pkg
+Pkg.add(url = "https://github.com/ranocha/MPI.jl", rev = "hr/bisect_mpi_tests")
+
 using Test
 using MPI: mpiexec
 
