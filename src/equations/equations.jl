@@ -182,20 +182,6 @@ end
   return flux
 end
 
-@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
-                                                                  normal_direction::AbstractVector,
-                                                                  x, t, using_nonconservative_flux::True,
-                                                                  nonconservative_surface_flux,
-                                                                  equations)
-  # get the external value of the solution
-  u_boundary = boundary_condition.boundary_value_function(x, t, equations)
-
-  # Calculate boundary flux
-  flux = nonconservative_surface_flux(u_inner, u_boundary, normal_direction, normal_direction, equations)
-
-  return flux
-end
-
 # operator types used for dispatch on parabolic boundary fluxes
 struct Gradient end
 struct Divergence end

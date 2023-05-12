@@ -87,15 +87,6 @@ end
   return flux(u_inner, outward_direction, equations)
 end
 
-# This version is called when passing in a non-conservative surface flux
-@inline function (::BoundaryConditionDoNothing)(u_inner, outward_direction::AbstractVector,
-                                                x, t, using_nonconservative_flux::True,
-                                                nonconservative_surface_flux, equations)
-
-  return nonconservative_surface_flux(u_inner, u_inner, outward_direction,
-                                      outward_direction, equations)
-end
-
 # This version can be called by parabolic solvers
 @inline function (::BoundaryConditionDoNothing)(inner_flux_or_state, other_args...)
   return inner_flux_or_state
