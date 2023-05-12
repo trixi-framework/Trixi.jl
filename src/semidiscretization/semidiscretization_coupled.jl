@@ -13,7 +13,7 @@ struct SemidiscretizationCoupled{S, I} <: AbstractSemidiscretization
   semis::S
   u_indices::I # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
   performance_counter::PerformanceCounter
-  equation_list::Vector
+  equation_list::Vector{Int}
 end
 
 
