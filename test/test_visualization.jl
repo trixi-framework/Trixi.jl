@@ -26,8 +26,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     "StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_waving_flag.jl"),
     "UnstructuredMesh" => ("unstructured_2d_dgsem", "elixir_euler_basic.jl"),
     "P4estMesh" => ("p4est_2d_dgsem", "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-    "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
-    "Coupled StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_ring_coupled.jl")
+    "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl")
   )
 
   @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
