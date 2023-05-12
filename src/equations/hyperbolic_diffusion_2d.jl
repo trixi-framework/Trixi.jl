@@ -164,14 +164,6 @@ end
   sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
 end
 
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations2D)
-  return 0, sqrt(equations.nu * equations.inv_Tr)
-end
-
-@inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::HyperbolicDiffusionEquations2D)
-  return 0, sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
-end
-
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations2D)
   # Obtain left and right fluxes
   phi_ll, q1_ll, q2_ll = u_ll
