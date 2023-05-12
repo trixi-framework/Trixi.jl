@@ -345,7 +345,6 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
   return PlotData2DTriangulated(x_plot, y_plot, u_plot, t, x_face, y_face, face_data, variable_names)
 end
 
-
 # specializes the PlotData2D constructor to return an PlotData2DTriangulated for any type of mesh.
 function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
                                 solution_variables=nothing, nvisnodes=2*polydeg(dg))
