@@ -297,15 +297,14 @@ struct IndicatorMCL{RealT<:Real, Cache, Indicator} <: AbstractIndicator
   DensityAlphaForAll::Bool
   SequentialLimiter::Bool
   ConservativeLimiter::Bool
-  PressurePositivityLimiterKuzmin::Bool  # synchronized pressure limiting à la Kuzmin
+  PressurePositivityLimiterKuzmin::Bool       # synchronized pressure limiting à la Kuzmin
   PressurePositivityLimiterKuzminExact::Bool  # Only for PressurePositivityLimiterKuzmin=true: Use the exact calculation of alpha
-  PressurePositivityLimiter::Bool        # synchronized pressure limiting
   DensityPositivityLimiter::Bool
   DensityPositivityCorrelationFactor::RealT
-  SemiDiscEntropyLimiter::Bool           # synchronized semidiscrete entropy fix
+  SemiDiscEntropyLimiter::Bool                # synchronized semidiscrete entropy fix
   IDPCheckBounds::Bool
-  indicator_smooth::Bool   # activates smoothness indicator: IndicatorHennemannGassner
-  thr_smooth::RealT        # threshold for smoothness indicator
+  indicator_smooth::Bool                      # activates smoothness indicator: IndicatorHennemannGassner
+  thr_smooth::RealT                           # threshold for smoothness indicator
   IndicatorHG::Indicator
   Plotting::Bool
 end
@@ -318,7 +317,6 @@ function IndicatorMCL(equations::AbstractEquations, basis;
                       ConservativeLimiter=false,            # Impose local maximum/minimum for conservative variables 2:nvariables based on bar states
                       PressurePositivityLimiterKuzmin=false,# Impose positivity for pressure â la Kuzmin
                       PressurePositivityLimiterKuzminExact=true,# Only for PressurePositivityLimiterKuzmin=true: Use the exact calculation of alpha
-                      PressurePositivityLimiter=false,      # Impose positivity for pressure
                       DensityPositivityLimiter=false,       # Impose positivity for cons(1)
                       DensityPositivityCorrelationFactor=0.0,# Correlation Factor for DensityPositivityLimiter in [0,1)
                       SemiDiscEntropyLimiter=false,
@@ -328,10 +326,7 @@ function IndicatorMCL(equations::AbstractEquations, basis;
   if SequentialLimiter && ConservativeLimiter
     error("Only one of the two can be selected: SequentialLimiter/ConservativeLimiter")
   end
-  if PressurePositivityLimiterKuzmin && PressurePositivityLimiter
-    error("Only one of the two can be selected: PressurePositivityLimiterKuzmin/PressurePositivityLimiter")
-  end
-  cache = create_cache(IndicatorMCL, equations, basis, PressurePositivityLimiterKuzmin || PressurePositivityLimiter)
+  cache = create_cache(IndicatorMCL, equations, basis, PressurePositivityLimiterKuzmin)
   if indicator_smooth
     IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_smooth=false,
                                             variable=variable_smooth)
@@ -340,7 +335,7 @@ function IndicatorMCL(equations::AbstractEquations, basis;
   end
   IndicatorMCL{typeof(thr_smooth), typeof(cache), typeof(IndicatorHG)}(cache,
     DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
-    PressurePositivityLimiterKuzmin, PressurePositivityLimiterKuzminExact, PressurePositivityLimiter,
+    PressurePositivityLimiterKuzmin, PressurePositivityLimiterKuzminExact,
     DensityPositivityLimiter, DensityPositivityCorrelationFactor, SemiDiscEntropyLimiter,
     IDPCheckBounds, indicator_smooth, thr_smooth, IndicatorHG, Plotting)
 end
@@ -354,13 +349,12 @@ function Base.show(io::IO, indicator::IndicatorMCL)
   indicator.SequentialLimiter && print(io, "; seq")
   indicator.ConservativeLimiter && print(io, "; cons")
   if indicator.PressurePositivityLimiterKuzmin
-    if indicator. PressurePositivityLimiterKuzminExact
+    if indicator.PressurePositivityLimiterKuzminExact
       print(io, "; pres (Kuzmin ex)")
     else
       print(io, "; pres (Kuzmin)")
     end
   end
-  indicator.PressurePositivityLimiter && print(io, "; pres")
   indicator.DensityPositivityLimiter && print(io, "; dens pos")
   (indicator.DensityPositivityCorrelationFactor != 0.0) && print(io, " with correlation factor $(indicator.DensityPositivityCorrelationFactor)")
   indicator.SemiDiscEntropyLimiter && print(io, "; semid. entropy")
@@ -380,7 +374,7 @@ function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIn
     node_variables[s] = alpha[v, ntuple(_ -> :, size(alpha, 2) + 1)...]
   end
 
-  if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+  if indicator.PressurePositivityLimiterKuzmin
     @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
     node_variables[:alpha_pressure] = alpha_pressure
   end
@@ -403,7 +397,7 @@ function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIn
   end
 
   @unpack alpha_mean_pressure = indicator.cache.ContainerShockCapturingIndicator
-  if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+  if indicator.PressurePositivityLimiterKuzmin
     @unpack alpha_mean_pressure = indicator.cache.ContainerShockCapturingIndicator
     node_variables[:alpha_mean_pressure] = alpha_mean_pressure
   end

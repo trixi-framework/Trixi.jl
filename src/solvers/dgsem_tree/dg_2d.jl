@@ -1730,110 +1730,6 @@ end
         alpha_mean_pressure[i, j, element] /= 4
       end
     end
-  # New pressure limiter!
-  elseif indicator.PressurePositivityLimiter
-    @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
-    for j in eachnode(dg), i in 2:nnodes(dg)
-      bar_state_velocity = bar_states1[2, i, j, element]^2 + bar_states1[3, i, j, element]^2
-      flux_velocity = antidiffusive_flux1[2, i, j, element]^2 + antidiffusive_flux1[3, i, j, element]^2
-
-      Q = - lambda1[i, j, element]^2 * (bar_states1[1, i, j, element] * bar_states1[4, i, j, element] -
-                                        0.5 * bar_state_velocity)
-      P_1 = 0.5 * flux_velocity - antidiffusive_flux1[4, i, j, element] * antidiffusive_flux1[1, i, j, element]
-      P_2 = lambda1[i, j, element] * (bar_states1[2, i, j, element] * antidiffusive_flux1[2, i, j, element] +
-                                      bar_states1[3, i, j, element] * antidiffusive_flux1[3, i, j, element] -
-                                      bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element] -
-                                      bar_states1[4, i, j, element] * antidiffusive_flux1[1, i, j, element])
-
-      # Solve the quadratic formula
-      aux_var = P_2^2 - 4 * P_1 * Q
-      if aux_var >= 0.0
-        # Only solve for real solutions
-        aux_var = sqrt(aux_var)
-        alpha1 = 0.5 * (-P_2 + aux_var) / P_1
-        alpha2 = 0.5 * (-P_2 - aux_var) / P_1
-        alpha3 = 0.5 * ( P_2 + aux_var) / P_1
-        alpha4 = 0.5 * ( P_2 - aux_var) / P_1
-
-        # If the solutions are negative, we can take the maximum antidiffusive flux
-        if alpha1 < 0.0
-          alpha1 = 1.0
-        end
-        if alpha2 < 0.0
-          alpha2 = 1.0
-        end
-        if alpha3 < 0.0
-          alpha3 = 1.0
-        end
-        if alpha4 < 0.0
-          alpha4 = 1.0
-        end
-        # Get the most restrictive alpha
-        alpha = min(alpha1, alpha2, alpha3, alpha4, 1.0)
-      else
-        # If the solutions are complex, we can take the maximum antidiffusive flux
-        alpha = 1.0
-      end
-
-      if indicator.Plotting
-        alpha_pressure[i-1, j, element] = min(alpha_pressure[i-1, j, element], alpha)
-        alpha_pressure[i,   j, element] = min(alpha_pressure[i,   j, element], alpha)
-      end
-      for v in eachvariable(equations)
-        antidiffusive_flux1[v, i, j, element] *= alpha
-      end
-    end
-
-    for j in 2:nnodes(dg), i in eachnode(dg)
-      bar_state_velocity = bar_states2[2, i, j, element]^2 + bar_states2[3, i, j, element]^2
-      flux_velocity = antidiffusive_flux2[2, i, j, element]^2 + antidiffusive_flux2[3, i, j, element]^2
-
-      Q = -lambda2[i, j, element]^2 * (bar_states2[1, i, j, element] * bar_states2[4, i, j, element] -
-                                      0.5 * bar_state_velocity)
-
-      P_1 = 0.5 * flux_velocity - antidiffusive_flux2[4, i, j, element] * antidiffusive_flux2[1, i, j, element]
-      P_2 = lambda2[i, j, element] * (bar_states2[2, i, j, element] * antidiffusive_flux2[2, i, j, element] +
-                                      bar_states2[3, i, j, element] * antidiffusive_flux2[3, i, j, element] -
-                                      bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element] -
-                                      bar_states2[4, i, j, element] * antidiffusive_flux2[1, i, j, element])
-      # Solve the quadratic formula
-      aux_var = P_2^2 - 4 * P_1 * Q
-      if aux_var >= 0.0
-        # Only solve for real solutions
-        aux_var = sqrt(aux_var)
-        alpha1 = 0.5 * (-P_2 + aux_var) / P_1
-        alpha2 = 0.5 * (-P_2 - aux_var) / P_1
-        alpha3 = 0.5 * ( P_2 + aux_var) / P_1
-        alpha4 = 0.5 * ( P_2 - aux_var) / P_1
-
-        # If the solutions are negative, we can take the maximum antidiffusive flux
-        if alpha1 < 0.0
-          alpha1 = 1.0
-        end
-        if alpha2 < 0.0
-          alpha2 = 1.0
-        end
-        if alpha3 < 0.0
-          alpha3 = 1.0
-        end
-        if alpha4 < 0.0
-          alpha4 = 1.0
-        end
-        # Get the most restrictive alpha
-        alpha = min(alpha1, alpha2, alpha3, alpha4, 1.0)
-      else
-        # If the solutions are complex, we can take the maximum antidiffusive flux
-        alpha = 1.0
-      end
-
-      if indicator.Plotting
-        alpha_pressure[i, j-1, element] = min(alpha_pressure[i, j-1, element], alpha)
-        alpha_pressure[i,   j, element] = min(alpha_pressure[i,   j, element], alpha)
-      end
-      for v in eachvariable(equations)
-        antidiffusive_flux2[v, i, j, element] *= alpha
-      end
-    end
   end
 
   # Limit entropy
@@ -2201,14 +2097,14 @@ end
   if laststage && x > 0 && iter == 1
     open("$output_directory/deviations.txt", "a") do f;
       print(f, "# iter, simu_time", join(", $(v)_min, $(v)_max" for v in vars));
-      if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+      if indicator.PressurePositivityLimiterKuzmin
         print(f, ", pressure_min")
       end
       println(f)
     end
   end
 
-  deviation_min = zeros(eltype(u), n_vars + (indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter))
+  deviation_min = zeros(eltype(u), n_vars + indicator.PressurePositivityLimiterKuzmin)
   deviation_max = zeros(eltype(u), n_vars)
 
   if indicator.DensityLimiter
@@ -2255,7 +2151,7 @@ end
           deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
           deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
         end
-        if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+        if indicator.PressurePositivityLimiterKuzmin
           error_pressure = 0.5 * (u[2, i, j, element]^2 + u[3, i, j, element]^2) - u[1, i, j, element] * u[4, i, j, element]
           deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
         end
@@ -2279,11 +2175,11 @@ end
           var_limited = bar_states1[v, i, j, element] - antidiffusive_flux1[v, i, j, element] / lambda1[i, j, element]
           deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited / rho_limited)
           deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j, element])
-          if (indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter) && (v == 2 || v == 3)
+          if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
             error_pressure += 0.5 * var_limited^2
           end
         end
-        if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+        if indicator.PressurePositivityLimiterKuzmin
           error_pressure -= var_limited * rho_limited
           deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
           error_pressure = zero(eltype(idp_bounds_delta))
@@ -2294,11 +2190,11 @@ end
           var_limited = bar_states1[v, i+1, j, element] + antidiffusive_flux1[v, i+1, j, element] / lambda1[i+1, j, element]
           deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited / rho_limited)
           deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j, element])
-          if (indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter) && (v == 2 || v == 3)
+          if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
             error_pressure += 0.5 * var_limited^2
           end
         end
-        if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+        if indicator.PressurePositivityLimiterKuzmin
           error_pressure -= var_limited * rho_limited
           deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
           error_pressure = zero(eltype(idp_bounds_delta))
@@ -2309,11 +2205,11 @@ end
           var_limited = bar_states2[v, i, j, element] - antidiffusive_flux2[v, i, j, element] / lambda2[i, j, element]
           deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited / rho_limited)
           deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j, element])
-          if (indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter) && (v == 2 || v == 3)
+          if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
             error_pressure += 0.5 * var_limited^2
           end
         end
-        if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+        if indicator.PressurePositivityLimiterKuzmin
           error_pressure -= var_limited * rho_limited
           deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
           error_pressure = zero(eltype(idp_bounds_delta))
@@ -2324,11 +2220,11 @@ end
           var_limited = bar_states2[v, i, j+1, element] + antidiffusive_flux2[v, i, j+1, element] / lambda2[i, j+1, element]
           deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited / rho_limited)
           deviation_max[v] = max(deviation_max[v], var_limited / rho_limited - var_max[v, i, j, element])
-          if (indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter) && (v == 2 || v == 3)
+          if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
             error_pressure += 0.5 * var_limited^2
           end
         end
-        if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+        if indicator.PressurePositivityLimiterKuzmin
           error_pressure -= var_limited * rho_limited
           deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
           error_pressure = zero(eltype(idp_bounds_delta))
@@ -2343,7 +2239,7 @@ end
           deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - u[v, i, j, element])
           deviation_max[v] = max(deviation_max[v], u[v, i, j, element] - var_max[v, i, j, element])
         end
-        if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+        if indicator.PressurePositivityLimiterKuzmin
           error_pressure = 0.5 * (u[2, i, j, element]^2 + u[3, i, j, element]^2) - u[1, i, j, element] * u[4, i, j, element]
           deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
         end
@@ -2367,11 +2263,11 @@ end
           var_limited = bar_states1[v, i, j, element] - antidiffusive_flux1[v, i, j, element] / lambda1[i, j, element]
           deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
           deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
-          if (indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter) && (v == 2 || v == 3)
+          if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
             error_pressure += 0.5 * var_limited^2
           end
         end
-        if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+        if indicator.PressurePositivityLimiterKuzmin
           error_pressure -= var_limited * rho_limited
           deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
           error_pressure = zero(eltype(idp_bounds_delta))
@@ -2382,11 +2278,11 @@ end
           var_limited = bar_states1[v, i+1, j, element] + antidiffusive_flux1[v, i+1, j, element] / lambda1[i+1, j, element]
           deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
           deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
-          if (indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter) && (v == 2 || v == 3)
+          if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
             error_pressure += 0.5 * var_limited^2
           end
         end
-        if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+        if indicator.PressurePositivityLimiterKuzmin
           error_pressure -= var_limited * rho_limited
           deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
           error_pressure = zero(eltype(idp_bounds_delta))
@@ -2397,11 +2293,11 @@ end
           var_limited = bar_states2[v, i, j, element] - antidiffusive_flux2[v, i, j, element] / lambda2[i, j, element]
           deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
           deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
-          if (indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter) && (v == 2 || v == 3)
+          if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
             error_pressure += 0.5 * var_limited^2
           end
         end
-        if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+        if indicator.PressurePositivityLimiterKuzmin
           error_pressure -= var_limited * rho_limited
           deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
           error_pressure = zero(eltype(idp_bounds_delta))
@@ -2412,18 +2308,18 @@ end
           var_limited = bar_states2[v, i, j+1, element] + antidiffusive_flux2[v, i, j+1, element] / lambda2[i, j+1, element]
           deviation_min[v] = max(deviation_min[v], var_min[v, i, j, element] - var_limited)
           deviation_max[v] = max(deviation_max[v], var_limited - var_max[v, i, j, element])
-          if (indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter) && (v == 2 || v == 3)
+          if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
             error_pressure += 0.5 * var_limited^2
           end
         end
-        if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+        if indicator.PressurePositivityLimiterKuzmin
           error_pressure -= var_limited * rho_limited
           deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
           error_pressure = zero(eltype(idp_bounds_delta))
         end
       end
     end
-  elseif indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+  elseif indicator.PressurePositivityLimiterKuzmin
     # New solution u^{n+1}
     for element in eachelement(solver, cache)
       for j in eachnode(solver), i in eachnode(solver)
@@ -2464,7 +2360,7 @@ end
         deviation_min[n_vars+1] = max(deviation_min[n_vars+1], error_pressure)
       end
     end
-  end # indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+  end # indicator.PressurePositivityLimiterKuzmin
 
   if indicator.DensityPositivityLimiter
     # New solution u^{n+1}
@@ -2501,7 +2397,7 @@ end
     idp_bounds_delta[1, v] = max(idp_bounds_delta[1, v], deviation_min[v])
     idp_bounds_delta[2, v] = max(idp_bounds_delta[2, v], deviation_max[v])
   end
-  if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+  if indicator.PressurePositivityLimiterKuzmin
     idp_bounds_delta[1, n_vars+1] = max(idp_bounds_delta[1, n_vars+1], deviation_min[n_vars+1])
   end
 
@@ -2513,7 +2409,7 @@ end
     for v in eachvariable(equations)
       print(f, ", ", deviation_min[v], ", ", deviation_max[v]);
     end
-    if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+    if indicator.PressurePositivityLimiterKuzmin
       print(f, ", ", deviation_min[n_vars+1]);
     end
     println(f);

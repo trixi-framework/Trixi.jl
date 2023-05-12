@@ -154,7 +154,7 @@ function solve!(integrator::SimpleIntegratorSSP)
       @threaded for element in eachelement(integrator.p.solver, integrator.p.cache)
         for j in eachnode(integrator.p.solver), i in eachnode(integrator.p.solver)
           alpha[:, i, j, element] .= one(eltype(alpha))
-          if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+          if indicator.PressurePositivityLimiterKuzmin
             alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
           end
           if indicator.SemiDiscEntropyLimiter
@@ -346,7 +346,7 @@ end
   for v in eachvariable(equations)
     println(variables[v], ":\n- lower bound: ", idp_bounds_delta[1, v], "\n- upper bound: ", idp_bounds_delta[2, v])
   end
-  if indicator.PressurePositivityLimiterKuzmin || indicator.PressurePositivityLimiter
+  if indicator.PressurePositivityLimiterKuzmin
     println("pressure:\n- lower bound: ", idp_bounds_delta[1, nvariables(equations)+1])
   end
   println("─"^100 * "\n")

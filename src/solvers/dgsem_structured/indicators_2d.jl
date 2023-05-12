@@ -271,7 +271,7 @@ end
     end
     open("$output_directory/alphas_mean.txt", "a") do f;
       print(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
-      if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+      if indicator.PressurePositivityLimiterKuzmin
         print(f, ", alpha_min_pressure, alpha_avg_pressure")
       end
       if indicator.SemiDiscEntropyLimiter
@@ -288,9 +288,7 @@ end
     return nothing
   end
 
-  alpha_avg = zeros(eltype(alpha), n_vars +
-                                   (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin) +
-                                   indicator.SemiDiscEntropyLimiter)
+  alpha_avg = zeros(eltype(alpha), n_vars + indicator.PressurePositivityLimiterKuzmin + indicator.SemiDiscEntropyLimiter)
   alpha_mean_avg = zeros(eltype(alpha), n_vars)
   alpha_eff_avg = zeros(eltype(alpha), n_vars)
   total_volume = zero(eltype(alpha))
@@ -302,11 +300,11 @@ end
         alpha_mean_avg[v] += jacobian * weights[i] * weights[j] * alpha_mean[v, i, j, element]
         alpha_eff_avg[v] += jacobian * weights[i] * weights[j] * alpha_eff[v, i, j, element]
       end
-      if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+      if indicator.PressurePositivityLimiterKuzmin
         alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] * alpha_pressure[i, j, element]
       end
       if indicator.SemiDiscEntropyLimiter
-        k = n_vars + (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin) + 1
+        k = n_vars + indicator.PressurePositivityLimiterKuzmin + 1
         alpha_avg[k] += jacobian * weights[i] * weights[j] * alpha_entropy[i, j, element]
       end
       total_volume += jacobian * weights[i] * weights[j]
@@ -327,11 +325,11 @@ end
       print(f, ", ", minimum(view(alpha_mean, v, ntuple(_ -> :, n_vars - 1)...)));
       print(f, ", ", alpha_mean_avg[v] / total_volume);
     end
-    if indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin
+    if indicator.PressurePositivityLimiterKuzmin
       print(f, ", ", minimum(alpha_pressure), ", ", alpha_avg[n_vars + 1] / total_volume)
     end
     if indicator.SemiDiscEntropyLimiter
-      k = n_vars + (indicator.PressurePositivityLimiter || indicator.PressurePositivityLimiterKuzmin) + 1
+      k = n_vars + indicator.PressurePositivityLimiterKuzmin + 1
       print(f, ", ", minimum(alpha_entropy), ", ", alpha_avg[k] / total_volume)
     end
     println(f)
