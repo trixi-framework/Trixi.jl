@@ -8,7 +8,7 @@ using Trixi
 equations = ShallowWaterEquations1D(gravity_constant=9.812)
 
 """
-    initial_condition_well_balanced_chen_noelle(x, t, equations:: ShallowWaterEquations1D)
+initial_condition_complex_bottom_well_balanced(x, t, equations:: ShallowWaterEquations1D)
 
 Initial condition with a complex (discontinuous) bottom topography to test the well-balanced
 property for the [`hydrostatic_reconstruction_chen_noelle`](@ref) including dry areas within the
@@ -19,7 +19,7 @@ The initial condition was found in the section 5.2 of the paper:
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
-function initial_condition_well_balanced_chen_noelle(x, t, equations:: ShallowWaterEquations1D)
+function initial_condition_complex_bottom_well_balanced(x, t, equations:: ShallowWaterEquations1D)
   v = 0.0
   b = sin(4 * pi * x[1]) + 3
 
@@ -42,7 +42,7 @@ function initial_condition_well_balanced_chen_noelle(x, t, equations:: ShallowWa
   return prim2cons(SVector(H, v, b), equations)
 end
 
-initial_condition = initial_condition_well_balanced_chen_noelle
+initial_condition = initial_condition_complex_bottom_well_balanced
 
 ###############################################################################
 # Get the DG approximation space
@@ -83,22 +83,16 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 tspan = (0.0, 25.0)
 ode = semidiscretize(semi, tspan)
 
-function initial_condition_discontinuous_well_balancedness(x, t, element_id, equations:: ShallowWaterEquations1D)
-  v = 0.0
-  b = sin(4 * pi * x[1]) + 1
-  H = max(b, 1.5)
 
-  # for refinement_level=6
-  if (element_id >= 1 && element_id <= 32)
-    b = sin(4 * pi * x[1]) + 3
-    H = max(b, 2.5)
-  end
-
-  # Shift the water level by the amount `equations.threshold_limiter` (1e-13 per default)
-  # to avoid division by a hard 0 value in the water height `h` when computing velocities.
-  H = max(H, b + equations.threshold_limiter)
-  return prim2cons(SVector(H, v, b), equations)
-end
+###############################################################################
+# Workaround to set a discontinuous water and bottom topography for
+# debugging and testing. Essentially, this is a slight augmentation of the
+# `compute_coefficients` where the `x` node value passed here is slightly
+# perturbed to the left / right in order to set a true discontinuity that avoids
+# the doubled value of the LGL nodes at a particular element interface.
+#
+# Note! The errors from the analysis callback are not important but the error
+# for this lake at rest test case `∑|H0-(h+b)|` should be near machine roundoff.
 
 # point to the data we want to augment
 u = Trixi.wrap_array(ode.u0, semi)
@@ -106,7 +100,14 @@ u = Trixi.wrap_array(ode.u0, semi)
 for element in eachelement(semi.solver, semi.cache)
   for i in eachnode(semi.solver)
     x_node = Trixi.get_node_coords(semi.cache.elements.node_coordinates, equations, semi.solver, i, element)
-    u_node = initial_condition_discontinuous_well_balancedness(x_node, first(tspan), element, equations)
+    # We know that the discontinuity is on an interface. Slightly augment the x value by a factor
+    # of unit roundoff to avoid the repeated value from the LGL nodes at the interface.
+    if i == 1
+      x_node = SVector(nextfloat(x_node[1], 1))
+    elseif i == nnodes(semi.solver)
+      x_node = SVector(prevfloat(x_node[1], 1))
+    end
+    u_node = initial_condition_complex_bottom_well_balanced(x_node, first(tspan), equations)
     Trixi.set_node_vars!(u, u_node, equations, semi.solver, i, element)
   end
 end
@@ -146,30 +147,36 @@ summary_callback() # print the timer summary
 
 # Declare a special version of the function to compute the lake-at-rest error
 # OBS! The reference water height values are hardcoded for convenience.
-function lake_at_rest_error_two_level(u, element_id, equations::ShallowWaterEquations1D)
-  h, _, b = u
+function lake_at_rest_error_two_level(u, x, equations::ShallowWaterEquations1D)
+     h, _, b = u
 
-  # For well-balancedness testing with possible wet/dry regions the reference
-  # water height `H0` accounts for the possibility that the bottom topography
-  # can emerge out of the water as well as for the threshold offset to avoid
-  # division by a "hard" zero water heights as well.
+   # For well-balancedness testing with possible wet/dry regions the reference
+   # water height `H0` accounts for the possibility that the bottom topography
+   # can emerge out of the water as well as for the threshold offset to avoid
+   # division by a "hard" zero water heights as well.
+   if x[1] < 0.5
+      H0_wet_dry = max( 2.5 , b + equations.threshold_limiter )
+   else
+      H0_wet_dry = max( 1.5 , b + equations.threshold_limiter )
+   end
 
-  # element_id check for refinement_level=6
-  if (element_id >= 1 && element_id <= 32)
-    H0_wet_dry = max( 2.5 , b + equations.threshold_limiter )
-  else
-    H0_wet_dry = max( 1.5 , b + equations.threshold_limiter )
-  end
-
-  return abs(H0_wet_dry - (h + b))
-end
+   return abs(H0_wet_dry - (h + b))
+ end
 
 # point to the data we want to analyze
 u = Trixi.wrap_array(sol[end], semi)
 # Perform the actual integration of the well-balancedness error over the domain
 l1_well_balance_error = Trixi.integrate_via_indices(u, mesh, equations, semi.solver, semi.cache; normalize=true) do u, i, element, equations, solver
-  u_local = Trixi.get_node_vars(u, equations, solver, i, element)
-  return lake_at_rest_error_two_level(u_local, element, equations)
+  x_node = Trixi.get_node_coords(semi.cache.elements.node_coordinates, equations, solver, i, element)
+   # We know that the discontinuity is a vertical line. Slightly augment the x value by a factor
+   # of unit roundoff to avoid the repeted value from the LGL nodes at at interface.
+   if i == 1
+      x_node = SVector(nextfloat(x_node[1], 1))
+   elseif i == nnodes(semi.solver)
+      x_node = SVector(prevfloat(x_node[1], 1))
+   end
+   u_local = Trixi.get_node_vars(u, equations, solver, i, element)
+  return lake_at_rest_error_two_level(u_local, x_node, equations)
 end
 
 # report the well-balancedness lake-at-rest error to the screen
