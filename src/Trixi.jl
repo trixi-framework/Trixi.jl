@@ -129,7 +129,6 @@ include("visualization/visualization.jl")
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
        CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
-       PolytropicEulerEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
@@ -138,9 +137,7 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
        ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
-       LinearizedEulerEquations2D,
-       CouplingLinearScalarAdvectionEquation2D, CouplingCompressibleEulerHyperbolicDiffusion2D,
-       CouplingPolytropicEuler2D
+       LinearizedEulerEquations2D
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D,
        CompressibleNavierStokesDiffusion2D, CompressibleNavierStokesDiffusion3D
@@ -179,8 +176,7 @@ export boundary_condition_do_nothing,
        boundary_condition_slip_wall,
        boundary_condition_wall,
        BoundaryConditionNavierStokesWall, NoSlip, Adiabatic, Isothermal,
-       BoundaryConditionCoupled,
-       BoundaryConditionCoupledAB
+       BoundaryConditionCoupled
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export source_terms_harmonic
