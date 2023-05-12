@@ -19,7 +19,10 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
                       basis::RefElemData{NDIMS}) where NDIMS
 
   alpha = Vector{real(basis)}(undef, md.num_elements)
-  alpha_tmp = similar(alpha)
+
+  # stores values of alpha at faces for communication between elements
+  # during `apply_smoothing!`
+  alpha_tmp = Vector{real(basis)}(undef, dg.basis.num_faces, md.num_elements)
 
   A = Array{real(basis), ndims(equations)}
   indicator_threaded  = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
@@ -47,7 +50,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
   threshold = 0.5 * 10^(-1.8 * (nnodes_1D)^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
 
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in eachelement(mesh, dg)
     indicator = indicator_threaded[Threads.threadid()]
     modal_vec = modal_threaded[Threads.threadid()]
 
@@ -100,9 +103,31 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
     alpha[element] = min(alpha_max, alpha_element)
   end
 
+  # smooth element indices after they're all computed
   if alpha_smooth
     apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
+end
+
+# Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+function apply_smoothing!(mesh::DGMultiMesh, alpha, alpha_tmp, dg::DGMulti, cache)
+
+  # Copy alpha values such that smoothing is indpedenent of the element access order
+  for element in eachindex(alpha)
+    for face in axes(alpha_tmp, 1)
+      alpha_tmp[face, element] .= alpha[element]
+    end
+  end
+
+  # smooth alpha with its neighboring values
+  neighboring_face = mesh.md.FToF
+  for element in eachelement(mesh, dg)
+    for face in axes(alpha_tmp, 1)
+      alpha_neighbor = alpha_tmp[neighboring_face[face, element]]
+      alpha[element]  = max(alpha[element], 0.5 * alpha_neighbor)
+    end
+  end
+
 end
