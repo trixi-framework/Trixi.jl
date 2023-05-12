@@ -13,6 +13,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
   return (; cache..., element_ids_dg, element_ids_dgfv, sparse_hybridized_SBP_operators)
 end
 
+
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations,
                       basis::RefElemData{NDIMS}) where NDIMS
@@ -32,6 +33,7 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
 
   return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde)
 end
+
 
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
                                                    equations, dg::DGMulti, cache;
@@ -63,10 +65,11 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = sum(x -> x^2, modal)
 
+    # TODO: check if this allocates
     clip_1_ranges = ntuple(_ -> Base.OneTo(nnodes_1D-1), NDIMS)
     clip_2_ranges = ntuple(_ -> Base.OneTo(nnodes_1D-2), NDIMS)
-    total_energy_clip1 = sum(x -> x^2, view(modal, clip_1_ranges)...)
-    total_energy_clip2 = sum(x -> x^2, view(modal, clip_2_ranges)...)
+    total_energy_clip1 = sum(x -> x^2, view(modal, clip_1_ranges...))
+    total_energy_clip2 = sum(x -> x^2, view(modal, clip_2_ranges...))
 
     # Calculate energy in higher modes
     if !(iszero(total_energy))
