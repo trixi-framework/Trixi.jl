@@ -42,6 +42,7 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
   unique_names = unique(cache.boundaries.name)
 
   if mpi_isparallel()
+
     # Exchange of boundaries names
     unique_names_byte=Vector{UInt8}(join(unique_names, "\0"))
     if(length(unique_names)!=0)
