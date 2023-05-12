@@ -9,8 +9,7 @@ include("test_trixi.jl")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-# pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
-const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "paper_self_gravitating_gas_dynamics")
+const EXAMPLES_DIR = pkgdir(Trixi, "examples", "paper_self_gravitating_gas_dynamics")
 
 # Numerical examples from the Euler-gravity paper
 @testset "paper_self_gravitating_gas_dynamics" begin
