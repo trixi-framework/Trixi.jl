@@ -1,8 +1,4 @@
-#using Revise
-#using Infiltrator
-#using AbbreviatedStackTraces
 using OrdinaryDiffEq
-#using Trixi2Vtk
 using Trixi
 
 
@@ -15,8 +11,7 @@ Coupled two polytropic Euler systems.
 # define the initial conditions
 
 function initial_condition_wave_isotropic(x, t, equations::PolytropicEulerEquations2D)
-  gamma = 2.0
-  kappa = 1.0
+  @unpack gamma, kappa = equations
 
   rho = 1.0
   v1 = 0.0
@@ -30,8 +25,7 @@ function initial_condition_wave_isotropic(x, t, equations::PolytropicEulerEquati
 end
 
 function initial_condition_wave_polytropic(x, t, equations::PolytropicEulerEquations2D)
-  gamma = 2.0
-  kappa = 1.0
+  @unpack gamma, kappa = equations
 
   rho = 1.0
   v1 = 0.0
@@ -82,24 +76,16 @@ mesh_B = StructuredMesh(cells_per_dimension,
 semi_A = SemidiscretizationHyperbolic(mesh_A, equations_A,
                                       initial_condition_wave_isotropic, solver,
                                       boundary_conditions=(
-#                                       x_neg=BoundaryConditionCoupledAB(2, (:end, :i_forward), Float64, equations_B, equations_coupling),
                                       x_neg=BoundaryConditionCoupled(2, (:end, :i_forward), Float64),
-#                                       x_neg=boundary_condition_periodic,
-#                                       x_pos=BoundaryConditionCoupledAB(2, (:begin, :i_forward), Float64, equations_B, equations_coupling),
                                       x_pos=BoundaryConditionCoupled(2, (:begin, :i_forward), Float64),
-#                                       x_pos=boundary_condition_periodic,
                                       y_neg=boundary_condition_periodic,
                                       y_pos=boundary_condition_periodic))
 
 semi_B = SemidiscretizationHyperbolic(mesh_B, equations_B,
                                       initial_condition_wave_polytropic, solver,
                                       boundary_conditions=(
-#                                       x_neg=BoundaryConditionCoupledAB(1, (:end, :i_forward), Float64, equations_A, equations_coupling),
                                       x_neg=BoundaryConditionCoupled(1, (:end, :i_forward), Float64),
-#                                       x_neg=boundary_condition_periodic,
-#                                       x_pos=BoundaryConditionCoupledAB(1, (:begin, :i_forward), Float64, equations_A, equations_coupling),
                                       x_pos=BoundaryConditionCoupled(1, (:begin, :i_forward), Float64),
-#                                       x_pos=boundary_condition_periodic,
                                       y_neg=boundary_condition_periodic,
                                       y_pos=boundary_condition_periodic))
 
@@ -152,6 +138,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 
 # Print the timer summary
 summary_callback()
-
-## Convert the snapshots into vtk format.
-#trixi2vtk("out/solution_*.h5")
