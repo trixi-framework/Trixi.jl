@@ -110,20 +110,6 @@ function get_boundary_indices(element, orientation, mesh::StructuredMesh{2})
   return cell_indices
 end
 
-function get_boundary_indices(element, orientation, mesh::StructuredMesh{3})
-  cartesian_indices = CartesianIndices(size(mesh))
-  # Boundary indices of element are the two indices in the other dimensions
-  if orientation == 1
-    cell_indices = (cartesian_indices[element][2], cartesian_indices[element][3])
-  elseif orientation == 2
-    cell_indices = (cartesian_indices[element][1], cartesian_indices[element][3])
-  else # orientation == 3
-    cell_indices = (cartesian_indices[element][1], cartesian_indices[element][2])
-  end
-
-  return cell_indices
-end
-
 
 @inline ndofs(mesh::StructuredMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
