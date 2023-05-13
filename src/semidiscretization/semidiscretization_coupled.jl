@@ -9,11 +9,11 @@ The semidiscretizations can be coupled by gluing meshes together using `Boundary
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-struct SemidiscretizationCoupled{S, I} <: AbstractSemidiscretization
+struct SemidiscretizationCoupled{S, I, EquationList} <: AbstractSemidiscretization
   semis::S
   u_indices::I # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
   performance_counter::PerformanceCounter
-  equation_list::Vector{Int}
+  equation_list::EquationList
 end
 
 
@@ -46,7 +46,7 @@ function SemidiscretizationCoupled(semis, other_list)
 
   performance_counter = PerformanceCounter()
 
-  SemidiscretizationCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices, performance_counter, equation_list)
+  SemidiscretizationCoupled{typeof(semis), typeof(u_indices), typeof(tuple(equation_list...))}(semis, u_indices, performance_counter, tuple(equation_list...))
 end
 
 
