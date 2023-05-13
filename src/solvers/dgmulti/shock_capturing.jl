@@ -25,7 +25,11 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
   Brst = map(n -> Diagonal(n .* dg.basis.wf), dg.basis.nrstJ)
   sparse_hybridized_SBP_operators = map((Q, B) -> [Q-Q' E'*B; -B*E zeros(size(B))], Qrst, Brst)
 
-  return (; element_ids_dg, element_ids_dgfv, sparse_hybridized_SBP_operators, EToE)
+  # find joint sparsity pattern of the entire matrix. store as a transpose
+  # for faster iteration through the rows.
+  sparsity_pattern = transpose(sum(map(A -> abs.(A), sparse_hybridized_SBP_operators)) .> 100 * eps())
+
+  return (; element_ids_dg, element_ids_dgfv, sparse_hybridized_SBP_operators, sparsity_pattern, EToE)
 end
 
 
@@ -192,17 +196,70 @@ function calc_volume_integral!(du, u,
     element = element_ids_dgfv[idx_element]
     alpha_element = alpha[element]
 
-    # # Calculate DG volume integral contribution
-    # flux_differencing_kernel!(du, u, element, mesh,
-    #                           have_nonconservative_terms, equations,
-    #                           volume_flux_dg, dg, cache, 1 - alpha_element)
+    # Calculate DG volume integral contribution
+    flux_differencing_kernel!(du, u, element, mesh,
+                              have_nonconservative_terms, equations,
+                              volume_flux_dg, dg, cache, 1 - alpha_element)
 
-    # # Calculate FV volume integral contribution
-    # fv_kernel!(du, u, mesh, have_nonconservative_terms, equations, volume_flux_fv,
-    #            dg, cache, element, alpha_element)
+    # # Calculate "FV" low order volume integral contribution
+    low_order_flux_differencing_kernel!(du, u, element, mesh,
+                                        have_nonconservative_terms, equations,
+                                        volume_flux_fv, dg, cache, alpha_element)
 
     # blend them together via r_high * (1 - alpha) + r_low * (alpha)
   end
 
   return nothing
+end
+
+# computes an algebraic low order method with internal dissipation.
+# TODO: implement for curved meshes
+function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
+                                             have_nonconservative_terms::False, equations,
+                                             volume_flux_fv, dg::DGMultiFluxDiff,
+                                             cache, alpha=true)
+
+  (; sparsity_pattern, sparse_hybridized_SBP_operators) = cache
+
+  # accumulates output from flux differencing
+  rhs_local = cache.rhs_local_threaded[Threads.threadid()]
+  fill!(rhs_local, zero(eltype(rhs_local)))
+
+  # TODO: add flux differencing loop using non-symmetric `volume_flux_fv`
+  u_local = view(cache.entropy_projected_u_values, :, element)
+
+  A_base = parent(sparsity_pattern) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
+  row_ids, rows = axes(A, 2), rowvals(A_base)
+  for i in row_ids
+    u_i = u_local[i]
+    du_i = rhs_local[i]
+    for id in nzrange(A_base, i)
+      j = rows[id]
+      u_j = u_local[j]
+      # TODO: scale n_ij by geometric terms as well!
+      n_ij = SVector(getindex.(sparse_hybridized_SBP_operators, i, j))
+      n_ij_norm = norm(n_ij)
+      f_ij = volume_flux_fv(u_i, u_j, n_ij / n_ij_norm, equations)
+      du_i = du_i + f_ij * n_ij_norm
+    end
+    rhs_local[i] = du_i
+  end
+
+  # Here, we exploit that under a Gauss nodal basis the structure of the projection
+  # matrix `Ph = [diagm(1 ./ wq), projection_matrix_gauss_to_face]` such that
+  # `Ph * [u; uf] = (u ./ wq) + projection_matrix_gauss_to_face * uf`.
+  volume_indices = Base.OneTo(dg.basis.Nq)
+  face_indices = (dg.basis.Nq + 1):(dg.basis.Nq + dg.basis.Nfq)
+  local_volume_flux = view(rhs_local, volume_indices)
+  local_face_flux = view(rhs_local, face_indices)
+
+  # initialize rhs_volume_local = projection_matrix_gauss_to_face * local_face_flux
+  rhs_volume_local = cache.rhs_volume_local_threaded[Threads.threadid()]
+  apply_to_each_field(mul_by!(cache.projection_matrix_gauss_to_face), rhs_volume_local, local_face_flux)
+
+  # accumulate volume contributions at Gauss nodes
+  for i in eachindex(rhs_volume_local)
+    du[i, element] = alpha * (rhs_volume_local[i] + local_volume_flux[i] * cache.inv_gauss_weights[i])
+  end
+
 end
