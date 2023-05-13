@@ -1,6 +1,6 @@
 """
     Trixi
-
+ 
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws. A key objective for the framework is to be useful to both scientists
 and students. Therefore, next to having an extensible design with a fast
