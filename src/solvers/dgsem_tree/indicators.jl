@@ -102,6 +102,35 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
 end
 
 
+function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM, cache;
+                                                   kwargs...)
+  @unpack alpha_smooth = indicator_hg
+  @unpack alpha, alpha_tmp = indicator_hg.cache
+  # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
+  #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
+  #       or just `resize!` whenever we call the relevant methods as we do now?
+  resize!(alpha, nelements(dg, cache))
+  if alpha_smooth
+    resize!(alpha_tmp, nelements(dg, cache))
+  end
+
+  # magic parameters
+  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
+  parameter_s = log((1 - 0.0001)/0.0001)
+
+  @threaded for element in eachelement(dg, cache)
+    # This is dispatched by mesh dimension.
+    calc_element_alpha_hg!(indicator_hg, u, mesh, equations, dg, cache,
+                           threshold, parameter_s, element)
+  end
+
+  if alpha_smooth
+    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
+  end
+
+  return alpha
+end
+
 
 """
     IndicatorLöhner (equivalent to IndicatorLoehner)
