@@ -413,9 +413,9 @@ end
 # Computes flux differencing contribution from each Cartesian direction over a single element.
 # For dense operators, we do not use sum factorization.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::False, volume_flux,
+                                          has_nonconservative_terms::False, volume_flux::VF,
                                           has_sparse_operators::False, mesh,
-                                          equations, dg, cache)
+                                          equations, dg, cache) where {VF}
 
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
@@ -427,9 +427,9 @@ end
 end
 
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::True, volume_flux,
+                                          has_nonconservative_terms::True, volume_flux::VF,
                                           has_sparse_operators::False, mesh,
-                                          equations, dg, cache)
+                                          equations, dg, cache) where {VF}
   flux_conservative, flux_nonconservative = volume_flux
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
@@ -450,9 +450,9 @@ end
 # When the operators are sparse, we use the sum-factorization approach to
 # computing flux differencing.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::False, volume_flux,
+                                          has_nonconservative_terms::False, volume_flux::VF,
                                           has_sparse_operators::True, mesh,
-                                          equations, dg, cache)
+                                          equations, dg, cache) where {VF}
   @unpack Qrst_skew = cache
   for dim in eachdim(mesh)
     # There are two ways to write this flux differencing discretization on affine meshes.
@@ -480,9 +480,9 @@ end
 end
 
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::True, volume_flux,
+                                          has_nonconservative_terms::True, volume_flux::VF,
                                           has_sparse_operators::True, mesh,
-                                          equations, dg, cache)
+                                          equations, dg, cache) where {VF}
   @unpack Qrst_skew = cache
   flux_conservative, flux_nonconservative = volume_flux
   for dim in eachdim(mesh)
