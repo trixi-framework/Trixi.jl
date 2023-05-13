@@ -165,12 +165,11 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
   return nothing
 end
 
-
 function calc_volume_integral!(du, u,
                                mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
-                               dg::DGMultiFluxDiff{<:GaussSBP}, cache)
+                               dg::DGMultiFluxDiff, cache)
 
   @unpack element_ids_dg, element_ids_dgfv = cache
   @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
@@ -183,41 +182,9 @@ function calc_volume_integral!(du, u,
 
   # Loop over pure DG elements
   @trixi_timeit timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
-    e = element_ids_dg[idx_element]
-
-    fluxdiff_local = cache.fluxdiff_local_threaded[Threads.threadid()]
-    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
-    u_local = view(cache.entropy_projected_u_values, :, e)
-
-    local_flux_differencing!(fluxdiff_local, u_local, e,
-                             have_nonconservative_terms, volume_integral.volume_flux,
-                             has_sparse_operators(dg),
-                             mesh, equations, dg, cache)
-
-    # convert `fluxdiff_local::Vector{<:SVector}` to `rhs_local::StructArray{<:SVector}`
-    # for faster performance when using `apply_to_each_field`.
-    rhs_local = cache.rhs_local_threaded[Threads.threadid()]
-    for i in Base.OneTo(length(fluxdiff_local))
-      rhs_local[i] = fluxdiff_local[i]
-    end
-
-    # stores rhs contributions only at Gauss volume nodes
-    rhs_volume_local = cache.rhs_volume_local_threaded[Threads.threadid()]
-
-    # Here, we exploit that under a Gauss nodal basis the structure of the projection
-    # matrix `Ph = [diagm(1 ./ wq), projection_matrix_gauss_to_face]` such that `Ph * [u; uf] = (u ./ wq) + projection_matrix_gauss_to_face * uf`.
-    volume_indices = Base.OneTo(dg.basis.Nq)
-    face_indices = (dg.basis.Nq + 1):(dg.basis.Nq + dg.basis.Nfq)
-    local_volume_flux = view(rhs_local, volume_indices)
-    local_face_flux = view(rhs_local, face_indices)
-
-    # initialize rhs_volume_local = projection_matrix_gauss_to_face * local_face_flux
-    apply_to_each_field(mul_by!(cache.projection_matrix_gauss_to_face), rhs_volume_local, local_face_flux)
-
-    # accumulate volume contributions at Gauss nodes
-    for i in eachindex(rhs_volume_local)
-      du[i, e] = rhs_volume_local[i] + local_volume_flux[i] * cache.inv_gauss_weights[i]
-    end
+    element = element_ids_dg[idx_element]
+    flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
+                              equations, volume_flux_dg, dg, cache)
   end
 
   # Loop over blended DG-FV elements
@@ -225,14 +192,13 @@ function calc_volume_integral!(du, u,
     element = element_ids_dgfv[idx_element]
     alpha_element = alpha[element]
 
-
     # # Calculate DG volume integral contribution
     # flux_differencing_kernel!(du, u, element, mesh,
-    #                           nonconservative_terms, equations,
+    #                           have_nonconservative_terms, equations,
     #                           volume_flux_dg, dg, cache, 1 - alpha_element)
 
     # # Calculate FV volume integral contribution
-    # fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
+    # fv_kernel!(du, u, mesh, have_nonconservative_terms, equations, volume_flux_fv,
     #            dg, cache, element, alpha_element)
 
     # blend them together via r_high * (1 - alpha) + r_low * (alpha)
