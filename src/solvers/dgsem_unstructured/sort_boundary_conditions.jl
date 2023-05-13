@@ -53,7 +53,8 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
       unique_names=unique(all_names)
       for key in keys(boundary_dictionary)
         if !(key in unique_names)
-          MPI.Abort(mpi_comm(),0)
+          println(stderr, "ERROR: Key $(repr(key)) is not a valid boundary name")
+          MPI.Abort(mpi_comm(), 1)
         end
       end
     else
