@@ -12,10 +12,10 @@ const DGMultiWeakForm{ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralWeakForm} where {NDIMS}
 
 const DGMultiFluxDiff{ApproxType, ElemType} =
-  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS}
+  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:Union{VolumeIntegralFluxDifferencing, VolumeIntegralShockCapturingHG}} where {NDIMS}
 
 const DGMultiFluxDiffSBP{ApproxType, ElemType} =
-  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS, ApproxType<:Union{SBP, AbstractDerivativeOperator}}
+  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:Union{VolumeIntegralFluxDifferencing, VolumeIntegralShockCapturingHG}} where {NDIMS, ApproxType<:Union{SBP, AbstractDerivativeOperator}}
 
 const DGMultiSBP{ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:Union{SBP, AbstractDerivativeOperator}, SurfaceIntegral, VolumeIntegral}
