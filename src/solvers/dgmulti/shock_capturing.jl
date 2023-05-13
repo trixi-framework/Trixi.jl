@@ -190,7 +190,7 @@ function calc_volume_integral!(du, u,
     u_local = view(cache.entropy_projected_u_values, :, e)
 
     local_flux_differencing!(fluxdiff_local, u_local, e,
-                             have_nonconservative_terms, volume_integral,
+                             have_nonconservative_terms, volume_integral.volume_flux,
                              has_sparse_operators(dg),
                              mesh, equations, dg, cache)
 
