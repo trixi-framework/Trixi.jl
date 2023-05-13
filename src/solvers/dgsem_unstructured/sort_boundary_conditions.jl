@@ -46,20 +46,19 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     send_buffer = Vector{UInt8}(join(unique_names, "\0"))
     push!(unique_names_byte, 0)
     if mpi_isroot()
-      recv_buffer_length = MPI.Gather(length(send_buffer), mpi_comm(); root=0)
+      recv_buffer_length = MPI.Gather(length(send_buffer), mpi_root(), mpi_comm())
       recv_buffer = Vector{UInt8}(undef, sum(recv_buffer_length))
-      MPI.Gatherv!(unique_names_byte, MPI.VBuffer(recv_buf, recv_buf_size), mpi_comm(); root=0)
-      all_names = Symbol.(split(String(recv_buf), "\0"; keepempty=false))
-      unique_names=unique(all_names)
+      MPI.Gatherv!(send_buffer, MPI.VBuffer(recv_buffer, recv_buffer_length), mpi_root, mpi_comm())
+      all_names = unique(Symbol.(split(String(recv_buf), "\0"; keepempty=false)))
       for key in keys(boundary_dictionary)
-        if !(key in unique_names)
+        if !(key in all_names)
           println(stderr, "ERROR: Key $(repr(key)) is not a valid boundary name")
           MPI.Abort(mpi_comm(), 1)
         end
       end
     else
-      MPI.Gather(length(unique_names_byte), mpi_comm(); root=0)
-      MPI.Gatherv!(unique_names_byte, nothing, mpi_comm(); root=0)
+      MPI.Gather(length(send_buffer), mpi_root(), mpi_comm())
+      MPI.Gatherv!(send_buffer, nothing, mpi_root(), mpi_comm())
     end
   else
     for key in keys(boundary_dictionary)
