@@ -120,8 +120,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
 
   @threaded for element in eachelement(dg, cache)
     # This is dispatched by mesh dimension.
-    calc_element_alpha_hg!(indicator_hg, u, mesh, equations, dg, cache,
-                           threshold, parameter_s, element)
+    calc_element_alpha_hg!(indicator_hg, threshold, parameter_s, u, element,
+                           mesh, equations, dg, cache)
   end
 
   if alpha_smooth
