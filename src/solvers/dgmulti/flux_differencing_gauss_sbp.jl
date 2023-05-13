@@ -414,10 +414,10 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
   end
 end
 
-function flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
-                                   have_nonconservative_terms, equations,
-                                   volume_flux, dg::DGMultiFluxDiff{<:GaussSBP},
-                                   cache, alpha=true)
+@inline function flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
+                                           have_nonconservative_terms, equations,
+                                           volume_flux, dg::DGMultiFluxDiff{<:GaussSBP},
+                                           cache, alpha=true)
 
   fluxdiff_local = cache.fluxdiff_local_threaded[Threads.threadid()]
   fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
