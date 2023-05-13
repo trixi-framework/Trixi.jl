@@ -44,11 +44,11 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
   if mpi_isparallel()
     # Exchange of boundaries names
     send_buffer = Vector{UInt8}(join(unique_names, "\0"))
-    push!(unique_names_byte, 0)
+    push!(send_buffer, 0)
     if mpi_isroot()
       recv_buffer_length = MPI.Gather(length(send_buffer), mpi_root(), mpi_comm())
       recv_buffer = Vector{UInt8}(undef, sum(recv_buffer_length))
-      MPI.Gatherv!(send_buffer, MPI.VBuffer(recv_buffer, recv_buffer_length), mpi_root, mpi_comm())
+      MPI.Gatherv!(send_buffer, MPI.VBuffer(recv_buffer, recv_buffer_length), mpi_root(), mpi_comm())
       all_names = unique(Symbol.(split(String(recv_buffer), "\0"; keepempty=false)))
       for key in keys(boundary_dictionary)
         if !(key in all_names)
