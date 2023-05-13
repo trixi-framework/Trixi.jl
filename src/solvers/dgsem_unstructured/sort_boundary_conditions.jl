@@ -43,7 +43,7 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
 
   if mpi_isparallel()
     # Exchange of boundaries names
-    unique_names_byte=Vector{UInt8}(join(unique_names, "\0"))
+    send_buffer = Vector{UInt8}(join(unique_names, "\0"))
     push!(unique_names_byte, 0)
     if mpi_isroot()
       recv_buf_size=MPI.Gather(length(unique_names_byte), mpi_comm(); root=0)
