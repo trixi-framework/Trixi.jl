@@ -82,7 +82,7 @@ DGMulti(basis::RefElemData; volume_integral, surface_integral) =
   DG(basis, nothing #= mortar =#, surface_integral, volume_integral)
 
 """
-  DGMultiBasis(element_type, polydeg; approximation_type = Polynomial(), kwargs...)
+    DGMultiBasis(element_type, polydeg; approximation_type = Polynomial(), kwargs...)
 
 Constructs a basis for DGMulti solvers. Returns a "StartUpDG.RefElemData" object.
 """
