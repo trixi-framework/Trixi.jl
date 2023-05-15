@@ -23,10 +23,10 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
   # create sparse hybridized operators for low order scheme
   Qrst, E = StartUpDG.sparse_low_order_SBP_operators(dg.basis)
   Brst = map(n -> Diagonal(n .* dg.basis.wf), dg.basis.nrstJ)
-  sparse_hybridized_SBP_operators = map((Q, B) -> [Q-Q' E'*B; -B*E zeros(size(B))], Qrst, Brst)
+  sparse_hybridized_SBP_operators = map((Q, B) -> 0.5 * [Q-Q' E'*B; -B*E zeros(size(B))], Qrst, Brst)
 
-  # find joint sparsity pattern of the entire matrix. store as a transpose
-  # for faster iteration through the rows.
+  # Find the joint sparsity pattern of the entire matrix. We store the sparsity pattern as
+  # a transpose for faster iteration through the rows.
   sparsity_pattern = transpose(sum(map(A -> abs.(A), sparse_hybridized_SBP_operators)) .> 100 * eps())
 
   return (; element_ids_dg, element_ids_dgfv, sparse_hybridized_SBP_operators, sparsity_pattern, EToE)
@@ -152,7 +152,8 @@ end
 # Given blending factors `alpha` and the solver `dg`, fill
 # `element_ids_dg` with the IDs of elements using a pure DG scheme and
 # `element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
-function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, mesh::DGMultiMesh, dg::DGMulti)
+function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha,
+                                       mesh::DGMultiMesh, dg::DGMulti)
   empty!(element_ids_dg)
   empty!(element_ids_dgfv)
 
@@ -191,7 +192,8 @@ function calc_volume_integral!(du, u,
                               equations, volume_flux_dg, dg, cache)
   end
 
-  # Loop over blended DG-FV elements
+  # Loop over blended DG-FV elements, blend the high and low order RHS contributions
+  # via `rhs_high * (1 - alpha) + rhs_low * (alpha)`.
   @trixi_timeit timer() "blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
     element = element_ids_dgfv[idx_element]
     alpha_element = alpha[element]
@@ -201,46 +203,75 @@ function calc_volume_integral!(du, u,
                               have_nonconservative_terms, equations,
                               volume_flux_dg, dg, cache, 1 - alpha_element)
 
-    # # Calculate "FV" low order volume integral contribution
+    # Calculate "FV" low order volume integral contribution
     low_order_flux_differencing_kernel!(du, u, element, mesh,
                                         have_nonconservative_terms, equations,
                                         volume_flux_fv, dg, cache, alpha_element)
-
-    # blend them together via r_high * (1 - alpha) + r_low * (alpha)
   end
 
   return nothing
+end
+
+get_sparse_operator_entries(i, j, mesh::DGMultiMesh{1}, cache) =
+  SVector(cache.sparse_hybridized_SBP_operators[1][i, j])
+
+function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{2}, cache)
+  Qr, Qs = cache.sparse_hybridized_SBP_operators
+  return SVector(Qr[i, j], Qs[i, j])
+end
+
+function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{3}, cache)
+  Qr, Qs, Qt = cache.sparse_hybridized_SBP_operators
+  return SVector(Qr[i, j], Qs[i, j], Qt[i, j])
+end
+
+get_contravariant_matrix(element, mesh::DGMultiMesh{1}, cache) =
+  SMatrix{1, 1}(cache.dxidxhatj[1, 1][1, element])
+
+function get_contravariant_matrix(element, mesh::DGMultiMesh{2, <:Affine}, cache)
+  (; dxidxhatj) = cache
+  return SMatrix{2, 2}(dxidxhatj[1, 1][1, element], dxidxhatj[2, 1][1, element],
+                       dxidxhatj[1, 2][1, element], dxidxhatj[2, 2][1, element])
+end
+
+function get_contravariant_matrix(element, mesh::DGMultiMesh{3, <:Affine}, cache)
+  (; dxidxhatj) = cache
+  return SMatrix{3, 3}(dxidxhatj[1, 1][1, element], dxidxhatj[2, 1][1, element], dxidxhatj[3, 1][1, element],
+                       dxidxhatj[1, 2][1, element], dxidxhatj[2, 2][1, element], dxidxhatj[3, 2][1, element],
+                       dxidxhatj[1, 3][1, element], dxidxhatj[2, 3][1, element], dxidxhatj[3, 3][1, element])
 end
 
 # computes an algebraic low order method with internal dissipation.
 # TODO: implement for curved meshes
 function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
                                              have_nonconservative_terms::False, equations,
-                                             volume_flux_fv, dg::DGMultiFluxDiff,
+                                             volume_flux_fv, dg::DGMultiFluxDiff{<:GaussSBP},
                                              cache, alpha=true)
-
-  (; sparsity_pattern, sparse_hybridized_SBP_operators) = cache
 
   # accumulates output from flux differencing
   rhs_local = cache.rhs_local_threaded[Threads.threadid()]
   fill!(rhs_local, zero(eltype(rhs_local)))
 
-  # TODO: add flux differencing loop using non-symmetric `volume_flux_fv`
   u_local = view(cache.entropy_projected_u_values, :, element)
 
+  (; sparsity_pattern) = cache
   A_base = parent(sparsity_pattern) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
-  row_ids, rows = axes(A, 2), rowvals(A_base)
+  row_ids, rows = axes(sparsity_pattern, 2), rowvals(A_base)
   for i in row_ids
     u_i = u_local[i]
-    du_i = rhs_local[i]
+    du_i = zero(u_i)
     for id in nzrange(A_base, i)
       j = rows[id]
       u_j = u_local[j]
-      # TODO: scale n_ij by geometric terms as well!
-      n_ij = SVector(getindex.(sparse_hybridized_SBP_operators, i, j))
-      n_ij_norm = norm(n_ij)
-      f_ij = volume_flux_fv(u_i, u_j, n_ij / n_ij_norm, equations)
-      du_i = du_i + f_ij * n_ij_norm
+
+      # compute (Q_1[i,j], Q_2[i,j], ...) where Q_i = ∑_j dxidxhatj * Q̂_j
+      geometric_matrix = get_contravariant_matrix(element, mesh, cache)
+      reference_operator_entries = get_sparse_operator_entries(i, j, mesh, cache)
+      normal_direction_ij = geometric_matrix * reference_operator_entries
+
+      n_ij_norm = norm(normal_direction_ij)
+      f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij / n_ij_norm, equations)
+      du_i = du_i + 2 * f_ij * n_ij_norm
     end
     rhs_local[i] = du_i
   end
@@ -259,7 +290,8 @@ function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
 
   # accumulate volume contributions at Gauss nodes
   for i in eachindex(rhs_volume_local)
-    du[i, element] = alpha * (rhs_volume_local[i] + local_volume_flux[i] * cache.inv_gauss_weights[i])
+    du_local = rhs_volume_local[i] + local_volume_flux[i] * cache.inv_gauss_weights[i]
+    du[i, element] = du[i, element] + alpha * du_local
   end
 
 end
