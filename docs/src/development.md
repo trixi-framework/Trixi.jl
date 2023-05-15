@@ -256,17 +256,13 @@ Breakpoints can be set by adding a line with the ```@infiltrate``` macro at the 
 in the code. Use [Revise](@ref interactive-use-of-julia) if you want to set and delete breakpoints
 in your package without having to restart Julia.
 
-!!! note
-    When running Julia inside a package environment, the ```@infiltrate``` macro only works if `Infiltrator`
-    has been added to the dependencies. Another work around when using Revise is to first load the
-    package and then add breakpoints with `Main.@infiltrate` to the code. If this is not
-    desired, the functional form
-    ```julia
-    if isdefined(Main, :Infiltrator)
-      Main.Infiltrator.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-    end
-    ```
-    can be used to set breakpoints when working with Trixi.jl or other packages.
+!!! note "Use `@autoinfiltrate` when debugging Trixi.jl"
+    When running Julia inside a package environment, e.g., inside the source
+    code of Trixi.jl itself, the `@infiltrate` macro only works if
+    `Infiltrator` has been added to the package dependencies. To avoid this,
+    you can use the (non-exported) [`@autoinfiltrate`](@ref) macro
+    in Trixi.jl, which only requires Infiltrator.jl to be available in the
+    current environment stack and will auto-load it for you.
 
 Triggering the breakpoint starts a REPL session where it is possible to interact with the current
 local scope. Possible commands are:
