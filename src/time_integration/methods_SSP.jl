@@ -171,7 +171,7 @@ function solve!(integrator::SimpleIntegratorSSP)
         # compute du
         integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
 
-        # perfom forward Euler step
+        # perform forward Euler step
         @. integrator.u = integrator.u + integrator.dt * integrator.du
       end
       @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u, t_stage, integrator.dt, integrator.p, indicator)
