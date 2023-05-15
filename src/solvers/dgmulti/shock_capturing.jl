@@ -175,8 +175,8 @@ function calc_volume_integral!(du, u,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGMultiFluxDiff, cache)
 
-  @unpack element_ids_dg, element_ids_dgfv = cache
-  @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
+  (; element_ids_dg, element_ids_dgfv) = cache
+  (; volume_flux_dg, volume_flux_fv, indicator) = volume_integral
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg, cache)
