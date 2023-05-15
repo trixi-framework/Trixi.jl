@@ -135,8 +135,8 @@ end
                                                      A::TensorProductGaussFaceOperator{2, Interpolation},
                                                      x::AbstractVector)
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; nnodes_1d) = A
 
   fill!(out, zero(eltype(out)))
 
@@ -169,8 +169,8 @@ end
                                                      A::TensorProductGaussFaceOperator{3, Interpolation},
                                                      x::AbstractVector)
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; nnodes_1d) = A
 
   fill!(out, zero(eltype(out)))
 
@@ -215,8 +215,8 @@ end
                                                      A::TensorProductGaussFaceOperator{2, Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; inv_volume_weights_1d, nnodes_1d) = A
 
   fill!(out_vec, zero(eltype(out_vec)))
 
@@ -400,8 +400,8 @@ end
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
                                 mesh::DGMultiMesh, equations,
                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache)
-  @unpack gauss_volume_local_threaded = cache
-  @unpack interp_matrix_gauss_to_lobatto, gauss_LIFT = cache
+
+  (; gauss_LIFT, gauss_volume_local_threaded) = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
 
