@@ -61,7 +61,8 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
   nnodes_1d = length(rq1D)
 
   # Permutation of indices in a tensor product form
-  indices = reshape(1:length(rd.rf), nnodes_1d, rd.Nfaces)
+  num_faces = StartUpDG.num_faces(rd.element_type)
+  indices = reshape(1:length(rd.rf), nnodes_1d, num_faces)
   face_indices_tensor_product = zeros(Int, 2, nnodes_1d, ndims(rd.element_type))
   for i in 1:nnodes_1d # loop over nodes in one face
     face_indices_tensor_product[:, i, 1] .= indices[i, 1:2]
@@ -76,7 +77,7 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
   return TensorProductGaussFaceOperator{2, T_op, Tm, Tw, Tf, Ti}(interp_matrix_gauss_to_face_1d,
                                                                  inv.(wq1D), rd.wf,
                                                                  face_indices_tensor_product,
-                                                                 nnodes_1d, rd.Nfaces)
+                                                                 nnodes_1d, num_faces)
 end
 
 # constructor for a 3D operator
@@ -90,7 +91,8 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
   nnodes_1d = length(rq1D)
 
   # Permutation of indices in a tensor product form
-  indices = reshape(1:length(rd.rf), nnodes_1d, nnodes_1d, rd.Nfaces)
+  num_faces = StartUpDG.num_faces(rd.element_type)
+  indices = reshape(1:length(rd.rf), nnodes_1d, nnodes_1d, num_faces)
   face_indices_tensor_product = zeros(Int, 2, nnodes_1d, nnodes_1d, ndims(rd.element_type))
   for j in 1:nnodes_1d, i in 1:nnodes_1d # loop over nodes in one face
     face_indices_tensor_product[:, i, j, 1] .= indices[i, j, 1:2]
@@ -106,7 +108,7 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
   return TensorProductGaussFaceOperator{3, T_op, Tm, Tw, Tf, Ti}(interp_matrix_gauss_to_face_1d,
                                                                  inv.(wq1D), rd.wf,
                                                                  face_indices_tensor_product,
-                                                                 nnodes_1d, rd.Nfaces)
+                                                                 nnodes_1d, num_faces)
 end
 
 # specialize behavior of `mul_by!(A)` where `A isa TensorProductGaussFaceOperator)`
@@ -511,8 +513,8 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
                                                               have_nonconservative_terms(equations),
                                                               equations, dg)
 
-  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
-                                                            mesh, equations, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, mesh,
+                                                            have_nonconservative_terms(equations), equations, dg)
 
   # `du` is stored at Gauss nodes here
   @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, dg.surface_integral,
