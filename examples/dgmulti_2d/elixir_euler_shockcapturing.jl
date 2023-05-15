@@ -1,5 +1,5 @@
 
-# using OrdinaryDiffEq
+using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
@@ -24,7 +24,7 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
 dg = DGMulti(basis,
-             surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
+             surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = volume_integral)
 
 cells_per_dimension = (8, 8)
@@ -32,12 +32,20 @@ mesh = DGMultiMesh(dg, cells_per_dimension, periodicity=true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
 
-tspan = (0.0, 0.4)
+tspan = (0.0, 0.15)
 ode = semidiscretize(semi, tspan)
 
-u = ode.u0
-du = similar(u)
-indicator_sc(u, mesh, equations, dg, semi.cache)
+summary_callback = SummaryCallback()
+alive_callback = AliveCallback(alive_interval=10)
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval, uEltype=real(dg))
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
-Trixi.calc_volume_integral!(du, u, mesh, Trixi.have_nonconservative_terms(equations),
-                            equations, volume_integral, dg, semi.cache)
+###############################################################################
+# run the simulation
+
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=callbacks);
+
+summary_callback() # print the timer summary
+
