@@ -177,6 +177,56 @@ const IndicatorLoehner = IndicatorLöhner
 end
 
 
+"""
+    IndicatorIDP
+
+TODO: docstring
+
+Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturingSubcell`](@ref) proposed by
+- Rueda-Ramírez, Pazner, Gassner (2022)
+  "Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods"
+- Pazner (2020)
+  "Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting"
+  [arXiv:2004.08503](https://doi.org/10.1016/j.cma.2021.113876)
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct IndicatorIDP{RealT<:Real, Cache} <: AbstractIndicator
+  IDPPositivity::Bool
+  variables_cons::Tuple{Any}      # Positivity of conservative variables
+  cache::Cache
+  positCorrFactor::RealT          # Correction factor for IDPPositivity
+end
+
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function IndicatorIDP(equations::AbstractEquations, basis;
+                      IDPPositivity=false,
+                      variables_cons=(first,),
+                      positCorrFactor=0.1)
+
+  number_bounds = IDPPositivity * length(variables_cons)
+
+  cache = create_cache(IndicatorIDP, equations, basis, number_bounds)
+
+  IndicatorIDP{typeof(positCorrFactor), typeof(cache)}(IDPPositivity, variables_cons,
+      cache, positCorrFactor)
+end
+
+function Base.show(io::IO, indicator::IndicatorIDP)
+  @nospecialize indicator # reduce precompilation time
+  @unpack IDPPositivity = indicator
+
+  print(io, "IndicatorIDP(")
+  if !(IDPPositivity)
+    print(io, "No limiter selected => pure DG method")
+  else
+    print(io, "limiter=(")
+    IDPPositivity && print(io, "IDPPositivity with variables $(indicator.variables_cons)")
+    print(io, "), ")
+  end
+  print(io, ")")
+end
 
 """
     IndicatorMax(equations::AbstractEquations, basis; variable)

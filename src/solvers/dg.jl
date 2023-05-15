@@ -172,6 +172,47 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFi
 end
 
 
+"""
+    VolumeIntegralShockCapturingSubcell(indicator;
+                                        volume_flux_dg, volume_flux_fv)
+
+A shock-capturing volume integral type for DG methods based on a subcell blending approach
+with a low-order FV method from the preprint paper
+- Rueda-Ramírez, Pazner, Gassner (2022)
+  "Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods"
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+See also: [`VolumeIntegralShockCapturingHG`](@ref)
+"""
+struct VolumeIntegralShockCapturingSubcell{VolumeFluxDG, VolumeFluxFV, Indicator} <: AbstractVolumeIntegral
+  volume_flux_dg::VolumeFluxDG
+  volume_flux_fv::VolumeFluxFV
+  indicator::Indicator
+end
+
+function VolumeIntegralShockCapturingSubcell(indicator; volume_flux_dg,
+                                                        volume_flux_fv)
+  VolumeIntegralShockCapturingSubcell{typeof(volume_flux_dg), typeof(volume_flux_fv), typeof(indicator)}(
+    volume_flux_dg, volume_flux_fv, indicator)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralShockCapturingSubcell)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "volume flux dg" => integral.volume_flux_dg,
+            "volume flux fv" => integral.volume_flux_fv,
+            "indicator" => integral.indicator
+            ]
+    summary_box(io, "VolumeIntegralShockCapturingSubcell", setup)
+  end
+end
+
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
 """
