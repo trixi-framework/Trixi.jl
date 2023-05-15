@@ -200,6 +200,8 @@ struct IndicatorIDP{RealT<:Real, Cache, Indicator} <: AbstractIndicator
   IDPDensityTVD::Bool
   IDPPressureTVD::Bool
   IDPPositivity::Bool
+  variables_cons::Tuple{Any}      # Positivity of conservative variables
+  variables_nonlinear::Tuple{Any} # Positivity of nonlinear variables
   IDPSpecEntropy::Bool
   IDPMathEntropy::Bool
   BarStates::Bool
@@ -220,6 +222,8 @@ function IndicatorIDP(equations::AbstractEquations, basis;
                       IDPDensityTVD=false,
                       IDPPressureTVD=false,
                       IDPPositivity=false,
+                      variables_cons=(first,),
+                      variables_nonlinear=(),
                       IDPSpecEntropy=false,
                       IDPMathEntropy=false,
                       BarStates=true,
@@ -232,10 +236,10 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     error("Only one of the two can be selected: IDPMathEntropy/IDPSpecEntropy")
   end
 
-  length = 2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
-              min(IDPPositivity, !IDPDensityTVD) + min(IDPPositivity, !IDPPressureTVD)
+  number_bounds = 2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
+                  IDPPositivity * (length(variables_cons) + length(variables_nonlinear))
 
-  cache = create_cache(IndicatorIDP, equations, basis, length, BarStates)
+  cache = create_cache(IndicatorIDP, equations, basis, number_bounds, BarStates)
 
   if indicator_smooth
     IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_max=1.0, alpha_smooth=false,
@@ -244,8 +248,9 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     IndicatorHG = nothing
   end
   IndicatorIDP{typeof(positCorrFactor), typeof(cache), typeof(IndicatorHG)}(IDPDensityTVD, IDPPressureTVD,
-      IDPPositivity, IDPSpecEntropy, IDPMathEntropy, BarStates, cache, positCorrFactor, IDPMaxIter,
-      newton_tol, IDP_gamma, IDPCheckBounds, indicator_smooth, thr_smooth, IndicatorHG)
+      IDPPositivity, variables_cons, variables_nonlinear, IDPSpecEntropy, IDPMathEntropy, BarStates,
+      cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma, IDPCheckBounds,
+      indicator_smooth, thr_smooth, IndicatorHG)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
@@ -260,7 +265,8 @@ function Base.show(io::IO, indicator::IndicatorIDP)
     IDPDensityTVD  && print(io, "IDPDensityTVD, ")
     IDPPressureTVD && print(io, "IDPPressureTVD with positivity correlation factor of ",
                             indicator.positCorrFactor, ", ")
-    IDPPositivity  && print(io, "IDPPositivity, ")
+    IDPPositivity  && print(io, "IDPPositivity with variables $(indicator.variables_cons) and
+                                 $(indicator.variables_nonlinear), ")
     IDPSpecEntropy && print(io, "IDPSpecEntropy, ")
     IDPMathEntropy && print(io, "IDPMathEntropy, ")
     print(io, "), ")

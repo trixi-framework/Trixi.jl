@@ -200,8 +200,8 @@ end
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length, BarStates)
-  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorIDP{real(basis)}(0, nnodes(basis), length)
+function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, number_bounds, BarStates)
+  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorIDP{real(basis)}(0, nnodes(basis), number_bounds)
 
   cache = (; )
   if BarStates
@@ -211,7 +211,7 @@ function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquation
 
   alpha_max_avg = zeros(real(basis), 2)
 
-  idp_bounds_delta = zeros(real(basis), length)
+  idp_bounds_delta = zeros(real(basis), number_bounds)
 
   return (; cache..., alpha_max_avg, ContainerShockCapturingIndicator, idp_bounds_delta)
 end
@@ -230,9 +230,7 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSE
   indicator_IDP.IDPPressureTVD &&
     @trixi_timeit timer() "IDPPressureTVD" IDP_pressureTVD!(alpha, indicator_IDP, u, t, dt, semi, elements)
   indicator_IDP.IDPPositivity  &&
-    @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, indicator_IDP, u,    dt, semi, elements;
-                                                            variables_cons=(Trixi.density,),
-                                                            variables_nonlinear=(pressure,))
+    @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, indicator_IDP, u,    dt, semi, elements)
   indicator_IDP.IDPSpecEntropy &&
     @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, indicator_IDP, u, t, dt, semi, elements)
   indicator_IDP.IDPMathEntropy &&
@@ -653,22 +651,22 @@ mathEntropy_goal(bound, u, equations) = bound - entropy_math(u, equations)
 mathEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entropy(u, equations), dt * antidiffusive_flux)
 mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_abstol, abs(bound) * newton_abstol)
 
-@inline function IDP_positivity!(alpha, indicator_IDP, u, dt, semi, elements; variables_cons::Tuple{Any}, variables_nonlinear::Tuple{Any})
+@inline function IDP_positivity!(alpha, indicator_IDP, u, dt, semi, elements)
 
   # Conservative variables
-  for variable in variables_cons
-    IDP_positivity!(alpha, indicator_IDP, u, dt, semi, elements, variable)
+  for (index, variable) in enumerate(indicator_IDP.variables_cons)
+    IDP_positivity!(alpha, indicator_IDP, u, dt, semi, elements, variable, index)
   end
 
   # Nonlinear variables
-  for variable in variables_nonlinear
-    IDP_positivity_newton!(alpha, indicator_IDP, u, dt, semi, elements, variable)
+  for (index, variable) in enumerate(indicator_IDP.variables_nonlinear)
+    IDP_positivity_newton!(alpha, indicator_IDP, u, dt, semi, elements, variable, length(indicator_IDP.variables_cons) + index)
   end
 
   return nothing
 end
 
-@inline function IDP_positivity!(alpha, indicator_IDP, u, dt, semi, elements, variable)
+@inline function IDP_positivity!(alpha, indicator_IDP, u, dt, semi, elements, variable, index)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
@@ -738,7 +736,7 @@ end
 end
 
 
-@inline function IDP_positivity_newton!(alpha, indicator_IDP, u, dt, semi, elements, variable)
+@inline function IDP_positivity_newton!(alpha, indicator_IDP, u, dt, semi, elements, variable, index)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack positCorrFactor = indicator_IDP
 
