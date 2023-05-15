@@ -82,7 +82,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
     LinearAlgebra.mul!(modal_, inverse_vandermonde, indicator)
 
     # reshape into a matrix over each element
-    modal = reshape(modal_, ntuple(_ -> dg.basis.N + 1, NDIMS))
+    modal = Base.ReshapedArray(modal_, ntuple(_ -> dg.basis.N + 1, NDIMS), ())
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = sum(x -> x^2, modal)
