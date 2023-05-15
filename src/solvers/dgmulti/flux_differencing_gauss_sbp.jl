@@ -133,7 +133,7 @@ end
 # Interpolates values from volume Gauss nodes to face nodes on one element.
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{2, Interpolation},
-                                                     x::AbstractVector)
+                                                     x_in::AbstractVector)
 
   (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
   (; nnodes_1d) = A
@@ -141,7 +141,7 @@ end
   fill!(out, zero(eltype(out)))
 
   # for 2D GaussSBP nodes, the indexing is first in x, then in y
-  x = reshape(x, nnodes_1d, nnodes_1d)
+  x = reshape(x_in, nnodes_1d, nnodes_1d)
 
   # interpolation in the x-direction
   @turbo for i in Base.OneTo(nnodes_1d) # loop over nodes in a face
@@ -221,7 +221,7 @@ end
   fill!(out_vec, zero(eltype(out_vec)))
 
   # for 2D GaussSBP nodes, the indexing is first in x, then y
-  out = reshape(out_vec, nnodes_1d, nnodes_1d)
+  out = Base.ReshapedArray(out_vec, (nnodes_1d, nnodes_1d), ())
 
   if ApplyFaceWeights == true
     @turbo for i in eachindex(x)
