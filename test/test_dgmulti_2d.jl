@@ -264,6 +264,22 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_mhd_shockcapturing.jl (Quad, GaussSBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing.jl"),
+      cells_per_dimension = 4,
+      l2 = [0.03907080217848331, 0.04392704198524466, 0.04392704198524461, 0.016177248016110948, 0.1722437509283779, 0.013655951767042283, 0.013655951767042412, 0.018847230556298285, 0.0013125550874292797],
+      linf = [0.15997646032670665, 0.23235069411991283, 0.2323506941199129, 0.07662933782185148, 0.6893741602045766, 0.04107701126015795, 0.0410770112601595, 0.06965128130538811, 0.0049943833569429524]
+    )
+  end
+
+  @trixi_testset "elixir_mhd_shockcapturing_curved.jl (Quad, GaussSBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_curved.jl"),
+      cells_per_dimension = 4,
+      l2 = [0.03691413998808588, 0.04201497790374049, 0.04201497790374046, 0.016642270246531483, 0.15993639023696093, 0.01339577742550962, 0.013395777425509563, 0.01793081083313673, 0.001273473976326049],
+      linf = [0.1594347511333063, 0.23578546957707439, 0.23578546957707353, 0.08055559290123786, 0.6846515522953074, 0.03973793321214769, 0.03973793321214636, 0.07361271593377616, 0.007359832477771447]
+    )
+  end
+
   @trixi_testset "elixir_mhd_weak_blast_wave.jl (Tri)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
       cells_per_dimension = 4, element_type = Tri(),
