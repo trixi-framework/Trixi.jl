@@ -46,8 +46,8 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
 
   # initialize inverse Vandermonde matrices at Gauss-Legendre nodes
   (; N) = basis
-  gauss_node_coordinates_1D, _ = StartUpDG.gauss_quad(0, 0, N)
-  VDM_1D = StartUpDG.vandermonde(Line(), N, gauss_node_coordinates_1D)
+  lobatto_node_coordinates_1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, N)
+  VDM_1D = StartUpDG.vandermonde(Line(), N, lobatto_node_coordinates_1D)
   inverse_vandermonde = SimpleKronecker(NDIMS, inv(VDM_1D))
 
   return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde)
@@ -73,7 +73,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
     indicator = indicator_threaded[Threads.threadid()]
     modal_ = modal_threaded[Threads.threadid()]
 
-    # Calculate indicator variables at *Gauss* nodes.
+    # Calculate indicator variable at interpolation (Lobatto) nodes.
+    # TODO: calculate indicator variables at Gauss nodes or using `cache.entropy_projected_u_values`
     for i in eachnode(dg)
       indicator[i] = indicator_hg.variable(u[i, element], equations)
     end
