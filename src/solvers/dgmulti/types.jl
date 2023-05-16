@@ -303,6 +303,9 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
     tmp_storage[i] = x_in[i]
   end
   x = reshape(tmp_storage, n, n)
+  # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
+  # Thus, Base.ReshapedArray should be used if you are setting values in the array.
+  # `reshape` is fine if you are only accessing values.
   b = Base.ReshapedArray(b_in, (n, n), ())
 
   @turbo thread=true for j in 1:n, i in 1:n
@@ -340,6 +343,9 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
     tmp_storage[i] = x_in[i]
   end
   x = reshape(tmp_storage, n, n, n)
+  # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
+  # Thus, Base.ReshapedArray should be used if you are setting values in the array.
+  # `reshape` is fine if you are only accessing values.
   b = Base.ReshapedArray(b_in, (n, n, n), ())
 
   @turbo thread=true for k in 1:n, j in 1:n, i in 1:n

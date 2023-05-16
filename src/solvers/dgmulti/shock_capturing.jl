@@ -82,7 +82,10 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
     # multiply by invVDM::SimpleKronecker
     LinearAlgebra.mul!(modal_, inverse_vandermonde, indicator)
 
-    # reshape modal coefficients to exploit tensor product structure
+    # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
+    # Thus, Base.ReshapedArray should be used if you are setting values in the array.
+    # `reshape` is fine if you are only accessing values.
+    # Here, we reshape modal coefficients to expose the tensor product structure.
     modal = Base.ReshapedArray(modal_, ntuple(_ -> dg.basis.N + 1, NDIMS), ())
 
     # Calculate total energies for all modes, all modes minus the highest mode, and

@@ -220,7 +220,10 @@ end
 
   fill!(out_vec, zero(eltype(out_vec)))
 
-  # for 2D GaussSBP nodes, the indexing is first in x, then y
+  # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
+  # Thus, Base.ReshapedArray should be used if you are setting values in the array.
+  # `reshape` is fine if you are only accessing values.
+  # Note that, for 2D GaussSBP nodes, the indexing is first in x, then y
   out = Base.ReshapedArray(out_vec, (nnodes_1d, nnodes_1d), ())
 
   if ApplyFaceWeights == true
@@ -266,7 +269,10 @@ end
 
   fill!(out_vec, zero(eltype(out_vec)))
 
-  # for 3D GaussSBP nodes, the indexing is first in y, then x, then z.
+  # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
+  # Thus, Base.ReshapedArray should be used if you are setting values in the array.
+  # `reshape` is fine if you are only accessing values.
+  # Note that, for 3D GaussSBP nodes, the indexing is first in y, then x, then z.
   out = Base.ReshapedArray(out_vec, (nnodes_1d, nnodes_1d, nnodes_1d), ())
 
   if ApplyFaceWeights == true
