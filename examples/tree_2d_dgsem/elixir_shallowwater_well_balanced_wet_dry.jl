@@ -102,9 +102,9 @@ for element in eachelement(semi.solver, semi.cache)
     # We know that the discontinuity is a vertical line. Slightly augment the x value by a factor
     # of unit roundoff to avoid the repeted value from the LGL nodes at at interface.
     if i == 1
-      x_node = SVector(nextfloat(x_node[1], 1) , x_node[2])
+      x_node = SVector(nextfloat(x_node[1]) , x_node[2])
     elseif i == nnodes(semi.solver)
-      x_node = SVector(prevfloat(x_node[1], 1) , x_node[2])
+      x_node = SVector(prevfloat(x_node[1]) , x_node[2])
     end
     u_node = initial_condition_complex_bottom_well_balanced(x_node, first(tspan), equations)
     Trixi.set_node_vars!(u, u_node, equations, semi.solver, i, j, element)
@@ -175,9 +175,9 @@ l1_well_balance_error = Trixi.integrate_via_indices(u, mesh, equations, semi.sol
   # We know that the discontinuity is a vertical line. Slightly augment the x value by a factor
   # of unit roundoff to avoid the repeted value from the LGL nodes at at interface.
   if i == 1
-    x_node = SVector(nextfloat(x_node[1], 1) , x_node[2])
+    x_node = SVector(nextfloat(x_node[1]) , x_node[2])
   elseif i == nnodes(semi.solver)
-    x_node = SVector(prevfloat(x_node[1], 1) , x_node[2])
+    x_node = SVector(prevfloat(x_node[1]) , x_node[2])
   end
   u_local = Trixi.get_node_vars(u, equations, solver, i, j, element)
   return lake_at_rest_error_two_level(u_local, x_node, equations)

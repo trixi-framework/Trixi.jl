@@ -451,8 +451,8 @@ end
     hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, orientation::Integer,
                                            equations::ShallowWaterEquations2D)
 
-A particular type of hydrostatic reconstruction on the water height to guarantee well-balancedness
-for a general bottom topography [`ShallowWaterEquations2D`](@ref). The reconstructed solution states
+A particular type of hydrostatic reconstruction of the water height to guarantee well-balancedness
+for a general bottom topography of the [`ShallowWaterEquations2D`](@ref). The reconstructed solution states
 `u_ll_star` and `u_rr_star` variables are used to evaluate the surface numerical flux at the interface.
 The key idea is a linear reconstruction of the bottom and water height at the interfaces using subcells.
 Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).
@@ -643,9 +643,9 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
 end
 
 @inline function flux_nonconservative_chen_noelle(u_ll, u_rr,
-                                                   normal_direction_ll::AbstractVector,
-                                                   normal_direction_average::AbstractVector,
-                                                   equations::ShallowWaterEquations2D)
+                                                  normal_direction_ll::AbstractVector,
+                                                  normal_direction_average::AbstractVector,
+                                                  equations::ShallowWaterEquations2D)
   # Pull the water height and bottom topography on the left
   h_ll, _, _, b_ll = u_ll
   h_rr, _, _, b_rr = u_rr

@@ -65,7 +65,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 
 
 ###############################################################################
-# Create the TreeMesh for the domain [-1, 1]^2
+# Create the TreeMesh for the domain [-2, 2]^2
 
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
@@ -87,9 +87,9 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=false,
-                                    extra_analysis_integrals=(energy_kinetic,
-                                                              energy_internal,
-                                                              lake_at_rest_error))
+                                     extra_analysis_integrals=(energy_kinetic,
+                                                               energy_internal,
+                                                               lake_at_rest_error))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
