@@ -275,9 +275,10 @@ function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
       reference_operator_entries = get_sparse_operator_entries(i, j, mesh, cache)
       normal_direction_ij = geometric_matrix * reference_operator_entries
 
-      n_ij_norm = norm(normal_direction_ij)
-      f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij / n_ij_norm, equations)
-      du_i = du_i + 2 * f_ij * n_ij_norm
+      # note that we do not need to normalize `normal_direction_ij` since
+      # it is typically normalized within the flux computation.
+      f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij, equations)
+      du_i = du_i + 2 * f_ij
     end
     rhs_local[i] = du_i
   end
