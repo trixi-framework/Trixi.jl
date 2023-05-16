@@ -133,15 +133,15 @@ end
 # Interpolates values from volume Gauss nodes to face nodes on one element.
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{2, Interpolation},
-                                                     x::AbstractVector)
+                                                     x_in::AbstractVector)
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; nnodes_1d) = A
 
   fill!(out, zero(eltype(out)))
 
   # for 2D GaussSBP nodes, the indexing is first in x, then in y
-  x = reshape(x, nnodes_1d, nnodes_1d)
+  x = reshape(x_in, nnodes_1d, nnodes_1d)
 
   # interpolation in the x-direction
   @turbo for i in Base.OneTo(nnodes_1d) # loop over nodes in a face
@@ -169,8 +169,8 @@ end
                                                      A::TensorProductGaussFaceOperator{3, Interpolation},
                                                      x::AbstractVector)
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; nnodes_1d) = A
 
   fill!(out, zero(eltype(out)))
 
@@ -215,13 +215,16 @@ end
                                                      A::TensorProductGaussFaceOperator{2, Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; inv_volume_weights_1d, nnodes_1d) = A
 
   fill!(out_vec, zero(eltype(out_vec)))
 
-  # for 2D GaussSBP nodes, the indexing is first in x, then y
-  out = reshape(out_vec, nnodes_1d, nnodes_1d)
+  # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
+  # Thus, Base.ReshapedArray should be used if you are setting values in the array.
+  # `reshape` is fine if you are only accessing values.
+  # Note that, for 2D GaussSBP nodes, the indexing is first in x, then y
+  out = Base.ReshapedArray(out_vec, (nnodes_1d, nnodes_1d), ())
 
   if ApplyFaceWeights == true
     @turbo for i in eachindex(x)
@@ -266,8 +269,11 @@ end
 
   fill!(out_vec, zero(eltype(out_vec)))
 
-  # for 3D GaussSBP nodes, the indexing is first in y, then x, then z.
-  out = reshape(out_vec, nnodes_1d, nnodes_1d, nnodes_1d)
+  # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
+  # Thus, Base.ReshapedArray should be used if you are setting values in the array.
+  # `reshape` is fine if you are only accessing values.
+  # Note that, for 3D GaussSBP nodes, the indexing is first in y, then x, then z.
+  out = Base.ReshapedArray(out_vec, (nnodes_1d, nnodes_1d, nnodes_1d), ())
 
   if ApplyFaceWeights == true
     @turbo for i in eachindex(x)
@@ -351,9 +357,12 @@ function create_cache(mesh::DGMultiMesh, equations,
   return (; cache..., projection_matrix_gauss_to_face, gauss_LIFT, inv_gauss_weights,
          rhs_volume_local_threaded, gauss_volume_local_threaded,
          interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
-         interp_matrix_gauss_to_face)
+         interp_matrix_gauss_to_face,
+         create_cache(mesh, equations, dg.volume_integral, dg, RealT, uEltype)...) # add cache specialized on the volume integral
 end
 
+# by default, return an empty tuple for volume integral caches
+create_cache(mesh, equations, volume_integral, dg, RealT, uEltype) = NamedTuple()
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff{<:GaussSBP})
@@ -397,8 +406,8 @@ end
 function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache)
-  @unpack gauss_volume_local_threaded = cache
-  @unpack interp_matrix_gauss_to_lobatto, gauss_LIFT = cache
+
+  (; gauss_LIFT, gauss_volume_local_threaded) = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
 
@@ -434,8 +443,12 @@ end
     rhs_local[i] = fluxdiff_local[i]
   end
 
-  # stores rhs contributions only at Gauss volume nodes
-  rhs_volume_local = cache.rhs_volume_local_threaded[Threads.threadid()]
+  project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+
+end
+
+function project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh::DGMultiMesh,
+                                     dg::DGMulti, cache, alpha=true)
 
   # Here, we exploit that under a Gauss nodal basis the structure of the projection
   # matrix `Ph = [diagm(1 ./ wq), projection_matrix_gauss_to_face]` such that
@@ -446,11 +459,13 @@ end
   local_face_flux = view(rhs_local, face_indices)
 
   # initialize rhs_volume_local = projection_matrix_gauss_to_face * local_face_flux
+  rhs_volume_local = cache.rhs_volume_local_threaded[Threads.threadid()]
   apply_to_each_field(mul_by!(cache.projection_matrix_gauss_to_face), rhs_volume_local, local_face_flux)
 
   # accumulate volume contributions at Gauss nodes
   for i in eachindex(rhs_volume_local)
-    du[i, element] = alpha * (rhs_volume_local[i] + local_volume_flux[i] * cache.inv_gauss_weights[i])
+    du_local = rhs_volume_local[i] + local_volume_flux[i] * cache.inv_gauss_weights[i]
+    du[i, element] = du[i, element] + alpha * du_local
   end
 end
 
