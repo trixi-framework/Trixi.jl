@@ -41,8 +41,8 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
   alpha_tmp = similar(alpha)
 
   A = Vector{real(basis)}
-  indicator_threaded  = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
-  modal_threaded      = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+  indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+  modal_threaded     = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
 
   # initialize inverse Vandermonde matrices at Gauss-Legendre nodes
   (; N) = basis
