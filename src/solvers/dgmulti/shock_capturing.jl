@@ -82,15 +82,15 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
     # multiply by invVDM::SimpleKronecker
     LinearAlgebra.mul!(modal_, inverse_vandermonde, indicator)
 
-    # reshape into a matrix over each element
+    # reshape modal coefficients to exploit tensor product structure
     modal = Base.ReshapedArray(modal_, ntuple(_ -> dg.basis.N + 1, NDIMS), ())
 
-    # Calculate total energies for all modes, without highest, without two highest
+    # Calculate total energies for all modes, all modes minus the highest mode, and
+    # all modes without the two highest modes
     total_energy = sum(x -> x^2, modal)
-
-    # TODO: check if this allocates
     clip_1_ranges = ntuple(_ -> Base.OneTo(dg.basis.N), NDIMS)
     clip_2_ranges = ntuple(_ -> Base.OneTo(dg.basis.N - 1), NDIMS)
+    # These splattings do not seem to allocate as of Julia 1.9.0?
     total_energy_clip1 = sum(x -> x^2, view(modal, clip_1_ranges...))
     total_energy_clip2 = sum(x -> x^2, view(modal, clip_2_ranges...))
 
@@ -277,6 +277,7 @@ function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
     rhs_local[i] = du_i
   end
 
+  # TODO: factor this out to avoid calling it twice during calc_volume_integral!
   project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
 
 end
