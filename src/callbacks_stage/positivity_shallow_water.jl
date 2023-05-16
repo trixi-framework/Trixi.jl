@@ -19,12 +19,11 @@ To avoid numerical problems caused by velocities close to zero,
 the velocity is cut off, such that the node can be identified as "dry". The special feature of the
 `ShallowWaterEquations` used here is that the bottom topography is stored as an additional
 quantity in the solution vector `u`. However, the value of the bottom topography
-should not be changed, much less limited. That is why, the `set_node_vars!` function is not applied
-to the last conservation variable.
+should not be changed. That is why, it is not limited.
 After the limiting process is applied to all degrees of freedom, for safety reasons,
-the wet/dry threshold is applied again on all the DG nodes in order to avoid dry nodes. 
-In the case where value_mean < threshold before applying the limiter, there could still be dry nodes
-afterwards due to the logic of the limiter.
+the wet/dry threshold is applied again on all the DG nodes in order to avoid dry nodes.
+In the case where the cell mean value is below the threshold before applying the limiter,
+there could still be dry nodes afterwards due to the logic of the limiter.
 This fully-discrete positivity-preserving limiter is based on the work of 
 - Zhang, Shu (2011)
   Maximum-principle-satisfying and positivity-preserving high-order schemes
