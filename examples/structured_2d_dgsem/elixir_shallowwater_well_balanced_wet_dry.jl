@@ -89,32 +89,14 @@ tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 ###############################################################################
-# Workaround to set a discontinuous bottom topography for debugging and testing.
-
-# alternative version of the initial condition used to setup a truly discontinuous
-# bottom topography function for this academic testcase.
-# The errors from the analysis callback are not important but the error for this lake at rest test case
-# `∑|H0-(h+b)|` should be around machine roundoff
-# The `x` node value passed here is slightly perturbed to the left / right in order to set a true
-# discontinuity that avoid the doubled up value of the LGL nodes at a particular interface.
-# The function still have `element_id` as an input to have a unique call signature.
-function initial_condition_discontinuous_well_balancedness(x, t, element_id, equations::ShallowWaterEquations2D)
-  # Set the background values
-  v1 = 0
-  v2 = 0
-  b = sin(4 * pi * x[1]) + 1
-  H = max(b, 1.5)
-
-  if x[1] < 0.5
-    b = sin(4 * pi * x[1]) + 3
-    H = max(b, 2.5)
-  end
-
-  # Shift the water level by the amount `equations.threshold_limiter` (1e-13 per default)
-  # to avoid division by a hard 0 value in the water height `h` when computing velocities.
-  H = max(H, b + equations.threshold_limiter)
-  return prim2cons(SVector(H, v1, v2, b), equations)
-end
+# Workaround to set a discontinuous water and bottom topography for
+# debugging and testing. Essentially, this is a slight augmentation of the
+# `compute_coefficients` where the `x` node value passed here is slightly
+# perturbed to the left / right in order to set a true discontinuity that avoids
+# the doubled value of the LGL nodes at a particular element interface.
+#
+# Note! The errors from the analysis callback are not important but the error
+# for this lake at rest test case `∑|H0-(h+b)|` should be near machine roundoff.
 
 # point to the data we want to augment
 u = Trixi.wrap_array(ode.u0, semi)
@@ -129,7 +111,7 @@ for element in eachelement(semi.solver, semi.cache)
     elseif i == nnodes(semi.solver)
       x_node = SVector(prevfloat(x_node[1], 1) , x_node[2])
     end
-    u_node = initial_condition_discontinuous_well_balancedness(x_node, first(tspan), element, equations)
+    u_node = initial_condition_complex_bottom_well_balanced(x_node, first(tspan), equations)
     Trixi.set_node_vars!(u, u_node, equations, semi.solver, i, j, element)
   end
 end

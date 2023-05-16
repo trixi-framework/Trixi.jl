@@ -112,7 +112,7 @@ julia> using PkgBenchmark, Trixi
 
 julia> results = benchmarkpkg(Trixi, BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=1`))
 
-julia> export_markdown(joinpath(pathof(Trixi) |> dirname |> dirname, "benchmark", "single_benchmark.md"), results)
+julia> export_markdown(pkgdir(Trixi, "benchmark", "single_benchmark.md"), results)
 ```
 This will save a markdown file with a summary of the benchmark results similar to
 [this example](https://gist.github.com/ranocha/494fa2529e1e6703c17b08434c090980).
@@ -132,7 +132,7 @@ julia> results = judge(Trixi,
              BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=1`, id="main") # baseline
        )
 
-julia> export_markdown(joinpath(pathof(Trixi) |> dirname |> dirname, "benchmark", "results.md"), results)
+julia> export_markdown(pkgdir(Trixi, "benchmark", "results.md"), results)
 ```
 By default, the `target` is the current state of the repository. Remember that you
 need to be in a clean state (commit or stash your changes) to run this successfully.
