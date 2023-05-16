@@ -247,12 +247,68 @@ function get_contravariant_matrix(element, mesh::DGMultiMesh{3, <:Affine}, cache
                        dxidxhatj[1, 3][1, element], dxidxhatj[2, 3][1, element], dxidxhatj[3, 3][1, element])
 end
 
+function get_contravariant_matrix(i, element, mesh::DGMultiMesh{2}, cache)
+  (; dxidxhatj) = cache
+  return SMatrix{2, 2}(dxidxhatj[1, 1][i, element], dxidxhatj[2, 1][i, element],
+                       dxidxhatj[1, 2][i, element], dxidxhatj[2, 2][i, element])
+end
+
+function get_contravariant_matrix(i, element, mesh::DGMultiMesh{3}, cache)
+  (; dxidxhatj) = cache
+  return SMatrix{3, 3}(dxidxhatj[1, 1][i, element], dxidxhatj[2, 1][i, element], dxidxhatj[3, 1][i, element],
+                       dxidxhatj[1, 2][i, element], dxidxhatj[2, 2][i, element], dxidxhatj[3, 2][i, element],
+                       dxidxhatj[1, 3][i, element], dxidxhatj[2, 3][i, element], dxidxhatj[3, 3][i, element])
+end
+
+get_avg_contravariant_matrix(i, j, element, mesh::DGMultiMesh, cache) =
+  0.5 * (get_contravariant_matrix(i, element, mesh, cache) + get_contravariant_matrix(j, element, mesh, cache))
+
 # computes an algebraic low order method with internal dissipation.
-# TODO: implement for curved meshes
 function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
                                              have_nonconservative_terms::False, equations,
                                              volume_flux_fv, dg::DGMultiFluxDiff{<:GaussSBP},
                                              cache, alpha=true)
+
+  # accumulates output from flux differencing
+  rhs_local = cache.rhs_local_threaded[Threads.threadid()]
+  fill!(rhs_local, zero(eltype(rhs_local)))
+
+  u_local = view(cache.entropy_projected_u_values, :, element)
+
+  # constant over each element
+  geometric_matrix = get_contravariant_matrix(element, mesh, cache)
+
+  (; sparsity_pattern) = cache
+  A_base = parent(sparsity_pattern) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
+  row_ids, rows = axes(sparsity_pattern, 2), rowvals(A_base)
+  for i in row_ids
+    u_i = u_local[i]
+    du_i = zero(u_i)
+    for id in nzrange(A_base, i)
+      j = rows[id]
+      u_j = u_local[j]
+
+      # compute (Q_1[i,j], Q_2[i,j], ...) where Q_i = ∑_j dxidxhatj * Q̂_j
+      reference_operator_entries = get_sparse_operator_entries(i, j, mesh, cache)
+      normal_direction_ij = geometric_matrix * reference_operator_entries
+
+      # note that we do not need to normalize `normal_direction_ij` since
+      # it is typically normalized within the flux computation.
+      f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij, equations)
+      du_i = du_i + 2 * f_ij
+    end
+    rhs_local[i] = du_i
+  end
+
+  # TODO: factor this out to avoid calling it twice during calc_volume_integral!
+  project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+
+end
+
+function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh{NDIMS, <:NonAffine},
+                                             have_nonconservative_terms::False, equations,
+                                             volume_flux_fv, dg::DGMultiFluxDiff{<:GaussSBP},
+                                             cache, alpha=true) where {NDIMS}
 
   # accumulates output from flux differencing
   rhs_local = cache.rhs_local_threaded[Threads.threadid()]
@@ -271,7 +327,7 @@ function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
       u_j = u_local[j]
 
       # compute (Q_1[i,j], Q_2[i,j], ...) where Q_i = ∑_j dxidxhatj * Q̂_j
-      geometric_matrix = get_contravariant_matrix(element, mesh, cache)
+      geometric_matrix = get_avg_contravariant_matrix(i, j, element, mesh, cache)
       reference_operator_entries = get_sparse_operator_entries(i, j, mesh, cache)
       normal_direction_ij = geometric_matrix * reference_operator_entries
 
