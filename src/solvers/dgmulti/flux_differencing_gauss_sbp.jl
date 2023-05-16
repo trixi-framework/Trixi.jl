@@ -267,7 +267,7 @@ end
   fill!(out_vec, zero(eltype(out_vec)))
 
   # for 3D GaussSBP nodes, the indexing is first in y, then x, then z.
-  out = reshape(out_vec, nnodes_1d, nnodes_1d, nnodes_1d)
+  out = Base.ReshapedArray(out_vec, (nnodes_1d, nnodes_1d, nnodes_1d), ())
 
   if ApplyFaceWeights == true
     @turbo for i in eachindex(x)
@@ -443,6 +443,7 @@ end
 
 function project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh::DGMultiMesh,
                                      dg::DGMulti, cache, alpha=true)
+
   # Here, we exploit that under a Gauss nodal basis the structure of the projection
   # matrix `Ph = [diagm(1 ./ wq), projection_matrix_gauss_to_face]` such that
   # `Ph * [u; uf] = (u ./ wq) + projection_matrix_gauss_to_face * uf`.
