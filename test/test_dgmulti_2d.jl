@@ -169,6 +169,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_euler_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
+      cells_per_dimension = 4, tspan = (0.0, 0.1),
+      l2 = [0.056335580365642936, 0.04295642146172505, 0.04295642146172509, 0.20911589516121318],
+      linf = [0.22840321038564715, 0.16613691600124197, 0.1661369160012426, 0.8306402442898251]
+    )
+  end
+
   @trixi_testset "elixir_euler_weakform.jl (FD SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (2, 2),

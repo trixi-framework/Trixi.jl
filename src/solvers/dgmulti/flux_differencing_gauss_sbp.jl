@@ -133,15 +133,15 @@ end
 # Interpolates values from volume Gauss nodes to face nodes on one element.
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{2, Interpolation},
-                                                     x::AbstractVector)
+                                                     x_in::AbstractVector)
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; nnodes_1d) = A
 
   fill!(out, zero(eltype(out)))
 
   # for 2D GaussSBP nodes, the indexing is first in x, then in y
-  x = reshape(x, nnodes_1d, nnodes_1d)
+  x = reshape(x_in, nnodes_1d, nnodes_1d)
 
   # interpolation in the x-direction
   @turbo for i in Base.OneTo(nnodes_1d) # loop over nodes in a face
@@ -169,8 +169,8 @@ end
                                                      A::TensorProductGaussFaceOperator{3, Interpolation},
                                                      x::AbstractVector)
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; nnodes_1d) = A
 
   fill!(out, zero(eltype(out)))
 
@@ -215,13 +215,13 @@ end
                                                      A::TensorProductGaussFaceOperator{2, Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
 
-  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
+  (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
+  (; inv_volume_weights_1d, nnodes_1d) = A
 
   fill!(out_vec, zero(eltype(out_vec)))
 
   # for 2D GaussSBP nodes, the indexing is first in x, then y
-  out = reshape(out_vec, nnodes_1d, nnodes_1d)
+  out = Base.ReshapedArray(out_vec, (nnodes_1d, nnodes_1d), ())
 
   if ApplyFaceWeights == true
     @turbo for i in eachindex(x)
@@ -267,7 +267,7 @@ end
   fill!(out_vec, zero(eltype(out_vec)))
 
   # for 3D GaussSBP nodes, the indexing is first in y, then x, then z.
-  out = reshape(out_vec, nnodes_1d, nnodes_1d, nnodes_1d)
+  out = Base.ReshapedArray(out_vec, (nnodes_1d, nnodes_1d, nnodes_1d), ())
 
   if ApplyFaceWeights == true
     @turbo for i in eachindex(x)
@@ -351,9 +351,12 @@ function create_cache(mesh::DGMultiMesh, equations,
   return (; cache..., projection_matrix_gauss_to_face, gauss_LIFT, inv_gauss_weights,
          rhs_volume_local_threaded, gauss_volume_local_threaded,
          interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
-         interp_matrix_gauss_to_face)
+         interp_matrix_gauss_to_face,
+         create_cache(mesh, equations, dg.volume_integral, dg, RealT, uEltype)...) # add cache specialized on the volume integral
 end
 
+# by default, return an empty tuple for volume integral caches
+create_cache(mesh, equations, volume_integral, dg, RealT, uEltype) = NamedTuple()
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff{<:GaussSBP})
@@ -397,8 +400,8 @@ end
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
                                 mesh::DGMultiMesh, equations,
                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache)
-  @unpack gauss_volume_local_threaded = cache
-  @unpack interp_matrix_gauss_to_lobatto, gauss_LIFT = cache
+
+  (; gauss_LIFT, gauss_volume_local_threaded) = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
 
@@ -413,55 +416,62 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
   end
 end
 
+@inline function flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
+                                           have_nonconservative_terms, equations,
+                                           volume_flux, dg::DGMultiFluxDiff{<:GaussSBP},
+                                           cache, alpha=true)
+
+  fluxdiff_local = cache.fluxdiff_local_threaded[Threads.threadid()]
+  fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
+  u_local = view(cache.entropy_projected_u_values, :, element)
+
+  local_flux_differencing!(fluxdiff_local, u_local, element,
+                           have_nonconservative_terms,
+                           volume_flux, has_sparse_operators(dg),
+                           mesh, equations, dg, cache)
+
+  # convert `fluxdiff_local::Vector{<:SVector}` to `rhs_local::StructArray{<:SVector}`
+  # for faster performance when using `apply_to_each_field`.
+  rhs_local = cache.rhs_local_threaded[Threads.threadid()]
+  for i in Base.OneTo(length(fluxdiff_local))
+    rhs_local[i] = fluxdiff_local[i]
+  end
+
+  project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+
+end
+
+function project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh::DGMultiMesh,
+                                     dg::DGMulti, cache, alpha=true)
+
+  # Here, we exploit that under a Gauss nodal basis the structure of the projection
+  # matrix `Ph = [diagm(1 ./ wq), projection_matrix_gauss_to_face]` such that
+  # `Ph * [u; uf] = (u ./ wq) + projection_matrix_gauss_to_face * uf`.
+  volume_indices = Base.OneTo(dg.basis.Nq)
+  face_indices = (dg.basis.Nq + 1):(dg.basis.Nq + dg.basis.Nfq)
+  local_volume_flux = view(rhs_local, volume_indices)
+  local_face_flux = view(rhs_local, face_indices)
+
+  # initialize rhs_volume_local = projection_matrix_gauss_to_face * local_face_flux
+  rhs_volume_local = cache.rhs_volume_local_threaded[Threads.threadid()]
+  apply_to_each_field(mul_by!(cache.projection_matrix_gauss_to_face), rhs_volume_local, local_face_flux)
+
+  # accumulate volume contributions at Gauss nodes
+  for i in eachindex(rhs_volume_local)
+    du_local = rhs_volume_local[i] + local_volume_flux[i] * cache.inv_gauss_weights[i]
+    du[i, element] = du[i, element] + alpha * du_local
+  end
+end
+
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
-                               volume_integral, dg::DGMultiFluxDiff{<:GaussSBP},
-                               cache)
-
-  @unpack entropy_projected_u_values = cache
-  @unpack fluxdiff_local_threaded, rhs_local_threaded, rhs_volume_local_threaded = cache
-
-  # After computing the volume integral, the rhs values are stored at Gauss nodes.
-  # We transform from Gauss nodes back to Lobatto nodes in `invert_jacobian!`.
-  @unpack projection_matrix_gauss_to_face, inv_gauss_weights = cache
-
-  rd = dg.basis
-  volume_indices = Base.OneTo(rd.Nq)
-  face_indices = (rd.Nq + 1):(rd.Nq + rd.Nfq)
+                               volume_integral::VolumeIntegralFluxDifferencing,
+                               dg::DGMultiFluxDiff{<:GaussSBP}, cache)
 
   @threaded for e in eachelement(mesh, dg, cache)
-    fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
-    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
-    u_local = view(entropy_projected_u_values, :, e)
-
-    local_flux_differencing!(fluxdiff_local, u_local, e,
-                             have_nonconservative_terms, volume_integral,
-                             has_sparse_operators(dg),
-                             mesh, equations, dg, cache)
-
-    # convert `fluxdiff_local::Vector{<:SVector}` to `rhs_local::StructArray{<:SVector}`
-    # for faster performance when using `apply_to_each_field`.
-    rhs_local = rhs_local_threaded[Threads.threadid()]
-    for i in Base.OneTo(length(fluxdiff_local))
-      rhs_local[i] = fluxdiff_local[i]
-    end
-
-    # stores rhs contributions only at Gauss volume nodes
-    rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
-
-    # Here, we exploit that under a Gauss nodal basis the structure of the projection
-    # matrix `Ph = [diagm(1 ./ wq), projection_matrix_gauss_to_face]` such that `Ph * [u; uf] = (u ./ wq) + projection_matrix_gauss_to_face * uf`.
-    local_volume_flux = view(rhs_local, volume_indices)
-    local_face_flux = view(rhs_local, face_indices)
-
-    # initialize rhs_volume_local = projection_matrix_gauss_to_face * local_face_flux
-    apply_to_each_field(mul_by!(projection_matrix_gauss_to_face), rhs_volume_local, local_face_flux)
-
-    # accumulate volume contributions at Gauss nodes
-    for i in eachindex(rhs_volume_local)
-      du[i, e] = rhs_volume_local[i] + local_volume_flux[i] * inv_gauss_weights[i]
-    end
-
+    flux_differencing_kernel!(du, u, e, mesh,
+                              have_nonconservative_terms, equations,
+                              volume_integral.volume_flux, dg, cache)
   end
 
 end
