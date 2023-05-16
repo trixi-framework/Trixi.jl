@@ -260,7 +260,7 @@ in your package without having to restart Julia.
     When running Julia inside a package environment, e.g., inside the source
     code of Trixi.jl itself, the `@infiltrate` macro only works if
     `Infiltrator` has been added to the package dependencies. To avoid this,
-    you can use the (non-exported) [`@autoinfiltrate`](@ref) macro
+    you can use the (non-exported) `@autoinfiltrate` macro
     in Trixi.jl, which only requires Infiltrator.jl to be available in the
     current environment stack and will auto-load it for you.
 
