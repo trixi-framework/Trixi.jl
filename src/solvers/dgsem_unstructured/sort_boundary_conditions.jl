@@ -41,10 +41,26 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
 
   unique_names = unique(cache.boundaries.name)
 
-  # TODO: This needs to be handled differently for the `ParallelP4estMesh` since the boundaries
-  # are distributed and thus unique_names only contains the names of boundaries on the local process
-  # See https://github.com/trixi-framework/Trixi.jl/issues/1047
-  if !mpi_isparallel()
+  if mpi_isparallel()
+    # Exchange of boundaries names
+    send_buffer = Vector{UInt8}(join(unique_names, "\0"))
+    push!(send_buffer, 0)
+    if mpi_isroot()
+      recv_buffer_length = MPI.Gather(length(send_buffer), mpi_root(), mpi_comm())
+      recv_buffer = Vector{UInt8}(undef, sum(recv_buffer_length))
+      MPI.Gatherv!(send_buffer, MPI.VBuffer(recv_buffer, recv_buffer_length), mpi_root(), mpi_comm())
+      all_names = unique(Symbol.(split(String(recv_buffer), "\0"; keepempty=false)))
+      for key in keys(boundary_dictionary)
+        if !(key in all_names)
+          println(stderr, "ERROR: Key $(repr(key)) is not a valid boundary name")
+          MPI.Abort(mpi_comm(), 1)
+        end
+      end
+    else
+      MPI.Gather(length(send_buffer), mpi_root(), mpi_comm())
+      MPI.Gatherv!(send_buffer, nothing, mpi_root(), mpi_comm())
+    end
+  else
     for key in keys(boundary_dictionary)
       if !(key in unique_names)
         error("Key $(repr(key)) is not a valid boundary name")

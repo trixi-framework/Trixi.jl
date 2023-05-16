@@ -292,6 +292,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_mhd_reflective_wall.jl (Quad)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_reflective_wall.jl"),
+      cells_per_dimension = 4,
+      l2 = [0.0036019536614619687, 0.001734097206958611, 0.008375221008997178, 0.0, 0.028596796602124414, 0.0018573693138866614, 0.0020807798141551166, 0.0, 5.301188920230166e-5],
+      linf = [0.01692601228199253, 0.009369662298436778, 0.04145169295835428, 0.0, 0.11569908670112738, 0.00984964453299233, 0.01141708032148614, 0.0, 0.0002992631411931389]
+    )
+  end
+
   @trixi_testset "elixir_shallowwater_source_terms.jl (Quad, SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       cells_per_dimension = 8, element_type = Quad(), approximation_type = SBP(),
