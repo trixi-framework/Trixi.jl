@@ -5,18 +5,18 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
   element_ids_dg   = Int[]
   element_ids_dgfv = Int[]
 
-  # build element to element (EToE) connectivity for smoothing of
+  # build element to element (element_to_element_connectivity) connectivity for smoothing of
   # shock capturing parameters.
-  FToF = mesh.md.FToF # num_faces x num_elements matrix
-  EToE = similar(FToF)
-  for e in axes(FToF, 2)
-    for f in axes(FToF, 1)
-      neighbor_face_index = FToF[f, e]
+  face_to_face_connectivity = mesh.md.FToF # num_faces x num_elements matrix
+  element_to_element_connectivity = similar(face_to_face_connectivity)
+  for e in axes(face_to_face_connectivity, 2)
+    for f in axes(face_to_face_connectivity, 1)
+      neighbor_face_index = face_to_face_connectivity[f, e]
 
       # reverse-engineer element index from face. Assumes all elements
       # have the same number of faces.
       neighbor_element_index = ((neighbor_face_index - 1) ÷ dg.basis.num_faces) + 1
-      EToE[f, e] = neighbor_element_index
+      element_to_element_connectivity[f, e] = neighbor_element_index
     end
   end
 
@@ -29,7 +29,9 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
   # a transpose for faster iteration through the rows.
   sparsity_pattern = transpose(sum(map(A -> abs.(A), sparse_hybridized_SBP_operators)) .> 100 * eps())
 
-  return (; element_ids_dg, element_ids_dgfv, sparse_hybridized_SBP_operators, sparsity_pattern, EToE)
+  return (; element_ids_dg, element_ids_dgfv,
+            sparse_hybridized_SBP_operators, sparsity_pattern,
+            element_to_element_connectivity)
 end
 
 
@@ -143,7 +145,7 @@ function apply_smoothing!(mesh::DGMultiMesh, alpha, alpha_tmp, dg::DGMulti, cach
   # smooth alpha with its neighboring value
   for element in eachelement(mesh, dg)
     for face in Base.OneTo(StartUpDG.num_faces(dg.basis.element_type))
-      neighboring_element = cache.EToE[face, element]
+      neighboring_element = cache.element_to_element_connectivity[face, element]
       alpha_neighbor = alpha_tmp[neighboring_element]
       alpha[element]  = max(alpha[element], 0.5 * alpha_neighbor)
     end
