@@ -67,8 +67,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 
   @trixi_testset "elixir_shallowwater_conical_island.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_conical_island.jl"),
-        l2   = [0.26189905898488786, 0.13109288589313403, 0.1310928914335753, 0.0011537702354532694],
-        linf = [1.1129921709644124, 0.22929803337323118, 0.22929795378591095, 0.021790250683516282],
+        l2   = [0.2618983342695597, 0.13109108041929424, 0.13109110585147288, 0.0011537702354532694],
+        linf = [1.1129905688342554, 0.22928931141214653, 0.2292892349702747, 0.021790250683516282],
         tspan = (0.0, 0.25))
   end
 

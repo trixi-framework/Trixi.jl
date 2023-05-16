@@ -109,7 +109,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 stage_limiter! = PositivityPreservingLimiterShallowWater(thresholds=(equations.threshold_limiter,),
                                                          variables=(Trixi.waterheight,))
 
-sol = solve(ode, SSPRK43(stage_limiter!), dt=1.0, 
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, SSPRK43(stage_limiter!);
+            ode_default_options()..., callback=callbacks);
 
 summary_callback() # print the timer summary
