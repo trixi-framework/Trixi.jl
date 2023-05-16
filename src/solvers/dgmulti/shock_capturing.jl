@@ -276,22 +276,7 @@ function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
     rhs_local[i] = du_i
   end
 
-  # Here, we exploit that under a Gauss nodal basis the structure of the projection
-  # matrix `Ph = [diagm(1 ./ wq), projection_matrix_gauss_to_face]` such that
-  # `Ph * [u; uf] = (u ./ wq) + projection_matrix_gauss_to_face * uf`.
-  volume_indices = Base.OneTo(dg.basis.Nq)
-  face_indices = (dg.basis.Nq + 1):(dg.basis.Nq + dg.basis.Nfq)
-  local_volume_flux = view(rhs_local, volume_indices)
-  local_face_flux = view(rhs_local, face_indices)
-
-  # initialize rhs_volume_local = projection_matrix_gauss_to_face * local_face_flux
-  rhs_volume_local = cache.rhs_volume_local_threaded[Threads.threadid()]
-  apply_to_each_field(mul_by!(cache.projection_matrix_gauss_to_face), rhs_volume_local, local_face_flux)
-
-  # accumulate volume contributions at Gauss nodes
-  for i in eachindex(rhs_volume_local)
-    du_local = rhs_volume_local[i] + local_volume_flux[i] * cache.inv_gauss_weights[i]
-    du[i, element] = du[i, element] + alpha * du_local
-  end
+  project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
 
 end
+
