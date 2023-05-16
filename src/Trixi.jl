@@ -237,7 +237,7 @@ export ode_norm, ode_unstable_check
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
-export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
+export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 
 export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
 
