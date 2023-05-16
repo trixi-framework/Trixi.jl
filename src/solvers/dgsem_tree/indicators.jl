@@ -116,16 +116,17 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
 
   # magic parameters
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-  parameter_s = log((1 - 0.0001)/0.0001)
+  parameter_s = log((1 - 0.0001) / 0.0001)
 
   @threaded for element in eachelement(dg, cache)
     # This is dispatched by mesh dimension.
-    # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
-    # with @batch (@threaded).
-    # Otherwise, @threaded does not work here with Julia ARM on macOS.
+    # Use this function barrier and unpack inside to avoid passing closures to
+    # Polyester.jl with `@batch` (`@threaded`).
+    # Otherwise, `@threaded` does not work here with Julia ARM on macOS.
     # See https://github.com/JuliaSIMD/Polyester.jl/issues/88.
-    calc_element_alpha_hg!(indicator_hg, threshold, parameter_s, u, element,
-                           mesh, equations, dg, cache)
+    calc_indicator_hennemann_gassner!(
+      indicator_hg, threshold, parameter_s, u,
+      element, mesh, equations, dg, cache)
   end
 
   if alpha_smooth
