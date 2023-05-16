@@ -17,13 +17,11 @@ dg = DGMulti(element_type = Wedge(),
             polydeg = tensor_polydeg)
 
 
-coordinates_min = (-1.0, -1.0, -1.0)
-coordinates_max = (1.0, 1.0, 1.0)
 cells_per_dimension = (8, 8, 8)
 mesh = DGMultiMesh(dg, 
-                cells_per_dimension = cells_per_dimension,
-                coordinates_min = coordinates_min, 
-                coordinates_max = coordinates_max,
+                cells_per_dimension,
+                coordinates_min = (-1.0, -1.0, -1.0), 
+                coordinates_max = (1.0, 1.0, 1.0),
                 periodicity = true)
 
 
