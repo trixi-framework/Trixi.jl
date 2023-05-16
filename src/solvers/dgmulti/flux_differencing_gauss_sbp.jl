@@ -394,8 +394,8 @@ end
 
 # Assumes cache.flux_face_values is already computed.
 # Enables tensor product evaluation of `LIFT isa TensorProductGaussFaceOperator`.
-function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::DGMultiMesh, equations,
+function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
+                                surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache)
   @unpack gauss_volume_local_threaded = cache
   @unpack interp_matrix_gauss_to_lobatto, gauss_LIFT = cache
@@ -514,8 +514,8 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
                                                             have_nonconservative_terms(equations), equations, dg)
 
   # `du` is stored at Gauss nodes here
-  @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, dg.surface_integral,
-                                                                  mesh, equations, dg, cache)
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, mesh, equations,
+                                                                  dg.surface_integral, dg, cache)
 
   # invert Jacobian and map `du` from Gauss to Lobatto nodes
   @trixi_timeit timer() "Jacobian" invert_jacobian_and_interpolate!(du, mesh, equations, dg, cache)
