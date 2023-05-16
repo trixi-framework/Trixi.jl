@@ -46,7 +46,7 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     # re-initialize mpi cache
     @unpack mpi_cache = cache
     init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars,
-                    nvariables(equations), nnodes(dg))
+                    nvariables(equations), nnodes(dg), eltype(elements))
   end
 end
 

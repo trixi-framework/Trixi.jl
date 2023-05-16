@@ -5,8 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_dgsem")
+EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 
 @testset "Compressible Euler Multicomponent" begin
   # NOTE: Some of the L2/Linf errors are comparably large. This is due to the fact that some of the
