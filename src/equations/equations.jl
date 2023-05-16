@@ -171,7 +171,8 @@ end
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
                                                                   normal_direction::AbstractVector,
                                                                   x, t,
-                                                                  surface_flux_function, equations)
+                                                                  surface_flux_function,
+                                                                  equations)
   # get the external value of the solution
   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
@@ -328,7 +329,7 @@ include("compressible_euler_multicomponent_2d.jl")
     eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractCompressibleEulerMulticomponentEquations`. 
+for the components in `AbstractCompressibleEulerMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations) = Base.OneTo(ncomponents(equations))
@@ -350,7 +351,7 @@ include("ideal_glm_mhd_multicomponent_2d.jl")
     eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractIdealGlmMhdMulticomponentEquations`. 
+for the components in `AbstractIdealGlmMhdMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations) = Base.OneTo(ncomponents(equations))

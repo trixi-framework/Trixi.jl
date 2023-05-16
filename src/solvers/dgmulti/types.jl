@@ -93,6 +93,22 @@ function DGMulti(element_type::AbstractElemShape,
   return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
 end
 
+DGMulti(basis::RefElemData; volume_integral, surface_integral) =
+  DG(basis, nothing #= mortar =#, surface_integral, volume_integral)
+
+"""
+    DGMultiBasis(element_type, polydeg; approximation_type = Polynomial(), kwargs...)
+
+Constructs a basis for DGMulti solvers. Returns a "StartUpDG.RefElemData" object.
+  The `kwargs` arguments are additional keyword arguments for `RefElemData`, such as `quad_rule_vol`.
+  These are the same as the `RefElemData_kwargs` used in [`DGMulti`](@ref).
+  For more info, see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/).
+
+"""
+DGMultiBasis(element_type, polydeg; approximation_type = Polynomial(), kwargs...) =
+  RefElemData(element_type, approximation_type, polydeg; kwargs...)
+
+
 ########################################
 #            DGMultiMesh
 ########################################
