@@ -26,8 +26,8 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
   sparse_hybridized_SBP_operators = map((Q, B) -> 0.5 * [Q-Q' E'*B; -B*E zeros(size(B))], Qrst, Brst)
 
   # Find the joint sparsity pattern of the entire matrix. We store the sparsity pattern as
-  # a transpose for faster iteration through the rows.
-  sparsity_pattern = transpose(sum(map(A -> abs.(A), sparse_hybridized_SBP_operators)) .> 100 * eps())
+  # an adjoint for faster iteration through the rows.
+  sparsity_pattern = sum(map(A -> abs.(A)', sparse_hybridized_SBP_operators)) .> 100 * eps()
 
   return (; element_ids_dg, element_ids_dgfv,
             sparse_hybridized_SBP_operators, sparsity_pattern,
