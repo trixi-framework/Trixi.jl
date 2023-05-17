@@ -1314,6 +1314,7 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
 end
 
 
+# Container data structure (structure-of-arrays style) for variables used for IDP limiting
 mutable struct ContainerShockCapturingIndicatorIDP{uEltype<:Real}
   alpha::Array{uEltype, 3}                  # [i, j, element]
   alpha1::Array{uEltype, 3}

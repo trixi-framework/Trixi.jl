@@ -177,12 +177,18 @@ const IndicatorLoehner = IndicatorLöhner
 end
 
 
+
 """
-    IndicatorIDP
+    IndicatorIDP(equations::AbstractEquations, basis;
+                 IDPPositivity=false,
+                 variables_cons=(first,),
+                 positCorrFactor=0.1)
 
-TODO: docstring
+Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturingSubcell`](@ref) including:
+- positivity limiting for conservative variables.
 
-Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturingSubcell`](@ref) proposed by
+## References
+
 - Rueda-Ramírez, Pazner, Gassner (2022)
   "Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods"
 - Pazner (2020)
@@ -227,6 +233,8 @@ function Base.show(io::IO, indicator::IndicatorIDP)
   end
   print(io, ")")
 end
+
+
 
 """
     IndicatorMax(equations::AbstractEquations, basis; variable)

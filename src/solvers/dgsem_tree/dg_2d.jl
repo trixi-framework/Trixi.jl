@@ -519,12 +519,11 @@ function calc_volume_integral!(du, u,
                                dg::DGSEM, cache)
   @unpack indicator = volume_integral
 
-  # Loop over all elements
-  @trixi_timeit timer() "subcell-wise blended DG-FV" @threaded for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     subcell_limiting_kernel!(du, u, element, mesh,
-                              nonconservative_terms, equations,
-                              volume_integral, indicator,
-                              dg, cache)
+                             nonconservative_terms, equations,
+                             volume_integral, indicator,
+                             dg, cache)
   end
 end
 
@@ -576,6 +575,8 @@ end
 #
 # Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
 # (**without non-conservative terms**).
+#
+# See also `flux_differencing_kernel!`.
 #
 # # Arguments
 # - `fhat1::AbstractArray{<:Real, 3}`
@@ -648,6 +649,17 @@ end
   return nothing
 end
 
+
+#     calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
+#                             nonconservative_terms, equations, indicator::IndicatorIDP, dg, element, cache)
+#
+# Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar`.
+#
+# # Arguments
+# - `fhat1::AbstractArray{<:Real, 3}`
+# - `fhat2::AbstractArray{<:Real, 3}`
+# - `fstar1::AbstractArray{<:Real, 3}`
+# - `fstar2::AbstractArray{<:Real, 3}`
 @inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations, indicator::IndicatorIDP, dg, element, cache)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
@@ -677,7 +689,7 @@ end
 
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  @trixi_timeit timer() "alpha calculation" semi.solver.volume_integral.indicator(u, semi, solver, t, dt)
+  @trixi_timeit timer() "blending factors" semi.solver.volume_integral.indicator(u, semi, solver, t, dt)
 
   perform_IDP_correction(u, dt, mesh, equations, solver, cache)
 
@@ -689,7 +701,6 @@ end
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack alpha1, alpha2 = dg.volume_integral.indicator.cache.ContainerShockCapturingIndicator
 
-  # Loop over blended DG-FV elements
   @threaded for element in eachelement(dg, cache)
     inverse_jacobian = -cache.elements.inverse_jacobian[element]
 
