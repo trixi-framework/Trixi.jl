@@ -169,6 +169,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_euler_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
+      cells_per_dimension = 4, tspan = (0.0, 0.1),
+      l2 = [0.05685148333985476, 0.04308122135907089, 0.043081221359070915, 0.21098131003847664],
+      linf = [0.2360672306096051, 0.16684417686971842, 0.1668441768697189, 0.8572572782118661]
+    )
+  end
+
   @trixi_testset "elixir_euler_weakform.jl (FD SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (2, 2),
@@ -289,6 +297,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.22701306227317952, 0.2905255794821543, 0.2912409425436937, 0.08051361477962096,
               1.0842974228656006, 0.07866000368926784, 0.0786646354518149, 0.1614896380292925,
               0.010358210347485542]
+    )
+  end
+
+  @trixi_testset "elixir_mhd_reflective_wall.jl (Quad)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_reflective_wall.jl"),
+      cells_per_dimension = 4,
+      l2 = [0.0036019536614619687, 0.001734097206958611, 0.008375221008997178, 0.0, 0.028596796602124414, 0.0018573693138866614, 0.0020807798141551166, 0.0, 5.301188920230166e-5],
+      linf = [0.01692601228199253, 0.009369662298436778, 0.04145169295835428, 0.0, 0.11569908670112738, 0.00984964453299233, 0.01141708032148614, 0.0, 0.0002992631411931389]
     )
   end
 
