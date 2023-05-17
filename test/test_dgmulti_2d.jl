@@ -185,6 +185,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+
   @trixi_testset "elixir_euler_weakform.jl (FD SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (2, 2),
