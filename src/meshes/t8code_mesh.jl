@@ -190,6 +190,139 @@ function T8codeMesh(trees_per_dimension; polydeg,
 end
 
 """
+    T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh},
+                     mapping=nothing, polydeg=1, RealT=Float64,
+                     initial_refinement_level=0, unsaved_changes=true)
+Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
+mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
+from the `meshfile` is created as a [`p4est`](https://github.com/cburstedde/p4est)
+tree datatype.
+Note that the `mapping` and `polydeg` keyword arguments are only used by the `p4est_mesh_from_standard_abaqus`
+function. The `p4est_mesh_from_hohqmesh_abaqus` function obtains the mesh `polydeg` directly from the `meshfile`
+and constructs the transfinite mapping internally.
+The particular strategy is selected according to the header present in the `meshfile` where
+the constructor checks whether or not the `meshfile` was created with
+[HOHQMesh.jl](https://github.com/trixi-framework/HOHQMesh.jl).
+If the Abaqus file header is not present in the `meshfile` then the `P4estMesh` is created
+with the function `p4est_mesh_from_standard_abaqus`.
+The default keyword argument `initial_refinement_level=0` corresponds to a forest
+where the number of trees is the same as the number of elements in the original `meshfile`.
+Increasing the `initial_refinement_level` allows one to uniformly refine the base mesh given
+in the `meshfile` to create a forest with more trees before the simulation begins.
+For example, if a two-dimensional base mesh contains 25 elements then setting
+`initial_refinement_level=1` creates an initial forest of `2^2 * 25 = 100` trees.
+# Arguments
+- `cmesh::Ptr{t8_cmesh}`: Pointer to a cmesh object.
+- `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
+             the imported mesh to the physical domain. Use `nothing` for the identity map.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+                      The default of `1` creates an uncurved geometry. Use a higher value if the mapping
+                      will curve the imported uncurved mesh.
+- `RealT::Type`: the type that should be used for coordinates.
+- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+- `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
+"""
+function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
+                          mapping=nothing, polydeg=1, RealT=Float64,
+                          initial_refinement_level=0, unsaved_changes=true) where NDIMS
+
+  @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
+
+  scheme = t8_scheme_new_default_cxx()
+  forest = t8_forest_new_uniform(cmesh,scheme,initial_refinement_level,0,mpi_comm())
+
+  basis = LobattoLegendreBasis(RealT, polydeg)
+  nodes = basis.nodes
+
+  num_local_trees = t8_cmesh_get_num_local_trees(cmesh)
+
+  tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
+                                                ntuple(_ -> length(nodes), NDIMS)...,
+                                                num_local_trees)
+
+  nodes_in = [-1.0, 1.0]
+  matrix = polynomial_interpolation_matrix(nodes_in, nodes)
+  data_in = Array{RealT, 3}(undef, 2, 2, 2)
+  tmp1 = zeros(RealT, 2, length(nodes), length(nodes_in))
+
+  for itree in 0:num_local_trees-1
+
+    veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
+    verts = unsafe_wrap(Array,veptr,(3,1 << NDIMS))
+
+    u = verts[:,2] - verts[:,1]
+    v = verts[:,3] - verts[:,1]
+    w = [0.0,0.0,1.0]
+
+    vol = dot(cross(u,v),w)
+
+    if vol < 0.0
+      @warn "Discovered negative volumes in `cmesh`: vol = $vol"
+    end
+
+    # Tree vertices are stored in z-order.
+    @views data_in[:, 1, 1] .= verts[1:2,1]
+    @views data_in[:, 2, 1] .= verts[1:2,2]
+    @views data_in[:, 1, 2] .= verts[1:2,3]
+    @views data_in[:, 2, 2] .= verts[1:2,4]
+
+    # Interpolate corner coordinates to specified nodes.
+    multiply_dimensionwise!(
+      view(tree_node_coordinates, :, :, :, itree+1),
+      matrix, matrix,
+      data_in,
+      tmp1
+    )
+
+  end
+
+  map_node_coordinates!(tree_node_coordinates, mapping)
+
+  # There's no simple and generic way to distinguish boundaries. Name all of them :all.
+  boundary_names = fill(:all, 2 * NDIMS, num_local_trees)
+
+  return T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes, boundary_names, "", unsaved_changes)
+end
+
+"""
+    T8codeMesh{NDIMS}(conn::Ptr{P4est.LibP4est.p4est_connectivity},
+                     mapping=nothing, polydeg=1, RealT=Float64,
+                     initial_refinement_level=0, unsaved_changes=true)
+Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
+mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
+from the `meshfile` is created as a [`p4est`](https://github.com/cburstedde/p4est)
+tree datatype.
+Note that the `mapping` and `polydeg` keyword arguments are only used by the `p4est_mesh_from_standard_abaqus`
+function. The `p4est_mesh_from_hohqmesh_abaqus` function obtains the mesh `polydeg` directly from the `meshfile`
+and constructs the transfinite mapping internally.
+The particular strategy is selected according to the header present in the `meshfile` where
+the constructor checks whether or not the `meshfile` was created with
+[HOHQMesh.jl](https://github.com/trixi-framework/HOHQMesh.jl).
+If the Abaqus file header is not present in the `meshfile` then the `P4estMesh` is created
+with the function `p4est_mesh_from_standard_abaqus`.
+The default keyword argument `initial_refinement_level=0` corresponds to a forest
+where the number of trees is the same as the number of elements in the original `meshfile`.
+Increasing the `initial_refinement_level` allows one to uniformly refine the base mesh given
+in the `meshfile` to create a forest with more trees before the simulation begins.
+For example, if a two-dimensional base mesh contains 25 elements then setting
+`initial_refinement_level=1` creates an initial forest of `2^2 * 25 = 100` trees.
+# Arguments
+- `conn::Ptr{P4est.LibP4est.p4est_connectivity}`: Pointer to a cmesh object.
+- `kwargs`: keyword arguments
+"""
+function T8codeMesh{NDIMS}(conn::Ptr{P4est.LibP4est.p4est_connectivity}; kwargs...) where NDIMS
+
+  @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
+
+  cmesh = t8_cmesh_new_from_p4est(conn, mpi_comm(), 0)
+
+  return T8codeMesh{NDIMS}(cmesh; kwargs...)
+end
+
+
+"""
     T8codeMesh{NDIMS}(meshfile::String;
                      mapping=nothing, polydeg=1, RealT=Float64,
                      initial_refinement_level=0, unsaved_changes=true)
@@ -235,10 +368,10 @@ function T8codeMesh{NDIMS}(meshfile::String;
   
   meshfile_prefix, meshfile_suffix = split_filename(meshfile)
 
-  cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, t8_mpi_comm(), 2, 0, 0)
+  cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), 2, 0, 0)
 
   scheme = t8_scheme_new_default_cxx()
-  forest = t8_forest_new_uniform(cmesh,scheme,initial_refinement_level,0,mpi_comm().val)
+  forest = t8_forest_new_uniform(cmesh,scheme,initial_refinement_level,0,mpi_comm())
 
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes

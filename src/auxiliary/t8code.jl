@@ -24,7 +24,7 @@ function t8_free(ptr)
 end
 
 function finalize_t8code()
-  sc_finalize();
+  # sc_finalize();
   return nothing
 end
 

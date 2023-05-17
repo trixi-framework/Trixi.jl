@@ -34,13 +34,13 @@ mkdir(outdir)
       @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
   end
-# 
-#   @trixi_testset "elixir_advection_unstructured_flag.jl" begin
-#     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
-#       l2   = [0.0005379687442422346],
-#       linf = [0.007438525029884735])
-#   end
-# 
+
+  @trixi_testset "elixir_advection_unstructured_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
+      l2   = [0.0005379687442422346],
+      linf = [0.007438525029884735])
+  end
+
 #   @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
 #     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_solution_independent.jl"),
 #       # Expected errors are exactly the same as with StructuredMesh!
