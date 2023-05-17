@@ -265,7 +265,7 @@ get_avg_contravariant_matrix(i, j, element, mesh::DGMultiMesh, cache) =
 
 # computes an algebraic low order method with internal dissipation.
 
-                                                        function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
+function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
                                              have_nonconservative_terms::False, equations,
                                              volume_flux_fv, dg::DGMultiFluxDiff{<:GaussSBP},
                                              cache, alpha=true)
