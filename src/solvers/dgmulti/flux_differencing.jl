@@ -22,7 +22,7 @@
 
 # Version for dense operators and symmetric fluxes
 @inline function hadamard_sum!(du, A,
-                               flux_is_symmetric::Val{true}, volume_flux,
+                               flux_is_symmetric::True, volume_flux,
                                orientation_or_normal_direction, u, equations)
   row_ids, col_ids = axes(A)
 
@@ -47,7 +47,7 @@ end
 
 # Version for dense operators and non-symmetric fluxes
 @inline function hadamard_sum!(du, A,
-                               flux_is_symmetric::Val{false}, volume_flux,
+                               flux_is_symmetric::False, volume_flux,
                                orientation::Integer, u, equations)
   row_ids, col_ids = axes(A)
 
@@ -64,7 +64,7 @@ end
 end
 
 @inline function hadamard_sum!(du, A,
-                               flux_is_symmetric::Val{false}, volume_flux,
+                               flux_is_symmetric::False, volume_flux,
                                normal_direction::AbstractVector, u, equations)
   row_ids, col_ids = axes(A)
 
@@ -85,7 +85,7 @@ end
 
 # Version for sparse operators and symmetric fluxes
 @inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
-                               flux_is_symmetric::Val{true}, volume_flux,
+                               flux_is_symmetric::True, volume_flux,
                                orientation_or_normal_direction, u, equations)
   A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
   row_ids = axes(A, 2)
@@ -115,7 +115,7 @@ end
 
 # Version for sparse operators and symmetric fluxes with curved meshes
 @inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
-                               flux_is_symmetric::Val{true}, volume_flux,
+                               flux_is_symmetric::True, volume_flux,
                                normal_directions::AbstractVector{<:AbstractVector},
                                u, equations)
   A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
@@ -151,7 +151,7 @@ end
 # TODO: DGMulti. Fix for curved meshes.
 # Version for sparse operators and non-symmetric fluxes
 @inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
-                               flux_is_symmetric::Val{false}, volume_flux,
+                               flux_is_symmetric::False, volume_flux,
                                normal_direction::AbstractVector, u, equations)
   A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
   row_ids = axes(A, 2)
@@ -222,23 +222,22 @@ end
 # and jth reference coordinate, respectively. These are geometric terms which
 # appear when using the chain rule to compute physical derivatives as a linear
 # combination of reference derivatives.
-@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}) where {NDIMS}
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}, cache) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ], so that this will return
   # SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
 
   # assumes geometric terms are constant on each element
-  @unpack rstxyzJ = mesh.md
-  return SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element))
+  dxidxhatj = mesh.md.rstxyzJ
+  return SVector{NDIMS}(getindex.(dxidxhatj[:, orientation], 1, element))
 end
 
-@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine()}) where {NDIMS}
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine}, cache) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
 
   # assumes geometric terms vary spatially over each element
-  @unpack rstxyzJ = mesh.md
-  return SVector{NDIMS}(view.(rstxyzJ[:, orientation], :, element))
+  (; dxidxhatj) = cache
+  return SVector{NDIMS}(view.(dxidxhatj[:, orientation], :, element))
 end
-
 
 # use hybridized SBP operators for general flux differencing schemes.
 function compute_flux_differencing_SBP_matrices(dg::DGMulti)
@@ -249,7 +248,7 @@ function compute_flux_differencing_SBP_matrices(dg::DGMulti, sparse_operators)
   rd = dg.basis
   Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
   Qrst_skew = map(A -> 0.5 * (A - A'), Qrst_hybridized)
-  if sparse_operators isa Val{true}
+  if sparse_operators == true
     Qrst_skew = map(Qi -> droptol!(sparse(Qi'), 100 * eps(eltype(Qi)))', Qrst_skew)
   end
   return Qrst_skew, VhP, Ph
@@ -261,7 +260,7 @@ function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiffSBP, sparse_o
   @unpack M, Drst, Pq = rd
   Qrst = map(D -> M * D, Drst)
   Qrst_skew = map(A -> 0.5 * (A - A'), Qrst)
-  if sparse_operators isa Val{true}
+  if sparse_operators == true
     Qrst_skew = map(Qi -> droptol!(sparse(Qi'), 100 * eps(eltype(Qi)))', Qrst_skew)
   end
   return Qrst_skew
@@ -295,7 +294,7 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, Real
   # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
   fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq) for _ in 1:Threads.nthreads()]
 
-  return (; md, Qrst_skew,
+  return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
             u_values, u_face_values, flux_face_values,
             local_values_threaded, fluxdiff_local_threaded)
@@ -336,12 +335,18 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
   fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total) for _ in 1:Threads.nthreads()]
   rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (num_quad_points_total,), dg)  for _ in 1:Threads.nthreads()]
 
-  return (; md, Qrst_skew,
-            VhP, Ph, invJ = inv.(md.J),
+  # interpolate geometric terms to both quadrature and face values for curved meshes
+  (; Vq, Vf) = dg.basis
+  interpolated_geometric_terms = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
+  J = rd.Vq * md.J
+
+  return (; md, Qrst_skew, VhP, Ph,
+            invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
             entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
-            u_values, u_face_values,  flux_face_values,
+            u_values, u_face_values, flux_face_values,
             local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
 end
+
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti)
@@ -391,67 +396,64 @@ end
 # normal components. This implies that operators for different coordinate directions have
 # different sparsity patterns. We default to using sum factorization (which is faster when
 # operators are sparse) for all `DGMulti` / `StartUpDG.jl` approximation types.
-@inline has_sparse_operators(element_type, approx_type) = Val{true}()
+@inline has_sparse_operators(element_type, approx_type) = True()
 
 # For traditional SBP operators on triangles, the operators are fully dense. We avoid using
 # sum factorization here, which is slower for fully dense matrices.
-@inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{false}()
+@inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = False()
 
 # SBP/GaussSBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
 # more efficient and we use the sparsity structure.
-@inline has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = Val{true}()
-@inline has_sparse_operators(::Union{Quad, Hex}, approx_type::GaussSBP) = Val{true}()
+@inline has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = True()
+@inline has_sparse_operators(::Union{Quad, Hex}, approx_type::GaussSBP) = True()
 
 # FD SBP methods have sparse operators
-@inline has_sparse_operators(::Union{Line, Quad, Hex}, approx_type::AbstractDerivativeOperator) = Val{true}()
+@inline has_sparse_operators(::Union{Line, Quad, Hex}, approx_type::AbstractDerivativeOperator) = True()
 
-# Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # Computes flux differencing contribution from each Cartesian direction over a single element.
 # For dense operators, we do not use sum factorization.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::Val{false}, volume_integral,
-                                          has_sparse_operators::Val{false}, mesh,
+                                          has_nonconservative_terms::False, volume_flux,
+                                          has_sparse_operators::False, mesh,
                                           equations, dg, cache)
-  @unpack volume_flux = volume_integral
+
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
-    # Val{true}() indicates the volume flux is symmetric
+    # True() indicates the volume flux is symmetric
     hadamard_sum!(fluxdiff_local, Qi_skew,
-                  Val{true}(), volume_flux,
+                  True(), volume_flux,
                   dim, u_local, equations)
   end
 end
 
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::Val{true}, volume_integral,
-                                          has_sparse_operators::Val{false}, mesh,
+                                          has_nonconservative_terms::True, volume_flux,
+                                          has_sparse_operators::False, mesh,
                                           equations, dg, cache)
-  flux_conservative, flux_nonconservative = volume_integral.volume_flux
+  flux_conservative, flux_nonconservative = volume_flux
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
-    # Val{true}() indicates the flux is symmetric.
+    # True() indicates the flux is symmetric.
     hadamard_sum!(fluxdiff_local, Qi_skew,
-                  Val{true}(), flux_conservative,
+                  True(), flux_conservative,
                   dim, u_local, equations)
 
     # The final argument .5 scales the operator by 1/2 for the nonconservative terms.
     half_Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache, 0.5)
-    # Val{false}() indicates the flux is non-symmetric.
+    # False() indicates the flux is non-symmetric.
     hadamard_sum!(fluxdiff_local, half_Qi_skew,
-                  Val{false}(), flux_nonconservative,
+                  False(), flux_nonconservative,
                   dim, u_local, equations)
   end
 end
 
-# Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # When the operators are sparse, we use the sum-factorization approach to
 # computing flux differencing.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::Val{false}, volume_integral,
-                                          has_sparse_operators::Val{true}, mesh,
+                                          has_nonconservative_terms::False, volume_flux,
+                                          has_sparse_operators::True, mesh,
                                           equations, dg, cache)
   @unpack Qrst_skew = cache
-  @unpack volume_flux = volume_integral
   for dim in eachdim(mesh)
     # There are two ways to write this flux differencing discretization on affine meshes.
     #
@@ -467,36 +469,36 @@ end
     # Thus, we use the second option below (which basically corresponds to the
     # well-known sum factorization on tensor product elements).
     # Note that there is basically no difference for dense derivative operators.
-    normal_direction = get_contravariant_vector(element_index, dim, mesh)
+    normal_direction = get_contravariant_vector(element_index, dim, mesh, cache)
     Q_skew = Qrst_skew[dim]
 
-    # Val{true}() indicates the flux is symmetric
+    # True() indicates the flux is symmetric
     hadamard_sum!(fluxdiff_local, Q_skew,
-                  Val{true}(), volume_flux,
+                  True(), volume_flux,
                   normal_direction, u_local, equations)
   end
 end
 
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::Val{true}, volume_integral,
-                                          has_sparse_operators::Val{true}, mesh,
+                                          has_nonconservative_terms::True, volume_flux,
+                                          has_sparse_operators::True, mesh,
                                           equations, dg, cache)
   @unpack Qrst_skew = cache
-  flux_conservative, flux_nonconservative = volume_integral.volume_flux
+  flux_conservative, flux_nonconservative = volume_flux
   for dim in eachdim(mesh)
-    normal_direction = get_contravariant_vector(element_index, dim, mesh)
+    normal_direction = get_contravariant_vector(element_index, dim, mesh, cache)
     Q_skew = Qrst_skew[dim]
 
-    # Val{true}() indicates the flux is symmetric
+    # True() indicates the flux is symmetric
     hadamard_sum!(fluxdiff_local, Q_skew,
-                  Val{true}(), flux_conservative,
+                  True(), flux_conservative,
                   normal_direction, u_local, equations)
 
     # We scale the operator by 1/2 for the nonconservative terms.
     half_Q_skew = LazyMatrixLinearCombo((Q_skew, ), (0.5, ))
-    # Val{false}() indicates the flux is non-symmetric
+    # False() indicates the flux is non-symmetric
     hadamard_sum!(fluxdiff_local, half_Q_skew,
-                  Val{false}(), flux_nonconservative,
+                  False(), flux_nonconservative,
                   normal_direction, u_local, equations)
   end
 end
@@ -518,7 +520,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     u_local = view(entropy_projected_u_values, :, e)
 
     local_flux_differencing!(fluxdiff_local, u_local, e,
-                             have_nonconservative_terms, volume_integral,
+                             have_nonconservative_terms, volume_integral.volume_flux,
                              has_sparse_operators(dg),
                              mesh, equations, dg, cache)
 
@@ -545,7 +547,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     u_local = view(u, :, e)
 
     local_flux_differencing!(fluxdiff_local, u_local, e,
-                             have_nonconservative_terms, volume_integral,
+                             have_nonconservative_terms, volume_integral.volume_flux,
                              has_sparse_operators(dg),
                              mesh, equations, dg, cache)
 
@@ -572,6 +574,7 @@ end
 # Specializes on Polynomial (e.g., modal) DG methods with a flux differencing volume integral, e.g.,
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection!`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
+# Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff, cache) where {Source, BC}
 
@@ -590,11 +593,11 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
                                                               have_nonconservative_terms(equations),
                                                               equations, dg)
 
-  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
-                                                            mesh, equations, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, mesh,
+                                                            have_nonconservative_terms(equations), equations, dg)
 
-  @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, dg.surface_integral,
-                                                                  mesh, equations, dg, cache)
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, mesh, equations,
+                                                                  dg.surface_integral, dg, cache)
 
   @trixi_timeit timer() "Jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
 
@@ -626,10 +629,11 @@ function rhs!(du, u, t, mesh, equations,
     have_nonconservative_terms(equations), equations, dg)
 
   @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg)
+    cache, t, boundary_conditions, mesh,
+    have_nonconservative_terms(equations), equations, dg)
 
   @trixi_timeit timer() "surface integral" calc_surface_integral!(
-    du, u, dg.surface_integral, mesh, equations, dg, cache)
+    du, u, mesh, equations, dg.surface_integral, dg, cache)
 
   @trixi_timeit timer() "Jacobian" invert_jacobian!(
     du, mesh, equations, dg, cache)

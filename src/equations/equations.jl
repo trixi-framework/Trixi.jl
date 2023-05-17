@@ -9,6 +9,12 @@
 @inline nvariables(::AbstractEquations{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
 
 # TODO: Taal performance, 1:NVARS vs. Base.OneTo(NVARS) vs. SOneTo(NVARS)
+"""
+    eachvariable(equations::AbstractEquations)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the variables in `equations`. In particular, not the variables themselves are returned.
+"""
 @inline eachvariable(equations::AbstractEquations) = Base.OneTo(nvariables(equations))
 
 """
@@ -165,7 +171,8 @@ end
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
                                                                   normal_direction::AbstractVector,
                                                                   x, t,
-                                                                  surface_flux_function, equations)
+                                                                  surface_flux_function,
+                                                                  equations)
   # get the external value of the solution
   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
@@ -204,10 +211,10 @@ with or without nonconservative terms. Classical conservation laws such as the
 [`CompressibleEulerEquations2D`](@ref) do not have nonconservative terms. The
 [`ShallowWaterEquations2D`](@ref) with non-constant bottom topography are an
 example of equations with nonconservative terms.
-The return value will be `Val(true)` or `Val(false)` to allow dispatching on the return type.
+The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
-have_nonconservative_terms(::AbstractEquations) = Val(false)
-have_constant_speed(::AbstractEquations) = Val(false)
+have_nonconservative_terms(::AbstractEquations) = False()
+have_constant_speed(::AbstractEquations) = False()
 
 default_analysis_errors(::AbstractEquations)     = (:l2_error, :linf_error)
 """
@@ -225,7 +232,7 @@ Return the conserved variables `u`. While this function is as trivial as `identi
 it is also as useful.
 """
 @inline cons2cons(u, ::AbstractEquations) = u
-                                                                            
+
 @inline Base.first(u, ::AbstractEquations) = first(u)
 
 """
@@ -302,6 +309,8 @@ include("inviscid_burgers_1d.jl")
 abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("shallow_water_1d.jl")
 include("shallow_water_2d.jl")
+include("shallow_water_two_layer_1d.jl")
+include("shallow_water_two_layer_2d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
@@ -316,6 +325,13 @@ include("compressible_euler_multicomponent_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+"""
+    eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the components in `AbstractCompressibleEulerMulticomponentEquations`.
+In particular, not the components themselves are returned.
+"""
 @inline eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations) = Base.OneTo(ncomponents(equations))
 
 # Ideal MHD
@@ -331,6 +347,13 @@ include("ideal_glm_mhd_multicomponent_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline ncomponents(::AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+"""
+    eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the components in `AbstractIdealGlmMhdMulticomponentEquations`.
+In particular, not the components themselves are returned.
+"""
 @inline eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations) = Base.OneTo(ncomponents(equations))
 
 # Diffusion equation: first order hyperbolic system
@@ -347,6 +370,10 @@ include("lattice_boltzmann_3d.jl")
 # Acoustic perturbation equations
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
+
+# Linearized Euler equations
+abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("linearized_euler_2d.jl")
 
 abstract type AbstractEquationsParabolic{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 

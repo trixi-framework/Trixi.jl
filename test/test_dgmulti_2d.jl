@@ -7,7 +7,7 @@ include("test_trixi.jl")
 
 EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_2d")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
@@ -95,8 +95,23 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, GaussSBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
       approximation_type = GaussSBP(),
-      l2 = [3.890039406408632e-6, 3.7759123007255403e-6, 3.775912300349982e-6, 1.176119366880501e-5],
-      linf = [1.2963211813321607e-5, 1.2570312152959673e-5, 1.2570312227122571e-5, 3.9389540817946767e-5]
+      l2 = [3.4666312082010235e-6, 3.439277448411873e-6, 3.439277448308561e-6, 1.0965598425655705e-5],
+      linf = [1.1327280369899384e-5, 1.1343911921146699e-5, 1.1343911907157889e-5, 3.6795826181545976e-5]
+    )
+  end
+
+  @trixi_testset "elixir_euler_curved.jl (Triangular elements, Polynomial, weak formulation)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      element_type = Tri(), approximation_type = Polynomial(), volume_integral = VolumeIntegralWeakForm(),
+      l2 = [7.905498158659466e-6, 8.731690809663625e-6, 8.731690811576996e-6, 2.9113296018693953e-5],
+      linf = [3.298811230090237e-5, 4.032272476939269e-5, 4.032272526011127e-5, 0.00012013725458537294]
+    )
+  end
+
+  @trixi_testset "elixir_euler_hohqmesh.jl (Quadrilateral elements, SBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_hohqmesh.jl"),
+      l2 = [0.0008153911341517156, 0.0007768159701964676, 0.00047902606811690694, 0.0015551846076348535],
+      linf = [0.0029301131365355726, 0.0034427051471457304, 0.0028721569841545502, 0.011125365074589944]
     )
   end
 
@@ -153,6 +168,23 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.01544756362800248, 0.09517304772476806, 0.021957154972646383, 0.33773439650806303]
     )
   end
+
+  @trixi_testset "elixir_euler_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
+      cells_per_dimension = 4, tspan = (0.0, 0.1),
+      l2 = [0.05685148333985476, 0.04308122135907089, 0.043081221359070915, 0.21098131003847664],
+      linf = [0.2360672306096051, 0.16684417686971842, 0.1668441768697189, 0.8572572782118661]
+    )
+  end
+
+  @trixi_testset "elixir_euler_shockcapturing_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_curved.jl"),
+      cells_per_dimension = 4, tspan = (0.0, 0.1),
+      l2 = [0.05565849298766252, 0.042322816017256494, 0.042322816017256466, 0.2064212098324083],
+      linf = [0.23633287875008924, 0.16930148707515683, 0.16930148707515688, 0.8587706761131937]
+    )
+  end
+
 
   @trixi_testset "elixir_euler_weakform.jl (FD SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
@@ -277,6 +309,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_mhd_reflective_wall.jl (Quad)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_reflective_wall.jl"),
+      cells_per_dimension = 4,
+      l2 = [0.0036019536614619687, 0.001734097206958611, 0.008375221008997178, 0.0, 0.028596796602124414, 0.0018573693138866614, 0.0020807798141551166, 0.0, 5.301188920230166e-5],
+      linf = [0.01692601228199253, 0.009369662298436778, 0.04145169295835428, 0.0, 0.11569908670112738, 0.00984964453299233, 0.01141708032148614, 0.0, 0.0002992631411931389]
+    )
+  end
+
   @trixi_testset "elixir_shallowwater_source_terms.jl (Quad, SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       cells_per_dimension = 8, element_type = Quad(), approximation_type = SBP(),
@@ -318,7 +358,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 end
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive=true)
 
 end # module

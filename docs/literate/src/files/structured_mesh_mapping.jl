@@ -1,11 +1,11 @@
 #src # Structured mesh with curvilinear mapping
 
-# Here, we want to introduce another mesh type of [Trixi](https://github.com/trixi-framework/Trixi.jl).
+# Here, we want to introduce another mesh type of [Trixi.jl](https://github.com/trixi-framework/Trixi.jl).
 # More precisely, this tutorial is about the curved mesh type [`StructuredMesh`](@ref) supporting
 # curved meshes.
 
 # # Creating a curved mesh
-# There are two basic options to define a curved [`StructuredMesh`](@ref) in Trixi. You can
+# There are two basic options to define a curved [`StructuredMesh`](@ref) in Trixi.jl. You can
 # implement curves for the domain boundaries, or alternatively, set up directly the complete
 # transformation mapping. We now present one short example each.
 
@@ -17,7 +17,7 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-# We start with a pressure perturbation at `(xs, 0.0)` as initial condtition.
+# We start with a pressure perturbation at `(xs, 0.0)` as initial condition.
 function initial_condition_pressure_perturbation(x, t, equations::CompressibleEulerEquations2D)
   xs = 1.5 # location of the initial disturbance on the x axis
   w = 1/8 # half width
@@ -197,7 +197,7 @@ plot!(getmesh(pd))
 
 # For more curved mesh mappings, please have a look at some
 # [elixirs for `StructuredMesh`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples).
-# For another curved mesh type, there is a [tutorial](@ref hohqmesh_tutorial) about Trixi's
+# For another curved mesh type, there is a [tutorial](@ref hohqmesh_tutorial) about Trixi.jl's
 # unstructured mesh type [`UnstructuredMesh2D`] and its use of the
 # [High-Order Hex-Quad Mesh (HOHQMesh) generator](https://github.com/trixi-framework/HOHQMesh),
 # created and developed by David Kopriva.

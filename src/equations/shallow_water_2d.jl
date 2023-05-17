@@ -31,7 +31,7 @@ The bottom topography function ``b(x,y)`` is set inside the initial condition ro
 for a particular problem setup. To test the conservative form of the SWE one can set the bottom topography
 variable `b` to zero.
 
-In addition to the unknowns, Trixi currently stores the bottom topography values at the approximation points
+In addition to the unknowns, Trixi.jl currently stores the bottom topography values at the approximation points
 despite being fixed in time. This is done for convenience of computing the bottom topography gradients
 on the fly during the approximation as well as computing auxiliary quantities like the total water height ``H``
 or the entropy variables.
@@ -40,7 +40,7 @@ This affects the implementation and use of these equations in various ways:
 * The bottom topography values must be included when defining initial conditions, boundary conditions or
   source terms.
 * [`AnalysisCallback`](@ref) analyzes this variable.
-* Trixi's visualization tools will visualize the bottom topography by default.
+* Trixi.jl's visualization tools will visualize the bottom topography by default.
 
 References for the SWE are many but a good introduction is available in Chapter 13 of the book:
 - Randall J. LeVeque (2002)
@@ -61,7 +61,7 @@ function ShallowWaterEquations2D(; gravity_constant, H0=0.0)
 end
 
 
-have_nonconservative_terms(::ShallowWaterEquations2D) = Val(true)
+have_nonconservative_terms(::ShallowWaterEquations2D) = True()
 varnames(::typeof(cons2cons), ::ShallowWaterEquations2D) = ("h", "h_v1", "h_v2", "b")
 # Note, we use the total water height, H = h + b, as the first primitive variable for easier
 # visualization and setting initial conditions
@@ -166,11 +166,9 @@ end
 """
     boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
                                  equations::ShallowWaterEquations2D)
-
 Create a boundary state by reflecting the normal velocity component and keep
 the tangential velocity component unchanged. The boundary water height is taken from
 the internal value.
-
 For details see Section 9.2.5 of the book:
 - Eleuterio F. Toro (2001)
   Shock-Capturing Methods for Free-Surface Shallow Flows
@@ -199,6 +197,29 @@ For details see Section 9.2.5 of the book:
   return flux
 end
 
+
+"""
+    boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                 surface_flux_function, equations::ShallowWaterEquations2D)
+
+Should be used together with [`TreeMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, orientation,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::ShallowWaterEquations2D)
+  ## get the appropriate normal vector from the orientation
+  if orientation == 1
+    u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4])
+  else # orientation == 2
+    u_boundary = SVector(u_inner[1], u_inner[2], -u_inner[3], u_inner[4])
+  end
+
+  # compute and return the flux using `boundary_condition_slip_wall` routine above
+  flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+
+  return flux
+end
 
 # Calculate 1D flux for a single point
 # Note, the bottom topography has no flux

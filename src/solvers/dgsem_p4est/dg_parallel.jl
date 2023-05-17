@@ -251,12 +251,12 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelP4estMesh,
                              ndims(mesh), nvars, n_nodes, uEltype)
 
   # Determine local and total number of elements
-  n_elements_global = Int(mesh.p4est.global_num_quadrants)
-  n_elements_by_rank = vcat(Int.(unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks())),
+  n_elements_global = Int(unsafe_load(mesh.p4est).global_num_quadrants)
+  n_elements_by_rank = vcat(Int.(unsafe_wrap(Array, unsafe_load(mesh.p4est).global_first_quadrant, mpi_nranks())),
                             n_elements_global) |> diff # diff sufficient due to 0-based quad indices
   n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
   # Account for 1-based indexing in Julia
-  first_element_global_id = Int(unsafe_load(mesh.p4est.global_first_quadrant, mpi_rank() + 1)) + 1
+  first_element_global_id = Int(unsafe_load(unsafe_load(mesh.p4est).global_first_quadrant, mpi_rank() + 1)) + 1
   @assert n_elements_global == sum(n_elements_by_rank) "error in total number of elements"
 
   # TODO reuse existing structures
@@ -346,7 +346,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
 
   # Get the global interface/mortar ids and neighbor rank if current face belongs to an MPI
   # interface/mortar
-  if info.sides.elem_count == 2 # MPI interfaces/mortars have two neighboring elements
+  if unsafe_load(info).sides.elem_count == 2 # MPI interfaces/mortars have two neighboring elements
     # Extract surface data
     sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
 
@@ -367,7 +367,9 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
       @assert interfaces.local_neighbor_ids[interface_id] == local_quad_id + 1 # one-based indexing
 
       # Get neighbor ID from ghost layer
-      proc_offsets = unsafe_wrap(Array, info.ghost_layer.proc_offsets, mpi_nranks() + 1)
+      proc_offsets = unsafe_wrap(Array,
+                                 unsafe_load(unsafe_load(info).ghost_layer).proc_offsets,
+                                 mpi_nranks() + 1)
       ghost_id = sides[remote_side].is.full.quadid # indexes the ghost layer, 0-based
       neighbor_rank = findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r+1],
                                 1:mpi_nranks()) - 1 # MPI ranks are 0-based
@@ -376,11 +378,11 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
       # Global interface id is the globally unique quadrant id of the quadrant on the primary
       # side (1) multiplied by the number of faces per quadrant plus face
       if local_side == 1
-        offset = unsafe_load(mesh.p4est.global_first_quadrant, mpi_rank() + 1) # one-based indexing
+        offset = unsafe_load(unsafe_load(mesh.p4est).global_first_quadrant, mpi_rank() + 1) # one-based indexing
         primary_quad_id = offset + local_quad_id
       else
-        offset = unsafe_load(mesh.p4est.global_first_quadrant, neighbor_rank + 1) # one-based indexing
-        primary_quad_id = offset + sides[1].is.full.quad.p.piggy3.local_num
+        offset = unsafe_load(unsafe_load(mesh.p4est).global_first_quadrant, neighbor_rank + 1) # one-based indexing
+        primary_quad_id = offset + unsafe_load(sides[1].is.full.quad.p.piggy3.local_num)
       end
       global_interface_id = 2 * ndims(mesh) * primary_quad_id + sides[1].face
       global_interface_ids[interface_id] = global_interface_id
@@ -407,7 +409,9 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
 
       # Find small quads that are remote and determine which rank owns them
       remote_small_quad_positions = findall(sides[hanging_side].is.hanging.is_ghost .== true)
-      proc_offsets = unsafe_wrap(Array, info.ghost_layer.proc_offsets, mpi_nranks() + 1)
+      proc_offsets = unsafe_wrap(Array,
+                                 unsafe_load(unsafe_load(info).ghost_layer).proc_offsets,
+                                 mpi_nranks() + 1)
       # indices of small remote quads inside the ghost layer, 0-based
       ghost_ids = map(pos -> sides[hanging_side].is.hanging.quadid[pos], remote_small_quad_positions)
       neighbor_ranks = map(ghost_ids) do ghost_id
@@ -422,10 +426,10 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
                                           1:mpi_nranks()) - 1 # MPI ranks are 0-based
         push!(neighbor_ranks, large_quad_owner_rank)
 
-        offset = unsafe_load(mesh.p4est.global_first_quadrant, large_quad_owner_rank + 1) # one-based indexing
-        large_quad_id = offset + sides[full_side].is.full.quad.p.piggy3.local_num
+        offset = unsafe_load(unsafe_load(mesh.p4est).global_first_quadrant, large_quad_owner_rank + 1) # one-based indexing
+        large_quad_id = offset + unsafe_load(sides[full_side].is.full.quad.p.piggy3.local_num)
       else
-        offset = unsafe_load(mesh.p4est.global_first_quadrant, mpi_rank() + 1) # one-based indexing
+        offset = unsafe_load(unsafe_load(mesh.p4est).global_first_quadrant, mpi_rank() + 1) # one-based indexing
         large_quad_id = offset + trees[full_side].quadrants_offset + sides[full_side].is.full.quadid
       end
       neighbor_ranks_mortar[mortar_id] = neighbor_ranks
@@ -438,28 +442,6 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
   end
 
   return nothing
-end
-
-# Once the TreeMesh supports custom `uEltype`s, the following method could be used for both
-# mesh types.
-# See https://github.com/trixi-framework/Trixi.jl/pull/977#discussion_r793694635 for further
-# discussion.
-function init_mpi_data_structures(mpi_neighbor_interfaces, mpi_neighbor_mortars, n_dims, nvars, n_nodes, uEltype)
-  data_size = nvars * n_nodes^(n_dims - 1)
-  n_small_elements = 2^(n_dims-1)
-  mpi_send_buffers = Vector{Vector{uEltype}}(undef, length(mpi_neighbor_interfaces))
-  mpi_recv_buffers = Vector{Vector{uEltype}}(undef, length(mpi_neighbor_interfaces))
-  for index in 1:length(mpi_neighbor_interfaces)
-    mpi_send_buffers[index] = Vector{uEltype}(undef, length(mpi_neighbor_interfaces[index]) * data_size +
-                                                     length(mpi_neighbor_mortars[index]) * n_small_elements * 2 * data_size)
-    mpi_recv_buffers[index] = Vector{uEltype}(undef, length(mpi_neighbor_interfaces[index]) * data_size +
-                                                     length(mpi_neighbor_mortars[index]) * n_small_elements * 2 * data_size)
-  end
-
-  mpi_send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
-  mpi_recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
-
-  return mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests
 end
 
 
@@ -545,5 +527,6 @@ end
 
 include("dg_2d_parallel.jl")
 include("dg_3d_parallel.jl")
+
 
 end # muladd

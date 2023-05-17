@@ -1,6 +1,6 @@
 #src # Adding a new equation: scalar conservation laws
 
-# If you want to use Trixi for your own research, you might be interested in
+# If you want to use Trixi.jl for your own research, you might be interested in
 # a new physics model that's not already included in Trixi.jl. In this tutorial,
 # we will implement the cubic conservation law
 # ```math
@@ -66,10 +66,10 @@ summary_callback = SummaryCallback()
 callbacks = CallbackSet(summary_callback)
 
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, SSPRK43(),
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, SSPRK43();
+            ode_default_options()..., callback=callbacks);
 
-# That's it, you ran your first simulation using your new equation with Trixi! Now, we can plot
+# That's it, you ran your first simulation using your new equation with Trixi.jl! Now, we can plot
 # the solution at the final time using Plots.jl.
 using Plots
 plot(sol)
@@ -94,7 +94,7 @@ plot(sol)
 ## A new setup with dissipation
 semi = remake(semi, solver=DGSEM(3, flux_godunov))
 ode = semidiscretize(semi, tspan)
-sol = solve(ode, SSPRK43(), save_everystep=false)
+sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot!(sol)
 
 # You can see that there are fewer oscillations, in particular around steep edges.
@@ -103,7 +103,7 @@ plot!(sol)
 ## A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
 semi = remake(semi, mesh=TreeMesh(-1.0, 1.0, initial_refinement_level=8, n_cells_max=10^5))
 ode = semidiscretize(semi, (0.0, 0.5) #= tspan =#)
-sol = solve(ode, SSPRK43(), save_everystep=false)
+sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)
 
 # You can observe that nonclassical shocks develop and are stable under grid refinement,
@@ -121,7 +121,7 @@ end
 ## Let's use a provably entropy-dissipative semidiscretization
 semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
 ode = semidiscretize(semi, (0.0, 0.5))
-sol = solve(ode, SSPRK43(), save_everystep=false);
+sol = solve(ode, SSPRK43(); ode_default_options()...);
 plot(sol)
 
 # Possible next steps could be
@@ -132,7 +132,7 @@ plot(sol)
 # - to experiment with shock-capturing volume integrals [`VolumeIntegralShockCapturingHG`](@ref)
 #   and adaptive mesh refinement [`AMRCallback`](@ref)
 
-# For further reading, Trixi provides another example on adding a scalar equation. In the
+# For further reading, Trixi.jl provides another example on adding a scalar equation. In the
 # [elixir about the KPP problem](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_kpp.jl),
 # the 2D scalar "KPP equation" from [Kurganov, Petrova, Popov (2007)](https://doi.org/10.1137/040614189) is
 # implemented.
@@ -188,26 +188,26 @@ tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, SSPRK43(), save_everystep=false)
+sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)
 
 
 ## A new setup with dissipation
 semi = remake(semi, solver=DGSEM(3, flux_godunov))
 ode = semidiscretize(semi, tspan)
-sol = solve(ode, SSPRK43(), save_everystep=false)
+sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot!(sol)
 
 
 ## A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
 semi = remake(semi, mesh=TreeMesh(-1.0, 1.0, initial_refinement_level=8, n_cells_max=10^5))
 ode = semidiscretize(semi, (0.0, 0.5))
-sol = solve(ode, SSPRK43(), save_everystep=false)
+sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)
 
 
 ## Let's use a provably entropy-dissipative semidiscretization
 semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
 ode = semidiscretize(semi, (0.0, 0.5))
-sol = solve(ode, SSPRK43(), save_everystep=false)
+sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)

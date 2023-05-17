@@ -26,7 +26,7 @@ for i in eachindex(vertex_coordinates[1])
   setindex!.(vertex_coordinates, mapping(vx, vy), i)
 end
 
-mesh = DGMultiMesh(vertex_coordinates, EToV, dg, is_on_boundary=is_on_boundary)
+mesh = DGMultiMesh(dg, vertex_coordinates, EToV, is_on_boundary=is_on_boundary)
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :top => boundary_condition_convergence_test,
@@ -48,7 +48,7 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=callbacks);
 
 summary_callback() # print the timer summary

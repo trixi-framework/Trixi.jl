@@ -103,12 +103,12 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
   # Invoke callback every `interval` time steps or after final step (for storing the data on disk)
   if interval > 0
     # With error-based step size control, some steps can be rejected. Thus,
-    #   `integrator.iter >= integrator.destats.naccept`
+    #   `integrator.iter >= integrator.stats.naccept`
     #    (total #steps)       (#accepted steps)
     # We need to check the number of accepted steps since callbacks are not
     # activated after a rejected step.
-    condition = (u, t, integrator) -> ( (integrator.destats.naccept % interval == 0 &&
-                                        !(integrator.destats.naccept == 0 && integrator.iter > 0)) ||
+    condition = (u, t, integrator) -> ( (integrator.stats.naccept % interval == 0 &&
+                                        !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
                                       isfinished(integrator))
   else # disable the callback for interval == 0
     condition = (u, t, integrator) -> false
@@ -145,7 +145,7 @@ function TimeSeriesCallback(semi, point_coordinates; kwargs...)
 end
 
 
-# Convenience constructor that converts a vector of points into a Trixi-style coordinate array
+# Convenience constructor that converts a vector of points into a Trixi.jl-style coordinate array
 function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates::AbstractVector;
                             kwargs...)
   # Coordinates are usually stored in [ndims, n_points], but here as [n_points, ndims]
@@ -172,12 +172,12 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
   @unpack interval = time_series_callback
 
   # Create record if in correct interval (needs to be checked since the callback is also called
-  # after the final step for storing the data on disk, indepdendent of the current interval)
-  if integrator.destats.naccept % interval == 0
+  # after the final step for storing the data on disk, independent of the current interval)
+  if integrator.stats.naccept % interval == 0
     @trixi_timeit timer() "time series" begin
       # Store time and step
       push!(time_series_callback.time, integrator.t)
-      push!(time_series_callback.step, integrator.destats.naccept)
+      push!(time_series_callback.step, integrator.stats.naccept)
 
       # Unpack data
       u_ode = integrator.u

@@ -28,7 +28,7 @@ function IdealGlmMhdEquations3D(gamma; initial_c_h=convert(typeof(gamma), NaN))
 end
 
 
-have_nonconservative_terms(::IdealGlmMhdEquations3D) = Val(true)
+have_nonconservative_terms(::IdealGlmMhdEquations3D) = True()
 varnames(::typeof(cons2cons), ::IdealGlmMhdEquations3D) = ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
 varnames(::typeof(cons2prim), ::IdealGlmMhdEquations3D) = ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi")
 default_analysis_integrals(::IdealGlmMhdEquations3D)  = (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
@@ -1093,7 +1093,7 @@ end
 end
 
 
-# Calcluate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
+# Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
 @inline function cross_helicity(cons, ::IdealGlmMhdEquations3D)
   return (cons[2]*cons[6] + cons[3]*cons[7] + cons[4]*cons[8]) / cons[1]
 end

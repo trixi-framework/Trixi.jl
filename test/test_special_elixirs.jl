@@ -8,12 +8,11 @@ import ForwardDiff
 
 include("test_trixi.jl")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
+const EXAMPLES_DIR = pkgdir(Trixi, "examples")
 
 cmd = string(Base.julia_cmd())
 coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none", cmd)
@@ -55,10 +54,10 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
     else
       # Without coverage, just run simple convergence tests to cover
       # the convergence test logic
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 2, initial_refinement_level=0, tspan=(0.0, 0.1))
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 2, cells_per_dimension=(1, 1), tspan=(0.0, 0.1))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 2, initial_refinement_level=0, tspan=(0.0, 0.1))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 2, cells_per_dimension=(1, 1), tspan=(0.0, 0.1))
     end
   end
 
@@ -255,7 +254,7 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
 end
 
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn rm(outdir, recursive=true)
 
 end #module

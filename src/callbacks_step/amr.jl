@@ -9,7 +9,8 @@
     AMRCallback(semi, controller [,adaptor=AdaptorAMR(semi)];
                 interval,
                 adapt_initial_condition=true,
-                adapt_initial_condition_only_refine=true)
+                adapt_initial_condition_only_refine=true,
+                dynamic_load_balancing=true)
 
 Performs adaptive mesh refinement (AMR) every `interval` time steps
 for a given semidiscretization `semi` using the chosen `controller`.
@@ -37,13 +38,13 @@ function AMRCallback(semi, controller, adaptor;
 
   # AMR every `interval` time steps, but not after the final step
   # With error-based step size control, some steps can be rejected. Thus,
-  #   `integrator.iter >= integrator.destats.naccept`
+  #   `integrator.iter >= integrator.stats.naccept`
   #    (total #steps)       (#accepted steps)
   # We need to check the number of accepted steps since callbacks are not
   # activated after a rejected step.
   if interval > 0
-    condition = (u, t, integrator) -> ( (integrator.destats.naccept % interval == 0) &&
-                                        !(integrator.destats.naccept == 0 && integrator.iter > 0) &&
+    condition = (u, t, integrator) -> ( (integrator.stats.naccept % interval == 0) &&
+                                        !(integrator.stats.naccept == 0 && integrator.iter > 0) &&
                                         !isfinished(integrator) )
   else # disable the AMR callback except possibly for initial refinement during initialization
     condition = (u, t, integrator) -> false
@@ -334,12 +335,14 @@ end
 
 # Copy controller values to quad user data storage, will be called below
 function copy_to_quad_iter_volume(info, user_data)
+  info_obj = unsafe_load(info)
+
   # Load tree from global trees array, one-based indexing
-  tree = unsafe_load_tree(info.p4est, info.treeid + 1)
+  tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
-  quad_id = offset + info.quadid
+  quad_id = offset + info_obj.quadid
 
   # Access user_data = lambda
   user_data_ptr = Ptr{Int}(user_data)
@@ -347,7 +350,7 @@ function copy_to_quad_iter_volume(info, user_data)
   controller_value = unsafe_load(user_data_ptr, quad_id + 1)
 
   # Access quadrant's user data ([global quad ID, controller_value])
-  quad_data_ptr = Ptr{Int}(info.quad.p.user_data)
+  quad_data_ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
   # Save controller value to quadrant's user data.
   unsafe_store!(quad_data_ptr, controller_value, 2)
 
@@ -428,7 +431,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
 
     if mpi_isparallel() && amr_callback.dynamic_load_balancing
       @trixi_timeit timer() "dynamic load balancing" begin
-        global_first_quadrant = unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
+        global_first_quadrant = unsafe_wrap(Array, unsafe_load(mesh.p4est).global_first_quadrant, mpi_nranks() + 1)
         old_global_first_quadrant = copy(global_first_quadrant)
         partition!(mesh)
         rebalance_solver!(u_ode, mesh, equations, dg, cache, old_global_first_quadrant)
@@ -485,7 +488,7 @@ end
                                           med_level=base_level, med_threshold=0.0,
                                           max_level=base_level, max_threshold=1.0)
 
-An AMR controller based on three levels (in decending order of precedence):
+An AMR controller based on three levels (in descending order of precedence):
 - set the target level to `max_level` if `indicator > max_threshold`
 - set the target level to `med_level` if `indicator > med_threshold`;
   if `med_level < 0`, set the target level to the current level
@@ -567,16 +570,18 @@ end
 
 
 function extract_levels_iter_volume(info, user_data)
+  info_obj = unsafe_load(info)
+
   # Load tree from global trees array, one-based indexing
-  tree = unsafe_load_tree(info.p4est, info.treeid + 1)
+  tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
-  quad_id = offset + info.quadid
+  quad_id = offset + info_obj.quadid
   # Julia element ID
   element_id = quad_id + 1
 
-  current_level = info.quad.level
+  current_level = unsafe_load(info_obj.quad.level)
 
   # Unpack user_data = current_levels and save current element level
   ptr = Ptr{Int}(user_data)
@@ -651,7 +656,7 @@ end
                                  max_level=base_level, max_threshold=1.0,
                                  max_threshold_secondary=1.0)
 
-An AMR controller based on three levels (in decending order of precedence):
+An AMR controller based on three levels (in descending order of precedence):
 - set the target level to `max_level` if `indicator_primary > max_threshold`
 - set the target level to `med_level` if `indicator_primary > med_threshold`;
   if `med_level < 0`, set the target level to the current level

@@ -6,14 +6,14 @@
 
 
 # out <- A*x
-mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
-mul_by!(A::T) where {T<:SimpleKronecker} = @inline (out, x)->mul!(out, A, x)
-mul_by!(A::AbstractSparseMatrix) = @inline (out, x)->mul!(out, A, x)
-mul_by!(A::LinearAlgebra.AdjOrTrans{T, S}) where {T, S<:AbstractSparseMatrix} = @inline (out, x)->mul!(out, A, x)
+mul_by!(A) = @inline (out, x) -> matmul!(out, A, x)
+mul_by!(A::T) where {T <: SimpleKronecker} = @inline (out, x) -> mul!(out, A, x)
+mul_by!(A::AbstractSparseMatrix) = @inline (out, x) -> mul!(out, A, x)
+mul_by!(A::LinearAlgebra.AdjOrTrans{T, S}) where {T, S<:AbstractSparseMatrix} = @inline (out, x) -> mul!(out, A, x)
 
 #  out <- out + α * A * x
-mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, One())
-mul_by_accum!(A::AbstractSparseMatrix, α) = @inline (out, x)->mul!(out, A, x, α, One())
+mul_by_accum!(A, α) = @inline (out, x) -> matmul!(out, A, x, α, One())
+mul_by_accum!(A::AbstractSparseMatrix, α) = @inline (out, x) -> mul!(out, A, x, α, One())
 
 # out <- out + A * x
 mul_by_accum!(A) = mul_by_accum!(A, One())
@@ -36,20 +36,74 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
   end
 end
 
+"""
+    eachdim(mesh)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the dimensions in `AbstractTree`.
+In particular, not the dimensions themselves are returned.
+"""
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
 
 # iteration over all elements in a mesh
 @inline ndofs(mesh::DGMultiMesh, dg::DGMulti, other_args...) = dg.basis.Np * mesh.md.num_elements
+"""
+    eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the elements in `mesh`.
+In particular, not the elements themselves are returned.
+"""
 @inline eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(mesh.md.num_elements)
 
 # iteration over quantities in a single element
 @inline nnodes(basis::RefElemData) = basis.Np
+
+"""
+    each_face_node(mesh::DGMultiMesh, dg::DGMulti, other_args...)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the face nodes in `dg`.
+In particular, not the face_nodes themselves are returned.
+"""
 @inline each_face_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq)
+
+"""
+    each_quad_node(mesh::DGMultiMesh, dg::DGMulti, other_args...)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the quadrature nodes in `dg`.
+In particular, not the quadrature nodes themselves are returned.
+"""
 @inline each_quad_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq)
 
 # iteration over quantities over the entire mesh (dofs, quad nodes, face nodes).
+"""
+    each_dof_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the degrees of freedom (DOF) in `dg`.
+In particular, not the DOFs themselves are returned.
+"""
 @inline each_dof_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(ndofs(mesh, dg, other_args...))
+
+
+"""
+    each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the global quadrature nodes in `mesh`.
+In particular, not the quadrature nodes themselves are returned.
+"""
 @inline each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
+
+"""
+    each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the face nodes in `mesh`.
+In particular, not the face nodes themselves are returned.
+"""
 @inline each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 
 # interface with semidiscretization_hyperbolic
@@ -74,8 +128,8 @@ function reset_du!(du, dg::DGMulti, other_args...)
   return du
 end
 
-function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT, uEltype)
-
+# Constructs cache variables for both affine and non-affine (curved) DGMultiMeshes
+function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, RealT, uEltype) where {NDIMS}
   rd = dg.basis
   md = mesh.md
 
@@ -100,9 +154,22 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT, 
   # local storage for volume integral and source computations
   local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
 
-  return (; md, weak_differentiation_matrices, invJ = inv.(md.J), lift_scalings,
+  # For curved meshes, we interpolate geometric terms from nodal points to quadrature points.
+  # For affine meshes, we just access one element of this interpolated data.
+  dxidxhatj = map(x -> rd.Vq * x, md.rstxyzJ)
+
+  # interpolate J to quadrature points for weight-adjusted DG (WADG)
+  invJ = inv.(rd.Vq * md.J)
+
+  # for scaling by curved geometric terms (not used by affine DGMultiMesh)
+  flux_threaded =
+    [[allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:NDIMS] for _ in 1:Threads.nthreads()]
+  rotated_flux_threaded =
+    [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
+
+  return (; md, weak_differentiation_matrices, lift_scalings, invJ, dxidxhatj,
             u_values, u_face_values, flux_face_values,
-            local_values_threaded)
+            local_values_threaded, flux_threaded, rotated_flux_threaded)
 end
 
 function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
@@ -134,7 +201,7 @@ end
 
 # for the stepsize callback
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_speed::Val{false}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+                constant_speed::False, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
 
   @unpack md = mesh
   rd = dg.basis
@@ -158,7 +225,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_speed::Val{true}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+                constant_speed::True, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
 
   @unpack md = mesh
   rd = dg.basis
@@ -189,36 +256,83 @@ function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
   apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
 end
 
+# version for affine meshes
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms::Val{false}, equations,
+                               have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
                                cache)
 
   rd = dg.basis
   md = mesh.md
-  @unpack weak_differentiation_matrices, u_values, local_values_threaded = cache
+  @unpack weak_differentiation_matrices, dxidxhatj, u_values, local_values_threaded = cache
   @unpack rstxyzJ = md # geometric terms
 
   # interpolate to quadrature points
   apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
-  # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
 
     flux_values = local_values_threaded[Threads.threadid()]
     for i in eachdim(mesh)
-      flux_values .= flux.(view(u_values,:,e), i, equations)
+      flux_values .= flux.(view(u_values, :, e), i, equations)
       for j in eachdim(mesh)
-        apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], rstxyzJ[i,j][1,e]),
-                            view(du,:,e), flux_values)
+        apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], dxidxhatj[i, j][1, e]),
+                            view(du, :, e), flux_values)
       end
+    end
+  end
+end
+
+# version for curved meshes
+function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
+                               have_nonconservative_terms::False, equations,
+                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
+                               cache) where {NDIMS}
+
+  rd = dg.basis
+  (; weak_differentiation_matrices, u_values) = cache
+  (; dxidxhatj) = cache
+
+  # interpolate to quadrature points
+  apply_to_each_field(mul_by!(rd.Vq), u_values, u)
+
+  @threaded for e in eachelement(mesh, dg, cache)
+
+    flux_values = cache.flux_threaded[Threads.threadid()]
+    for i in eachdim(mesh)
+      flux_values[i] .= flux.(view(u_values, :, e), i, equations)
+    end
+
+    # rotate flux with df_i/dx_i = sum_j d(x_i)/d(x̂_j) * d(f_i)/d(x̂_j).
+    # Example: df_x/dx + df_y/dy = dr/dx * df_x/dr + ds/dx * df_x/ds
+    #                  + dr/dy * df_y/dr + ds/dy * df_y/ds
+    #                  = Dr * (dr/dx * fx + dr/dy * fy) + Ds * (...)
+    #                  = Dr * (f_r) + Ds * (f_s)
+
+    rotated_flux_values = cache.rotated_flux_threaded[Threads.threadid()]
+    for j in eachdim(mesh)
+
+      fill!(rotated_flux_values, zero(eltype(rotated_flux_values)))
+
+      # compute rotated fluxes
+      for i in eachdim(mesh)
+        for ii in eachindex(rotated_flux_values)
+          flux_i_node = flux_values[i][ii]
+          dxidxhatj_node = dxidxhatj[i, j][ii, e]
+          rotated_flux_values[ii] = rotated_flux_values[ii] + dxidxhatj_node * flux_i_node
+        end
+      end
+
+      # apply weak differentiation matrices to rotated fluxes
+      apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j]),
+                          view(du, :, e), rotated_flux_values)
     end
   end
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
                               mesh::DGMultiMesh,
-                              have_nonconservative_terms::Val{false}, equations,
+                              have_nonconservative_terms::False, equations,
                               dg::DGMulti{NDIMS}) where {NDIMS}
 
   @unpack surface_flux = surface_integral
@@ -239,7 +353,7 @@ end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
                               mesh::DGMultiMesh,
-                              have_nonconservative_terms::Val{true}, equations,
+                              have_nonconservative_terms::True, equations,
                               dg::DGMulti{NDIMS}) where {NDIMS}
 
   flux_conservative, flux_nonconservative = surface_integral.surface_flux
@@ -275,8 +389,8 @@ end
 
 # assumes cache.flux_face_values is computed and filled with
 # for polyomial discretizations, use dense LIFT matrix for surface contributions.
-function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::DGMultiMesh, equations,
+function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
+                                surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMulti, cache)
   rd = dg.basis
   apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
@@ -298,8 +412,8 @@ end
 
 # Specialize for nodal SBP discretizations. Uses that du = LIFT*u is equivalent to
 # du[Fmask,:] .= u ./ rd.wq[rd.Fmask]
-function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::DGMultiMesh, equations,
+function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
+                                surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMultiSBP, cache)
   rd = dg.basis
   @unpack flux_face_values, lift_scalings = cache
@@ -314,24 +428,27 @@ end
 
 # do nothing for periodic (default) boundary conditions
 calc_boundary_flux!(cache, t, boundary_conditions::BoundaryConditionPeriodic,
-                    mesh, equations, dg::DGMulti) = nothing
+                    mesh, have_nonconservative_terms, equations, dg::DGMulti) = nothing
 
 # "lispy tuple programming" instead of for loop for type stability
-function calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, dg::DGMulti)
+function calc_boundary_flux!(cache, t, boundary_conditions, mesh,
+                             have_nonconservative_terms, equations, dg::DGMulti)
+
   # peel off first boundary condition
   calc_single_boundary_flux!(cache, t, first(boundary_conditions), first(keys(boundary_conditions)),
-                 mesh, equations, dg)
+                             mesh, have_nonconservative_terms, equations, dg)
 
   # recurse on the remainder of the boundary conditions
-  calc_boundary_flux!(cache, t, Base.tail(boundary_conditions), mesh, equations, dg)
+  calc_boundary_flux!(cache, t, Base.tail(boundary_conditions),
+                      mesh, have_nonconservative_terms, equations, dg)
 end
 
 # terminate recursion
 calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple{(),Tuple{}},
-                    mesh, equations, dg::DGMulti) = nothing
+                    mesh, have_nonconservative_terms, equations, dg::DGMulti) = nothing
 
-function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
-                                    mesh, equations, dg::DGMulti{NDIMS}) where {NDIMS}
+function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, mesh,
+                                    have_nonconservative_terms::False, equations, dg::DGMulti{NDIMS}) where {NDIMS}
 
   rd = dg.basis
   md = mesh.md
@@ -341,8 +458,9 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
 
   # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
   # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
-  num_pts_per_face = rd.Nfq ÷ rd.Nfaces
-  num_faces_total = rd.Nfaces * md.num_elements
+  num_faces = StartUpDG.num_faces(rd.element_type)
+  num_pts_per_face = rd.Nfq ÷ num_faces
+  num_faces_total = num_faces * md.num_elements
 
   # This function was originally defined as
   # `reshape_by_face(u) = reshape(view(u, :), num_pts_per_face, num_faces_total)`.
@@ -371,12 +489,92 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
   # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
 end
 
+function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, mesh,
+                                    have_nonconservative_terms::True, equations, dg::DGMulti{NDIMS}) where {NDIMS}
 
-# Todo: DGMulti. Specialize for modal DG on curved meshes using WADG
+  rd = dg.basis
+  md = mesh.md
+  surface_flux, nonconservative_flux = dg.surface_integral.surface_flux
+
+  # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
+  # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
+  num_pts_per_face = rd.Nfq ÷ StartUpDG.num_faces(rd.element_type)
+  num_faces_total = StartUpDG.num_faces(rd.element_type) * md.num_elements
+
+  # This function was originally defined as
+  # `reshape_by_face(u) = reshape(view(u, :), num_pts_per_face, num_faces_total)`.
+  # This results in allocations due to https://github.com/JuliaLang/julia/issues/36313.
+  # To avoid allocations, we use Tim Holy's suggestion:
+  # https://github.com/JuliaLang/julia/issues/36313#issuecomment-782336300.
+  reshape_by_face(u) = Base.ReshapedArray(u, (num_pts_per_face, num_faces_total), ())
+
+  u_face_values = reshape_by_face(cache.u_face_values)
+  flux_face_values = reshape_by_face(cache.flux_face_values)
+  Jf = reshape_by_face(md.Jf)
+  nxyzJ, xyzf = reshape_by_face.(md.nxyzJ), reshape_by_face.(md.xyzf) # broadcast over nxyzJ::NTuple{NDIMS,Matrix}
+
+  # loop through boundary faces, which correspond to columns of reshaped u_face_values, ...
+  for f in mesh.boundary_faces[boundary_key]
+    for i in Base.OneTo(num_pts_per_face)
+      face_normal = SVector{NDIMS}(getindex.(nxyzJ, i, f)) / Jf[i,f]
+      face_coordinates = SVector{NDIMS}(getindex.(xyzf, i, f))
+
+      # Compute conservative and non-conservative fluxes separately.
+      # This imposes boundary conditions on the conservative part of the flux.
+      cons_flux_at_face_node = boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
+                                                  surface_flux, equations)
+
+      # Compute pointwise nonconservative numerical flux at the boundary.
+      # In general, nonconservative fluxes can depend on both the contravariant
+      # vectors (normal direction) at the current node and the averaged ones.
+      # However, there is only one `face_normal` at boundaries, which we pass in twice.
+      # Note: This does not set any type of boundary condition for the nonconservative term
+      noncons_flux_at_face_node = nonconservative_flux(u_face_values[i,f], u_face_values[i,f],
+                                                       face_normal, face_normal, equations)
+
+      flux_face_values[i,f] = (cons_flux_at_face_node + 0.5 * noncons_flux_at_face_node) * Jf[i,f]
+
+    end
+  end
+
+  # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.
+  # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
+end
+
+
 # inverts Jacobian and scales by -1.0
 function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache; scaling=-1)
-  @threaded for i in each_dof_global(mesh, dg, cache)
-    du[i] *= scaling * cache.invJ[i]
+  @threaded for e in eachelement(mesh, dg, cache)
+    invJ = cache.invJ[1, e]
+    for i in axes(du, 1)
+      du[i, e] *= scaling * invJ
+    end
+  end
+end
+
+# inverts Jacobian using weight-adjusted DG, and scales by -1.0.
+# - Chan, Jesse, Russell J. Hewett, and Timothy Warburton.
+#   "Weight-adjusted discontinuous Galerkin methods: curvilinear meshes."
+#   https://doi.org/10.1137/16M1089198
+function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
+                          dg::DGMulti, cache; scaling=-1) where {NDIMS}
+  # Vq = interpolation matrix to quadrature points, Pq = quadrature-based L2 projection matrix
+  (; Pq, Vq) = dg.basis
+  (; local_values_threaded, invJ) = cache
+
+  @threaded for e in eachelement(mesh, dg, cache)
+    du_at_quad_points = local_values_threaded[Threads.threadid()]
+
+    # interpolate solution to quadrature
+    apply_to_each_field(mul_by!(Vq), du_at_quad_points, view(du, :, e))
+
+    # scale by quadrature points
+    for i in eachindex(du_at_quad_points)
+      du_at_quad_points[i] *= scaling * invJ[i, e]
+    end
+
+    # project back to polynomials
+    apply_to_each_field(mul_by!(Pq), view(du, :, e), du_at_quad_points)
   end
 end
 
@@ -426,10 +624,11 @@ function rhs!(du, u, t, mesh, equations,
     have_nonconservative_terms(equations), equations, dg)
 
   @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg)
+    cache, t, boundary_conditions, mesh,
+    have_nonconservative_terms(equations), equations, dg)
 
   @trixi_timeit timer() "surface integral" calc_surface_integral!(
-    du, u, dg.surface_integral, mesh, equations, dg, cache)
+    du, u, mesh, equations, dg.surface_integral, dg, cache)
 
   @trixi_timeit timer() "Jacobian" invert_jacobian!(
     du, mesh, equations, dg, cache)
