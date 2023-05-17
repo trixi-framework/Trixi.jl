@@ -460,6 +460,9 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{typeof(trixi_include),String})
   end
 
+  @assert Base.precompile(Tuple{typeof(init_mpi)})
+  @assert Base.precompile(Tuple{typeof(init_p4est)})
+
   # The following precompile statements do not seem to be taken
   # # `multiply_dimensionwise!` as used in the analysis callback
   # for RealT in (Float64,)
