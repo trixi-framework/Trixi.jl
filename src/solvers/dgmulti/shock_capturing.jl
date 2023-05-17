@@ -395,6 +395,7 @@ function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
 
 end
 
+# version for curved meshes and non-conservative equations
 function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh{NDIMS, <:NonAffine},
                                              have_nonconservative_terms::True, equations,
                                              volume_flux_fv, dg::DGMultiFluxDiff{<:GaussSBP},
