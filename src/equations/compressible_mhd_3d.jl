@@ -3,7 +3,7 @@ CompressibleMhdDiffusion3D(gamma, inv_gamma_minus_one,
 μ, Pr, eta, kappa,
 equations, gradient_variables)
 
-These equations contain the viscous Navier-Stokes equtions coupled to
+These equations contain the viscous Navier-Stokes equations coupled to
 the magnetic field together with the magnetic diffusion applied
 to mass, momenta, magnetic field and total energy together with the advective terms from
 the [`IdealGlmMhdEquations3D`](@ref).
@@ -82,7 +82,7 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleMhdDiff
   # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
   rho, v1, v2, v3, E, B1, B2, B3, psi = convert_transformed_to_primitive(u, equations)
   # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, v3, T)
-  # either computed directly or reverse engineered from the gradient of the entropy vairables
+  # either computed directly or reverse engineered from the gradient of the entropy variables
   # by way of the `convert_gradient_variables` function.
   
   @unpack eta = equations
@@ -118,7 +118,7 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleMhdDiff
   q2 = equations.kappa * dTdy
   q3 = equations.kappa * dTdz
 
-  # Constant dynamic viscosity is copied to a variable for readibility.
+  # Constant dynamic viscosity is copied to a variable for readability.
   # Offers flexibility for dynamic viscosity via Sutherland's law where it depends
   # on temperature and reference values, Ts and Tref such that mu(T)
   mu = equations.mu
