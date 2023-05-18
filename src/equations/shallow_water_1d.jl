@@ -470,8 +470,8 @@ end
     hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, orientation::Integer,
                                            equations::ShallowWaterEquations1D)
 
-A particular type of hydrostatic reconstruction on the water height to guarantee well-balancedness
-for a general bottom topography [`ShallowWaterEquations1D`](@ref). The reconstructed solution states
+A particular type of hydrostatic reconstruction of the water height to guarantee well-balancedness
+for a general bottom topography of the [`ShallowWaterEquations1D`](@ref). The reconstructed solution states
 `u_ll_star` and `u_rr_star` variables are used to evaluate the surface numerical flux at the interface.
 The key idea is a linear reconstruction of the bottom and water height at the interfaces using subcells.
 Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).

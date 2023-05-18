@@ -86,9 +86,9 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=false,
-                                    extra_analysis_integrals=(energy_kinetic,
-                                                              energy_internal,
-                                                              lake_at_rest_error))
+                                     extra_analysis_integrals=(energy_kinetic,
+                                                               energy_internal,
+                                                               lake_at_rest_error))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
@@ -99,7 +99,7 @@ save_solution = SaveSolutionCallback(interval=1000,
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution)
 
 stage_limiter! = PositivityPreservingLimiterShallowWater(thresholds=(equations.threshold_limiter,),
-                                                     variables=(Trixi.waterheight,))
+                                                         variables=(Trixi.waterheight,))
 
 ###############################################################################
 # run the simulation
