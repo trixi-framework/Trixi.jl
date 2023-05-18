@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1d_dgsem")
+EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
 @testset "Shallow Water" begin
   @trixi_testset "elixir_shallowwater_ec.jl" begin
