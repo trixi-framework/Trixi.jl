@@ -112,7 +112,7 @@ stage_limiter! = PositivityPreservingLimiterShallowWater(thresholds=(equations.t
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(stage_limiter!), dt=1.0,
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, SSPRK43(stage_limiter!);
+            ode_default_options()..., callback=callbacks);
 
 summary_callback() # print the timer summary
