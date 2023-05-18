@@ -203,7 +203,6 @@ struct FluxHLL{MinMaxSpeed}
 end
 
 FluxHLL() = FluxHLL(min_max_speed_naive)
-FluxHLLChenNoelle() = FluxHLL(min_max_speed_chen_noelle)
 
 """
     min_max_speed_naive(u_ll, u_rr, orientation::Integer,   equations)
@@ -245,7 +244,7 @@ Base.show(io::IO, numflux::FluxHLL) = print(io, "FluxHLL(", numflux.min_max_spee
 See [`FluxHLL`](@ref).
 """
 const flux_hll = FluxHLL()
-const flux_hll_chen_noelle = FluxHLLChenNoelle()
+const flux_hll_chen_noelle = FluxHLL(min_max_speed_chen_noelle)
 
 
 """
