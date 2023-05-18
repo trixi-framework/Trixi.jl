@@ -266,16 +266,16 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_shallowwater_conical_island.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_conical_island.jl"),
-      l2   = [0.26949220196476187, 0.14110071873048624, 0.14110071174299496, 0.0011537702354532122],
-      linf = [1.1129906044280458, 0.6917466957323936, 0.6917466966199978, 0.021790250683516296],
-      tspan = (0.0, 0.25))
+      l2   = [0.04593154164306353, 0.1644534881916908, 0.16445348819169076, 0.0011537702354532122],
+      linf = [0.21100717610846442, 0.9501592344310412, 0.950159234431041, 0.021790250683516296],
+      tspan = (0.0, 0.025))
   end
 
   @trixi_testset "elixir_shallowwater_parabolic_bowl.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_parabolic_bowl.jl"),
-      l2   = [0.00031619282211426265, 9.669085946910493e-5, 0.00021314873235172974, 8.085321627658153e-17],
-      linf = [0.005459003630129106, 0.0013183785840823426, 0.0035522108675280165, 6.661338147750939e-16],
-      tspan = (0.0, 0.25), cells_per_dimension = (60, 60))
+      l2   = [0.00015285369980313484, 1.9536806395943226e-5, 9.936906607758672e-5, 5.0686313334616055e-15],
+      linf = [0.003316119030459211, 0.0005075409427972817, 0.001986721761060583, 4.701794509287538e-14],
+      tspan = (0.0, 0.025), cells_per_dimension = (40, 40))
   end
 
   @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin

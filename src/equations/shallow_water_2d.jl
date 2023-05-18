@@ -56,10 +56,10 @@ References for the SWE are many but a good introduction is available in Chapter 
 struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 4}
   gravity::RealT # gravitational constant
   H0::RealT      # constant "lake-at-rest" total water height
-  threshold_limiter::RealT  # Threshold to use in PositivityPreservingLimiterShallowWater on water height,
+  threshold_limiter::RealT   # Threshold to use in PositivityPreservingLimiterShallowWater on water height,
                              # as a (small) shift on the initial condition and cutoff before the
                              # next time step.
-   threshold_wet::RealT      # Threshold to be applied on water height to define when the flow is "wet"
+  threshold_wet::RealT       # Threshold to be applied on water height to define when the flow is "wet"
                              # before calculating the numerical flux.
 end
 
@@ -487,14 +487,17 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   # The default value is set to 1e-15 and can be changed within the constructor call in an elixir.
   threshold = equations.threshold_wet
 
-  h_ll_star = h_ll_star * Int32(h_ll_star > threshold) + threshold * Int32(h_ll_star <= threshold)
-  h_rr_star = h_rr_star * Int32(h_rr_star > threshold) + threshold * Int32(h_rr_star <= threshold)
+  if (h_ll_star <= threshold)
+    h_ll_star = threshold
+    v1_ll = 0
+    v2_ll = 0
+  end
 
-  v1_ll = v1_ll * Int32(h_ll_star > threshold)
-  v1_rr = v1_rr * Int32(h_rr_star > threshold)
-
-  v2_ll = v2_ll * Int32(h_ll_star > threshold)
-  v2_rr = v2_rr * Int32(h_rr_star > threshold)
+  if (h_rr_star <= threshold)
+    h_rr_star = threshold
+    v1_rr = 0
+    v2_rr = 0
+  end
 
   # Create the conservative variables using the reconstruted water heights
   u_ll_star = SVector( h_ll_star, h_ll_star * v1_ll, h_ll_star * v2_ll, b_ll )

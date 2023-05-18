@@ -491,13 +491,6 @@ end
   return nothing
 end
 
-@inline function set_node_vars!(u, u_node, variables::NTuple{N, Integer}, solver::DG, indices...) where N
-  for v in variables
-    u[v, indices...] = u_node[v]
-  end
-  return nothing
-end
-
 @inline function add_to_node_vars!(u, u_node, equations, solver::DG, indices...)
   for v in eachvariable(equations)
     u[v, indices...] += u_node[v]

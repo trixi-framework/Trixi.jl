@@ -65,13 +65,17 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
     modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
 
     # (Re-)set dummy variable for alpha_dry
-    indicator_wet = 1.0
+    indicator_wet = 1
 
     # Calculate indicator variables at Gauss-Lobatto nodes
     for j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, j, element)
       h, _, _, _ = u_local
-      indicator_wet = min(indicator_wet, Int32(h > threshold_wet))
+
+      if h <= threshold_wet
+        indicator_wet = 0
+      end
+
       indicator[i, j] = indicator_hg.variable(u_local, equations)
     end
 

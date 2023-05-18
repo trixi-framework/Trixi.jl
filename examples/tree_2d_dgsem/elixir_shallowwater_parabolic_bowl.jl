@@ -71,7 +71,7 @@ coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=6,
+                initial_refinement_level=5,
                 n_cells_max=10_000)
 
 # create the semi discretization object
