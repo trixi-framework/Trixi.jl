@@ -43,19 +43,20 @@ function limiter_shallow_water!(u, threshold::Real, variable,
       h_mean, h_v_mean, _ = u_mean # b_mean is not used as b_node must not be overwritten
 
       # Set them both to zero to apply linear combination correctly
-      h_v_node = h_v_node * Int32(h_node > threshold)
-
-      h_v_mean = h_v_mean * Int32(h_node > threshold)
+      if h_node <= threshold
+        h_v_node = 0
+        h_v_mean = 0
+      end
 
       u_node = SVector(h_node, h_v_node, b_node)
-      u_mean = SVector(h_mean, h_v_mean, zero(eltype(u)))
+      u_mean = SVector(h_mean, h_v_mean, b_node)
 
       # When velocity is cut off, the only averaged value is the waterheight,
       # because the velocity is set to zero and this value is passed.
       # Otherwise, the velocity is averaged, as well.
       # Note that the auxiliary bottom topography variable `b` is never limited.
       set_node_vars!(u, theta * u_node + (1-theta) * u_mean,
-                     (1,2), dg, i, element)
+                     equations, dg, i, element)
     end
   end
 
@@ -70,8 +71,10 @@ function limiter_shallow_water!(u, threshold::Real, variable,
 
       h, hv, b = u_node
 
-      h = h * Int32(h > threshold) + threshold * Int32(h <= threshold)
-      hv = hv * Int32(h > threshold)
+      if h <= threshold
+        h = threshold
+        hv = 0
+      end
 
       u_node = SVector(h, hv, b)
 

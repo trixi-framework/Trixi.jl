@@ -506,11 +506,15 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   # The default value is set to 1e-15 and can be changed within the constructor call in an elixir.
   threshold = equations.threshold_wet
 
-  h_ll_star = h_ll_star * Int32(h_ll_star > threshold) + threshold * Int32(h_ll_star <= threshold)
-  h_rr_star = h_rr_star * Int32(h_rr_star > threshold) + threshold * Int32(h_rr_star <= threshold)
+  if (h_ll_star <= threshold)
+    h_ll_star = threshold
+    v_ll = 0
+  end
 
-  v_ll = v_ll * Int32(h_ll_star > threshold)
-  v_rr = v_rr * Int32(h_rr_star > threshold)
+  if (h_rr_star <= threshold)
+    h_rr_star = threshold
+    v_rr = 0
+  end
 
   # Create the conservative variables using the reconstruted water heights
   u_ll_star = SVector( h_ll_star, h_ll_star * v_ll, b_ll )
