@@ -24,12 +24,12 @@ function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::Abs
   create_cache(typ, equations, dg.basis)
 end
 
-# Overload indicator when ShallowWaterEquations2D is used to apply full FV method on cells
+# Modified indicator for ShallowWaterEquations2D to apply full FV method on cells
 # containing some "dry" LGL nodes. That is, if an element is partially "wet" then it becomes a
 # full FV element.
-function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
-                                                   mesh, equations::ShallowWaterEquations2D, 
-                                                   dg::DGSEM, cache; kwargs...)
+function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{<:Any,4},
+                                                               mesh, equations::ShallowWaterEquations2D,
+                                                               dg::DGSEM, cache; kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
   @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_hg.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
@@ -49,7 +49,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
   #
   # Determination of hard coded threshold: Showed good results in many numerical experiments. Idea is to
   # gain more stability when computing the velocity on (nearly) dry cells which
-  # could be counteracted by division of conservative variables, e.g., v2 / v1 = hv / h.
+  # could be counteracted by division of conservative variables, e.g., v1 = hv1 / h.
   # Here, the impact of the threshold on the number of cells being updated with FV is not that
   # significant. However, its impact on the stability is very significant.
   # The value can be seen as a trade-off between accuracy and stability.

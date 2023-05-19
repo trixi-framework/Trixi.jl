@@ -57,11 +57,11 @@ surface_flux = (FluxHydrostaticReconstruction(flux_hll_chen_noelle, hydrostatic_
 
 basis = LobattoLegendreBasis(7)
 
-indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max=0.6,
-                                         alpha_min=0.001,
-                                         alpha_smooth=true,
-                                         variable=waterheight_pressure)
+indicator_sc = IndicatorHennemannGassnerShallowWater(equations, basis,
+                                                     alpha_max=0.6,
+                                                     alpha_min=0.001,
+                                                     alpha_smooth=true,
+                                                     variable=waterheight_pressure)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
