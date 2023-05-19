@@ -6,11 +6,11 @@
 
 
 """
-    PositivityPreservingLimiterShallowWater(; threshold, variables)
+    PositivityPreservingLimiterShallowWater(; variables)
 
 The limiter is specifically designed for `ShallowWaterEquations`.
 It is applied to all scalar `variables` in their given order
-using the associated `thresholds` to determine the minimal acceptable values.
+using the defined `threshold_limiter` from the equations struct to determine the minimal acceptable values.
 The order of the `variables` is important and might have a strong influence
 on the robustness.
 As opposed to the standard version of the [`PositivityPreservingLimiterZhangShu`](@ref), 
@@ -21,7 +21,7 @@ the velocity is cut off, such that the node can be identified as "dry". The spec
 quantity in the solution vector `u`. However, the value of the bottom topography
 should not be changed. That is why, it is not limited.
 After the limiting process is applied to all degrees of freedom, for safety reasons,
-the wet/dry threshold is applied again on all the DG nodes in order to avoid dry nodes.
+the `threshold_limiter` is applied again on all the DG nodes in order to avoid water height below.
 In the case where the cell mean value is below the threshold before applying the limiter,
 there could still be dry nodes afterwards due to the logic of the limiter.
 This fully-discrete positivity-preserving limiter is based on the work of 
@@ -30,13 +30,12 @@ This fully-discrete positivity-preserving limiter is based on the work of
   for conservation laws: survey and new developments
   [doi: 10.1098/rspa.2011.0153](https://doi.org/10.1098/rspa.2011.0153)
 """
-struct PositivityPreservingLimiterShallowWater{N, Thresholds<:NTuple{N,<:Real}, Variables<:NTuple{N,Any}}
-  thresholds::Thresholds
+struct PositivityPreservingLimiterShallowWater{N, Variables<:NTuple{N,Any}}
   variables::Variables
 end
 
-function PositivityPreservingLimiterShallowWater(; thresholds, variables)
-  PositivityPreservingLimiterShallowWater(thresholds, variables)
+function PositivityPreservingLimiterShallowWater(;variables)
+  PositivityPreservingLimiterShallowWater(variables)
 end
 
 
@@ -44,7 +43,7 @@ function (limiter!::PositivityPreservingLimiterShallowWater)(
     u_ode, integrator, semi::AbstractSemidiscretization, t)
   u = wrap_array(u_ode, semi)
   @trixi_timeit timer() "positivity-preserving limiter" limiter_shallow_water!(
-    u, limiter!.thresholds, limiter!.variables, mesh_equations_solver_cache(semi)...)
+    u, limiter!.variables, mesh_equations_solver_cache(semi)...)
 end
 
 
@@ -56,21 +55,19 @@ end
 # Note that you shouldn't use this with too many elements per tuple since the
 # compile times can increase otherwise - but a handful of elements per tuple
 # is definitely fine.
-function limiter_shallow_water!(u, thresholds::NTuple{N,<:Real}, variables::NTuple{N,Any},
+function limiter_shallow_water!(u, variables::NTuple{N,Any},
                                 mesh, equations::Union{ShallowWaterEquations1D, ShallowWaterEquations2D},
                                 solver, cache) where {N}
-  threshold = first(thresholds)
-  remaining_thresholds = Base.tail(thresholds)
   variable = first(variables)
   remaining_variables = Base.tail(variables)
 
-  limiter_shallow_water!(u, threshold, variable, mesh, equations, solver, cache)
-  limiter_shallow_water!(u, remaining_thresholds, remaining_variables, mesh, equations, solver, cache)
+  limiter_shallow_water!(u, equations.threshold_limiter, variable, mesh, equations, solver, cache)
+  limiter_shallow_water!(u, remaining_variables, mesh, equations, solver, cache)
   return nothing
 end
 
 # terminate the type-stable iteration over tuples
-function limiter_shallow_water!(u, thresholds::Tuple{}, variables::Tuple{},
+function limiter_shallow_water!(u, variables::Tuple{},
                                 mesh, equations::Union{ShallowWaterEquations1D, ShallowWaterEquations2D}, 
                                 solver, cache)
   nothing
