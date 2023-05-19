@@ -62,7 +62,8 @@ end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
-# The reference total water height H0 is an artefact from the old calculation of the lake_at_rest_error
+# The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
+# well-balancedness test cases.
 # Strict default values for thresholds that performed great in several numerical experiments
 function ShallowWaterEquations1D(; gravity_constant, H0=0.0, 
                                  threshold_limiter=1e-13, threshold_wet=1e-15)
