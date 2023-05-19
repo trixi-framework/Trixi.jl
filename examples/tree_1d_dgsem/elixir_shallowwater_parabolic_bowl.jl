@@ -14,11 +14,16 @@ Well-known initial condition to test the [`hydrostatic_reconstruction_chen_noell
 wet-dry mechanics. This test has analytical solutions. The initial condition is defined by the 
 analytical solution at time t=0. The bottom topography defines a bowl and the water level is given
 by an oscillating lake.
-The original test and its analytical solution are taken out of section 6.2 from the paper:
+The original test and its analytical solution in two dimensions were first presented in
+  - William C. Thacker (1981)
+    Some exact solutions to the nonlinear shallow-water wave equations\n
+    [DOI: 10.1017/S0022112081001882](https://doi.org/10.1017/S0022112081001882).
+
+The particular setup is used as the one-dimensional version out of section 6.2 from the paper:
   - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and Timothy Warburton (2018)
-    An entropy stable discontinuous Galerkin method for the shallow water equations on 
+    An entropy stable discontinuous Galerkin method for the shallow water equations on
     curvilinear meshes with wet/dry fronts accelerated by GPUs\n
-    [DOI: 10.1016/j.jcp.2018.08.038](https://doi.org/10.1016/j.jcp.2018.08.038)
+    [DOI: 10.1016/j.jcp.2018.08.038](https://doi.org/10.1016/j.jcp.2018.08.038).
 """
 function initial_condition_parabolic_bowl(x, t, equations:: ShallowWaterEquations1D)
   a = 1
