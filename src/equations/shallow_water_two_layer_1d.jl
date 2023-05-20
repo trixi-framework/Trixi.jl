@@ -235,6 +235,46 @@ end
 
 
 """
+    flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                          equations::ShallowWaterTwoLayerEquations1D)
+
+!!! warning "Experimental code"
+    This numerical flux is experimental and may change in any future release.
+
+Non-symmetric two-point volume flux discretizing the nonconservative (source) term
+that contains the gradient of the bottom topography [`ShallowWaterTwoLayerEquations2D`](@ref) and an
+additional term that couples the momentum of both layers. 
+
+This is a modified version of flux_nonconservative_wintermeyer_etal that gives entropy conservation
+and well-balancedness in both the volume and surface when combined with flux_wintermeyer_etal. 
+"""
+@inline function flux_nonconservative_ersing_etal(u_ll, u_rr,
+  orientation::Integer,
+  equations::ShallowWaterTwoLayerEquations1D)
+# Pull the necessary left and right state information
+h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
+h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
+b_rr = u_rr[5]
+b_ll = u_ll[5]
+
+h_upper_avg = 0.5 * (h_upper_ll + h_upper_rr)
+h_lower_avg = 0.5 * (h_lower_ll + h_lower_rr)
+b_avg       = 0.5 * (b_ll + b_rr)
+
+z = zero(eltype(u_ll))
+
+# Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x, 
+#                                        0, g*h_lower*(b+r*h_upper)_x, 0)
+f = SVector(z,
+equations.gravity * h_upper_ll * 2.0 * (b_avg + h_lower_avg),
+z,
+equations.gravity * h_lower_ll * 2.0 * (b_avg + equations.r * h_upper_avg),
+z)
+return f
+end
+
+
+"""
     flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
                                         equations::ShallowWaterTwoLayerEquations1D)
 
@@ -376,7 +416,7 @@ end
 
 
 """
-    flux_es_fjordholm_etal(u_ll, u_rr, orientation,
+    flux_es_ersing_etal(u_ll, u_rr, orientation,
                            equations::ShallowWaterTwoLayerEquations1D)
 
 Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy 
@@ -391,11 +431,11 @@ It should be noted that the equations are ordered differently and the
 designation of the upper and lower layer has been changed which leads to a slightly different
 formulation.
 """
-@inline function flux_es_fjordholm_etal(u_ll, u_rr,
+@inline function flux_es_ersing_etal(u_ll, u_rr,
                                         orientation::Integer,
                                         equations::ShallowWaterTwoLayerEquations1D)
   # Compute entropy conservative flux but without the bottom topography
-  f_ec = flux_fjordholm_etal(u_ll, u_rr,
+  f_ec = flux_wintermeyer_etal(u_ll, u_rr,
                               orientation,
                               equations)
 

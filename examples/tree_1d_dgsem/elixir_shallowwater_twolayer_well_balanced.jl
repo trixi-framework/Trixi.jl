@@ -33,8 +33,8 @@ initial_condition = initial_condition_fjordholm_well_balanced
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-solver = DGSEM(polydeg=3, surface_flux=(flux_es_fjordholm_etal, flux_nonconservative_fjordholm_etal),
+volume_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal)
+solver = DGSEM(polydeg=3, surface_flux=(flux__es_ersing_etal, flux_nonconservative_ersing_etal),
               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
