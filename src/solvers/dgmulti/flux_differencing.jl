@@ -413,10 +413,10 @@ end
 # Computes flux differencing contribution from each Cartesian direction over a single element.
 # For dense operators, we do not use sum factorization.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::False, volume_integral,
+                                          has_nonconservative_terms::False, volume_flux,
                                           has_sparse_operators::False, mesh,
                                           equations, dg, cache)
-  @unpack volume_flux = volume_integral
+
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
     # True() indicates the volume flux is symmetric
@@ -427,10 +427,10 @@ end
 end
 
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::True, volume_integral,
+                                          has_nonconservative_terms::True, volume_flux,
                                           has_sparse_operators::False, mesh,
                                           equations, dg, cache)
-  flux_conservative, flux_nonconservative = volume_integral.volume_flux
+  flux_conservative, flux_nonconservative = volume_flux
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
     # True() indicates the flux is symmetric.
@@ -450,11 +450,10 @@ end
 # When the operators are sparse, we use the sum-factorization approach to
 # computing flux differencing.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::False, volume_integral,
+                                          has_nonconservative_terms::False, volume_flux,
                                           has_sparse_operators::True, mesh,
                                           equations, dg, cache)
   @unpack Qrst_skew = cache
-  @unpack volume_flux = volume_integral
   for dim in eachdim(mesh)
     # There are two ways to write this flux differencing discretization on affine meshes.
     #
@@ -481,11 +480,11 @@ end
 end
 
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::True, volume_integral,
+                                          has_nonconservative_terms::True, volume_flux,
                                           has_sparse_operators::True, mesh,
                                           equations, dg, cache)
   @unpack Qrst_skew = cache
-  flux_conservative, flux_nonconservative = volume_integral.volume_flux
+  flux_conservative, flux_nonconservative = volume_flux
   for dim in eachdim(mesh)
     normal_direction = get_contravariant_vector(element_index, dim, mesh, cache)
     Q_skew = Qrst_skew[dim]
@@ -521,7 +520,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     u_local = view(entropy_projected_u_values, :, e)
 
     local_flux_differencing!(fluxdiff_local, u_local, e,
-                             have_nonconservative_terms, volume_integral,
+                             have_nonconservative_terms, volume_integral.volume_flux,
                              has_sparse_operators(dg),
                              mesh, equations, dg, cache)
 
@@ -548,7 +547,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     u_local = view(u, :, e)
 
     local_flux_differencing!(fluxdiff_local, u_local, e,
-                             have_nonconservative_terms, volume_integral,
+                             have_nonconservative_terms, volume_integral.volume_flux,
                              has_sparse_operators(dg),
                              mesh, equations, dg, cache)
 
@@ -594,11 +593,11 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
                                                               have_nonconservative_terms(equations),
                                                               equations, dg)
 
-  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
-                                                            mesh, equations, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, mesh,
+                                                            have_nonconservative_terms(equations), equations, dg)
 
-  @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, dg.surface_integral,
-                                                                  mesh, equations, dg, cache)
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, mesh, equations,
+                                                                  dg.surface_integral, dg, cache)
 
   @trixi_timeit timer() "Jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
 
@@ -630,10 +629,11 @@ function rhs!(du, u, t, mesh, equations,
     have_nonconservative_terms(equations), equations, dg)
 
   @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg)
+    cache, t, boundary_conditions, mesh,
+    have_nonconservative_terms(equations), equations, dg)
 
   @trixi_timeit timer() "surface integral" calc_surface_integral!(
-    du, u, dg.surface_integral, mesh, equations, dg, cache)
+    du, u, mesh, equations, dg.surface_integral, dg, cache)
 
   @trixi_timeit timer() "Jacobian" invert_jacobian!(
     du, mesh, equations, dg, cache)

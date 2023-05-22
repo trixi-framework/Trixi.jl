@@ -12,8 +12,7 @@ include("test_trixi.jl")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-# pathof(Trixi) returns /path/to/Trixi.jl/src/Trixi.jl, dirname gives the parent directory
-const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
+const EXAMPLES_DIR = pkgdir(Trixi, "examples")
 
 cmd = string(Base.julia_cmd())
 coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none", cmd)
