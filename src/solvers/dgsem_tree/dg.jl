@@ -54,6 +54,9 @@ include("indicators_3d.jl")
 # Container data structures
 include("containers.jl")
 
+# Dimension-agnostic parallel setup
+include("dg_parallel.jl")
+
 # 1D DG implementation
 include("dg_1d.jl")
 include("dg_1d_parabolic.jl")

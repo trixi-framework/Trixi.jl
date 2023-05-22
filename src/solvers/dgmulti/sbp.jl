@@ -456,8 +456,8 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
   nothing
 end
 
-function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::DGMultiMesh, equations,
+function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
+                                surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMultiPeriodicFDSBP, cache)
   @assert nelements(mesh, dg, cache) == 1
   nothing
