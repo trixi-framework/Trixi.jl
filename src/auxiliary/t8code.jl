@@ -7,7 +7,7 @@ function init_t8code()
     return nothing
   end
 
-  # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
+  # Initialize `t8code` with log level ERROR to prevent a lot of output in AMR simulations
   t8_init(SC_LP_ERROR)
 
   return nothing
@@ -24,20 +24,20 @@ function t8_free(ptr)
 end
 
 function finalize_t8code()
-  # sc_finalize();
+  # sc_finalize()
   return nothing
 end
 
 function trixi_t8_count_interfaces(forest)
-  # /* Check that forest is a committed, that is valid and usable, forest. */
-  @T8_ASSERT (t8_forest_is_committed(forest) != 0);
+  # Check that forest is a committed, that is valid and usable, forest.
+  @T8_ASSERT (t8_forest_is_committed(forest) != 0)
 
-  # /* Get the number of local elements of forest. */
-  num_local_elements = t8_forest_get_local_num_elements(forest);
-  # /* Get the number of ghost elements of forest. */
-  num_ghost_elements = t8_forest_get_num_ghosts(forest);
-  # /* Get the number of trees that have elements of this process. */
-  num_local_trees = t8_forest_get_num_local_trees(forest);
+  # Get the number of local elements of forest.
+  num_local_elements = t8_forest_get_local_num_elements(forest)
+  # Get the number of ghost elements of forest.
+  num_ghost_elements = t8_forest_get_num_ghosts(forest)
+  # Get the number of trees that have elements of this process.
+  num_local_trees = t8_forest_get_num_local_trees(forest)
 
   current_index = 0
 
@@ -46,14 +46,14 @@ function trixi_t8_count_interfaces(forest)
   local_num_boundry = 0
 
   for itree = 0:num_local_trees-1
-    tree_class = t8_forest_get_tree_class(forest, itree);
-    eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class);
+    tree_class = t8_forest_get_tree_class(forest, itree)
+    eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
 
-    # /* Get the number of elements of this tree. */
-    num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree);
+    # Get the number of elements of this tree.
+    num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
 
     for ielement = 0:num_elements_in_tree-1
-      element = t8_forest_get_element_in_tree(forest, itree, ielement);
+      element = t8_forest_get_element_in_tree(forest, itree, ielement)
 
       level = t8_element_level(eclass_scheme, element)
 
@@ -121,15 +121,15 @@ function trixi_t8_count_interfaces(forest)
 end
 
 function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundaries, boundary_names)
-  # /* Check that forest is a committed, that is valid and usable, forest. */
-  @T8_ASSERT (t8_forest_is_committed(forest) != 0);
+  # Check that forest is a committed, that is valid and usable, forest.
+  @T8_ASSERT (t8_forest_is_committed(forest) != 0)
 
-  # /* Get the number of local elements of forest. */
-  num_local_elements = t8_forest_get_local_num_elements(forest);
-  # /* Get the number of ghost elements of forest. */
-  num_ghost_elements = t8_forest_get_num_ghosts(forest);
-  # /* Get the number of trees that have elements of this process. */
-  num_local_trees = t8_forest_get_num_local_trees(forest);
+  # Get the number of local elements of forest.
+  num_local_elements = t8_forest_get_local_num_elements(forest)
+  # Get the number of ghost elements of forest.
+  num_ghost_elements = t8_forest_get_num_ghosts(forest)
+  # Get the number of trees that have elements of this process.
+  num_local_trees = t8_forest_get_num_local_trees(forest)
 
   current_index = 0
 
@@ -138,14 +138,14 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
   local_num_boundry = 0
 
   for itree = 0:num_local_trees-1
-    tree_class = t8_forest_get_tree_class(forest, itree);
-    eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class);
+    tree_class = t8_forest_get_tree_class(forest, itree)
+    eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
 
     # Get the number of elements of this tree.
-    num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree);
+    num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
 
     for ielement = 0:num_elements_in_tree-1
-      element = t8_forest_get_element_in_tree(forest, itree, ielement);
+      element = t8_forest_get_element_in_tree(forest, itree, ielement)
 
       level = t8_element_level(eclass_scheme, element)
 
@@ -203,7 +203,7 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
               interfaces.neighbor_ids[2, interface_id] = neighbor_ielements[1] + 1
 
               # Iterate over primary and secondary element.
-              for side in 1:2
+              for side = 1:2
                 # Align interface in positive coordinate direction of primary element.
                 # For orientation == 1, the secondary element needs to be indexed backwards
                 # relative to the interface.
@@ -245,7 +245,7 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
               # First `1:end-1` entries are the smaller elements.
               mortars.neighbor_ids[1:end-1, mortar_id] .= neighbor_ielements[:] .+ 1
 
-              for side in 1:2
+              for side = 1:2
                 # Align mortar in positive coordinate direction of small side.
                 # For orientation == 1, the large side needs to be indexed backwards
                 # relative to the mortar.
@@ -327,25 +327,25 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
 end
 
 function trixi_t8_get_local_element_levels(forest)
-  # /* Check that forest is a committed, that is valid and usable, forest. */
-  @T8_ASSERT (t8_forest_is_committed(forest) != 0);
+  # Check that forest is a committed, that is valid and usable, forest.
+  @T8_ASSERT (t8_forest_is_committed(forest) != 0)
 
   levels = Vector{Int}(undef, t8_forest_get_local_num_elements(forest))
 
-  # /* Get the number of trees that have elements of this process. */
-  num_local_trees = t8_forest_get_num_local_trees(forest);
+  # Get the number of trees that have elements of this process.
+  num_local_trees = t8_forest_get_num_local_trees(forest)
 
   current_index = 0
 
   for itree = 0:num_local_trees-1
-    tree_class = t8_forest_get_tree_class(forest, itree);
-    eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class);
+    tree_class = t8_forest_get_tree_class(forest, itree)
+    eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
 
-    # /* Get the number of elements of this tree. */
-    num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree);
+    # Get the number of elements of this tree.
+    num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
 
     for ielement = 0:num_elements_in_tree-1
-      element = t8_forest_get_element_in_tree(forest, itree, ielement);
+      element = t8_forest_get_element_in_tree(forest, itree, ielement)
       current_index += 1
       levels[current_index] = t8_element_level(eclass_scheme, element)
     end # for
@@ -380,12 +380,12 @@ function adapt_callback(forest,
 end
 
 function trixi_t8_adapt_new(old_forest, indicators)
-  # /* Check that forest is a committed, that is valid and usable, forest. */
-  @T8_ASSERT (t8_forest_is_committed(old_forest) != 0);
+  # Check that forest is a committed, that is valid and usable, forest.
+  @T8_ASSERT (t8_forest_is_committed(old_forest) != 0)
 
   # Init new forest.
   new_forest_ref = Ref{t8_forest_t}()
-  t8_forest_init(new_forest_ref);
+  t8_forest_init(new_forest_ref)
   new_forest = new_forest_ref[]
 
   let set_from = C_NULL, recursive = 0, set_for_coarsening = 0, no_repartition = 0
@@ -393,7 +393,7 @@ function trixi_t8_adapt_new(old_forest, indicators)
     t8_forest_set_adapt(new_forest, old_forest, @t8_adapt_callback(adapt_callback), recursive)
     t8_forest_set_balance(new_forest, set_from, no_repartition)
     t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
-    # t8_forest_set_ghost(new_forest, 1, T8_GHOST_FACES);
+    # t8_forest_set_ghost(new_forest, 1, T8_GHOST_FACES)
     t8_forest_commit(new_forest)
   end
 

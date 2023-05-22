@@ -19,7 +19,7 @@ mutable struct T8codeMesh{NDIMS, RealT<:Real, IsParallel} <: AbstractMesh{NDIMS}
 
   boundary_names        :: Array{Symbol, 2}      # [face direction, tree]
   current_filename      :: String
-  unsaved_changes       :: Bool
+  unsaved_changes       :: Bool # Not used yet.
 
   ncells                :: Int
   ninterfaces           :: Int
@@ -357,81 +357,27 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
 """
-function T8codeMesh{NDIMS}(meshfile::String;
-                          mapping=nothing, polydeg=1, RealT=Float64,
-                          initial_refinement_level=0, unsaved_changes=true) where NDIMS
+function T8codeMesh{NDIMS}(meshfile::String; kwargs...) where NDIMS
 
   @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
 
   # Prevent `t8code` from crashing Julia if the file doesn't exist.
   @assert isfile(meshfile)
   
-  meshfile_prefix, meshfile_suffix = split_filename(meshfile)
+  meshfile_prefix, meshfile_suffix = splitext(meshfile)
 
   cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), 2, 0, 0)
 
-  scheme = t8_scheme_new_default_cxx()
-  forest = t8_forest_new_uniform(cmesh,scheme,initial_refinement_level,0,mpi_comm())
+  return T8codeMesh{NDIMS}(cmesh; kwargs...)
 
-  basis = LobattoLegendreBasis(RealT, polydeg)
-  nodes = basis.nodes
-
-  num_local_trees = t8_cmesh_get_num_local_trees(cmesh)
-
-  tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
-                                                ntuple(_ -> length(nodes), NDIMS)...,
-                                                num_local_trees)
-
-  nodes_in = [-1.0, 1.0]
-  matrix = polynomial_interpolation_matrix(nodes_in, nodes)
-  data_in = Array{RealT, 3}(undef, 2, 2, 2)
-  tmp1 = zeros(RealT, 2, length(nodes), length(nodes_in))
-
-  for itree in 0:num_local_trees-1
-
-    veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
-    verts = unsafe_wrap(Array,veptr,(3,1 << NDIMS))
-
-    u = verts[:,2] - verts[:,1]
-    v = verts[:,3] - verts[:,1]
-    w = [0.0,0.0,1.0]
-
-    vol = dot(cross(u,v),w)
-
-    if vol < 0.0
-      @warn "Discovered negative volumes in `cmesh`: vol = $vol"
-    end
-
-    # Tree vertices are stored in z-order.
-    @views data_in[:, 1, 1] .= verts[1:2,1]
-    @views data_in[:, 2, 1] .= verts[1:2,2]
-    @views data_in[:, 1, 2] .= verts[1:2,3]
-    @views data_in[:, 2, 2] .= verts[1:2,4]
-
-    # Interpolate corner coordinates to specified nodes.
-    multiply_dimensionwise!(
-      view(tree_node_coordinates, :, :, :, itree+1),
-      matrix, matrix,
-      data_in,
-      tmp1
-    )
-
-  end
-
-  map_node_coordinates!(tree_node_coordinates, mapping)
-
-  # There's no simple and generic way to distinguish boundaries. Name all of them :all.
-  boundary_names = fill(:all, 2 * NDIMS, num_local_trees)
-
-  return T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes, boundary_names, "", unsaved_changes)
 end
 
-# TODO: Just a placeholder.
-function balance!(mesh::T8codeMesh{2}, init_fn=C_NULL)
+# TODO: Just a placeholder. Will be implemented later.
+function balance!(mesh::T8codeMesh, init_fn=C_NULL)
   return nothing
 end
 
-# TODO: Just a placeholder.
-function partition!(mesh::T8codeMesh{2}; allow_coarsening=true, weight_fn=C_NULL)
+# TODO: Just a placeholder. Will be implemented later.
+function partition!(mesh::T8codeMesh; allow_coarsening=true, weight_fn=C_NULL)
   return nothing
 end
