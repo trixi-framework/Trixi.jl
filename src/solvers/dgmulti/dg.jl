@@ -389,8 +389,8 @@ end
 
 # assumes cache.flux_face_values is computed and filled with
 # for polyomial discretizations, use dense LIFT matrix for surface contributions.
-function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::DGMultiMesh, equations,
+function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
+                                surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMulti, cache)
   rd = dg.basis
   apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
@@ -412,8 +412,8 @@ end
 
 # Specialize for nodal SBP discretizations. Uses that du = LIFT*u is equivalent to
 # du[Fmask,:] .= u ./ rd.wq[rd.Fmask]
-function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::DGMultiMesh, equations,
+function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
+                                surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMultiSBP, cache)
   rd = dg.basis
   @unpack flux_face_values, lift_scalings = cache
@@ -428,24 +428,27 @@ end
 
 # do nothing for periodic (default) boundary conditions
 calc_boundary_flux!(cache, t, boundary_conditions::BoundaryConditionPeriodic,
-                    mesh, equations, dg::DGMulti) = nothing
+                    mesh, have_nonconservative_terms, equations, dg::DGMulti) = nothing
 
 # "lispy tuple programming" instead of for loop for type stability
-function calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, dg::DGMulti)
+function calc_boundary_flux!(cache, t, boundary_conditions, mesh,
+                             have_nonconservative_terms, equations, dg::DGMulti)
+
   # peel off first boundary condition
   calc_single_boundary_flux!(cache, t, first(boundary_conditions), first(keys(boundary_conditions)),
-                 mesh, equations, dg)
+                             mesh, have_nonconservative_terms, equations, dg)
 
   # recurse on the remainder of the boundary conditions
-  calc_boundary_flux!(cache, t, Base.tail(boundary_conditions), mesh, equations, dg)
+  calc_boundary_flux!(cache, t, Base.tail(boundary_conditions),
+                      mesh, have_nonconservative_terms, equations, dg)
 end
 
 # terminate recursion
 calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple{(),Tuple{}},
-                    mesh, equations, dg::DGMulti) = nothing
+                    mesh, have_nonconservative_terms, equations, dg::DGMulti) = nothing
 
-function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
-                                    mesh, equations, dg::DGMulti{NDIMS}) where {NDIMS}
+function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, mesh,
+                                    have_nonconservative_terms::False, equations, dg::DGMulti{NDIMS}) where {NDIMS}
 
   rd = dg.basis
   md = mesh.md
@@ -455,8 +458,9 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
 
   # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
   # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
-  num_pts_per_face = rd.Nfq ÷ rd.Nfaces
-  num_faces_total = rd.Nfaces * md.num_elements
+  num_faces = StartUpDG.num_faces(rd.element_type)
+  num_pts_per_face = rd.Nfq ÷ num_faces
+  num_faces_total = num_faces * md.num_elements
 
   # This function was originally defined as
   # `reshape_by_face(u) = reshape(view(u, :), num_pts_per_face, num_faces_total)`.
@@ -478,6 +482,58 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
       flux_face_values[i,f] = boundary_condition(u_face_values[i,f],
                           face_normal, face_coordinates, t,
                           surface_flux, equations) * Jf[i,f]
+    end
+  end
+
+  # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.
+  # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
+end
+
+function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, mesh,
+                                    have_nonconservative_terms::True, equations, dg::DGMulti{NDIMS}) where {NDIMS}
+
+  rd = dg.basis
+  md = mesh.md
+  surface_flux, nonconservative_flux = dg.surface_integral.surface_flux
+
+  # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
+  # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
+  num_pts_per_face = rd.Nfq ÷ StartUpDG.num_faces(rd.element_type)
+  num_faces_total = StartUpDG.num_faces(rd.element_type) * md.num_elements
+
+  # This function was originally defined as
+  # `reshape_by_face(u) = reshape(view(u, :), num_pts_per_face, num_faces_total)`.
+  # This results in allocations due to https://github.com/JuliaLang/julia/issues/36313.
+  # To avoid allocations, we use Tim Holy's suggestion:
+  # https://github.com/JuliaLang/julia/issues/36313#issuecomment-782336300.
+  reshape_by_face(u) = Base.ReshapedArray(u, (num_pts_per_face, num_faces_total), ())
+
+  u_face_values = reshape_by_face(cache.u_face_values)
+  flux_face_values = reshape_by_face(cache.flux_face_values)
+  Jf = reshape_by_face(md.Jf)
+  nxyzJ, xyzf = reshape_by_face.(md.nxyzJ), reshape_by_face.(md.xyzf) # broadcast over nxyzJ::NTuple{NDIMS,Matrix}
+
+  # loop through boundary faces, which correspond to columns of reshaped u_face_values, ...
+  for f in mesh.boundary_faces[boundary_key]
+    for i in Base.OneTo(num_pts_per_face)
+      face_normal = SVector{NDIMS}(getindex.(nxyzJ, i, f)) / Jf[i,f]
+      face_coordinates = SVector{NDIMS}(getindex.(xyzf, i, f))
+
+      # Compute conservative and non-conservative fluxes separately.
+      # This imposes boundary conditions on the conservative part of the flux.
+      cons_flux_at_face_node = boundary_condition(u_face_values[i,f], face_normal, face_coordinates, t,
+                                                  surface_flux, equations)
+
+      # Compute pointwise nonconservative numerical flux at the boundary.
+      # In general, nonconservative fluxes can depend on both the contravariant
+      # vectors (normal direction) at the current node and the averaged ones.
+      # However, there is only one `face_normal` at boundaries, which we pass in twice.
+      # Note: This does not set any type of boundary condition for the nonconservative term
+      noncons_flux_at_face_node = nonconservative_flux(u_face_values[i,f], u_face_values[i,f],
+                                                       face_normal, face_normal, equations)
+
+      flux_face_values[i,f] = (cons_flux_at_face_node + 0.5 * noncons_flux_at_face_node) * Jf[i,f]
+
     end
   end
 
@@ -568,10 +624,11 @@ function rhs!(du, u, t, mesh, equations,
     have_nonconservative_terms(equations), equations, dg)
 
   @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg)
+    cache, t, boundary_conditions, mesh,
+    have_nonconservative_terms(equations), equations, dg)
 
   @trixi_timeit timer() "surface integral" calc_surface_integral!(
-    du, u, dg.surface_integral, mesh, equations, dg, cache)
+    du, u, mesh, equations, dg.surface_integral, dg, cache)
 
   @trixi_timeit timer() "Jacobian" invert_jacobian!(
     du, mesh, equations, dg, cache)
