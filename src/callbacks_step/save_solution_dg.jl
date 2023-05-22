@@ -119,7 +119,7 @@ function save_solution_file_parallel(data, time, dt, timestep, n_vars,
   element_counts = cache.mpi_cache.n_elements_by_rank
   node_counts = element_counts * element_size
   # Cumulative sum of elements per rank starting with an additional 0
-  cum_element_counts = append!(zeros(eltype(node_counts), 1), cumsum(element_counts))
+  cum_element_counts = append!(zeros(eltype(element_counts), 1), cumsum(element_counts))
   # Cumulative sum of nodes per rank starting with an additional 0
   cum_node_counts = append!(zeros(eltype(node_counts), 1), cumsum(node_counts))
 
