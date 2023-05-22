@@ -240,7 +240,7 @@ export ode_norm, ode_unstable_check
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
-export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
+export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 
 export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
 
@@ -275,15 +275,17 @@ function __init__()
   #       https://github.com/JuliaLang/julia/issues/32552
   #       https://github.com/JuliaLang/julia/issues/41740
   # See also https://discourse.julialang.org/t/performance-depends-dramatically-on-compilation-order/58425
-  let
-    for T in (Float32, Float64)
-      u_mortars_2d = zeros(T, 2, 2, 2, 2, 2)
-      u_view_2d = view(u_mortars_2d, 1, :, 1, :, 1)
-      LoopVectorization.axes(u_view_2d)
+  if VERSION < v"1.9.0"
+    let
+      for T in (Float32, Float64)
+        u_mortars_2d = zeros(T, 2, 2, 2, 2, 2)
+        u_view_2d = view(u_mortars_2d, 1, :, 1, :, 1)
+        LoopVectorization.axes(u_view_2d)
 
-      u_mortars_3d = zeros(T, 2, 2, 2, 2, 2, 2)
-      u_view_3d = view(u_mortars_3d, 1, :, 1, :, :, 1)
-      LoopVectorization.axes(u_view_3d)
+        u_mortars_3d = zeros(T, 2, 2, 2, 2, 2, 2)
+        u_view_3d = view(u_mortars_3d, 1, :, 1, :, :, 1)
+        LoopVectorization.axes(u_view_3d)
+      end
     end
   end
 end

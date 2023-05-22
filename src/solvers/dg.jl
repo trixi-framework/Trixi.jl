@@ -582,6 +582,12 @@ AdaptorAMR(mesh, dg::DG) = AdaptorL2(dg.basis)
 # DGSEM (discontinuous Galerkin spectral element method)
 include("dgsem/dgsem.jl")
 
+# Finite difference methods using summation by parts (SBP) operators
+# These methods are very similar to DG methods since they also impose interface
+# and boundary conditions weakly. Thus, these methods can re-use a lot of
+# functionality implemented for DGSEM.
+include("fdsbp_tree/fdsbp.jl")
+
 
 
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
@@ -624,6 +630,25 @@ end
     PtrArray(pointer(u_ode),
              (StaticInt(nvariables(equations)), ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))..., nelements(dg, cache)))
             #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+  else
+    # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
+    unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
+                (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+  end
+end
+
+# Finite difference summation by parts (FDSBP) methods
+@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::FDSBP, cache)
+  @boundscheck begin
+    @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
+  end
+  # See comments on the DGSEM version above
+  if LoopVectorization.check_args(u_ode)
+    # Here, we do not specialize on the number of nodes using `StaticInt` since
+    # - it will not be type stable (SBP operators just store it as a runtime value)
+    # - FD methods tend to use high node counts
+    PtrArray(pointer(u_ode),
+             (StaticInt(nvariables(equations)), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
   else
     # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
     unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
@@ -694,13 +719,6 @@ include("dgsem_tree/dg.jl")
 include("dgsem_structured/dg.jl")
 include("dgsem_unstructured/dg.jl")
 include("dgsem_p4est/dg.jl")
-
-
-# Finite difference methods using summation by parts (SBP) operators
-# These methods are very similar to DG methods since they also impose interface
-# and boundary conditions weakly. Thus, these methods can re-use a lot of
-# functionality implemented for DGSEM.
-include("fdsbp_tree/fdsbp.jl")
 
 
 end # @muladd
