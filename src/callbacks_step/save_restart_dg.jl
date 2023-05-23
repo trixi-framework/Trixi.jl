@@ -11,7 +11,7 @@ function save_restart_file(u, time, dt, timestep,
                            restart_callback)
   @unpack output_directory = restart_callback
 
-  # Filename without extension based on current time step
+  # Filename based on current time step
   filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
 
   # Restart files always store conservative variables
@@ -88,21 +88,21 @@ end
 function save_restart_file(u, time, dt, timestep,
                            mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                            restart_callback)
+  @unpack output_directory = restart_callback
+  # Filename based on current time step
+  filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+
   if HDF5.has_parallel()
-    save_restart_file_parallel(u, time, dt, timestep, mesh, equations, dg, cache, restart_callback)
+    save_restart_file_parallel(u, time, dt, timestep, mesh, equations, dg, cache, filename)
   else
-    save_restart_file_on_root(u, time, dt, timestep, mesh, equations, dg, cache, restart_callback)
+    save_restart_file_on_root(u, time, dt, timestep, mesh, equations, dg, cache, filename)
   end
 end
 
 
 function save_restart_file_parallel(u, time, dt, timestep,
                                     mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
-                                    restart_callback)
-  @unpack output_directory = restart_callback
-
-  # Filename without extension based on current time step
-  filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+                                    filename)
 
   # Restart files always store conservative variables
   data = u
@@ -147,11 +147,7 @@ end
 
 function save_restart_file_on_root(u, time, dt, timestep,
                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
-                                   restart_callback)
-  @unpack output_directory = restart_callback
-
-  # Filename without extension based on current time step
-  filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+                                   filename)
 
   # Restart files always store conservative variables
   data = u
