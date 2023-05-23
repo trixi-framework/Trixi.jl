@@ -125,8 +125,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 
   @trixi_testset "elixir_euler_blast_wave_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_sc_subcell.jl"),
-      l2   = [0.29207274278608286, 0.17319844122225747, 0.1732464339957263, 0.6147098214272999],
-      linf = [1.2344701003292178, 1.017987009333722, 1.0181605576133113, 2.42683176792753],
+      l2   = [0.2920755759043822, 0.17319961818078095, 0.17324761487648088, 0.6147100442792741],
+      linf = [1.2346904176617581, 1.0179921490964996, 1.0181645482974628, 2.4268315439038854],
       tspan = (0.0, 0.5),
       initial_refinement_level = 4,
       coverage_override = (maxiters=6,))
