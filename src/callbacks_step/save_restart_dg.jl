@@ -251,7 +251,7 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
       mpi_println("Reading variables_$v ($name)...")
       # Read data of each process in slices (ranks start with 0)
       slice = (cum_node_counts[mpi_rank() + 1] + 1):cum_node_counts[mpi_rank() + 2]
-      # Convert 1D array back actual size of `u`
+      # Convert 1D array back to actual size of `u`
       u[v, .., :] = reshape(read(var)[slice], size(@view u[v, .., :]))
     end
   end
