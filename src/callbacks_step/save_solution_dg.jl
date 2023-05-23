@@ -10,9 +10,10 @@ function save_solution_file(u, time, dt, timestep,
                             equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
+
   @unpack output_directory, solution_variables = solution_callback
 
-  # Filename without extension based on current time step
+  # Filename based on current time step
   if isempty(system)
     filename = joinpath(output_directory, @sprintf("solution_%06d.h5", timestep))
   else
@@ -78,9 +79,10 @@ function save_solution_file(u, time, dt, timestep,
                             mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
+
   @unpack output_directory, solution_variables = solution_callback
 
-  # Filename without extension based on current time step
+  # Filename based on current time step
   if isempty(system)
     filename = joinpath(output_directory, @sprintf("solution_%06d.h5", timestep))
   else
@@ -114,6 +116,7 @@ end
 function save_solution_file_parallel(data, time, dt, timestep, n_vars,
                                      mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                                      solution_variables, filename, element_variables=Dict{Symbol,Any}())
+
   # Calculate element and node counts by MPI rank
   element_size = nnodes(dg)^ndims(mesh)
   element_counts = cache.mpi_cache.n_elements_by_rank
@@ -170,6 +173,7 @@ end
 function save_solution_file_on_root(data, time, dt, timestep, n_vars,
                                     mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                                     solution_variables, filename, element_variables=Dict{Symbol,Any}())
+
   # Calculate element and node counts by MPI rank
   element_size = nnodes(dg)^ndims(mesh)
   element_counts = convert(Vector{Cint}, collect(cache.mpi_cache.n_elements_by_rank))
