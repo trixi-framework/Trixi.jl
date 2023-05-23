@@ -43,7 +43,7 @@ function trixi_t8_count_interfaces(forest)
 
   local_num_conform = 0
   local_num_mortars = 0
-  local_num_boundry = 0
+  local_num_boundary = 0
 
   for itree = 0:num_local_trees-1
     tree_class = t8_forest_get_tree_class(forest, itree)
@@ -94,7 +94,7 @@ function trixi_t8_count_interfaces(forest)
 
         else
 
-          local_num_boundry += 1
+          local_num_boundary += 1
 
         end
        
@@ -112,12 +112,12 @@ function trixi_t8_count_interfaces(forest)
   # println(" ## local_num_elements = ", num_local_elements)
   # println(" ## local_num_conform  = ", local_num_conform)
   # println(" ## local_num_mortars  = ", local_num_mortars)
-  # println(" ## local_num_boundry  = ", local_num_boundry)
+  # println(" ## local_num_boundary  = ", local_num_boundary)
   # println("")
 
   return (interfaces = local_num_conform,
           mortars    = local_num_mortars,
-          boundaries = local_num_boundry)
+          boundaries = local_num_boundary)
 end
 
 function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundaries, boundary_names)
@@ -135,7 +135,7 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
 
   local_num_conform = 0
   local_num_mortars = 0
-  local_num_boundry = 0
+  local_num_boundary = 0
 
   for itree = 0:num_local_trees-1
     tree_class = t8_forest_get_tree_class(forest, itree)
@@ -277,8 +277,8 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
 
         # Domain boundary.
         else
-          local_num_boundry += 1
-          boundary_id = local_num_boundry
+          local_num_boundary += 1
+          boundary_id = local_num_boundary
 
           boundaries.neighbor_ids[boundary_id] = current_index + 1
 
@@ -317,13 +317,13 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
   # println("")
   # println(" ## local_num_conform = ", local_num_conform)
   # println(" ## local_num_mortars = ", local_num_mortars)
-  # println(" ## local_num_boundry = ", local_num_boundry)
+  # println(" ## local_num_boundary = ", local_num_boundary)
   # println("")
   # println("")
 
   return (interfaces = local_num_conform,
           mortars    = local_num_mortars,
-          boundaries = local_num_boundry)
+          boundaries = local_num_boundary)
 end
 
 function trixi_t8_get_local_element_levels(forest)
