@@ -26,6 +26,7 @@ using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, dropt
 using Reexport: @reexport
 
 # MPI needs to be imported before HDF5 to be able to use parallel HDF5
+# as long as HDF5.jl uses Requires.jl to enable parallel HDF5 with MPI
 using MPI: MPI
 
 using SciMLBase: CallbackSet, DiscreteCallback,
