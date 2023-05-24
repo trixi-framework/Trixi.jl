@@ -305,23 +305,45 @@ function Base.show(io::IO, indicator::IndicatorIDP)
   else
     print(io, "limiter=(")
     IDPDensityTVD  && print(io, "IDPDensityTVD, ")
-    IDPPressureTVD && print(io, "IDPPressureTVD with positivity correlation factor of ",
-                            indicator.positCorrFactor, ", ")
-    IDPPositivity  && print(io, "IDPPositivity with variables $(indicator.variables_cons) and
-                                 $(indicator.variables_nonlinear), ")
+    IDPPressureTVD && print(io, "IDPPressureTVD, ")
+    IDPPositivity  && print(io, "IDPPositivity, ")
     IDPSpecEntropy && print(io, "IDPSpecEntropy, ")
     IDPMathEntropy && print(io, "IDPMathEntropy, ")
     print(io, "), ")
   end
   indicator.indicator_smooth && print(io, ", Smoothness indicator: ", indicator.IndicatorHG,
     " with threshold ", indicator.thr_smooth, "), ")
-  print(io, "Local bounds with ")
-  if indicator.BarStates
-    print(io, "Bar States")
-  else
-    print(io, "FV solution")
-  end
+  print(io, "Local bounds with $(indicator.BarStates ? "Bar States" : "FV solution")")
   print(io, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
+  @nospecialize indicator # reduce precompilation time
+  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
+
+  if get(io, :compact, false)
+    show(io, indicator)
+  else
+    if !(IDPDensityTVD || IDPPressureTVD || IDPPositivity || IDPSpecEntropy || IDPMathEntropy)
+      setup = ["limiter" => "No limiter selected => pure DG method"]
+    else
+      setup = ["limiter" => ""]
+      IDPDensityTVD  && (setup = [setup..., "" => "IDPDensityTVD"])
+      IDPPressureTVD && (setup = [setup..., "" => "IDPPressureTVD"])
+      if IDPPositivity
+        string = "IDPPositivity with variables $(vcat(indicator.variables_cons..., indicator.variables_nonlinear...))"
+        setup = [setup..., "" => string]
+        setup = [setup..., "" => " "^14 * "and positivity correlation factor $(indicator.positCorrFactor)"]
+      end
+      IDPSpecEntropy && (setup = [setup..., "" => "IDPSpecEntropy"])
+      IDPMathEntropy && (setup = [setup..., "" => "IDPMathEntropy"])
+      setup = [setup..., "Local bounds" => (indicator.BarStates ? "Bar States" : "FV solution")]
+      if indicator.indicator_smooth
+        setup = [setup..., "Smoothness indicator" => "$(indicator.IndicatorHG) using threshold $(indicator.thr_smooth)"]
+      end
+    end
+    summary_box(io, "IndicatorIDP", setup)
+  end
 end
 
 function get_node_variables!(node_variables, indicator::IndicatorIDP, ::VolumeIntegralShockCapturingSubcell, equations)
