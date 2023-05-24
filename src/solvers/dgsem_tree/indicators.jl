@@ -268,6 +268,27 @@ function Base.show(io::IO, indicator::IndicatorIDP)
   print(io, ")")
 end
 
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
+  @nospecialize indicator # reduce precompilation time
+  @unpack IDPPositivity = indicator
+
+  if get(io, :compact, false)
+    show(io, indicator)
+  else
+    if !(IDPPositivity)
+      setup = ["limiter" => "No limiter selected => pure DG method"]
+    else
+      setup = ["limiter" => ""]
+      if IDPPositivity
+        string = "IDPPositivity with variables $(indicator.variables_cons))"
+        setup = [setup..., "" => string]
+        setup = [setup..., "" => " "^14 * "and positivity correlation factor $(indicator.positCorrFactor)"]
+      end
+    end
+    summary_box(io, "IndicatorIDP", setup)
+  end
+end
+
 
 
 """

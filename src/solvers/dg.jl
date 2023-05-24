@@ -198,18 +198,18 @@ function VolumeIntegralShockCapturingSubcell(indicator; volume_flux_dg,
     volume_flux_dg, volume_flux_fv, indicator)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralShockCapturingSubcell)
+function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShockCapturingSubcell)
   @nospecialize integral # reduce precompilation time
 
   if get(io, :compact, false)
     show(io, integral)
   else
-    setup = [
-            "volume flux dg" => integral.volume_flux_dg,
-            "volume flux fv" => integral.volume_flux_fv,
-            "indicator" => integral.indicator
-            ]
-    summary_box(io, "VolumeIntegralShockCapturingSubcell", setup)
+    summary_header(io, "VolumeIntegralShockCapturingSubcell")
+    summary_line(io, "volume flux DG", integral.volume_flux_dg)
+    summary_line(io, "volume flux FV", integral.volume_flux_fv)
+    summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
+    show(increment_indent(io), mime, integral.indicator)
+    summary_footer(io)
   end
 end
 
