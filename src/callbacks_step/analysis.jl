@@ -502,6 +502,8 @@ function print_amr_information(callbacks, mesh::T8codeMesh, solver, cache)
   # Return early if there is nothing to print
   uses_amr(callbacks) || return nothing
 
+  # TODO: Switch to global element levels array when MPI supported or find
+  # another solution.
   levels = trixi_t8_get_local_element_levels(mesh.forest)
 
   min_level = minimum(levels)
@@ -510,10 +512,14 @@ function print_amr_information(callbacks, mesh::T8codeMesh, solver, cache)
   mpi_println(" minlevel = $min_level")
   mpi_println(" maxlevel = $max_level")
 
-  # for level = max_level:-1:min_level+1
-  #   mpi_println(" ├── level $level:    " * @sprintf("% 14d", elements_per_level[level + 1]))
-  # end
-  # mpi_println(" └── level $min_level:    " * @sprintf("% 14d", elements_per_level[min_level + 1]))
+  if min_level > 0
+    elements_per_level = [count(==(l), levels) for l in 1:max_level]
+
+    for level = max_level:-1:min_level+1
+      mpi_println(" ├── level $level:    " * @sprintf("% 14d", elements_per_level[level]))
+    end
+    mpi_println(" └── level $min_level:    " * @sprintf("% 14d", elements_per_level[min_level]))
+  end
 
   return nothing
 end
