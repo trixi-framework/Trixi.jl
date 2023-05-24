@@ -232,11 +232,11 @@ Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturi
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorIDP{RealT<:Real, Cache} <: AbstractIndicator
+struct IndicatorIDP{RealT<:Real, LimitingVariablesCons, Cache} <: AbstractIndicator
   IDPPositivity::Bool
-  variables_cons::Tuple{Any}      # Positivity of conservative variables
+  variables_cons::LimitingVariablesCons # Positivity of conservative variables
   cache::Cache
-  positCorrFactor::RealT          # Correction factor for IDPPositivity
+  positCorrFactor::RealT                # Correction factor for IDPPositivity
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
@@ -249,7 +249,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
 
   cache = create_cache(IndicatorIDP, equations, basis, number_bounds)
 
-  IndicatorIDP{typeof(positCorrFactor), typeof(cache)}(IDPPositivity, variables_cons,
+  IndicatorIDP{typeof(positCorrFactor), typeof(variables_cons), typeof(cache)}(IDPPositivity, variables_cons,
       cache, positCorrFactor)
 end
 
