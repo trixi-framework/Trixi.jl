@@ -6,7 +6,7 @@
 
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::Union{TreeMesh, P4estMesh}, output_directory, timestep=0)
+function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, T8codeMesh}, output_directory, timestep=0)
   save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
 end
 
@@ -217,6 +217,12 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
   return filename
 end
 
+# TODO: Implement this function as soon as there is support for this in `t8code`.
+function save_mesh_file(mesh::T8codeMesh, output_directory, timestep, mpi_parallel)
+  @warn "Mesh file output not supported yet for `T8codeMesh`."
+
+  return joinpath(output_directory, "dummy_mesh.h5")
+end
 
 """
     load_mesh(restart_file::AbstractString; n_cells_max)

@@ -36,7 +36,7 @@ mutable struct T8codeMesh{NDIMS, RealT<:Real, IsParallel} <: AbstractMesh{NDIMS}
     # else
     #   is_parallel = Val(false)
     # end
-    is_parallel = Val(false)
+    is_parallel = False()
 
     mesh = new{NDIMS, Float64, typeof(is_parallel)}(cmesh, scheme, forest, is_parallel)
 
@@ -64,8 +64,8 @@ function T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes, 
   return mesh
 end
 
-SerialT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Val{false}}
-# @inline mpi_parallel(mesh::SerialT8codeMesh) = Val(false)
+const SerialT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
+@inline mpi_parallel(mesh::SerialT8codeMesh) = False()
 
 @inline Base.ndims(::T8codeMesh{NDIMS}) where NDIMS = NDIMS
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
