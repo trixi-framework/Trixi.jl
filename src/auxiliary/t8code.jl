@@ -108,13 +108,6 @@ function trixi_t8_count_interfaces(forest)
     end # for
   end # for
 
-  # println("")
-  # println(" ## local_num_elements = ", num_local_elements)
-  # println(" ## local_num_conform  = ", local_num_conform)
-  # println(" ## local_num_mortars  = ", local_num_mortars)
-  # println(" ## local_num_boundary  = ", local_num_boundary)
-  # println("")
-
   return (interfaces = local_num_conform,
           mortars    = local_num_mortars,
           boundaries = local_num_boundary)
@@ -282,9 +275,6 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
 
           boundaries.neighbor_ids[boundary_id] = current_index + 1
 
-          # println("neighbor_id = ", boundaries.neighbor_ids[boundary_id] -1)
-          # println("face = ", iface)
-
           if iface == 0
             # Index face in negative x-direction.
             boundaries.node_indices[boundary_id] = (:begin, :i_forward)
@@ -312,14 +302,6 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
       current_index += 1
     end # for
   end # for
-
-  # println("")
-  # println("")
-  # println(" ## local_num_conform = ", local_num_conform)
-  # println(" ## local_num_mortars = ", local_num_mortars)
-  # println(" ## local_num_boundary = ", local_num_boundary)
-  # println("")
-  # println("")
 
   return (interfaces = local_num_conform,
           mortars    = local_num_mortars,
