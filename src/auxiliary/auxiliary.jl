@@ -280,6 +280,7 @@ macro trixi_timeit(timer_output, label, expr)
   end
 end
 
+
 """
     @autoinfiltrate
     @autoinfiltrate condition::Bool
