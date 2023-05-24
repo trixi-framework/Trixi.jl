@@ -127,6 +127,7 @@ include("visualization/visualization.jl")
 
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
+       CompressibleMoistEulerEquations2D,
        CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
@@ -176,18 +177,25 @@ export boundary_condition_do_nothing,
        boundary_condition_wall,
        BoundaryConditionNavierStokesWall, NoSlip, Adiabatic, Isothermal
 
+
 export initial_condition_convergence_test, source_terms_convergence_test
+export initial_condition_convergence_test_dry, source_terms_convergence_test_dry,
+       initial_condition_convergence_test_moist, source_terms_convergence_test_moist
 export source_terms_harmonic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
+export source_terms_geopotential, source_terms_phase_change, source_terms_nonhydrostatic_raylight_sponge, source_terms_moist_air
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
-       cons2entropy, entropy2cons
-export density, pressure, density_pressure, velocity, global_mean_vars, equilibrium_distribution, waterheight_pressure
+       cons2entropy, entropy2cons, cons2drypot, cons2moistpot, cons2aeqpot
+export density, pressure, density_pressure, velocity, global_mean_vars, equilibrium_distribution, waterheight_pressure,
+       density_dry, density_vapor, density_liquid, ratio_vapor, ratio_liquid, temperature
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity,
+       dry_pottemp_thermodynamic, moist_pottemp_thermodynamic, aequivalent_pottemp_thermodynamic,
        enstrophy
 export lake_at_rest_error
 export ncomponents, eachcomponent
+
 
 export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
 

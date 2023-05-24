@@ -31,7 +31,7 @@ evaluating the computational performance, such as the total runtime, the perform
 (time/DOF/rhs!), the time spent in garbage collection (GC), or the current memory usage (alloc'd
 memory).
 """
-mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
+mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, InitialEntropyStateIntegrals, Cache}
   start_time::Float64
   start_time_last_analysis::Float64
   ncalls_rhs_last_analysis::Int
@@ -44,6 +44,7 @@ mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegra
   analysis_errors::Vector{Symbol}
   analysis_integrals::AnalysisIntegrals
   initial_state_integrals::InitialStateIntegrals
+  initial_entropy_state_integrals::InitialEntropyStateIntegrals
   cache::Cache
 end
 
@@ -114,6 +115,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
+                                       zero(uEltype),
                                        cache_analysis)
 
   DiscreteCallback(condition, analysis_callback,
@@ -130,6 +132,11 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   analysis_callback = cb.affect!
   analysis_callback.initial_state_integrals = initial_state_integrals
   @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
+
+  if :entropy_conservation_error in analysis_errors
+    initial_entropy_state_integrals = integrate(entropy,u_ode, semi)
+    analysis_callback.initial_entropy_state_integrals = initial_entropy_state_integrals  
+  end
 
   if save_analysis && mpi_isroot()
     mkpath(output_directory)
@@ -375,6 +382,22 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
         @printf("  % 10.8e", err)
         @printf(io, "  % 10.8e", err)
       end
+      println()
+    end
+  end
+
+
+  # Entropy conservation errror
+  if :entropy_conservation_error in analysis_errors
+    @unpack initial_entropy_state_integrals = analysis_callback
+    entropy_state_integrals = integrate(entropy, u_ode, semi)
+
+    if mpi_isroot()
+      print(" |(∑S₀ - ∑S)| / | ∑S₀ | : ")
+        err = (abs(initial_entropy_state_integrals - entropy_state_integrals) 
+                / abs(initial_entropy_state_integrals))
+        @printf("  % 10.8e", err)
+        @printf(io, "  % 10.8e", err)
       println()
     end
   end

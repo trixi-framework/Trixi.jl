@@ -289,6 +289,24 @@ The inverse conversion is performed by [`cons2entropy`](@ref).
 """
 function entropy2cons end
 
+"""
+    cons2pot(u, equations)
+
+Convert the conservative variables `u` based on a standard [`entropy`](@ref) to the
+potential temperature of `CompressibleDryEulerEquations` . The inverse conversion is
+performed by [`pot2cons`](@ref).
+"""
+
+function cons2temp end
+
+function cons2drypot end
+
+function cons2moistpot end
+
+function cons2moist end
+
+function cons2aeqpot end
+
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
@@ -317,6 +335,11 @@ abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquati
 include("compressible_euler_1d.jl")
 include("compressible_euler_2d.jl")
 include("compressible_euler_3d.jl")
+
+
+# CompressibleMoistEulerEquations
+abstract type AbstractCompressibleMoistEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("compressible_moist_euler_2d.jl")
 
 # CompressibleEulerMulticomponentEquations
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
