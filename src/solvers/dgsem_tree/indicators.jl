@@ -419,11 +419,7 @@ function Base.show(io::IO, indicator::IndicatorMCL)
   indicator.SequentialLimiter && print(io, "; seq")
   indicator.ConservativeLimiter && print(io, "; cons")
   if indicator.PressurePositivityLimiterKuzmin
-    if indicator.PressurePositivityLimiterKuzminExact
-      print(io, "; pres (Kuzmin ex)")
-    else
-      print(io, "; pres (Kuzmin)")
-    end
+    print(io, "; $(indicator.PressurePositivityLimiterKuzminExact ? "pres (Kuzmin ex)" : "pres (Kuzmin)")")
   end
   indicator.DensityPositivityLimiter && print(io, "; dens pos")
   (indicator.DensityPositivityCorrelationFactor != 0.0) && print(io, " with correlation factor $(indicator.DensityPositivityCorrelationFactor)")
@@ -431,6 +427,37 @@ function Base.show(io::IO, indicator::IndicatorMCL)
   indicator.indicator_smooth && print(io, "; Smoothness indicator: ", indicator.IndicatorHG,
     " with threshold ", indicator.thr_smooth)
   print(io, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMCL)
+  @nospecialize indicator # reduce precompilation time
+  @unpack DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
+          PressurePositivityLimiterKuzminExact, DensityPositivityLimiter, SemiDiscEntropyLimiter = indicator
+
+  if get(io, :compact, false)
+    show(io, indicator)
+  else
+    setup = ["limiter" => ""]
+    DensityLimiter && (setup = [setup..., "" => "DensityLimiter"])
+    DensityAlphaForAll && (setup = [setup..., "" => "DensityAlphaForAll"])
+    SequentialLimiter && (setup = [setup..., "" => "SequentialLimiter"])
+    ConservativeLimiter && (setup = [setup..., "" => "ConservativeLimiter"])
+    if indicator.PressurePositivityLimiterKuzmin
+      setup = [setup..., "" => "PressurePositivityLimiterKuzmin $(PressurePositivityLimiterKuzminExact ? "(exact)" : "")"]
+    end
+    if DensityPositivityLimiter
+      if indicator.DensityPositivityCorrelationFactor != 0.0
+        setup = [setup..., "" => "DensityPositivityLimiter with correlation factor $(indicator.DensityPositivityCorrelationFactor)"]
+      else
+        setup = [setup..., "" => "DensityPositivityLimiter"]
+      end
+    end
+    SemiDiscEntropyLimiter && (setup = [setup..., "" => "SemiDiscEntropyLimiter"])
+    if indicator.indicator_smooth
+      setup = [setup..., "Smoothness indicator" => "$(indicator.IndicatorHG) using threshold $(indicator.thr_smooth)"]
+    end
+    summary_box(io, "IndicatorMCL", setup)
+  end
 end
 
 function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIntegralShockCapturingSubcell, equations)
