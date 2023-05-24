@@ -234,8 +234,8 @@ struct IndicatorIDP{RealT<:Real, LimitingVariablesCons, LimitingVariablesNonline
   IDPDensityTVD::Bool
   IDPPressureTVD::Bool
   IDPPositivity::Bool
-  variables_cons::Union{Tuple{}, Tuple{LimitingVariablesCons}}           # Positivity of conservative variables
-  variables_nonlinear::Union{Tuple{}, Tuple{LimitingVariablesNonlinear}} # Positivity of nonlinear variables
+  variables_cons::LimitingVariablesCons           # Positivity of conservative variables
+  variables_nonlinear::LimitingVariablesNonlinear # Positivity of nonlinear variables
   IDPSpecEntropy::Bool
   IDPMathEntropy::Bool
   BarStates::Bool
@@ -289,7 +289,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
   else
     IndicatorHG = nothing
   end
-  IndicatorIDP{typeof(positCorrFactor), eltype(variables_cons), eltype(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(IDPDensityTVD, IDPPressureTVD,
+  IndicatorIDP{typeof(positCorrFactor), typeof(variables_cons), typeof(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(IDPDensityTVD, IDPPressureTVD,
       IDPPositivity, variables_cons, variables_nonlinear, IDPSpecEntropy, IDPMathEntropy, BarStates,
       cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma, IDPCheckBounds,
       indicator_smooth, thr_smooth, IndicatorHG)
@@ -331,7 +331,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
       IDPDensityTVD  && (setup = [setup..., "" => "IDPDensityTVD"])
       IDPPressureTVD && (setup = [setup..., "" => "IDPPressureTVD"])
       if IDPPositivity
-        string = "IDPPositivity with variables $(vcat(indicator.variables_cons..., indicator.variables_nonlinear...))"
+        string = "IDPPositivity with variables $(tuple(indicator.variables_cons..., indicator.variables_nonlinear...))"
         setup = [setup..., "" => string]
         setup = [setup..., "" => " "^14 * "and positivity correlation factor $(indicator.positCorrFactor)"]
       end
