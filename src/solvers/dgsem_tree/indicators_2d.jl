@@ -514,9 +514,8 @@ end
   @unpack boundary_conditions = semi
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
-  offset = 2 * indicator_IDP.IDPDensityTVD
-  p_min = var_bounds[1 + offset]
-  p_max = var_bounds[2 + offset]
+  p_min = var_bounds[2 * indicator_IDP.IDPDensityTVD + 1]
+  p_max = var_bounds[2 * indicator_IDP.IDPDensityTVD + 2]
   if !indicator_IDP.BarStates
     calc_bounds_2sided!(p_min, p_max, pressure, u, t, semi)
   end
@@ -584,8 +583,7 @@ end
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity = indicator_IDP
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
-  offset = 2 * (IDPDensityTVD + IDPPressureTVD) + min(IDPPositivity, !IDPDensityTVD) + min(IDPPositivity, !IDPPressureTVD)
-  s_min = var_bounds[offset + 1]
+  s_min = var_bounds[2 * (IDPDensityTVD + IDPPressureTVD) + 1]
   if !indicator_IDP.BarStates
     calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u, t, semi)
   end
@@ -613,9 +611,7 @@ specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy = indicator_IDP
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
-  offset = 2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy +
-           min(IDPPositivity, !IDPDensityTVD)+ min(IDPPositivity, !IDPPressureTVD)
-  s_max = var_bounds[offset + 1]
+  s_max = var_bounds[2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + 1]
   if !indicator_IDP.BarStates
     calc_bounds_1sided!(s_max, max, typemin, entropy_math, u, t, semi)
   end
@@ -646,7 +642,7 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
 
   # Nonlinear variables
   for (index, variable) in enumerate(indicator_IDP.variables_nonlinear)
-    IDP_positivity_newton!(alpha, indicator_IDP, u, dt, semi, elements, variable, length(indicator_IDP.variables_cons) + index)
+    IDP_positivity_newton!(alpha, indicator_IDP, u, dt, semi, elements, variable, index)
   end
 
   return nothing
@@ -656,18 +652,20 @@ end
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
-  @unpack positCorrFactor = indicator_IDP
+  @unpack IDPDensityTVD, IDPPressureTVD, IDPSpecEntropy, IDPMathEntropy, positCorrFactor, variables_cons = indicator_IDP
 
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
-  if indicator_IDP.IDPDensityTVD
-    rho_min = var_bounds[1]
-  else
-    if indicator_IDP.IDPPressureTVD
-      rho_min = var_bounds[3]
+  if Trixi.density in variables_cons && IDPDensityTVD
+    if Trixi.density == variables_cons[index]
+      var_min = var_bounds[1]
     else
-      rho_min = var_bounds[1]
+      var_min = var_bounds[2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
+                           index - 1]
     end
+  else
+    var_min = var_bounds[2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
+                         index]
   end
 
   @threaded for element in elements
@@ -686,9 +684,9 @@ end
 
       # Compute bound
       if indicator_IDP.IDPDensityTVD
-        rho_min[i, j, element] = max(rho_min[i, j, element], positCorrFactor * var)
+        var_min[i, j, element] = max(var_min[i, j, element], positCorrFactor * var)
       else
-        rho_min[i, j, element] = positCorrFactor * var
+        var_min[i, j, element] = positCorrFactor * var
       end
 
       # Real one-sided Zalesak-type limiter
@@ -696,7 +694,7 @@ end
       # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
       # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
       #       for each interface, not each node
-      Qm = min(0.0, (rho_min[i, j, element] - var) / dt)
+      Qm = min(0.0, (var_min[i, j, element] - var) / dt)
 
       # Calculate Pm
       # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
@@ -724,18 +722,22 @@ end
 
 @inline function IDP_positivity_newton!(alpha, indicator_IDP, u, dt, semi, elements, variable, index)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-  @unpack positCorrFactor = indicator_IDP
+  @unpack IDPDensityTVD, IDPPressureTVD, IDPSpecEntropy, IDPMathEntropy, positCorrFactor, variables_cons, variables_nonlinear = indicator_IDP
 
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
-  if indicator_IDP.IDPDensityTVD
-    p_min = var_bounds[3]
-  else
-    if indicator_IDP.IDPPressureTVD
-      p_min = var_bounds[1]
+  if pressure in variables_nonlinear && IDPPressureTVD
+    if pressure == variables_nonlinear[index]
+      var_min = var_bounds[2 * IDPDensityTVD + 1]
     else
-      p_min = var_bounds[2]
+      var_min = var_bounds[2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
+                           length(variables_cons) - min(IDPDensityTVD, Trixi.density in variables_cons) +
+                           index - 1]
     end
+  else
+    var_min = var_bounds[2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
+                         length(variables_cons) - min(IDPDensityTVD, Trixi.density in variables_cons) +
+                         index]
   end
 
   @threaded for element in elements
@@ -747,13 +749,13 @@ end
         println("Error: safe $variable is not safe. element=$element, node: $i $j, value=$var")
       end
       if indicator_IDP.IDPPressureTVD
-        p_min[i, j, element] = max(p_min[i, j, element], positCorrFactor * var)
+        var_min[i, j, element] = max(var_min[i, j, element], positCorrFactor * var)
       else
-        p_min[i, j, element] = positCorrFactor * var
+        var_min[i, j, element] = positCorrFactor * var
       end
 
       # Perform Newton's bisection method to find new alpha
-      newton_loops_alpha!(alpha, p_min[i, j, element], u_local, i, j, element,
+      newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j, element,
                           pressure_goal, pressure_dgoal_dbeta, pressure_initialCheck, pressure_finalCheck,
                           dt, mesh, equations, dg, cache, indicator_IDP)
     end

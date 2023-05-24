@@ -230,12 +230,12 @@ Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturi
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorIDP{RealT<:Real, Cache, Indicator} <: AbstractIndicator
+struct IndicatorIDP{RealT<:Real, LimitingVariablesCons, LimitingVariablesNonlinear, Cache, Indicator} <: AbstractIndicator
   IDPDensityTVD::Bool
   IDPPressureTVD::Bool
   IDPPositivity::Bool
-  variables_cons::Tuple{Any}      # Positivity of conservative variables
-  variables_nonlinear::Tuple{Any} # Positivity of nonlinear variables
+  variables_cons::Union{Tuple{}, Tuple{LimitingVariablesCons}}           # Positivity of conservative variables
+  variables_nonlinear::Union{Tuple{}, Tuple{LimitingVariablesNonlinear}} # Positivity of nonlinear variables
   IDPSpecEntropy::Bool
   IDPMathEntropy::Bool
   BarStates::Bool
@@ -270,8 +270,16 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     error("Only one of the two can be selected: IDPMathEntropy/IDPSpecEntropy")
   end
 
-  number_bounds = 2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
-                  IDPPositivity * (length(variables_cons) + length(variables_nonlinear))
+  number_bounds = IDPPositivity * (length(variables_cons) + length(variables_nonlinear)) +
+                  IDPSpecEntropy + IDPMathEntropy
+  if equations isa AbstractCompressibleEulerEquations
+    if IDPDensityTVD
+      number_bounds += 2 - IDPPositivity * (Trixi.density in variables_cons)
+    end
+    if IDPPressureTVD
+      number_bounds += 2 - IDPPositivity * (pressure in variables_nonlinear)
+    end
+  end
 
   cache = create_cache(IndicatorIDP, equations, basis, number_bounds, BarStates)
 
@@ -281,7 +289,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
   else
     IndicatorHG = nothing
   end
-  IndicatorIDP{typeof(positCorrFactor), typeof(cache), typeof(IndicatorHG)}(IDPDensityTVD, IDPPressureTVD,
+  IndicatorIDP{typeof(positCorrFactor), eltype(variables_cons), eltype(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(IDPDensityTVD, IDPPressureTVD,
       IDPPositivity, variables_cons, variables_nonlinear, IDPSpecEntropy, IDPMathEntropy, BarStates,
       cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma, IDPCheckBounds,
       indicator_smooth, thr_smooth, IndicatorHG)

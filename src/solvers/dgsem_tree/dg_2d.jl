@@ -1026,9 +1026,6 @@ end
     end
     counter += 2
   end
-  if indicator.IDPPositivity
-    counter += !indicator.IDPDensityTVD + !indicator.IDPPressureTVD
-  end
   # Specific Entropy
   if indicator.IDPSpecEntropy
     s_min = var_bounds[counter]
@@ -1955,17 +1952,25 @@ end
       if IDPPressureTVD
         print(f, ", p_min, p_max");
       end
-      if IDPPositivity && !IDPDensityTVD
-        print(f, ", rho_min");
-      end
-      if IDPPositivity && !IDPPressureTVD
-        print(f, ", p_min");
-      end
       if IDPSpecEntropy
         print(f, ", specEntr_min");
       end
       if IDPMathEntropy
         print(f, ", mathEntr_max");
+      end
+      if IDPPositivity
+        for variable in indicator.variables_cons
+          if variable == Trixi.density && IDPDensityTVD
+            continue
+          end
+          print(f, ", $(variable)_min");
+        end
+        for variable in indicator.variables_nonlinear
+          if variable == pressure && IDPPressureTVD
+            continue
+          end
+          print(f, ", $(variable)_min");
+        end
       end
       println(f)
     end
@@ -2015,35 +2020,6 @@ end
     end
     counter += 2
   end
-  if IDPPositivity && !IDPDensityTVD
-    deviation_min = zero(eltype(u))
-    for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
-      deviation_min = max(deviation_min, var_bounds[counter][i, j, element] - u[1, i, j, element])
-    end
-    idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
-    if save_errors
-      deviation_min_ = deviation_min
-      open("$output_directory/deviations.txt", "a") do f;
-        print(f, ", ", deviation_min_);
-      end
-    end
-    counter += 1
-  end
-  if IDPPositivity && !IDPPressureTVD
-    deviation_min = zero(eltype(u))
-    for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
-      p = pressure(get_node_vars(u, equations, solver, i, j, element), equations)
-      deviation_min = max(deviation_min, var_bounds[counter][i, j, element] - p)
-    end
-    idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
-    if save_errors
-      deviation_min_ = deviation_min
-      open("$output_directory/deviations.txt", "a") do f;
-        print(f, ", ", deviation_min_);
-      end
-    end
-    counter += 1
-  end
   if IDPSpecEntropy
     deviation_min = zero(eltype(u))
     for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
@@ -2071,6 +2047,45 @@ end
       open("$output_directory/deviations.txt", "a") do f;
         print(f, ", ", deviation_max_);
       end
+    end
+    counter += 1
+  end
+  if IDPPositivity
+    for variable in indicator.variables_cons
+      if variable == Trixi.density && IDPDensityTVD
+        continue
+      end
+      deviation_min = zero(eltype(u))
+      for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
+        var = variable(get_node_vars(u, equations, solver, i, j, element), equations)
+        deviation_min = max(deviation_min, var_bounds[counter][i, j, element] - var)
+      end
+      idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
+      if save_errors
+        deviation_min_ = deviation_min
+        open("$output_directory/deviations.txt", "a") do f;
+          print(f, ", ", deviation_min_);
+        end
+      end
+      counter += 1
+    end
+    for variable in indicator.variables_nonlinear
+      if variable == pressure && IDPPressureTVD
+        continue
+      end
+      deviation_min = zero(eltype(u))
+      for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
+        var = variable(get_node_vars(u, equations, solver, i, j, element), equations)
+        deviation_min = max(deviation_min, var_bounds[counter][i, j, element] - var)
+      end
+      idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
+      if save_errors
+        deviation_min_ = deviation_min
+        open("$output_directory/deviations.txt", "a") do f;
+          print(f, ", ", deviation_min_);
+        end
+      end
+      counter += 1
     end
   end
   if save_errors

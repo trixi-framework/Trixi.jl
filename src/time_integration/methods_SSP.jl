@@ -315,20 +315,29 @@ end
     println("pressure:\n- lower bound: ", idp_bounds_delta[counter], "\n- upper bound: ", idp_bounds_delta[counter+1])
     counter += 2
   end
-  if IDPPositivity && !IDPDensityTVD
-    println("rho:\n- positivity: ", idp_bounds_delta[counter])
-    counter += 1
-  end
-  if IDPPositivity && !IDPPressureTVD
-    println("pressure:\n- positivity: ", idp_bounds_delta[counter])
-    counter += 1
-  end
   if IDPSpecEntropy
     println("spec. entropy:\n- lower bound: ", idp_bounds_delta[counter])
     counter += 1
   end
   if IDPMathEntropy
     println("math. entropy:\n- upper bound: ", idp_bounds_delta[counter])
+    counter += 1
+  end
+  if IDPPositivity
+    for variable in indicator.variables_cons
+      if variable == Trixi.density && IDPDensityTVD
+        continue
+      end
+      println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
+      counter += 1
+    end
+    for variable in indicator.variables_nonlinear
+      if variable == pressure && IDPPressureTVD
+        continue
+      end
+      println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
+      counter += 1
+    end
   end
   println("─"^100 * "\n")
 

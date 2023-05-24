@@ -37,7 +37,7 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 indicator_sc = IndicatorIDP(equations, basis;
-                            IDPPositivity=true,
+                            IDPPositivity=true, variables_cons=(Trixi.density,), variables_nonlinear=(pressure,),
                             IDPDensityTVD=false,
                             IDPSpecEntropy=false,
                             BarStates=true,
