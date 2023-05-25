@@ -186,27 +186,157 @@ function calc_gradient!(gradients, u_transformed, t,
 
   # Apply Jacobian from mapping to reference element
   @trixi_timeit timer() "Jacobian" begin
-    apply_jacobian!(gradients_x, mesh, equations_parabolic, dg, cache_parabolic)
-    apply_jacobian!(gradients_y, mesh, equations_parabolic, dg, cache_parabolic)
+    apply_jacobian_parabolic!(gradients_x, mesh, equations_parabolic, dg, cache_parabolic)
+    apply_jacobian_parabolic!(gradients_y, mesh, equations_parabolic, dg, cache_parabolic)
   end
 
   return nothing
 end
 
-# Needed to *not* flip the sign of the inverse Jacobian.
-# This is because the parabolic fluxes are assumed to be of the form
-#   `du/dt + df/dx = dg/dx + source(x,t)`,
-# where f(u) is the inviscid flux and g(u) is the viscous flux.
-function apply_jacobian!(du, mesh::TreeMesh{2},
-                         equations::AbstractEquationsParabolic, dg::DG, cache)
+# This is the version used when calculating the divergence of the viscous fluxes
+function calc_volume_integral!(du, flux_viscous,
+                               mesh::P4estMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+                               dg::DGSEM, cache)
+  (; derivative_dhat) = dg.basis
+  (; contravariant_vectors) = cache.elements
+  flux_viscous_x, flux_viscous_y = flux_viscous
 
   @threaded for element in eachelement(dg, cache)
-    factor = cache.elements.inverse_jacobian[element]
-
+    # Calculate volume terms in one element
     for j in eachnode(dg), i in eachnode(dg)
-      for v in eachvariable(equations)
-        du[v, i, j, element] *= factor
+      flux1 = get_node_vars(flux_viscous_x, equations_parabolic, dg, i, j, element)
+      flux2 = get_node_vars(flux_viscous_y, equations_parabolic, dg, i, j, element)
+  
+      # Compute the contravariant flux by taking the scalar product of the
+      # first contravariant vector Ja^1 and the flux vector
+      Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+      contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
+      for ii in eachnode(dg)
+        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], contravariant_flux1, equations_parabolic, dg, ii, j, element)
       end
+  
+      # Compute the contravariant flux by taking the scalar product of the
+      # second contravariant vector Ja^2 and the flux vector
+      Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+      contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
+      for jj in eachnode(dg)
+        multiply_add_to_node_vars!(du, derivative_dhat[jj, j], contravariant_flux2, equations_parabolic, dg, i, jj, element)
+      end
+    end
+  end
+
+  return nothing
+end
+
+
+# This is the version used when calculating the divergence of the viscous fluxes
+# We pass the `surface_integral` argument solely for dispatch
+function prolong2interfaces!(cache_parabolic, flux_viscous,
+                             mesh::P4estMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+                             surface_integral, dg::DG, cache)
+  (; interfaces) = cache
+  index_range = eachnode(dg)
+  flux_viscous_x, flux_viscous_y = flux_viscous
+
+  @threaded for interface in eachinterface(dg, cache)
+    # Copy solution data from the primary element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    # Note that in the current implementation, the interface will be
+    # "aligned at the primary element", i.e., the index of the primary side
+    # will always run forwards.
+    primary_element = interfaces.neighbor_ids[1, interface]
+    primary_indices = interfaces.node_indices[1, interface]
+
+    i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
+    j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
+
+    i_primary = i_primary_start
+    j_primary = j_primary_start
+    for i in eachnode(dg)
+      for v in eachvariable(equations_parabolic)
+        # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
+        interfaces.u[1, v, i, interface] = flux_viscous_x[v, i_primary, j_primary, primary_element]
+      end
+      i_primary += i_primary_step
+      j_primary += j_primary_step
+    end
+
+    # Copy solution data from the secondary element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    secondary_element = interfaces.neighbor_ids[2, interface]
+    secondary_indices = interfaces.node_indices[2, interface]
+
+    i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1], index_range)
+    j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2], index_range)
+
+    i_secondary = i_secondary_start
+    j_secondary = j_secondary_start
+    for i in eachnode(dg)
+      for v in eachvariable(equations_parabolic)
+        # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
+        interfaces.u[2, v, i, interface] = flux_viscous_y[v, i_secondary, j_secondary, secondary_element]
+      end
+      i_secondary += i_secondary_step
+      j_secondary += j_secondary_step
+    end
+  end
+
+  return nothing
+end
+
+# TODO: Deal with orientations for the BR1 divergence flux = {σ} ⋅ normal
+function calc_interface_flux!(surface_flux_values,
+                              mesh::P4estMesh{2}, equations_parabolic,
+                              dg::DG, cache_parabolic)
+
+  (; neighbor_ids, node_indices) = cache.interfaces
+  (; contravariant_vectors) = cache.elements
+  index_range = eachnode(dg)
+  index_end = last(index_range)
+
+  @threaded for interface in eachinterface(dg, cache)
+    # Get element and side index information on the primary element
+    primary_element = neighbor_ids[1, interface]
+    primary_indices = node_indices[1, interface]
+    primary_direction = indices2direction(primary_indices)
+
+    # Create the local i,j indexing on the primary element used to pull normal direction information
+    i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
+    j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
+
+    i_primary = i_primary_start
+    j_primary = j_primary_start
+
+    # Get element and side index information on the secondary element
+    secondary_element = neighbor_ids[2, interface]
+    secondary_indices = node_indices[2, interface]
+    secondary_direction = indices2direction(secondary_indices)
+
+    # Initiate the secondary index to be used in the surface for loop.
+    # This index on the primary side will always run forward but
+    # the secondary index might need to run backwards for flipped sides.
+    if :i_backward in secondary_indices
+      node_secondary = index_end
+      node_secondary_step = -1
+    else
+      node_secondary = 1
+      node_secondary_step = 1
+    end
+
+    for node in eachnode(dg)
+      # Get the normal direction on the primary element.
+      # Contravariant vectors at interfaces in negative coordinate direction
+      # are pointing inwards. This is handled by `get_normal_direction`.
+      normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
+                                              i_primary, j_primary, primary_element)
+
+      
+
+      # Increment primary element indices to pull the normal direction
+      i_primary += i_primary_step
+      j_primary += j_primary_step
+      # Increment the surface node index along the secondary element
+      node_secondary += node_secondary_step
     end
   end
 

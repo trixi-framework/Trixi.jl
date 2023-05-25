@@ -542,8 +542,8 @@ function calc_gradient!(gradients, u_transformed, t,
 
   # Apply Jacobian from mapping to reference element
   @trixi_timeit timer() "Jacobian" begin
-    apply_jacobian!(gradients_x, mesh, equations_parabolic, dg, cache_parabolic)
-    apply_jacobian!(gradients_y, mesh, equations_parabolic, dg, cache_parabolic)
+    apply_jacobian_parabolic!(gradients_x, mesh, equations_parabolic, dg, cache_parabolic)
+    apply_jacobian_parabolic!(gradients_y, mesh, equations_parabolic, dg, cache_parabolic)
   end
 
   return nothing
@@ -588,8 +588,8 @@ end
 # This is because the parabolic fluxes are assumed to be of the form
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
-function apply_jacobian!(du, mesh::Union{TreeMesh{2}, P4estMesh{2}}, 
-                         equations::AbstractEquationsParabolic, dg::DG, cache)
+function apply_jacobian_parabolic!(du, mesh::Union{TreeMesh{2}, P4estMesh{2}}, 
+                                   equations::AbstractEquationsParabolic, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
     factor = cache.elements.inverse_jacobian[element]
