@@ -530,7 +530,7 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
     x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
     orientation_x = 1
 
-    # Special care is required for first-order FV approximations since the nodes are the 
+    # Special care is required for first-order FV approximations since the nodes are the
     # cell centers and do not contain the boundaries
     n_nodes = size(unstructured_data, 1)
     if n_nodes == 1
