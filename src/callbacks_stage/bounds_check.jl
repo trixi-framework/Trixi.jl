@@ -6,40 +6,44 @@
 
 
 """
-    BoundsCheckCallback(; output_directory="out", save_errors=false)
+    BoundsCheckCallback(; output_directory="out", save_errors=false, interval=0)
 
 Bounds checking routine for `IndicatorIDP` and `IndicatorMCL`. Applied as a stage callback for
-SSPRK methods.
+SSPRK methods. If `save_errors` is `true`, the resulting deviations are saved in
+`output_directory/deviations.txt` for every `interval` time steps.
 """
 struct BoundsCheckCallback
   output_directory::String
   save_errors::Bool
+  interval::Int
 end
 
-function BoundsCheckCallback(; output_directory="out", save_errors=false)
-  BoundsCheckCallback(output_directory, save_errors)
+function BoundsCheckCallback(; output_directory="out", save_errors=false, interval=1)
+  BoundsCheckCallback(output_directory, save_errors, interval)
 end
 
 function (callback::BoundsCheckCallback)(u_ode, semi::AbstractSemidiscretization, t, iter, laststage)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  @trixi_timeit timer() "check_bounds" check_bounds(u, mesh, equations, solver, cache, t, iter, laststage,
-                                                    callback.output_directory, callback.save_errors)
+  @trixi_timeit timer() "check_bounds" check_bounds(u, mesh, equations, solver, cache, t, iter,
+      callback.output_directory, min(callback.save_errors, callback.interval > 0, laststage), callback.interval)
 end
 
-function check_bounds(u, mesh, equations, solver, cache, t, iter, laststage, output_directory, save_errors)
-  check_bounds(u, mesh, equations, solver, cache, solver.volume_integral, t, iter, laststage, output_directory, save_errors)
+function check_bounds(u, mesh, equations, solver, cache, t, iter, output_directory, save_errors, interval)
+  check_bounds(u, mesh, equations, solver, cache, solver.volume_integral, t, iter,
+               output_directory, save_errors, interval)
 end
 
-function check_bounds(u, mesh, equations, solver, cache, volume_integral::AbstractVolumeIntegral, t, iter, laststage, output_directory, save_errors)
+function check_bounds(u, mesh, equations, solver, cache, volume_integral::AbstractVolumeIntegral,
+                      t, iter, output_directory, save_errors, interval)
   return nothing
 end
 
 function check_bounds(u, mesh, equations, solver, cache, volume_integral::VolumeIntegralShockCapturingSubcell,
-                      t, iter, laststage, output_directory, save_errors)
+                      t, iter, output_directory, save_errors, interval)
   check_bounds(u, mesh, equations, solver, cache, volume_integral.indicator, t, iter,
-               laststage, output_directory, save_errors)
+               output_directory, save_errors, interval)
 end
 
 
@@ -54,7 +58,7 @@ function init_callback(callback, semi, volume_integral::VolumeIntegralShockCaptu
 end
 
 function init_callback(callback::BoundsCheckCallback, semi, indicator::IndicatorIDP)
-  if !callback.save_errors
+  if !callback.save_errors || (callback.interval == 0)
     return nothing
   end
 
@@ -96,7 +100,7 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
 end
 
 function init_callback(callback::BoundsCheckCallback, semi, indicator::IndicatorMCL)
-  if !callback.save_errors
+  if !callback.save_errors || (callback.interval == 0)
     return nothing
   end
 

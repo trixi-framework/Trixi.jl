@@ -153,7 +153,6 @@ function solve!(integrator::SimpleIntegratorSSP)
     end
 
     # Reset alphas for MCL
-    @unpack indicator = integrator.p.solver.volume_integral
     if indicator isa IndicatorMCL && indicator.Plotting
       @unpack alpha, alpha_pressure, alpha_entropy = indicator.cache.ContainerShockCapturingIndicator
       @threaded for element in eachelement(integrator.p.solver, integrator.p.cache)
@@ -250,6 +249,12 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
 end
 
 function Base.resize!(semi::AbstractSemidiscretization, new_size)
+  resize!(semi, semi.solver.volume_integral, new_size)
+end
+
+Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
+
+function Base.resize!(semi, volume_integral::VolumeIntegralShockCapturingSubcell, new_size)
   # Resize ContainerAntidiffusiveFlux2D
   resize!(semi.cache.ContainerAntidiffusiveFlux2D, new_size)
 

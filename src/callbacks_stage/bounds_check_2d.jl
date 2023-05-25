@@ -6,15 +6,12 @@
 
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache, indicator::IndicatorIDP,
-                              time, iter, laststage, output_directory, save_errors)
+                              time, iter, output_directory, save_errors, interval)
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = solver.volume_integral.indicator
   @unpack var_bounds = indicator.cache.ContainerShockCapturingIndicator
   @unpack idp_bounds_delta = indicator.cache
 
-  # Save the deviations every x iterations
-  x = 1
-
-  save_errors_ = save_errors && laststage && x > 0 && (iter % x == 0)
+  save_errors_ = save_errors && (iter % interval == 0)
   counter = 1
   if save_errors_
     open("$output_directory/deviations.txt", "a") do f;
@@ -135,16 +132,13 @@ end
 
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache, indicator::IndicatorMCL,
-                              time, iter, laststage, output_directory, save_errors)
+                              time, iter, output_directory, save_errors, interval)
   @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
   @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
   @unpack idp_bounds_delta = solver.volume_integral.indicator.cache
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
 
   n_vars = nvariables(equations)
-
-  # Save the deviations every x iterations
-  x = 1
 
   deviation_min = zeros(eltype(u), n_vars + indicator.PressurePositivityLimiterKuzmin)
   deviation_max = zeros(eltype(u), n_vars)
@@ -443,7 +437,7 @@ end
     idp_bounds_delta[1, n_vars+1] = max(idp_bounds_delta[1, n_vars+1], deviation_min[n_vars+1])
   end
 
-  if !save_errors || !laststage || x == 0 || iter % x != 0
+  if !save_errors || (iter % interval != 0)
     return nothing
   end
   open("$output_directory/deviations.txt", "a") do f;
