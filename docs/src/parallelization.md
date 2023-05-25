@@ -170,3 +170,5 @@ to use a system-provided MPI library, see also [here](@ref parallel_system_MPI) 
 To do so, set the environment variable `JULIA_HDF5_PATH` to the local path
 that contains the `libhdf5.so` shared object file and build HDF5.jl by executing `using Pkg; Pkg.build("HDF5")`.
 For more information see also the [documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/).
+
+If you do not perform these steps to use parallel HDF5 or if the HDF5 is not MPI-enabled, Trixi.jl will fall back on a less efficient I/O mechanism. In that case, all disk I/O is performed only on rank zero and data is distributed to/gathered from the other ranks using regular MPI communication.
