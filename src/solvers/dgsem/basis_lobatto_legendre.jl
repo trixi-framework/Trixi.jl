@@ -504,6 +504,13 @@ function gauss_lobatto_nodes_weights(n_nodes::Integer)
   nodes = zeros(n_nodes)
   weights = zeros(n_nodes)
 
+  # Special case for polynomial degree zero (first order finite volume)
+  if n_nodes == 1
+    nodes[1] = 0
+    weights[1] = 2
+    return nodes, weights
+  end
+
   # Get polynomial degree for convenience
   N = n_nodes - 1
 
