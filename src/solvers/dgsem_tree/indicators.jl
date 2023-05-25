@@ -245,7 +245,6 @@ struct IndicatorIDP{RealT<:Real, LimitingVariablesCons, LimitingVariablesNonline
   newton_tol::Tuple{RealT, RealT} # Relative and absolute tolerances for Newton's method
   IDPgamma::RealT                 # Constant for the subcell limiting of convex (nonlinear) constraints
                                   # (must be IDPgamma>=2*d, where d is the number of dimensions of the problem)
-  IDPCheckBounds::Bool
   indicator_smooth::Bool          # activates smoothness indicator: IndicatorHennemannGassner
   thr_smooth::RealT               # threshold for smoothness indicator
   IndicatorHG::Indicator
@@ -263,7 +262,6 @@ function IndicatorIDP(equations::AbstractEquations, basis;
                       BarStates=true,
                       positCorrFactor=0.1, IDPMaxIter=10,
                       newton_tol=(1.0e-12, 1.0e-14), IDP_gamma=2*ndims(equations),
-                      IDPCheckBounds=false,
                       indicator_smooth=false, thr_smooth=0.1, variable_smooth=density_pressure)
 
   if IDPMathEntropy && IDPSpecEntropy
@@ -289,10 +287,9 @@ function IndicatorIDP(equations::AbstractEquations, basis;
   else
     IndicatorHG = nothing
   end
-  IndicatorIDP{typeof(positCorrFactor), typeof(variables_cons), typeof(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(IDPDensityTVD, IDPPressureTVD,
-      IDPPositivity, variables_cons, variables_nonlinear, IDPSpecEntropy, IDPMathEntropy, BarStates,
-      cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma, IDPCheckBounds,
-      indicator_smooth, thr_smooth, IndicatorHG)
+  IndicatorIDP{typeof(positCorrFactor), typeof(variables_cons), typeof(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(
+    IDPDensityTVD, IDPPressureTVD, IDPPositivity, variables_cons, variables_nonlinear, IDPSpecEntropy, IDPMathEntropy,
+    BarStates, cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma, indicator_smooth, thr_smooth, IndicatorHG)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
@@ -372,7 +369,6 @@ struct IndicatorMCL{RealT<:Real, Cache, Indicator} <: AbstractIndicator
   DensityPositivityLimiter::Bool
   DensityPositivityCorrelationFactor::RealT
   SemiDiscEntropyLimiter::Bool                # synchronized semidiscrete entropy fix
-  IDPCheckBounds::Bool
   indicator_smooth::Bool                      # activates smoothness indicator: IndicatorHennemannGassner
   thr_smooth::RealT                           # threshold for smoothness indicator
   IndicatorHG::Indicator
@@ -390,7 +386,6 @@ function IndicatorMCL(equations::AbstractEquations, basis;
                       DensityPositivityLimiter=false,       # Impose positivity for cons(1)
                       DensityPositivityCorrelationFactor=0.0,# Correlation Factor for DensityPositivityLimiter in [0,1)
                       SemiDiscEntropyLimiter=false,
-                      IDPCheckBounds=false,
                       indicator_smooth=false, thr_smooth=0.1, variable_smooth=density_pressure,
                       Plotting=true)
   if SequentialLimiter && ConservativeLimiter
@@ -407,7 +402,7 @@ function IndicatorMCL(equations::AbstractEquations, basis;
     DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
     PressurePositivityLimiterKuzmin, PressurePositivityLimiterKuzminExact,
     DensityPositivityLimiter, DensityPositivityCorrelationFactor, SemiDiscEntropyLimiter,
-    IDPCheckBounds, indicator_smooth, thr_smooth, IndicatorHG, Plotting)
+    indicator_smooth, thr_smooth, IndicatorHG, Plotting)
 end
 
 function Base.show(io::IO, indicator::IndicatorMCL)

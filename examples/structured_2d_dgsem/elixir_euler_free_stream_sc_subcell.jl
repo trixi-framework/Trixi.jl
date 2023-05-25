@@ -21,8 +21,7 @@ indicator_sc = IndicatorIDP(equations, basis;
                             indicator_smooth=false,
                             BarStates=true,
                             positCorrFactor=0.1, IDPMaxIter=10,
-                            newton_tol=(1.0e-12, 1.0e-14),
-                            IDPCheckBounds=true)
+                            newton_tol=(1.0e-12, 1.0e-14))
 
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,
@@ -84,7 +83,9 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = Trixi.solve(ode;
+stage_callback = BoundsCheckCallback(save_errors=true)
+
+sol = Trixi.solve(ode; alg=Trixi.SimpleSSPRK33(stage_callback=stage_callback),
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

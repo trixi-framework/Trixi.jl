@@ -6,6 +6,7 @@
 
 
 include("positivity_zhang_shu.jl")
+include("bounds_check.jl")
 
 
 end # @muladd

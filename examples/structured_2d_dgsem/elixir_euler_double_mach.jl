@@ -97,8 +97,7 @@ indicator_sc = IndicatorIDP(equations, basis;
                             IDPPositivity=false,
                             IDPSpecEntropy=true,
                             positCorrFactor=0.1, IDPMaxIter=100,
-                            BarStates=true,
-                            IDPCheckBounds=true)
+                            BarStates=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -126,7 +125,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 save_solution = SaveSolutionCallback(interval=1000,
-                                     output_directory="../../scratch/doublemach/IDP_density_entropy_cfl0_9_new/out",
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
@@ -141,7 +139,9 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = Trixi.solve(ode,
+stage_callback = BoundsCheckCallback(save_errors=true)
+
+sol = Trixi.solve(ode; alg=Trixi.SimpleSSPRK33(stage_callback=stage_callback),
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback=callbacks);
 summary_callback() # print the timer summary

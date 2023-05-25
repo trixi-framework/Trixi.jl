@@ -18,12 +18,13 @@ The third-order SSP Runge-Kutta method of
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct SimpleSSPRK33 <: SimpleAlgorithmSSP
+struct SimpleSSPRK33{StageCallback} <: SimpleAlgorithmSSP
   a::SVector{3, Float64}
   b::SVector{3, Float64}
   c::SVector{3, Float64}
+  stage_callback::StageCallback
 
-  function SimpleSSPRK33()
+  function SimpleSSPRK33(; stage_callback=nothing)
     a = SVector(0.0, 3/4, 1/3)
     b = SVector(1.0, 1/4, 2/3)
     c = SVector(0.0, 1.0, 1/2)
@@ -36,7 +37,7 @@ struct SimpleSSPRK33 <: SimpleAlgorithmSSP
     # --------------------
     #   b | 1/6  1/6  2/3
 
-    new(a, b, c)
+    new{typeof(stage_callback)}(a, b, c, stage_callback)
   end
 end
 
@@ -118,6 +119,10 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
     error("unsupported")
   end
 
+  if alg.stage_callback !== nothing
+    init_callback(alg.stage_callback, integrator.p)
+  end
+
   solve!(integrator)
 end
 
@@ -178,10 +183,9 @@ function solve!(integrator::SimpleIntegratorSSP)
 
       @trixi_timeit timer() "update_alpha_max_avg!" update_alpha_max_avg!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
 
-      # check that we are within bounds
-      if indicator.IDPCheckBounds
+      if alg.stage_callback !== nothing
         laststage = (stage == length(alg.c))
-        @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u, integrator.p, integrator.t, integrator.iter+1, laststage, output_directory)
+        alg.stage_callback(integrator.u, integrator.p, integrator.t, integrator.iter+1, laststage)
       end
 
       # perform convex combination
@@ -209,9 +213,8 @@ function solve!(integrator::SimpleIntegratorSSP)
     end
   end
 
-  # Check that we are within bounds
-  if indicator.IDPCheckBounds
-    summary_check_bounds(indicator, integrator.p.equations)
+  if alg.stage_callback !== nothing
+    finalize_callback(alg.stage_callback, integrator.p)
   end
 
   return TimeIntegratorSolution((first(prob.tspan), integrator.t),
@@ -298,69 +301,5 @@ function calc_normal_directions!(ContainerBarStates, mesh::StructuredMesh, equat
   return nothing
 end
 
-# check deviation from boundaries of IDP indicator
-@inline function summary_check_bounds(indicator::IndicatorIDP, equations::CompressibleEulerEquations2D)
-  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
-  @unpack idp_bounds_delta = indicator.cache
-
-  println("─"^100)
-  println("Maximum deviation from bounds:")
-  println("─"^100)
-  counter = 1
-  if IDPDensityTVD
-    println("rho:\n- lower bound: ", idp_bounds_delta[counter], "\n- upper bound: ", idp_bounds_delta[counter+1])
-    counter += 2
-  end
-  if IDPPressureTVD
-    println("pressure:\n- lower bound: ", idp_bounds_delta[counter], "\n- upper bound: ", idp_bounds_delta[counter+1])
-    counter += 2
-  end
-  if IDPSpecEntropy
-    println("spec. entropy:\n- lower bound: ", idp_bounds_delta[counter])
-    counter += 1
-  end
-  if IDPMathEntropy
-    println("math. entropy:\n- upper bound: ", idp_bounds_delta[counter])
-    counter += 1
-  end
-  if IDPPositivity
-    for variable in indicator.variables_cons
-      if variable == Trixi.density && IDPDensityTVD
-        continue
-      end
-      println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
-      counter += 1
-    end
-    for variable in indicator.variables_nonlinear
-      if variable == pressure && IDPPressureTVD
-        continue
-      end
-      println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
-      counter += 1
-    end
-  end
-  println("─"^100 * "\n")
-
-  return nothing
-end
-
-# check deviation from boundaries of IndicatorMCL
-@inline function summary_check_bounds(indicator::IndicatorMCL, equations::CompressibleEulerEquations2D)
-  @unpack idp_bounds_delta = indicator.cache
-
-  println("─"^100)
-  println("Maximum deviation from bounds:")
-  println("─"^100)
-  variables = varnames(cons2cons, equations)
-  for v in eachvariable(equations)
-    println(variables[v], ":\n- lower bound: ", idp_bounds_delta[1, v], "\n- upper bound: ", idp_bounds_delta[2, v])
-  end
-  if indicator.PressurePositivityLimiterKuzmin
-    println("pressure:\n- lower bound: ", idp_bounds_delta[1, nvariables(equations)+1])
-  end
-  println("─"^100 * "\n")
-
-  return nothing
-end
 
 end # @muladd
