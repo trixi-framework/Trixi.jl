@@ -28,8 +28,8 @@ solution and integrated over the computational domain. Some examples for this ar
 [`entropy`](@ref), [`energy_kinetic`](@ref), [`energy_internal`](@ref), and [`energy_total`](@ref).
 You can also write your own function with the same signature as the examples listed above and
 pass it via `extra_analysis_integrals`.
-See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
-information on how to create custom analysis quantities.
+See the developer comments about `Trixi.analyze`, `Trixi.pretty_form_utf`, and
+`Trixi.pretty_form_ascii` for further information on how to create custom analysis quantities.
 
 In addition, the analysis callback records and outputs a number of quantities that are useful for
 evaluating the computational performance, such as the total runtime, the performance index
