@@ -79,86 +79,58 @@ function calc_gradient!(gradients, u_transformed, t,
   @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
     cache_parabolic, u_transformed, mesh, equations_parabolic, dg.surface_integral, dg)
 
-  # # Calculate interface fluxes
-  # @trixi_timeit timer() "interface flux" begin
-  #   (; surface_flux_values) = cache_parabolic.elements
-  #   (; neighbor_ids, orientations) = cache_parabolic.interfaces
+  # Calculate interface fluxes
+  @trixi_timeit timer() "interface flux" begin
+    (; surface_flux_values) = cache_parabolic.elements
+    (; neighbor_ids, node_indices) = cache.interfaces
+    index_range = eachnode(dg)
+    index_end = last(index_range)
 
-  #   @threaded for interface in eachinterface(dg, cache_parabolic)
-  #     # Get neighboring elements
-  #     left_id  = neighbor_ids[1, interface]
-  #     right_id = neighbor_ids[2, interface]
+    @threaded for interface in eachinterface(dg, cache)
+      # Get element and side index information on the primary element
+      primary_element = neighbor_ids[1, interface]
+      primary_indices = node_indices[1, interface]
+      primary_direction = indices2direction(primary_indices)
 
-  #     # Determine interface direction with respect to elements:
-  #     # orientation = 1: left -> 2, right -> 1
-  #     # orientation = 2: left -> 4, right -> 3
-  #     left_direction  = 2 * orientations[interface]
-  #     right_direction = 2 * orientations[interface] - 1
+      # Create the local i,j indexing on the primary element used to pull normal direction information
+      i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
+      j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
 
-  #     for i in eachnode(dg)
-  #       # Call pointwise Riemann solver
-  #       u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
-  #                                          equations_parabolic, dg, i, interface)
-  #       flux = 0.5 * (u_ll + u_rr)
+      i_primary = i_primary_start
+      j_primary = j_primary_start
 
-  #       # Copy flux to left and right element storage
-  #       for v in eachvariable(equations_parabolic)
-  #         surface_flux_values[v, i, left_direction,  left_id]  = flux[v]
-  #         surface_flux_values[v, i, right_direction, right_id] = flux[v]
-  #       end
-  #     end
-  #   end
-  # end
+      # Get element and side index information on the secondary element
+      secondary_element = neighbor_ids[2, interface]
+      secondary_indices = node_indices[2, interface]
+      secondary_direction = indices2direction(secondary_indices)
 
-  (; surface_flux_values) = cache_parabolic.elements
-  (; neighbor_ids, node_indices) = cache.interfaces
-  index_range = eachnode(dg)
-  index_end = last(index_range)
-
-  @threaded for interface in eachinterface(dg, cache)
-    # Get element and side index information on the primary element
-    primary_element = neighbor_ids[1, interface]
-    primary_indices = node_indices[1, interface]
-    primary_direction = indices2direction(primary_indices)
-
-    # Create the local i,j indexing on the primary element used to pull normal direction information
-    i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
-    j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
-
-    i_primary = i_primary_start
-    j_primary = j_primary_start
-
-    # Get element and side index information on the secondary element
-    secondary_element = neighbor_ids[2, interface]
-    secondary_indices = node_indices[2, interface]
-    secondary_direction = indices2direction(secondary_indices)
-
-    # Initiate the secondary index to be used in the surface for loop.
-    # This index on the primary side will always run forward but
-    # the secondary index might need to run backwards for flipped sides.
-    if :i_backward in secondary_indices
-      node_secondary = index_end
-      node_secondary_step = -1
-    else
-      node_secondary = 1
-      node_secondary_step = 1
-    end
-
-    for node in eachnode(dg)
-      u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
-                                         equations_parabolic, dg, node, interface)                                              
-      flux = 0.5 * (u_ll + u_rr)
-
-      for v in eachvariable(equations_parabolic)
-        surface_flux_values[v, node, primary_direction, primary_element] = flux[v]
-        surface_flux_values[v, node_secondary, secondary_direction, secondary_element] = flux[v]
+      # Initiate the secondary index to be used in the surface for loop.
+      # This index on the primary side will always run forward but
+      # the secondary index might need to run backwards for flipped sides.
+      if :i_backward in secondary_indices
+        node_secondary = index_end
+        node_secondary_step = -1
+      else
+        node_secondary = 1
+        node_secondary_step = 1
       end
-  
-      # Increment primary element indices to pull the normal direction
-      i_primary += i_primary_step
-      j_primary += j_primary_step
-      # Increment the surface node index along the secondary element
-      node_secondary += node_secondary_step
+
+      for node in eachnode(dg)
+        u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
+                                          equations_parabolic, dg, node, interface)                                              
+        flux = 0.5 * (u_ll + u_rr)
+
+        for v in eachvariable(equations_parabolic)
+          surface_flux_values[v, node, primary_direction, primary_element] = flux[v]
+          surface_flux_values[v, node_secondary, secondary_direction, secondary_element] = flux[v]
+        end
+    
+        # Increment primary element indices to pull the normal direction
+        i_primary += i_primary_step
+        j_primary += j_primary_step
+        # Increment the surface node index along the secondary element
+        node_secondary += node_secondary_step
+      end
     end
   end
 
