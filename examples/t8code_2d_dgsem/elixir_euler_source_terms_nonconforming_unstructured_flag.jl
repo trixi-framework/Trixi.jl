@@ -1,16 +1,23 @@
-
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
-
 ###############################################################################
-# semidiscretization of the linear advection equation
+# semidiscretization of the compressible Euler equations
 
-advection_velocity = (0.2, -0.7)
-equations = LinearScalarAdvectionEquation2D(advection_velocity)
+equations = CompressibleEulerEquations2D(1.4)
 
-# Create DG solver with polynomial degree = 4 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs)
+initial_condition = initial_condition_convergence_test
+
+source_terms = source_terms_convergence_test
+
+# BCs must be passed as Dict
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = Dict(
+  :all => boundary_condition
+)
+
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 # Deformed rectangle that looks like a waving flag,
 # lower and upper faces are sinus curves, left and right are vertical lines.
@@ -18,16 +25,25 @@ f1(s) = SVector(-1.0, s - 1.0)
 f2(s) = SVector( 1.0, s + 1.0)
 f3(s) = SVector(s, -1.0 + sin(0.5 * pi * s))
 f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
-
 faces = (f1, f2, f3, f4)
-mapping = Trixi.transfinite_mapping(faces)
 
-# Create P4estMesh with 3 x 2 trees and 6 x 4 elements,
-# approximate the geometry with a smaller polydeg for testing.
-trees_per_dimension = (3, 2)
-mesh = T8codeMesh(trees_per_dimension, polydeg=3,
-                 mapping=mapping,
-                 initial_refinement_level=1)
+Trixi.validate_faces(faces)
+mapping_flag = Trixi.transfinite_mapping(faces)
+
+# Get the uncurved mesh from a file (downloads the file if not available locally)
+# Unstructured mesh with 24 cells of the square domain [-1, 1]^n
+mesh_file = joinpath(@__DIR__, "square_unstructured_2.inp")
+isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
+                              mesh_file)
+
+# INP mesh files are only support by p4est. Hence, we
+# create a p4est connecvity object first from which
+# we can create a t8code mesh.
+conn = Trixi.read_inp_p4est(mesh_file,Val(2))
+
+mesh = T8codeMesh{2}(conn, polydeg=3,
+                 mapping=mapping_flag,
+                 initial_refinement_level=0)
 
 function adapt_callback(forest,
                         forest_from,
@@ -47,7 +63,7 @@ function adapt_callback(forest,
   level = Trixi.t8_element_level(ts,elements[1])
 
   # TODO: Make this condition more general.
-  if vertex[1] < 1e-8 && vertex[2] < 1e-8 && level < 4
+  if vertex[1] < 1e-8 && vertex[2] < 1e-8 && level < 2
     # return true (refine)
     return 1
   else
@@ -74,43 +90,44 @@ end
 
 mesh.forest = new_forest
 
-# A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
-
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    source_terms=source_terms,
+                                    boundary_conditions=boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 0.2
-ode = semidiscretize(semi, (0.0, 0.2));
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan)
 
-# At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
-# and resets the timers
 summary_callback = SummaryCallback()
 
-# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval=100)
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
+
+# Not implemted yet.
+# save_restart = SaveRestartCallback(interval=100,
+#                                    save_final_restart=true)
+#
 # Not implemented yet.
-# # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 # save_solution = SaveSolutionCallback(interval=100,
+#                                      save_initial_solution=true,
+#                                      save_final_solution=true,
 #                                      solution_variables=cons2prim)
 
-# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=1.6)
+stepsize_callback = StepsizeCallback(cfl=0.8)
 
-# Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, # save_solution,
-  stepsize_callback)
-
-
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback,
+                        # save_restart, save_solution,
+                        stepsize_callback,
+)
 ###############################################################################
 # run the simulation
 
-# OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
-
-# Print the timer summary
-summary_callback()
+summary_callback() # print the timer summary

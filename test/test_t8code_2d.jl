@@ -41,12 +41,25 @@ mkdir(outdir)
       linf = [0.007438525029884735])
   end
 
+  @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_unstructured_flag.jl"),
+      l2   = [0.001993165013217687],
+      linf = [0.032891018571625796],
+      coverage_override = (maxiters=6,))
+  end
+
   @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_solution_independent.jl"),
       # Expected errors are exactly the same as with StructuredMesh!
       l2   = [4.949660644033807e-5],
       linf = [0.0004867846262313763],
       coverage_override = (maxiters=6,))
+  end
+
+  @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+    l2   = [0.0034516244508588046, 0.0023420334036925493, 0.0024261923964557187, 0.004731710454271893],
+    linf = [0.04155789011775046, 0.024772109862748914, 0.03759938693042297, 0.08039824959535657])
   end
 
 end
