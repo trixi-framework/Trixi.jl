@@ -544,7 +544,7 @@ end
 
 function apply_jacobian!(du,
                          mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
-                         equations, dg::DG, cache)
+                         equations::AbstractEquations, dg::DG, cache)
   @unpack inverse_jacobian = cache.elements
 
   @threaded for element in eachelement(dg, cache)
