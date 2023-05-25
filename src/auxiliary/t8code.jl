@@ -39,7 +39,7 @@ function trixi_t8_count_interfaces(forest)
   # Get the number of trees that have elements of this process.
   num_local_trees = t8_forest_get_num_local_trees(forest)
 
-  current_index = 0
+  current_index = t8_locidx_t(0)
 
   local_num_conform = 0
   local_num_mortars = 0
@@ -82,7 +82,8 @@ function trixi_t8_count_interfaces(forest)
         if num_neighbors > 0
           neighbor_level = t8_element_level(neighbor_scheme, neighbor_leafs[1])
 
-          if level == neighbor_level && all(Int32(current_index) .<= neighbor_ielements)
+          # Conforming interface: The second condition ensures we only visit the interface once.
+          if level == neighbor_level && current_index <= neighbor_ielements[1]
           # TODO: Find a fix for the case: Single element on root level with periodic boundaries.
           # elseif level == neighbor_level && 
           #   (all(Int32(current_index) .< neighbor_ielements) || 
@@ -124,7 +125,7 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
   # Get the number of trees that have elements of this process.
   num_local_trees = t8_forest_get_num_local_trees(forest)
 
-  current_index = 0
+  current_index = t8_locidx_t(0)
 
   local_num_conform = 0
   local_num_mortars = 0
@@ -182,7 +183,8 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
           neighbor_level = t8_element_level(neighbor_scheme, neighbor_leafs[1])
 
           # Conforming interface: The second condition ensures we only visit the interface once.
-          if level == neighbor_level && Int32(current_index) <= neighbor_ielements[1]
+          if level == neighbor_level && current_index <= neighbor_ielements[1]
+          # TODO: Find a fix for the case: Single element on root level with periodic boundaries.
           # elseif level == neighbor_level &&
           #   (all(Int32(current_index) .< neighbor_ielements) ||
           #   level == 0 && (iface == 0 || iface == 2 || iface == 4))
@@ -231,8 +233,7 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
 
               mortar_id = local_num_mortars
 
-              # Last entry is the large element ... What a stupid convention!
-              # mortars.neighbor_ids[end, mortar_id] = ielement + 1
+              # Last entry is the large element.
               mortars.neighbor_ids[end, mortar_id] = current_index + 1
 
               # First `1:end-1` entries are the smaller elements.
@@ -243,11 +244,15 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
                 # For orientation == 1, the large side needs to be indexed backwards
                 # relative to the mortar.
                 if side == 1 || orientation == 0
-                  # Forward indexing for small side or orientation == 0
+                  # Forward indexing for small side or orientation == 0.
                   indexing = :i_forward
                 else
-                  # Backward indexing for large side with reversed orientation
+                  # Backward indexing for large side with reversed orientation.
                   indexing = :i_backward
+                  # TODO: Fully understand what is going on here. Generalize this for 3D.
+                  # Has something to do with Morton ordering.
+                  mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[2] + 1
+                  mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[1] + 1
                 end
 
                 if faces[side] == 0
