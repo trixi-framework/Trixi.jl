@@ -129,7 +129,7 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u,
-                                           element, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
+                                           element, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
                                            nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
@@ -251,7 +251,7 @@ end
 
 # Calculate the finite volume fluxes inside curvilinear elements (**with non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
-                              mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
+                              mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
                               nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
   @unpack contravariant_vectors = cache.elements

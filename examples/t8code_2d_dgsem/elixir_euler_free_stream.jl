@@ -3,37 +3,35 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# Semidiscretization of the compressible Euler equations.
 
 equations = CompressibleEulerEquations2D(1.4)
 
-initial_condition = initial_condition_convergence_test
-
-source_terms = source_terms_convergence_test
-
-# BCs must be passed as Dict
-boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(
-  :all => boundary_condition
-)
+initial_condition = initial_condition_constant
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-# Deformed rectangle that looks like a waving flag,
-# lower and upper faces are sinus curves, left and right are vertical lines.
-f1(s) = SVector(-1.0, s - 1.0)
-f2(s) = SVector( 1.0, s + 1.0)
-f3(s) = SVector(s, -1.0 + sin(0.5 * pi * s))
-f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
-faces = (f1, f2, f3, f4)
+# Mapping as described in https://arxiv.org/abs/2012.12040 but reduced to 2D
+function mapping(xi_, eta_)
+  # Transform input variables between -1 and 1 onto [0,3]
+  xi = 1.5 * xi_ + 1.5
+  eta = 1.5 * eta_ + 1.5
 
-Trixi.validate_faces(faces)
-mapping_flag = Trixi.transfinite_mapping(faces)
+  y = eta + 3/8 * (cos(1.5 * pi * (2 * xi - 3)/3) *
+                   cos(0.5 * pi * (2 * eta - 3)/3))
 
+  x = xi + 3/8 * (cos(0.5 * pi * (2 * xi - 3)/3) *
+                  cos(2 * pi * (2 * y - 3)/3))
+
+  return SVector(x, y)
+end
+
+###############################################################################
 # Get the uncurved mesh from a file (downloads the file if not available locally)
-# Unstructured mesh with 24 cells of the square domain [-1, 1]^n
-mesh_file = joinpath(@__DIR__, "square_unstructured_2.inp")
-isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
+
+# Unstructured mesh with 48 cells of the square domain [-1, 1]^n
+mesh_file = joinpath(@__DIR__, "square_unstructured_1.inp")
+isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/a075f8ec39a67fa9fad8f6f84342cbca/raw/a7206a02ed3a5d3cadacd8d9694ac154f9151db7/square_unstructured_1.inp",
                               mesh_file)
 
 # INP mesh files are only support by p4est. Hence, we
@@ -42,7 +40,7 @@ isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/63f
 conn = Trixi.read_inp_p4est(mesh_file,Val(2))
 
 mesh = T8codeMesh{2}(conn, polydeg=3,
-                 mapping=mapping_flag,
+                 mapping=mapping,
                  initial_refinement_level=1)
 
 function adapt_callback(forest,
@@ -63,7 +61,7 @@ function adapt_callback(forest,
   level = Trixi.t8_element_level(ts,elements[1])
 
   # TODO: Make this condition more general.
-  if vertex[1] < 1e-8 && vertex[2] < 1e-8 && level < 2
+  if vertex[1] < 1e-8 && vertex[2] < 1e-8 && level < 3
     # return true (refine)
     return 1
   else
@@ -91,8 +89,10 @@ end
 mesh.forest = new_forest
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms,
-                                    boundary_conditions=boundary_conditions)
+                                    boundary_conditions=Dict(
+                                      :all => BoundaryConditionDirichlet(initial_condition)
+                                    ))
+
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -107,23 +107,19 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-# Not implemted yet.
-# save_restart = SaveRestartCallback(interval=100,
-#                                    save_final_restart=true)
-#
 # Not implemented yet.
 # save_solution = SaveSolutionCallback(interval=100,
 #                                      save_initial_solution=true,
 #                                      save_final_solution=true,
 #                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.8)
+stepsize_callback = StepsizeCallback(cfl=2.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        # save_restart, save_solution,
-                        stepsize_callback,
-)
+                        # save_solution,
+                        stepsize_callback)
+
 ###############################################################################
 # run the simulation
 

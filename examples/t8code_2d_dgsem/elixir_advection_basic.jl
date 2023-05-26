@@ -20,7 +20,6 @@ mapping = Trixi.coordinates2mapping(coordinates_min, coordinates_max)
 
 trees_per_dimension = (8, 8)
 
-# Create T8codeMesh with 8 x 8 trees and 16 x 16 elements
 mesh = T8codeMesh(trees_per_dimension, polydeg=3,
                   mapping=mapping,
                   initial_refinement_level=1)
