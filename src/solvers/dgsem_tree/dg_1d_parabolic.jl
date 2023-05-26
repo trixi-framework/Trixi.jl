@@ -444,7 +444,7 @@ function calc_gradient!(gradients, u_transformed, t,
 
   # Apply Jacobian from mapping to reference element
   @trixi_timeit timer() "Jacobian" begin
-    apply_jacobian!(gradients, mesh, equations_parabolic, dg, cache_parabolic)
+    apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg, cache_parabolic)
   end
 
   return nothing
