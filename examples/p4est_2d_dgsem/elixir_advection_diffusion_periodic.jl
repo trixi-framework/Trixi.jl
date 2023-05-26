@@ -9,16 +9,33 @@ advection_velocity = (1.0, 0.0)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
-function initial_condition_sharp_gaussian(x, t, equations::LinearScalarAdvectionEquation2D)
-  return SVector(exp(-100 * (x[1]^2 + x[2]^2)))
+function x_trans_periodic(x, domain_length = SVector(2 * pi), center = SVector(0.0))
+    x_normalized = x .- center
+    x_shifted = x_normalized .% domain_length
+    x_offset = ((x_shifted .< -0.5 * domain_length) - (x_shifted .> 0.5 * domain_length)) .* domain_length
+    return center + x_shifted + x_offset
 end
-initial_condition = initial_condition_sharp_gaussian
+
+# Define initial condition (copied from "examples/tree_1d_dgsem/elixir_advection_diffusion.jl")
+function initial_condition_diffusive_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
+    # Store translated coordinate for easy use of exact solution
+    # Assumes that advection_velocity[2] = 0 (effectively that we are solving a 1D equation)
+    x_trans = x_trans_periodic(x[1] - equation.advection_velocity[1] * t)
+    
+    nu = diffusivity()
+    c = 0.0
+    A = 1.0
+    omega = 1.0
+    scalar = c + A * sin(omega * sum(x_trans)) * exp(-nu * omega^2 * t)
+    return SVector(scalar)
+end
+initial_condition = initial_condition_diffusive_convergence_test
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
+coordinates_min = (-pi, -pi) # minimum coordinates (min(x), min(y))
+coordinates_max = ( pi,  pi) # maximum coordinates (max(x), max(y))
 
 trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
