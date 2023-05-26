@@ -234,7 +234,8 @@ end
 function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::P4estMesh{2}, equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG, cache)
-  (; interfaces) = cache
+  (; interfaces) = cache_parabolic
+  (; contravariant_vectors) = cache_parabolic.elements
   index_range = eachnode(dg)
   flux_viscous_x, flux_viscous_y = flux_viscous
 
@@ -308,12 +309,12 @@ function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2}, equations_parabolic,
                               dg::DG, cache_parabolic)
 
-  (; neighbor_ids, node_indices) = cache.interfaces
-  (; contravariant_vectors) = cache.elements
+  (; neighbor_ids, node_indices) = cache_parabolic.interfaces
+  (; contravariant_vectors) = cache_parabolic.elements
   index_range = eachnode(dg)
   index_end = last(index_range)
 
-  @threaded for interface in eachinterface(dg, cache)
+  @threaded for interface in eachinterface(dg, cache_parabolic)
     # Get element and side index information on the primary element
     primary_element = neighbor_ids[1, interface]
     primary_indices = node_indices[1, interface]
