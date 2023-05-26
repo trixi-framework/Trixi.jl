@@ -18,13 +18,13 @@ The third-order SSP Runge-Kutta method of
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct SimpleSSPRK33{StageCallback} <: SimpleAlgorithmSSP
+struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
   a::SVector{3, Float64}
   b::SVector{3, Float64}
   c::SVector{3, Float64}
-  stage_callback::StageCallback
+  stage_callbacks::StageCallbacks
 
-  function SimpleSSPRK33(; stage_callback=nothing)
+  function SimpleSSPRK33(; stage_callbacks=(AntidiffusiveStage(), BoundsCheckCallback()))
     a = SVector(0.0, 3/4, 1/3)
     b = SVector(1.0, 1/4, 2/3)
     c = SVector(0.0, 1.0, 1/2)
@@ -37,7 +37,7 @@ struct SimpleSSPRK33{StageCallback} <: SimpleAlgorithmSSP
     # --------------------
     #   b | 1/6  1/6  2/3
 
-    new{typeof(stage_callback)}(a, b, c, stage_callback)
+    new{typeof(stage_callbacks)}(a, b, c, stage_callbacks)
   end
 end
 
@@ -119,8 +119,8 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
     error("unsupported")
   end
 
-  if alg.stage_callback !== nothing
-    init_callback(alg.stage_callback, integrator.p)
+  for stage_callback in alg.stage_callbacks
+    init_callback(stage_callback, integrator.p)
   end
 
   solve!(integrator)
@@ -182,9 +182,9 @@ function solve!(integrator::SimpleIntegratorSSP)
 
       @trixi_timeit timer() "update_alpha_max_avg!" update_alpha_max_avg!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
 
-      if alg.stage_callback !== nothing
+      for stage_callback in alg.stage_callbacks
         laststage = (stage == length(alg.c))
-        alg.stage_callback(integrator.u, integrator.p, integrator.t, integrator.iter+1, laststage)
+        stage_callback(integrator.u, integrator.p, integrator.t, integrator.iter+1, laststage)
       end
 
       # perform convex combination
@@ -212,8 +212,8 @@ function solve!(integrator::SimpleIntegratorSSP)
     end
   end
 
-  if alg.stage_callback !== nothing
-    finalize_callback(alg.stage_callback, integrator.p)
+  for stage_callback in alg.stage_callbacks
+    finalize_callback(stage_callback, integrator.p)
   end
 
   return TimeIntegratorSolution((first(prob.tspan), integrator.t),
