@@ -13,6 +13,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_fdsbp")
       l2   = [8.316190308678742e-7],
       linf = [7.1087263324720595e-6],
       tspan = (0.0, 0.5))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+      t = sol.t[end]
+      u_ode = sol.u[end]
+      du_ode = similar(u_ode)
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
   end
 
   # same tolerances as above since the methods should be identical (up to
@@ -39,6 +48,15 @@ end
       l2   = [4.1370344463620254e-6, 4.297052451817826e-6, 9.857382045003056e-6],
       linf = [1.675305070092392e-5, 1.3448113863834266e-5, 3.8185336878271414e-5],
       tspan = (0.0, 0.5))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+      t = sol.t[end]
+      u_ode = sol.u[end]
+      du_ode = similar(u_ode)
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
   end
 
   @trixi_testset "elixir_euler_convergence.jl with splitting_vanleer_haenel" begin
