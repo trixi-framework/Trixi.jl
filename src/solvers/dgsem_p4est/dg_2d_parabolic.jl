@@ -304,7 +304,6 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
   return nothing
 end
 
-# TODO: Deal with orientations for the BR1 divergence flux = {σ} ⋅ normal
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2}, equations_parabolic,
                               dg::DG, cache_parabolic)
