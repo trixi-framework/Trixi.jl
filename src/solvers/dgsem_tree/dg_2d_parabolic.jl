@@ -283,20 +283,20 @@ function get_unsigned_normal_vector_2d(direction)
 end
 
 function calc_boundary_flux_gradients!(cache, t, boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                      mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+                                      mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations_parabolic::AbstractEquationsParabolic,
                                       surface_integral, dg::DG)
   return nothing
 end
 
 function calc_boundary_flux_divergence!(cache, t, boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                        mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+                                        mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations_parabolic::AbstractEquationsParabolic,
                                         surface_integral, dg::DG)
   return nothing
 end
 
 function calc_boundary_flux_gradients!(cache, t, boundary_conditions_parabolic::NamedTuple,
-                                      mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
-                                      surface_integral, dg::DG)
+                                       mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+                                       surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
 
