@@ -10,13 +10,12 @@
 
 
 # TODO: MPI dimension agnostic
-# TODO: MPI, adapt to different real types (and AD!)
-mutable struct MPICache
+mutable struct MPICache{uEltype <: Real}
   mpi_neighbor_ranks::Vector{Int}
   mpi_neighbor_interfaces::Vector{Vector{Int}}
   mpi_neighbor_mortars::Vector{Vector{Int}}
-  mpi_send_buffers::Vector{Vector{Float64}}
-  mpi_recv_buffers::Vector{Vector{Float64}}
+  mpi_send_buffers::Vector{Vector{uEltype}}
+  mpi_recv_buffers::Vector{Vector{uEltype}}
   mpi_send_requests::Vector{MPI.Request}
   mpi_recv_requests::Vector{MPI.Request}
   n_elements_by_rank::OffsetArray{Int, 1, Array{Int, 1}}
@@ -25,24 +24,29 @@ mutable struct MPICache
 end
 
 
-function MPICache()
+function MPICache(uEltype)
+  # MPI communication "just works" for bitstypes only
+  if !isbitstype(uEltype)
+    throw(ArgumentError("MPICache only supports bitstypes, $uEltype is not a bitstype."))
+  end
   mpi_neighbor_ranks = Vector{Int}(undef, 0)
   mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, 0)
   mpi_neighbor_mortars = Vector{Vector{Int}}(undef, 0)
-  mpi_send_buffers = Vector{Vector{Float64}}(undef, 0)
-  mpi_recv_buffers = Vector{Vector{Float64}}(undef, 0)
+  mpi_send_buffers = Vector{Vector{uEltype}}(undef, 0)
+  mpi_recv_buffers = Vector{Vector{uEltype}}(undef, 0)
   mpi_send_requests = Vector{MPI.Request}(undef, 0)
   mpi_recv_requests = Vector{MPI.Request}(undef, 0)
   n_elements_by_rank = OffsetArray(Vector{Int}(undef, 0), 0:-1)
   n_elements_global = 0
   first_element_global_id = 0
 
-  MPICache(mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars,
-           mpi_send_buffers, mpi_recv_buffers,
-           mpi_send_requests, mpi_recv_requests,
-           n_elements_by_rank, n_elements_global,
-           first_element_global_id)
+  MPICache{uEltype}(mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars,
+                    mpi_send_buffers, mpi_recv_buffers,
+                    mpi_send_requests, mpi_recv_requests,
+                    n_elements_by_rank, n_elements_global,
+                    first_element_global_id)
 end
+@inline Base.eltype(::MPICache{uEltype}) where uEltype = uEltype
 
 
 # TODO: MPI dimension agnostic
@@ -232,7 +236,7 @@ end
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache(mesh::ParallelTreeMesh{2}, equations,
-                      dg::DG, RealT, uEltype)
+                      dg::DG, RealT, ::Type{uEltype}) where {uEltype<:Real}
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = local_leaf_cells(mesh.tree)
 
@@ -249,7 +253,7 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations,
   mpi_mortars = init_mpi_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
   mpi_cache = init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
-                             nvariables(equations), nnodes(dg))
+                             nvariables(equations), nnodes(dg), uEltype)
 
   cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars, mpi_mortars,
              mpi_cache)
@@ -262,20 +266,20 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations,
 end
 
 
-function init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars, nvars, nnodes)
-  mpi_cache = MPICache()
+function init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars, nvars, nnodes, uEltype)
+  mpi_cache = MPICache(uEltype)
 
-  init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars, nvars, nnodes)
+  init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars, nvars, nnodes, uEltype)
   return mpi_cache
 end
 
 
-function init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars, nvars, nnodes)
+function init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars, nvars, nnodes, uEltype)
   mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars =
     init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars, mesh)
 
   mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests =
-    init_mpi_data_structures(mpi_neighbor_interfaces, mpi_neighbor_mortars, ndims(mesh), nvars, nnodes)
+    init_mpi_data_structures(mpi_neighbor_interfaces, mpi_neighbor_mortars, ndims(mesh), nvars, nnodes, uEltype)
 
   # Determine local and total number of elements
   n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
@@ -422,30 +426,11 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars, m
 end
 
 
-# TODO: MPI dimension agnostic
-# Initialize MPI data structures
-function init_mpi_data_structures(mpi_neighbor_interfaces, mpi_neighbor_mortars, ndims, nvars, n_nodes)
-  data_size = nvars * n_nodes^(ndims - 1)
-  mpi_send_buffers = Vector{Vector{Float64}}(undef, length(mpi_neighbor_interfaces))
-  mpi_recv_buffers = Vector{Vector{Float64}}(undef, length(mpi_neighbor_interfaces))
-  for index in 1:length(mpi_neighbor_interfaces)
-    mpi_send_buffers[index] = Vector{Float64}(undef, length(mpi_neighbor_interfaces[index]) * data_size +
-                                                     length(mpi_neighbor_mortars[index]) * 4 * data_size)
-    mpi_recv_buffers[index] = Vector{Float64}(undef, length(mpi_neighbor_interfaces[index]) * data_size +
-                                                     length(mpi_neighbor_mortars[index]) * 4 * data_size)
-  end
-
-  mpi_send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
-  mpi_recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
-
-  return mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests
-end
-
 
 function rhs!(du, u, t,
               mesh::Union{ParallelTreeMesh{2}, ParallelP4estMesh{2}}, equations,
-              initial_condition, boundary_conditions, source_terms,
-              dg::DG, cache)
+              initial_condition, boundary_conditions, source_terms::Source,
+              dg::DG, cache) where {Source}
   # Start to receive MPI data
   @trixi_timeit timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
 

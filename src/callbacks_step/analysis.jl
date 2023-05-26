@@ -19,12 +19,17 @@ Analyze a numerical solution every `interval` time steps and print the
 results to the screen. If `save_analysis`, the results are also saved in
 `joinpath(output_directory, analysis_filename)`.
 
-Additional errors can be computed, e.g. by passing `extra_analysis_errors = [:primitive]`.
+Additional errors can be computed, e.g. by passing
+`extra_analysis_errors = (:l2_error_primitive, :linf_error_primitive)`
+or `extra_analysis_errors = (:conservation_error,)`.
 
 Further scalar functions `func` in `extra_analysis_integrals` are applied to the numerical
-solution and integrated over the computational domain.
-See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
-information on how to create custom analysis quantities.
+solution and integrated over the computational domain. Some examples for this are
+[`entropy`](@ref), [`energy_kinetic`](@ref), [`energy_internal`](@ref), and [`energy_total`](@ref).
+You can also write your own function with the same signature as the examples listed above and
+pass it via `extra_analysis_integrals`.
+See the developer comments about `Trixi.analyze`, `Trixi.pretty_form_utf`, and
+`Trixi.pretty_form_ascii` for further information on how to create custom analysis quantities.
 
 In addition, the analysis callback records and outputs a number of quantities that are useful for
 evaluating the computational performance, such as the total runtime, the performance index

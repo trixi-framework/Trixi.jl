@@ -99,8 +99,8 @@ end
 
 function rhs!(du, u, t,
               mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations,
-              initial_condition, boundary_conditions, source_terms,
-              dg::DG, cache)
+              initial_condition, boundary_conditions, source_terms::Source,
+              dg::DG, cache) where {Source}
   # Reset du
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
@@ -702,7 +702,7 @@ end
 
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, t,
                                           boundary_condition, nonconservative_terms::True, equations,
-                                          surface_integral ,dg::DG, cache,
+                                          surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
   surface_flux, nonconservative_flux = surface_integral.surface_flux
   @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
