@@ -530,7 +530,7 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
     x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
     orientation_x = 1
 
-    # Special care is required for first-order FV approximations since the nodes are the 
+    # Special care is required for first-order FV approximations since the nodes are the
     # cell centers and do not contain the boundaries
     n_nodes = size(unstructured_data, 1)
     if n_nodes == 1
@@ -540,7 +540,7 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
       end
       left_boundary = mesh.tree.center_level_0[1] - mesh.tree.length_level_0 / 2
       dx_2 = zero(left_boundary)
-      for i in 1:(length(x) ÷ 2)
+      for i in 1:div(length(x), 2)
         # Adjust plot nodes so that they are at the boundaries of each element
         dx_2 = x[2 * i - 1] - left_boundary
         x[2 * i - 1] -= dx_2

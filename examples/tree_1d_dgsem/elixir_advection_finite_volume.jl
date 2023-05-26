@@ -8,7 +8,7 @@ using Trixi
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
-# Create DG solver with polynomial degree = 0, i.e., a first order finite volume solver, 
+# Create DG solver with polynomial degree = 0, i.e., a first order finite volume solver,
 # with (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=0, surface_flux=flux_lax_friedrichs)
 
