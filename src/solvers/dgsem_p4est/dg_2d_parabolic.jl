@@ -134,14 +134,14 @@ function calc_gradient!(gradients, u_transformed, t,
     end
   end
 
-  # # Prolong solution to boundaries
-  # @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(
-  #   cache_parabolic, u_transformed, mesh, equations_parabolic, dg.surface_integral, dg)
+  # Prolong solution to boundaries
+  @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(
+    cache_parabolic, u_transformed, mesh, equations_parabolic, dg.surface_integral, dg)
 
-  # # Calculate boundary fluxes
-  # @trixi_timeit timer() "boundary flux" calc_boundary_flux_gradients!(
-  #   cache_parabolic, t, boundary_conditions_parabolic, mesh, equations_parabolic,
-  #   dg.surface_integral, dg)
+  # Calculate boundary fluxes
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux_gradients!(
+    cache_parabolic, t, boundary_conditions_parabolic, mesh, equations_parabolic,
+    dg.surface_integral, dg)
 
   # TODO: parabolic; mortars
 
