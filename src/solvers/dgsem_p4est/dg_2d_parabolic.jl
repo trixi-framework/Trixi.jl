@@ -367,4 +367,42 @@ function calc_interface_flux!(surface_flux_values,
   return nothing
 end
 
-# TODO: parabolic, finish implementing `prolong2boundaries!`, `calc_boundary_flux_gradients!` and `calc_boundary_flux_divergence!`
+# TODO: parabolic, finish implementing `calc_boundary_flux_gradients!` and `calc_boundary_flux_divergence!`
+function prolong2boundaries!(cache_parabolic, flux_viscous,
+                             mesh::P4estMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+                             surface_integral, dg::DG, cache)
+  (; boundaries) = cache_parabolic
+  (; contravariant_vectors) = cache_parabolic.elements
+  index_range = eachnode(dg)
+
+  flux_viscous_x, flux_viscous_y = flux_viscous
+
+  @threaded for boundary in eachboundary(dg, cache_parabolic)
+    # Copy solution data from the element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    element       = boundaries.neighbor_ids[boundary]
+    node_indices  = boundaries.node_indices[boundary]
+
+    i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+    j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+    i_node = i_node_start
+    j_node = j_node_start
+    for i in eachnode(dg)
+      # this is the outward normal direction on the primary element
+      normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
+                        i_node, j_node, primary_element)
+
+      for v in eachvariable(equations_parabolic)
+        flux_viscous = SVector(flux_viscous_x[v, i_primary, j_primary, primary_element], 
+            flux_viscous_y[v, i_primary, j_primary, primary_element])
+
+        boundaries.u[v, i, boundary] = dot(flux_viscous, normal_direction)
+      end
+      i_node += i_node_step
+      j_node += j_node_step
+    end
+  end
+
+  return nothing
+end
