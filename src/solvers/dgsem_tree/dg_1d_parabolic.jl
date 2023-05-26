@@ -73,7 +73,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1}, equations_parabolic::Abstra
     du, u, mesh, equations_parabolic, dg.surface_integral, dg, cache_parabolic)
 
   # Apply Jacobian from mapping to reference element
-  @trixi_timeit timer() "Jacobian" apply_jacobian!(
+  @trixi_timeit timer() "Jacobian" apply_jacobian_parabolic!(
     du, mesh, equations_parabolic, dg, cache_parabolic)
 
   return nothing
@@ -483,7 +483,7 @@ end
 # This is because the parabolic fluxes are assumed to be of the form
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
-function apply_jacobian!(du, mesh::TreeMesh{1},
+function apply_jacobian_parabolic!(du, mesh::TreeMesh{1},
                          equations::AbstractEquationsParabolic, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
