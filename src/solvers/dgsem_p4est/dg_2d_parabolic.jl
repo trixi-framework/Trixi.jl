@@ -317,7 +317,7 @@ function calc_interface_flux!(surface_flux_values,
     # Get element and side index information on the primary element
     primary_element = neighbor_ids[1, interface]
     primary_indices = node_indices[1, interface]
-    primary_direction = indices2direction(primary_indices)
+    primary_direction_index = indices2direction(primary_indices)
 
     # Create the local i,j indexing on the primary element used to pull normal direction information
     i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
@@ -329,7 +329,7 @@ function calc_interface_flux!(surface_flux_values,
     # Get element and side index information on the secondary element
     secondary_element = neighbor_ids[2, interface]
     secondary_indices = node_indices[2, interface]
-    secondary_direction = indices2direction(secondary_indices)
+    secondary_direction_index = indices2direction(secondary_indices)
 
     # Initiate the secondary index to be used in the surface for loop.
     # This index on the primary side will always run forward but
@@ -342,19 +342,18 @@ function calc_interface_flux!(surface_flux_values,
       node_secondary_step = 1
     end
 
-    for i in eachnode(dg)
-            
-      flux_viscous_normal_ll, flux_viscous_normal_rr = 
-        get_surface_node_vars(cache_parabolic.interfaces.u, 
-                              equations_parabolic, dg, i, interface)
+    for node in eachnode(dg)
 
-      # TODO: parabolic; only BR1 at the moment
-      flux = 0.5 * (flux_viscous_normal_ll + flux_viscous_normal_rr)
+      # We prolong the viscous flux dotted with the primary normal to the boundaries. 
+      # Assuming a BR-1 type of flux, we 
+      viscous_flux_normal_ll, viscous_flux_normal_rr = 
+        get_surface_node_vars(cache_parabolic.interfaces.u, equations_parabolic, dg, node, interface)
 
-      # Copy flux to left and right element storage
+      flux = 0.5 * (viscous_flux_normal_ll + viscous_flux_normal_rr)
+
       for v in eachvariable(equations_parabolic)
-        surface_flux_values[v, i, left_direction,  left_id]  = flux[v]
-        surface_flux_values[v, i, right_direction, right_id] = -flux[v]
+        surface_flux_values[v, node, primary_direction_index, primary_element] = flux[v]
+        surface_flux_values[v, node_secondary, secondary_direction_index, secondary_element] = -flux[v]
       end
 
       # Increment primary element indices to pull the normal direction
