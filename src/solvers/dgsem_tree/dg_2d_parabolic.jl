@@ -77,7 +77,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, P4estMesh{2}},
     du, u, mesh, equations_parabolic, dg.surface_integral, dg, cache_parabolic)
 
   # Apply Jacobian from mapping to reference element
-  @trixi_timeit timer() "Jacobian" apply_jacobian!(
+  @trixi_timeit timer() "Jacobian" apply_jacobian_parabolic!(
     du, mesh, equations_parabolic, dg, cache_parabolic)
 
   return nothing
