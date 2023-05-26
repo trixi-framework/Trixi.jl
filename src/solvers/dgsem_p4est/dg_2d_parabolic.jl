@@ -406,3 +406,109 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
 
   return nothing
 end
+
+# function calc_boundary_flux_gradients!(cache, t, boundary_conditions_parabolic::NamedTuple,
+#                                        mesh::P4estMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+#                                        surface_integral, dg::DG)
+#   (; boundaries) = cache
+#   (; node_coordinates, surface_flux_values) = cache.elements
+#   (; boundary_condition_types, boundary_indices = boundary_conditions) = boundary_conditions_parabolic
+#   index_range = eachnode(dg)
+
+#   @threaded for local_index in eachindex(boundary_indexing)
+#     # Use the local index to get the global boundary index from the pre-sorted list
+#     boundary = boundary_indexing[local_index]
+
+#     # Get information on the adjacent element, compute the surface fluxes,
+#     # and store them
+#     element         = boundaries.neighbor_ids[boundary]
+#     node_indices    = boundaries.node_indices[boundary]
+#     direction_index = indices2direction(node_indices)
+
+#     i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+#     j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+#     i_node = i_node_start
+#     j_node = j_node_start
+#     for node in eachnode(dg)
+#       # Extract solution data from boundary container
+#       u_inner = get_node_vars(boundaries.u, equations_parabolic, dg, node, boundary)
+
+#       # Outward-pointing normal direction (not normalized)
+#       normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+#                                               i_node, j_node, element)
+
+#       # TODO: revisit if we want more general boundary treatments.
+#       # This assumes the gradient numerical flux at the boundary is the gradient variable,
+#       # which is consistent with BR1, LDG.
+#       flux_inner = u_inner
+
+#       # Coordinates at boundary node
+#       x = get_node_coords(node_coordinates, equations_parabolic, dg, i_node, j_node, element)
+
+#       flux_ = boundary_condition(flux_inner, u_inner, normal_direction, 
+#                                  x, t, Gradient(), equations_parabolic)
+
+#       # Copy flux to element storage in the correct orientation
+#       for v in eachvariable(equations_parabolic)
+#         surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+#       end
+
+#       i_node += i_node_step
+#       j_node += j_node_step
+#     end
+#   end
+# end
+
+# function calc_boundary_flux_divergence!(cache, t, boundary_conditions_parabolic::NamedTuple,
+#                                         mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+#                                         surface_integral, dg::DG)
+#   (; boundaries) = cache
+#   (; node_coordinates, surface_flux_values) = cache.elements
+#   index_range = eachnode(dg)
+
+#   @threaded for local_index in eachindex(boundary_indexing)
+#     # Use the local index to get the global boundary index from the pre-sorted list
+#     boundary = boundary_indexing[local_index]
+
+#     # Get information on the adjacent element, compute the surface fluxes,
+#     # and store them
+#     element         = boundaries.neighbor_ids[boundary]
+#     node_indices    = boundaries.node_indices[boundary]
+#     direction_index = indices2direction(node_indices)
+
+#     i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+#     j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+#     i_node = i_node_start
+#     j_node = j_node_start
+#     for node in eachnode(dg)
+#       # Extract solution data from boundary container
+#       flux_inner = get_node_vars(boundaries.u, equations_parabolic, dg, node, boundary)
+
+#       # Outward-pointing normal direction (not normalized)
+#       normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+#                                               i_node, j_node, element)
+
+#       # Coordinates at boundary node
+#       x = get_node_coords(node_coordinates, equations_parabolic, dg, i_node, j_node, element)
+
+#       # TODO: add a field in `cache.boundaries` for gradient information.
+#       # Here, we pass in `u_inner = nothing` since we overwrite cache.boundaries.u with gradient information.
+#       # This currently works with Dirichlet/Neuman boundary conditions for LaplaceDiffusion2D and
+#       # NoSlipWall/Adiabatic boundary conditions for CompressibleNavierStokesDiffusion2D as of 2022-6-27.
+#       # It will not work with implementations which utilize `u_inner` to impose boundary conditions.
+#       flux_ = boundary_condition(flux_inner, nothing, normal_direction,
+#                                  x, t, Divergence(), equations_parabolic)
+
+
+#       # Copy flux to element storage in the correct orientation
+#       for v in eachvariable(equations_parabolic)
+#         surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+#       end
+
+#       i_node += i_node_step
+#       j_node += j_node_step
+#     end
+#   end                                        
+# end
