@@ -171,7 +171,8 @@ end
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
                                                                   normal_direction::AbstractVector,
                                                                   x, t,
-                                                                  surface_flux_function, equations)
+                                                                  surface_flux_function,
+                                                                  equations)
   # get the external value of the solution
   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
@@ -261,6 +262,9 @@ function prim2cons end
 
 Return the chosen entropy of the conserved variables `u` for a given set of
 `equations`.
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
 """
 function entropy end
 
@@ -269,6 +273,7 @@ function entropy end
 
 Convert the conserved variables `u` to the entropy variables for a given set of
 `equations` with chosen standard [`entropy`](@ref).
+
 `u` is a vector type of the correct length `nvariables(equations)`.
 Notice the function doesn't include any error checks for the purpose of efficiency,
 so please make sure your input is correct.
@@ -287,6 +292,39 @@ so please make sure your input is correct.
 The inverse conversion is performed by [`cons2entropy`](@ref).
 """
 function entropy2cons end
+
+"""
+    energy_total(u, equations)
+
+Return the total energy of the conserved variables `u` for a given set of
+`equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function energy_total end
+
+"""
+    energy_kinetic(u, equations)
+
+Return the kinetic energy of the conserved variables `u` for a given set of
+`equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function energy_kinetic end
+
+"""
+    energy_internal(u, equations)
+
+Return the internal energy of the conserved variables `u` for a given set of
+`equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function energy_internal end
 
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
@@ -328,7 +366,7 @@ include("compressible_euler_multicomponent_2d.jl")
     eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractCompressibleEulerMulticomponentEquations`. 
+for the components in `AbstractCompressibleEulerMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations) = Base.OneTo(ncomponents(equations))
@@ -350,7 +388,7 @@ include("ideal_glm_mhd_multicomponent_2d.jl")
     eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractIdealGlmMhdMulticomponentEquations`. 
+for the components in `AbstractIdealGlmMhdMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations) = Base.OneTo(ncomponents(equations))

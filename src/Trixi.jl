@@ -25,6 +25,10 @@ using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, dropt
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
+# MPI needs to be imported before HDF5 to be able to use parallel HDF5
+# as long as HDF5.jl uses Requires.jl to enable parallel HDF5 with MPI
+using MPI: MPI
+
 using SciMLBase: CallbackSet, DiscreteCallback,
                  ODEProblem, ODESolution, ODEFunction,
                  SplitODEProblem
@@ -38,12 +42,11 @@ using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
-using HDF5: h5open, attributes
+using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using StaticArrayInterface: static_length # used by LoopVectorization
-using MPI: MPI
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
@@ -237,7 +240,7 @@ export ode_norm, ode_unstable_check
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
-export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
+export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 
 export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
 
@@ -272,15 +275,17 @@ function __init__()
   #       https://github.com/JuliaLang/julia/issues/32552
   #       https://github.com/JuliaLang/julia/issues/41740
   # See also https://discourse.julialang.org/t/performance-depends-dramatically-on-compilation-order/58425
-  let
-    for T in (Float32, Float64)
-      u_mortars_2d = zeros(T, 2, 2, 2, 2, 2)
-      u_view_2d = view(u_mortars_2d, 1, :, 1, :, 1)
-      LoopVectorization.axes(u_view_2d)
+  if VERSION < v"1.9.0"
+    let
+      for T in (Float32, Float64)
+        u_mortars_2d = zeros(T, 2, 2, 2, 2, 2)
+        u_view_2d = view(u_mortars_2d, 1, :, 1, :, 1)
+        LoopVectorization.axes(u_view_2d)
 
-      u_mortars_3d = zeros(T, 2, 2, 2, 2, 2, 2)
-      u_view_3d = view(u_mortars_3d, 1, :, 1, :, :, 1)
-      LoopVectorization.axes(u_view_3d)
+        u_mortars_3d = zeros(T, 2, 2, 2, 2, 2, 2)
+        u_view_3d = view(u_mortars_3d, 1, :, 1, :, :, 1)
+        LoopVectorization.axes(u_view_3d)
+      end
     end
   end
 end

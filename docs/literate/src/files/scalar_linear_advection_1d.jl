@@ -44,10 +44,11 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 # ```
 # Here, $J$ is the Jacobian determinant of the transformation.
 
-# Using this transformation, we can transform our equation for all elements $Q_l$.
+# Using this transformation, we can transform our equation for each element $Q_l$.
 # ```math
 # \frac{dx}{2} u_t^{Q_l} + u_\xi^{Q_l} = 0 \text{, for }t\in\mathbb{R}^+,\; \xi\in[-1, 1]
 # ```
+# Here, $u_t^{Q_l}$ and $u_\xi^{Q_l}$ denote the time and spatial derivatives of the solution on the element $Q_l$.
 
 
 # ### ii. Polynomial approach
