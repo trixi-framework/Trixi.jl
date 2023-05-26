@@ -235,7 +235,7 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::P4estMesh{2}, equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG, cache)
   (; interfaces) = cache_parabolic
-  (; contravariant_vectors) = cache_parabolic.elements
+  (; contravariant_vectors) = cache_parabolic.elements 
   index_range = eachnode(dg)
   flux_viscous_x, flux_viscous_y = flux_viscous
 
@@ -344,8 +344,8 @@ function calc_interface_flux!(surface_flux_values,
 
     for node in eachnode(dg)
 
-      # We prolong the viscous flux dotted with the primary normal to the boundaries. 
-      # Assuming a BR-1 type of flux, we 
+      # We prolong the viscous flux dotted with respect the outward normal on the 
+      # primary element. We assume a BR-1 type of flux.
       viscous_flux_normal_ll, viscous_flux_normal_rr = 
         get_surface_node_vars(cache_parabolic.interfaces.u, equations_parabolic, dg, node, interface)
 
@@ -366,3 +366,5 @@ function calc_interface_flux!(surface_flux_values,
 
   return nothing
 end
+
+# TODO: parabolic, finish implementing `prolong2boundaries!`, `calc_boundary_flux_gradients!` and `calc_boundary_flux_divergence!`
