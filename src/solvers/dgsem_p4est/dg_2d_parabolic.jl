@@ -246,6 +246,7 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
     # will always run forwards.
     primary_element = interfaces.neighbor_ids[1, interface]
     primary_indices = interfaces.node_indices[1, interface]
+    primary_direction = indices2direction(primary_indices)
 
     i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
     j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
@@ -253,9 +254,17 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
     i_primary = i_primary_start
     j_primary = j_primary_start
     for i in eachnode(dg)
+
+      # this is the outward normal direction on the primary element
+      normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
+                                              i_primary, j_primary, primary_element)
+
       for v in eachvariable(equations_parabolic)
         # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
-        interfaces.u[1, v, i, interface] = flux_viscous_x[v, i_primary, j_primary, primary_element]
+        flux_viscous = SVector(flux_viscous_x[v, i_primary, j_primary, primary_element], 
+                               flux_viscous_y[v, i_primary, j_primary, primary_element])
+
+        interfaces.u[1, v, i, interface] = dot(flux_viscous, normal_direction)
       end
       i_primary += i_primary_step
       j_primary += j_primary_step
@@ -265,6 +274,7 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
     # a start value and a step size to get the correct face and orientation.
     secondary_element = interfaces.neighbor_ids[2, interface]
     secondary_indices = interfaces.node_indices[2, interface]
+    secondary_direction = indices2direction(secondary_indices)
 
     i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1], index_range)
     j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2], index_range)
@@ -272,9 +282,18 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
     i_secondary = i_secondary_start
     j_secondary = j_secondary_start
     for i in eachnode(dg)
+      # This is the outward normal direction on the secondary element.
+      # Here, we assume that normal_direction on the secondary element is 
+      # the negative of normal_direction on the primary element.  
+      normal_direction = get_normal_direction(secondary_direction, contravariant_vectors,
+                                              i_secondary, j_secondary, secondary_element)
+
       for v in eachvariable(equations_parabolic)
         # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
-        interfaces.u[2, v, i, interface] = flux_viscous_y[v, i_secondary, j_secondary, secondary_element]
+        flux_viscous = SVector(flux_viscous_x[v, i_secondary, j_secondary, secondary_element], 
+                               flux_viscous_y[v, i_secondary, j_secondary, secondary_element])
+        # store the normal flux with respect to the primary normal direction
+        interfaces.u[2, v, i, interface] = -dot(flux_viscous, normal_direction)
       end
       i_secondary += i_secondary_step
       j_secondary += j_secondary_step
@@ -323,14 +342,20 @@ function calc_interface_flux!(surface_flux_values,
       node_secondary_step = 1
     end
 
-    for node in eachnode(dg)
-      # Get the normal direction on the primary element.
-      # Contravariant vectors at interfaces in negative coordinate direction
-      # are pointing inwards. This is handled by `get_normal_direction`.
-      normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
-                                              i_primary, j_primary, primary_element)
+    for i in eachnode(dg)
+            
+      flux_viscous_normal_ll, flux_viscous_normal_rr = 
+        get_surface_node_vars(cache_parabolic.interfaces.u, 
+                              equations_parabolic, dg, i, interface)
 
-      
+      # TODO: parabolic; only BR1 at the moment
+      flux = 0.5 * (flux_viscous_normal_ll + flux_viscous_normal_rr)
+
+      # Copy flux to left and right element storage
+      for v in eachvariable(equations_parabolic)
+        surface_flux_values[v, i, left_direction,  left_id]  = flux[v]
+        surface_flux_values[v, i, right_direction, right_id] = -flux[v]
+      end
 
       # Increment primary element indices to pull the normal direction
       i_primary += i_primary_step
