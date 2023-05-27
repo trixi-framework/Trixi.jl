@@ -117,7 +117,7 @@ function calc_gradient!(gradients, u_transformed, t,
 
       for node in eachnode(dg)
         u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
-                                          equations_parabolic, dg, node, interface)                                              
+                                           equations_parabolic, dg, node, interface)                                              
         flux = 0.5 * (u_ll + u_rr)
 
         for v in eachvariable(equations_parabolic)
