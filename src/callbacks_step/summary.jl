@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   summary_callback(integrator) = false # when used as condition; never call the summary callback during the simulation
   summary_callback(u, t, integrator) = u_modified!(integrator, false) # the summary callback does nothing when called accidentally
 

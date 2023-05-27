@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   @inline num_faces(elem::Tri) = 3
   @inline num_faces(elem::Quad) = 4
 

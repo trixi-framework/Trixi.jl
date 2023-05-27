@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
 
   # This method is called when a SemidiscretizationHyperbolic is constructed.
   # It constructs the basic `cache` used throughout the simulation to compute

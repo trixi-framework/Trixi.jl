@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
 
   # Initialize data structures in element container
   function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasis)

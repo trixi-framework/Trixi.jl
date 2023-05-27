@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
 
   # The methods below are specialized on the mortar type
   # and called from the basic `create_cache` method at the top.

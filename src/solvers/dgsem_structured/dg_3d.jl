@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   function rhs!(du, u, t,
                 mesh::StructuredMesh{3}, equations,
                 initial_condition, boundary_conditions, source_terms,

@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
 
   # Calculate the vorticity on a single node using the derivative matrix from the polynomial basis of
   # a DGSEM solver. `u` is the solution on the whole domain.

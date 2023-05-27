@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   """
       SteadyStateCallback(; abstol=1.0e-8, reltol=1.0e-6)
 

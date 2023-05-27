@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   struct ElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIMSP1, NDIMSP2, NDIMSP3}
     # Physical coordinates at each node
     node_coordinates::Array{RealT, NDIMSP2}   # [orientation, node_i, node_j, node_k, element]

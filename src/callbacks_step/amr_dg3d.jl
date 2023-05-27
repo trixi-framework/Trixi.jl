@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
 
   # Refine elements in the DG solver based on a list of cell_ids that should be refined
   function refine!(u_ode::AbstractVector, adaptor,

@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   @inline function get_one_sided_surface_node_vars(u, equations, solver::DG, j, indices...)
     # There is a cut-off at `n == 10` inside of the method
     # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17

@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   function calc_error_norms(func, u, t, analyzer,
                             mesh::ParallelP4estMesh{3}, equations,
                             initial_condition, dg::DGSEM, cache, cache_analysis)

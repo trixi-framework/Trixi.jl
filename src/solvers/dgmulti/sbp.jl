@@ -1,4 +1,3 @@
-
 """
     DGMulti(approximation_type::AbstractDerivativeOperator;
             element_type::AbstractElemShape,
@@ -447,6 +446,8 @@ end
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
 
   # This is used in `estimate_dt`. `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`.
   # However, since we do not initialize `Jf` for periodic FDSBP operators, we specialize `estimate_h`

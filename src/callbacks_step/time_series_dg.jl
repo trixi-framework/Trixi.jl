@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
 
 # Store time series file for a TreeMesh with a DG solver
 function save_time_series_file(time_series_callback, mesh::TreeMesh, equations, dg::DG)

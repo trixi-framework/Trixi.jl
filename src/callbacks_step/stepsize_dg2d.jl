@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   function max_dt(u, t, mesh::TreeMesh{2},
                   constant_speed::False, equations, dg::DG, cache)
     # to avoid a division by zero if the speed vanishes everywhere,

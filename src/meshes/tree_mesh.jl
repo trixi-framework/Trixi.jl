@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   include("abstract_tree.jl")
   include("serial_tree.jl")
   include("parallel_tree.jl")

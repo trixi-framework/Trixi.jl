@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   @doc raw"""
       LinearizedEulerEquations2D(v_mean_global, c_mean_global, rho_mean_global)
 

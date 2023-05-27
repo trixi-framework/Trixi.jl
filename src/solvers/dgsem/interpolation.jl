@@ -1,4 +1,3 @@
-
 # Naive implementations of multiply_dimensionwise used to demonstrate the functionality
 # without performance optimizations and for testing correctness of the optimized versions
 # implemented below.

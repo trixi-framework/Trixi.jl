@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
 
   # Creates cache for time series callback
   function create_cache_time_series(point_coordinates, mesh::TreeMesh{2}, dg, cache)

@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   function prolong2mpiinterfaces!(cache, u,
                                   mesh::ParallelP4estMesh{2},
                                   equations, surface_integral, dg::DG)

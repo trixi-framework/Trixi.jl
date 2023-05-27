@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
 
   # Abstract base type for time integration schemes of storage class `2N`
   abstract type SimpleAlgorithm2N end

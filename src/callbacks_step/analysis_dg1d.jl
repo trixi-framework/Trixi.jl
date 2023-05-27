@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   function create_cache_analysis(analyzer, mesh::TreeMesh{1},
                                  equations, dg::DG, cache,
                                  RealT, uEltype)

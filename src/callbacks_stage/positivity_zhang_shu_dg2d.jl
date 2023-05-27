@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
 
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{2}, equations, dg::DGSEM, cache)

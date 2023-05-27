@@ -3,6 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
   @doc raw"""
       LatticeBoltzmannEquations3D(; Ma, Re, collision_op=collision_bgk,
                                  c=1, L=1, rho0=1, u0=nothing, nu=nothing)

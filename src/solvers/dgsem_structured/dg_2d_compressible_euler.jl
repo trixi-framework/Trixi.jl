@@ -1,4 +1,3 @@
-
 # From here on, this file contains specializations of DG methods on the
 # curved 3D meshes `StructuredMesh{3}, P4estMesh{3}` to the compressible
 # Euler equations.

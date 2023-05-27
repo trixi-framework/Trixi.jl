@@ -1,4 +1,3 @@
-
 # ========= GaussSBP approximation types ============
 # Note: we define type aliases outside of the @muladd block to avoid Revise breaking when code
 # inside the @muladd block is edited. See https://github.com/trixi-framework/Trixi.jl/issues/801
@@ -128,6 +127,8 @@ end
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
 
   # Interpolates values from volume Gauss nodes to face nodes on one element.
   @inline function tensor_product_gauss_face_operator!(out::AbstractVector,

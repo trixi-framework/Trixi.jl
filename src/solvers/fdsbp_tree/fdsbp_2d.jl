@@ -6,6 +6,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
+
 
   # 2D caches
   function create_cache(mesh::TreeMesh{2}, equations,

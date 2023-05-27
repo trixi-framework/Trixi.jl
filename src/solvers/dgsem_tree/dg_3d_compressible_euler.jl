@@ -1,4 +1,3 @@
-
 # From here on, this file contains specializations of DG methods on the
 # TreeMesh3D to the compressible Euler equations.
 #
