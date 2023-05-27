@@ -5,7 +5,6 @@
 @muladd begin
 #! format: noindent
 
-
 # Redistribute data for load balancing after partitioning the mesh
 function rebalance_solver!(u_ode::AbstractVector, mesh::ParallelP4estMesh, equations,
                            dg::DGSEM, cache, old_global_first_quadrant)

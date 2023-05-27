@@ -5,7 +5,6 @@
 @muladd begin
 #! format: noindent
 
-
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{3}, equations, dg::DGSEM, cache)
   @unpack weights = dg.basis

@@ -5,7 +5,6 @@
 @muladd begin
 #! format: noindent
 
-
 function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics, vorticity_mean,
                                 coupled_element_ids, mesh,
                                 equations::AbstractCompressibleEulerEquations{2}, dg::DGSEM,

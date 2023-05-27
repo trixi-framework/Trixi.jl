@@ -5,7 +5,6 @@
 @muladd begin
 #! format: noindent
 
-
 function apply_collision!(u, dt, collision_op,
                           mesh::AbstractMesh{3}, equations, dg::DG, cache)
   @threaded for element in eachelement(dg, cache)

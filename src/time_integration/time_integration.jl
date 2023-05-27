@@ -5,15 +5,14 @@
 @muladd begin
 #! format: noindent
 
+# Wrapper type for solutions from Trixi.jl's own time integrators, partially mimicking
+# SciMLBase.ODESolution
+struct TimeIntegratorSolution{tType, uType, P}
+  t::tType
+  u::uType
+  prob::P
+end
 
-  # Wrapper type for solutions from Trixi.jl's own time integrators, partially mimicking
-  # SciMLBase.ODESolution
-  struct TimeIntegratorSolution{tType, uType, P}
-    t::tType
-    u::uType
-    prob::P
-  end
-
-  include("methods_2N.jl")
-  include("methods_3Sstar.jl")
+include("methods_2N.jl")
+include("methods_3Sstar.jl")
 end # @muladd

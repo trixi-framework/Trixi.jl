@@ -5,7 +5,6 @@
 @muladd begin
 #! format: noindent
 
-
 function (steady_state_callback::SteadyStateCallback)(du, u, mesh::AbstractMesh{3},
                                                       equations, dg::DG, cache)
   @unpack abstol, reltol = steady_state_callback

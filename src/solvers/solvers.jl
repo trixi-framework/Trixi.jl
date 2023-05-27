@@ -5,10 +5,9 @@
 @muladd begin
 #! format: noindent
 
+# define types for parabolic solvers
+include("solvers_parabolic.jl")
 
-  # define types for parabolic solvers
-  include("solvers_parabolic.jl")
-
-  include("dg.jl")
-  include("dgmulti.jl")
+include("dg.jl")
+include("dgmulti.jl")
 end # @muladd

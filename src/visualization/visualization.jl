@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-  include("types.jl")
-  include("utilities.jl")
-  include("recipes_plots.jl")
+include("types.jl")
+include("utilities.jl")
+include("recipes_plots.jl")
 end # @muladd

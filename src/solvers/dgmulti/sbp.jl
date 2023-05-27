@@ -448,130 +448,129 @@ end
 @muladd begin
 #! format: noindent
 
+# This is used in `estimate_dt`. `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`.
+# However, since we do not initialize `Jf` for periodic FDSBP operators, we specialize `estimate_h`
+# based on the reference grid provided by SummationByPartsOperators.jl and information about the domain size
+# provided by `md::MeshData``.
+function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType},
+                              md::MeshData) where {NDIMS,
+                                                   ElementType <:
+                                                   StartUpDG.AbstractElemShape,
+                                                   ApproximationType <:
+                                                   SummationByPartsOperators.AbstractPeriodicDerivativeOperator
+                                                   }
+  D = rd.approximation_type
+  x = grid(D)
 
-  # This is used in `estimate_dt`. `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`.
-  # However, since we do not initialize `Jf` for periodic FDSBP operators, we specialize `estimate_h`
-  # based on the reference grid provided by SummationByPartsOperators.jl and information about the domain size
-  # provided by `md::MeshData``.
-  function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType},
-                                md::MeshData) where {NDIMS,
-                                                     ElementType <:
-                                                     StartUpDG.AbstractElemShape,
-                                                     ApproximationType <:
-                                                     SummationByPartsOperators.AbstractPeriodicDerivativeOperator
-                                                     }
-    D = rd.approximation_type
-    x = grid(D)
+  # we assume all SummationByPartsOperators.jl reference grids are rescaled to [-1, 1]
+  xmin = SummationByPartsOperators.xmin(D)
+  xmax = SummationByPartsOperators.xmax(D)
+  factor = 2 / (xmax - xmin)
 
-    # we assume all SummationByPartsOperators.jl reference grids are rescaled to [-1, 1]
-    xmin = SummationByPartsOperators.xmin(D)
-    xmax = SummationByPartsOperators.xmax(D)
-    factor = 2 / (xmax - xmin)
+  # If the domain has size L^NDIMS, then `minimum(md.J)^(1 / NDIMS) = L`.
+  # WARNING: this is not a good estimate on anisotropic grids.
+  return minimum(diff(x)) * factor * minimum(md.J)^(1 / NDIMS)
+end
 
-    # If the domain has size L^NDIMS, then `minimum(md.J)^(1 / NDIMS) = L`.
-    # WARNING: this is not a good estimate on anisotropic grids.
-    return minimum(diff(x)) * factor * minimum(md.J)^(1 / NDIMS)
-  end
+# specialized for DGMultiPeriodicFDSBP since there are no face nodes
+# and thus no inverse trace constant for periodic domains.
+function estimate_dt(mesh::DGMultiMesh, dg::DGMultiPeriodicFDSBP)
+  rd = dg.basis # RefElemData
+  return StartUpDG.estimate_h(rd, mesh.md)
+end
 
-  # specialized for DGMultiPeriodicFDSBP since there are no face nodes
-  # and thus no inverse trace constant for periodic domains.
-  function estimate_dt(mesh::DGMultiMesh, dg::DGMultiPeriodicFDSBP)
-    rd = dg.basis # RefElemData
-    return StartUpDG.estimate_h(rd, mesh.md)
-  end
+# do nothing for interface terms if using a periodic operator
+# We pass the `surface_integral` argument solely for dispatch
+function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
+                             surface_integral, dg::DGMultiPeriodicFDSBP)
+  @assert nelements(mesh, dg, cache) == 1
+  nothing
+end
 
-  # do nothing for interface terms if using a periodic operator
-  # We pass the `surface_integral` argument solely for dispatch
-  function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
-                               surface_integral, dg::DGMultiPeriodicFDSBP)
-    @assert nelements(mesh, dg, cache) == 1
-    nothing
-  end
+function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
+                              mesh::DGMultiMesh,
+                              have_nonconservative_terms::False, equations,
+                              dg::DGMultiPeriodicFDSBP)
+  @assert nelements(mesh, dg, cache) == 1
+  nothing
+end
 
-  function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::DGMultiMesh,
-                                have_nonconservative_terms::False, equations,
-                                dg::DGMultiPeriodicFDSBP)
-    @assert nelements(mesh, dg, cache) == 1
-    nothing
-  end
+function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
+                                mesh::DGMultiMesh, equations,
+                                dg::DGMultiPeriodicFDSBP, cache)
+  @assert nelements(mesh, dg, cache) == 1
+  nothing
+end
 
-  function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                  mesh::DGMultiMesh, equations,
-                                  dg::DGMultiPeriodicFDSBP, cache)
-    @assert nelements(mesh, dg, cache) == 1
-    nothing
-  end
+function create_cache(mesh::DGMultiMesh, equations,
+                      dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
+  md = mesh.md
 
-  function create_cache(mesh::DGMultiMesh, equations,
-                        dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
-    md = mesh.md
+  # storage for volume quadrature values, face quadrature values, flux values
+  nvars = nvariables(equations)
+  u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
+  return (; u_values, invJ = inv.(md.J))
+end
 
-    # storage for volume quadrature values, face quadrature values, flux values
-    nvars = nvariables(equations)
-    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-    return (; u_values, invJ = inv.(md.J))
-  end
+# Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
+                               have_nonconservative_terms::False, equations,
+                               volume_integral::VolumeIntegralFluxDifferencing,
+                               dg::DGMultiFluxDiffPeriodicFDSBP, cache)
+  @unpack volume_flux = volume_integral
 
-  # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
-  function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                                 have_nonconservative_terms::False, equations,
-                                 volume_integral::VolumeIntegralFluxDifferencing,
-                                 dg::DGMultiFluxDiffPeriodicFDSBP, cache)
-    @unpack volume_flux = volume_integral
+  # We expect speedup over the serial version only when using two or more threads
+  # since the threaded version below does not exploit the symmetry properties,
+  # resulting in a performance penalty of 1/2
+  if Threads.nthreads() > 1
+    for dim in eachdim(mesh)
+      normal_direction = get_contravariant_vector(1, dim, mesh, cache)
 
-    # We expect speedup over the serial version only when using two or more threads
-    # since the threaded version below does not exploit the symmetry properties,
-    # resulting in a performance penalty of 1/2
-    if Threads.nthreads() > 1
-      for dim in eachdim(mesh)
-        normal_direction = get_contravariant_vector(1, dim, mesh, cache)
+      # These are strong-form operators of the form `D = M \ Q` where `M` is diagonal
+      # and `Q` is skew-symmetric. Since `M` is diagonal, `inv(M)` scales the rows of `Q`.
+      # Then, `1 / M[i,i] * ∑_j Q[i,j] * volume_flux(u[i], u[j])` is equivalent to
+      #       `= ∑_j (1 / M[i,i] * Q[i,j]) * volume_flux(u[i], u[j])`
+      #       `= ∑_j        D[i,j]         * volume_flux(u[i], u[j])`
+      # TODO: DGMulti.
+      # This would have to be changed if `has_nonconservative_terms = False()`
+      # because then `volume_flux` is non-symmetric.
+      A = dg.basis.Drst[dim]
 
-        # These are strong-form operators of the form `D = M \ Q` where `M` is diagonal
-        # and `Q` is skew-symmetric. Since `M` is diagonal, `inv(M)` scales the rows of `Q`.
-        # Then, `1 / M[i,i] * ∑_j Q[i,j] * volume_flux(u[i], u[j])` is equivalent to
-        #       `= ∑_j (1 / M[i,i] * Q[i,j]) * volume_flux(u[i], u[j])`
-        #       `= ∑_j        D[i,j]         * volume_flux(u[i], u[j])`
-        # TODO: DGMulti.
-        # This would have to be changed if `has_nonconservative_terms = False()`
-        # because then `volume_flux` is non-symmetric.
-        A = dg.basis.Drst[dim]
+      A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
+      row_ids = axes(A, 2)
+      rows = rowvals(A_base)
+      vals = nonzeros(A_base)
 
-        A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
-        row_ids = axes(A, 2)
-        rows = rowvals(A_base)
-        vals = nonzeros(A_base)
-
-        @threaded for i in row_ids
-          u_i = u[i]
-          du_i = du[i]
-          for id in nzrange(A_base, i)
-            j = rows[id]
-            u_j = u[j]
-            A_ij = vals[id]
-            AF_ij = 2 * A_ij * volume_flux(u_i, u_j, normal_direction, equations)
-            du_i = du_i + AF_ij
-          end
-          du[i] = du_i
+      @threaded for i in row_ids
+        u_i = u[i]
+        du_i = du[i]
+        for id in nzrange(A_base, i)
+          j = rows[id]
+          u_j = u[j]
+          A_ij = vals[id]
+          AF_ij = 2 * A_ij * volume_flux(u_i, u_j, normal_direction, equations)
+          du_i = du_i + AF_ij
         end
-      end
-
-    else # if using two threads or fewer
-
-      # Calls `hadamard_sum!``, which uses symmetry to reduce flux evaluations. Symmetry
-      # is expected to yield about a 2x speedup, so we default to the symmetry-exploiting
-      # volume integral unless we have >2 threads (which should yield >2 speedup).
-      for dim in eachdim(mesh)
-        normal_direction = get_contravariant_vector(1, dim, mesh, cache)
-
-        A = dg.basis.Drst[dim]
-
-        # since has_nonconservative_terms::False,
-        # the volume flux is symmetric.
-        flux_is_symmetric = True()
-        hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
-                      normal_direction, u, equations)
+        du[i] = du_i
       end
     end
+
+  else # if using two threads or fewer
+
+    # Calls `hadamard_sum!``, which uses symmetry to reduce flux evaluations. Symmetry
+    # is expected to yield about a 2x speedup, so we default to the symmetry-exploiting
+    # volume integral unless we have >2 threads (which should yield >2 speedup).
+    for dim in eachdim(mesh)
+      normal_direction = get_contravariant_vector(1, dim, mesh, cache)
+
+      A = dg.basis.Drst[dim]
+
+      # since has_nonconservative_terms::False,
+      # the volume flux is symmetric.
+      flux_is_symmetric = True()
+      hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
+                    normal_direction, u, equations)
+    end
   end
+end
 end # @muladd

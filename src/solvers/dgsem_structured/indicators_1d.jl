@@ -5,7 +5,6 @@
 @muladd begin
 #! format: noindent
 
-
 function apply_smoothing!(mesh::StructuredMesh{1}, alpha, alpha_tmp, dg, cache)
   # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
   # Copy alpha values such that smoothing is indpedenent of the element access order
