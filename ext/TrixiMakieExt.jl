@@ -4,7 +4,7 @@ module TrixiMakieExt
 # Required for visualization code
 using Makie: Makie, GeometryBasics
 
-# Use all exported symbols to avoid having to rewrite `recipies_makie.jl`
+# Use all exported symbols to avoid having to rewrite `recipes_makie.jl`
 using Trixi
 
 # Use additional symbols that are not exported
