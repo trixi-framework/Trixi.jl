@@ -144,6 +144,7 @@ function calc_gradient!(gradients, u_transformed, t,
     dg.surface_integral, dg)
 
   # TODO: parabolic; mortars
+  @assert nmortars(dg, cache) == 0
 
   # Calculate surface integrals
   @trixi_timeit timer() "surface integral" begin
