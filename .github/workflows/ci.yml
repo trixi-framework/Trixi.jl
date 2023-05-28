@@ -95,11 +95,15 @@ jobs:
             arch: x64
             trixi_test: threaded
           - version: '1.8'
-            os: 2core-8gib
+            os: 4core-8gib
             arch: x64
             trixi_test: mpi
           - version: '1.8'
-            os: 4core-16gib
+            os: 8core-16gib
+            arch: x64
+            trixi_test: mpi
+          - version: '1.8'
+            os: 16core-32gib
             arch: x64
             trixi_test: mpi
     steps:
