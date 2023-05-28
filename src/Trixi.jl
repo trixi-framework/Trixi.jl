@@ -271,9 +271,7 @@ function __init__()
   # the main environment
   @static if !(VERSION >= v"1.9.1")
     @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
-      include("visualization/recipes_makie.jl")
-      using .Makie: Makie, GeometryBasics
-      export iplot, iplot! # interactive plot
+      include("../ext/TrixiMakieExt.jl")
     end
   end
 
