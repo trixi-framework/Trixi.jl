@@ -248,7 +248,10 @@ export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
 
 # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-@static if VERSION >= v"1.10.0-DEV.1288" || VERSION >= v"1.9.1"
+# We do not check `isdefined(Base, :get_extension)` since Julia v1.9.0
+# does not load package extensions when their dependency is loaded from
+# the main environment
+@static if VERSION >= v"1.9.1"
   export iplot, iplot!
 end
 
@@ -263,7 +266,10 @@ function __init__()
   end
 
   # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-  @static if VERSION < v"1.10.0-DEV.1288" && VERSION < v"1.9.1"
+  # We do not check `isdefined(Base, :get_extension)` since Julia v1.9.0
+  # does not load package extensions when their dependency is loaded from
+  # the main environment
+  @static if !(VERSION >= v"1.9.1")
     @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
       include("visualization/recipes_makie.jl")
       using .Makie: Makie, GeometryBasics
