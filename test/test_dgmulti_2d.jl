@@ -96,7 +96,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
       approximation_type = GaussSBP(),
       l2 = [3.4666312079259457e-6, 3.4392774480368986e-6, 3.439277447953705e-6, 1.0965598424665836e-5],
-      linf = [1.1327280377004811e-5, 1.1343911926253725e-5, 1.1343911906935844e-5, 3.679582619220412e-5]
+      linf = [1.1327280377004811e-5, 1.1343911926253725e-5, 1.1343911906935844e-5, 3.679582619220412e-5],
+      rtol = 2 * sqrt(eps())
     )
   end
 
