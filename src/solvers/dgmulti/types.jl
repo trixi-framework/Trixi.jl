@@ -12,10 +12,10 @@ const DGMultiWeakForm{ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralWeakForm} where {NDIMS}
 
 const DGMultiFluxDiff{ApproxType, ElemType} =
-  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS}
+  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:Union{VolumeIntegralFluxDifferencing, VolumeIntegralShockCapturingHG}} where {NDIMS}
 
 const DGMultiFluxDiffSBP{ApproxType, ElemType} =
-  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS, ApproxType<:Union{SBP, AbstractDerivativeOperator}}
+  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:Union{VolumeIntegralFluxDifferencing, VolumeIntegralShockCapturingHG}} where {NDIMS, ApproxType<:Union{SBP, AbstractDerivativeOperator}}
 
 const DGMultiSBP{ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:Union{SBP, AbstractDerivativeOperator}, SurfaceIntegral, VolumeIntegral}
@@ -77,6 +77,22 @@ function DGMulti(element_type::AbstractElemShape,
   rd = RefElemData(element_type, approximation_type, polydeg; kwargs...)
   return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
 end
+
+DGMulti(basis::RefElemData; volume_integral, surface_integral) =
+  DG(basis, nothing #= mortar =#, surface_integral, volume_integral)
+
+"""
+    DGMultiBasis(element_type, polydeg; approximation_type = Polynomial(), kwargs...)
+
+Constructs a basis for DGMulti solvers. Returns a "StartUpDG.RefElemData" object.
+  The `kwargs` arguments are additional keyword arguments for `RefElemData`, such as `quad_rule_vol`.
+  These are the same as the `RefElemData_kwargs` used in [`DGMulti`](@ref).
+  For more info, see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/).
+
+"""
+DGMultiBasis(element_type, polydeg; approximation_type = Polynomial(), kwargs...) =
+  RefElemData(element_type, approximation_type, polydeg; kwargs...)
+
 
 ########################################
 #            DGMultiMesh
@@ -287,7 +303,10 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
     tmp_storage[i] = x_in[i]
   end
   x = reshape(tmp_storage, n, n)
-  b = reshape(b_in, n, n)
+  # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
+  # Thus, Base.ReshapedArray should be used if you are setting values in the array.
+  # `reshape` is fine if you are only accessing values.
+  b = Base.ReshapedArray(b_in, (n, n), ())
 
   @turbo thread=true for j in 1:n, i in 1:n
     tmp = zero(eltype(x))
@@ -324,7 +343,10 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
     tmp_storage[i] = x_in[i]
   end
   x = reshape(tmp_storage, n, n, n)
-  b = reshape(b_in, n, n, n)
+  # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
+  # Thus, Base.ReshapedArray should be used if you are setting values in the array.
+  # `reshape` is fine if you are only accessing values.
+  b = Base.ReshapedArray(b_in, (n, n, n), ())
 
   @turbo thread=true for k in 1:n, j in 1:n, i in 1:n
     tmp = zero(eltype(x))

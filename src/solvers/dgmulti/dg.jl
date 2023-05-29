@@ -389,8 +389,8 @@ end
 
 # assumes cache.flux_face_values is computed and filled with
 # for polyomial discretizations, use dense LIFT matrix for surface contributions.
-function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::DGMultiMesh, equations,
+function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
+                                surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMulti, cache)
   rd = dg.basis
   apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
@@ -412,8 +412,8 @@ end
 
 # Specialize for nodal SBP discretizations. Uses that du = LIFT*u is equivalent to
 # du[Fmask,:] .= u ./ rd.wq[rd.Fmask]
-function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::DGMultiMesh, equations,
+function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
+                                surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMultiSBP, cache)
   rd = dg.basis
   @unpack flux_face_values, lift_scalings = cache
@@ -628,7 +628,7 @@ function rhs!(du, u, t, mesh, equations,
     have_nonconservative_terms(equations), equations, dg)
 
   @trixi_timeit timer() "surface integral" calc_surface_integral!(
-    du, u, dg.surface_integral, mesh, equations, dg, cache)
+    du, u, mesh, equations, dg.surface_integral, dg, cache)
 
   @trixi_timeit timer() "Jacobian" invert_jacobian!(
     du, mesh, equations, dg, cache)
