@@ -16,7 +16,7 @@ using Trixi
 
 # Use additional symbols that are not exported
 using Trixi: PlotData2DTriangulated, TrixiODESolution, PlotDataSeries, ScalarData, @muladd,
-             wrap_array_native
+             wrap_array_native, mesh_equations_solver_cache
 
 # Import functions such that they can be extended with new methods
 import Trixi: iplot, iplot!
