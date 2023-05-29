@@ -246,14 +246,7 @@ export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
-
-# Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-# We do not check `isdefined(Base, :get_extension)` since Julia v1.9.0
-# does not load package extensions when their dependency is loaded from
-# the main environment
-@static if VERSION >= v"1.9.1"
-  export iplot, iplot!
-end
+       iplot, iplot!
 
 function __init__()
   init_mpi()
