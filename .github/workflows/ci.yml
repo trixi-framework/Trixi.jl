@@ -75,7 +75,7 @@ jobs:
           - misc_part2
           - performance_specializations_part1
           - performance_specializations_part2
-          - mpi
+          # - mpi # moved to ci_problematic.yml
           - threaded
         include:
           - version: '1.8'
@@ -129,7 +129,7 @@ jobs:
           TRIXI_TEST: ${{ matrix.trixi_test }}
       - uses: julia-actions/julia-processcoverage@v1
         with:
-          directories: src,examples
+          directories: src,examples,ext
       - uses: codecov/codecov-action@v3
         with:
           file: ./lcov.info
