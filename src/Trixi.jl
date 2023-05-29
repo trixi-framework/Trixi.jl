@@ -80,6 +80,11 @@ import SummationByPartsOperators: integrate, semidiscretize,
 @reexport using StartUpDG: StartUpDG, Polynomial, Gauss, SBP, Line, Tri, Quad, Hex, Tet
 using StartUpDG: RefElemData, MeshData, AbstractElemShape
 
+# For GPU offloading
+using KernelAbstractions
+using CUDA
+using CUDA.CUDAKernels
+
 # TODO: include_optimized
 # This should be used everywhere (except to `include("interpolations.jl")`)
 # once the upstream issue https://github.com/timholy/Revise.jl/issues/634

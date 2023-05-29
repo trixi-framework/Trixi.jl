@@ -153,6 +153,72 @@ function rhs!(du, u, t,
   return nothing
 end
 
+function rhs_gpu!(du, u, t,
+  mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations,
+  initial_condition, boundary_conditions, source_terms::Source,
+  dg::DG, cache) where {Source}
+
+# Select backend
+backend = CUDABackend()
+
+# Offload u to device storage
+dev_u  = KernelAbstractions.allocate(backend, eltype(u),  size(u))
+KernelAbstractions.copyto!(backend, dev_u, u)
+
+# Reset du
+@trixi_timeit timer() "reset ∂u/∂t gpu" dev_du = KernelAbstractions.zeros(backend, eltype(du), size(du))
+
+# Calculate volume integral
+@trixi_timeit timer() "volume integral gpu" calc_volume_integral_gpu!(
+  dev_du, dev_u, mesh,
+  have_nonconservative_terms(equations), equations,
+  dg.volume_integral, dg, cache)
+
+KernelAbstractions.copyto!(backend, du, dev_du)
+
+# Prolong solution to interfaces
+@trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
+cache, u, mesh, equations, dg.surface_integral, dg)
+
+# Calculate interface fluxes
+@trixi_timeit timer() "interface flux" calc_interface_flux!(
+cache.elements.surface_flux_values, mesh,
+have_nonconservative_terms(equations), equations,
+dg.surface_integral, dg, cache)
+
+# Prolong solution to boundaries
+@trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(
+cache, u, mesh, equations, dg.surface_integral, dg)
+
+# Calculate boundary fluxes
+@trixi_timeit timer() "boundary flux" calc_boundary_flux!(
+cache, t, boundary_conditions, mesh, equations, dg.surface_integral, dg)
+
+# Prolong solution to mortars
+@trixi_timeit timer() "prolong2mortars" prolong2mortars!(
+cache, u, mesh, equations, dg.mortar, dg.surface_integral, dg)
+
+# Calculate mortar fluxes
+@trixi_timeit timer() "mortar flux" calc_mortar_flux!(
+cache.elements.surface_flux_values, mesh,
+have_nonconservative_terms(equations), equations,
+dg.mortar, dg.surface_integral, dg, cache)
+
+# Calculate surface integrals
+@trixi_timeit timer() "surface integral" calc_surface_integral!(
+du, u, mesh, equations, dg.surface_integral, dg, cache)
+
+# Apply Jacobian from mapping to reference element
+@trixi_timeit timer() "Jacobian" apply_jacobian!(
+du, mesh, equations, dg, cache)
+
+# Calculate source terms
+@trixi_timeit timer() "source terms" calc_sources!(
+du, u, t, source_terms, equations, dg, cache)
+
+return nothing
+end
+
 
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
@@ -168,6 +234,66 @@ function calc_volume_integral!(du, u,
 
   return nothing
 end
+
+function calc_volume_integral_gpu!(du, u,
+                                   mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
+                                   nonconservative_terms, equations,
+                                   volume_integral::VolumeIntegralWeakForm,
+                                   dg::DGSEM, cache)
+
+  backend = get_backend(du)
+
+  #@autoinfiltrate
+
+  kernel! = weak_form_kernel_gpu!(backend)
+  # Determine gridsize by number of node for each element
+  num_nodes = length(eachnode(dg))
+  @unpack derivative_dhat = dg.basis
+
+  dev_derivative_dhat = KernelAbstractions.allocate(backend, eltype(derivative_dhat), size(derivative_dhat))
+  KernelAbstractions.copyto!(backend, dev_derivative_dhat, derivative_dhat)
+
+  for element in eachelement(dg, cache)
+    kernel!(du, u, element, equations, dev_derivative_dhat, num_nodes, ndrange=(num_nodes, num_nodes))
+  end
+  # Ensure that device is finished
+  KernelAbstractions.synchronize(backend)
+
+  return nothing
+end
+
+end #@muladd
+
+@kernel function weak_form_kernel_gpu!(du, u,
+                                       element, equations, derivative_dhat, num_nodes)
+
+  i, j = @index(Global, NTuple)
+
+  #u_node = get_node_vars(u, equations, dg, i, j, element)
+  u_node = SVector(ntuple(@inline(v -> u[v, i, j, element]), Val(nvariables(equations))))
+
+  flux1 = flux(u_node, 1, equations)
+  for ii in 1:num_nodes
+    #multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i], flux1, equations, dg, ii, j, element)
+    #factor = alpha * derivative_dhat[ii, i]
+    factor = derivative_dhat[ii, i]
+    for v in eachvariable(equations)
+      du[v, ii, j, element] = du[v, ii, j, element] + factor * flux1[v]
+    end
+  end
+
+  flux2 = flux(u_node, 2, equations)
+  for jj in 1:num_nodes
+    #multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j], flux2, equations, dg, i, jj, element)
+    #factor = alpha * derivative_dhat[jj, j]
+    factor = derivative_dhat[jj, j]
+    for v in eachvariable(equations)
+      du[v, i, jj, element] = du[v, i, jj, element] + factor * flux2[v]
+    end
+  end
+end
+
+@muladd begin
 
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::TreeMesh{2},

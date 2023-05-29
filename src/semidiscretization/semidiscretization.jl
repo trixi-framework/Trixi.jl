@@ -67,13 +67,17 @@ calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization, cache_ana
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 """
-function semidiscretize(semi::AbstractSemidiscretization, tspan)
+function semidiscretize(semi::AbstractSemidiscretization, tspan; offload::Bool=false)
   u0_ode = compute_coefficients(first(tspan), semi)
   # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
   #       mpi_isparallel() && MPI.Barrier(mpi_comm())
   #       See https://github.com/trixi-framework/Trixi.jl/issues/328
   iip = true # is-inplace, i.e., we modify a vector when calling rhs!
-  return ODEProblem{iip}(rhs!, u0_ode, tspan, semi)
+  if offload
+    return ODEProblem{iip}(rhs_gpu!, u0_ode, tspan, semi)
+  else
+    return ODEProblem{iip}(rhs!, u0_ode, tspan, semi)
+  end
 end
 
 
