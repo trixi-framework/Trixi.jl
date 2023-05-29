@@ -26,7 +26,7 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
     coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none", cmd)
     if !(coverage && Sys.iswindows()) && !(coverage && Sys.islinux())
       mpiexec() do cmd
-        run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes $(abspath("test_mpi.jl"))`)
+        run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes --heap-size-hint=1G $(abspath("test_mpi.jl"))`)
       end
     end
   end
