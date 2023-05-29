@@ -148,6 +148,7 @@ Keywords:
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
+function iplot end
 
 # Enables `iplot(PlotData2D(sol))`.
 function iplot(pd::PlotData2DTriangulated;
