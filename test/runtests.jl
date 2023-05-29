@@ -3,8 +3,8 @@ using MPI: mpiexec
 
 # run tests on Travis CI in parallel
 const TRIXI_TEST = get(ENV, "TRIXI_TEST", "all")
-const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
-const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
+const TRIXI_MPI_NPROCS = 2
+const TRIXI_NTHREADS   = 2
 
 @time @testset "Trixi.jl tests" begin
   # This is placed first since tests error out otherwise if `TRIXI_TEST == "all"`,
