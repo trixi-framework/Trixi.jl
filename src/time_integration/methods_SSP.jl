@@ -178,13 +178,12 @@ function solve!(integrator::SimpleIntegratorSSP)
         # perform forward Euler step
         @. integrator.u = integrator.u + integrator.dt * integrator.du
       end
-      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u, t_stage, integrator.dt, integrator.p, indicator)
 
       @trixi_timeit timer() "update_alpha_max_avg!" update_alpha_max_avg!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
 
       for stage_callback in alg.stage_callbacks
         laststage = (stage == length(alg.c))
-        stage_callback(integrator.u, integrator.p, integrator.t, integrator.iter+1, laststage)
+        stage_callback(integrator.u, integrator.p, integrator.t, integrator.dt, integrator.iter+1, laststage)
       end
 
       # perform convex combination

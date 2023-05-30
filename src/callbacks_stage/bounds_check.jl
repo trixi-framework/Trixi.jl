@@ -22,7 +22,7 @@ function BoundsCheckCallback(; output_directory="out", save_errors=false, interv
   BoundsCheckCallback(output_directory, save_errors, interval)
 end
 
-function (callback::BoundsCheckCallback)(u_ode, semi::AbstractSemidiscretization, t, iter, laststage)
+function (callback::BoundsCheckCallback)(u_ode, semi::AbstractSemidiscretization, t, dt, iter, laststage)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
