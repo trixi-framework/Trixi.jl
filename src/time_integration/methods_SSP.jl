@@ -259,19 +259,16 @@ function Base.resize!(semi, volume_integral::VolumeIntegralShockCapturingSubcell
   resize!(semi.cache.ContainerAntidiffusiveFlux2D, new_size)
 
   # Resize ContainerShockCapturingIndicator
-  resize!(semi.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)
+  resize!(volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)
   # Calc subcell normal directions before StepsizeCallback
-  @unpack indicator = semi.solver.volume_integral
+  @unpack indicator = volume_integral
   if indicator isa IndicatorMCL || (indicator isa IndicatorIDP && indicator.BarStates)
-    resize!(semi.solver.volume_integral.indicator.cache.ContainerBarStates, new_size)
+    resize!(indicator.cache.ContainerBarStates, new_size)
     calc_normal_directions!(indicator.cache.ContainerBarStates, mesh_equations_solver_cache(semi)...)
   end
 end
 
-function calc_normal_directions!(ContainerBarStates, mesh::TreeMesh, equations, dg, cache)
-
-  return nothing
-end
+calc_normal_directions!(ContainerBarStates, mesh::TreeMesh, equations, dg, cache) = nothing
 
 function calc_normal_directions!(ContainerBarStates, mesh::StructuredMesh, equations, dg, cache)
   @unpack weights, derivative_matrix = dg.basis
