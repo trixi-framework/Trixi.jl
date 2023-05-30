@@ -31,7 +31,7 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
     end
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "threaded"
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "threaded" || TRIXI_TEST == "threaded_legacy"
     # Do a dummy `@test true`:
     # If the process errors out the testset would error out as well,
     # cf. https://github.com/JuliaParallel/MPI.jl/pull/391
