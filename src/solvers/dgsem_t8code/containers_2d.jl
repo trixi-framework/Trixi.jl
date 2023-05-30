@@ -27,10 +27,9 @@ function calc_node_coordinates!(node_coordinates,
       element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)
       element_level  = t8_element_level(eclass_scheme, element)
 
-      # TODO: Make this more general.
       element_length = t8_quad_len(element_level) / t8_quad_root_len
 
-      element_coords = Array{Float64}(undef,3)
+      element_coords = Array{Float64}(undef, 3)
       t8_element_vertex_reference_coords(eclass_scheme, element, 0, pointer(element_coords))
 
       nodes_out_x = 2 * (element_length * 1/2 * (nodes .+ 1) .+ element_coords[1]) .- 1
@@ -45,7 +44,6 @@ function calc_node_coordinates!(node_coordinates,
         view(mesh.tree_node_coordinates, :, :, :, itree+1),
         tmp1
       )
-      # end TODO
     end
   end
 

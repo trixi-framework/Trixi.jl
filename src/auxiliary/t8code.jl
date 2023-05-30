@@ -1,5 +1,9 @@
 """
     init_t8code()
+
+Initialize `t8code` by calling `t8_init` and setting the log level to `SC_LP_ERROR`.
+This function will check if `t8code` is already initialized
+and if yes, do nothing, thus it is safe to call it multiple times.
 """
 function init_t8code()
   t8code_package_id = t8_get_package_id()
@@ -13,19 +17,12 @@ function init_t8code()
   return nothing
 end
 
-@inline t8_mpi_comm() = mpi_comm().val
-
 function trixi_t8_unref_forest(forest)
   t8_forest_unref(Ref(forest))
 end
 
 function t8_free(ptr)
   sc_free(t8_get_package_id(), ptr)
-end
-
-function finalize_t8code()
-  # sc_finalize()
-  return nothing
 end
 
 function trixi_t8_count_interfaces(forest)

@@ -43,7 +43,6 @@ mutable struct T8codeMesh{NDIMS, RealT<:Real, IsParallel} <: AbstractMesh{NDIMS}
     # Destroy 't8code' structs when the mesh is garbage collected.
     finalizer(function (mesh::T8codeMesh{NDIMS})
       trixi_t8_unref_forest(mesh.forest)
-      finalize_t8code()
     end, mesh)
 
     return mesh
@@ -139,7 +138,7 @@ function T8codeMesh(trees_per_dimension; polydeg,
 
   conn = p4est_connectivity_new_brick(trees_per_dimension..., periodicity...)
   do_partition = 0
-  cmesh = t8_cmesh_new_from_p4est(conn,t8_mpi_comm(),do_partition)
+  cmesh = t8_cmesh_new_from_p4est(conn,mpi_comm(),do_partition)
   p4est_connectivity_destroy(conn)
 
   scheme = t8_scheme_new_default_cxx()

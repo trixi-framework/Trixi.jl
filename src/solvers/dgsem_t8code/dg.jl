@@ -8,7 +8,7 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, dg::DG, ::
   # in case someone has tampered with the 't8code' after creating the mesh.
   # balance!(mesh)
 
-  _ = count_required_surfaces(mesh)
+  count_required_surfaces!(mesh)
 
   elements   = init_elements(mesh, equations, dg.basis, uEltype)
   interfaces = init_interfaces(mesh, equations, dg.basis, elements)

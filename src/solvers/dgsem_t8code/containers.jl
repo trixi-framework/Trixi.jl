@@ -77,19 +77,19 @@ function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
   resize!(elements, ncells(mesh))
   init_elements!(elements, mesh, dg.basis)
 
-  required = count_required_surfaces(mesh)
+  count_required_surfaces!(mesh)
 
   # Resize interfaces container.
   @unpack interfaces = cache
-  resize!(interfaces, required.interfaces)
+  resize!(interfaces, mesh.ninterfaces)
 
   # Resize mortars container.
   @unpack mortars = cache
-  resize!(mortars, required.mortars)
+  resize!(mortars, mesh.nmortars)
 
   # Resize boundaries container.
   @unpack boundaries = cache
-  resize!(boundaries, required.boundaries)
+  resize!(boundaries, mesh.nboundaries)
 
   # Re-initialize containers together to reduce
   # the number of iterations over the mesh in `t8code`.
@@ -317,13 +317,10 @@ end
 # ============================================================================ #
 # ============================================================================ #
 
-function count_required_surfaces(mesh::T8codeMesh)
-
+function count_required_surfaces!(mesh::T8codeMesh)
   counts = trixi_t8_count_interfaces(mesh.forest)
 
   mesh.nmortars    = counts.mortars
   mesh.ninterfaces = counts.interfaces
   mesh.nboundaries = counts.boundaries
-
-  return counts
 end
