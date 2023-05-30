@@ -2,10 +2,7 @@
 module TrixiMakieExt
 
 # Required for visualization code
-# We do not check `isdefined(Base, :get_extension)` since Julia v1.9.0
-# does not load package extensions when their dependency is loaded from
-# the main environment
-if VERSION >= v"1.9.1"
+if isdefined(Base, :get_extension)
   using Makie: Makie, GeometryBasics
 else
   using ..Makie: Makie, GeometryBasics
