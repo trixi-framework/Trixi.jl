@@ -75,7 +75,7 @@ jobs:
           - misc_part2
           - performance_specializations_part1
           - performance_specializations_part2
-          # - mpi # moved to ci_problematic.yml
+          - mpi
           - threaded
         include:
           - version: '1.9'
