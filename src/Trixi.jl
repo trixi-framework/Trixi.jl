@@ -253,16 +253,15 @@ function __init__()
 
   init_p4est()
 
+  register_error_hints()
+
   # Enable features that depend on the availability of the Plots package
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
     using .Plots: Plots
   end
 
   # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-  # We do not check `isdefined(Base, :get_extension)` since Julia v1.9.0
-  # does not load package extensions when their dependency is loaded from
-  # the main environment
-  @static if !(VERSION >= v"1.9.1")
+  @static if !isdefined(Base, :get_extension)
     @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
       include("../ext/TrixiMakieExt.jl")
     end
