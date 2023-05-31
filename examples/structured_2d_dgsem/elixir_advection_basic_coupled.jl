@@ -5,8 +5,6 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-Trixi.wrap_array(u_ode::AbstractVector, mesh::Trixi.AbstractMesh, equations, dg::DGSEM, cache) = Trixi.wrap_array_native(u_ode, mesh, equations, dg, cache)
-
 advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
