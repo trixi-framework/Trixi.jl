@@ -25,13 +25,14 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
     cmd = string(Base.julia_cmd())
     coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none", cmd)
     if !(coverage && Sys.iswindows()) && !(coverage && Sys.islinux())
+      # We provide a `--heap-size-hint` to avoid/reduce out-of-memory errors during CI testing
       mpiexec() do cmd
-        run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes $(abspath("test_mpi.jl"))`)
+        run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes --heap-size-hint=1G $(abspath("test_mpi.jl"))`)
       end
     end
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "threaded"
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "threaded" || TRIXI_TEST == "threaded_legacy"
     # Do a dummy `@test true`:
     # If the process errors out the testset would error out as well,
     # cf. https://github.com/JuliaParallel/MPI.jl/pull/391
