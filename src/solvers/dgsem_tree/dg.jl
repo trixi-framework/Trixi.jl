@@ -44,16 +44,6 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
 end
 
 
-@inline function IDP_checkBounds(u_ode, semi, time, iter, laststage, output_directory)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  u = wrap_array(u_ode, mesh, equations, solver, cache)
-
-  IDP_checkBounds(u, mesh, equations, solver, cache, solver.volume_integral.indicator, time, iter, laststage, output_directory)
-
-  return nothing
-end
-
-
 function volume_jacobian(element, mesh::TreeMesh, cache)
   return inv(cache.elements.inverse_jacobian[element])^ndims(mesh)
 end

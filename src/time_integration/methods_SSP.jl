@@ -18,12 +18,13 @@ The third-order SSP Runge-Kutta method of
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct SimpleSSPRK33 <: SimpleAlgorithmSSP
+struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
   a::SVector{3, Float64}
   b::SVector{3, Float64}
   c::SVector{3, Float64}
+  stage_callbacks::StageCallbacks
 
-  function SimpleSSPRK33()
+  function SimpleSSPRK33(; stage_callbacks=(AntidiffusiveStage(), BoundsCheckCallback()))
     a = SVector(0.0, 3/4, 1/3)
     b = SVector(1.0, 1/4, 2/3)
     c = SVector(0.0, 1.0, 1/2)
@@ -36,7 +37,7 @@ struct SimpleSSPRK33 <: SimpleAlgorithmSSP
     # --------------------
     #   b | 1/6  1/6  2/3
 
-    new(a, b, c)
+    new{typeof(stage_callbacks)}(a, b, c, stage_callbacks)
   end
 end
 
@@ -118,6 +119,10 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
     error("unsupported")
   end
 
+  for stage_callback in alg.stage_callbacks
+    init_callback(stage_callback, integrator.p)
+  end
+
   solve!(integrator)
 end
 
@@ -148,7 +153,6 @@ function solve!(integrator::SimpleIntegratorSSP)
     end
 
     # Reset alphas for MCL
-    @unpack indicator = integrator.p.solver.volume_integral
     if indicator isa IndicatorMCL && indicator.Plotting
       @unpack alpha, alpha_pressure, alpha_entropy = indicator.cache.ContainerShockCapturingIndicator
       @threaded for element in eachelement(integrator.p.solver, integrator.p.cache)
@@ -174,14 +178,11 @@ function solve!(integrator::SimpleIntegratorSSP)
         # perform forward Euler step
         @. integrator.u = integrator.u + integrator.dt * integrator.du
       end
-      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u, t_stage, integrator.dt, integrator.p, indicator)
 
       @trixi_timeit timer() "update_alpha_max_avg!" update_alpha_max_avg!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
 
-      # check that we are within bounds
-      if indicator.IDPCheckBounds
-        laststage = (stage == length(alg.c))
-        @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u, integrator.p, integrator.t, integrator.iter+1, laststage, output_directory)
+      for stage_callback in alg.stage_callbacks
+        stage_callback(integrator.u, integrator, stage)
       end
 
       # perform convex combination
@@ -209,9 +210,8 @@ function solve!(integrator::SimpleIntegratorSSP)
     end
   end
 
-  # Check that we are within bounds
-  if indicator.IDPCheckBounds
-    summary_check_bounds(indicator, integrator.p.equations)
+  for stage_callback in alg.stage_callbacks
+    finalize_callback(stage_callback, integrator.p)
   end
 
   return TimeIntegratorSolution((first(prob.tspan), integrator.t),
@@ -247,23 +247,26 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
 end
 
 function Base.resize!(semi::AbstractSemidiscretization, new_size)
+  resize!(semi, semi.solver.volume_integral, new_size)
+end
+
+Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
+
+function Base.resize!(semi, volume_integral::VolumeIntegralShockCapturingSubcell, new_size)
   # Resize ContainerAntidiffusiveFlux2D
   resize!(semi.cache.ContainerAntidiffusiveFlux2D, new_size)
 
   # Resize ContainerShockCapturingIndicator
-  resize!(semi.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)
+  resize!(volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)
   # Calc subcell normal directions before StepsizeCallback
-  @unpack indicator = semi.solver.volume_integral
+  @unpack indicator = volume_integral
   if indicator isa IndicatorMCL || (indicator isa IndicatorIDP && indicator.BarStates)
-    resize!(semi.solver.volume_integral.indicator.cache.ContainerBarStates, new_size)
+    resize!(indicator.cache.ContainerBarStates, new_size)
     calc_normal_directions!(indicator.cache.ContainerBarStates, mesh_equations_solver_cache(semi)...)
   end
 end
 
-function calc_normal_directions!(ContainerBarStates, mesh::TreeMesh, equations, dg, cache)
-
-  return nothing
-end
+calc_normal_directions!(ContainerBarStates, mesh::TreeMesh, equations, dg, cache) = nothing
 
 function calc_normal_directions!(ContainerBarStates, mesh::StructuredMesh, equations, dg, cache)
   @unpack weights, derivative_matrix = dg.basis
@@ -298,69 +301,5 @@ function calc_normal_directions!(ContainerBarStates, mesh::StructuredMesh, equat
   return nothing
 end
 
-# check deviation from boundaries of IDP indicator
-@inline function summary_check_bounds(indicator::IndicatorIDP, equations::CompressibleEulerEquations2D)
-  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
-  @unpack idp_bounds_delta = indicator.cache
-
-  println("─"^100)
-  println("Maximum deviation from bounds:")
-  println("─"^100)
-  counter = 1
-  if IDPDensityTVD
-    println("rho:\n- lower bound: ", idp_bounds_delta[counter], "\n- upper bound: ", idp_bounds_delta[counter+1])
-    counter += 2
-  end
-  if IDPPressureTVD
-    println("pressure:\n- lower bound: ", idp_bounds_delta[counter], "\n- upper bound: ", idp_bounds_delta[counter+1])
-    counter += 2
-  end
-  if IDPSpecEntropy
-    println("spec. entropy:\n- lower bound: ", idp_bounds_delta[counter])
-    counter += 1
-  end
-  if IDPMathEntropy
-    println("math. entropy:\n- upper bound: ", idp_bounds_delta[counter])
-    counter += 1
-  end
-  if IDPPositivity
-    for variable in indicator.variables_cons
-      if variable == Trixi.density && IDPDensityTVD
-        continue
-      end
-      println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
-      counter += 1
-    end
-    for variable in indicator.variables_nonlinear
-      if variable == pressure && IDPPressureTVD
-        continue
-      end
-      println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
-      counter += 1
-    end
-  end
-  println("─"^100 * "\n")
-
-  return nothing
-end
-
-# check deviation from boundaries of IndicatorMCL
-@inline function summary_check_bounds(indicator::IndicatorMCL, equations::CompressibleEulerEquations2D)
-  @unpack idp_bounds_delta = indicator.cache
-
-  println("─"^100)
-  println("Maximum deviation from bounds:")
-  println("─"^100)
-  variables = varnames(cons2cons, equations)
-  for v in eachvariable(equations)
-    println(variables[v], ":\n- lower bound: ", idp_bounds_delta[1, v], "\n- upper bound: ", idp_bounds_delta[2, v])
-  end
-  if indicator.PressurePositivityLimiterKuzmin
-    println("pressure:\n- lower bound: ", idp_bounds_delta[1, nvariables(equations)+1])
-  end
-  println("─"^100 * "\n")
-
-  return nothing
-end
 
 end # @muladd

@@ -50,7 +50,6 @@ indicator_sc = IndicatorMCL(equations, basis;
                             PressurePositivityLimiterKuzmin=true,
                             DensityPositivityLimiter=false,
                             SemiDiscEntropyLimiter=false,
-                            IDPCheckBounds=true,
                             Plotting=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
@@ -92,7 +91,10 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-sol = Trixi.solve(ode,
+
+stage_callbacks = (BoundsCheckCallback(save_errors=true),)
+
+sol = Trixi.solve(ode; alg=Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks),
                   maxiters=1e6, dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback=callbacks);
 summary_callback() # print the timer summary
