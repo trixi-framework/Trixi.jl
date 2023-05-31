@@ -64,13 +64,16 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
   else
     summary_header(io, "SemidiscretizationCoupled")
     summary_line(io, "#spatial dimensions", ndims(semi.semis[1]))
-    summary_line(io, "#meshes", nmeshes(semi))
+    summary_line(io, "#semidiscretizations", nmeshes(semi))
     for i = 1:nmeshes(semi)
-      summary_line(io, "equations", mesh_equations_solver_cache(semi.semis[i])[2] |> typeof |> nameof)
-      summary_line(io, "initial conditions", semi.semis[i].initial_condition)
+      summary_line(io, "semidiscretization", i)
+      mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
+      summary_line(increment_indent(io), "mesh", mesh |> typeof |> nameof)
+      summary_line(increment_indent(io), "equations", equations |> typeof |> nameof)
+      summary_line(increment_indent(io), "initial condition", semi.semis[i].initial_condition)
       # TODO boundary conditions? That will be 36 BCs for a cubed sphere
-      summary_line(io, "source terms", semi.semis[i].source_terms)
-      summary_line(io, "solvers", mesh_equations_solver_cache(semi.semis[i])[3] |> typeof |> nameof)
+      summary_line(increment_indent(io), "source terms", semi.semis[i].source_terms)
+      summary_line(increment_indent(io), "solver", solver |> typeof |> nameof)
     end
     summary_line(io, "total #DOFs", ndofs(semi))
     summary_footer(io)
@@ -83,11 +86,18 @@ function summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_cont
   println(io, "\n")
   for i = 1:nmeshes(semi)
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
-    show(io_context, MIME"text/plain"(), mesh)
-    println(io, "\n")
-    show(io_context, MIME"text/plain"(), equations)
-    println(io, "\n")
-    show(io_context, MIME"text/plain"(), solver)
+    summary_header(io, "Semidiscretization #$i")
+
+    summary_line(io_context, "mesh", mesh |> typeof |> nameof)
+    show(increment_indent(io_context), MIME"text/plain"(), mesh)
+
+    summary_line(io_context, "equations", equations |> typeof |> nameof)
+    show(increment_indent(io_context), MIME"text/plain"(), equations)
+
+    summary_line(io_context, "solver", solver |> typeof |> nameof)
+    show(increment_indent(io_context), MIME"text/plain"(), solver)
+
+    summary_footer(io)
     println(io, "\n")
   end
 end
