@@ -561,6 +561,7 @@ function apply_jacobian!(du,
 end
 
 
+# Compute total volume of a given mesh
 function total_volume(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}}, dg, cache)
   @unpack weights = dg.basis
 
