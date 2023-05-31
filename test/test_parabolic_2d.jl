@@ -192,6 +192,13 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_curved.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_advection_diffusion_periodic_curved.jl"),
+      trees_per_dimension = (1, 1), initial_refinement_level = 2, tspan=(0.0, 0.5),
+      l2 = [0.012380458938507371], 
+      linf = [0.10860506906472567]
+    )
+  end
 
 end
 
