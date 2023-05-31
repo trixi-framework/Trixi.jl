@@ -1382,8 +1382,8 @@ mutable struct ContainerShockCapturingIndicatorMCL{uEltype<:Real}
   alpha_pressure::Array{uEltype, 3}         # [i, j, element]
   alpha_entropy::Array{uEltype, 3}          # [i, j, element]
   alpha_mean::Array{uEltype, 4}             # [variable, i, j, element]
-  alpha_mean_pressure::Array{uEltype, 3}    # [variable, i, j, element]
-  alpha_mean_entropy::Array{uEltype, 3}     # [variable, i, j, element]
+  alpha_mean_pressure::Array{uEltype, 3}    # [i, j, element]
+  alpha_mean_entropy::Array{uEltype, 3}     # [i, j, element]
   # internal `resize!`able storage
   _var_min::Vector{uEltype}
   _var_max::Vector{uEltype}
