@@ -24,7 +24,7 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
   c::SVector{3, Float64}
   stage_callbacks::StageCallbacks
 
-  function SimpleSSPRK33(; stage_callbacks=())
+  function SimpleSSPRK33(; stage_callbacks=(AntidiffusiveStage(), BoundsCheckCallback()))
     a = SVector(0.0, 3/4, 1/3)
     b = SVector(1.0, 1/4, 2/3)
     c = SVector(0.0, 1.0, 1/2)
@@ -182,8 +182,7 @@ function solve!(integrator::SimpleIntegratorSSP)
       @trixi_timeit timer() "update_alpha_max_avg!" update_alpha_max_avg!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
 
       for stage_callback in alg.stage_callbacks
-        laststage = (stage == length(alg.c))
-        stage_callback(integrator.u, integrator.p, integrator.t, integrator.dt, integrator.iter+1, laststage)
+        stage_callback(integrator.u, integrator, stage)
       end
 
       # perform convex combination

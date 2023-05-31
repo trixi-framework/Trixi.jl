@@ -12,9 +12,9 @@ Perform antidiffusive stage for IDP limiting.
 """
 struct AntidiffusiveStage end
 
-function (antidiffusive_stage!::AntidiffusiveStage)(u_ode, semi::AbstractSemidiscretization, t, dt, iter, laststage)
+function (antidiffusive_stage!::AntidiffusiveStage)(u_ode, integrator, stage)
 
-  antidiffusive_stage!(u_ode, semi, t, dt, semi.solver.volume_integral)
+  antidiffusive_stage!(u_ode, integrator.p, integrator.t, integrator.dt, integrator.p.solver.volume_integral)
 end
 
 (::AntidiffusiveStage)(u_ode, semi, t, dt, volume_integral::AbstractVolumeIntegral) = nothing

@@ -22,12 +22,14 @@ function BoundsCheckCallback(; output_directory="out", save_errors=false, interv
   BoundsCheckCallback(output_directory, save_errors, interval)
 end
 
-function (callback::BoundsCheckCallback)(u_ode, semi::AbstractSemidiscretization, t, dt, iter, laststage)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(integrator.p)
+  @unpack t, iter, alg = integrator
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  @trixi_timeit timer() "check_bounds" check_bounds(u, mesh, equations, solver, cache, t, iter,
-      callback.output_directory, min(callback.save_errors, callback.interval > 0, laststage), callback.interval)
+  save_errors_ = callback.save_errors && (callback.interval > 0) && (stage == length(alg.c))
+  @trixi_timeit timer() "check_bounds" check_bounds(u, mesh, equations, solver, cache, t, iter+1,
+      callback.output_directory, save_errors_, callback.interval)
 end
 
 function check_bounds(u, mesh, equations, solver, cache, t, iter, output_directory, save_errors, interval)
