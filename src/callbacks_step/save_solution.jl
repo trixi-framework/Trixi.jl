@@ -234,7 +234,8 @@ end
   @unpack semis, u_indices = semi
 
   for i in 1:nmeshes(semi)
-    save_solution_file(semis[i], u_ode[u_indices[i]], solution_callback, integrator, system=i)
+    u_ode_slice = @view u_ode[u_indices[i]]
+    save_solution_file(semis[i], u_ode_slice, solution_callback, integrator, system=i)
   end
 end
 
