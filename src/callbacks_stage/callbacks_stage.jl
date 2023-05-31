@@ -6,6 +6,7 @@
 
 
 include("positivity_zhang_shu.jl")
+include("antidiffusive_stage.jl")
 include("bounds_check.jl")
 
 
