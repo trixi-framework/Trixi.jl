@@ -255,8 +255,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     mpi_println()
     mpi_println("─"^100)
     # TODO: Taal refactor, polydeg is specific to DGSEM
-    # mpi_println(" Simulation running '", get_name(equations), "' with ", summary(solver))
-    mpi_println(" Simulation running '", get_name(equations), "' with ", summary(semi))
+    mpi_println(" Simulation running '", get_name(equations), "' with ", summary(solver))
     mpi_println("─"^100)
     mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
                 "               " *
@@ -276,8 +275,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)))
 
     # Level information (only show for AMR)
-    # print_amr_information(integrator.opts.callback, mesh, solver, cache)
-    print_amr_information(integrator.opts.callback, semi)
+    print_amr_information(integrator.opts.callback, mesh, solver, cache)
     mpi_println()
 
     # Open file for appending and store time step and time information
@@ -471,21 +469,6 @@ function print_amr_information(callbacks, mesh, solver, cache)
   return nothing
 end
 
-function print_amr_information(callbacks, semi)
-  # Return early if there is nothing to print
-  uses_amr(callbacks) || return nothing
-
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  print_amr_information(mesh, equations, solver, cache)
-end
-
-function print_amr_information(mesh::TreeMesh, equations, solver, cache)
-  levels = Vector{Int}(undef, nelements(solver, cache))
-  min_level = typemax(Int)
-  max_level = typemin(Int)
-  return nothing
-end
-
 # Print level information only if AMR is enabled
 function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
 
@@ -564,8 +547,8 @@ function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   analyze(quantity, du, u, t, mesh, equations, solver, cache)
 end
-function analyze(quantity, du, u, t, mesh, equations, solver, cache; normalize=true)
-  integrate(quantity, u, mesh, equations, solver, cache, normalize=normalize)
+function analyze(quantity, du, u, t, mesh, equations, solver, cache)
+  integrate(quantity, u, mesh, equations, solver, cache, normalize=true)
 end
 pretty_form_utf(quantity) = get_name(quantity)
 pretty_form_ascii(quantity) = get_name(quantity)
