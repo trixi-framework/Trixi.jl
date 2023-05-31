@@ -1194,10 +1194,6 @@ end
   @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
 
   if indicator.Plotting
-    # TODO: Allocations!!!
-    P = zeros(eltype(u), 4, nnodes(dg), nnodes(dg))
-    Q = zeros(eltype(u), 4, nnodes(dg), nnodes(dg))
-
     @unpack alpha_mean, alpha_mean_pressure, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
     for j in eachnode(dg), i in eachnode(dg)
       alpha_mean[:, i, j, element] .= zero(eltype(alpha_mean))
@@ -1239,15 +1235,6 @@ end
         end
 
         if indicator.Plotting
-          # left node
-          aux = abs(lambda * (bar_state_rho - u[1, i-1, j, element]))
-          P[1, i-1, j] += aux + abs(flux_limited)
-          Q[1, i-1, j] += aux + abs(antidiffusive_flux1[1, i, j, element])
-          # right node
-          aux = abs(lambda * (bar_state_rho - u[1, i, j, element]))
-          P[1, i, j] += aux + abs(flux_limited)
-          Q[1, i, j] += aux + abs(antidiffusive_flux1[1, i, j, element])
-
           @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
@@ -1290,15 +1277,6 @@ end
         end
 
         if indicator.Plotting
-          # left node
-          aux = abs(lambda * (bar_state_rho - u[1, i, j-1, element]))
-          P[1, i, j-1] += aux + abs(flux_limited)
-          Q[1, i, j-1] += aux + abs(antidiffusive_flux2[1, i, j, element])
-          # right node
-          aux = abs(lambda * (bar_state_rho - u[1, i, j, element]))
-          P[1, i, j] += aux + abs(flux_limited)
-          Q[1, i, j] += aux + abs(antidiffusive_flux2[1, i, j, element])
-
           @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
           alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
@@ -1345,15 +1323,6 @@ end
           g_limited = max(g, min(g_min, 0.0))
         end
         if indicator.Plotting
-          # left node
-          aux = abs(lambda * (bar_state_phi - u[v, i-1, j, element]))
-          P[v, i-1, j] += aux + abs(g_limited)
-          Q[v, i-1, j] += aux + abs(g)
-          # right node
-          aux = abs(lambda * (bar_state_phi - u[v, i, j, element]))
-          P[v, i, j] += aux + abs(g_limited)
-          Q[v, i, j] += aux + abs(g)
-
           if isapprox(g, 0.0, atol=eps())
             coefficient = 1.0 # g_limited is zero as well
           else
@@ -1395,15 +1364,6 @@ end
           g_limited = max(g, min(g_min, 0.0))
         end
         if indicator.Plotting
-          # left node
-          aux = abs(lambda * (bar_state_phi - u[v, i, j-1, element]))
-          P[v, i, j-1] += aux + abs(g_limited)
-          Q[v, i, j-1] += aux + abs(g)
-          # right node
-          aux = abs(lambda * (bar_state_phi - u[v, i, j, element]))
-          P[v, i, j] += aux + abs(g_limited)
-          Q[v, i, j] += aux + abs(g)
-
           if isapprox(g, 0.0, atol=eps())
             coefficient = 1.0 # g_limited is zero as well
           else
@@ -1439,15 +1399,6 @@ end
         end
 
         if indicator.Plotting
-          # left node
-          aux = abs(lambda * (bar_state_phi - u[v, i-1, j, element]))
-          P[v, i-1, j] += aux + abs(flux_limited)
-          Q[v, i-1, j] += aux + abs(antidiffusive_flux1[v, i, j, element])
-          # right node
-          aux = abs(lambda * (bar_state_phi - u[v, i, j, element]))
-          P[v, i, j] += aux + abs(flux_limited)
-          Q[v, i, j] += aux + abs(antidiffusive_flux1[v, i, j, element])
-
           if isapprox(antidiffusive_flux1[v, i, j, element], 0.0, atol=eps())
             coefficient = 1.0 # flux_limited is zero as well
           else
@@ -1481,15 +1432,6 @@ end
         end
 
         if indicator.Plotting
-          # left node
-          aux = abs(lambda * (bar_state_phi - u[v, i, j-1, element]))
-          P[v, i, j-1] += aux + abs(flux_limited)
-          Q[v, i, j-1] += aux + abs(antidiffusive_flux2[v, i, j, element])
-          # right node
-          aux = abs(lambda * (bar_state_phi - u[v, i, j, element]))
-          P[v, i, j] += aux + abs(flux_limited)
-          Q[v, i, j] += aux + abs(antidiffusive_flux2[v, i, j, element])
-
           if isapprox(antidiffusive_flux2[v, i, j, element], 0.0, atol=eps())
             coefficient = 1.0 # flux_limited is zero as well
           else
@@ -1505,16 +1447,6 @@ end
       end
     end
   end # indicator.SequentialLimiter and indicator.ConservativeLimiter
-
-  # Compute "effective" alpha using P and Q
-  if indicator.Plotting
-    @unpack alpha_eff = indicator.cache.ContainerShockCapturingIndicator
-    for j in eachnode(dg), i in eachnode(dg)
-      for v in eachvariable(equations)
-        alpha_eff[v, i, j, element] = P[v, i, j] / (Q[v, i, j] + eps())
-      end
-    end
-  end
 
   # Density positivity limiter
   if indicator.DensityPositivityLimiter

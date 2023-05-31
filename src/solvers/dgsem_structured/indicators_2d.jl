@@ -253,7 +253,7 @@ end
 @inline function save_alpha(indicator::IndicatorMCL, time, iter, semi, mesh::StructuredMesh{2}, output_directory)
   _, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack weights = dg.basis
-  @unpack alpha, alpha_pressure, alpha_entropy, alpha_eff, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha, alpha_pressure, alpha_entropy, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
 
   # Save the alphas every x iterations
   x = 1
@@ -279,9 +279,6 @@ end
       end
       println(f)
     end
-    open("$output_directory/alphas_eff.txt", "a") do f;
-      println(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
-    end
   end
 
   if iter % x != 0
@@ -290,7 +287,6 @@ end
 
   alpha_avg = zeros(eltype(alpha), n_vars + indicator.PressurePositivityLimiterKuzmin + indicator.SemiDiscEntropyLimiter)
   alpha_mean_avg = zeros(eltype(alpha), n_vars)
-  alpha_eff_avg = zeros(eltype(alpha), n_vars)
   total_volume = zero(eltype(alpha))
   for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
@@ -298,7 +294,6 @@ end
       for v in eachvariable(equations)
         alpha_avg[v] += jacobian * weights[i] * weights[j] * alpha[v, i, j, element]
         alpha_mean_avg[v] += jacobian * weights[i] * weights[j] * alpha_mean[v, i, j, element]
-        alpha_eff_avg[v] += jacobian * weights[i] * weights[j] * alpha_eff[v, i, j, element]
       end
       if indicator.PressurePositivityLimiterKuzmin
         alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] * alpha_pressure[i, j, element]
@@ -331,14 +326,6 @@ end
     if indicator.SemiDiscEntropyLimiter
       k = n_vars + indicator.PressurePositivityLimiterKuzmin + 1
       print(f, ", ", minimum(alpha_entropy), ", ", alpha_avg[k] / total_volume)
-    end
-    println(f)
-  end
-  open("$output_directory/alphas_eff.txt", "a") do f;
-    print(f, iter, ", ", time)
-    for v in eachvariable(equations)
-      print(f, ", ", minimum(view(alpha_eff, v, ntuple(_ -> :, n_vars - 1)...)));
-      print(f, ", ", alpha_eff_avg[v] / total_volume);
     end
     println(f)
   end

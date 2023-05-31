@@ -476,12 +476,6 @@ function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIn
     node_variables[:alpha_entropy] = alpha_entropy
   end
 
-  @unpack alpha_eff = indicator.cache.ContainerShockCapturingIndicator
-  for v in eachvariable(equations)
-    s = Symbol("alpha_effective_", variables[v])
-    node_variables[s] = alpha_eff[v, ntuple(_ -> :, size(alpha, 2) + 1)...]
-  end
-
   @unpack alpha_mean = indicator.cache.ContainerShockCapturingIndicator
   for v in eachvariable(equations)
     s = Symbol("alpha_mean_", variables[v])
