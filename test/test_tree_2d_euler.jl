@@ -132,6 +132,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       coverage_override = (maxiters=6,))
   end
 
+  @trixi_testset "elixir_euler_blast_wave_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_MCL.jl"),
+      l2   = [0.32716628280821736, 0.17711362716405113, 0.17710881738119433, 0.6192141753914343],
+      linf = [1.3147680231795071, 1.1313232952582144, 1.1308868661560831, 2.4962119219206],
+      tspan = (0.0, 0.5),
+      initial_refinement_level = 4,
+      coverage_override = (maxiters=6,))
+  end
+
   @trixi_testset "elixir_euler_sedov_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
       l2   = [0.4866953770742574, 0.1673477470091984, 0.16734774700934, 0.6184367248923149],
@@ -144,6 +153,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
       l2   = [0.47651273561515994, 0.16605194156429376, 0.16605194156447747, 0.6184646142923547],
       linf = [2.559717182592356, 1.3594817545576394, 1.3594817545666105, 6.451896959781657],
+      tspan = (0.0, 1.0),
+      initial_refinement_level=4,
+      coverage_override = (maxiters=6,))
+  end
+
+  @trixi_testset "elixir_euler_sedov_blast_wave_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_MCL.jl"),
+      l2   = [0.4740321851943766, 0.15889871334104985, 0.15889871334104988, 0.6190405536267991],
+      linf = [4.011954283668753, 1.8527131099524292, 1.8527131099524277, 6.465833729130187],
       tspan = (0.0, 1.0),
       initial_refinement_level=4,
       coverage_override = (maxiters=6,))
@@ -212,6 +230,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       coverage_override = (maxiters=2,))
   end
 
+  @trixi_testset "elixir_euler_kelvin_helmholtz_instability_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_MCL.jl"),
+      l2   = [0.055703165296633834, 0.032987233605927, 0.05224472051711956, 0.08011565264331237],
+      linf = [0.24091018397460595, 0.1660190071332282, 0.12356154893467916, 0.2695167937393226],
+      tspan = (0.0, 0.2),
+      initial_refinement_level=5,
+      coverage_override = (maxiters=2,))
+  end
+
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl"),
       # This stuff is experimental and annoying to test. In the future, we plan
@@ -250,6 +277,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_subcell.jl"),
       l2   = [0.4186473232186195, 341.42386623555944, 12.913743102619245, 135260.31735534978],
       linf = [6.594617349637199, 5225.251243383396, 417.4788228266706, 2.0263599311276933e6],
+      initial_refinement_level=5,
+      tspan = (0.0, 1.0e-4),
+      coverage_override = (maxiters=6,))
+  end
+
+  @trixi_testset "elixir_euler_astro_jet_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_MCL.jl"),
+      l2   = [0.4142490642847159, 339.10045752248817, 12.41716316125269, 134277.32794840127],
+      linf = [5.649893737038036, 4628.887032664001, 373.39317079274724, 1.8133961097673306e6],
       initial_refinement_level=5,
       tspan = (0.0, 1.0e-4),
       coverage_override = (maxiters=6,))
