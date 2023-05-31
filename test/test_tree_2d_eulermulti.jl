@@ -19,6 +19,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       tspan = (0.0, 0.001))
   end
 
+  @trixi_testset "elixir_eulermulti_shock_bubble_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble_sc_subcell.jl"),
+      l2   = [81.56638995751949, 2.749019198753295, 63209.842984371186, 0.1998094346294924, 0.011196332311231447],
+      linf = [251.3015423089727, 43.842039180642644, 174650.87707064365, 0.7041466370660441, 0.11584512034319161],
+      initial_refinement_level = 3,
+      tspan = (0.0, 0.001))
+  end
+
   @trixi_testset "elixir_eulermulti_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
       l2   = [0.050182236154087095, 0.050189894464434635, 0.2258715597305131, 0.06175171559771687],

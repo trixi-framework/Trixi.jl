@@ -1193,12 +1193,6 @@ end
   @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
   @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
 
-  # The antidiffuse flux can have very small absolute values. This can lead to values of f_min which are zero up to machine accuracy.
-  # To avoid further calculations with these values, we replace them by 0.
-  # It can also happen that the limited flux changes its sign (for instance to -1e-13).
-  # This does not really make sense in theory and causes problems for the visualization.
-  # Therefore we make sure that the flux keeps its sign during limiting.
-
   if indicator.Plotting
     # TODO: Allocations!!!
     P = zeros(eltype(u), 4, nnodes(dg), nnodes(dg))
@@ -1211,6 +1205,12 @@ end
       alpha_mean_entropy[i, j, element] = zero(eltype(alpha_mean_entropy))
     end
   end
+
+  # The antidiffuse flux can have very small absolute values. This can lead to values of f_min which are zero up to machine accuracy.
+  # To avoid further calculations with these values, we replace them by 0.
+  # It can also happen that the limited flux changes its sign (for instance to -1e-13).
+  # This does not really make sense in theory and causes problems for the visualization.
+  # Therefore we make sure that the flux keeps its sign during limiting.
 
   # Density limiter
   if indicator.DensityLimiter
