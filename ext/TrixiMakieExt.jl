@@ -1,3 +1,24 @@
+# Package extension for adding Makie-based features to Trixi.jl
+module TrixiMakieExt
+
+# Required for visualization code
+if isdefined(Base, :get_extension)
+  using Makie: Makie, GeometryBasics
+else
+  # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
+  using ..Makie: Makie, GeometryBasics
+end
+
+# Use all exported symbols to avoid having to rewrite `recipes_makie.jl`
+using Trixi
+
+# Use additional symbols that are not exported
+using Trixi: PlotData2DTriangulated, TrixiODESolution, PlotDataSeries, ScalarData, @muladd,
+             wrap_array_native, mesh_equations_solver_cache
+
+# Import functions such that they can be extended with new methods
+import Trixi: iplot, iplot!
+
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -148,6 +169,7 @@ Keywords:
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
+function iplot end
 
 # Enables `iplot(PlotData2D(sol))`.
 function iplot(pd::PlotData2DTriangulated;
@@ -380,3 +402,5 @@ end
 
 
 end # @muladd
+
+end

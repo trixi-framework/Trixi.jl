@@ -332,4 +332,29 @@ macro autoinfiltrate(condition = true)
 end
 
 
+# Use the *experimental* feature in `Base` to add error hints for specific errors. We use it to
+# warn users in case they try to execute functions that are extended in package extensions which
+# have not yet been loaded.
+#
+# Reference: https://docs.julialang.org/en/v1/base/base/#Base.Experimental.register_error_hint
+function register_error_hints()
+  # We follow the advice in the docs and gracefully exit without doing anything if the experimental
+  # features gets silently removed.
+  if !isdefined(Base.Experimental, :register_error_hint)
+    return nothing
+  end
+
+  Base.Experimental.register_error_hint(MethodError) do io, exc, argtypes, kwargs
+    if exc.f in [iplot, iplot!] && isempty(methods(exc.f))
+      print(io, "\n$(exc.f) has no methods yet. It is part of a plotting extension of Trixi.jl " *
+                "that relies on Makie being loaded.\n" *
+                "To activate the extension, execute `using Makie`, `using CairoMakie`, " *
+                "`using GLMakie`, or load any other package that also uses Makie.")
+    end
+  end
+
+  return nothing
+end
+
+
 end # @muladd
