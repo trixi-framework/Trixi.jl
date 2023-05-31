@@ -101,7 +101,8 @@ function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
   @unpack u_indices = semi
 
   dt = minimum(1:nmeshes(semi)) do i
-    calculate_dt(u_ode[u_indices[i]], t, cfl_number, semi.semis[i])
+    u_ode_slice = @view u_ode[u_indices[i]]
+    calculate_dt(u_ode_slice, t, cfl_number, semi.semis[i])
   end
 
   return dt
