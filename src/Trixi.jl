@@ -248,22 +248,26 @@ export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
 
 # Visualization-related exports
-export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
+export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level,
+       iplot, iplot!
 
 function __init__()
   init_mpi()
 
   init_p4est()
 
+  register_error_hints()
+
   # Enable features that depend on the availability of the Plots package
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
     using .Plots: Plots
   end
 
-  @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
-    include("visualization/recipes_makie.jl")
-    using .Makie: Makie, GeometryBasics
-    export iplot, iplot! # interactive plot
+  # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
+  @static if !isdefined(Base, :get_extension)
+    @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
+      include("../ext/TrixiMakieExt.jl")
+    end
   end
 
   @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin

@@ -8,4 +8,9 @@ include("types.jl")
 include("utilities.jl")
 include("recipes_plots.jl")
 
+# Add function definitions here such that they can be exported from Trixi.jl and extended in the
+# TrixiMakieExt package extension or by the Makie-specific code loaded by Requires.jl
+function iplot end
+function iplot! end
+
 end # @muladd
