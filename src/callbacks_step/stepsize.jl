@@ -70,12 +70,10 @@ end
     semi = integrator.p
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     @unpack cfl_number = stepsize_callback
-    # u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    # dt = @trixi_timeit timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
-    #                                                               have_constant_speed(equations), equations,
-    #                                                               solver, cache)
-    dt = calculate_dt(u_ode, t, cfl_number, semi)
+    # Dispatch based on semidiscretization
+    dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_number, semi)
+
     set_proposed_dt!(integrator, dt)
     integrator.opts.dtmax = dt
     integrator.dtcache = dt
@@ -87,16 +85,18 @@ end
 end
 
 
-function calculate_dt(u_ode, t, cfl_number, semi)
+# General case for a single semidiscretization
+function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  dt = @trixi_timeit timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
-                                                                have_constant_speed(equations), equations,
-                                                                solver, cache)
+  dt = cfl_number * max_dt(u, t, mesh,
+                           have_constant_speed(equations), equations,
+                           solver, cache)
 end
 
 
+# In case of coupled system, use minimum timestep over all systems
 function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
   @unpack u_indices = semi
 
