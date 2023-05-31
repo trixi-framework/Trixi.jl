@@ -106,7 +106,7 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh3D, basis)
   reference_length = integrate(one ∘ eltype, nodes, basis)
   # Compute the offset of the midpoint of the 1D reference interval
   # (its difference from zero)
-  reference_offset = first(nodes) + reference_length / 2
+  reference_offset = (first(nodes) + last(nodes)) / 2
 
   # Store cell ids
   elements.cell_ids .= cell_ids

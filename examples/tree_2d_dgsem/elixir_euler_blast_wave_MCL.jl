@@ -39,8 +39,16 @@ surface_flux = flux_lax_friedrichs
 volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorMCL(equations, basis;
-                            IDPPressure=false,
-                            Plotting=true)
+                            DensityLimiter=true,
+                            DensityAlphaForAll=true,
+                            SequentialLimiter=false,
+                            ConservativeLimiter=true,
+                            DensityPositivityLimiter=true,
+                            PressurePositivityLimiterKuzmin=true, PressurePositivityLimiterKuzminExact=false,
+                            SemiDiscEntropyLimiter=true,
+                            IDPCheckBounds=false,
+                            indicator_smooth=true,
+                            Plotting=false)
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,
                                                       volume_flux_fv=surface_flux)
@@ -74,7 +82,7 @@ save_solution = SaveSolutionCallback(interval=500,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
