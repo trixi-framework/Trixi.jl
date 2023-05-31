@@ -202,40 +202,6 @@ function (solution_callback::SaveSolutionCallback)(integrator)
 end
 
 
-function get_element_variables_semi!(semi::AbstractSemidiscretization, integrator, u_ode, element_variables)
-  @trixi_timeit timer() "get element variables" begin
-    get_element_variables!(element_variables, u_ode, semi)
-    callbacks = integrator.opts.callback
-    if callbacks isa CallbackSet
-      for cb in callbacks.continuous_callbacks
-        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.stats.naccept)
-      end
-      for cb in callbacks.discrete_callbacks
-        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.stats.naccept)
-      end
-    end
-  end
-end
-
-
-function get_element_variables_semi!(semi::SemidiscretizationCoupled, integrator, u_ode, element_variables)
-  for i in 1:nmeshes(semi)
-    @trixi_timeit timer() "get element variables" begin
-    get_element_variables!(element_variables, u_ode[semi.u_indices[i]], semi.semis[i])
-      callbacks = integrator.opts.callback
-      if callbacks isa CallbackSet
-        for cb in callbacks.continuous_callbacks
-          get_element_variables!(element_variables, u_ode[semi.u_indices[i]], semi.semis[i], cb; t=integrator.t, iter=integrator.stats.naccept)
-        end
-        for cb in callbacks.discrete_callbacks
-          get_element_variables!(element_variables, u_ode[semi.u_indices[i]], semi.semis[i], cb; t=integrator.t, iter=integrator.stats.naccept)
-        end
-      end
-    end
-  end
-end
-
-
 @inline function save_solution_file(semi::AbstractSemidiscretization, u_ode, solution_callback,
                                     integrator; system="")
   @unpack t, dt = integrator
