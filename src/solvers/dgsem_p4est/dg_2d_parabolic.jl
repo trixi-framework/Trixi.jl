@@ -1,4 +1,4 @@
-# This method is called when a SemidiscretizationHyperbolic is constructed.
+# This method is called when a SemidiscretizationHyperbolicParabolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache_parabolic(mesh::P4estMesh, equations_hyperbolic::AbstractEquations,
@@ -117,7 +117,7 @@ function calc_gradient!(gradients, u_transformed, t,
 
       for node in eachnode(dg)
         u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
-                                          equations_parabolic, dg, node, interface)                                              
+                                           equations_parabolic, dg, node, interface)                                              
         flux = 0.5 * (u_ll + u_rr)
 
         for v in eachvariable(equations_parabolic)
@@ -144,6 +144,7 @@ function calc_gradient!(gradients, u_transformed, t,
     dg.surface_integral, dg)
 
   # TODO: parabolic; mortars
+  @assert nmortars(dg, cache) == 0
 
   # Calculate surface integrals
   @trixi_timeit timer() "surface integral" begin
@@ -151,7 +152,6 @@ function calc_gradient!(gradients, u_transformed, t,
     (; surface_flux_values) = cache_parabolic.elements
     (; contravariant_vectors) = cache.elements
 
-    # Note that all fluxes have been computed with outward-pointing normal vectors.
     # Access the factors only once before beginning the loop to increase performance.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
@@ -160,6 +160,9 @@ function calc_gradient!(gradients, u_transformed, t,
     @threaded for element in eachelement(dg, cache)
       for l in eachnode(dg)
         for v in eachvariable(equations_parabolic)
+
+          # Compute x-component of gradients
+
           # surface at -x
           normal_direction_x, _ = get_normal_direction(1, contravariant_vectors, 1, l, element)
           gradients_x[v, 1,          l, element] = (
@@ -169,6 +172,28 @@ function calc_gradient!(gradients, u_transformed, t,
           normal_direction_x, _ = get_normal_direction(2, contravariant_vectors, nnodes(dg), l, element)
           gradients_x[v, nnodes(dg), l, element] = (
             gradients_x[v, nnodes(dg), l, element] + surface_flux_values[v, l, 2, element] * factor_2 * normal_direction_x)
+
+          # surface at -y
+          normal_direction_x, _ = get_normal_direction(3, contravariant_vectors, l, 1, element)
+          gradients_x[v, l, 1,          element] = (
+            gradients_x[v, l, 1,          element] + surface_flux_values[v, l, 3, element] * factor_1 * normal_direction_x)
+
+          # surface at +y
+          normal_direction_x, _ = get_normal_direction(4, contravariant_vectors, l, nnodes(dg), element)
+          gradients_x[v, l, nnodes(dg), element] = (
+            gradients_x[v, l, nnodes(dg), element] + surface_flux_values[v, l, 4, element] * factor_2 * normal_direction_x)
+
+          # Compute y-component of gradients
+
+          # surface at -x
+          _, normal_direction_y = get_normal_direction(1, contravariant_vectors, 1, l, element)
+          gradients_y[v, 1,          l, element] = (
+            gradients_y[v, 1,          l, element] + surface_flux_values[v, l, 1, element] * factor_1 * normal_direction_y)
+
+          # surface at +x
+          _, normal_direction_y = get_normal_direction(2, contravariant_vectors, nnodes(dg), l, element)
+          gradients_y[v, nnodes(dg), l, element] = (
+            gradients_y[v, nnodes(dg), l, element] + surface_flux_values[v, l, 2, element] * factor_2 * normal_direction_y)
 
           # surface at -y
           _, normal_direction_y = get_normal_direction(3, contravariant_vectors, l, 1, element)
