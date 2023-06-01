@@ -165,8 +165,7 @@ function calc_gradient!(gradients, u_transformed, t,
 
           # surface at -x
           normal_direction_x, _ = get_normal_direction(1, contravariant_vectors, 1, l, element)
-          gradients_x[v, 1,          l, element] = (
-            gradients_x[v, 1,          l, element] + surface_flux_values[v, l, 1, element] * factor_1 * normal_direction_x)
+          gradients_x[v, 1,          l, element] += surface_flux_values[v, l, 1, element] * factor_1 * normal_direction_x
 
           # surface at +x
           normal_direction_x, _ = get_normal_direction(2, contravariant_vectors, nnodes(dg), l, element)
@@ -368,7 +367,6 @@ function calc_interface_flux!(surface_flux_values,
     end
 
     for node in eachnode(dg)
-
       # We prolong the viscous flux dotted with respect the outward normal on the 
       # primary element. We assume a BR-1 type of flux.
       viscous_flux_normal_ll, viscous_flux_normal_rr = 
