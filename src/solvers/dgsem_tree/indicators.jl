@@ -232,7 +232,6 @@ Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturi
 """
 struct IndicatorIDP{RealT<:Real, LimitingVariablesCons, LimitingVariablesNonlinear, Cache, Indicator} <: AbstractIndicator
   IDPDensityTVD::Bool
-  IDPPressureTVD::Bool
   IDPPositivity::Bool
   variables_cons::LimitingVariablesCons           # Positivity of conservative variables
   variables_nonlinear::LimitingVariablesNonlinear # Positivity of nonlinear variables
@@ -253,7 +252,6 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorIDP(equations::AbstractEquations, basis;
                       IDPDensityTVD=false,
-                      IDPPressureTVD=false,
                       IDPPositivity=false,
                       variables_cons=(first,),
                       variables_nonlinear=(),
@@ -274,9 +272,6 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     if IDPDensityTVD
       number_bounds += 2 - IDPPositivity * (Trixi.density in variables_cons)
     end
-    if IDPPressureTVD
-      number_bounds += 2 - IDPPositivity * (pressure in variables_nonlinear)
-    end
   end
 
   cache = create_cache(IndicatorIDP, equations, basis, number_bounds, BarStates)
@@ -288,21 +283,20 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     IndicatorHG = nothing
   end
   IndicatorIDP{typeof(positCorrFactor), typeof(variables_cons), typeof(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(
-    IDPDensityTVD, IDPPressureTVD, IDPPositivity, variables_cons, variables_nonlinear, IDPSpecEntropy, IDPMathEntropy,
+    IDPDensityTVD, IDPPositivity, variables_cons, variables_nonlinear, IDPSpecEntropy, IDPMathEntropy,
     BarStates, cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma, indicator_smooth, thr_smooth, IndicatorHG)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
   @nospecialize indicator # reduce precompilation time
-  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
+  @unpack IDPDensityTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
 
   print(io, "IndicatorIDP(")
-  if !(IDPDensityTVD || IDPPressureTVD || IDPPositivity || IDPSpecEntropy || IDPMathEntropy)
+  if !(IDPDensityTVD || IDPPositivity || IDPSpecEntropy || IDPMathEntropy)
     print(io, "No limiter selected => pure DG method")
   else
     print(io, "limiter=(")
     IDPDensityTVD  && print(io, "IDPDensityTVD, ")
-    IDPPressureTVD && print(io, "IDPPressureTVD, ")
     IDPPositivity  && print(io, "IDPPositivity, ")
     IDPSpecEntropy && print(io, "IDPSpecEntropy, ")
     IDPMathEntropy && print(io, "IDPMathEntropy, ")
@@ -316,17 +310,16 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
   @nospecialize indicator # reduce precompilation time
-  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
+  @unpack IDPDensityTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
 
   if get(io, :compact, false)
     show(io, indicator)
   else
-    if !(IDPDensityTVD || IDPPressureTVD || IDPPositivity || IDPSpecEntropy || IDPMathEntropy)
+    if !(IDPDensityTVD || IDPPositivity || IDPSpecEntropy || IDPMathEntropy)
       setup = ["limiter" => "No limiter selected => pure DG method"]
     else
       setup = ["limiter" => ""]
       IDPDensityTVD  && (setup = [setup..., "" => "IDPDensityTVD"])
-      IDPPressureTVD && (setup = [setup..., "" => "IDPPressureTVD"])
       if IDPPositivity
         string = "IDPPositivity with variables $(tuple(indicator.variables_cons..., indicator.variables_nonlinear...))"
         setup = [setup..., "" => string]

@@ -213,8 +213,6 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSE
 
   indicator_IDP.IDPDensityTVD  &&
     @trixi_timeit timer() "IDPDensityTVD"  IDP_densityTVD!( alpha, indicator_IDP, u, t, dt, semi, elements)
-  indicator_IDP.IDPPressureTVD &&
-    @trixi_timeit timer() "IDPPressureTVD" IDP_pressureTVD!(alpha, indicator_IDP, u, t, dt, semi, elements)
   indicator_IDP.IDPPositivity  &&
     @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, indicator_IDP, u,    dt, semi, elements)
   indicator_IDP.IDPSpecEntropy &&
@@ -580,10 +578,10 @@ end
 @inline function IDP_specEntropy!(alpha, indicator_IDP, u, t, dt, semi, elements)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack boundary_conditions = semi
-  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity = indicator_IDP
+  @unpack IDPDensityTVD, IDPPositivity = indicator_IDP
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
-  s_min = var_bounds[2 * (IDPDensityTVD + IDPPressureTVD) + 1]
+  s_min = var_bounds[2 * IDPDensityTVD + 1]
   if !indicator_IDP.BarStates
     calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u, t, semi)
   end
@@ -608,10 +606,10 @@ specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol
 @inline function IDP_mathEntropy!(alpha, indicator_IDP, u, t, dt, semi, elements)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack boundary_conditions = semi
-  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy = indicator_IDP
+  @unpack IDPDensityTVD, IDPPositivity, IDPSpecEntropy = indicator_IDP
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
-  s_max = var_bounds[2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + 1]
+  s_max = var_bounds[2 * IDPDensityTVD + IDPSpecEntropy + 1]
   if !indicator_IDP.BarStates
     calc_bounds_1sided!(s_max, max, typemin, entropy_math, u, t, semi)
   end
@@ -652,7 +650,7 @@ end
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
-  @unpack IDPDensityTVD, IDPPressureTVD, IDPSpecEntropy, IDPMathEntropy, positCorrFactor, variables_cons = indicator_IDP
+  @unpack IDPDensityTVD, IDPSpecEntropy, IDPMathEntropy, positCorrFactor, variables_cons = indicator_IDP
 
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
@@ -660,12 +658,10 @@ end
     if Trixi.density == variables_cons[index]
       var_min = var_bounds[1]
     else
-      var_min = var_bounds[2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
-                           index - 1]
+      var_min = var_bounds[2 * IDPDensityTVD + IDPSpecEntropy + IDPMathEntropy + index - 1]
     end
   else
-    var_min = var_bounds[2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
-                         index]
+    var_min = var_bounds[2 * IDPDensityTVD + IDPSpecEntropy + IDPMathEntropy + index]
   end
 
   @threaded for element in elements
@@ -722,23 +718,13 @@ end
 
 @inline function IDP_positivity_newton!(alpha, indicator_IDP, u, dt, semi, elements, variable, index)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-  @unpack IDPDensityTVD, IDPPressureTVD, IDPSpecEntropy, IDPMathEntropy, positCorrFactor, variables_cons, variables_nonlinear = indicator_IDP
+  @unpack IDPDensityTVD, IDPSpecEntropy, IDPMathEntropy, positCorrFactor, variables_cons, variables_nonlinear = indicator_IDP
 
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
-  if pressure in variables_nonlinear && IDPPressureTVD
-    if pressure == variables_nonlinear[index]
-      var_min = var_bounds[2 * IDPDensityTVD + 1]
-    else
-      var_min = var_bounds[2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
-                           length(variables_cons) - min(IDPDensityTVD, Trixi.density in variables_cons) +
-                           index - 1]
-    end
-  else
-    var_min = var_bounds[2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
-                         length(variables_cons) - min(IDPDensityTVD, Trixi.density in variables_cons) +
-                         index]
-  end
+  var_min = var_bounds[2 * IDPDensityTVD + IDPSpecEntropy + IDPMathEntropy +
+                       length(variables_cons) - min(IDPDensityTVD, Trixi.density in variables_cons) +
+                       index]
 
   @threaded for element in elements
     for j in eachnode(dg), i in eachnode(dg)
@@ -748,11 +734,7 @@ end
       if var < 0.0
         println("Error: safe $variable is not safe. element=$element, node: $i $j, value=$var")
       end
-      if indicator_IDP.IDPPressureTVD
-        var_min[i, j, element] = max(var_min[i, j, element], positCorrFactor * var)
-      else
-        var_min[i, j, element] = positCorrFactor * var
-      end
+      var_min[i, j, element] = positCorrFactor * var
 
       # Perform Newton's bisection method to find new alpha
       newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j, element,

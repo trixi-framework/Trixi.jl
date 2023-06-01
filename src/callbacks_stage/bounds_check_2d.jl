@@ -7,7 +7,7 @@
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache, indicator::IndicatorIDP,
                               time, iter, output_directory, save_errors, interval)
-  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = solver.volume_integral.indicator
+  @unpack IDPDensityTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = solver.volume_integral.indicator
   @unpack var_bounds = indicator.cache.ContainerShockCapturingIndicator
   @unpack idp_bounds_delta = indicator.cache
 
@@ -27,25 +27,6 @@
     end
     idp_bounds_delta[1] = max(idp_bounds_delta[1], deviation_min)
     idp_bounds_delta[2] = max(idp_bounds_delta[2], deviation_max)
-    if save_errors_
-      deviation_min_ = deviation_min
-      deviation_max_ = deviation_max
-      open("$output_directory/deviations.txt", "a") do f;
-        print(f, ", ", deviation_min_, ", ", deviation_max_);
-      end
-    end
-    counter += 2
-  end
-  if IDPPressureTVD
-    deviation_min = zero(eltype(u))
-    deviation_max = zero(eltype(u))
-    for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
-      p = pressure(get_node_vars(u, equations, solver, i, j, element), equations)
-      deviation_min = max(deviation_min, var_bounds[counter][i, j, element] - p)
-      deviation_max = max(deviation_max, p - var_bounds[counter+1][i, j, element])
-    end
-    idp_bounds_delta[counter]   = max(idp_bounds_delta[counter],   deviation_min)
-    idp_bounds_delta[counter+1] = max(idp_bounds_delta[counter+1], deviation_max)
     if save_errors_
       deviation_min_ = deviation_min
       deviation_max_ = deviation_max
@@ -105,9 +86,6 @@
       counter += 1
     end
     for variable in indicator.variables_nonlinear
-      if variable == pressure && IDPPressureTVD
-        continue
-      end
       deviation_min = zero(eltype(u))
       for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
         var = variable(get_node_vars(u, equations, solver, i, j, element), equations)

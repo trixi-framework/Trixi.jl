@@ -17,9 +17,8 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorIDP(equations, basis;
                             IDPDensityTVD=true,
-                            IDPPressureTVD=true,
                             IDPPositivity=false,
-                            indicator_smooth=true)
+                            indicator_smooth=false)
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,
                                                       volume_flux_fv=surface_flux)
@@ -56,7 +55,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -66,7 +65,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (AntidiffusiveStage(), BoundsCheckCallback(save_errors=true))
+stage_callbacks = (AntidiffusiveStage(), BoundsCheckCallback(save_errors=false))
 
 sol = Trixi.solve(ode; alg=Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks),
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

@@ -995,37 +995,6 @@ end
     end
     counter += 2
   end
-  # Pressure
-  if indicator.IDPPressureTVD
-    p_min = var_bounds[counter]
-    p_max = var_bounds[counter+1]
-    @threaded for element in eachelement(dg, cache)
-      p_min[:, :, element] .= typemax(eltype(p_min))
-      p_max[:, :, element] .= typemin(eltype(p_max))
-      for j in eachnode(dg), i in eachnode(dg)
-        p = pressure(get_node_vars(u, equations, dg, i, j, element), equations)
-        p_min[i, j, element] = min(p_min[i, j, element], p)
-        p_max[i, j, element] = max(p_max[i, j, element], p)
-        # - xi direction
-        p = pressure(get_node_vars(bar_states1, equations, dg, i, j, element), equations)
-        p_min[i, j, element] = min(p_min[i, j, element], p)
-        p_max[i, j, element] = max(p_max[i, j, element], p)
-        # + xi direction
-        p = pressure(get_node_vars(bar_states1, equations, dg, i+1, j, element), equations)
-        p_min[i, j, element] = min(p_min[i, j, element], p)
-        p_max[i, j, element] = max(p_max[i, j, element], p)
-        # - eta direction
-        p = pressure(get_node_vars(bar_states2, equations, dg, i, j, element), equations)
-        p_min[i, j, element] = min(p_min[i, j, element], p)
-        p_max[i, j, element] = max(p_max[i, j, element], p)
-        # + eta direction
-        p = pressure(get_node_vars(bar_states2, equations, dg, i, j+1, element), equations)
-        p_min[i, j, element] = min(p_min[i, j, element], p)
-        p_max[i, j, element] = max(p_max[i, j, element], p)
-      end
-    end
-    counter += 2
-  end
   # Specific Entropy
   if indicator.IDPSpecEntropy
     s_min = var_bounds[counter]

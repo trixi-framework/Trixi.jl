@@ -64,16 +64,13 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
     return nothing
   end
 
-  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
+  @unpack IDPDensityTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
   @unpack output_directory = callback
   mkpath(output_directory)
   open("$output_directory/deviations.txt", "a") do f;
     print(f, "# iter, simu_time")
     if IDPDensityTVD
       print(f, ", rho_min, rho_max");
-    end
-    if IDPPressureTVD
-      print(f, ", p_min, p_max");
     end
     if IDPSpecEntropy
       print(f, ", specEntr_min");
@@ -89,9 +86,6 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
         print(f, ", $(variable)_min");
       end
       for variable in indicator.variables_nonlinear
-        if variable == pressure && IDPPressureTVD
-          continue
-        end
         print(f, ", $(variable)_min");
       end
     end
@@ -133,7 +127,7 @@ end
 
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi, indicator::IndicatorIDP)
-  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
+  @unpack IDPDensityTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
   @unpack idp_bounds_delta = indicator.cache
 
   println("─"^100)
@@ -142,10 +136,6 @@ end
   counter = 1
   if IDPDensityTVD
     println("rho:\n- lower bound: ", idp_bounds_delta[counter], "\n- upper bound: ", idp_bounds_delta[counter+1])
-    counter += 2
-  end
-  if IDPPressureTVD
-    println("pressure:\n- lower bound: ", idp_bounds_delta[counter], "\n- upper bound: ", idp_bounds_delta[counter+1])
     counter += 2
   end
   if IDPSpecEntropy
@@ -165,9 +155,6 @@ end
       counter += 1
     end
     for variable in indicator.variables_nonlinear
-      if variable == pressure && IDPPressureTVD
-        continue
-      end
       println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
       counter += 1
     end
