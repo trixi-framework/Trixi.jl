@@ -65,6 +65,10 @@ function calc_gradient!(gradients, u_transformed, t,
         gradients_reference_1 = get_node_vars(gradients_x, equations_parabolic, dg, i, j, element)
         gradients_reference_2 = get_node_vars(gradients_y, equations_parabolic, dg, i, j, element)
 
+        # note that the contravariant vectors are transposed compared with computations of flux
+        # divergences in `calc_volume_integral!`. See 
+        # https://github.com/trixi-framework/Trixi.jl/pull/1490#discussion_r1213345190 
+        # for a more detailed discussion. 
         gradient_x_node = Ja11 * gradients_reference_1 + Ja21 * gradients_reference_2
         gradient_y_node = Ja12 * gradients_reference_1 + Ja22 * gradients_reference_2
 
