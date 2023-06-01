@@ -127,7 +127,6 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
 end
 
 function solve!(integrator::SimpleIntegratorSSP)
-  @unpack indicator = integrator.p.solver.volume_integral
   @unpack prob = integrator.sol
   @unpack alg = integrator
   t_end = last(prob.tspan)
@@ -152,22 +151,6 @@ function solve!(integrator::SimpleIntegratorSSP)
       terminate!(integrator)
     end
 
-    # Reset alphas for MCL
-    if indicator isa IndicatorMCL && indicator.Plotting
-      @unpack alpha, alpha_pressure, alpha_entropy = indicator.cache.ContainerShockCapturingIndicator
-      @threaded for element in eachelement(integrator.p.solver, integrator.p.cache)
-        for j in eachnode(integrator.p.solver), i in eachnode(integrator.p.solver)
-          alpha[:, i, j, element] .= one(eltype(alpha))
-          if indicator.PressurePositivityLimiterKuzmin
-            alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
-          end
-          if indicator.SemiDiscEntropyLimiter
-            alpha_entropy[i, j, element] = one(eltype(alpha_entropy))
-          end
-        end
-      end
-    end
-
     @. integrator.r0 = integrator.u
     for stage in eachindex(alg.c)
       @trixi_timeit timer() "Runge-Kutta stage" begin
@@ -179,8 +162,6 @@ function solve!(integrator::SimpleIntegratorSSP)
         @. integrator.u = integrator.u + integrator.dt * integrator.du
       end
 
-      @trixi_timeit timer() "update_alpha_max_avg!" update_alpha_max_avg!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
-
       for stage_callback in alg.stage_callbacks
         stage_callback(integrator.u, integrator, stage)
       end
@@ -188,8 +169,6 @@ function solve!(integrator::SimpleIntegratorSSP)
       # perform convex combination
       @. integrator.u = alg.a[stage] * integrator.r0 + alg.b[stage] * integrator.u
     end
-
-    @trixi_timeit timer() "save_alpha" save_alpha(indicator, integrator.t, integrator.iter+1, integrator.p, integrator.p.mesh, output_directory)
 
     integrator.iter += 1
     integrator.t += integrator.dt

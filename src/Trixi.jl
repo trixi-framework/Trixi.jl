@@ -224,7 +224,7 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
        AveragingCallback,
-       AMRCallback, StepsizeCallback,
+       AMRCallback, StepsizeCallback, LimitingAnalysisCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback
 
