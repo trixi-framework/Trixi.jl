@@ -98,8 +98,9 @@ end
 
 """
     T8codeMesh(trees_per_dimension; polydeg,
-              mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
-              RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
+               mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
+               RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
+
 Create a structured curved 'T8codeMesh' of the specified size.
 There are three ways to map the mesh to the physical domain.
 1. Define a 'mapping' that maps the hypercube '[-1, 1]^n'.
