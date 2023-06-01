@@ -67,7 +67,7 @@ function trixi_t8_count_interfaces(forest)
 
         forest_is_balanced = Cint(1)
 
-        t8_forest_leaf_face_neighbors(forest,itree,element,
+        t8_forest_leaf_face_neighbors(forest, itree, element,
           pneighbor_leafs_ref, iface, dual_faces_ref, num_neighbors_ref,
           pelement_indices_ref, pneigh_scheme_ref, forest_is_balanced)
 
