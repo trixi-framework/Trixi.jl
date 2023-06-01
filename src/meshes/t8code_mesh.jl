@@ -103,10 +103,12 @@ end
 
 Create a structured curved 'T8codeMesh' of the specified size.
 There are three ways to map the mesh to the physical domain.
-1. Define a 'mapping' that maps the hypercube '[-1, 1]^n'.
+1. Define a `mapping` that maps the hypercube '[-1, 1]^n'.
 2. Specify a 'Tuple' 'faces' of functions that parametrize each face.
 3. Create a rectangular mesh by specifying 'coordinates_min' and 'coordinates_max'.
+
 Non-periodic boundaries will be called ':x_neg', ':x_pos', ':y_neg', ':y_pos', ':z_neg', ':z_pos'.
+
 # Arguments
 - 'trees_per_dimension::NTupleE{NDIMS, Int}': the number of trees in each dimension.
 - 'polydeg::Integer': polynomial degree used to store the geometry of the mesh.
