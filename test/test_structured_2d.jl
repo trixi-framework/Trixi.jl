@@ -169,12 +169,44 @@ isdir(outdir) && rm(outdir, recursive=true)
       atol = 7.0e-13)
   end
 
+  @trixi_testset "elixir_euler_free_stream_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_sc_subcell.jl"),
+      l2   = [2.6224749465938795e-14, 1.6175366858083413e-14, 2.358782725951525e-14, 5.910156539173304e-14],
+      linf = [1.1945999744966684e-13, 1.084687895058778e-13, 1.7050250100680842e-13, 2.0250467969162855e-13],
+      atol = 1.0e-13,
+      cells_per_dimension = (8, 8))
+  end
+
+  @trixi_testset "elixir_euler_free_stream_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_MCL.jl"),
+      l2   = [3.532639560334565e-14, 1.4787576718355913e-14, 2.109573923923632e-14, 2.54649935281524e-14],
+      linf = [1.3955503419538218e-13, 1.1611545058798356e-13, 1.7619239400801234e-13, 2.007283228522283e-13],
+      atol = 1.0e-13,
+      cells_per_dimension = (8, 8))
+  end
+
   @trixi_testset "elixir_euler_free_stream.jl with FluxRotated(flux_lax_friedrichs)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
       surface_flux=FluxRotated(flux_lax_friedrichs),
       l2   = [2.063350241405049e-15, 1.8571016296925367e-14, 3.1769447886391905e-14, 1.4104095258528071e-14],
       linf = [1.9539925233402755e-14, 2.9791447087035294e-13, 6.502853810985698e-13, 2.7000623958883807e-13],
       atol = 7.0e-13)
+  end
+
+  @trixi_testset "elixir_euler_shock_upstream_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shock_upstream_sc_subcell.jl"),
+      l2   = [1.6235046821060115, 1.3268082379825517, 2.260222745763045, 13.836104055251756],
+      linf = [5.325409024016956, 6.709625872864434, 9.083315813037805, 41.99330375684724],
+      cells_per_dimension = (8, 12),
+      tspan = (0.0, 1.0))
+  end
+
+  @trixi_testset "elixir_euler_shock_upstream_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shock_upstream_MCL.jl"),
+      l2   = [1.658656964774321, 1.3774222979640156, 2.3582271089306537, 14.118411580269786],
+      linf = [5.70562521337294, 9.254765871614621, 11.472661014676802, 45.56200325907666],
+      cells_per_dimension = (8, 12),
+      tspan = (0.0, 1.0))
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
