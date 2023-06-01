@@ -9,7 +9,7 @@ advection_velocity = (1.0, 0.0)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
-function x_trans_periodic(x, domain_length = SVector(2 * pi), center = SVector(0.0))
+function x_trans_periodic(x, domain_length=SVector(2 * pi), center=SVector(0.0))
     x_normalized = x .- center
     x_shifted = x_normalized .% domain_length
     x_offset = ((x_shifted .< -0.5 * domain_length) - (x_shifted .> 0.5 * domain_length)) .* domain_length
