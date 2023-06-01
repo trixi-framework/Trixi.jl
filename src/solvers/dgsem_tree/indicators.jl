@@ -102,6 +102,40 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
 end
 
 
+function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM, cache;
+                                                   kwargs...)
+  @unpack alpha_smooth = indicator_hg
+  @unpack alpha, alpha_tmp = indicator_hg.cache
+  # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
+  #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
+  #       or just `resize!` whenever we call the relevant methods as we do now?
+  resize!(alpha, nelements(dg, cache))
+  if alpha_smooth
+    resize!(alpha_tmp, nelements(dg, cache))
+  end
+
+  # magic parameters
+  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
+  parameter_s = log((1 - 0.0001) / 0.0001)
+
+  @threaded for element in eachelement(dg, cache)
+    # This is dispatched by mesh dimension.
+    # Use this function barrier and unpack inside to avoid passing closures to
+    # Polyester.jl with `@batch` (`@threaded`).
+    # Otherwise, `@threaded` does not work here with Julia ARM on macOS.
+    # See https://github.com/JuliaSIMD/Polyester.jl/issues/88.
+    calc_indicator_hennemann_gassner!(
+      indicator_hg, threshold, parameter_s, u,
+      element, mesh, equations, dg, cache)
+  end
+
+  if alpha_smooth
+    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
+  end
+
+  return alpha
+end
+
 
 """
     IndicatorLöhner (equivalent to IndicatorLoehner)

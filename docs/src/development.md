@@ -18,7 +18,7 @@ package, which tracks changed files and re-loads them automatically. Therefore,
 it is *highly recommended* to first install Revise with the following command in Julia:
 To enter the package REPL mode, press `]` in the standard Julia REPL mode. Then, execute
 ```julia-repl
-(@v1.8) pkg> add Revise
+(@v1.9) pkg> add Revise
 ```
 Now you are able to run Trixi.jl from the REPL, change Trixi.jl code between runs,
 **and** enjoy the advantages of the compilation cache! Before you start using
@@ -28,7 +28,7 @@ Another recommended package for working from the REPL is
 [OhMyREPL.jl](https://github.com/KristofferC/OhMyREPL.jl). It can be installed
 by running
 ```julia-repl
-(@v1.8) pkg> add OhMyREPL
+(@v1.9) pkg> add OhMyREPL
 ```
 and adds syntax highlighting, bracket highlighting, and other helpful
 improvements for using Julia interactively. To automatically use OhMyREPL when
@@ -244,7 +244,7 @@ see the call stack, and execute statements.
 
 The package can be installed in the Julia REPL by executing
 ```julia-repl
-(@v1.8) pkg> add Infiltrator
+(@v1.9) pkg> add Infiltrator
 ```
 
 To load the package in the Julia REPL execute
@@ -256,17 +256,13 @@ Breakpoints can be set by adding a line with the ```@infiltrate``` macro at the 
 in the code. Use [Revise](@ref interactive-use-of-julia) if you want to set and delete breakpoints
 in your package without having to restart Julia.
 
-!!! note
-    When running Julia inside a package environment, the ```@infiltrate``` macro only works if `Infiltrator`
-    has been added to the dependencies. Another work around when using Revise is to first load the
-    package and then add breakpoints with `Main.@infiltrate` to the code. If this is not
-    desired, the functional form
-    ```julia
-    if isdefined(Main, :Infiltrator)
-      Main.Infiltrator.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-    end
-    ```
-    can be used to set breakpoints when working with Trixi.jl or other packages.
+!!! note "Use `@autoinfiltrate` when debugging Trixi.jl"
+    When running Julia inside a package environment, e.g., inside the source
+    code of Trixi.jl itself, the `@infiltrate` macro only works if
+    `Infiltrator` has been added to the package dependencies. To avoid this,
+    you can use the (non-exported) `@autoinfiltrate` macro
+    in Trixi.jl, which only requires Infiltrator.jl to be available in the
+    current environment stack and will auto-load it for you.
 
 Triggering the breakpoint starts a REPL session where it is possible to interact with the current
 local scope. Possible commands are:
@@ -332,5 +328,5 @@ in Trixi2Vtk.
 To use a locally modified Trixi.jl clone instead of a Trixi.jl release, one can tell Pkg
 to use the local source code of Trixi.jl instead of a registered version by running
 ```julia-repl
-(@v1.8) pkg> develop path/to/Trixi.jl
+(@v1.9) pkg> develop path/to/Trixi.jl
 ```
