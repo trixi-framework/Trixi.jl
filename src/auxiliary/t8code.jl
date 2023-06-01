@@ -234,7 +234,7 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
               mortars.neighbor_ids[end, mortar_id] = current_index + 1
 
               # First `1:end-1` entries are the smaller elements.
-              mortars.neighbor_ids[1:end-1, mortar_id] .= neighbor_ielements[:] .+ 1
+              mortars.neighbor_ids[1:end-1, mortar_id] .= neighbor_ielements .+ 1
 
               for side = 1:2
                 # Align mortar in positive coordinate direction of small side.
