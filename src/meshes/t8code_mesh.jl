@@ -231,8 +231,8 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
 """
 function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
-                          mapping=nothing, polydeg=1, RealT=Float64,
-                          initial_refinement_level=0, unsaved_changes=true) where NDIMS
+                           mapping=nothing, polydeg=1, RealT=Float64,
+                           initial_refinement_level=0, unsaved_changes=true) where NDIMS
 
   @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
 
