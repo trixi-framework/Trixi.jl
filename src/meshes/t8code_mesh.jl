@@ -216,6 +216,7 @@ Increasing the `initial_refinement_level` allows one to uniformly refine the bas
 in the `meshfile` to create a forest with more trees before the simulation begins.
 For example, if a two-dimensional base mesh contains 25 elements then setting
 `initial_refinement_level=1` creates an initial forest of `2^2 * 25 = 100` trees.
+
 # Arguments
 - `cmesh::Ptr{t8_cmesh}`: Pointer to a cmesh object.
 - `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
