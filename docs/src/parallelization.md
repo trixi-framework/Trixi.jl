@@ -164,9 +164,10 @@ together with MPI you need to pass `internalnorm=ode_norm` and you should pass
 which are both included in [`ode_default_options`](@ref).
 
 ### Using parallel input and output
-Trixi.jl allows parallel I/O using MPI by leveraging parallel HDF5.jl. To enable this, you first need
-to use a system-provided MPI library, see also [here](@ref parallel_system_MPI) and you need to tell
-[HDF5.jl](https://github.com/JuliaIO/HDF5.jl) to use this library.
+Trixi.jl allows parallel I/O using MPI by leveraging parallel HDF5.jl. On most systems, this is
+enabled by default. Additionally, you can also use a local installation of the HDF5 library (with MPI support).
+For this, you first need to use a system-provided MPI library, see also [here](@ref parallel_system_MPI) and
+you need to tell [HDF5.jl](https://github.com/JuliaIO/HDF5.jl) to use this library.
 To do so with HDF5.jl v0.17 and newer, set the preferences `libhdf5` and `libhdf5_hl` 
 to the local paths of the libraries `libhdf5` and `libhdf5_hl`, which can be done by
 ```julia
@@ -180,4 +181,4 @@ For more information see also the [documentation of HDF5.jl](https://juliaio.git
 In total, you should have a file called LocalPreferences.toml in the project directory that contains a section `[MPIPreferences]`,
 a section `[HDF5]` with entries `libhdf5` and `libhdf5_hl` as well as a section `[P4est]` with the entry `libp4est`.
 
-If you do not perform these steps to use parallel HDF5 or if the HDF5 is not MPI-enabled, Trixi.jl will fall back on a less efficient I/O mechanism. In that case, all disk I/O is performed only on rank zero and data is distributed to/gathered from the other ranks using regular MPI communication.
+If HDF5 is not MPI-enabled, Trixi.jl will fall back on a less efficient I/O mechanism. In that case, all disk I/O is performed only on rank zero and data is distributed to/gathered from the other ranks using regular MPI communication.
