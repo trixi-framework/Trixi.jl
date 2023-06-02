@@ -18,12 +18,13 @@ The third-order SSP Runge-Kutta method of
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct SimpleSSPRK33 <: SimpleAlgorithmSSP
+struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
   a::SVector{3, Float64}
   b::SVector{3, Float64}
   c::SVector{3, Float64}
+  stage_callbacks::StageCallbacks
 
-  function SimpleSSPRK33()
+  function SimpleSSPRK33(; stage_callbacks=(AntidiffusiveStage(),))
     a = SVector(0.0, 3/4, 1/3)
     b = SVector(1.0, 1/4, 2/3)
     c = SVector(0.0, 1.0, 1/2)
@@ -36,7 +37,7 @@ struct SimpleSSPRK33 <: SimpleAlgorithmSSP
     # --------------------
     #   b | 1/6  1/6  2/3
 
-    new(a, b, c)
+    new{typeof(stage_callbacks)}(a, b, c, stage_callbacks)
   end
 end
 
@@ -118,6 +119,10 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
     error("unsupported")
   end
 
+  for stage_callback in alg.stage_callbacks
+    init_callback(stage_callback, integrator.p)
+  end
+
   solve!(integrator)
 end
 
@@ -150,7 +155,10 @@ function solve!(integrator::SimpleIntegratorSSP)
         # perform forward Euler step
         @. integrator.u = integrator.u + integrator.dt * integrator.du
       end
-      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u, t_stage, integrator.dt, integrator.p, indicator)
+
+      for stage_callback in alg.stage_callbacks
+        stage_callback(integrator.u, integrator, stage)
+      end
 
       # perform convex combination
       @. integrator.u = alg.a[stage] * integrator.r0 + alg.b[stage] * integrator.u
@@ -173,6 +181,10 @@ function solve!(integrator::SimpleIntegratorSSP)
       @warn "Interrupted. Larger maxiters is needed."
       terminate!(integrator)
     end
+  end
+
+  for stage_callback in alg.stage_callbacks
+    finalize_callback(stage_callback, integrator.p)
   end
 
   return TimeIntegratorSolution((first(prob.tspan), integrator.t),
@@ -208,6 +220,12 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
 end
 
 function Base.resize!(semi::AbstractSemidiscretization, new_size)
+  resize!(semi, semi.solver.volume_integral, new_size)
+end
+
+Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
+
+function Base.resize!(semi, volume_integral::VolumeIntegralShockCapturingSubcell, new_size)
   # Resize ContainerAntidiffusiveFlux2D
   resize!(semi.cache.ContainerAntidiffusiveFlux2D, new_size)
 
