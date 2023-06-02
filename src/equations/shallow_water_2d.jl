@@ -59,10 +59,10 @@ struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 
   threshold_limiter::RealT # Threshold to use in `PositivityPreservingLimiterShallowWater` on water height,
                            # as a (small) shift on the initial condition and cutoff before the
                            # next time step.
-                           # Default in double precision is 500*eps() ≈ 1e-13.
+                           # Default is 500*eps() which in double precision is ≈ 1e-13.
   threshold_wet::RealT     # Threshold to be applied on water height to define when the flow is "wet"
                            # before calculating the numerical flux.
-                           # Default in double precision is 5*eps() ≈ 1e-15.
+                           # Default is 5*eps() which in double precision is ≈ 1e-15.
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
