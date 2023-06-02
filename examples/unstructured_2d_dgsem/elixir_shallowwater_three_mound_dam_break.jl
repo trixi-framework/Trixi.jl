@@ -17,11 +17,11 @@ Initial condition simulating a dam break. The bottom topography is given by one 
 mounds. The mounds are flooded by the water for t > 0. To smooth the discontinuity, a logistic function
 is applied.
 
-The initial conditions are based on section 6.3 from the paper:
-  - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and Timothy Warburton (2018)
-    An entropy stable discontinuous Galerkin method for the shallow water equations on
-    curvilinear meshes with wet/dry fronts accelerated by GPUs\n
-    [DOI: 10.1016/j.jcp.2018.08.038](https://doi.org/10.1016/j.jcp.2018.08.038)
+The initial conditions is taken from Section 6.3 of the paper:
+- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and Timothy Warburton (2018)
+  An entropy stable discontinuous Galerkin method for the shallow water equations on
+  curvilinear meshes with wet/dry fronts accelerated by GPUs\n
+  [DOI: 10.1016/j.jcp.2018.08.038](https://doi.org/10.1016/j.jcp.2018.08.038)
 """
 function initial_condition_three_mounds(x, t, equations::ShallowWaterEquations2D)
 

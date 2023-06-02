@@ -15,15 +15,15 @@ wet-dry mechanics. This test has an analytical solution. The initial condition i
 analytical solution at time t=0. The bottom topography defines a bowl and the water level is given
 by an oscillating lake.
 The original test and its analytical solution were first presented in
-  - William C. Thacker (1981)
-    Some exact solutions to the nonlinear shallow-water wave equations
-    [DOI: 10.1017/S0022112081001882](https://doi.org/10.1017/S0022112081001882).
+- William C. Thacker (1981)
+  Some exact solutions to the nonlinear shallow-water wave equations
+  [DOI: 10.1017/S0022112081001882](https://doi.org/10.1017/S0022112081001882).
 
-The particular setup is taken out of section 6.2 from the paper:
-  - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and Timothy Warburton (2018)
-    An entropy stable discontinuous Galerkin method for the shallow water equations on
-    curvilinear meshes with wet/dry fronts accelerated by GPUs\n
-    [DOI: 10.1016/j.jcp.2018.08.038](https://doi.org/10.1016/j.jcp.2018.08.038).
+The particular setup below is taken from Section 6.2 of
+- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and Timothy Warburton (2018)
+  An entropy stable discontinuous Galerkin method for the shallow water equations on
+  curvilinear meshes with wet/dry fronts accelerated by GPUs
+  [DOI: 10.1016/j.jcp.2018.08.038](https://doi.org/10.1016/j.jcp.2018.08.038).
 """
 function initial_condition_parabolic_bowl(x, t, equations:: ShallowWaterEquations2D)
   a = 1.0
