@@ -927,6 +927,7 @@ end
   return λ_min, λ_max
 end
 
+
 """
     min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer,
                               equations::ShallowWaterEquations2D)

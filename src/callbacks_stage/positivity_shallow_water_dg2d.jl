@@ -36,17 +36,17 @@ function limiter_shallow_water!(u, threshold::Real, variable,
     theta = (value_mean - threshold) / (value_mean - value_min)
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, element)
-      
+
       # Cut off velocity in case that the water height is smaller than the threshold
 
       h_node, h_v1_node, h_v2_node, b_node = u_node
       h_mean, h_v1_mean, h_v2_mean, _ = u_mean # b_mean is not used as it must not be overwritten
 
       if h_node <= threshold
-        h_v1_node = 0
-        h_v2_node = 0
-        h_v1_mean = 0
-        h_v2_mean = 0
+        h_v1_node = zero(eltyep(u))
+        h_v2_node = zero(eltyep(u))
+        h_v1_mean = zero(eltyep(u))
+        h_v2_mean = zero(eltyep(u))
       end
 
       u_node = SVector(h_node, h_v1_node, h_v2_node, b_node)
@@ -55,8 +55,8 @@ function limiter_shallow_water!(u, threshold::Real, variable,
       # When velocities are cut off, the only averaged value is the water height,
       # because the velocities are set to zero and this value is passed.
       # Otherwise, the velocities are averaged, as well.
-      # Note that the auxiliary bottom topography variable `b` is never limited. 
-      set_node_vars!(u, theta * u_node + (1-theta) * u_mean,
+      # Note that the auxiliary bottom topography variable `b` is never limited.
+      set_node_vars!(u, theta * u_node + (1 - theta) * u_mean,
                      equations, dg, i, j, element)
     end
   end
@@ -74,8 +74,8 @@ function limiter_shallow_water!(u, threshold::Real, variable,
 
       if h <= threshold
         h = threshold
-        h_v1 = 0
-        h_v2 = 0
+        h_v1 = zero(eltyep(u))
+        h_v2 = zero(eltyep(u))
       end
 
       u_node = SVector(h, h_v1, h_v2, b)
