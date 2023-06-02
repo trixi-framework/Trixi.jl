@@ -14,36 +14,38 @@ equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=1.875,
     initial_condition_three_mounds(x, t, equations::ShallowWaterEquations2D)
 
 Initial condition simulating a dam break. The bottom topography is given by one large and two smaller
-mounds.
-The mounds are flooded by the water for t > 0. To smooth the discontinuity, a logistic function
+mounds. The mounds are flooded by the water for t > 0. To smooth the discontinuity, a logistic function
 is applied.
 
 The initial conditions are based on section 6.3 from the paper:
   - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and Timothy Warburton (2018)
-    An entropy stable discontinuous Galerkin method for the shallow water equations on 
+    An entropy stable discontinuous Galerkin method for the shallow water equations on
     curvilinear meshes with wet/dry fronts accelerated by GPUs\n
     [DOI: 10.1016/j.jcp.2018.08.038](https://doi.org/10.1016/j.jcp.2018.08.038)
 """
 function initial_condition_three_mounds(x, t, equations::ShallowWaterEquations2D)
-  
+
   # Set the background values
   v1 = 0.0
   v2 = 0.0
-  
+
   x1, x2 = x
   M_1 = 1 - 0.1 * sqrt( (x1 - 30.0)^2 + (x2 - 22.5)^2 )
   M_2 = 1 - 0.1 * sqrt( (x1 - 30.0)^2 + (x2 - 7.5)^2 )
   M_3 = 2.8 - 0.28 * sqrt( (x1 - 47.5)^2 + (x2 - 15.0)^2 )
-  
+
   b = max(0.0, M_1, M_2, M_3)
-  
+
   # use a logistic function to transfer water height value smoothly
   L  = equations.H0    # maximum of function
   x0 = 8  # center point of function
   k  = -75.0 # sharpness of transfer
-  
+
   H = max(b, L / (1.0 + exp(-k * (x1 - x0))))
 
+  # Avoid division by zero by adjusting the initial condition with a small dry state threshold
+  # that defaults to 500*eps() ≈ 1e-13 in double precision and is set in the constructor above
+  # for the ShallowWaterEquations struct.
   H = max(H, b + equations.threshold_limiter)
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
@@ -94,7 +96,7 @@ default_meshfile = joinpath(@__DIR__, "mesh_three_mound.mesh")
 isfile(default_meshfile) || download("https://gist.githubusercontent.com/svengoldberg/c3c87fecb3fc6e46be7f0d1c7cb35f83/raw/e817ecd9e6c4686581d63c46128f9b6468d396d3/mesh_three_mound.mesh",
                                       default_meshfile)
 
-meshfile = default_meshfile                          
+meshfile = default_meshfile
 
 mesh = UnstructuredMesh2D(meshfile)
 
@@ -128,7 +130,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 # run the simulation
 
-stage_limiter! = PositivityPreservingLimiterShallowWater(variables=(Trixi.waterheight,))                                       
+stage_limiter! = PositivityPreservingLimiterShallowWater(variables=(Trixi.waterheight,))
 
 sol = solve(ode, SSPRK43(stage_limiter!);
             ode_default_options()..., callback=callbacks);
