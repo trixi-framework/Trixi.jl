@@ -248,7 +248,7 @@ const flux_hll = FluxHLL()
 
 # An empty version of the `min_max_speed_chen_noelle` function is declared here
 # in order to create a dimension agnostic version of `flux_hll_chen_noelle`.
-# The full description of this wave speed estiamte can be found in the docstrings
+# The full description of this wave speed estimate can be found in the docstrings
 # for `min_max_speed_chen_noelle` in `shallow_water_1d.jl` or `shallow_water_2d.jl`.
 function min_max_speed_chen_noelle end
 
