@@ -61,7 +61,7 @@ function limiter_shallow_water!(u, threshold::Real, variable,
     end
 
     # "Safety" application of the wet/dry thresholds over all the DG nodes
-    # on the current element after the limiting in order to avoid dry nodes.
+    # on the current `element` after the limiting above in order to avoid dry nodes.
     # If the value_mean < threshold before applying limiter, there
     # could still be dry nodes afterwards due to logic of the limiting
     for j in eachnode(dg), i in eachnode(dg)
@@ -79,7 +79,6 @@ function limiter_shallow_water!(u, threshold::Real, variable,
 
       set_node_vars!(u, u_node, equations, dg, i, j, element)
     end
-
   end
 
   return nothing

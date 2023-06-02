@@ -44,19 +44,20 @@ function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
 
-  # If h at one LGL node is lower than threshold_wet, set alpha[element]=1 via indicator_wet
-  # in order to apply a full FV method in the partially wet cell and guarantee the well-balanced property.
+  # If the water height `h` at one LGL node is lower than `threshold_wet`
+  # the indicator sets the element-wise blending factor alpha[element] = 1
+  # via the local variable `indicator_wet`. In turn, this ensures that a pure
+  # FV method is used in partially wet cells and guarantees the well-balanced property.
   #
-  # Determination of hard coded threshold: Showed good results in many numerical experiments. Idea is to
-  # gain more stability when computing the velocity on (nearly) dry cells which
-  # could be counteracted by division of conservative variables, e.g., v1 = hv1 / h.
+  # Hard-coded cut-off value of `threshold_wet = 1e-4` was determined through many numerical experiments.
+  # Overall idea is to increase robustness when computing the velocity on (nearly) dry cells which
+  # could be "dangerous" due to division of conservative variables, e.g., v1 = hv1 / h.
   # Here, the impact of the threshold on the number of cells being updated with FV is not that
-  # significant. However, its impact on the stability is very significant.
+  # significant. However, its impact on the robustness is very significant.
   # The value can be seen as a trade-off between accuracy and stability.
-  # Well-balancedness of the scheme on partially wet cells with hydrostatic reconstruction 
+  # Well-balancedness of the scheme on partially wet cells with hydrostatic reconstruction
   # can only be proven for the FV method (see Chen and Noelle).
-  # Therefore we set alpha to one regardless of its given maximum value.
-  #    
+  # Therefore we set alpha to be one regardless of its given value from the modal indicator.
   threshold_wet = 1e-4
 
   @threaded for element in eachelement(dg, cache)
@@ -113,7 +114,7 @@ function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{
     end
 
     # Clip the maximum amount of FV allowed or set to 1 depending on indicator_wet
-    alpha[element] = indicator_wet * min(alpha_max, alpha_element) - (indicator_wet-1)
+    alpha[element] = indicator_wet * min(alpha_max, alpha_element) - (indicator_wet - 1)
   end
 
   if alpha_smooth
