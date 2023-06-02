@@ -59,10 +59,10 @@ struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 
   threshold_limiter::RealT # Threshold to use in `PositivityPreservingLimiterShallowWater` on water height,
                            # as a (small) shift on the initial condition and cutoff before the
                            # next time step.
-                           # Default is 500*eps() which in double precision is ≈ 1e-13.
+                           # Default is 500*eps() which in double precision is ≈1e-13.
   threshold_wet::RealT     # Threshold to be applied on water height to define when the flow is "wet"
                            # before calculating the numerical flux.
-                           # Default is 5*eps() which in double precision is ≈ 1e-15.
+                           # Default is 5*eps() which in double precision is ≈1e-15.
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
@@ -456,7 +456,7 @@ end
 
 A particular type of hydrostatic reconstruction of the water height to guarantee well-balancedness
 for a general bottom topography of the [`ShallowWaterEquations2D`](@ref). The reconstructed solution states
-`u_ll_star` and `u_rr_star` variables are used to evaluate the surface numerical flux at the interface.
+`u_ll_star` and `u_rr_star` variables are then used to evaluate the surface numerical flux at the interface.
 The key idea is a linear reconstruction of the bottom and water height at the interfaces using subcells.
 Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).
 
@@ -487,7 +487,9 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   # the hydrostatic reconstruction is applied and before the numerical flux is calculated
   # to avoid numerical problem with arbitrary small values. Interfaces with a water height
   # lower or equal to the threshold can be declared as dry.
-  # The default value is set to 1e-15 and can be changed within the constructor call in an elixir.
+  # The default value for `threshold_wet` is ≈5*eps(), or 1e-15 in double precision, is set
+  # in the `ShallowWaterEquations2D` struct. This threshold value can be changed in the constructor
+  # call of this eqaution struct in an elixir.
   threshold = equations.threshold_wet
 
   if (h_ll_star <= threshold)
