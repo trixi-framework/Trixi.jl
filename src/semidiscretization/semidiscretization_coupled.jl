@@ -13,7 +13,6 @@ struct SemidiscretizationCoupled{S, I, EquationList} <: AbstractSemidiscretizati
   semis::S
   u_indices::I # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
   performance_counter::PerformanceCounter
-  equation_list::EquationList
 end
 
 
@@ -23,30 +22,27 @@ end
 Create a coupled semidiscretization that consists of the semidiscretizations contained in the tuple `semis`.
 """
 function SemidiscretizationCoupled(semis, other_list)
-  # @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
-  equation_list = []
+  @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
+
+  # Number of coefficients for each semidiscretization
+  n_coefficients = zeros(Int64, length(semis))
   for i in 1:length(semis)
     _, equations, _, _ = mesh_equations_solver_cache(semis[i])
-    append!(equation_list, [equations])
+    n_coefficients[i] = ndofs(semis[i]) * nvariables(equations)
   end
 
-  # Number of coefficients as Vector
-  n_coeffs = zeros(Int64, length(semis))
-  for i in 1:length(semis)
-    n_coeffs[i] = (semis[i] |> (x -> nvariables(equation_list[i]) * ndofs(x)) |> collect)[1]
-  end
+  # Compute range of coefficients associated with each semidiscretization
   u_indices = Vector{UnitRange{Int}}(undef, length(semis))
-
   for i in 1:length(semis)
-    offset = sum(n_coeffs[1:i-1]) + 1
-    u_indices[i] = range(offset, length=n_coeffs[i])
+    offset = sum(n_coefficients[1:i-1]) + 1
+    u_indices[i] = range(offset, length=n_coefficients[i])
 
     allocate_coupled_boundary_conditions(semis[i], semis[other_list[i]])
   end
 
   performance_counter = PerformanceCounter()
 
-  SemidiscretizationCoupled{typeof(semis), typeof(u_indices), typeof(tuple(equation_list...))}(semis, u_indices, performance_counter, tuple(equation_list...))
+  SemidiscretizationCoupled{typeof(semis), typeof(u_indices), typeof(performance_counter)}(semis, u_indices, performance_counter)
 end
 
 
