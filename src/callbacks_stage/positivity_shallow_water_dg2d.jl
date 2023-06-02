@@ -43,10 +43,10 @@ function limiter_shallow_water!(u, threshold::Real, variable,
       h_mean, h_v1_mean, h_v2_mean, _ = u_mean # b_mean is not used as it must not be overwritten
 
       if h_node <= threshold
-        h_v1_node = zero(eltyep(u))
-        h_v2_node = zero(eltyep(u))
-        h_v1_mean = zero(eltyep(u))
-        h_v2_mean = zero(eltyep(u))
+        h_v1_node = zero(eltype(u))
+        h_v2_node = zero(eltype(u))
+        h_v1_mean = zero(eltype(u))
+        h_v2_mean = zero(eltype(u))
       end
 
       u_node = SVector(h_node, h_v1_node, h_v2_node, b_node)
@@ -74,8 +74,8 @@ function limiter_shallow_water!(u, threshold::Real, variable,
 
       if h <= threshold
         h = threshold
-        h_v1 = zero(eltyep(u))
-        h_v2 = zero(eltyep(u))
+        h_v1 = zero(eltype(u))
+        h_v2 = zero(eltype(u))
       end
 
       u_node = SVector(h, h_v1, h_v2, b)
