@@ -308,12 +308,12 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
   return nothing
 end
 
+# This version is used for divergence flux computations 
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2}, equations_parabolic,
                               dg::DG, cache_parabolic)
 
   (; neighbor_ids, node_indices) = cache_parabolic.interfaces
-  (; contravariant_vectors) = cache_parabolic.elements
   index_range = eachnode(dg)
   index_end = last(index_range)
 
