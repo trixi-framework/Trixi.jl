@@ -167,8 +167,8 @@ which are both included in [`ode_default_options`](@ref).
 Trixi.jl allows parallel I/O using MPI by leveraging parallel HDF5.jl. To enable this, you first need
 to use a system-provided MPI library, see also [here](@ref parallel_system_MPI) and you need to tell
 [HDF5.jl](https://github.com/JuliaIO/HDF5.jl) to use this library.
-To do so, set the preferences `libhdf5` and `libhdf5_hl` to the local paths of the libraries `libhdf5` and `libhdf5_hl`,
-which can be done by
+To do so with HDF5.jl v0.17 and newer, set the preferences `libhdf5` and `libhdf5_hl` 
+to the local paths of the libraries `libhdf5` and `libhdf5_hl`, which can be done by
 ```julia
 julia> using Preferences, UUIDs
 julia> set_preferences!(
