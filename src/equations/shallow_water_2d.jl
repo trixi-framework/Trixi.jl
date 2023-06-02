@@ -4,7 +4,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-# TODO: remove before merge (along with the extra carriage return)
 
 @doc raw"""
     ShallowWaterEquations2D(gravity, H0, threshold_limiter, threshold_wet)
@@ -57,11 +56,11 @@ References for the SWE are many but a good introduction is available in Chapter 
 struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 4}
   gravity::RealT # gravitational constant
   H0::RealT      # constant "lake-at-rest" total water height
-  threshold_limiter::RealT   # Threshold to use in PositivityPreservingLimiterShallowWater on water height,
-                             # as a (small) shift on the initial condition and cutoff before the
-                             # next time step.
-  threshold_wet::RealT       # Threshold to be applied on water height to define when the flow is "wet"
-                             # before calculating the numerical flux.
+  threshold_limiter::RealT # Threshold to use in PositivityPreservingLimiterShallowWater on water height,
+                           # as a (small) shift on the initial condition and cutoff before the
+                           # next time step.
+  threshold_wet::RealT     # Threshold to be applied on water height to define when the flow is "wet"
+                           # before calculating the numerical flux.
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
