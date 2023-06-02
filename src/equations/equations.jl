@@ -209,6 +209,7 @@ Boundary condition to glue two meshes together. Solution values at the boundary
 of another mesh will be used as boundary values. This requires the use
 of [`SemidiscretizationCoupled`](@ref). The other mesh is specified by `other_semi_index`,
 which is the index of the mesh in the tuple of semidiscretizations.
+
 Note that the elements and nodes of the two meshes at the coupled boundary must coincide.
 This is currently only implemented for [`StructuredMesh`](@ref).
 
@@ -224,8 +225,10 @@ This is currently only implemented for [`StructuredMesh`](@ref).
 # Connect the left boundary of mesh 2 to our boundary such that our positive
 # boundary direction will match the positive y direction of the other boundary
 BoundaryConditionCoupled(2, (1, :i), Float64)
+
 # Connect the same two boundaries oppositely oriented
 BoundaryConditionCoupled(2, (1, :i_backwards), Float64)
+
 # Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
 BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64)
 ```
@@ -257,6 +260,7 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype<:Real, I}
   end
 end
 
+
 function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction,
                                                         cell_indices, surface_node_indices,
                                                         surface_flux_function, equations)
@@ -274,6 +278,7 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
 
   return flux
 end
+
 
 # set sensible default values that may be overwritten by specific equations
 """
