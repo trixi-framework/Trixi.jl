@@ -4,6 +4,16 @@
 # inside the @muladd block is edited. See https://github.com/trixi-framework/Trixi.jl/issues/801
 # for more details.
 
+# `GaussSBP` approximation type: e.g., Gauss nodes on quads/hexes
+# `use_positivity_blending` toggles the use of a convex blending procedure to
+# ensure the positivity of the entropy projection used to evaluate face nodes.
+# This is specific to flux differencing discretizations.
+#struct GaussSBP
+#  use_positivity_blending::Bool
+#end
+## do not use blending by default
+#GaussSBP() = GaussSBP(false)
+
 # `GaussSBP` is a type alias for a StartUpDG type (e.g., Gauss nodes on quads/hexes)
 const GaussSBP = Polynomial{Gauss}
 
@@ -39,9 +49,11 @@ abstract type AbstractTensorProductGaussOperator end
 
 #   TensorProductGaussFaceOperator{Tmat, Ti}
 #
-# Data for performing tensor product interpolation from volume nodes to face nodes.
-struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperator,
-                                      Tmat, Tweights, Tfweights, Tindices} <: AbstractTensorProductGaussOperator
+# Data for performing blended tensor product interpolation from volume nodes to face nodes.
+# At each node, the face interpolation operator is a convex blending of a high order Gauss
+# face interpolation operator and a low order interpolation operator.
+struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperator, Tmat, Tweights,
+                                             Tfweights, Tindices} <: AbstractTensorProductGaussOperator
   interp_matrix_gauss_to_face_1d::Tmat
   inv_volume_weights_1d::Tweights
   face_weights::Tfweights
@@ -354,6 +366,9 @@ function create_cache(mesh::DGMultiMesh, equations,
   rhs_volume_local_threaded   = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
   gauss_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
 
+  # coefficients to ensure positivity of the entropy projection
+  positivity_blending_coefficients = similar(mesh.md.xf)
+
   return (; cache..., projection_matrix_gauss_to_face, gauss_LIFT, inv_gauss_weights,
          rhs_volume_local_threaded, gauss_volume_local_threaded,
          interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
@@ -363,6 +378,20 @@ end
 
 # by default, return an empty tuple for volume integral caches
 create_cache(mesh, equations, volume_integral, dg, RealT, uEltype) = NamedTuple()
+# Determine operator blending coefficients θ such that
+#   (1 - θ) * u_face_low_order + θ * u_face_high_order
+# satisfies certain conditions or bounds. Defaults to doing nothing (sets θ = 1)
+function limit_entropy_projected_values!(cache, entropy_projected_face_values,
+                                         entropy_var_face_values, u, mesh, equations, dg)
+  (; positivity_blending_coefficients) = cache
+
+  # Setting blending coefficients to one corresponds to not modifying either
+  # `entropy_projected_face_values` or `entropy_var_face_values`.
+  fill!(positivity_blending_coefficients, one(eltype(positivity_blending_coefficients)))
+
+  # TODO: how to let users specify nodal bounds?
+end
+
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff{<:GaussSBP})
@@ -397,6 +426,11 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
   # transform entropy to conservative variables on face values
   entropy_projected_face_values = view(entropy_projected_u_values, face_indices, :)
   entropy2cons!(entropy_projected_face_values, entropy_var_face_values, equations)
+
+  # ensure that the entropy projected face values satisfy appropriate bounds and
+  # update blending coefficients.
+  limit_entropy_projected_values!(cache, entropy_projected_face_values,
+                                  entropy_var_face_values, u, mesh, equations, dg)
 
   return nothing
 end

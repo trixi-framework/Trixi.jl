@@ -55,6 +55,7 @@ using P4est
 using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
+using Roots: A42, find_zero
 using Static: Static, One, True, False
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
