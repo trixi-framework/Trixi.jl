@@ -11,6 +11,28 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
+# Setup overview
+# (-1,  1)                                   ( 1,  1)
+#     ┌────────────────────┬────────────────────┐
+#     │    ↑ periodic ↑    │    ↑ periodic ↑    │
+#     │                    │                    │
+#     │                    │                    │
+#     │     =========      │     =========      │
+#     │     system #1      │     system #2      │
+#     │     =========      │     =========      │
+#     │                    │                    │
+#     │                    │                    │
+#     │                    │                    │
+#     │                    │                    │
+#     │         coupled -->│<-- coupled         │
+#     │                    │                    │
+#     │<-- coupled         │         coupled -->│
+#     │                    │                    │
+#     │                    │                    │
+#     │    ↓ periodic ↓    │    ↓ periodic ↓    │
+#     └────────────────────┴────────────────────┘
+# (-1, -1)                                   ( 1, -1)
+
 # First mesh is the left half of a [-1,1]^2 square
 coordinates_min1 = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max1 = ( 0.0,  1.0) # maximum coordinates (max(x), max(y))
