@@ -111,6 +111,10 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
 
   # TODO: MPI, create nice interface for a parallel tree/mesh
   if mpi_isparallel()
+    if mpi_isroot() && NDIMS == 3
+      println(stderr, "ERROR: TreeMesh3D does not support parallel execution with MPI")
+      MPI.Abort(mpi_comm(), 1)
+    end
     TreeType = ParallelTree{NDIMS}
   else
     TreeType = SerialTree{NDIMS}
