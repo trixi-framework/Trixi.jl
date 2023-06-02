@@ -82,6 +82,9 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # and resets the timers
 summary_callback = SummaryCallback()
 
+# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
+analysis_callback = AnalysisCallback(semi, interval=100)
+
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
@@ -90,7 +93,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
 
 
 ###############################################################################
