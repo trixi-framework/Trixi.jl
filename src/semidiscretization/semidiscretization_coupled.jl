@@ -60,8 +60,8 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
   else
     summary_header(io, "SemidiscretizationCoupled")
     summary_line(io, "#spatial dimensions", ndims(semi.semis[1]))
-    summary_line(io, "#system", nmeshes(semi))
-    for i = 1:nmeshes(semi)
+    summary_line(io, "#systems", nsystems(semi))
+    for i = 1:nsystems(semi)
       summary_line(io, "system", i)
       mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
       summary_line(increment_indent(io), "mesh", mesh |> typeof |> nameof)
@@ -80,7 +80,7 @@ end
 function summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_context)
   show(io_context, MIME"text/plain"(), semi)
   println(io, "\n")
-  for i = 1:nmeshes(semi)
+  for i = 1:nsystems(semi)
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
     summary_header(io, "System #$i")
 
@@ -107,6 +107,8 @@ end
 @inline Base.ndims(semi::SemidiscretizationCoupled) = ndims(semi.semis[1])
 
 @inline nmeshes(semi::SemidiscretizationCoupled) = length(semi.semis)
+
+@inline nsystems(semi::SemidiscretizationCoupled) = length(semi.semis)
 
 @inline Base.real(semi::SemidiscretizationCoupled) = promote_type(real.(semi.semis)...)
 
@@ -137,7 +139,7 @@ function compute_coefficients(t, semi::SemidiscretizationCoupled)
 
   u_ode = Vector{real(semi)}(undef, u_indices[end][end])
 
-  for i in 1:nmeshes(semi)
+  for i in 1:nsystems(semi)
     # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
     u_ode[u_indices[i]] .= compute_coefficients(t, semi.semis[i])
   end
@@ -197,7 +199,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
   end
 
   # Call rhs! for each semidiscretization
-  for i in 1:nmeshes(semi)
+  for i in 1:nsystems(semi)
     u_loc  = @view u_ode[u_indices[i]]
     du_loc = @view du_ode[u_indices[i]]
 
