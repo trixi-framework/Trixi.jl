@@ -167,8 +167,17 @@ which are both included in [`ode_default_options`](@ref).
 Trixi.jl allows parallel I/O using MPI by leveraging parallel HDF5.jl. To enable this, you first need
 to use a system-provided MPI library, see also [here](@ref parallel_system_MPI) and you need to tell
 [HDF5.jl](https://github.com/JuliaIO/HDF5.jl) to use this library.
-To do so, set the environment variable `JULIA_HDF5_PATH` to the local path
-that contains the `libhdf5.so` shared object file and build HDF5.jl by executing `using Pkg; Pkg.build("HDF5")`.
+To do so, set the preferences `libhdf5` and `libhdf5_hl` to the local paths of the libraries `libhdf5` and `libhdf5_hl`,
+which can be done by
+```julia
+julia> using Preferences, UUIDs
+julia> set_preferences!(
+           UUID("f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"), # UUID of HDF5.jl
+           "libhdf5" => "/path/to/your/libhdf5.so",
+           "libhdf5_hl" => "/path/to/your/libhdf5_hl.so", force = true)
+```
 For more information see also the [documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/).
+In total, you should have a file called LocalPreferences.toml in the project directory that contains a section `[MPIPreferences]`,
+a section `[HDF5]` with entries `libhdf5` and `libhdf5_hl` as well as a section `[P4est]` with the entry `libp4est`.
 
 If you do not perform these steps to use parallel HDF5 or if the HDF5 is not MPI-enabled, Trixi.jl will fall back on a less efficient I/O mechanism. In that case, all disk I/O is performed only on rank zero and data is distributed to/gathered from the other ranks using regular MPI communication.
