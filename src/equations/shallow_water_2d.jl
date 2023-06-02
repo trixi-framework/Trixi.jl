@@ -4,6 +4,7 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
+# TODO: remove before merge (along with the extra carriage return)
 
 @doc raw"""
     ShallowWaterEquations2D(gravity, H0, threshold_limiter, threshold_wet)
