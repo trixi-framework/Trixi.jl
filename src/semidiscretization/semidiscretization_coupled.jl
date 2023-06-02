@@ -17,11 +17,11 @@ end
 
 
 """
-    SemidiscretizationCoupled(semis, other_list)
+    SemidiscretizationCoupled(semis)
 
 Create a coupled semidiscretization that consists of the semidiscretizations contained in the tuple `semis`.
 """
-function SemidiscretizationCoupled(semis, other_list)
+function SemidiscretizationCoupled(semis)
   @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
 
   # Number of coefficients for each semidiscretization
@@ -31,13 +31,13 @@ function SemidiscretizationCoupled(semis, other_list)
     n_coefficients[i] = ndofs(semis[i]) * nvariables(equations)
   end
 
-  # Compute range of coefficients associated with each semidiscretization
+  # Compute range of coefficients associated with each semidiscretization and allocate coupled BCs
   u_indices = Vector{UnitRange{Int}}(undef, length(semis))
   for i in 1:length(semis)
     offset = sum(n_coefficients[1:i-1]) + 1
     u_indices[i] = range(offset, length=n_coefficients[i])
 
-    allocate_coupled_boundary_conditions(semis[i], semis[other_list[i]])
+    allocate_coupled_boundary_conditions(semis[i])
   end
 
   performance_counter = PerformanceCounter()
@@ -106,8 +106,6 @@ end
 
 @inline Base.ndims(semi::SemidiscretizationCoupled) = ndims(semi.semis[1])
 
-@inline nmeshes(semi::SemidiscretizationCoupled) = length(semi.semis)
-
 @inline nsystems(semi::SemidiscretizationCoupled) = length(semi.semis)
 
 @inline Base.real(semi::SemidiscretizationCoupled) = promote_type(real.(semi.semis)...)
@@ -148,42 +146,32 @@ function compute_coefficients(t, semi::SemidiscretizationCoupled)
 end
 
 
-function allocate_coupled_boundary_conditions(semi, semi_other)
+function allocate_coupled_boundary_conditions(semi::AbstractSemidiscretization)
   n_boundaries = 2 * ndims(semi)
   mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
-  _, equations_other, _, _ = mesh_equations_solver_cache(semi_other)
 
   for direction in 1:n_boundaries
     boundary_condition = semi.boundary_conditions[direction]
 
-    allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, equations_other, solver)
+    allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, solver)
   end
-
 end
 
-function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, equations_other, solver) end
+# Don't do anything for other BCs than BoundaryConditionCoupled
+function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, solver)
+end
 
 # In 2D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2}, direction, mesh, equations, equations_other, dg::DGSEM)
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2},
+                                             direction, mesh, equations, dg::DGSEM)
   if direction in (1, 2)
     cell_size = size(mesh, 2)
   else
     cell_size = size(mesh, 1)
   end
 
-  boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations), nnodes(dg), cell_size)
-end
-
-# In 3D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{3}, direction, mesh, equations, equations_other, dg::DGSEM)
-  if direction in (1, 2)
-    cell_size = (size(mesh, 2), size(mesh, 3))
-  elseif direction in (3, 4)
-    cell_size = (size(mesh, 1), size(mesh, 3))
-  else # direction in (5, 6)
-    (size(mesh, 1), size(mesh, 2))
-  end
-  boundary_condition.u_boundary = Array{Float64, 5}(undef, nvariables(equations), nnodes(dg), nnodes(dg), cell_size...)
+  boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations), nnodes(dg),
+                                                    cell_size)
 end
 
 
