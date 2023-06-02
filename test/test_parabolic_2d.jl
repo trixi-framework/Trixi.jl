@@ -184,6 +184,22 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_advection_diffusion_periodic.jl"),
+      trees_per_dimension = (1, 1), initial_refinement_level = 2, tspan=(0.0, 0.5),
+      l2 = [0.0023754695605828443], 
+      linf = [0.008154128363741964]
+    )
+  end
+
+  @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_curved.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_advection_diffusion_periodic_curved.jl"),
+      trees_per_dimension = (1, 1), initial_refinement_level = 2, tspan=(0.0, 0.5),
+      l2 = [0.012380458938507371], 
+      linf = [0.10860506906472567]
+    )
+  end
+
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
