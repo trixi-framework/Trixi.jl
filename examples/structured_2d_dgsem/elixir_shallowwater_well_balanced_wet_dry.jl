@@ -38,7 +38,8 @@ function initial_condition_complex_bottom_well_balanced(x, t, equations:: Shallo
   # It is mandatory to shift the water level at dry areas to make sure the water height h
   # stays positive. The system would not be stable for h set to a hard 0 due to division by h in
   # the computation of velocity, e.g., (h v1) / h. Therefore, a small dry state threshold
-  # (1e-13 per default, set in the constructor for the ShallowWaterEquations) is added if h = 0.
+  # with a default value of 500*eps() ≈ 1e-13 in double precision, is set in the constructor above
+  # for the ShallowWaterEquations and added to the initial condtion if h = 0.
   # This default value can be changed within the constructor call depending on the simulation setup.
   H = max(H, b + equations.threshold_limiter)
   return prim2cons(SVector(H, v1, v2, b), equations)

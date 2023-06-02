@@ -5,7 +5,7 @@ using Trixi
  ###############################################################################
  # Semidiscretization of the shallow water equations
 
-equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=1.4)                        
+equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=1.4)
 
 """
     initial_condition_conical_island(x, t, equations::ShallowWaterEquations2D)
@@ -19,25 +19,26 @@ boundary conditions.
 """
 function initial_condition_conical_island(x, t, equations::ShallowWaterEquations2D)
   # Set the background values
-  
+
   v1 = 0.0
   v2 = 0.0
 
   x1, x2 = x
   b = max(0.1, 1.0 - 4.0 * sqrt(x1^2 + x2^2))
-  
+
   # use a logistic function to transfer water height value smoothly
   L  = equations.H0    # maximum of function
   x0 = 0.3   # center point of function
   k  = -25.0 # sharpness of transfer
-  
+
   H = max(b, L/(1.0 + exp(-k*(sqrt(x1^2+x2^2) - x0))))
 
   # It is mandatory to shift the water level at dry areas to make sure the water height h
-  # stays positive. The system would not be stable for h set to a hard 0 due to division by h in 
+  # stays positive. The system would not be stable for h set to a hard 0 due to division by h in
   # the computation of velocity, e.g., (h v1) / h. Therefore, a small dry state threshold
-  # (1e-13 per default, set in the constructor for the ShallowWaterEquations) is added if h = 0. 
-  # This default value can be changed within the constructor call depending on the simulation setup.
+  # with a default value of 500*eps() ≈ 1e-13 in double precision, is set in the constructor above
+  # for the ShallowWaterEquations and added to the initial condtion if h = 0.
+    # This default value can be changed within the constructor call depending on the simulation setup.
   H = max(H, b + equations.threshold_limiter)
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
