@@ -116,13 +116,6 @@ end
   sum(ndofs, semi.semis)
 end
 
-# TODO: Ask bout polydeg.
-@inline function polydeg(semi::SemidiscretizationCoupled)
-  _, _, solver, _ = mesh_equations_solver_cache(semi.semis[1])
-
-  polydeg(solver)
-end
-
 @inline function nelements(semi::SemidiscretizationCoupled)
   return sum(semi.semis) do semi_
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
@@ -131,67 +124,7 @@ end
   end
 end
 
-# TODO: Find out where this is being used.
-@inline function mesh_equations_solver_cache(semi::SemidiscretizationCoupled)
-  mesh, equations, solver, equations = mesh_equations_solver_cache(semi.semis[1])
-
-  return mesh, equations, solver, equations
-end
-
-
-function calc_error_norms(func, u_ode::AbstractVector, t, analyzers,
-                          semi::SemidiscretizationCoupled, caches_analysis;
-                          normalize=true)
-  @unpack semis, u_indices = semi
-
-  # Sum up L2 integrals, use max on Linf error
-  op(x, y) = (x[1] + y[1], max(x[2], y[2]))
-
-  l2_error, linf_error = mapreduce(op, 1:nmeshes(semi)) do i
-    calc_error_norms(func, u_ode[u_indices[i]], t, analyzers[i],
-                     semis[i], caches_analysis[i]; normalize=false)
-  end
-
-  if normalize
-    # For L2 error, divide by total volume
-    total_volume_ = total_volume(semi)
-    l2_error = @. sqrt(l2_error / total_volume_)
-  end
-
-  return l2_error, linf_error
-end
-
-
-function integrate(func::Func, u_ode::AbstractVector, semi::SemidiscretizationCoupled; normalize=true) where {Func}
-  @unpack semis, u_indices = semi
-
-  # TODO: fix issue with integral being a vector.
-  # integral = []
-  for i = 1:nmeshes(semi)
-      mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
-      u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
-      if i == 1
-        integral = integrate(func, u, mesh, equations, solver, cache, normalize=false)
-      else
-        integral = integral + integrate(func, u, mesh, equations, solver, cache, normalize=false)
-      end
-      # integral = vcat(integral, integrate(func, u, mesh, equations, solver, cache, normalize=false))
-  end
-
-  # Normalize with total volume
-  if normalize
-    total_volume_ = total_volume(semi)
-    integral = integral / total_volume_
-  end
-
-  return integral
-end
-
-function integrate(u_ode::AbstractVector, semi::SemidiscretizationCoupled; normalize=true)
-  integrate(cons2cons, u_ode, semi; normalize=normalize)
-end
-
-function total_volume(semi::SemidiscretizationCoupled)
+@inline function total_volume(semi::SemidiscretizationCoupled)
   sum(semi.semis) do semi_
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
     total_volume(mesh, solver, cache)

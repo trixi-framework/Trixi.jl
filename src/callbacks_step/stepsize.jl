@@ -68,7 +68,6 @@ end
     t = integrator.t
     u_ode = integrator.u
     semi = integrator.p
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     @unpack cfl_number = stepsize_callback
 
     # Dispatch based on semidiscretization
