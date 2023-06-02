@@ -8,13 +8,14 @@
 """
     PositivityPreservingLimiterShallowWater(; variables)
 
-The limiter is specifically designed for `ShallowWaterEquations`.
+The limiter is specifically designed for the shallow water equations.
 It is applied to all scalar `variables` in their given order
-using the defined `threshold_limiter` from the equations struct to determine the minimal acceptable values.
+using the defined `threshold_limiter` from the [`ShallowWaterEquations1D`](@ref) struct
+or the [`ShallowWaterEquations2D`](@ref) struct to determine the minimal acceptable values.
 The order of the `variables` is important and might have a strong influence
 on the robustness.
-As opposed to the standard version of the [`PositivityPreservingLimiterZhangShu`](@ref), 
-nodes with a water height below the `threshold_limiter` are treated in a special way. 
+As opposed to the standard version of the [`PositivityPreservingLimiterZhangShu`](@ref),
+nodes with a water height below the `threshold_limiter` are treated in a special way.
 To avoid numerical problems caused by velocities close to zero,
 the velocity is cut off, such that the node can be identified as "dry". The special feature of the
 `ShallowWaterEquations` used here is that the bottom topography is stored as an additional
@@ -24,7 +25,7 @@ After the limiting process is applied to all degrees of freedom, for safety reas
 the `threshold_limiter` is applied again on all the DG nodes in order to avoid water height below.
 In the case where the cell mean value is below the threshold before applying the limiter,
 there could still be dry nodes afterwards due to the logic of the limiter.
-This fully-discrete positivity-preserving limiter is based on the work of 
+This fully-discrete positivity-preserving limiter is based on the work of
 - Zhang, Shu (2011)
   Maximum-principle-satisfying and positivity-preserving high-order schemes
   for conservation laws: survey and new developments
@@ -68,7 +69,7 @@ end
 
 # terminate the type-stable iteration over tuples
 function limiter_shallow_water!(u, variables::Tuple{},
-                                mesh, equations::Union{ShallowWaterEquations1D, ShallowWaterEquations2D}, 
+                                mesh, equations::Union{ShallowWaterEquations1D, ShallowWaterEquations2D},
                                 solver, cache)
   nothing
 end
