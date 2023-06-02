@@ -92,7 +92,7 @@ indicator_sc = IndicatorIDP(equations, basis;
                             variables_nonlinear=(), positCorrFactor=0.1,
                             IDPDensityTVD=false,
                             IDPSpecEntropy=false,
-                            BarStates=true)
+                            BarStates=false)
 
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
