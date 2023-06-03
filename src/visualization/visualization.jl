@@ -13,5 +13,4 @@ include("recipes_plots.jl")
 # TrixiMakieExt package extension or by the Makie-specific code loaded by Requires.jl
 function iplot end
 function iplot! end
-
 end # @muladd

@@ -1,1 +1,3 @@
 style = "sciml"
+ignore = ["src/equations/shallow_water_two_layer_1d.jl",
+          "src/equations/shallow_water_two_layer_2d.jl"]
