@@ -4,7 +4,7 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-# Abstract base type for time integration schemes of explicit strong stabilitypreserving (SSP)
+# Abstract base type for time integration schemes of explicit strong stability-preserving (SSP)
 # Runge-Kutta (RK) methods. They are high-order time discretizations that guarantee the TVD property.
 abstract type SimpleAlgorithmSSP end
 
