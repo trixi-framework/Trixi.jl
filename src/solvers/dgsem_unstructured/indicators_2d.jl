@@ -3,6 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 function apply_smoothing!(mesh::UnstructuredMesh2D, alpha, alpha_tmp, dg, cache)
   # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha

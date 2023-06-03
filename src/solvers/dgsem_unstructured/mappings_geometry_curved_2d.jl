@@ -3,6 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 
 # transfinite mapping formula from a point (xi, eta) in reference space [-1,1]^2 to a point

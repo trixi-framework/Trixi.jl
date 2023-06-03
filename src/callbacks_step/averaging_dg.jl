@@ -3,6 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 
 function save_averaging_file(averaging_callback, mesh::TreeMesh, equations, dg::DGSEM, cache)

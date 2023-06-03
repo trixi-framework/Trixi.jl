@@ -26,6 +26,7 @@ const DGMultiSBP{ApproxType, ElemType} =
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 # these are necessary for pretty printing
 polydeg(dg::DGMulti) = dg.basis.N

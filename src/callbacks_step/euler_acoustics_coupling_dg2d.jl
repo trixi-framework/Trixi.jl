@@ -3,6 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 
 function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics, vorticity_mean,
