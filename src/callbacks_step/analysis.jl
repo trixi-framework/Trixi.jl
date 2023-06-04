@@ -129,6 +129,12 @@ end
 
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AnalysisCallback}
   semi = integrator.p
+  du_ode = first(get_tmp_cache(integrator))
+  initialize!(cb, u_ode, du_ode, t, integrator, semi)
+end
+
+
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, du_ode, t, integrator, semi) where {Condition, Affect!<:AnalysisCallback}
   initial_state_integrals = integrate(u_ode, semi)
   _, equations, _, _ = mesh_equations_solver_cache(semi)
 
@@ -197,14 +203,21 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   # Note: For details see the actual callback function below
   analysis_callback.start_gc_time = Base.gc_time_ns()
 
-  analysis_callback(integrator)
+  analysis_callback(u_ode, du_ode, integrator, semi)
   return nothing
 end
 
-
-# TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
+# This function gets called from OrdinaryDiffEq's `solve(...)`
 function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
+  du_ode = first(get_tmp_cache(integrator))
+  u_ode = integrator.u
+  analysis_callback(u_ode, du_ode, integrator, semi)
+end
+
+# This function gets called internally as the main entry point to the AnalysiCallback
+# TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
+function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack dt, t = integrator
   iter = integrator.stats.naccept
@@ -289,15 +302,14 @@ function (analysis_callback::AnalysisCallback)(integrator)
     end
 
     # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
-    du_ode = first(get_tmp_cache(integrator))
     # `integrator.f` is usually just a call to `rhs!`
     # However, we want to allow users to modify the ODE RHS outside of Trixi.jl
     # and allow us to pass a combined ODE RHS to OrdinaryDiffEq, e.g., for
     # hyperbolic-parabolic systems.
-    @notimeit timer() integrator.f(du_ode, integrator.u, semi, t)
-    u  = wrap_array(integrator.u, mesh, equations, solver, cache)
-    du = wrap_array(du_ode,       mesh, equations, solver, cache)
-    l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
+    @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
+    u  = wrap_array(u_ode,  mesh, equations, solver, cache)
+    du = wrap_array(du_ode, mesh, equations, solver, cache)
+    l2_error, linf_error = analysis_callback(io, du, u, u_ode, t, semi)
 
     mpi_println("─"^100)
     mpi_println()
@@ -604,6 +616,97 @@ pretty_form_ascii(::Val{:linf_divb}) = "linf_divb"
 
 pretty_form_utf(::typeof(lake_at_rest_error)) = "∑|H₀-(h+b)|"
 pretty_form_ascii(::typeof(lake_at_rest_error)) = "|H0-(h+b)|"
+
+
+struct AnalysisCallbackCoupled{CB}
+  callbacks::CB
+end
+
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:AnalysisCallbackCoupled})
+  @nospecialize cb # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, cb)
+  else
+    analysis_callback_coupled = cb.affect!
+
+    setup = Pair{String,Any}[]
+    for (idx, cb_) in enumerate(analysis_callback_coupled.callbacks)
+        push!(setup, "│ interval system " * string(idx) => cb_.affect!.interval)
+    end
+    summary_box(io, "AnalysisCallbackCoupled", setup)
+  end
+end
+
+function AnalysisCallbackCoupled(semi, callbacks...)
+  if length(callbacks) != nsystems(semi)
+    error("an AnalysisCallbackCoupled requires one AnalysisCallback for each semidiscretization")
+  end
+
+  analysis_callback_coupled = AnalysisCallbackCoupled{typeof(callbacks)}(callbacks)
+
+  condition = (u, t, integrator) -> any(callbacks) do callback
+    callback.condition(u, t, integrator)
+  end
+
+  DiscreteCallback(condition, analysis_callback_coupled,
+                   save_positions=(false,false),
+                   initialize=initialize!)
+end
+
+
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where
+    {Condition, Affect!<:AnalysisCallbackCoupled}
+  analysis_callback_coupled = cb.affect!
+  semi = integrator.p
+  du_ode = first(get_tmp_cache(integrator))
+
+  for i in 1:nsystems(semi)
+    cb_ = analysis_callback_coupled.callbacks[i]
+    semi_ = semi.semis[i]
+    u_ode_ = get_system_u_ode(u_ode, i, semi)
+    du_ode_ = get_system_u_ode(du_ode, i, semi)
+    initialize!(cb_, u_ode_, du_ode_, t, integrator, semi_)
+  end
+end
+
+function (analysis_callback_coupled::AnalysisCallbackCoupled)(integrator)
+  semi = integrator.p
+  u_ode = integrator.u
+  du_ode = first(get_tmp_cache(integrator))
+
+  for i in 1:nsystems(semi)
+    semi_ = semi.semis[i]
+    u_ode_ = get_system_u_ode(u_ode, i, semi)
+    du_ode_ = get_system_u_ode(u_ode, i, semi)
+    cb_ = analysis_callback_coupled.callbacks[i]
+    cb_.affect!(u_ode_, du_ode_, integrator, semi_)
+  end
+end
+
+# used for error checks and EOC analysis
+function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect!<:AnalysisCallbackCoupled}
+  semi = sol.prob.p
+  @unpack callbacks = cb.affect!
+
+  l2_errors = []
+  linf_errors = []
+  for i in 1:nsystems(semi)
+    analysis_callback = callbacks[i].affect!
+    @unpack analyzer = analysis_callback
+    cache_analysis = analysis_callback.cache
+
+    semi_ = semi.semis[i]
+    u_ode = get_system_u_ode(sol.u[end], i, semi)
+
+    l2_error, linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi_, cache_analysis)
+    push!(l2_errors, l2_error)
+    push!(linf_errors, linf_error)
+  end
+
+  # TODO This is not type stable
+  (; l2=tuple(l2_errors...), linf=tuple(linf_errors...))
+end
 
 
 end # @muladd

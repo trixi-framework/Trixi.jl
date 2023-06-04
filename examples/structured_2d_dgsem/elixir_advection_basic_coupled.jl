@@ -83,7 +83,9 @@ ode = semidiscretize(semi, (0.0, 1.0));
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval=100)
+analysis_callback1 = AnalysisCallback(semi1, interval=100)
+analysis_callback2 = AnalysisCallback(semi2, interval=100)
+analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback1, analysis_callback2)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval=100,
@@ -100,9 +102,13 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, step
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+#             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+#             save_everystep=false, callback=callbacks);
+ode_algorithm = Trixi.CarpenterKennedy2N54()
+sol = Trixi.solve(ode, ode_algorithm,
+                  dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  save_everystep=false, callback=callbacks);
 
 # Print the timer summary
 summary_callback()

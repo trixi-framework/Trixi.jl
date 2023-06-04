@@ -175,6 +175,11 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
 end
 
 
+@inline function get_system_u_ode(u_ode, index, semi::SemidiscretizationCoupled)
+  @view u_ode[semi.u_indices[index]]
+end
+
+
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
   @unpack u_indices = semi
 
@@ -188,8 +193,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 
   # Call rhs! for each semidiscretization
   for i in 1:nsystems(semi)
-    u_loc  = @view u_ode[u_indices[i]]
-    du_loc = @view du_ode[u_indices[i]]
+    u_loc  = get_system_u_ode(u_ode, i, semi)
+    du_loc = get_system_u_ode(du_ode, i, semi)
 
     rhs!(du_loc, u_loc, semi.semis[i], t)
   end
