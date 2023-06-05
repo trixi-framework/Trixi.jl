@@ -11,3 +11,6 @@ normalize_line_ending = "unix"
 trailing_comma = true
 join_lines_based_on_source = false
 separate_kwargs_with_semicolon = true
+
+ignore = ["src/equations/shallow_water_two_layer_1d.jl",
+          "src/equations/shallow_water_two_layer_2d.jl"]
