@@ -38,7 +38,7 @@ function initial_condition_conical_island(x, t, equations::ShallowWaterEquations
   # the computation of velocity, e.g., (h v1) / h. Therefore, a small dry state threshold
   # with a default value of 500*eps() ≈ 1e-13 in double precision, is set in the constructor above
   # for the ShallowWaterEquations and added to the initial condition if h = 0.
-    # This default value can be changed within the constructor call depending on the simulation setup.
+  # This default value can be changed within the constructor call depending on the simulation setup.
   H = max(H, b + equations.threshold_limiter)
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
