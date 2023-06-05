@@ -1,15 +1,16 @@
 style = "yas"
 
 indent = 2
+margin = 92
 always_for_in = true
 whitespace_ops_in_indices = true
 remove_extra_newlines = false
 short_to_long_function_def = true
 always_use_return = false
 whitespace_in_kwargs = false
-normalize_line_ending = "unix"
+normalize_line_endings = "unix"
 trailing_comma = true
-join_lines_based_on_source = false
+join_lines_based_on_source = true
 separate_kwargs_with_semicolon = true
 
 ignore = ["src/equations/shallow_water_two_layer_1d.jl",
