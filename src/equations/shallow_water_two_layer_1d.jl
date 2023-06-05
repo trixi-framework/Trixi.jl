@@ -196,57 +196,19 @@ end
 
 
 """
-    flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
-                                          equations::ShallowWaterTwoLayerEquations1D)
-
-!!! warning "Experimental code"
-    This numerical flux is experimental and may change in any future release.
-
-Non-symmetric two-point volume flux discretizing the nonconservative (source) term
-that contains the gradient of the bottom topography [`ShallowWaterTwoLayerEquations2D`](@ref) and an
-additional term that couples the momentum of both layers. This is a slightly modified version 
-to account for the additional source term compared to the standard SWE described in the paper.
-
-Further details are available in the paper:
-- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
-  An entropy stable nodal discontinuous Galerkin method for the two dimensional
-  shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
-  [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
-"""
-@inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
-                                                       orientation::Integer,
-                                                       equations::ShallowWaterTwoLayerEquations1D)
-  # Pull the necessary left and right state information
-  h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
-  h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
-  b_rr = u_rr[5]
-
-  z = zero(eltype(u_ll))
-
-  # Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x, 
-  #                                        0, g*h_lower*(b+r*h_upper)_x, 0)
-  f = SVector(z,
-              equations.gravity * h_upper_ll * (b_rr + h_lower_rr),
-              z,
-              equations.gravity * h_lower_ll * (b_rr + equations.r * h_upper_rr),
-              z)
-  return f
-end
-
-
-"""
     flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
                                           equations::ShallowWaterTwoLayerEquations1D)
 
 !!! warning "Experimental code"
     This numerical flux is experimental and may change in any future release.
 
-Non-symmetric two-point volume flux discretizing the nonconservative (source) term
-that contains the gradient of the bottom topography [`ShallowWaterTwoLayerEquations2D`](@ref) and an
+Non-symmetric path-conservative two-point volume flux discretizing the nonconservative (source) term
+that contains the gradient of the bottom topography [`ShallowWaterTwoLayerEquations1D`](@ref) and an
 additional term that couples the momentum of both layers. 
 
-This is a modified version of flux_nonconservative_wintermeyer_etal that gives entropy conservation
-and well-balancedness in both the volume and surface when combined with flux_wintermeyer_etal. 
+This is a modified version of [`flux_nonconservative_wintermeyer_etal`](@ref) that gives entropy 
+conservation and well-balancedness in both the volume and surface when combined with 
+[`flux_wintermeyer_etal`](@ref). 
 """
 @inline function flux_nonconservative_ersing_etal(u_ll, u_rr,
   orientation::Integer,
@@ -276,110 +238,12 @@ end
 
 
 """
-    flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
-                                        equations::ShallowWaterTwoLayerEquations1D)
-
-!!! warning "Experimental code"
-    This numerical flux is experimental and may change in any future release.
-                                    
-Non-symmetric two-point surface flux discretizing the nonconservative (source) term that contains 
-the gradients of the bottom topography and an additional term that couples the momentum of both 
-layers [`ShallowWaterTwoLayerEquations2D`](@ref).
-
-Further details are available in the paper:
-- Ulrik Skre Fjordholm (2012)
-  Energy conservative and stable schemes for the two-layer shallow water equations.
-  [DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
-It should be noted that the equations are ordered differently and the
-designation of the upper and lower layer has been changed which leads to a slightly different
-formulation.
-"""
-@inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
-                                                     orientation::Integer,
-                                                     equations::ShallowWaterTwoLayerEquations1D)
-  # Pull the necessary left and right state information
-  h_upper_ll, _, h_lower_ll, _, b_ll = u_ll
-  h_upper_rr, _, h_lower_rr, _, b_rr = u_rr
-
-  # Create average and jump values
-  h_upper_average = 0.5 * (h_upper_ll + h_upper_rr)
-  h_lower_average = 0.5 * (h_lower_ll + h_lower_rr)
-  h_upper_jump = h_upper_rr - h_upper_ll
-  h_lower_jump = h_lower_rr - h_lower_ll
-  b_jump  = b_rr  - b_ll
-
-  # Assign variables for constants for better readability
-  g = equations.gravity
-
-  z = zero(eltype(u_ll))
-
-  # Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x, 
-  #                                        0, g*h_lower*(b+r*h_upper)_x, 0)
-  f = SVector(
-    z,
-    g * h_upper_ll * (b_ll + h_lower_ll) + g * h_upper_average * (b_jump + h_lower_jump),
-    z,
-    g * h_lower_ll * (b_ll + equations.r * h_upper_ll) + g * h_lower_average * (b_jump +
-        equations.r * h_upper_jump),
-    z)
-  return f
-end
-
-
-"""
-    flux_fjordholm_etal(u_ll, u_rr, orientation,
-                        equations::ShallowWaterTwoLayerEquations1D)
-
-Total energy conservative (mathematical entropy for shallow water equations). When the bottom 
-topography is nonzero this should only be used as a surface flux otherwise the scheme will not be 
-well-balanced. For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
-
-Details are available in Eq. (4.1) in the paper:
-- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
-  Well-balanced and energy stable schemes for the shallow water equations with discontinuous 
-  topography [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
-and the application to two layers is shown in the paper:
-- Ulrik Skre Fjordholm (2012)
-  Energy conservative and stable schemes for the two-layer shallow water equations.
-  [DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
-It should be noted that the equations are ordered differently and the
-designation of the upper and lower layer has been changed which leads to a slightly different
-formulation.
-"""
-@inline function flux_fjordholm_etal(u_ll, u_rr,
-                                     orientation::Integer,
-                                     equations::ShallowWaterTwoLayerEquations1D)
-  # Unpack left and right state
-  h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
-  v1_ll, v2_ll = velocity(u_ll, equations)
-  h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
-  v1_rr, v2_rr = velocity(u_rr, equations)
-
-  # Average each factor of products in flux
-  h_upper_avg = 0.5 * (h_upper_ll + h_upper_rr)
-  h_lower_avg = 0.5 * (h_lower_ll + h_lower_rr)
-  v1_avg = 0.5 * (v1_ll + v1_rr)
-  v2_avg = 0.5 * (v2_ll + v2_rr)
-  p1_avg = 0.25 * equations.gravity * (h_upper_ll^2 + h_upper_rr^2)
-  p2_avg = 0.25 * equations.gravity * (h_lower_ll^2 + h_lower_rr^2)
-
-  # Calculate fluxes
-  f1 = h_upper_avg * v1_avg
-  f2 = f1 * v1_avg + p1_avg
-  f3 = h_lower_avg * v2_avg
-  f4 = f3 * v2_avg + p2_avg
-
-  return SVector(f1, f2, f3, f4, zero(eltype(u_ll)))
-end
-
-
-"""
     flux_wintermeyer_etal(u_ll, u_rr, orientation,
                           equations::ShallowWaterTwoLayerEquations1D)
                       
 Total energy conservative (mathematical entropy for two-layer shallow water equations) split form.
-When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
-The `surface_flux` should still use, e.g., [`flux_fjordholm_etal`](@ref). To obtain the flux for the
+When the bottom topography is nonzero this scheme will be well-balanced when used with the 
+nonconservative [`flux_nonconservative_ersing_etal`](@ref). To obtain the flux for the
 two-layer shallow water equations the flux that is described in the paper for the normal shallow 
 water equations is used within each layer.
 
@@ -417,20 +281,11 @@ end
 
 
 """
-    flux_es_ersing_etal(u_ll, u_rr, orientation,
+    flux_es_ersing_etal(u_ll, u_rr, orientation_or_normal_direction,
                            equations::ShallowWaterTwoLayerEquations1D)
-
-Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy 
-conservative flux_fjordholm_etal and adds a Lax-Friedrichs type dissipation dependent on the jump 
-of entropy variables.
-
-Further details are available in the paper:
-- Ulrik Skre Fjordholm (2012)
-  Energy conservative and stable schemes for the two-layer shallow water equations.
-  [DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
-It should be noted that the equations are ordered differently and the
-designation of the upper and lower layer has been changed which leads to a slightly different
-formulation.
+Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy conservative 
+flux_wintermeyer_etal and adds a Lax-Friedrichs type dissipation dependent on the jump of entropy
+variables. 
 """
 @inline function flux_es_ersing_etal(u_ll, u_rr,
                                         orientation::Integer,
