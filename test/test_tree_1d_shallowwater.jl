@@ -30,6 +30,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
       tspan = (0.0, 0.25))
   end
 
+  @trixi_testset "elixir_shallowwater_well_balanced.jl with flux_nonconservative_ersing_etal" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
+    l2   = [1.2427984842961743, 1.6265844732207998e-14, 1.2427984842961741],
+    linf = [1.6190414782447629, 3.30154831542628e-14, 1.6190414782447629],
+      surface_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal),
+      volume_flux  = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal),
+      tspan = (0.0, 0.25))
+  end
+
   @trixi_testset "elixir_shallowwater_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.0022363707373868713, 0.01576799981934617, 4.436491725585346e-5],
@@ -42,6 +51,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
       l2   = [0.0022758146627220154, 0.015864082886204556, 4.436491725585346e-5],
       linf = [0.008457195427364006, 0.057201667446161064, 9.098379777405796e-5],
       tspan = (0.0, 0.025), surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal))
+  end
+
+  @trixi_testset "elixir_shallowwater_source_terms.jl with flux_nonconservative_ersing_etal" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
+    l2   = [0.005774284062933275, 0.017408601639513584, 4.43649172561843e-5], 
+    linf = [0.01639116193303547, 0.05102877460799604, 9.098379777450205e-5],
+      surface_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal),
+      volume_flux  = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal),
+      tspan = (0.0, 0.025))
   end
 
   @trixi_testset "elixir_shallowwater_source_terms_dirichlet.jl" begin

@@ -119,6 +119,15 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.2))
   end
 
+  @trixi_testset "elixir_shallowwater_well_balanced.jl with flux_nonconservative_ersing_etal" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
+      l2   = [1.2164292510839083, 2.4034438316613565e-12, 1.067841401808785e-12, 1.2164292510839079],
+      linf = [1.5138512282315757, 4.24227234830862e-11, 1.9765812927086113e-11, 1.513851228231574],
+      surface_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal),
+      volume_flux  = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal),
+      tspan = (0.0, 0.25))
+  end
+
   @trixi_testset "elixir_shallowwater_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.0011197623982310795, 0.04456344888447023, 0.014317376629669337, 5.089218476758975e-6],
@@ -131,6 +140,15 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [0.0011197139793938152, 0.015430259691310781, 0.017081031802719724, 5.089218476758271e-6],
       linf = [0.014300809338967824, 0.12783372461225184, 0.17625472321992852, 2.6407324614341476e-5],
       surface_flux=(FluxHydrostaticReconstruction(flux_hll, hydrostatic_reconstruction_audusse_etal), flux_nonconservative_audusse_etal),
+      tspan = (0.0, 0.025))
+  end
+
+  @trixi_testset "elixir_shallowwater_source_terms.jl with flux_nonconservative_ersing_etal" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
+      l2   = [0.0011196687776346434, 0.044562672453443995, 0.014306265289763618, 5.089218476759981e-6],
+      linf = [0.007825021762002393, 0.348550815397918, 0.1115517935018282, 2.6407324614341476e-5],
+      surface_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal),
+      volume_flux  = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal),
       tspan = (0.0, 0.025))
   end
 

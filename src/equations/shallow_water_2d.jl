@@ -520,6 +520,68 @@ end
 end
 
 
+"""
+    flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                          equations::ShallowWaterEquations2D)
+    flux_nonconservative_ersing_etal(u_ll, u_rr,
+                                          normal_direction_ll     ::AbstractVector,
+                                          normal_direction_average::AbstractVector,
+                                          equations::ShallowWaterEquations2D)
+
+!!! warning "Experimental code"
+    This numerical flux is experimental and may change in any future release.
+
+Non-symmetric path-conservative two-point volume flux discretizing the nonconservative (source) term
+that contains the gradient of the bottom topography [`ShallowWaterEquations2D`](@ref).
+
+On curvilinear meshes, this nonconservative flux depends on both the
+contravariant vector (normal direction) at the current node and the averaged
+one. This is different from numerical fluxes used to discretize conservative
+terms.
+
+This is a modified version of [`flux_nonconservative_wintermeyer_etal`](@ref) that gives entropy 
+conservation and well-balancedness in both the volume and surface when combined with 
+[`flux_wintermeyer_etal`](@ref).
+"""
+@inline function flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                                       equations::ShallowWaterEquations2D)
+  # Pull the necessary left and right state information
+  h_ll = waterheight(u_ll, equations)
+  b_rr = u_rr[4]
+  b_ll = u_ll[4]
+
+  # Calculate jump
+  b_jump = b_rr - b_ll
+
+  z = zero(eltype(u_ll))
+  # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
+  if orientation == 1
+    f = SVector(z, equations.gravity * h_ll * b_jump, z, z)
+  else # orientation == 2
+    f = SVector(z, z, equations.gravity * h_ll * b_jump, z)
+  end
+  return f
+end
+
+@inline function flux_nonconservative_ersing_etal(u_ll, u_rr,
+                                                       normal_direction_ll::AbstractVector,
+                                                       normal_direction_average::AbstractVector,
+                                                       equations::ShallowWaterEquations2D)
+  # Pull the necessary left and right state information
+  h_ll = waterheight(u_ll, equations)
+  b_rr = u_rr[4]
+  b_ll = u_ll[4]
+
+  # Calculate jump
+  b_jump = b_rr - b_ll
+  # Note this routine only uses the `normal_direction_average` and the average of the
+  # bottom topography to get a quadratic split form DG gradient on curved elements
+  return SVector(zero(eltype(u_ll)),
+                 normal_direction_average[1] * equations.gravity * h_ll * b_jump,
+                 normal_direction_average[2] * equations.gravity * h_ll * b_jump,
+                 zero(eltype(u_ll)))
+end
+
 
 """
     flux_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction,

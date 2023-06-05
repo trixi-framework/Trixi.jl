@@ -308,6 +308,39 @@ end
 
 
 """
+    flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                          equations::ShallowWaterEquations1D)
+
+!!! warning "Experimental code"
+    This numerical flux is experimental and may change in any future release.
+
+Non-symmetric path-conservative two-point volume flux discretizing the nonconservative (source) term
+that contains the gradient of the bottom topography [`ShallowWaterEquations1D`](@ref).
+
+This is a modified version of [`flux_nonconservative_wintermeyer_etal`](@ref) that gives entropy 
+conservation and well-balancedness in both the volume and surface when combined with 
+[`flux_wintermeyer_etal`](@ref).
+"""
+@inline function flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                                       equations::ShallowWaterEquations1D)
+  # Pull the necessary left and right state information
+  h_ll = waterheight(u_ll, equations)
+  b_rr = u_rr[3]
+  b_ll = u_ll[3]
+
+  # Calculate jump
+  b_jump = b_rr - b_ll
+
+  z = zero(eltype(u_ll))
+
+  # Bottom gradient nonconservative term: (0, g h b_x, 0)
+  f = SVector(z, equations.gravity * h_ll * (b_jump), z)
+
+  return f
+end
+
+
+"""
     flux_fjordholm_etal(u_ll, u_rr, orientation,
                         equations::ShallowWaterEquations1D)
 
