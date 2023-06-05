@@ -80,7 +80,7 @@ See the "Advanced Adaptive Stepsize Control" section of the [documentation](http
 ode_norm(u::Number, t) = @fastmath abs(u)
 function ode_norm(u::AbstractArray, t)
   local_sumabs2 = recursive_sum_abs2(u) # sum(abs2, u)
-  local_length = recursive_length(u)   # length(u)
+  local_length = recursive_length(u)    # length(u)
   if mpi_isparallel()
     global_sumabs2, global_length = MPI.Allreduce([local_sumabs2, local_length], +,
                                                   mpi_comm())
