@@ -121,8 +121,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_shallowwater_well_balanced.jl with flux_nonconservative_ersing_etal" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
-      l2   = [1.2164292510839083, 2.4034438316613565e-12, 1.067841401808785e-12, 1.2164292510839079],
-      linf = [1.5138512282315757, 4.24227234830862e-11, 1.9765812927086113e-11, 1.513851228231574],
+      l2   = [1.2164292510839083, 2.590643638636187e-12, 1.0945471514840143e-12, 1.2164292510839079],
+      linf = [1.5138512282315792, 5.0276441977281156e-11, 1.9816934589292803e-11, 1.513851228231574],
       surface_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal),
       volume_flux  = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal),
       tspan = (0.0, 0.25))
