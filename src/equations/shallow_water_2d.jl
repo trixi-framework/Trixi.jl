@@ -70,8 +70,15 @@ end
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
 # well-balancedness test cases.
 # Strict default values for thresholds that performed well in many numerical experiments
-function ShallowWaterEquations2D(; gravity_constant, H0=0.0,
-                                   threshold_limiter=500*eps(), threshold_wet=5*eps())
+function ShallowWaterEquations2D(; gravity_constant, H0=zero(gravity_constant),
+                                   threshold_limiter=nothing, threshold_wet=nothing)
+  T = promote_type(typeof(gravity_constant), typeof(H0))
+  if threshold_limiter === nothing
+    threshold_limiter = 500 * eps(T)
+  end
+  if threshold_wet === nothing
+    threshold_wet = 5 * eps(T)
+  end
   ShallowWaterEquations2D(gravity_constant, H0, threshold_limiter, threshold_wet)
 end
 
