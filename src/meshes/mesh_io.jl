@@ -3,6 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 
 # Save current mesh with some context information as an HDF5 file.

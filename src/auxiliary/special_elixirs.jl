@@ -3,6 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 
 # Note: We can't call the method below `Trixi.include` since that is created automatically

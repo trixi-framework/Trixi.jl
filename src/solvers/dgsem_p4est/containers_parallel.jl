@@ -3,6 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 
 mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContainer

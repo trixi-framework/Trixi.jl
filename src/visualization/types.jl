@@ -13,6 +13,7 @@ const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, ra
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 
 # This file holds plotting types which can be used for both Plots.jl and Makie.jl.
