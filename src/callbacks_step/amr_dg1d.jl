@@ -53,7 +53,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # If everything is correct, we should have processed all elements.
     # Depending on whether the last element processed above had to be refined or not,
     # the counter `element_id` can have two different values at the end.
-    @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+    @assert element_id == nelements(dg, cache) + 1 ||
+            element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
   # re-initialize interfaces container
@@ -83,7 +84,7 @@ function refine_element!(u::AbstractArray{<:Any,3}, element_id,
   @unpack forward_upper, forward_lower = adaptor
 
   # Store new element ids
-  left_id  = element_id
+  left_id = element_id
   right_id = element_id + 1
 
   @boundscheck begin
@@ -91,10 +92,10 @@ function refine_element!(u::AbstractArray{<:Any,3}, element_id,
     @assert size(old_u, 1) == nvariables(equations)
     @assert size(old_u, 2) == nnodes(dg)
     @assert size(old_u, 3) >= old_element_id
-    @assert     element_id >= 1
-    @assert size(    u, 1) == nvariables(equations)
-    @assert size(    u, 2) == nnodes(dg)
-    @assert size(    u, 3) >= element_id + 1
+    @assert element_id >= 1
+    @assert size(u, 1) == nvariables(equations)
+    @assert size(u, 2) == nnodes(dg)
+    @assert size(u, 3) >= element_id + 1
   end
 
   # Interpolate to left element
@@ -164,7 +165,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         # If an element is to be removed, sanity check if the following elements
         # are also marked - otherwise there would be an error in the way the
         # cells/elements are sorted
-        @assert all(to_be_removed[old_element_id:(old_element_id+2^ndims(mesh)-1)]) "bad cell/element order"
+        @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
 
         # Coarsen elements and store solution directly in new data structure
         coarsen_elements!(u, element_id, old_u, old_element_id,
@@ -208,7 +209,7 @@ function coarsen_elements!(u::AbstractArray{<:Any,3}, element_id,
   @unpack reverse_upper, reverse_lower = adaptor
 
   # Store old element ids
-  left_id  = old_element_id
+  left_id = old_element_id
   right_id = old_element_id + 1
 
   @boundscheck begin
@@ -216,10 +217,10 @@ function coarsen_elements!(u::AbstractArray{<:Any,3}, element_id,
     @assert size(old_u, 1) == nvariables(equations)
     @assert size(old_u, 2) == nnodes(dg)
     @assert size(old_u, 3) >= old_element_id + 1
-    @assert     element_id >= 1
-    @assert size(    u, 1) == nvariables(equations)
-    @assert size(    u, 2) == nnodes(dg)
-    @assert size(    u, 3) >= element_id
+    @assert element_id >= 1
+    @assert size(u, 1) == nvariables(equations)
+    @assert size(u, 2) == nnodes(dg)
+    @assert size(u, 3) >= element_id
   end
 
   for i in eachnode(dg)
@@ -242,13 +243,15 @@ end
 
 
 # this method is called when an `ControllerThreeLevel` is constructed
-function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{1}, equations, dg::DG, cache)
+function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{1}, equations, dg::DG,
+                      cache)
 
   controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)
 end
 
-function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{1}, equations, dg::DG, cache)
+function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{1}, equations,
+                      dg::DG, cache)
 
   controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)

@@ -62,7 +62,8 @@ The main sources for the base implementation were
 4. Dieter Krüger et al., **The Lattice Boltzmann Method**, Springer International Publishing, 2017
    [doi:10.1007/978-3-319-44649-3](https://doi.org/10.1007/978-3-319-44649-3)
 """
-struct LatticeBoltzmannEquations2D{RealT<:Real, CollisionOp} <: AbstractLatticeBoltzmannEquations{2, 9}
+struct LatticeBoltzmannEquations2D{RealT<:Real,CollisionOp} <:
+       AbstractLatticeBoltzmannEquations{2,9}
   c::RealT    # mean thermal molecular velocity
   c_s::RealT  # isothermal speed of sound
   rho0::RealT # macroscopic reference density
@@ -74,15 +75,15 @@ struct LatticeBoltzmannEquations2D{RealT<:Real, CollisionOp} <: AbstractLatticeB
   L::RealT    # reference length
   nu::RealT   # kinematic viscosity
 
-  weights::SVector{9, RealT}  # weighting factors for the equilibrium distribution
-  v_alpha1::SVector{9, RealT} # discrete molecular velocity components in x-direction
-  v_alpha2::SVector{9, RealT} # discrete molecular velocity components in y-direction
+  weights::SVector{9,RealT}  # weighting factors for the equilibrium distribution
+  v_alpha1::SVector{9,RealT} # discrete molecular velocity components in x-direction
+  v_alpha2::SVector{9,RealT} # discrete molecular velocity components in y-direction
 
   collision_op::CollisionOp   # collision operator for the collision kernel
 end
 
 function LatticeBoltzmannEquations2D(; Ma, Re, collision_op=collision_bgk,
-                                       c=1, L=1, rho0=1, u0=nothing, nu=nothing)
+                                     c=1, L=1, rho0=1, u0=nothing, nu=nothing)
   # Sanity check that exactly one of Ma, u0 is not `nothing`
   if isnothing(Ma) && isnothing(u0)
     error("Mach number `Ma` and reference speed `u0` may not both be `nothing`")
@@ -119,28 +120,34 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op=collision_bgk,
   Ma, Re, c, L, rho0, u0, nu = promote(Ma, Re, c, L, rho0, u0, nu)
 
   # Source for weights and speeds: [4] in the docstring above
-  weights  = SVector(1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36, 4/9)
-  v_alpha1 = SVector( c,   0,  -c,   0,   c,   -c,   -c,    c,    0 )
-  v_alpha2 = SVector( 0,   c,   0,  -c,   c,    c,   -c,   -c,    0 )
+  weights = SVector(1 / 9, 1 / 9, 1 / 9, 1 / 9, 1 / 36, 1 / 36, 1 / 36, 1 / 36, 4 / 9)
+  v_alpha1 = SVector(c, 0, -c, 0, c, -c, -c, c, 0)
+  v_alpha2 = SVector(0, c, 0, -c, c, c, -c, -c, 0)
 
   LatticeBoltzmannEquations2D(c, c_s, rho0, Ma, u0, Re, L, nu,
-                             weights, v_alpha1, v_alpha2,
-                             collision_op)
+                              weights, v_alpha1, v_alpha2,
+                              collision_op)
 end
 
 
-varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations2D) = ntuple(v -> "pdf"*string(v), nvariables(equations))
-varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations2D) = varnames(cons2cons, equations)
+function varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations2D)
+  ntuple(v -> "pdf" * string(v), nvariables(equations))
+end
+function varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations2D)
+  varnames(cons2cons, equations)
+end
 
 
 # Convert conservative variables to macroscopic
 @inline function cons2macroscopic(u, equations::LatticeBoltzmannEquations2D)
-  rho    = density(u, equations)
+  rho = density(u, equations)
   v1, v2 = velocity(u, equations)
-  p      = pressure(u, equations)
+  p = pressure(u, equations)
   return SVector(rho, v1, v2, p)
 end
-varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations2D) = ("rho", "v1", "v2", "p")
+function varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations2D)
+  ("rho", "v1", "v2", "p")
+end
 
 # Set initial conditions at physical location `x` for time `t`
 """
@@ -246,13 +253,14 @@ end
 #   λ_max =
 # end
 
-@inline function flux_godunov(u_ll, u_rr, orientation::Integer, equations::LatticeBoltzmannEquations2D)
+@inline function flux_godunov(u_ll, u_rr, orientation::Integer,
+                              equations::LatticeBoltzmannEquations2D)
   if orientation == 1
     v_alpha = equations.v_alpha1
   else
     v_alpha = equations.v_alpha2
   end
-  return 0.5 * ( v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll) )
+  return 0.5 * (v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll))
 end
 
 
@@ -279,7 +287,7 @@ particle distribution functions `u`.
     v_alpha = equations.v_alpha2
   end
 
-  return dot(v_alpha, u)/density(u, equations)
+  return dot(v_alpha, u) / density(u, equations)
 end
 
 
@@ -292,8 +300,8 @@ Calculate the macroscopic velocity vector from the particle distribution functio
   @unpack v_alpha1, v_alpha2 = equations
   rho = density(u, equations)
 
-  return SVector(dot(v_alpha1, u)/rho,
-                 dot(v_alpha2, u)/rho)
+  return SVector(dot(v_alpha1, u) / rho,
+                 dot(v_alpha2, u) / rho)
 end
 
 
@@ -304,8 +312,12 @@ end
 Calculate the macroscopic pressure from the density `rho` or the  particle distribution functions
 `u`.
 """
-@inline pressure(rho::Real, equations::LatticeBoltzmannEquations2D) = rho * equations.c_s^2
-@inline pressure(u, equations::LatticeBoltzmannEquations2D) = pressure(density(u, equations), equations)
+@inline function pressure(rho::Real, equations::LatticeBoltzmannEquations2D)
+  rho * equations.c_s^2
+end
+@inline function pressure(u, equations::LatticeBoltzmannEquations2D)
+  pressure(density(u, equations), equations)
+end
 
 
 """
@@ -314,20 +326,24 @@ Calculate the macroscopic pressure from the density `rho` or the  particle distr
 Calculate the local equilibrium distribution for the distribution function with index `alpha` and
 given the macroscopic state defined by `rho`, `v1`, `v2`.
 """
-@inline function equilibrium_distribution(alpha, rho, v1, v2, equations::LatticeBoltzmannEquations2D)
+@inline function equilibrium_distribution(alpha, rho, v1, v2,
+                                          equations::LatticeBoltzmannEquations2D)
   @unpack weights, c_s, v_alpha1, v_alpha2 = equations
 
-  va_v = v_alpha1[alpha]*v1 + v_alpha2[alpha]*v2
+  va_v = v_alpha1[alpha] * v1 + v_alpha2[alpha] * v2
   cs_squared = c_s^2
   v_squared = v1^2 + v2^2
 
-  return weights[alpha] * rho * (1 + va_v/cs_squared
-                                   + va_v^2/(2*cs_squared^2)
-                                   - v_squared/(2*cs_squared))
+  return weights[alpha] * rho *
+         (1 + va_v / cs_squared
+          + va_v^2 / (2 * cs_squared^2)
+          -
+          v_squared / (2 * cs_squared))
 end
 
 
-@inline function equilibrium_distribution(rho, v1, v2, equations::LatticeBoltzmannEquations2D)
+@inline function equilibrium_distribution(rho, v1, v2,
+                                          equations::LatticeBoltzmannEquations2D)
   return SVector(equilibrium_distribution(1, rho, v1, v2, equations),
                  equilibrium_distribution(2, rho, v1, v2, equations),
                  equilibrium_distribution(3, rho, v1, v2, equations),
@@ -356,7 +372,7 @@ Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
 @inline function collision_bgk(u, dt, equations::LatticeBoltzmannEquations2D)
   @unpack c_s, nu = equations
   tau = nu / (c_s^2 * dt)
-  return -(u - equilibrium_distribution(u, equations))/(tau + 1/2)
+  return -(u - equilibrium_distribution(u, equations)) / (tau + 1 / 2)
 end
 
 

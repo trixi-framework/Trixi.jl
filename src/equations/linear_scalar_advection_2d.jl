@@ -15,8 +15,9 @@ The linear scalar advection equation
 ```
 in two space dimensions with constant velocity `a`.
 """
-struct LinearScalarAdvectionEquation2D{RealT<:Real} <: AbstractLinearScalarAdvectionEquation{2, 1}
-  advection_velocity::SVector{2, RealT}
+struct LinearScalarAdvectionEquation2D{RealT<:Real} <:
+       AbstractLinearScalarAdvectionEquation{2,1}
+  advection_velocity::SVector{2,RealT}
 end
 
 function LinearScalarAdvectionEquation2D(a::NTuple{2,<:Real})
@@ -28,14 +29,15 @@ function LinearScalarAdvectionEquation2D(a1::Real, a2::Real)
 end
 
 
-varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation2D) = ("scalar", )
-varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation2D) = ("scalar", )
+varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation2D) = ("scalar",)
+varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation2D) = ("scalar",)
 
 # Calculates translated coordinates `x` for a periodic domain
-function x_trans_periodic_2d(x, domain_length = SVector(10, 10), center = SVector(0, 0))
+function x_trans_periodic_2d(x, domain_length=SVector(10, 10), center=SVector(0, 0))
   x_normalized = x .- center
   x_shifted = x_normalized .% domain_length
-  x_offset = ((x_shifted .< -0.5*domain_length) - (x_shifted .> 0.5*domain_length)) .* domain_length
+  x_offset = ((x_shifted .< -0.5 * domain_length) - (x_shifted .> 0.5 * domain_length)) .*
+             domain_length
   return center + x_shifted + x_offset
 end
 
@@ -58,14 +60,15 @@ end
 
 A smooth initial condition used for convergence tests.
 """
-function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
+function initial_condition_convergence_test(x, t,
+                                            equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advection_velocity * t
 
   c = 1.0
   A = 0.5
   L = 2
-  f = 1/L
+  f = 1 / L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x_trans))
   return SVector(scalar)
@@ -224,21 +227,24 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equation::LinearScalarAdvectionEquation2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equation::LinearScalarAdvectionEquation2D)
   λ_max = abs(equation.advection_velocity[orientation])
 end
 
 
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
-@inline function flux(u, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation2D)
+@inline function flux(u, normal_direction::AbstractVector,
+                      equation::LinearScalarAdvectionEquation2D)
   a = dot(equation.advection_velocity, normal_direction) # velocity in normal direction
   return a * u
 end
 
 
 # Calculate maximum wave speed in the normal direction for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equation::LinearScalarAdvectionEquation2D)
   a = dot(equation.advection_velocity, normal_direction) # velocity in normal direction
   return abs(a)
 end
@@ -246,7 +252,8 @@ end
 
 # Essentially first order upwind, see e.g.
 # https://math.stackexchange.com/a/4355076/805029
-function flux_godunov(u_ll, u_rr, orientation::Integer, equation::LinearScalarAdvectionEquation2D)
+function flux_godunov(u_ll, u_rr, orientation::Integer,
+                      equation::LinearScalarAdvectionEquation2D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
@@ -260,7 +267,8 @@ end
 
 # Essentially first order upwind, see e.g.
 # https://math.stackexchange.com/a/4355076/805029
-function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation2D)
+function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
+                      equation::LinearScalarAdvectionEquation2D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
@@ -294,7 +302,9 @@ end
 
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5 * u^2
-@inline energy_total(u, equation::LinearScalarAdvectionEquation2D) = energy_total(u[1], equation)
+@inline function energy_total(u, equation::LinearScalarAdvectionEquation2D)
+  energy_total(u[1], equation)
+end
 
 
 end # @muladd

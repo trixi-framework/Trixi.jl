@@ -12,22 +12,26 @@
 dispatchable type. This is intended to store geometric data and connectivities for any type of
 mesh (Cartesian, affine, curved, structured/unstructured).
 """
-struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, BoundaryFaceT}
+struct DGMultiMesh{NDIMS,MeshType,MeshDataT<:MeshData{NDIMS},BoundaryFaceT}
   md::MeshDataT
   boundary_faces::BoundaryFaceT
 end
 
 # enable use of @set and setproperties(...) for DGMultiMesh
-ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4}}) where {T1, T2, T3, T4} = DGMultiMesh{T1, T2, T3, T4}
+function ConstructionBase.constructorof(::Type{DGMultiMesh{T1,T2,T3,T4}}) where {T1,T2,T3,
+                                                                                 T4}
+  DGMultiMesh{T1,T2,T3,T4}
+end
 
 Base.ndims(::DGMultiMesh{NDIMS}) where {NDIMS} = NDIMS
 
-function Base.show(io::IO, mesh::DGMultiMesh{NDIMS, MeshType}) where {NDIMS, MeshType}
+function Base.show(io::IO, mesh::DGMultiMesh{NDIMS,MeshType}) where {NDIMS,MeshType}
   @nospecialize mesh # reduce precompilation time
   print(io, "$MeshType DGMultiMesh with NDIMS = $NDIMS.")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::DGMultiMesh{NDIMS, MeshType}) where {NDIMS, MeshType}
+function Base.show(io::IO, ::MIME"text/plain",
+                   mesh::DGMultiMesh{NDIMS,MeshType}) where {NDIMS,MeshType}
   @nospecialize mesh # reduce precompilation time
   if get(io, :compact, false)
     show(io, mesh)

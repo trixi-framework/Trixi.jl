@@ -14,30 +14,33 @@ function rhs!(du, u, t,
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # Calculate volume integral
-  @trixi_timeit timer() "volume integral" calc_volume_integral!(
-    du, u, mesh,
-    have_nonconservative_terms(equations), equations,
-    dg.volume_integral, dg, cache)
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u, mesh,
+                                                                have_nonconservative_terms(equations),
+                                                                equations,
+                                                                dg.volume_integral, dg,
+                                                                cache)
 
   # Calculate interface and boundary fluxes
-  @trixi_timeit timer() "interface flux" calc_interface_flux!(
-    cache, u, mesh, equations, dg.surface_integral, dg)
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(cache, u, mesh, equations,
+                                                              dg.surface_integral, dg)
 
   # Calculate boundary fluxes
-  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
-    cache, u, t, boundary_conditions, mesh, equations, dg.surface_integral, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, u, t,
+                                                            boundary_conditions, mesh,
+                                                            equations,
+                                                            dg.surface_integral, dg)
 
   # Calculate surface integrals
-  @trixi_timeit timer() "surface integral" calc_surface_integral!(
-    du, u, mesh, equations, dg.surface_integral, dg, cache)
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, mesh, equations,
+                                                                  dg.surface_integral, dg,
+                                                                  cache)
 
   # Apply Jacobian from mapping to reference element
-  @trixi_timeit timer() "Jacobian" apply_jacobian!(
-    du, mesh, equations, dg, cache)
+  @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @trixi_timeit timer() "source terms" calc_sources!(
-    du, u, t, source_terms, equations, dg, cache)
+  @trixi_timeit timer() "source terms" calc_sources!(du, u, t, source_terms, equations,
+                                                     dg, cache)
 
   return nothing
 end
@@ -52,7 +55,7 @@ function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
 
     if left_element > 0 # left_element = 0 at boundaries
       u_ll = get_node_vars(u, equations, dg, nnodes(dg), left_element)
-      u_rr = get_node_vars(u, equations, dg, 1,          element)
+      u_rr = get_node_vars(u, equations, dg, 1, element)
 
       f1 = surface_flux(u_ll, u_rr, 1, equations)
 
@@ -86,7 +89,8 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
   u_rr = get_node_vars(u, equations, dg, 1, 1)
   x = get_node_coords(node_coordinates, equations, dg, 1, 1)
 
-  flux = boundary_conditions[direction](u_rr, orientation, direction, x, t, surface_flux, equations)
+  flux = boundary_conditions[direction](u_rr, orientation, direction, x, t, surface_flux,
+                                        equations)
 
   for v in eachvariable(equations)
     surface_flux_values[v, direction, 1] = flux[v]
@@ -98,7 +102,8 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
   u_rr = get_node_vars(u, equations, dg, nnodes(dg), nelements(dg, cache))
   x = get_node_coords(node_coordinates, equations, dg, nnodes(dg), nelements(dg, cache))
 
-  flux = boundary_conditions[direction](u_rr, orientation, direction, x, t, surface_flux, equations)
+  flux = boundary_conditions[direction](u_rr, orientation, direction, x, t, surface_flux,
+                                        equations)
 
   # Copy flux to left and right element storage
   for v in eachvariable(equations)

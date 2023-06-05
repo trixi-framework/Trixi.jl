@@ -58,7 +58,7 @@ Given ε = 1.0e-4, we use the following algorithm.
   epsilon_f2 = 1.0e-4
   f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
   if f2 < epsilon_f2
-    return (x + y) / @evalpoly(f2, 2, 2/3, 2/5, 2/7)
+    return (x + y) / @evalpoly(f2, 2, 2 / 3, 2 / 5, 2 / 7)
   else
     return (y - x) / log(y / x)
   end
@@ -78,7 +78,7 @@ multiplication.
   epsilon_f2 = 1.0e-4
   f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
   if f2 < epsilon_f2
-    return @evalpoly(f2, 2, 2/3, 2/5, 2/7) / (x + y)
+    return @evalpoly(f2, 2, 2 / 3, 2 / 5, 2 / 7) / (x + y)
   else
     return log(y / x) / (y - x)
   end

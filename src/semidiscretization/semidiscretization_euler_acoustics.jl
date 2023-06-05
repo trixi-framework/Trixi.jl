@@ -22,14 +22,18 @@ is described by a function `source_region` that maps the coordinates of a single
 Note that this semidiscretization should be used in conjunction with
 [`EulerAcousticsCouplingCallback`](@ref) and only works in two dimensions.
 """
-struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache} <: AbstractSemidiscretization
+struct SemidiscretizationEulerAcoustics{SemiAcoustics,SemiEuler,Cache} <:
+       AbstractSemidiscretization
   semi_acoustics::SemiAcoustics
   semi_euler::SemiEuler
   performance_counter::PerformanceCounter
   cache::Cache
 
-  function SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache}(
-      semi_acoustics, semi_euler, cache) where {SemiAcoustics, SemiEuler, Cache}
+  function SemidiscretizationEulerAcoustics{SemiAcoustics,SemiEuler,Cache}(semi_acoustics,
+                                                                           semi_euler,
+                                                                           cache) where {SemiAcoustics,
+                                                                                         SemiEuler,
+                                                                                         Cache}
 
     # Currently both semidiscretizations need to use a shared mesh
     @assert semi_acoustics.mesh == semi_euler.mesh
@@ -43,16 +47,22 @@ struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache} <: Abst
 end
 
 
-function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics, semi_euler::SemiEuler;
-                                          source_region=x->true, weights=x->1.0) where
-    {Mesh, SemiAcoustics<:SemidiscretizationHyperbolic{Mesh, <:AbstractAcousticPerturbationEquations},
-     SemiEuler<:SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations}}
+function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics,
+                                          semi_euler::SemiEuler;
+                                          source_region=x -> true,
+                                          weights=x -> 1.0) where
+         {Mesh,
+          SemiAcoustics<:SemidiscretizationHyperbolic{Mesh,
+                                                      <:AbstractAcousticPerturbationEquations},
+          SemiEuler<:SemidiscretizationHyperbolic{Mesh,
+                                                  <:AbstractCompressibleEulerEquations}}
 
   cache = create_cache(SemidiscretizationEulerAcoustics, source_region, weights,
                        mesh_equations_solver_cache(semi_acoustics)...)
 
-  return SemidiscretizationEulerAcoustics{typeof(semi_acoustics), typeof(semi_euler), typeof(cache)}(
-    semi_acoustics, semi_euler, cache)
+  return SemidiscretizationEulerAcoustics{typeof(semi_acoustics),typeof(semi_euler),
+                                          typeof(cache)}(semi_acoustics, semi_euler,
+                                                         cache)
 end
 
 function create_cache(::Type{SemidiscretizationEulerAcoustics}, source_region, weights,
@@ -60,10 +70,12 @@ function create_cache(::Type{SemidiscretizationEulerAcoustics}, source_region, w
 
   coupled_element_ids = get_coupled_element_ids(source_region, equations, dg, cache)
 
-  acoustic_source_terms = zeros(eltype(cache.elements), (ndims(equations), nnodes(dg), nnodes(dg),
-                                                         length(coupled_element_ids)))
+  acoustic_source_terms = zeros(eltype(cache.elements),
+                                (ndims(equations), nnodes(dg), nnodes(dg),
+                                 length(coupled_element_ids)))
 
-  acoustic_source_weights = precompute_weights(source_region, weights, coupled_element_ids,
+  acoustic_source_weights = precompute_weights(source_region, weights,
+                                               coupled_element_ids,
                                                equations, dg, cache)
 
   return (; acoustic_source_terms, acoustic_source_weights, coupled_element_ids)
@@ -85,7 +97,8 @@ function get_coupled_element_ids(source_region, equations, dg::DGSEM, cache)
   return coupled_element_ids
 end
 
-function precompute_weights(source_region, weights, coupled_element_ids, equations, dg::DGSEM, cache)
+function precompute_weights(source_region, weights, coupled_element_ids, equations,
+                            dg::DGSEM, cache)
   acoustic_source_weights = zeros(eltype(cache.elements),
                                   (nnodes(dg), nnodes(dg), length(coupled_element_ids)))
 
@@ -105,7 +118,7 @@ function Base.show(io::IO, semi::SemidiscretizationEulerAcoustics)
   @nospecialize semi # reduce precompilation time
 
   print(io, "SemidiscretizationEulerAcoustics(")
-  print(io,       semi.semi_acoustics)
+  print(io, semi.semi_acoustics)
   print(io, ", ", semi.semi_euler)
   print(io, ", cache(")
   for (idx, key) in enumerate(keys(semi.cache))
@@ -122,9 +135,10 @@ function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEuler
     show(io, semi)
   else
     summary_header(io, "SemidiscretizationEulerAcoustics")
-    summary_line(io, "semidiscretization Euler", semi.semi_euler |> typeof |> nameof)
+    summary_line(io, "semidiscretization Euler", nameof(typeof(semi.semi_euler)))
     show(increment_indent(io), mime, semi.semi_euler)
-    summary_line(io, "semidiscretization acoustics", semi.semi_acoustics |> typeof |> nameof)
+    summary_line(io, "semidiscretization acoustics",
+                 nameof(typeof(semi.semi_acoustics)))
     show(increment_indent(io), mime, semi.semi_acoustics)
     summary_footer(io)
   end
@@ -151,7 +165,8 @@ end
 end
 
 
-@inline function calc_error_norms(func, u, t, analyzer, semi::SemidiscretizationEulerAcoustics,
+@inline function calc_error_norms(func, u, t, analyzer,
+                                  semi::SemidiscretizationEulerAcoustics,
                                   cache_analysis)
   calc_error_norms(func, u, t, analyzer, semi.semi_acoustics, cache_analysis)
 end
@@ -167,9 +182,11 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)
 
   @trixi_timeit timer() "acoustics rhs!" rhs!(du_ode, u_ode, semi_acoustics, t)
 
-  @trixi_timeit timer() "add acoustic source terms" add_acoustic_source_terms!(
-    du_acoustics, acoustic_source_terms, acoustic_source_weights, coupled_element_ids,
-    mesh_equations_solver_cache(semi_acoustics)...)
+  @trixi_timeit timer() "add acoustic source terms" add_acoustic_source_terms!(du_acoustics,
+                                                                               acoustic_source_terms,
+                                                                               acoustic_source_weights,
+                                                                               coupled_element_ids,
+                                                                               mesh_equations_solver_cache(semi_acoustics)...)
 
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
@@ -179,15 +196,18 @@ end
 
 
 function add_acoustic_source_terms!(du_acoustics, acoustic_source_terms, source_weights,
-                                    coupled_element_ids, mesh::TreeMesh{2}, equations, dg::DGSEM,
+                                    coupled_element_ids, mesh::TreeMesh{2}, equations,
+                                    dg::DGSEM,
                                     cache)
 
   @threaded for k in 1:length(coupled_element_ids)
     element = coupled_element_ids[k]
 
     for j in eachnode(dg), i in eachnode(dg)
-      du_acoustics[1, i, j, element] += source_weights[i, j, k] * acoustic_source_terms[1, i, j, k]
-      du_acoustics[2, i, j, element] += source_weights[i, j, k] * acoustic_source_terms[2, i, j, k]
+      du_acoustics[1, i, j, element] += source_weights[i, j, k] *
+                                        acoustic_source_terms[1, i, j, k]
+      du_acoustics[2, i, j, element] += source_weights[i, j, k] *
+                                        acoustic_source_terms[2, i, j, k]
     end
   end
 

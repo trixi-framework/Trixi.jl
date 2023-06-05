@@ -7,10 +7,10 @@
 
 
 # Container data structure (structure-of-arrays style) for DG elements
-mutable struct ElementContainer3D{RealT<:Real, uEltype<:Real} <: AbstractContainer
+mutable struct ElementContainer3D{RealT<:Real,uEltype<:Real} <: AbstractContainer
   inverse_jacobian::Vector{RealT}        # [elements]
-  node_coordinates::Array{RealT, 5}      # [orientation, i, j, k, elements]
-  surface_flux_values::Array{uEltype, 5} # [variables, i, j, direction, elements]
+  node_coordinates::Array{RealT,5}      # [orientation, i, j, k, elements]
+  surface_flux_values::Array{uEltype,5} # [variables, i, j, direction, elements]
   cell_ids::Vector{Int}                  # [elements]
   # internal `resize!`able storage
   _node_coordinates::Vector{RealT}
@@ -30,7 +30,7 @@ function Base.resize!(elements::ElementContainer3D, capacity)
   n_nodes = nnodes(elements)
   n_variables = nvariables(elements)
   @unpack _node_coordinates, _surface_flux_values,
-          inverse_jacobian, cell_ids = elements
+  inverse_jacobian, cell_ids = elements
 
   resize!(inverse_jacobian, capacity)
 
@@ -40,7 +40,8 @@ function Base.resize!(elements::ElementContainer3D, capacity)
 
   resize!(_surface_flux_values, n_variables * n_nodes * n_nodes * 2 * 3 * capacity)
   elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
-                                             (n_variables, n_nodes, n_nodes, 2 * 3, capacity))
+                                             (n_variables, n_nodes, n_nodes, 2 * 3,
+                                              capacity))
 
   resize!(cell_ids, capacity)
 
@@ -48,7 +49,8 @@ function Base.resize!(elements::ElementContainer3D, capacity)
 end
 
 
-function ElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables, n_nodes) where {RealT<:Real, uEltype<:Real}
+function ElementContainer3D{RealT,uEltype}(capacity::Integer, n_variables,
+                                           n_nodes) where {RealT<:Real,uEltype<:Real}
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
@@ -59,16 +61,17 @@ function ElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables, n_no
   node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
                                  (3, n_nodes, n_nodes, n_nodes, capacity))
 
-  _surface_flux_values = fill(nan_uEltype, n_variables * n_nodes * n_nodes * 2 * 3 * capacity)
+  _surface_flux_values = fill(nan_uEltype,
+                              n_variables * n_nodes * n_nodes * 2 * 3 * capacity)
   surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
                                     (n_variables, n_nodes, n_nodes, 2 * 3, capacity))
 
   cell_ids = fill(typemin(Int), capacity)
 
 
-  return ElementContainer3D{RealT, uEltype}(
-    inverse_jacobian, node_coordinates, surface_flux_values, cell_ids,
-    _node_coordinates, _surface_flux_values)
+  return ElementContainer3D{RealT,uEltype}(inverse_jacobian, node_coordinates,
+                                           surface_flux_values, cell_ids,
+                                           _node_coordinates, _surface_flux_values)
 end
 
 
@@ -89,11 +92,12 @@ In particular, not the elements themselves are returned.
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh3D,
                        equations::AbstractEquations{3},
-                       basis, ::Type{RealT}, ::Type{uEltype}) where {RealT<:Real, uEltype<:Real}
+                       basis, ::Type{RealT},
+                       ::Type{uEltype}) where {RealT<:Real,uEltype<:Real}
   # Initialize container
   n_elements = length(cell_ids)
-  elements = ElementContainer3D{RealT, uEltype}(
-    n_elements, nvariables(equations), nnodes(basis))
+  elements = ElementContainer3D{RealT,uEltype}(n_elements, nvariables(equations),
+                                               nnodes(basis))
 
   init_elements!(elements, cell_ids, mesh, basis)
   return elements
@@ -129,12 +133,18 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh3D, basis)
     # Hence, we need to add an offset for `nodes` with a midpoint
     # different from zero.
     for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
-      elements.node_coordinates[1, i, j, k, element] = (
-          mesh.tree.coordinates[1, cell_id] + jacobian * (nodes[i] - reference_offset))
-      elements.node_coordinates[2, i, j, k, element] = (
-          mesh.tree.coordinates[2, cell_id] + jacobian * (nodes[j] - reference_offset))
-      elements.node_coordinates[3, i, j, k, element] = (
-          mesh.tree.coordinates[3, cell_id] + jacobian * (nodes[k] - reference_offset))
+      elements.node_coordinates[1, i, j, k, element] = (mesh.tree.coordinates[1,
+                                                                              cell_id] +
+                                                        jacobian *
+                                                        (nodes[i] - reference_offset))
+      elements.node_coordinates[2, i, j, k, element] = (mesh.tree.coordinates[2,
+                                                                              cell_id] +
+                                                        jacobian *
+                                                        (nodes[j] - reference_offset))
+      elements.node_coordinates[3, i, j, k, element] = (mesh.tree.coordinates[3,
+                                                                              cell_id] +
+                                                        jacobian *
+                                                        (nodes[k] - reference_offset))
     end
   end
 
@@ -145,7 +155,7 @@ end
 
 # Container data structure (structure-of-arrays style) for DG interfaces
 mutable struct InterfaceContainer3D{uEltype<:Real} <: AbstractContainer
-  u::Array{uEltype, 5}      # [leftright, variables, i, j, interfaces]
+  u::Array{uEltype,5}      # [leftright, variables, i, j, interfaces]
   neighbor_ids::Matrix{Int} # [leftright, interfaces]
   orientations::Vector{Int} # [interfaces]
   # internal `resize!`able storage
@@ -177,7 +187,8 @@ function Base.resize!(interfaces::InterfaceContainer3D, capacity)
 end
 
 
-function InterfaceContainer3D{uEltype}(capacity::Integer, n_variables, n_nodes) where {uEltype<:Real}
+function InterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
+                                       n_nodes) where {uEltype<:Real}
   nan = convert(uEltype, NaN)
 
   # Initialize fields with defaults
@@ -192,9 +203,8 @@ function InterfaceContainer3D{uEltype}(capacity::Integer, n_variables, n_nodes) 
   orientations = fill(typemin(Int), capacity)
 
 
-  return InterfaceContainer3D{uEltype}(
-    u, neighbor_ids, orientations,
-    _u, _neighbor_ids)
+  return InterfaceContainer3D{uEltype}(u, neighbor_ids, orientations,
+                                       _u, _neighbor_ids)
 end
 
 
@@ -207,8 +217,8 @@ function init_interfaces(cell_ids, mesh::TreeMesh3D,
                          elements::ElementContainer3D)
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
-  interfaces = InterfaceContainer3D{eltype(elements)}(
-    n_interfaces, nvariables(elements), nnodes(elements))
+  interfaces = InterfaceContainer3D{eltype(elements)}(n_interfaces, nvariables(elements),
+                                                      nnodes(elements))
 
   # Connect elements with interfaces
   init_interfaces!(interfaces, elements, mesh)
@@ -303,13 +313,13 @@ end
 
 
 # Container data structure (structure-of-arrays style) for DG boundaries
-mutable struct BoundaryContainer3D{RealT<:Real, uEltype<:Real} <: AbstractContainer
-  u::Array{uEltype, 5}              # [leftright, variables, i, j, boundaries]
+mutable struct BoundaryContainer3D{RealT<:Real,uEltype<:Real} <: AbstractContainer
+  u::Array{uEltype,5}              # [leftright, variables, i, j, boundaries]
   neighbor_ids::Vector{Int}         # [boundaries]
   orientations::Vector{Int}         # [boundaries]
   neighbor_sides::Vector{Int}       # [boundaries]
-  node_coordinates::Array{RealT, 4} # [orientation, i, j, elements]
-  n_boundaries_per_direction::SVector{6, Int} # [direction]
+  node_coordinates::Array{RealT,4} # [orientation, i, j, elements]
+  n_boundaries_per_direction::SVector{6,Int} # [direction]
   # internal `resize!`able storage
   _u::Vector{uEltype}
   _node_coordinates::Vector{RealT}
@@ -324,7 +334,7 @@ function Base.resize!(boundaries::BoundaryContainer3D, capacity)
   n_nodes = nnodes(boundaries)
   n_variables = nvariables(boundaries)
   @unpack _u, _node_coordinates,
-          neighbor_ids, orientations, neighbor_sides = boundaries
+  neighbor_ids, orientations, neighbor_sides = boundaries
 
   resize!(_u, 2 * n_variables * n_nodes * n_nodes * capacity)
   boundaries.u = unsafe_wrap(Array, pointer(_u),
@@ -344,7 +354,8 @@ function Base.resize!(boundaries::BoundaryContainer3D, capacity)
 end
 
 
-function BoundaryContainer3D{RealT, uEltype}(capacity::Integer, n_variables, n_nodes) where {RealT<:Real, uEltype<:Real}
+function BoundaryContainer3D{RealT,uEltype}(capacity::Integer, n_variables,
+                                            n_nodes) where {RealT<:Real,uEltype<:Real}
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
@@ -365,10 +376,9 @@ function BoundaryContainer3D{RealT, uEltype}(capacity::Integer, n_variables, n_n
 
   n_boundaries_per_direction = SVector(0, 0, 0, 0, 0, 0)
 
-  return BoundaryContainer3D{RealT, uEltype}(
-    u, neighbor_ids, orientations, neighbor_sides,
-    node_coordinates, n_boundaries_per_direction,
-    _u, _node_coordinates)
+  return BoundaryContainer3D{RealT,uEltype}(u, neighbor_ids, orientations, neighbor_sides,
+                                            node_coordinates, n_boundaries_per_direction,
+                                            _u, _node_coordinates)
 end
 
 
@@ -381,8 +391,9 @@ function init_boundaries(cell_ids, mesh::TreeMesh3D,
                          elements::ElementContainer3D)
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer3D{real(elements), eltype(elements)}(
-    n_boundaries, nvariables(elements), nnodes(elements))
+  boundaries = BoundaryContainer3D{real(elements),eltype(elements)}(n_boundaries,
+                                                                    nvariables(elements),
+                                                                    nnodes(elements))
 
   # Connect elements with boundaries
   init_boundaries!(boundaries, elements, mesh)
@@ -468,17 +479,17 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh3D)
       # Store node coordinates
       enc = elements.node_coordinates
       if direction == 1 # -x direction
-        boundaries.node_coordinates[:, :, :, count] .= enc[:, 1,   :,    :,   element]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, 1, :, :, element]
       elseif direction == 2 # +x direction
-        boundaries.node_coordinates[:, :, :, count] .= enc[:, end, :,    :,   element]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, end, :, :, element]
       elseif direction == 3 # -y direction
-        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   1,    :,   element]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, :, 1, :, element]
       elseif direction == 4 # +y direction
-        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   end,  :,   element]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, :, end, :, element]
       elseif direction == 5 # -z direction
-        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   :,    1,   element]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, :, :, 1, element]
       elseif direction == 6 # +z direction
-        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   :,    end, element]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, :, :, end, element]
       else
         error("should not happen")
       end
@@ -519,20 +530,20 @@ end
 # Left and right are used *both* for the numbering of the mortar faces *and* for the position of the
 # elements with respect to the axis orthogonal to the mortar.
 mutable struct L2MortarContainer3D{uEltype<:Real} <: AbstractContainer
-  u_upper_left ::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
-  u_upper_right::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
-  u_lower_left ::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
-  u_lower_right::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
-  neighbor_ids ::Array{Int, 2}     # [position, mortars]
+  u_upper_left::Array{uEltype,5} # [leftright, variables, i, j, mortars]
+  u_upper_right::Array{uEltype,5} # [leftright, variables, i, j, mortars]
+  u_lower_left::Array{uEltype,5} # [leftright, variables, i, j, mortars]
+  u_lower_right::Array{uEltype,5} # [leftright, variables, i, j, mortars]
+  neighbor_ids::Array{Int,2}     # [position, mortars]
   # Large sides: left -> 1, right -> 2
-  large_sides ::Vector{Int}  # [mortars]
+  large_sides::Vector{Int}  # [mortars]
   orientations::Vector{Int}  # [mortars]
   # internal `resize!`able storage
-  _u_upper_left ::Vector{uEltype}
+  _u_upper_left::Vector{uEltype}
   _u_upper_right::Vector{uEltype}
-  _u_lower_left ::Vector{uEltype}
+  _u_lower_left::Vector{uEltype}
   _u_lower_right::Vector{uEltype}
-  _neighbor_ids ::Vector{Int}
+  _neighbor_ids::Vector{Int}
 end
 
 nvariables(mortars::L2MortarContainer3D) = size(mortars.u_upper_left, 2)
@@ -544,7 +555,7 @@ function Base.resize!(mortars::L2MortarContainer3D, capacity)
   n_nodes = nnodes(mortars)
   n_variables = nvariables(mortars)
   @unpack _u_upper_left, _u_upper_right, _u_lower_left, _u_lower_right,
-          _neighbor_ids, large_sides, orientations = mortars
+  _neighbor_ids, large_sides, orientations = mortars
 
   resize!(_u_upper_left, 2 * n_variables * n_nodes * n_nodes * capacity)
   mortars.u_upper_left = unsafe_wrap(Array, pointer(_u_upper_left),
@@ -564,7 +575,7 @@ function Base.resize!(mortars::L2MortarContainer3D, capacity)
 
   resize!(_neighbor_ids, 5 * capacity)
   mortars.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
-                                        (5, capacity))
+                                     (5, capacity))
 
   resize!(large_sides, capacity)
 
@@ -574,7 +585,8 @@ function Base.resize!(mortars::L2MortarContainer3D, capacity)
 end
 
 
-function L2MortarContainer3D{uEltype}(capacity::Integer, n_variables, n_nodes) where {uEltype<:Real}
+function L2MortarContainer3D{uEltype}(capacity::Integer, n_variables,
+                                      n_nodes) where {uEltype<:Real}
   nan = convert(uEltype, NaN)
 
   # Initialize fields with defaults
@@ -602,13 +614,12 @@ function L2MortarContainer3D{uEltype}(capacity::Integer, n_variables, n_nodes) w
 
   orientations = fill(typemin(Int), capacity)
 
-  return L2MortarContainer3D{uEltype}(
-    u_upper_left, u_upper_right,
-    u_lower_left, u_lower_right,
-    neighbor_ids, large_sides, orientations,
-    _u_upper_left, _u_upper_right,
-    _u_lower_left, _u_lower_right,
-    _neighbor_ids)
+  return L2MortarContainer3D{uEltype}(u_upper_left, u_upper_right,
+                                      u_lower_left, u_lower_right,
+                                      neighbor_ids, large_sides, orientations,
+                                      _u_upper_left, _u_upper_right,
+                                      _u_lower_left, _u_lower_right,
+                                      _neighbor_ids)
 end
 
 
@@ -636,7 +647,7 @@ function Base.show(io::IO, ::MIME"text/plain", c::L2MortarContainer3D)
   println(io, "transpose(c.neighbor_ids) = $(transpose(c.neighbor_ids))")
   println(io, "c.large_sides = $(c.large_sides)")
   println(io, "c.orientations = $(c.orientations)")
-  print(io,   '*'^20)
+  print(io, '*'^20)
 end
 
 
@@ -646,8 +657,8 @@ function init_mortars(cell_ids, mesh::TreeMesh3D,
                       mortar::LobattoLegendreMortarL2)
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
-  mortars = L2MortarContainer3D{eltype(elements)}(
-    n_mortars, nvariables(elements), nnodes(elements))
+  mortars = L2MortarContainer3D{eltype(elements)}(n_mortars, nvariables(elements),
+                                                  nnodes(elements))
 
   # Connect elements with mortars
   init_mortars!(mortars, elements, mesh)
@@ -672,7 +683,7 @@ function count_required_mortars(mesh::TreeMesh3D, cell_ids)
         continue
       end
 
-      count +=1
+      count += 1
     end
   end
 

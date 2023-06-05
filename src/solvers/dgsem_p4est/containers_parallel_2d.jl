@@ -53,7 +53,8 @@ function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{2}, basis,
     i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
     j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
 
-    for (element, position) in zip(local_neighbor_ids[mortar], local_neighbor_positions[mortar])
+    for (element, position) in
+        zip(local_neighbor_ids[mortar], local_neighbor_positions[mortar])
       # ignore large elements
       if position == 3
         continue

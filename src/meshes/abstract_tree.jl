@@ -9,7 +9,7 @@
 abstract type AbstractTree{NDIMS} <: AbstractContainer end
 
 # Type traits to obtain dimension
-@inline Base.ndims(::AbstractTree{NDIMS}) where NDIMS = NDIMS
+@inline Base.ndims(::AbstractTree{NDIMS}) where {NDIMS} = NDIMS
 
 
 # Auxiliary methods to allow semantic queries on the tree
@@ -17,7 +17,9 @@ abstract type AbstractTree{NDIMS} <: AbstractContainer end
 has_parent(t::AbstractTree, cell_id::Int) = t.parent_ids[cell_id] > 0
 
 # Count number of children for a given cell
-n_children(t::AbstractTree, cell_id::Int) = count(x -> (x > 0), @view t.child_ids[:, cell_id])
+function n_children(t::AbstractTree, cell_id::Int)
+  count(x -> (x > 0), @view t.child_ids[:, cell_id])
+end
 
 # Check whether cell has any child cell
 has_children(t::AbstractTree, cell_id::Int) = n_children(t, cell_id) > 0
@@ -29,7 +31,9 @@ is_leaf(t::AbstractTree, cell_id::Int) = !has_children(t, cell_id)
 has_child(t::AbstractTree, cell_id::Int, child::Int) = t.child_ids[child, cell_id] > 0
 
 # Check if cell has a neighbor at the same refinement level in the given direction
-has_neighbor(t::AbstractTree, cell_id::Int, direction::Int) = t.neighbor_ids[direction, cell_id] > 0
+function has_neighbor(t::AbstractTree, cell_id::Int, direction::Int)
+  t.neighbor_ids[direction, cell_id] > 0
+end
 
 # Check if cell has a coarse neighbor, i.e., with one refinement level lower
 function has_coarse_neighbor(t::AbstractTree, cell_id::Int, direction::Int)
@@ -63,7 +67,7 @@ isperiodic(t::AbstractTree, dimension) = t.periodicity[dimension]
 
 # Auxiliary methods for often-required calculations
 # Number of potential child cells
-n_children_per_cell(::AbstractTree{NDIMS}) where NDIMS = 2^NDIMS
+n_children_per_cell(::AbstractTree{NDIMS}) where {NDIMS} = 2^NDIMS
 
 # Number of directions
 #
@@ -74,7 +78,7 @@ n_children_per_cell(::AbstractTree{NDIMS}) where NDIMS = 2^NDIMS
 # 4 -> +y
 # 5 -> -z
 # 6 -> +z
-@inline n_directions(::AbstractTree{NDIMS}) where NDIMS = 2 * NDIMS
+@inline n_directions(::AbstractTree{NDIMS}) where {NDIMS} = 2 * NDIMS
 # TODO: Taal performance, 1:n_directions(tree) vs. Base.OneTo(n_directions(tree)) vs. SOneTo(n_directions(tree))
 """
     eachdirection(tree::AbstractTree)
@@ -162,7 +166,7 @@ end
 
 
 # Return an array with the ids of all leaf cells
-leaf_cells(t::AbstractTree) = filter_leaf_cells((cell_id)->true, t)
+leaf_cells(t::AbstractTree) = filter_leaf_cells((cell_id) -> true, t)
 
 
 # Return an array with the ids of all leaf cells for a given rank
@@ -321,7 +325,8 @@ end
 # Refine given cells without rebalancing tree.
 #
 # Note: After a call to this method the tree may be unbalanced!
-function refine_unbalanced!(t::AbstractTree, cell_ids, sorted_unique_cell_ids=sort(unique(cell_ids)))
+function refine_unbalanced!(t::AbstractTree, cell_ids,
+                            sorted_unique_cell_ids=sort(unique(cell_ids)))
   # Store actual ids refined cells (shifted due to previous insertions)
   refined = zeros(Int, length(cell_ids))
 
@@ -377,7 +382,8 @@ function refine!(t::AbstractTree, cell_ids, sorted_unique_cell_ids=sort(unique(c
   reset_original_cell_ids!(t)
 
   # Refine all requested cells
-  refined = @trixi_timeit timer() "refine_unbalanced!" refine_unbalanced!(t, cell_ids, sorted_unique_cell_ids)
+  refined = @trixi_timeit timer() "refine_unbalanced!" refine_unbalanced!(t, cell_ids,
+                                                                          sorted_unique_cell_ids)
   refinement_count = length(refined)
 
   # Iteratively rebalance the tree until it does not change anymore
@@ -390,19 +396,18 @@ function refine!(t::AbstractTree, cell_ids, sorted_unique_cell_ids=sort(unique(c
   # Note: original_cell_ids contains the cell_id *before* refinement. At
   # refinement, the refined cell's original_cell_ids value has its sign flipped
   # to easily find it now.
-  refined_original_cells = @views(
-      -t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
+  refined_original_cells = @views(-t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
 
   # Check if count of refinement cells matches information in original_cell_ids
-  @assert refinement_count == length(refined_original_cells) (
-      "Mismatch in number of refined cells")
+  @assert refinement_count == length(refined_original_cells) ("Mismatch in number of refined cells")
 
   return refined_original_cells
 end
 
 
 # Refine all leaf cells with coordinates in a given rectangular box
-function refine_box!(t::AbstractTree{NDIMS}, coordinates_min, coordinates_max) where NDIMS
+function refine_box!(t::AbstractTree{NDIMS}, coordinates_min,
+                     coordinates_max) where {NDIMS}
   for dim in 1:NDIMS
     @assert coordinates_min[dim] < coordinates_max[dim] "Minimum coordinates are not minimum."
   end
@@ -419,12 +424,14 @@ end
 
 # Convenience method for 1D
 function refine_box!(t::AbstractTree{1}, coordinates_min::Real, coordinates_max::Real)
-  return refine_box!(t, [convert(Float64, coordinates_min)], [convert(Float64, coordinates_max)])
+  return refine_box!(t, [convert(Float64, coordinates_min)],
+                     [convert(Float64, coordinates_max)])
 end
 
 
 # Refine all leaf cells with coordinates in a given sphere
-function refine_sphere!(t::AbstractTree{NDIMS}, center::SVector{NDIMS}, radius) where NDIMS
+function refine_sphere!(t::AbstractTree{NDIMS}, center::SVector{NDIMS},
+                        radius) where {NDIMS}
   @assert radius >= 0 "Radius must be positive."
 
   # Find all leaf cells within sphere
@@ -437,7 +444,8 @@ function refine_sphere!(t::AbstractTree{NDIMS}, center::SVector{NDIMS}, radius) 
 end
 
 # Convenience function to allow passing center as a tuple
-function refine_sphere!(t::AbstractTree{NDIMS}, center::NTuple{NDIMS}, radius) where NDIMS
+function refine_sphere!(t::AbstractTree{NDIMS}, center::NTuple{NDIMS},
+                        radius) where {NDIMS}
   refine_sphere!(t, SVector(center), radius)
 end
 
@@ -523,7 +531,7 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
   reset_original_cell_ids!(t)
 
   # To maximize the number of cells that may be coarsened, start with the cells at the highest level
-  sorted_by_level = sort(cell_ids, by = i -> t.levels[i])
+  sorted_by_level = sort(cell_ids; by=i -> t.levels[i])
 
   # Keep track of number of cells that were actually coarsened
   n_coarsened = 0
@@ -619,12 +627,10 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
   # Note: original_cell_ids contains the cell_id *before* coarsening. At
   # coarsening, the coarsened parent cell's original_cell_ids value has its sign flipped
   # to easily find it now.
-  @views coarsened_original_cells = (
-      -t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
+  @views coarsened_original_cells = (-t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
 
   # Check if count of coarsened cells matches information in original_cell_ids
-  @assert n_coarsened == length(coarsened_original_cells) (
-      "Mismatch in number of coarsened cells")
+  @assert n_coarsened == length(coarsened_original_cells) ("Mismatch in number of coarsened cells")
 
   return coarsened_original_cells
 end
@@ -635,7 +641,7 @@ coarsen!(t::AbstractTree, cell_id::Int) = coarsen!(t::AbstractTree, [cell_id])
 
 # Coarsen all viable parent cells with coordinates in a given rectangular box
 function coarsen_box!(t::AbstractTree{NDIMS}, coordinates_min::AbstractArray{Float64},
-                     coordinates_max::AbstractArray{Float64}) where NDIMS
+                      coordinates_max::AbstractArray{Float64}) where {NDIMS}
   for dim in 1:NDIMS
     @assert coordinates_min[dim] < coordinates_max[dim] "Minimum coordinates are not minimum."
   end
@@ -661,15 +667,18 @@ end
 
 # Convenience method for 1D
 function coarsen_box!(t::AbstractTree{1}, coordinates_min::Real, coordinates_max::Real)
-  return coarsen_box!(t, [convert(Float64, coordinates_min)], [convert(Float64, coordinates_max)])
+  return coarsen_box!(t, [convert(Float64, coordinates_min)],
+                      [convert(Float64, coordinates_max)])
 end
 
 
 # Return coordinates of a child cell based on its relative position to the parent.
-function child_coordinates(::AbstractTree{NDIMS}, parent_coordinates, parent_length::Number, child::Int) where NDIMS
+function child_coordinates(::AbstractTree{NDIMS}, parent_coordinates,
+                           parent_length::Number, child::Int) where {NDIMS}
   # Calculate length of child cells
   child_length = parent_length / 2
-  return SVector(ntuple(d -> parent_coordinates[d] + child_sign(child, d) * child_length / 2, Val(NDIMS)))
+  return SVector(ntuple(d -> parent_coordinates[d] +
+                             child_sign(child, d) * child_length / 2, Val(NDIMS)))
 end
 
 
@@ -787,14 +796,14 @@ function move_connectivity!(t::AbstractTree, first::Int, last::Int, destination:
 end
 
 
-# Raw copy operation for ranges of cells.
-#
-# This method is used by the higher-level copy operations for AbstractContainer
-# function raw_copy!(target::AbstractTree, source::AbstractTree, first::Int, last::Int, destination::Int) end
+  # Raw copy operation for ranges of cells.
+  #
+  # This method is used by the higher-level copy operations for AbstractContainer
+  # function raw_copy!(target::AbstractTree, source::AbstractTree, first::Int, last::Int, destination::Int) end
 
 
-# Reset data structures by recreating all internal storage containers and invalidating all elements
-# function reset_data_structures!(t::AbstractTree{NDIMS}) where NDIMS end
+  # Reset data structures by recreating all internal storage containers and invalidating all elements
+  # function reset_data_structures!(t::AbstractTree{NDIMS}) where NDIMS end
 
 
 end # @muladd

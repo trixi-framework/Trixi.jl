@@ -9,7 +9,7 @@
 # Initialize data structures in element container
 function init_elements!(elements, mesh::StructuredMesh{2}, basis::LobattoLegendreBasis)
   @unpack node_coordinates, left_neighbors,
-          jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
+  jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
   linear_indices = LinearIndices(size(mesh))
 
@@ -17,7 +17,8 @@ function init_elements!(elements, mesh::StructuredMesh{2}, basis::LobattoLegendr
   for cell_y in 1:size(mesh, 2), cell_x in 1:size(mesh, 1)
     element = linear_indices[cell_x, cell_y]
 
-    calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, mesh.mapping, mesh, basis)
+    calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, mesh.mapping, mesh,
+                           basis)
 
     calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
 
@@ -45,19 +46,21 @@ function calc_node_coordinates!(node_coordinates, element,
   dy = 2 / size(mesh, 2)
 
   # Calculate node coordinates of reference mesh
-  cell_x_offset = -1 + (cell_x-1) * dx + dx/2
-  cell_y_offset = -1 + (cell_y-1) * dy + dy/2
+  cell_x_offset = -1 + (cell_x - 1) * dx + dx / 2
+  cell_y_offset = -1 + (cell_y - 1) * dy + dy / 2
 
   for j in eachnode(basis), i in eachnode(basis)
     # node_coordinates are the mapped reference node_coordinates
-    node_coordinates[:, i, j, element] .= mapping(cell_x_offset + dx/2 * nodes[i],
-                                                  cell_y_offset + dy/2 * nodes[j])
+    node_coordinates[:, i, j, element] .= mapping(cell_x_offset + dx / 2 * nodes[i],
+                                                  cell_y_offset + dy / 2 * nodes[j])
   end
 end
 
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
-function calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates::AbstractArray{<:Any, 4}, basis::LobattoLegendreBasis)
+function calc_jacobian_matrix!(jacobian_matrix, element,
+                               node_coordinates::AbstractArray{<:Any,4},
+                               basis::LobattoLegendreBasis)
   @unpack derivative_matrix = basis
 
   # The code below is equivalent to the following matrix multiplications, which
@@ -70,7 +73,8 @@ function calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates::Abstr
 
   # x_ξ, y_ξ
   @turbo for xy in indices((jacobian_matrix, node_coordinates), (1, 1))
-    for j in indices((jacobian_matrix, node_coordinates), (4, 3)), i in indices((jacobian_matrix, derivative_matrix), (3, 1))
+    for j in indices((jacobian_matrix, node_coordinates), (4, 3)),
+        i in indices((jacobian_matrix, derivative_matrix), (3, 1))
       result = zero(eltype(jacobian_matrix))
       for ii in indices((node_coordinates, derivative_matrix), (2, 2))
         result += derivative_matrix[i, ii] * node_coordinates[xy, ii, j, element]
@@ -81,7 +85,8 @@ function calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates::Abstr
 
   # x_η, y_η
   @turbo for xy in indices((jacobian_matrix, node_coordinates), (1, 1))
-    for j in indices((jacobian_matrix, derivative_matrix), (4, 1)), i in indices((jacobian_matrix, node_coordinates), (3, 2))
+    for j in indices((jacobian_matrix, derivative_matrix), (4, 1)),
+        i in indices((jacobian_matrix, node_coordinates), (3, 2))
       result = zero(eltype(jacobian_matrix))
       for jj in indices((node_coordinates, derivative_matrix), (3, 2))
         result += derivative_matrix[j, jj] * node_coordinates[xy, i, jj, element]
@@ -96,7 +101,8 @@ end
 
 # Calculate contravarant vectors, multiplied by the Jacobian determinant J of the transformation mapping.
 # Those are called Ja^i in Kopriva's blue book.
-function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,5}, element, jacobian_matrix)
+function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,5},
+                                     element, jacobian_matrix)
   # The code below is equivalent to the following using broadcasting but much faster.
   # # First contravariant vector Ja^1
   # contravariant_vectors[1, 1, :, :, element] =  jacobian_matrix[2, 2, :, :, element]
@@ -108,12 +114,12 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
   @turbo for j in indices((contravariant_vectors, jacobian_matrix), (4, 4)),
              i in indices((contravariant_vectors, jacobian_matrix), (3, 3))
     # First contravariant vector Ja^1
-    contravariant_vectors[1, 1, i, j, element] =  jacobian_matrix[2, 2, i, j, element]
+    contravariant_vectors[1, 1, i, j, element] = jacobian_matrix[2, 2, i, j, element]
     contravariant_vectors[2, 1, i, j, element] = -jacobian_matrix[1, 2, i, j, element]
 
     # Second contravariant vector Ja^2
     contravariant_vectors[1, 2, i, j, element] = -jacobian_matrix[2, 1, i, j, element]
-    contravariant_vectors[2, 2, i, j, element] =  jacobian_matrix[1, 1, i, j, element]
+    contravariant_vectors[2, 2, i, j, element] = jacobian_matrix[1, 1, i, j, element]
   end
 
   return contravariant_vectors
@@ -121,14 +127,18 @@ end
 
 
 # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
-function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any,3}, element, jacobian_matrix)
+function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any,3}, element,
+                                jacobian_matrix)
   # The code below is equivalent to the following high-level code but much faster.
   # inverse_jacobian[i, j, element] = inv(det(jacobian_matrix[:, :, i, j, element])
 
   @turbo for j in indices((inverse_jacobian, jacobian_matrix), (2, 4)),
              i in indices((inverse_jacobian, jacobian_matrix), (1, 3))
-    inverse_jacobian[i, j, element] = inv(jacobian_matrix[1, 1, i, j, element] * jacobian_matrix[2, 2, i, j, element] -
-                                          jacobian_matrix[1, 2, i, j, element] * jacobian_matrix[2, 1, i, j, element])
+
+    inverse_jacobian[i, j, element] = inv(jacobian_matrix[1, 1, i, j, element] *
+                                          jacobian_matrix[2, 2, i, j, element] -
+                                          jacobian_matrix[1, 2, i, j, element] *
+                                          jacobian_matrix[2, 1, i, j, element])
   end
 
   return inverse_jacobian
@@ -136,7 +146,8 @@ end
 
 
 # Save id of left neighbor of every element
-function initialize_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{2}, linear_indices)
+function initialize_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{2},
+                                                linear_indices)
   # Neighbors in x-direction
   for cell_y in 1:size(mesh, 2)
     # Inner elements

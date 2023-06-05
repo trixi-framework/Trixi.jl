@@ -22,14 +22,17 @@ function prolong2mpiinterfaces!(cache, u,
     local_element = mpi_interfaces.local_neighbor_ids[interface]
     local_indices = mpi_interfaces.node_indices[interface]
 
-    i_element_start, i_element_step = index_to_start_step_2d(local_indices[1], index_range)
-    j_element_start, j_element_step = index_to_start_step_2d(local_indices[2], index_range)
+    i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
+                                                             index_range)
+    j_element_start, j_element_step = index_to_start_step_2d(local_indices[2],
+                                                             index_range)
 
     i_element = i_element_start
     j_element = j_element_start
     for i in eachnode(dg)
       for v in eachvariable(equations)
-        mpi_interfaces.u[local_side, v, i, interface] = u[v, i_element, j_element, local_element]
+        mpi_interfaces.u[local_side, v, i, interface] = u[v, i_element, j_element,
+                                                          local_element]
       end
       i_element += i_element_step
       j_element += j_element_step
@@ -57,8 +60,10 @@ function calc_mpi_interface_flux!(surface_flux_values,
     local_side = local_sides[interface]
 
     # Create the local i,j indexing on the local element used to pull normal direction information
-    i_element_start, i_element_step = index_to_start_step_2d(local_indices[1], index_range)
-    j_element_start, j_element_step = index_to_start_step_2d(local_indices[2], index_range)
+    i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
+                                                             index_range)
+    j_element_start, j_element_step = index_to_start_step_2d(local_indices[2],
+                                                             index_range)
 
     i_element = i_element_start
     j_element = j_element_start
@@ -80,7 +85,8 @@ function calc_mpi_interface_flux!(surface_flux_values,
       normal_direction = get_normal_direction(local_direction, contravariant_vectors,
                                               i_element, j_element, local_element)
 
-      calc_mpi_interface_flux!(surface_flux_values, mesh, nonconservative_terms, equations,
+      calc_mpi_interface_flux!(surface_flux_values, mesh, nonconservative_terms,
+                               equations,
                                surface_integral, dg, cache,
                                interface, normal_direction,
                                node, local_side,
@@ -105,11 +111,13 @@ end
                                           surface_integral, dg::DG, cache,
                                           interface_index, normal_direction,
                                           interface_node_index, local_side,
-                                          surface_node_index, local_direction_index, local_element_index)
+                                          surface_node_index, local_direction_index,
+                                          local_element_index)
   @unpack u = cache.mpi_interfaces
   @unpack surface_flux = surface_integral
 
-  u_ll, u_rr = get_surface_node_vars(u, equations, dg, interface_node_index, interface_index)
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, interface_node_index,
+                                     interface_index)
 
   if local_side == 1
     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
@@ -173,7 +181,8 @@ function prolong2mpimortars!(cache, u,
         j_small = j_small_start
         for i in eachnode(dg)
           for v in eachvariable(equations)
-            cache.mpi_mortars.u[1, v, position, i, mortar] = u[v, i_small, j_small, element]
+            cache.mpi_mortars.u[1, v, position, i, mortar] = u[v, i_small, j_small,
+                                                               element]
           end
           i_small += i_small_step
           j_small += j_small_step
@@ -247,7 +256,8 @@ end
   @unpack u = cache.mpi_mortars
   @unpack surface_flux = surface_integral
 
-  u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index, mortar_index)
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index,
+                                     mortar_index)
 
   flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
@@ -262,12 +272,13 @@ end
                                                 dg::DGSEM, cache, mortar, fstar, u_buffer)
   @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
 
-  small_indices   = node_indices[1, mortar]
+  small_indices = node_indices[1, mortar]
   small_direction = indices2direction(small_indices)
-  large_indices   = node_indices[2, mortar]
+  large_indices = node_indices[2, mortar]
   large_direction = indices2direction(large_indices)
 
-  for (element, position) in zip(local_neighbor_ids[mortar], local_neighbor_positions[mortar])
+  for (element, position) in
+      zip(local_neighbor_ids[mortar], local_neighbor_positions[mortar])
     if position == 3 # -> large element
       # Project small fluxes to large element.
       multiply_dimensionwise!(u_buffer,

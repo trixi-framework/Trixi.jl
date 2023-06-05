@@ -66,7 +66,7 @@ the averaged runtime of all measurements added so far via `take!(counter)`,
 resetting the `counter`.
 """
 struct PerformanceCounterList{N}
-  counters::NTuple{N, PerformanceCounter}
+  counters::NTuple{N,PerformanceCounter}
   check_ncalls_consistency::Bool
 end
 
@@ -152,7 +152,9 @@ Return the path to an example elixir that can be used to quickly see Trixi.jl in
 [`UnstructuredMesh2D`]@(ref). This simulation is run on the example curved, unstructured mesh
 given in the Trixi.jl documentation regarding unstructured meshes.
 """
-default_example_unstructured() = joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
+function default_example_unstructured()
+  joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
+end
 
 
 """
@@ -165,9 +167,10 @@ For example, use `solve(ode, alg; ode_default_options()...)`
 """
 function ode_default_options()
   if mpi_isparallel()
-    return (; save_everystep = false, internalnorm = ode_norm, unstable_check = ode_unstable_check)
+    return (; save_everystep=false, internalnorm=ode_norm,
+            unstable_check=ode_unstable_check)
   else
-    return (; save_everystep = false)
+    return (; save_everystep=false)
   end
 end
 
@@ -203,7 +206,7 @@ julia> Trixi.get_name(Val(:test))
 ```
 """
 get_name(x) = string(x)
-get_name(::Val{x}) where x = string(x)
+get_name(::Val{x}) where {x} = string(x)
 
 
 
@@ -250,7 +253,9 @@ macro threaded(expr)
   # !!! danger "Heisenbug"
   #     Look at the comments for `wrap_array` when considering to change this macro.
 
-  return esc(quote Trixi.@batch $(expr) end)
+  return esc(quote
+               Trixi.@batch $(expr)
+             end)
 end
 
 
@@ -304,7 +309,7 @@ See also: [Infiltrator.jl](https://github.com/JuliaDebug/Infiltrator.jl)
     API of Trixi.jl, and it thus can altered (or be removed) at any time without it being considered
     a breaking change.
 """
-macro autoinfiltrate(condition = true)
+macro autoinfiltrate(condition=true)
   pkgid = Base.PkgId(Base.UUID("5903a43b-9cc3-4c30-8d17-598619ec4e9b"), "Infiltrator")
   if !haskey(Base.loaded_modules, pkgid)
     try
@@ -317,19 +322,16 @@ macro autoinfiltrate(condition = true)
   lnn = LineNumberNode(__source__.line, __source__.file)
 
   if i === nothing
-    return Expr(
-      :macrocall,
-      Symbol("@warn"),
-      lnn,
-      "Could not load Infiltrator.")
+    return Expr(:macrocall,
+                Symbol("@warn"),
+                lnn,
+                "Could not load Infiltrator.")
   end
 
-  return Expr(
-    :macrocall,
-    Expr(:., i, QuoteNode(Symbol("@infiltrate"))),
-    lnn,
-    esc(condition)
-  )
+  return Expr(:macrocall,
+              Expr(:., i, QuoteNode(Symbol("@infiltrate"))),
+              lnn,
+              esc(condition))
 end
 
 
@@ -347,10 +349,11 @@ function register_error_hints()
 
   Base.Experimental.register_error_hint(MethodError) do io, exc, argtypes, kwargs
     if exc.f in [iplot, iplot!] && isempty(methods(exc.f))
-      print(io, "\n$(exc.f) has no methods yet. It is part of a plotting extension of Trixi.jl " *
-                "that relies on Makie being loaded.\n" *
-                "To activate the extension, execute `using Makie`, `using CairoMakie`, " *
-                "`using GLMakie`, or load any other package that also uses Makie.")
+      print(io,
+            "\n$(exc.f) has no methods yet. It is part of a plotting extension of Trixi.jl " *
+            "that relies on Makie being loaded.\n" *
+            "To activate the extension, execute `using Makie`, `using CairoMakie`, " *
+            "`using GLMakie`, or load any other package that also uses Makie.")
     end
   end
 

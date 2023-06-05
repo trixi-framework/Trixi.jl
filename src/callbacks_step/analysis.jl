@@ -37,7 +37,7 @@ evaluating the computational performance, such as the total runtime, the perform
 (time/DOF/rhs!), the time spent in garbage collection (GC), or the current memory usage (alloc'd
 memory).
 """
-mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
+mutable struct AnalysisCallback{Analyzer,AnalysisIntegrals,InitialStateIntegrals,Cache}
   start_time::Float64
   start_time_last_analysis::Float64
   ncalls_rhs_last_analysis::Int
@@ -57,7 +57,8 @@ end
 # TODO: Taal bikeshedding, implement a method with less information and the signature
 # function Base.show(io::IO, analysis_callback::AnalysisCallback)
 # end
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:AnalysisCallback})
+function Base.show(io::IO, ::MIME"text/plain",
+                   cb::DiscreteCallback{<:Any,<:AnalysisCallback})
   @nospecialize cb # reduce precompilation time
 
   if get(io, :compact, false)
@@ -65,20 +66,20 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Ana
   else
     analysis_callback = cb.affect!
 
-    setup = Pair{String,Any}[
-             "interval" => analysis_callback.interval,
-             "analyzer" => analysis_callback.analyzer,
-            ]
+    setup = Pair{String,Any}["interval" => analysis_callback.interval,
+                             "analyzer" => analysis_callback.analyzer]
     for (idx, error) in enumerate(analysis_callback.analysis_errors)
       push!(setup, "│ error " * string(idx) => error)
     end
     for (idx, integral) in enumerate(analysis_callback.analysis_integrals)
       push!(setup, "│ integral " * string(idx) => integral)
     end
-    push!(setup, "save analysis to file" => analysis_callback.save_analysis ? "yes" : "no")
+    push!(setup,
+          "save analysis to file" => analysis_callback.save_analysis ? "yes" : "no")
     if analysis_callback.save_analysis
       push!(setup, "│ filename" => analysis_callback.analysis_filename)
-      push!(setup, "│ output directory" => abspath(normpath(analysis_callback.output_directory)))
+      push!(setup,
+            "│ output directory" => abspath(normpath(analysis_callback.output_directory)))
     end
     summary_box(io, "AnalysisCallback", setup)
   end
@@ -96,9 +97,11 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           output_directory="out",
                           analysis_filename="analysis.dat",
                           extra_analysis_errors=Symbol[],
-                          analysis_errors=union(default_analysis_errors(equations), extra_analysis_errors),
+                          analysis_errors=union(default_analysis_errors(equations),
+                                                extra_analysis_errors),
                           extra_analysis_integrals=(),
-                          analysis_integrals=union(default_analysis_integrals(equations), extra_analysis_integrals),
+                          analysis_integrals=union(default_analysis_integrals(equations),
+                                                   extra_analysis_integrals),
                           RealT=real(solver),
                           uEltype=eltype(cache.elements),
                           kwargs...)
@@ -108,27 +111,32 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
   #    (total #steps)       (#accepted steps)
   # We need to check the number of accepted steps since callbacks are not
   # activated after a rejected step.
-  condition = (u, t, integrator) -> interval > 0 && ( (integrator.stats.naccept % interval == 0 &&
-                                                       !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
-                                                     isfinished(integrator))
+  condition = (u, t, integrator) -> interval > 0 &&
+    ((integrator.stats.naccept % interval == 0 &&
+      !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
+     isfinished(integrator))
 
   analyzer = SolutionAnalyzer(solver; kwargs...)
-  cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache, RealT, uEltype)
+  cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache, RealT,
+                                         uEltype)
 
   analysis_callback = AnalysisCallback(0.0, 0.0, 0, 0.0,
-                                       interval, save_analysis, output_directory, analysis_filename,
+                                       interval, save_analysis, output_directory,
+                                       analysis_filename,
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
-                                       SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
+                                       SVector(ntuple(_ -> zero(uEltype),
+                                                      Val(nvariables(equations)))),
                                        cache_analysis)
 
-  DiscreteCallback(condition, analysis_callback,
-                   save_positions=(false,false),
+  DiscreteCallback(condition, analysis_callback;
+                   save_positions=(false, false),
                    initialize=initialize!)
 end
 
 
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AnalysisCallback}
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t,
+                     integrator) where {Condition,Affect!<:AnalysisCallback}
   semi = integrator.p
   initial_state_integrals = integrate(u_ode, semi)
   _, equations, _, _ = mesh_equations_solver_cache(semi)
@@ -211,7 +219,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
   iter = integrator.stats.naccept
 
   # Record performance measurements and compute performance index (PID)
-  runtime_since_last_analysis = 1.0e-9 * (time_ns() - analysis_callback.start_time_last_analysis)
+  runtime_since_last_analysis = 1.0e-9 *
+                                (time_ns() - analysis_callback.start_time_last_analysis)
   # PID is an MPI-aware measure of how much time per global degree of freedom (i.e., over all ranks)
   # and per `rhs!` evaluation is required. MPI-aware means that it essentially adds up the time
   # spent on each MPI rank. Thus, in an ideally parallelized program, the PID should be constant
@@ -219,9 +228,12 @@ function (analysis_callback::AnalysisCallback)(integrator)
   # divide the runtime on each rank by 4. See also the Trixi.jl docs ("Performance" section) for
   # more information.
   ncalls_rhs_since_last_analysis = (ncalls(semi.performance_counter)
-                                    - analysis_callback.ncalls_rhs_last_analysis)
-  performance_index = runtime_since_last_analysis * mpi_nranks() / (ndofsglobal(mesh, solver, cache)
-                                                                    * ncalls_rhs_since_last_analysis)
+                                    -
+                                    analysis_callback.ncalls_rhs_last_analysis)
+  performance_index = runtime_since_last_analysis * mpi_nranks() /
+                      (ndofsglobal(mesh, solver, cache)
+                       *
+                       ncalls_rhs_since_last_analysis)
 
   # Compute the total runtime since the analysis callback has been initialized, in seconds
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
@@ -263,7 +275,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
                 " run time:       " * @sprintf("%10.8e s", runtime_absolute))
     mpi_println(" Δt:             " * @sprintf("%10.8e", dt) *
                 "               " *
-                " └── GC time:    " * @sprintf("%10.8e s (%5.3f%%)", gc_time_absolute, gc_time_percentage))
+                " └── GC time:    " *
+                @sprintf("%10.8e s (%5.3f%%)", gc_time_absolute, gc_time_percentage))
     mpi_println(" sim. time:      " * @sprintf("%10.8e", t) *
                 "               " *
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
@@ -281,7 +294,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
     # Open file for appending and store time step and time information
     if mpi_isroot() && analysis_callback.save_analysis
-      io = open(joinpath(analysis_callback.output_directory, analysis_callback.analysis_filename), "a")
+      io = open(joinpath(analysis_callback.output_directory,
+                         analysis_callback.analysis_filename), "a")
       @printf(io, "% 9d", iter)
       @printf(io, "  %10.8e", t)
       @printf(io, "  %10.8e", dt)
@@ -296,8 +310,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
     # and allow us to pass a combined ODE RHS to OrdinaryDiffEq, e.g., for
     # hyperbolic-parabolic systems.
     @notimeit timer() integrator.f(du_ode, integrator.u, semi, t)
-    u  = wrap_array(integrator.u, mesh, equations, solver, cache)
-    du = wrap_array(du_ode,       mesh, equations, solver, cache)
+    u = wrap_array(integrator.u, mesh, equations, solver, cache)
+    du = wrap_array(du_ode, mesh, equations, solver, cache)
     l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
 
     mpi_println("─"^100)
@@ -334,8 +348,9 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
 
   # Calculate and print derived quantities (error norms, entropy etc.)
   # Variable names required for L2 error, Linf error, and conservation error
-  if any(q in analysis_errors for q in
-         (:l2_error, :linf_error, :conservation_error, :residual)) && mpi_isroot()
+  if any(q in analysis_errors
+         for q in
+             (:l2_error, :linf_error, :conservation_error, :residual)) && mpi_isroot()
     print(" Variable:    ")
     for v in eachvariable(equations)
       @printf("   %-14s", varnames(cons2cons, equations)[v])
@@ -408,7 +423,8 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
 
   # L2/L∞ errors of the primitive variables
   if :l2_error_primitive in analysis_errors || :linf_error_primitive in analysis_errors
-    l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, u_ode, t, analyzer, semi, cache_analysis)
+    l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, u_ode, t, analyzer, semi,
+                                                      cache_analysis)
 
     if mpi_isroot()
       print(" Variable:    ")
@@ -462,10 +478,11 @@ function print_amr_information(callbacks, mesh, solver, cache)
     max_level = max(max_level, current_level)
   end
 
-  for level = max_level:-1:min_level+1
+  for level in max_level:-1:(min_level + 1)
     mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(==(level), levels)))
   end
-  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(==(min_level), levels)))
+  mpi_println(" └── level $min_level:    " *
+              @sprintf("% 14d", count(==(min_level), levels)))
 
   return nothing
 end
@@ -494,17 +511,20 @@ function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
   min_level = min_level_1 - 1
   max_level = max_level_1 - 1
 
-  for level = max_level:-1:min_level+1
-    mpi_println(" ├── level $level:    " * @sprintf("% 14d", elements_per_level[level + 1]))
+  for level in max_level:-1:(min_level + 1)
+    mpi_println(" ├── level $level:    " *
+                @sprintf("% 14d", elements_per_level[level + 1]))
   end
-  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", elements_per_level[min_level + 1]))
+  mpi_println(" └── level $min_level:    " *
+              @sprintf("% 14d", elements_per_level[min_level + 1]))
 
   return nothing
 end
 
 
 # Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
-function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du, u, t, semi) where {N}
+function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du, u, t,
+                           semi) where {N}
 
   # Extract the first analysis integral and process it; keep the remaining to be processed later
   quantity = first(analysis_integrals)
@@ -530,13 +550,15 @@ end
 
 
 # used for error checks and EOC analysis
-function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect!<:AnalysisCallback}
+function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition,
+                                                               Affect!<:AnalysisCallback}
   analysis_callback = cb.affect!
   semi = sol.prob.p
   @unpack analyzer = analysis_callback
   cache_analysis = analysis_callback.cache
 
-  l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi, cache_analysis)
+  l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi,
+                                          cache_analysis)
   (; l2=l2_error, linf=linf_error)
 end
 
@@ -549,7 +571,7 @@ function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
   analyze(quantity, du, u, t, mesh, equations, solver, cache)
 end
 function analyze(quantity, du, u, t, mesh, equations, solver, cache)
-  integrate(quantity, u, mesh, equations, solver, cache, normalize=true)
+  integrate(quantity, u, mesh, equations, solver, cache; normalize=true)
 end
 pretty_form_utf(quantity) = get_name(quantity)
 pretty_form_ascii(quantity) = get_name(quantity)
@@ -559,14 +581,18 @@ pretty_form_ascii(quantity) = get_name(quantity)
 # precomputed gradients are available. For now only implemented for the `enstrophy`
 #!!! warning "Experimental code"
 #    This code is experimental and may be changed or removed in any future release.
-function analyze(quantity::typeof(enstrophy), du, u, t, semi::SemidiscretizationHyperbolicParabolic)
+function analyze(quantity::typeof(enstrophy), du, u, t,
+                 semi::SemidiscretizationHyperbolicParabolic)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   equations_parabolic = semi.equations_parabolic
   cache_parabolic = semi.cache_parabolic
-  analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache, cache_parabolic)
+  analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
+          cache_parabolic)
 end
-function analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache, cache_parabolic)
-  integrate(quantity, u, mesh, equations, equations_parabolic, solver, cache, cache_parabolic, normalize=true)
+function analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
+                 cache_parabolic)
+  integrate(quantity, u, mesh, equations, equations_parabolic, solver, cache,
+            cache_parabolic; normalize=true)
 end
 
 

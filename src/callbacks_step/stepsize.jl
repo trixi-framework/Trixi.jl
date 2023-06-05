@@ -17,7 +17,7 @@ mutable struct StepsizeCallback{RealT}
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:StepsizeCallback})
+function Base.show(io::IO, cb::DiscreteCallback{<:Any,<:StepsizeCallback})
   @nospecialize cb # reduce precompilation time
 
   stepsize_callback = cb.affect!
@@ -25,7 +25,8 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:StepsizeCallback})
   print(io, "StepsizeCallback(cfl_number=", cfl_number, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:StepsizeCallback})
+function Base.show(io::IO, ::MIME"text/plain",
+                   cb::DiscreteCallback{<:Any,<:StepsizeCallback})
   @nospecialize cb # reduce precompilation time
 
   if get(io, :compact, false)
@@ -33,9 +34,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Ste
   else
     stepsize_callback = cb.affect!
 
-    setup = [
-             "CFL number" => stepsize_callback.cfl_number,
-            ]
+    setup = ["CFL number" => stepsize_callback.cfl_number]
     summary_box(io, "StepsizeCallback", setup)
   end
 end
@@ -45,13 +44,14 @@ function StepsizeCallback(; cfl::Real=1.0)
 
   stepsize_callback = StepsizeCallback(cfl)
 
-  DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
-                   save_positions=(false,false),
+  DiscreteCallback(stepsize_callback, stepsize_callback; # the first one is the condition, the second the affect!
+                   save_positions=(false, false),
                    initialize=initialize!)
 end
 
 
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:StepsizeCallback}
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t,
+                     integrator) where {Condition,Affect!<:StepsizeCallback}
   cb.affect!(integrator)
 end
 
@@ -74,7 +74,8 @@ end
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     dt = @trixi_timeit timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
-                                                                  have_constant_speed(equations), equations,
+                                                                  have_constant_speed(equations),
+                                                                  equations,
                                                                   solver, cache)
     set_proposed_dt!(integrator, dt)
     integrator.opts.dtmax = dt
@@ -91,7 +92,8 @@ end
 # such as `CarpenterKennedy2N54` require passing `dt=...` in `solve(ode, ...)`. Since we don't have
 # an integrator at this stage but only the ODE, this method will be used there. It's called in
 # many examples in `solve(ode, ..., dt=stepsize_callback(ode), ...)`.
-function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition, Affect!<:StepsizeCallback}
+function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition,
+                                                                           Affect!<:StepsizeCallback}
   stepsize_callback = cb.affect!
   @unpack cfl_number = stepsize_callback
   u_ode = ode.u0
@@ -100,7 +102,8 @@ function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condi
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  return cfl_number * max_dt(u, t, mesh, have_constant_speed(equations), equations, solver, cache)
+  return cfl_number *
+         max_dt(u, t, mesh, have_constant_speed(equations), equations, solver, cache)
 end
 
 

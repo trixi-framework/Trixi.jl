@@ -21,7 +21,7 @@ function calc_error_norms(func, u, t, analyzer,
   for i in each_quad_node_global(mesh, dg, cache)
     u_exact = initial_condition(SVector(getindex.(md.xyzq, i)), t, equations)
     error_at_node = func(u_values[i], equations) - func(u_exact, equations)
-    component_l2_errors += md.wJq[i] * error_at_node.^2
+    component_l2_errors += md.wJq[i] * error_at_node .^ 2
     component_linf_errors = max.(component_linf_errors, abs.(error_at_node))
   end
   total_volume = sum(md.wJq)
@@ -79,12 +79,13 @@ function compute_local_divergence!(local_divergence, element, vector_field,
 
   # computes dU_i/dx_i = ∑_j dxhat_j/dx_i * dU_i / dxhat_j
   # dU_i/dx_i is then accumulated into local_divergence.
-      # TODO: DGMulti. Extend to curved elements.
+  # TODO: DGMulti. Extend to curved elements.
   for i in eachdim(mesh)
     for j in eachdim(mesh)
       geometric_scaling = md.rstxyzJ[i, j][1, element]
       jth_ref_derivative_matrix = rd.Drst[j]
-      mul!(local_divergence, jth_ref_derivative_matrix, vector_field[i], geometric_scaling, one(uEltype))
+      mul!(local_divergence, jth_ref_derivative_matrix, vector_field[i],
+           geometric_scaling, one(uEltype))
     end
   end
 end
@@ -146,7 +147,8 @@ function integrate(func::typeof(enstrophy), u,
 
   # allocate local storage for gradients.
   # TODO: can we avoid allocating here?
-  local_gradient_quadrature_values = ntuple(_ -> similar(cache_parabolic.local_u_values_threaded), 3)
+  local_gradient_quadrature_values = ntuple(_ -> similar(cache_parabolic.local_u_values_threaded),
+                                            3)
 
   integral = zero(eltype(u))
   for e in eachelement(mesh, dg)
@@ -157,9 +159,12 @@ function integrate(func::typeof(enstrophy), u,
 
     # interpolate to quadrature on each element
     apply_to_each_field(mul_by(dg.basis.Vq), u_quadrature_values, view(u, :, e))
-    apply_to_each_field(mul_by(dg.basis.Vq), gradient_x_quadrature_values, view(gradients_x, :, e))
-    apply_to_each_field(mul_by(dg.basis.Vq), gradient_y_quadrature_values, view(gradients_y, :, e))
-    apply_to_each_field(mul_by(dg.basis.Vq), gradient_z_quadrature_values, view(gradients_z, :, e))
+    apply_to_each_field(mul_by(dg.basis.Vq), gradient_x_quadrature_values,
+                        view(gradients_x, :, e))
+    apply_to_each_field(mul_by(dg.basis.Vq), gradient_y_quadrature_values,
+                        view(gradients_y, :, e))
+    apply_to_each_field(mul_by(dg.basis.Vq), gradient_z_quadrature_values,
+                        view(gradients_z, :, e))
 
     # integrate over the element
     for i in eachindex(u_quadrature_values)
@@ -177,7 +182,7 @@ function create_cache_analysis(analyzer, mesh::DGMultiMesh,
                                equations, dg::DGMulti, cache,
                                RealT, uEltype)
   md = mesh.md
-  return (; )
+  return (;)
 end
 
 SolutionAnalyzer(rd::RefElemData) = rd

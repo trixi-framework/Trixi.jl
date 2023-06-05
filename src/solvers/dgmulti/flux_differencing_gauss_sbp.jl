@@ -32,7 +32,7 @@ struct Interpolation <: AbstractGaussOperator end
 #   which is used in `VolumeIntegralFluxDifferencing`.
 # - `Projection{ScaleByFaceWeights=Static.True()}` corresponds to the quadrature-based lifting
 #   operator `LIFT = M \ (Vf' * diagm(rd.wf))`, which is used in `SurfaceIntegralWeakForm`
-struct Projection{ScaleByFaceWeights}  <: AbstractGaussOperator end
+struct Projection{ScaleByFaceWeights} <: AbstractGaussOperator end
 
 # used to dispatch for different Gauss interpolation operators
 abstract type AbstractTensorProductGaussOperator end
@@ -40,8 +40,9 @@ abstract type AbstractTensorProductGaussOperator end
 #   TensorProductGaussFaceOperator{Tmat, Ti}
 #
 # Data for performing tensor product interpolation from volume nodes to face nodes.
-struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperator,
-                                      Tmat, Tweights, Tfweights, Tindices} <: AbstractTensorProductGaussOperator
+struct TensorProductGaussFaceOperator{NDIMS,OperatorType<:AbstractGaussOperator,
+                                      Tmat,Tweights,Tfweights,Tindices} <:
+       AbstractTensorProductGaussOperator
   interp_matrix_gauss_to_face_1d::Tmat
   inv_volume_weights_1d::Tweights
   face_weights::Tfweights
@@ -52,7 +53,7 @@ end
 
 # constructor for a 2D operator
 function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
-                                        dg::DGMulti{2, Quad, GaussSBP})
+                                        dg::DGMulti{2,Quad,GaussSBP})
   rd = dg.basis
 
   rq1D, wq1D = StartUpDG.gauss_quad(0, 0, polydeg(dg))
@@ -74,15 +75,15 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
   Tw = typeof(inv.(wq1D))
   Tf = typeof(rd.wf)
   Ti = typeof(face_indices_tensor_product)
-  return TensorProductGaussFaceOperator{2, T_op, Tm, Tw, Tf, Ti}(interp_matrix_gauss_to_face_1d,
-                                                                 inv.(wq1D), rd.wf,
-                                                                 face_indices_tensor_product,
-                                                                 nnodes_1d, num_faces)
+  return TensorProductGaussFaceOperator{2,T_op,Tm,Tw,Tf,Ti}(interp_matrix_gauss_to_face_1d,
+                                                            inv.(wq1D), rd.wf,
+                                                            face_indices_tensor_product,
+                                                            nnodes_1d, num_faces)
 end
 
 # constructor for a 3D operator
 function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
-                                        dg::DGMulti{3, Hex, GaussSBP})
+                                        dg::DGMulti{3,Hex,GaussSBP})
   rd = dg.basis
 
   rq1D, wq1D = StartUpDG.gauss_quad(0, 0, polydeg(dg))
@@ -105,10 +106,10 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
   Tw = typeof(inv.(wq1D))
   Tf = typeof(rd.wf)
   Ti = typeof(face_indices_tensor_product)
-  return TensorProductGaussFaceOperator{3, T_op, Tm, Tw, Tf, Ti}(interp_matrix_gauss_to_face_1d,
-                                                                 inv.(wq1D), rd.wf,
-                                                                 face_indices_tensor_product,
-                                                                 nnodes_1d, num_faces)
+  return TensorProductGaussFaceOperator{3,T_op,Tm,Tw,Tf,Ti}(interp_matrix_gauss_to_face_1d,
+                                                            inv.(wq1D), rd.wf,
+                                                            face_indices_tensor_product,
+                                                            nnodes_1d, num_faces)
 end
 
 # specialize behavior of `mul_by!(A)` where `A isa TensorProductGaussFaceOperator)`
@@ -133,7 +134,8 @@ end
 
 # Interpolates values from volume Gauss nodes to face nodes on one element.
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{2, Interpolation},
+                                                     A::TensorProductGaussFaceOperator{2,
+                                                                                       Interpolation},
                                                      x_in::AbstractVector)
 
   (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
@@ -146,28 +148,31 @@ end
 
   # interpolation in the x-direction
   @turbo for i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left  = face_indices_tensor_product[1, i, 1]
+    index_left = face_indices_tensor_product[1, i, 1]
     index_right = face_indices_tensor_product[2, i, 1]
     for jj in Base.OneTo(nnodes_1d)      # loop over "line" of volume nodes
-      out[index_left]  = out[index_left]  + interp_matrix_gauss_to_face_1d[1, jj] * x[jj, i]
-      out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, jj] * x[jj, i]
+      out[index_left] = out[index_left] + interp_matrix_gauss_to_face_1d[1, jj] * x[jj, i]
+      out[index_right] = out[index_right] +
+                         interp_matrix_gauss_to_face_1d[2, jj] * x[jj, i]
     end
   end
 
   # interpolation in the y-direction
   @turbo for i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left  = face_indices_tensor_product[1, i, 2]
+    index_left = face_indices_tensor_product[1, i, 2]
     index_right = face_indices_tensor_product[2, i, 2]
     for jj in Base.OneTo(nnodes_1d)               # loop over "line" of volume nodes
-      out[index_left]  = out[index_left]  + interp_matrix_gauss_to_face_1d[1, jj] * x[i, jj]
-      out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, jj] * x[i, jj]
+      out[index_left] = out[index_left] + interp_matrix_gauss_to_face_1d[1, jj] * x[i, jj]
+      out[index_right] = out[index_right] +
+                         interp_matrix_gauss_to_face_1d[2, jj] * x[i, jj]
     end
   end
 end
 
 # Interpolates values from volume Gauss nodes to face nodes on one element.
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{3, Interpolation},
+                                                     A::TensorProductGaussFaceOperator{3,
+                                                                                       Interpolation},
                                                      x::AbstractVector)
 
   (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
@@ -180,40 +185,47 @@ end
 
   # interpolation in the y-direction
   @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left  = face_indices_tensor_product[1, i, j, 2]
+    index_left = face_indices_tensor_product[1, i, j, 2]
     index_right = face_indices_tensor_product[2, i, j, 2]
     for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
-      out[index_left]  = out[index_left]  + interp_matrix_gauss_to_face_1d[1, jj] * x[jj, i, j]
-      out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, jj] * x[jj, i, j]
+      out[index_left] = out[index_left] +
+                        interp_matrix_gauss_to_face_1d[1, jj] * x[jj, i, j]
+      out[index_right] = out[index_right] +
+                         interp_matrix_gauss_to_face_1d[2, jj] * x[jj, i, j]
     end
   end
 
   # interpolation in the x-direction
   @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left  = face_indices_tensor_product[1, i, j, 1]
+    index_left = face_indices_tensor_product[1, i, j, 1]
     index_right = face_indices_tensor_product[2, i, j, 1]
     for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
-      out[index_left]  = out[index_left]  + interp_matrix_gauss_to_face_1d[1, jj] * x[i, jj, j]
-      out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, jj] * x[i, jj, j]
+      out[index_left] = out[index_left] +
+                        interp_matrix_gauss_to_face_1d[1, jj] * x[i, jj, j]
+      out[index_right] = out[index_right] +
+                         interp_matrix_gauss_to_face_1d[2, jj] * x[i, jj, j]
     end
   end
 
   # interpolation in the z-direction
   @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left  = face_indices_tensor_product[1, i, j, 3]
+    index_left = face_indices_tensor_product[1, i, j, 3]
     index_right = face_indices_tensor_product[2, i, j, 3]
     for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
       # The ordering (i,j) -> (j,i) needs to be reversed for this last face.
       # This is due to way we define face nodes for Hex() types in StartUpDG.jl.
-      out[index_left]  = out[index_left]  + interp_matrix_gauss_to_face_1d[1, jj] * x[j, i, jj]
-      out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, jj] * x[j, i, jj]
+      out[index_left] = out[index_left] +
+                        interp_matrix_gauss_to_face_1d[1, jj] * x[j, i, jj]
+      out[index_right] = out[index_right] +
+                         interp_matrix_gauss_to_face_1d[2, jj] * x[j, i, jj]
     end
   end
 end
 
 # Projects face node values to volume Gauss nodes on one element.
 @inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{2, Projection{ApplyFaceWeights}},
+                                                     A::TensorProductGaussFaceOperator{2,
+                                                                                       Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
 
   (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
@@ -235,7 +247,7 @@ end
 
   # interpolation in the x-direction
   @turbo for i in Base.OneTo(nnodes_1d) # loop over face nodes
-    index_left  = face_indices_tensor_product[1, i, 1]
+    index_left = face_indices_tensor_product[1, i, 1]
     index_right = face_indices_tensor_product[2, i, 1]
     for jj in Base.OneTo(nnodes_1d) # loop over a line of volume nodes
       out[jj, i] = out[jj, i] + interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
@@ -245,7 +257,7 @@ end
 
   # interpolation in the y-direction
   @turbo for i in Base.OneTo(nnodes_1d)
-    index_left  = face_indices_tensor_product[1, i, 2]
+    index_left = face_indices_tensor_product[1, i, 2]
     index_right = face_indices_tensor_product[2, i, 2]
     # loop over a line of volume nodes
     for jj in Base.OneTo(nnodes_1d)
@@ -262,7 +274,8 @@ end
 
 # Interpolates values from volume Gauss nodes to face nodes on one element.
 @inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{3, Projection{ApplyFaceWeights}},
+                                                     A::TensorProductGaussFaceOperator{3,
+                                                                                       Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
 
   @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
@@ -284,50 +297,59 @@ end
 
   # interpolation in the y-direction
   @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left  = face_indices_tensor_product[1, i, j, 2]
+    index_left = face_indices_tensor_product[1, i, j, 2]
     index_right = face_indices_tensor_product[2, i, j, 2]
     for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
-      out[jj, i, j] = out[jj, i, j] + interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
-      out[jj, i, j] = out[jj, i, j] + interp_matrix_gauss_to_face_1d[2, jj] * x[index_right]
+      out[jj, i, j] = out[jj, i, j] +
+                      interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
+      out[jj, i, j] = out[jj, i, j] +
+                      interp_matrix_gauss_to_face_1d[2, jj] * x[index_right]
     end
   end
 
   # interpolation in the x-direction
   @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left  = face_indices_tensor_product[1, i, j, 1]
+    index_left = face_indices_tensor_product[1, i, j, 1]
     index_right = face_indices_tensor_product[2, i, j, 1]
     for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
-      out[i, jj, j] = out[i, jj, j] + interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
-      out[i, jj, j] = out[i, jj, j] + interp_matrix_gauss_to_face_1d[2, jj] * x[index_right]
+      out[i, jj, j] = out[i, jj, j] +
+                      interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
+      out[i, jj, j] = out[i, jj, j] +
+                      interp_matrix_gauss_to_face_1d[2, jj] * x[index_right]
     end
   end
 
   # interpolation in the z-direction
   @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left  = face_indices_tensor_product[1, i, j, 3]
+    index_left = face_indices_tensor_product[1, i, j, 3]
     index_right = face_indices_tensor_product[2, i, j, 3]
     for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
       # The ordering (i,j) -> (j,i) needs to be reversed for this last face.
       # This is due to way we define face nodes for Hex() types in StartUpDG.jl.
-      out[j, i, jj] = out[j, i, jj] + interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
-      out[j, i, jj] = out[j, i, jj] + interp_matrix_gauss_to_face_1d[2, jj] * x[index_right]
+      out[j, i, jj] = out[j, i, jj] +
+                      interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
+      out[j, i, jj] = out[j, i, jj] +
+                      interp_matrix_gauss_to_face_1d[2, jj] * x[index_right]
     end
   end
 
   # apply inv(M)
-  @turbo for k in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d)
-    out[i, j, k] = out[i, j, k] * inv_volume_weights_1d[i] * inv_volume_weights_1d[j] * inv_volume_weights_1d[k]
+  @turbo for k in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d),
+             i in Base.OneTo(nnodes_1d)
+    out[i, j, k] = out[i, j, k] * inv_volume_weights_1d[i] * inv_volume_weights_1d[j] *
+                   inv_volume_weights_1d[k]
   end
 end
 
 # For now, this is mostly the same as `create_cache` for DGMultiFluxDiff{<:Polynomial}.
 # In the future, we may modify it so that we can specialize additional parts of GaussSBP() solvers.
 function create_cache(mesh::DGMultiMesh, equations,
-                      dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Quad, Hex}}, RealT, uEltype)
+                      dg::DGMultiFluxDiff{<:GaussSBP,<:Union{Quad,Hex}}, RealT, uEltype)
 
   # call general Polynomial flux differencing constructor
-  cache = invoke(create_cache, Tuple{typeof(mesh), typeof(equations),
-                 DGMultiFluxDiff, typeof(RealT), typeof(uEltype)},
+  cache = invoke(create_cache,
+                 Tuple{typeof(mesh),typeof(equations),
+                       DGMultiFluxDiff,typeof(RealT),typeof(uEltype)},
                  mesh, equations, dg, RealT, uEltype)
 
   rd = dg.basis
@@ -339,34 +361,42 @@ function create_cache(mesh::DGMultiMesh, equations,
   interp_matrix_lobatto_to_gauss_1D = polynomial_interpolation_matrix(r1D, rq1D)
   interp_matrix_gauss_to_lobatto_1D = polynomial_interpolation_matrix(rq1D, r1D)
   NDIMS = ndims(rd.element_type)
-  interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS, interp_matrix_lobatto_to_gauss_1D, uEltype)
-  interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS, interp_matrix_gauss_to_lobatto_1D, uEltype)
+  interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS,
+                                                   interp_matrix_lobatto_to_gauss_1D,
+                                                   uEltype)
+  interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS,
+                                                   interp_matrix_gauss_to_lobatto_1D,
+                                                   uEltype)
   inv_gauss_weights = inv.(rd.wq)
 
   # specialized operators to perform tensor product interpolation to faces for Gauss nodes
   interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
-  projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{Static.False()}(), dg)
+  projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{Static.False()}(),
+                                                                   dg)
 
   # `LIFT` matrix for Gauss nodes - this is equivalent to `projection_matrix_gauss_to_face` scaled by `diagm(rd.wf)`,
   # where `rd.wf` are Gauss node face quadrature weights.
   gauss_LIFT = TensorProductGaussFaceOperator(Projection{Static.True()}(), dg)
 
   nvars = nvariables(equations)
-  rhs_volume_local_threaded   = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
-  gauss_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
+  rhs_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
+                               for _ in 1:Threads.nthreads()]
+  gauss_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
+                                 for _ in 1:Threads.nthreads()]
 
   return (; cache..., projection_matrix_gauss_to_face, gauss_LIFT, inv_gauss_weights,
-         rhs_volume_local_threaded, gauss_volume_local_threaded,
-         interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
-         interp_matrix_gauss_to_face,
-         create_cache(mesh, equations, dg.volume_integral, dg, RealT, uEltype)...) # add cache specialized on the volume integral
+          rhs_volume_local_threaded, gauss_volume_local_threaded,
+          interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
+          interp_matrix_gauss_to_face,
+          create_cache(mesh, equations, dg.volume_integral, dg, RealT, uEltype)...) # add cache specialized on the volume integral
 end
 
 # by default, return an empty tuple for volume integral caches
 create_cache(mesh, equations, volume_integral, dg, RealT, uEltype) = NamedTuple()
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
-function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff{<:GaussSBP})
+function entropy_projection!(cache, u, mesh::DGMultiMesh, equations,
+                             dg::DGMultiFluxDiff{<:GaussSBP})
 
   rd = dg.basis
   @unpack Vq = rd
@@ -375,7 +405,8 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
   @unpack interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_face = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
-    apply_to_each_field(mul_by!(interp_matrix_lobatto_to_gauss), view(u_values, :, e), view(u, :, e))
+    apply_to_each_field(mul_by!(interp_matrix_lobatto_to_gauss), view(u_values, :, e),
+                        view(u, :, e))
   end
 
   # transform quadrature values to entropy variables
@@ -387,7 +418,8 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
   # Interpolate volume Gauss nodes to Gauss face nodes (note the layout of
   # `projected_entropy_var_values = [vol pts; face pts]`).
   entropy_var_face_values = view(projected_entropy_var_values, face_indices, :)
-  apply_to_each_field(mul_by!(interp_matrix_gauss_to_face), entropy_var_face_values, entropy_var_values)
+  apply_to_each_field(mul_by!(interp_matrix_gauss_to_face), entropy_var_face_values,
+                      entropy_var_values)
 
   # directly copy over volume values (no entropy projection required)
   entropy_projected_volume_values = view(entropy_projected_u_values, volume_indices, :)
@@ -414,7 +446,8 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
 
     # applies LIFT matrix, output is stored at Gauss nodes
     gauss_volume_local = gauss_volume_local_threaded[Threads.threadid()]
-    apply_to_each_field(mul_by!(gauss_LIFT), gauss_volume_local, view(cache.flux_face_values, :, e))
+    apply_to_each_field(mul_by!(gauss_LIFT), gauss_volume_local,
+                        view(cache.flux_face_values, :, e))
 
     for i in eachindex(gauss_volume_local)
       du[i, e] = du[i, e] + gauss_volume_local[i]
@@ -461,7 +494,8 @@ function project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh::DGMultiMesh,
 
   # initialize rhs_volume_local = projection_matrix_gauss_to_face * local_face_flux
   rhs_volume_local = cache.rhs_volume_local_threaded[Threads.threadid()]
-  apply_to_each_field(mul_by!(cache.projection_matrix_gauss_to_face), rhs_volume_local, local_face_flux)
+  apply_to_each_field(mul_by!(cache.projection_matrix_gauss_to_face), rhs_volume_local,
+                      local_face_flux)
 
   # accumulate volume contributions at Gauss nodes
   for i in eachindex(rhs_volume_local)
@@ -485,7 +519,8 @@ end
 
 # interpolate back to Lobatto nodes after applying the inverse Jacobian at Gauss points
 function invert_jacobian_and_interpolate!(du, mesh::DGMultiMesh, equations,
-                                          dg::DGMultiFluxDiff{<:GaussSBP}, cache; scaling=-1)
+                                          dg::DGMultiFluxDiff{<:GaussSBP}, cache;
+                                          scaling=-1)
 
   (; interp_matrix_gauss_to_lobatto, rhs_volume_local_threaded, invJ) = cache
 
@@ -508,33 +543,42 @@ end
 # Specialize RHS so that we can call `invert_jacobian_and_interpolate!` instead of just `invert_jacobian!`,
 # since `invert_jacobian!` is also used in other places (e.g., parabolic terms).
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
-              source_terms::Source, dg::DGMultiFluxDiff{<:GaussSBP}, cache) where {Source, BC}
+              source_terms::Source, dg::DGMultiFluxDiff{<:GaussSBP},
+              cache) where {Source,BC}
 
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # this function evaluates the solution at volume and face quadrature points (which was previously
   # done in `prolong2interfaces` and `calc_volume_integral`)
-  @trixi_timeit timer() "entropy_projection!" entropy_projection!(cache, u, mesh, equations, dg)
+  @trixi_timeit timer() "entropy_projection!" entropy_projection!(cache, u, mesh,
+                                                                  equations, dg)
 
   # `du` is stored at Gauss nodes here
-  @trixi_timeit timer() "volume integral" calc_volume_integral!(
-    du, u, mesh, have_nonconservative_terms(equations), equations,
-    dg.volume_integral, dg, cache)
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u, mesh,
+                                                                have_nonconservative_terms(equations),
+                                                                equations,
+                                                                dg.volume_integral, dg,
+                                                                cache)
 
   # the following functions are the same as in VolumeIntegralWeakForm, and can be reused from dg.jl
-  @trixi_timeit timer() "interface flux" calc_interface_flux!(cache, dg.surface_integral, mesh,
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(cache, dg.surface_integral,
+                                                              mesh,
                                                               have_nonconservative_terms(equations),
                                                               equations, dg)
 
-  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, mesh,
-                                                            have_nonconservative_terms(equations), equations, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
+                                                            mesh,
+                                                            have_nonconservative_terms(equations),
+                                                            equations, dg)
 
   # `du` is stored at Gauss nodes here
   @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, mesh, equations,
-                                                                  dg.surface_integral, dg, cache)
+                                                                  dg.surface_integral, dg,
+                                                                  cache)
 
   # invert Jacobian and map `du` from Gauss to Lobatto nodes
-  @trixi_timeit timer() "Jacobian" invert_jacobian_and_interpolate!(du, mesh, equations, dg, cache)
+  @trixi_timeit timer() "Jacobian" invert_jacobian_and_interpolate!(du, mesh, equations,
+                                                                    dg, cache)
 
   @trixi_timeit timer() "source terms" calc_sources!(du, u, t, source_terms,
                                                      mesh, equations, dg, cache)

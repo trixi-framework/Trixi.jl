@@ -8,11 +8,14 @@
 
 # overload this function for specific callbacks which use element element variables
 # that should be saved
-get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                       callback; kwargs...) = nothing
+function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
+                                callback; kwargs...)
+  nothing
+end
 
 @inline function get_element_variables!(element_variables, u_ode,
-                                        semi::AbstractSemidiscretization, cb::DiscreteCallback;
+                                        semi::AbstractSemidiscretization,
+                                        cb::DiscreteCallback;
                                         kwargs...)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)

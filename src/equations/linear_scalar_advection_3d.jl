@@ -15,8 +15,9 @@ The linear scalar advection equation
 ```
 in three space dimensions with constant velocity `a`.
 """
-struct LinearScalarAdvectionEquation3D{RealT<:Real} <: AbstractLinearScalarAdvectionEquation{3, 1}
-  advection_velocity::SVector{3, RealT}
+struct LinearScalarAdvectionEquation3D{RealT<:Real} <:
+       AbstractLinearScalarAdvectionEquation{3,1}
+  advection_velocity::SVector{3,RealT}
 end
 
 function LinearScalarAdvectionEquation3D(a::NTuple{3,<:Real})
@@ -28,8 +29,8 @@ function LinearScalarAdvectionEquation3D(a1::Real, a2::Real, a3::Real)
 end
 
 
-varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3D) = ("scalar", )
-varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3D) = ("scalar", )
+varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3D) = ("scalar",)
+varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3D) = ("scalar",)
 
 
 # Set initial conditions at physical location `x` for time `t`
@@ -51,14 +52,15 @@ end
 
 A smooth initial condition used for convergence tests.
 """
-function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectionEquation3D)
+function initial_condition_convergence_test(x, t,
+                                            equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advection_velocity * t
 
   c = 1.0
   A = 0.5
   L = 2
-  f = 1/L
+  f = 1 / L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x_trans))
   return SVector(scalar)
@@ -142,21 +144,24 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equation::LinearScalarAdvectionEquation3D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equation::LinearScalarAdvectionEquation3D)
   λ_max = abs(equation.advection_velocity[orientation])
 end
 
 
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
-@inline function flux(u, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation3D)
+@inline function flux(u, normal_direction::AbstractVector,
+                      equation::LinearScalarAdvectionEquation3D)
   a = dot(equation.advection_velocity, normal_direction) # velocity in normal direction
   return a * u
 end
 
 
 # Calculate maximum wave speed in the normal direction for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation3D)
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equation::LinearScalarAdvectionEquation3D)
   a = dot(equation.advection_velocity, normal_direction) # velocity in normal direction
   return abs(a)
 end
@@ -164,7 +169,8 @@ end
 
 # Essentially first order upwind, see e.g.
 # https://math.stackexchange.com/a/4355076/805029
-function flux_godunov(u_ll, u_rr, orientation::Integer, equation::LinearScalarAdvectionEquation3D)
+function flux_godunov(u_ll, u_rr, orientation::Integer,
+                      equation::LinearScalarAdvectionEquation3D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
@@ -178,7 +184,8 @@ end
 
 # Essentially first order upwind, see e.g.
 # https://math.stackexchange.com/a/4355076/805029
-function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation3D)
+function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
+                      equation::LinearScalarAdvectionEquation3D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
@@ -212,7 +219,9 @@ end
 
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5 * u^2
-@inline energy_total(u, equation::LinearScalarAdvectionEquation3D) = energy_total(u[1], equation)
+@inline function energy_total(u, equation::LinearScalarAdvectionEquation3D)
+  energy_total(u[1], equation)
+end
 
 
 end # @muladd

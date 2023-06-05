@@ -23,13 +23,13 @@ function copy_data!(target::AbstractArray, source::AbstractArray,
   count = last - first + 1
   if destination <= first || destination > last
     # In this case it is safe to copy forward (left-to-right) without overwriting data
-    for i in 0:(count-1), j in 1:block_size
-      target[block_size*(destination+i-1) + j] = source[block_size*(first+i-1) + j]
+    for i in 0:(count - 1), j in 1:block_size
+      target[block_size * (destination + i - 1) + j] = source[block_size * (first + i - 1) + j]
     end
   else
     # In this case we need to copy backward (right-to-left) to prevent overwriting data
-    for i in (count-1):-1:0, j in 1:block_size
-      target[block_size*(destination+i-1) + j] = source[block_size*(first+i-1) + j]
+    for i in (count - 1):-1:0, j in 1:block_size
+      target[block_size * (destination + i - 1) + j] = source[block_size * (first + i - 1) + j]
     end
   end
 
@@ -78,7 +78,7 @@ end
 # inheriting from AbstractContainer.
 # TODO: Shall we extend Base.copyto! ?
 function Trixi.copy!(target::AbstractContainer, source::AbstractContainer,
-               first::Int, last::Int, destination::Int)
+                     first::Int, last::Int, destination::Int)
   @assert 1 <= first <= length(source) "First cell out of range"
   @assert 1 <= last <= length(source) "Last cell out of range"
   @assert 1 <= destination <= length(target) "Destination out of range"
@@ -96,7 +96,8 @@ end
 
 
 # Convenience method to copy a single element
-function Trixi.copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
+function Trixi.copy!(target::AbstractContainer, source::AbstractContainer, from::Int,
+                     destination::Int)
   Trixi.copy!(target, source, from, from, destination)
 end
 
@@ -143,7 +144,9 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
 
   return c
 end
-move!(c::AbstractContainer, from::Int, destination::Int) = move!(c, from, from, destination)
+function move!(c::AbstractContainer, from::Int, destination::Int)
+  move!(c, from, from, destination)
+end
 
 # Default implementation for moving a single element
 function move_connectivity!(c::AbstractContainer, from::Int, destination::Int)
@@ -297,7 +300,7 @@ end
 
 # Reset container to zero-length and with a new capacity
 function reset!(c::AbstractContainer, capacity::Int)
-  @assert capacity >=0
+  @assert capacity >= 0
 
   c.capacity = capacity
   c.length = 0
@@ -321,7 +324,8 @@ end
 function raw_copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   raw_copy!(c, c, first, last, destination)
 end
-function raw_copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
+function raw_copy!(target::AbstractContainer, source::AbstractContainer, from::Int,
+                   destination::Int)
   raw_copy!(target, source, from, from, destination)
 end
 function raw_copy!(c::AbstractContainer, from::Int, destination::Int)

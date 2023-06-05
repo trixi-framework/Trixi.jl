@@ -13,19 +13,22 @@
 function create_cache(mesh::TreeMesh{2}, equations,
                       volume_integral::VolumeIntegralStrongForm, dg, uEltype)
 
-  prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(
-    undef, ntuple(_ -> nnodes(dg), ndims(mesh))...)
+  prototype = Array{SVector{nvariables(equations),uEltype},ndims(mesh)}(undef,
+                                                                        ntuple(_ -> nnodes(dg),
+                                                                               ndims(mesh))...)
   f_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
 
-  return (; f_threaded,)
+  return (; f_threaded)
 end
 
 function create_cache(mesh::TreeMesh{2}, equations,
                       volume_integral::VolumeIntegralUpwind, dg, uEltype)
 
-  u_node = SVector{nvariables(equations), uEltype}(ntuple(_ -> zero(uEltype), Val{nvariables(equations)}()))
+  u_node = SVector{nvariables(equations),uEltype}(ntuple(_ -> zero(uEltype),
+                                                         Val{nvariables(equations)}()))
   f = StructArray([(u_node, u_node)])
-  f_minus_plus_threaded = [similar(f, ntuple(_ -> nnodes(dg), ndims(mesh))...) for _ in 1:Threads.nthreads()]
+  f_minus_plus_threaded = [similar(f, ntuple(_ -> nnodes(dg), ndims(mesh))...)
+                           for _ in 1:Threads.nthreads()]
 
   f_minus, f_plus = StructArrays.components(f_minus_plus_threaded[1])
   f_minus_threaded = [f_minus]
@@ -36,7 +39,7 @@ function create_cache(mesh::TreeMesh{2}, equations,
     push!(f_plus_threaded, f_plus)
   end
 
-  return (; f_minus_plus_threaded, f_minus_threaded, f_plus_threaded,)
+  return (; f_minus_plus_threaded, f_minus_threaded, f_plus_threaded)
 end
 
 
@@ -55,20 +58,20 @@ function calc_volume_integral!(du, u,
   if nvariables(equations) == 1
     # `reinterpret(reshape, ...)` removes the leading dimension only if more
     # than one variable is used.
-    u_vectors  = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
-                         nnodes(dg), nnodes(dg), nelements(dg, cache))
-    du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
+    u_vectors = reshape(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
+                        nnodes(dg), nnodes(dg), nelements(dg, cache))
+    du_vectors = reshape(reinterpret(SVector{nvariables(equations),eltype(du)}, du),
                          nnodes(dg), nnodes(dg), nelements(dg, cache))
   else
-    u_vectors  = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
-    du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du)
+    u_vectors = reinterpret(reshape, SVector{nvariables(equations),eltype(u)}, u)
+    du_vectors = reinterpret(reshape, SVector{nvariables(equations),eltype(du)}, du)
   end
 
   # Use the tensor product structure to compute the discrete derivatives of
   # the fluxes line-by-line and add them to `du` for each element.
   @threaded for element in eachelement(dg, cache)
     f_element = f_threaded[Threads.threadid()]
-    u_element = view(u_vectors,  :, :, element)
+    u_element = view(u_vectors, :, :, element)
 
     # x direction
     @. f_element = flux(u_element, 1, equations)
@@ -114,13 +117,13 @@ function calc_volume_integral!(du, u,
   if nvariables(equations) == 1
     # `reinterpret(reshape, ...)` removes the leading dimension only if more
     # than one variable is used.
-    u_vectors  = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
-                         nnodes(dg), nnodes(dg), nelements(dg, cache))
-    du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
+    u_vectors = reshape(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
+                        nnodes(dg), nnodes(dg), nelements(dg, cache))
+    du_vectors = reshape(reinterpret(SVector{nvariables(equations),eltype(du)}, du),
                          nnodes(dg), nnodes(dg), nelements(dg, cache))
   else
-    u_vectors  = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
-    du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du)
+    u_vectors = reinterpret(reshape, SVector{nvariables(equations),eltype(u)}, u)
+    du_vectors = reinterpret(reshape, SVector{nvariables(equations),eltype(du)}, du)
   end
 
   # Use the tensor product structure to compute the discrete derivatives of
@@ -161,7 +164,7 @@ end
 function calc_surface_integral!(du, u, mesh::TreeMesh{2},
                                 equations, surface_integral::SurfaceIntegralStrongForm,
                                 dg::DG, cache)
-  inv_weight_left  = inv(left_boundary_weight(dg.basis))
+  inv_weight_left = inv(left_boundary_weight(dg.basis))
   inv_weight_right = inv(right_boundary_weight(dg.basis))
   @unpack surface_flux_values = cache.elements
 
@@ -170,28 +173,28 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
       # surface at -x
       u_node = get_node_vars(u, equations, dg, 1, l, element)
       f_node = flux(u_node, 1, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 1, element)
+      f_num = get_node_vars(surface_flux_values, equations, dg, l, 1, element)
       multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
                                  equations, dg, 1, l, element)
 
       # surface at +x
       u_node = get_node_vars(u, equations, dg, nnodes(dg), l, element)
       f_node = flux(u_node, 1, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 2, element)
+      f_num = get_node_vars(surface_flux_values, equations, dg, l, 2, element)
       multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
                                  equations, dg, nnodes(dg), l, element)
 
       # surface at -y
       u_node = get_node_vars(u, equations, dg, l, 1, element)
       f_node = flux(u_node, 2, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 3, element)
+      f_num = get_node_vars(surface_flux_values, equations, dg, l, 3, element)
       multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
                                  equations, dg, l, 1, element)
 
       # surface at +y
       u_node = get_node_vars(u, equations, dg, l, nnodes(dg), element)
       f_node = flux(u_node, 2, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
+      f_num = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
       multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
                                  equations, dg, l, nnodes(dg), element)
     end
@@ -216,13 +219,13 @@ function calc_interface_flux!(surface_flux_values,
 
   @threaded for interface in eachinterface(dg, cache)
     # Get neighboring elements
-    left_id  = neighbor_ids[1, interface]
+    left_id = neighbor_ids[1, interface]
     right_id = neighbor_ids[2, interface]
 
     # Determine interface direction with respect to elements:
     # orientation = 1: left -> 2, right -> 1
     # orientation = 2: left -> 4, right -> 3
-    left_direction  = 2 * orientations[interface]
+    left_direction = 2 * orientations[interface]
     right_direction = 2 * orientations[interface] - 1
 
     for i in eachnode(dg)
@@ -233,11 +236,11 @@ function calc_interface_flux!(surface_flux_values,
       # information comes from the left and left-traveling information
       # comes from the right
       flux_minus_rr = splitting(u_rr, Val{:minus}(), orientations[interface], equations)
-      flux_plus_ll  = splitting(u_ll, Val{:plus}(),  orientations[interface], equations)
+      flux_plus_ll = splitting(u_ll, Val{:plus}(), orientations[interface], equations)
 
       # Save the upwind coupling into the appropriate side of the elements
       for v in eachvariable(equations)
-        surface_flux_values[v, i, left_direction,  left_id]  = flux_minus_rr[v]
+        surface_flux_values[v, i, left_direction, left_id] = flux_minus_rr[v]
         surface_flux_values[v, i, right_direction, right_id] = flux_plus_ll[v]
       end
     end
@@ -254,7 +257,7 @@ end
 function calc_surface_integral!(du, u, mesh::TreeMesh{2},
                                 equations, surface_integral::SurfaceIntegralUpwind,
                                 dg::FDSBP, cache)
-  inv_weight_left  = inv(left_boundary_weight(dg.basis))
+  inv_weight_left = inv(left_boundary_weight(dg.basis))
   inv_weight_right = inv(right_boundary_weight(dg.basis))
   @unpack surface_flux_values = cache.elements
   @unpack splitting = surface_integral
@@ -265,28 +268,28 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
       # surface at -x
       u_node = get_node_vars(u, equations, dg, 1, l, element)
       f_node = splitting(u_node, Val{:plus}(), 1, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 1, element)
+      f_num = get_node_vars(surface_flux_values, equations, dg, l, 1, element)
       multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
                                  equations, dg, 1, l, element)
 
       # surface at +x
       u_node = get_node_vars(u, equations, dg, nnodes(dg), l, element)
       f_node = splitting(u_node, Val{:minus}(), 1, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 2, element)
+      f_num = get_node_vars(surface_flux_values, equations, dg, l, 2, element)
       multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
                                  equations, dg, nnodes(dg), l, element)
 
       # surface at -y
       u_node = get_node_vars(u, equations, dg, l, 1, element)
       f_node = splitting(u_node, Val{:plus}(), 2, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 3, element)
+      f_num = get_node_vars(surface_flux_values, equations, dg, l, 3, element)
       multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
                                  equations, dg, l, 1, element)
 
       # surface at +y
       u_node = get_node_vars(u, equations, dg, l, nnodes(dg), element)
       f_node = splitting(u_node, Val{:minus}(), 2, equations)
-      f_num  = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
+      f_num = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
       multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
                                  equations, dg, l, nnodes(dg), element)
     end
@@ -310,7 +313,8 @@ function integrate_via_indices(func::Func, u,
   for element in eachelement(dg, cache)
     volume_jacobian_ = volume_jacobian(element, mesh, cache)
     for j in eachnode(dg), i in eachnode(dg)
-      integral += volume_jacobian_ * weights[i] * weights[j] * func(u, i, j, element, equations, dg, args...)
+      integral += volume_jacobian_ * weights[i] * weights[j] *
+                  func(u, i, j, element, equations, dg, args...)
     end
   end
 
@@ -330,7 +334,7 @@ function calc_error_norms(func, u, t, analyzer,
   @unpack node_coordinates = cache.elements
 
   # Set up data structures
-  l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
+  l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
   linf_error = copy(l2_error)
 
   # Iterate over all elements for error calculations
@@ -339,11 +343,11 @@ function calc_error_norms(func, u, t, analyzer,
     volume_jacobian_ = volume_jacobian(element, mesh, cache)
 
     for j in eachnode(analyzer), i in eachnode(analyzer)
-      u_exact = initial_condition(
-        get_node_coords(node_coordinates, equations, dg, i, j, element), t, equations)
-      diff = func(u_exact, equations) - func(
-        get_node_vars(u, equations, dg, i, j, element), equations)
-      l2_error += diff.^2 * (weights[i] * weights[j] * volume_jacobian_)
+      u_exact = initial_condition(get_node_coords(node_coordinates, equations, dg, i, j,
+                                                  element), t, equations)
+      diff = func(u_exact, equations) -
+             func(get_node_vars(u, equations, dg, i, j, element), equations)
+      l2_error += diff .^ 2 * (weights[i] * weights[j] * volume_jacobian_)
       linf_error = @. max(linf_error, abs(diff))
     end
   end

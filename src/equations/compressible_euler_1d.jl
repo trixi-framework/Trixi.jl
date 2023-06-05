@@ -32,7 +32,8 @@ p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho v_1^2 \right)
 ```
 the pressure.
 """
-struct CompressibleEulerEquations1D{RealT<:Real} <: AbstractCompressibleEulerEquations{1, 3}
+struct CompressibleEulerEquations1D{RealT<:Real} <:
+       AbstractCompressibleEulerEquations{1,3}
   gamma::RealT               # ratio of specific heats
   inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
 
@@ -71,7 +72,7 @@ function initial_condition_convergence_test(x, t, equations::CompressibleEulerEq
   c = 2
   A = 0.1
   L = 2
-  f = 1/L
+  f = 1 / L
   ω = 2 * pi * f
   ini = c + A * sin(ω * (x[1] - t))
 
@@ -89,12 +90,13 @@ Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
-@inline function source_terms_convergence_test(u, x, t, equations::CompressibleEulerEquations1D)
+@inline function source_terms_convergence_test(u, x, t,
+                                               equations::CompressibleEulerEquations1D)
   # Same settings as in `initial_condition`
   c = 2
   A = 0.1
   L = 2
-  f = 1/L
+  f = 1 / L
   ω = 2 * pi * f
   γ = equations.gamma
 
@@ -134,7 +136,7 @@ function initial_condition_density_wave(x, t, equations::CompressibleEulerEquati
   rho = 1 + 0.98 * sinpi(2 * (x[1] - t * v1))
   rho_v1 = rho * v1
   p = 20
-  rho_e = p / (equations.gamma - 1) + 1/2 * rho * v1^2
+  rho_e = p / (equations.gamma - 1) + 1 / 2 * rho * v1^2
   return SVector(rho, rho_v1, rho_e)
 end
 
@@ -161,8 +163,8 @@ function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEqu
 
   # Calculate primitive variables
   rho = r > 0.5 ? 1.0 : 1.1691
-  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  p   = r > 0.5 ? 1.0 : 1.245
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+  p = r > 0.5 ? 1.0 : 1.245
 
   return prim2cons(SVector(rho, v1, p), equations)
 end
@@ -181,7 +183,8 @@ with self-gravity from
     spatial dimension. Thus, [`source_terms_eoc_test_coupled_euler_gravity`](@ref) is not
     present there.
 """
-function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::CompressibleEulerEquations1D)
+function initial_condition_eoc_test_coupled_euler_gravity(x, t,
+                                                          equations::CompressibleEulerEquations1D)
   # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
   if equations.gamma != 2.0
     error("adiabatic constant must be 2 for the coupling convergence test")
@@ -227,23 +230,24 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   compressible flows
   [DOI: 10.1016/j.jcp.2020.110060](https://doi.org/10.1016/j.jcp.2020.110060)
 """
-@inline function flux_shima_etal(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
+@inline function flux_shima_etal(u_ll, u_rr, orientation::Integer,
+                                 equations::CompressibleEulerEquations1D)
   # Unpack left and right state
   rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
   rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
 
   # Average each factor of products in flux
-  rho_avg = 1/2 * (rho_ll + rho_rr)
-  v1_avg  = 1/2 * ( v1_ll +  v1_rr)
-  p_avg   = 1/2 * (  p_ll +   p_rr)
-  kin_avg = 1/2 * (v1_ll * v1_rr)
+  rho_avg = 1 / 2 * (rho_ll + rho_rr)
+  v1_avg = 1 / 2 * (v1_ll + v1_rr)
+  p_avg = 1 / 2 * (p_ll + p_rr)
+  kin_avg = 1 / 2 * (v1_ll * v1_rr)
 
   # Calculate fluxes
   # Ignore orientation since it is always "1" in 1D
-  pv1_avg = 1/2 * (p_ll*v1_rr + p_rr*v1_ll)
+  pv1_avg = 1 / 2 * (p_ll * v1_rr + p_rr * v1_ll)
   f1 = rho_avg * v1_avg
   f2 = f1 * v1_avg + p_avg
-  f3 = p_avg*v1_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv1_avg
+  f3 = p_avg * v1_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv1_avg
 
   return SVector(f1, f2, f3)
 end
@@ -258,7 +262,8 @@ Kinetic energy preserving two-point flux by
   Navier-Stokes equations for a compressible fluid
   [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
-@inline function flux_kennedy_gruber(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
+@inline function flux_kennedy_gruber(u_ll, u_rr, orientation::Integer,
+                                     equations::CompressibleEulerEquations1D)
   # Unpack left and right state
   rho_e_ll = last(u_ll)
   rho_e_rr = last(u_rr)
@@ -266,10 +271,10 @@ Kinetic energy preserving two-point flux by
   rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
 
   # Average each factor of products in flux
-  rho_avg = 1/2 * (rho_ll + rho_rr)
-  v1_avg  = 1/2 * ( v1_ll +  v1_rr)
-  p_avg   = 1/2 * (  p_ll +   p_rr)
-  e_avg   = 1/2 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
+  rho_avg = 1 / 2 * (rho_ll + rho_rr)
+  v1_avg = 1 / 2 * (v1_ll + v1_rr)
+  p_avg = 1 / 2 * (p_ll + p_rr)
+  e_avg = 1 / 2 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
 
   # Ignore orientation since it is always "1" in 1D
   f1 = rho_avg * v1_avg
@@ -289,7 +294,8 @@ Entropy conserving two-point flux by
   for Compressible Euler and Navier-Stokes Equations
   [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
-@inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
+@inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer,
+                                    equations::CompressibleEulerEquations1D)
   # Unpack left and right state
   rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
   rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
@@ -300,7 +306,7 @@ Entropy conserving two-point flux by
 
   # Compute the necessary mean values
   rho_avg = 0.5 * (rho_ll + rho_rr)
-  rho_mean  = ln_mean(rho_ll, rho_rr)
+  rho_mean = ln_mean(rho_ll, rho_rr)
   beta_mean = ln_mean(beta_ll, beta_rr)
   beta_avg = 0.5 * (beta_ll + beta_rr)
   v1_avg = 0.5 * (v1_ll + v1_rr)
@@ -311,7 +317,8 @@ Entropy conserving two-point flux by
   # Ignore orientation since it is always "1" in 1D
   f1 = rho_mean * v1_avg
   f2 = f1 * v1_avg + p_mean
-  f3 = f1 * 0.5*(1/(equations.gamma-1)/beta_mean - velocity_square_avg)+f2*v1_avg
+  f3 = f1 * 0.5 * (1 / (equations.gamma - 1) / beta_mean - velocity_square_avg) +
+       f2 * v1_avg
 
   return SVector(f1, f2, f3)
 end
@@ -331,7 +338,8 @@ See also
   the Euler Equations Using Summation-by-Parts Operators
   [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
-@inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
+@inline function flux_ranocha(u_ll, u_rr, orientation::Integer,
+                              equations::CompressibleEulerEquations1D)
   # Unpack left and right state
   rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
   rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
@@ -344,19 +352,21 @@ See also
   #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
   inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
   v1_avg = 0.5 * (v1_ll + v1_rr)
-  p_avg  = 0.5 * (p_ll + p_rr)
-  velocity_square_avg = 0.5 * (v1_ll*v1_rr)
+  p_avg = 0.5 * (p_ll + p_rr)
+  velocity_square_avg = 0.5 * (v1_ll * v1_rr)
 
   # Calculate fluxes
   # Ignore orientation since it is always "1" in 1D
   f1 = rho_mean * v1_avg
   f2 = f1 * v1_avg + p_avg
-  f3 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+  f3 = f1 * (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one) +
+       0.5 * (p_ll * v1_rr + p_rr * v1_ll)
 
   return SVector(f1, f2, f3)
 end
 
-@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations1D)
+@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector,
+                              equations::CompressibleEulerEquations1D)
   return normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)
 end
 
@@ -388,7 +398,7 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
 @inline function splitting_steger_warming(u, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
   fm = splitting_steger_warming(u, Val{:minus}(), orientation, equations)
-  fp = splitting_steger_warming(u, Val{:plus}(),  orientation, equations)
+  fp = splitting_steger_warming(u, Val{:plus}(), orientation, equations)
   return fm, fp
 end
 
@@ -425,21 +435,21 @@ end
   p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
   a = sqrt(equations.gamma * p / rho)
 
-    lambda1 = v1
-    lambda2 = v1 + a
-    lambda3 = v1 - a
+  lambda1 = v1
+  lambda2 = v1 + a
+  lambda3 = v1 - a
 
-    lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
-    lambda2_m = negative_part(lambda2)
-    lambda3_m = negative_part(lambda3)
+  lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
+  lambda2_m = negative_part(lambda2)
+  lambda3_m = negative_part(lambda3)
 
-    alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+  alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 
-    rho_2gamma = 0.5 * rho / equations.gamma
-    f1m = rho_2gamma * alpha_m
-    f2m = rho_2gamma * (alpha_m * v1 + a * (lambda2_m - lambda3_m))
-    f3m = rho_2gamma * (alpha_m * 0.5 * v1^2 + a * v1 * (lambda2_m - lambda3_m)
-                        + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
+  rho_2gamma = 0.5 * rho / equations.gamma
+  f1m = rho_2gamma * alpha_m
+  f2m = rho_2gamma * (alpha_m * v1 + a * (lambda2_m - lambda3_m))
+  f3m = rho_2gamma * (alpha_m * 0.5 * v1^2 + a * v1 * (lambda2_m - lambda3_m)
+                      + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
 
   return SVector(f1m, f2m, f3m)
 end
@@ -482,7 +492,7 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
 @inline function splitting_vanleer_haenel(u, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
   fm = splitting_vanleer_haenel(u, Val{:minus}(), orientation, equations)
-  fp = splitting_vanleer_haenel(u, Val{:plus}(),  orientation, equations)
+  fp = splitting_vanleer_haenel(u, Val{:plus}(), orientation, equations)
   return fm, fp
 end
 
@@ -523,7 +533,7 @@ end
 
   p_minus = 0.5 * (1 - equations.gamma * M) * p
 
-  f1m= -0.25 * rho * a * (M - 1)^2
+  f1m = -0.25 * rho * a * (M - 1)^2
   f2m = f1m * v1 + p_minus
   f3m = f1m * H
 
@@ -569,14 +579,14 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
   [DOI: 10.2514/6.1991-1566](https://doi.org/10.2514/6.1991-1566)
 """
 @inline function splitting_coirier_vanleer(u, orientation::Integer,
-                                          equations::CompressibleEulerEquations1D)
+                                           equations::CompressibleEulerEquations1D)
   fm = splitting_coirier_vanleer(u, Val{:minus}(), orientation, equations)
-  fp = splitting_coirier_vanleer(u, Val{:plus}(),  orientation, equations)
+  fp = splitting_coirier_vanleer(u, Val{:plus}(), orientation, equations)
   return fm, fp
 end
 
 @inline function splitting_coirier_vanleer(u, ::Val{:plus}, orientation::Integer,
-                                            equations::CompressibleEulerEquations1D)
+                                           equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
   v1 = rho_v1 / rho
   p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
@@ -603,7 +613,7 @@ end
 end
 
 @inline function splitting_coirier_vanleer(u, ::Val{:minus}, orientation::Integer,
-                                            equations::CompressibleEulerEquations1D)
+                                           equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
   v1 = rho_v1 / rho
   p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
@@ -632,18 +642,19 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::CompressibleEulerEquations1D)
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
 
   # Calculate primitive variables and speed of sound
   v1_ll = rho_v1_ll / rho_ll
   v_mag_ll = abs(v1_ll)
-  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
+  p_ll = (equations.gamma - 1) * (rho_e_ll - 1 / 2 * rho_ll * v_mag_ll^2)
   c_ll = sqrt(equations.gamma * p_ll / rho_ll)
   v1_rr = rho_v1_rr / rho_rr
   v_mag_rr = abs(v1_rr)
-  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
+  p_rr = (equations.gamma - 1) * (rho_e_rr - 1 / 2 * rho_rr * v_mag_rr^2)
   c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
@@ -651,7 +662,8 @@ end
 
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::CompressibleEulerEquations1D)
   rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
   rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
 
@@ -669,20 +681,21 @@ Computes the HLLC flux (HLL with Contact) for compressible Euler equations devel
 [Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
 Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827593260140)
 """
-function flux_hllc(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
+function flux_hllc(u_ll, u_rr, orientation::Integer,
+                   equations::CompressibleEulerEquations1D)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
 
   v1_ll = rho_v1_ll / rho_ll
-  e_ll  = rho_e_ll / rho_ll
-  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v1_ll^2)
-  c_ll = sqrt(equations.gamma*p_ll/rho_ll)
+  e_ll = rho_e_ll / rho_ll
+  p_ll = (equations.gamma - 1) * (rho_e_ll - 1 / 2 * rho_ll * v1_ll^2)
+  c_ll = sqrt(equations.gamma * p_ll / rho_ll)
 
   v1_rr = rho_v1_rr / rho_rr
-  e_rr  = rho_e_rr / rho_rr
-  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v1_rr^2 )
-  c_rr = sqrt(equations.gamma*p_rr/rho_rr)
+  e_rr = rho_e_rr / rho_rr
+  p_rr = (equations.gamma - 1) * (rho_e_rr - 1 / 2 * rho_rr * v1_rr^2)
+  c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
   # Obtain left and right fluxes
   f_ll = flux(u_ll, orientation, equations)
@@ -714,28 +727,29 @@ function flux_hllc(u_ll, u_rr, orientation::Integer, equations::CompressibleEule
     f2 = f_rr[2]
     f3 = f_rr[3]
   else
-    SStar = (p_rr - p_ll + rho_ll*vel_L*sMu_L - rho_rr*vel_R*sMu_R) / (rho_ll*sMu_L - rho_rr*sMu_R)
+    SStar = (p_rr - p_ll + rho_ll * vel_L * sMu_L - rho_rr * vel_R * sMu_R) /
+            (rho_ll * sMu_L - rho_rr * sMu_R)
     if Ssl <= 0.0 <= SStar
-      densStar = rho_ll*sMu_L / (Ssl-SStar)
+      densStar = rho_ll * sMu_L / (Ssl - SStar)
       enerStar = e_ll + (SStar - vel_L) * (SStar + p_ll / (rho_ll * sMu_L))
       UStar1 = densStar
-      UStar2 = densStar*SStar
-      UStar3 = densStar*enerStar
+      UStar2 = densStar * SStar
+      UStar3 = densStar * enerStar
 
-      f1 = f_ll[1]+Ssl*(UStar1 - rho_ll)
-      f2 = f_ll[2]+Ssl*(UStar2 - rho_v1_ll)
-      f3 = f_ll[3]+Ssl*(UStar3 - rho_e_ll)
+      f1 = f_ll[1] + Ssl * (UStar1 - rho_ll)
+      f2 = f_ll[2] + Ssl * (UStar2 - rho_v1_ll)
+      f3 = f_ll[3] + Ssl * (UStar3 - rho_e_ll)
     else
-      densStar = rho_rr*sMu_R / (Ssr-SStar)
+      densStar = rho_rr * sMu_R / (Ssr - SStar)
       enerStar = e_rr + (SStar - vel_R) * (SStar + p_rr / (rho_rr * sMu_R))
       UStar1 = densStar
-      UStar2 = densStar*SStar
-      UStar3 = densStar*enerStar
+      UStar2 = densStar * SStar
+      UStar3 = densStar * enerStar
 
       #end
-      f1 = f_rr[1]+Ssr*(UStar1 - rho_rr)
-      f2 = f_rr[2]+Ssr*(UStar2 - rho_v1_rr)
-      f3 = f_rr[3]+Ssr*(UStar3 - rho_e_rr)
+      f1 = f_rr[1] + Ssr * (UStar1 - rho_rr)
+      f2 = f_rr[2] + Ssr * (UStar2 - rho_v1_rr)
+      f3 = f_rr[3] + Ssr * (UStar3 - rho_e_rr)
     end
   end
   return SVector(f1, f2, f3)
@@ -760,7 +774,8 @@ Compactly summarized:
   Numerical methods for conservation laws and related equations.
   [Link](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf)
 """
-function flux_hlle(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
+function flux_hlle(u_ll, u_rr, orientation::Integer,
+                   equations::CompressibleEulerEquations1D)
   # Calculate primitive variables, enthalpy and speed of sound
   rho_ll, v_ll, p_ll = cons2prim(u_ll, equations)
   rho_rr, v_rr, p_rr = cons2prim(u_rr, equations)
@@ -824,7 +839,7 @@ end
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
   v1 = rho_v1 / rho
-  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * v1^2)
+  p = (equations.gamma - 1) * (rho_e - 1 / 2 * rho * v1^2)
   c = sqrt(equations.gamma * p / rho)
 
   return (abs(v1) + c,)
@@ -849,7 +864,7 @@ end
   v1 = rho_v1 / rho
   v_square = v1^2
   p = (equations.gamma - 1) * (rho_e - 0.5 * rho * v_square)
-  s = log(p) - equations.gamma*log(rho)
+  s = log(p) - equations.gamma * log(rho)
   rho_p = rho / p
 
   w1 = (equations.gamma - s) * equations.inv_gamma_minus_one - 0.5 * rho_p * v_square
@@ -872,12 +887,13 @@ end
   s = gamma - V1 + 0.5 * (V2^2) / V5
 
   # eq. (52)
-  energy_internal = ((gamma - 1) / (-V5)^gamma)^(equations.inv_gamma_minus_one) * exp(-s * equations.inv_gamma_minus_one)
+  energy_internal = ((gamma - 1) / (-V5)^gamma)^(equations.inv_gamma_minus_one) *
+                    exp(-s * equations.inv_gamma_minus_one)
 
   # eq. (51)
-  rho    = -V5 * energy_internal
+  rho = -V5 * energy_internal
   rho_v1 = V2 * energy_internal
-  rho_e  = (1 - 0.5 * (V2^2) / V5) * energy_internal
+  rho_e = (1 - 0.5 * (V2^2) / V5) * energy_internal
   return SVector(rho, rho_v1, rho_e)
 end
 
@@ -886,37 +902,37 @@ end
 @inline function prim2cons(prim, equations::CompressibleEulerEquations1D)
   rho, v1, p = prim
   rho_v1 = rho * v1
-  rho_e  = p * equations.inv_gamma_minus_one + 0.5 * (rho_v1 * v1)
+  rho_e = p * equations.inv_gamma_minus_one + 0.5 * (rho_v1 * v1)
   return SVector(rho, rho_v1, rho_e)
 end
 
 
 @inline function density(u, equations::CompressibleEulerEquations1D)
- rho = u[1]
- return rho
+  rho = u[1]
+  return rho
 end
 
 @inline function pressure(u, equations::CompressibleEulerEquations1D)
- rho, rho_v1, rho_e = u
- p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2) / rho)
- return p
+  rho, rho_v1, rho_e = u
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2) / rho)
+  return p
 end
 
 
 @inline function density_pressure(u, equations::CompressibleEulerEquations1D)
- rho, rho_v1, rho_e = u
- rho_times_p = (equations.gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2))
- return rho_times_p
+  rho, rho_v1, rho_e = u
+  rho_times_p = (equations.gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2))
+  return rho_times_p
 end
 
 
 # Calculate thermodynamic entropy for a conservative state `cons`
 @inline function entropy_thermodynamic(cons, equations::CompressibleEulerEquations1D)
   # Pressure
-  p = (equations.gamma - 1) * (cons[3] - 1/2 * (cons[2]^2) / cons[1])
+  p = (equations.gamma - 1) * (cons[3] - 1 / 2 * (cons[2]^2) / cons[1])
 
   # Thermodynamic entropy
-  s = log(p) - equations.gamma*log(cons[1])
+  s = log(p) - equations.gamma * log(cons[1])
 
   return s
 end
@@ -932,7 +948,9 @@ end
 
 
 # Default entropy is the mathematical entropy
-@inline entropy(cons, equations::CompressibleEulerEquations1D) = entropy_math(cons, equations)
+@inline function entropy(cons, equations::CompressibleEulerEquations1D)
+  entropy_math(cons, equations)
+end
 
 
 # Calculate total energy for a conservative state `cons`
@@ -941,7 +959,7 @@ end
 
 # Calculate kinetic energy for a conservative state `cons`
 @inline function energy_kinetic(cons, equations::CompressibleEulerEquations1D)
-  return 0.5 * (cons[2]^2)/cons[1]
+  return 0.5 * (cons[2]^2) / cons[1]
 end
 
 

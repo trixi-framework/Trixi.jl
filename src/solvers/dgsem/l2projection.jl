@@ -33,7 +33,7 @@ function calc_forward_upper(n_nodes)
   # Calculate projection matrix (actually: interpolation)
   operator = zeros(n_nodes, n_nodes)
   for j in 1:n_nodes
-    poly = lagrange_interpolating_polynomials(1/2 * (nodes[j] + 1), nodes, wbary)
+    poly = lagrange_interpolating_polynomials(1 / 2 * (nodes[j] + 1), nodes, wbary)
     for i in 1:n_nodes
       operator[j, i] = poly[i]
     end
@@ -54,7 +54,7 @@ function calc_forward_lower(n_nodes)
   # Calculate projection matrix (actually: interpolation)
   operator = zeros(n_nodes, n_nodes)
   for j in 1:n_nodes
-    poly = lagrange_interpolating_polynomials(1/2 * (nodes[j] - 1), nodes, wbary)
+    poly = lagrange_interpolating_polynomials(1 / 2 * (nodes[j] - 1), nodes, wbary)
     for i in 1:n_nodes
       operator[j, i] = poly[i]
     end
@@ -76,9 +76,10 @@ function calc_reverse_upper(n_nodes, ::Val{:gauss})
   # Calculate projection matrix (actually: discrete L2 projection with errors)
   operator = zeros(n_nodes, n_nodes)
   for j in 1:n_nodes
-    poly = lagrange_interpolating_polynomials(1/2 * (gauss_nodes[j] + 1), gauss_nodes, gauss_wbary)
+    poly = lagrange_interpolating_polynomials(1 / 2 * (gauss_nodes[j] + 1), gauss_nodes,
+                                              gauss_wbary)
     for i in 1:n_nodes
-      operator[i, j] = 1/2 * poly[i] * gauss_weights[j]/gauss_weights[i]
+      operator[i, j] = 1 / 2 * poly[i] * gauss_weights[j] / gauss_weights[i]
     end
   end
 
@@ -103,9 +104,10 @@ function calc_reverse_lower(n_nodes, ::Val{:gauss})
   # Calculate projection matrix (actually: discrete L2 projection with errors)
   operator = zeros(n_nodes, n_nodes)
   for j in 1:n_nodes
-    poly = lagrange_interpolating_polynomials(1/2 * (gauss_nodes[j] - 1), gauss_nodes, gauss_wbary)
+    poly = lagrange_interpolating_polynomials(1 / 2 * (gauss_nodes[j] - 1), gauss_nodes,
+                                              gauss_wbary)
     for i in 1:n_nodes
-      operator[i, j] = 1/2 * poly[i] * gauss_weights[j]/gauss_weights[i]
+      operator[i, j] = 1 / 2 * poly[i] * gauss_weights[j] / gauss_weights[i]
     end
   end
 
@@ -128,9 +130,9 @@ function calc_reverse_upper(n_nodes, ::Val{:gauss_lobatto})
   # Calculate projection matrix (actually: discrete L2 projection with errors)
   operator = zeros(n_nodes, n_nodes)
   for j in 1:n_nodes
-    poly = lagrange_interpolating_polynomials(1/2 * (nodes[j] + 1), nodes, wbary)
+    poly = lagrange_interpolating_polynomials(1 / 2 * (nodes[j] + 1), nodes, wbary)
     for i in 1:n_nodes
-      operator[i, j] = 1/2 * poly[i] * weights[j]/weights[i]
+      operator[i, j] = 1 / 2 * poly[i] * weights[j] / weights[i]
     end
   end
 
@@ -148,9 +150,9 @@ function calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto})
   # Calculate projection matrix (actually: discrete L2 projection with errors)
   operator = zeros(n_nodes, n_nodes)
   for j in 1:n_nodes
-    poly = lagrange_interpolating_polynomials(1/2 * (nodes[j] - 1), nodes, wbary)
+    poly = lagrange_interpolating_polynomials(1 / 2 * (nodes[j] - 1), nodes, wbary)
     for i in 1:n_nodes
-      operator[i, j] = 1/2 * poly[i] * weights[j]/weights[i]
+      operator[i, j] = 1 / 2 * poly[i] * weights[j] / weights[i]
     end
   end
 

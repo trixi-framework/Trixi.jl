@@ -48,7 +48,7 @@ References for the SWE are many but a good introduction is available in Chapter 
   Finite Volume Methods for Hyperbolic Problems
   [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
-struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 4}
+struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2,4}
   gravity::RealT # gravitational constant
   H0::RealT      # constant "lake-at-rest" total water height
 end
@@ -79,7 +79,7 @@ A smooth initial condition used for convergence tests in combination with
 """
 function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations2D)
   # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
-  c  = 7.0
+  c = 7.0
   omega_x = 2.0 * pi * sqrt(2.0)
   omega_t = 2.0 * pi
 
@@ -103,10 +103,11 @@ This manufactured solution source term is specifically designed for the bottom t
 `b(x,y) = 2 + 0.5 * sin(sqrt(2)*pi*x) + 0.5 * sin(sqrt(2)*pi*y)`
 as defined in [`initial_condition_convergence_test`](@ref).
 """
-@inline function source_terms_convergence_test(u, x, t, equations::ShallowWaterEquations2D)
+@inline function source_terms_convergence_test(u, x, t,
+                                               equations::ShallowWaterEquations2D)
   # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
   # this manufactured solution velocities are taken to be constants
-  c  = 7.0
+  c = 7.0
   omega_x = 2.0 * pi * sqrt(2.0)
   omega_t = 2.0 * pi
   omega_b = sqrt(2.0) * pi
@@ -117,11 +118,11 @@ as defined in [`initial_condition_convergence_test`](@ref).
 
   sinX, cosX = sincos(omega_x * x1)
   sinY, cosY = sincos(omega_x * x2)
-  sinT, cosT = sincos(omega_t * t )
+  sinT, cosT = sincos(omega_t * t)
 
   H = c + cosX * sinY * cosT
   H_x = -omega_x * sinX * sinY * cosT
-  H_y =  omega_x * cosX * cosY * cosT
+  H_y = omega_x * cosX * cosY * cosT
   # this time derivative for the water height exploits that the bottom topography is
   # fixed in time such that H_t = (h+b)_t = h_t + 0
   H_t = -omega_t * cosX * sinY * sinT
@@ -244,7 +245,8 @@ end
 
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized and the bottom topography has no flux
-@inline function flux(u, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
+@inline function flux(u, normal_direction::AbstractVector,
+                      equations::ShallowWaterEquations2D)
   h = waterheight(u, equations)
   v1, v2 = velocity(u, equations)
 
@@ -416,7 +418,8 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
   A fast and stable well-balanced scheme with hydrostatic reconstruction for shallow water flows
   [DOI: 10.1137/S1064827503431090](https://doi.org/10.1137/S1064827503431090)
 """
-@inline function hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, equations::ShallowWaterEquations2D)
+@inline function hydrostatic_reconstruction_audusse_etal(u_ll, u_rr,
+                                                         equations::ShallowWaterEquations2D)
   # Unpack left and right water heights and bottom topographies
   h_ll, _, _, b_ll = u_ll
   h_rr, _, _, b_rr = u_rr
@@ -426,12 +429,12 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
   v1_rr, v2_rr = velocity(u_rr, equations)
 
   # Compute the reconstructed water heights
-  h_ll_star = max(zero(h_ll) , h_ll + b_ll - max(b_ll, b_rr) )
-  h_rr_star = max(zero(h_rr) , h_rr + b_rr - max(b_ll, b_rr) )
+  h_ll_star = max(zero(h_ll), h_ll + b_ll - max(b_ll, b_rr))
+  h_rr_star = max(zero(h_rr), h_rr + b_rr - max(b_ll, b_rr))
 
   # Create the conservative variables using the reconstruted water heights
-  u_ll_star = SVector( h_ll_star , h_ll_star * v1_ll , h_ll_star * v2_ll , b_ll )
-  u_rr_star = SVector( h_rr_star , h_rr_star * v1_rr , h_rr_star * v2_rr , b_rr )
+  u_ll_star = SVector(h_ll_star, h_ll_star * v1_ll, h_ll_star * v2_ll, b_ll)
+  u_rr_star = SVector(h_rr_star, h_rr_star * v1_rr, h_rr_star * v2_rr, b_rr)
 
   return u_ll_star, u_rr_star
 end
@@ -477,11 +480,13 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
   #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
   if orientation == 1
     f = SVector(z,
-                equations.gravity * h_ll * b_ll + equations.gravity * ( h_ll^2 - h_ll_star^2 ),
+                equations.gravity * h_ll * b_ll +
+                equations.gravity * (h_ll^2 - h_ll_star^2),
                 z, z)
   else # orientation == 2
     f = SVector(z, z,
-                equations.gravity * h_ll * b_ll + equations.gravity * ( h_ll^2 - h_ll_star^2 ),
+                equations.gravity * h_ll * b_ll +
+                equations.gravity * (h_ll^2 - h_ll_star^2),
                 z)
   end
 
@@ -511,8 +516,8 @@ end
   #   (ii) True surface part that uses `normal_direction_ll`, `h_ll` and `h_ll_star`
   #        to handle discontinuous bathymetry
 
-  f2 += normal_direction_ll[1] * equations.gravity * ( h_ll^2 - h_ll_star^2 )
-  f3 += normal_direction_ll[2] * equations.gravity * ( h_ll^2 - h_ll_star^2 )
+  f2 += normal_direction_ll[1] * equations.gravity * (h_ll^2 - h_ll_star^2)
+  f3 += normal_direction_ll[2] * equations.gravity * (h_ll^2 - h_ll_star^2)
 
   # First and last equations do not have a nonconservative flux
   f1 = f4 = zero(eltype(u_ll))
@@ -535,7 +540,8 @@ Details are available in Eq. (4.1) in the paper:
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 """
-@inline function flux_fjordholm_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
+@inline function flux_fjordholm_etal(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterEquations2D)
   # Unpack left and right state
   h_ll = waterheight(u_ll, equations)
   v1_ll, v2_ll = velocity(u_ll, equations)
@@ -543,10 +549,10 @@ Details are available in Eq. (4.1) in the paper:
   v1_rr, v2_rr = velocity(u_rr, equations)
 
   # Average each factor of products in flux
-  h_avg  = 0.5 * (h_ll   + h_rr  )
-  v1_avg = 0.5 * (v1_ll  + v1_rr )
-  v2_avg = 0.5 * (v2_ll  + v2_rr )
-  p_avg  = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
+  h_avg = 0.5 * (h_ll + h_rr)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  p_avg = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
 
   # Calculate fluxes depending on orientation
   if orientation == 1
@@ -562,7 +568,8 @@ Details are available in Eq. (4.1) in the paper:
   return SVector(f1, f2, f3, zero(eltype(u_ll)))
 end
 
-@inline function flux_fjordholm_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
+@inline function flux_fjordholm_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::ShallowWaterEquations2D)
   # Unpack left and right state
   h_ll = waterheight(u_ll, equations)
   v1_ll, v2_ll = velocity(u_ll, equations)
@@ -573,11 +580,11 @@ end
   v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
 
   # Average each factor of products in flux
-  h_avg  = 0.5 * (h_ll   + h_rr  )
-  v1_avg = 0.5 * (v1_ll  + v1_rr )
-  v2_avg = 0.5 * (v2_ll  + v2_rr )
+  h_avg = 0.5 * (h_ll + h_rr)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
   h2_avg = 0.5 * (h_ll^2 + h_rr^2)
-  p_avg  = 0.5 * equations.gravity * h2_avg
+  p_avg = 0.5 * equations.gravity * h2_avg
   v_dot_n_avg = 0.5 * (v_dot_n_ll + v_dot_n_rr)
 
   # Calculate fluxes depending on normal_direction
@@ -603,7 +610,8 @@ Further details are available in Theorem 1 of the paper:
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
-@inline function flux_wintermeyer_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
+@inline function flux_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
+                                       equations::ShallowWaterEquations2D)
   # Unpack left and right state
   h_ll, h_v1_ll, h_v2_ll, _ = u_ll
   h_rr, h_v1_rr, h_v2_rr, _ = u_rr
@@ -615,7 +623,7 @@ Further details are available in Theorem 1 of the paper:
   # Average each factor of products in flux
   v1_avg = 0.5 * (v1_ll + v1_rr)
   v2_avg = 0.5 * (v2_ll + v2_rr)
-  p_avg  = 0.5 * equations.gravity * h_ll * h_rr
+  p_avg = 0.5 * equations.gravity * h_ll * h_rr
 
   # Calculate fluxes depending on orientation
   if orientation == 1
@@ -631,7 +639,8 @@ Further details are available in Theorem 1 of the paper:
   return SVector(f1, f2, f3, zero(eltype(u_ll)))
 end
 
-@inline function flux_wintermeyer_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
+@inline function flux_wintermeyer_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                       equations::ShallowWaterEquations2D)
   # Unpack left and right state
   h_ll, h_v1_ll, h_v2_ll, _ = u_ll
   h_rr, h_v1_rr, h_v2_rr, _ = u_rr
@@ -641,11 +650,11 @@ end
   v1_rr, v2_rr = velocity(u_rr, equations)
 
   # Average each factor of products in flux
-  h_v1_avg = 0.5 * (h_v1_ll + h_v1_rr )
-  h_v2_avg = 0.5 * (h_v2_ll + h_v2_rr )
-  v1_avg   = 0.5 * (v1_ll   + v1_rr   )
-  v2_avg   = 0.5 * (v2_ll   + v2_rr   )
-  p_avg    = 0.5 * equations.gravity * h_ll * h_rr
+  h_v1_avg = 0.5 * (h_v1_ll + h_v1_rr)
+  h_v2_avg = 0.5 * (h_v2_ll + h_v2_rr)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  p_avg = 0.5 * equations.gravity * h_ll * h_rr
 
   # Calculate fluxes depending on normal_direction
   f1 = h_v1_avg * normal_direction[1] + h_v2_avg * normal_direction[2]
@@ -658,7 +667,8 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterEquations2D)
   # Get the velocity quantities in the appropriate direction
   if orientation == 1
     v_ll, _ = velocity(u_ll, equations)
@@ -677,7 +687,8 @@ end
   return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::ShallowWaterEquations2D)
   # Extract and compute the velocities in the normal direction
   v1_ll, v2_ll = velocity(u_ll, equations)
   v1_rr, v2_rr = velocity(u_rr, equations)
@@ -696,7 +707,8 @@ end
 
 
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography
-@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, orientation_or_normal_direction,
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
+                                                              orientation_or_normal_direction,
                                                               equations::ShallowWaterEquations2D)
   λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
   diss = -0.5 * λ * (u_rr - u_ll)
@@ -706,8 +718,9 @@ end
 
 # Specialized `FluxHLL` to avoid spurious dissipation in the bottom topography
 @inline function (numflux::FluxHLL)(u_ll, u_rr, orientation_or_normal_direction,
-                  equations::ShallowWaterEquations2D)
-  λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
+                                    equations::ShallowWaterEquations2D)
+  λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, orientation_or_normal_direction,
+                                       equations)
 
   if λ_min >= 0 && λ_max >= 0
     return flux(u_ll, orientation_or_normal_direction, equations)
@@ -721,7 +734,8 @@ end
     factor_rr = λ_min * inv_λ_max_minus_λ_min
     factor_diss = λ_min * λ_max * inv_λ_max_minus_λ_min
     diss = u_rr - u_ll
-    return factor_ll * f_ll - factor_rr * f_rr + factor_diss * SVector(diss[1], diss[2], diss[3], zero(eltype(u_ll)))
+    return factor_ll * f_ll - factor_rr * f_rr +
+           factor_diss * SVector(diss[1], diss[2], diss[3], zero(eltype(u_ll)))
   end
 end
 
@@ -856,7 +870,8 @@ end
 @inline function energy_total(cons, equations::ShallowWaterEquations2D)
   h, h_v1, h_v2, b = cons
 
-  e = (h_v1^2 + h_v2^2) / (2 * h) + 0.5 * equations.gravity * h^2 + equations.gravity * h * b
+  e = (h_v1^2 + h_v2^2) / (2 * h) + 0.5 * equations.gravity * h^2 +
+      equations.gravity * h * b
   return e
 end
 

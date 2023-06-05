@@ -27,7 +27,10 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     # nicely with non-base array types
     old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
 
-    @trixi_timeit timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
+    @trixi_timeit timer() "reinitialize data structures" reinitialize_containers!(mesh,
+                                                                                  equations,
+                                                                                  dg,
+                                                                                  cache)
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array_native(u_ode, mesh, equations, dg, cache)
@@ -45,7 +48,8 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
         if !(cell_id in leaf_cell_ids)
           # Send element data to new rank, use cell_id as tag (non-blocking)
           dest = mesh.tree.mpi_ranks[cell_id]
-          request = MPI.Isend(@view(old_u[:, .., old_element_id]), dest, cell_id, mpi_comm())
+          request = MPI.Isend(@view(old_u[:, .., old_element_id]), dest, cell_id,
+                              mpi_comm())
           push!(requests, request)
         end
       end
@@ -74,7 +78,7 @@ end
 
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}},
+function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2},P4estMesh{2}},
                  equations, dg::DGSEM, cache, elements_to_refine)
   # Return early if there is nothing to do
   if isempty(elements_to_refine)
@@ -118,11 +122,13 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     # If everything is correct, we should have processed all elements.
     # Depending on whether the last element processed above had to be refined or not,
     # the counter `element_id` can have two different values at the end.
-    @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+    @assert element_id == nelements(dg, cache) + 1 ||
+            element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
   # Sanity check
-  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 && !mpi_isparallel()
+  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
+     !mpi_isparallel()
     @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
@@ -138,9 +144,9 @@ function refine_element!(u::AbstractArray{<:Any,4}, element_id,
   @unpack forward_upper, forward_lower = adaptor
 
   # Store new element ids
-  lower_left_id  = element_id
+  lower_left_id = element_id
   lower_right_id = element_id + 1
-  upper_left_id  = element_id + 2
+  upper_left_id = element_id + 2
   upper_right_id = element_id + 3
 
   @boundscheck begin
@@ -149,18 +155,19 @@ function refine_element!(u::AbstractArray{<:Any,4}, element_id,
     @assert size(old_u, 2) == nnodes(dg)
     @assert size(old_u, 3) == nnodes(dg)
     @assert size(old_u, 4) >= old_element_id
-    @assert     element_id >= 1
-    @assert size(    u, 1) == nvariables(equations)
-    @assert size(    u, 2) == nnodes(dg)
-    @assert size(    u, 3) == nnodes(dg)
-    @assert size(    u, 4) >= element_id + 3
+    @assert element_id >= 1
+    @assert size(u, 1) == nvariables(equations)
+    @assert size(u, 2) == nnodes(dg)
+    @assert size(u, 3) == nnodes(dg)
+    @assert size(u, 4) >= element_id + 3
   end
 
   # Interpolate to lower left element
   for j in eachnode(dg), i in eachnode(dg)
     acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
     for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) * forward_lower[i, k] * forward_lower[j, l]
+      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) *
+             forward_lower[i, k] * forward_lower[j, l]
     end
     set_node_vars!(u, acc, equations, dg, i, j, lower_left_id)
   end
@@ -169,7 +176,8 @@ function refine_element!(u::AbstractArray{<:Any,4}, element_id,
   for j in eachnode(dg), i in eachnode(dg)
     acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
     for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) * forward_upper[i, k] * forward_lower[j, l]
+      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) *
+             forward_upper[i, k] * forward_lower[j, l]
     end
     set_node_vars!(u, acc, equations, dg, i, j, lower_right_id)
   end
@@ -178,7 +186,8 @@ function refine_element!(u::AbstractArray{<:Any,4}, element_id,
   for j in eachnode(dg), i in eachnode(dg)
     acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
     for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) * forward_lower[i, k] * forward_upper[j, l]
+      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) *
+             forward_lower[i, k] * forward_upper[j, l]
     end
     set_node_vars!(u, acc, equations, dg, i, j, upper_left_id)
   end
@@ -187,7 +196,8 @@ function refine_element!(u::AbstractArray{<:Any,4}, element_id,
   for j in eachnode(dg), i in eachnode(dg)
     acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
     for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) * forward_upper[i, k] * forward_upper[j, l]
+      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) *
+             forward_upper[i, k] * forward_upper[j, l]
     end
     set_node_vars!(u, acc, equations, dg, i, j, upper_right_id)
   end
@@ -198,7 +208,7 @@ end
 
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}},
+function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2},P4estMesh{2}},
                   equations, dg::DGSEM, cache, elements_to_remove)
   # Return early if there is nothing to do
   if isempty(elements_to_remove)
@@ -239,7 +249,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4est
         # If an element is to be removed, sanity check if the following elements
         # are also marked - otherwise there would be an error in the way the
         # cells/elements are sorted
-        @assert all(to_be_removed[old_element_id:(old_element_id+2^ndims(mesh)-1)]) "bad cell/element order"
+        @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
 
         # Coarsen elements and store solution directly in new data structure
         coarsen_elements!(u, element_id, old_u, old_element_id,
@@ -257,7 +267,8 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4est
   end # GC.@preserve old_u_ode
 
   # Sanity check
-  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 && !mpi_isparallel()
+  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
+     !mpi_isparallel()
     @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
@@ -273,9 +284,9 @@ function coarsen_elements!(u::AbstractArray{<:Any,4}, element_id,
   @unpack reverse_upper, reverse_lower = adaptor
 
   # Store old element ids
-  lower_left_id  = old_element_id
+  lower_left_id = old_element_id
   lower_right_id = old_element_id + 1
-  upper_left_id  = old_element_id + 2
+  upper_left_id = old_element_id + 2
   upper_right_id = old_element_id + 3
 
   @boundscheck begin
@@ -284,11 +295,11 @@ function coarsen_elements!(u::AbstractArray{<:Any,4}, element_id,
     @assert size(old_u, 2) == nnodes(dg)
     @assert size(old_u, 3) == nnodes(dg)
     @assert size(old_u, 4) >= old_element_id + 3
-    @assert     element_id >= 1
-    @assert size(    u, 1) == nvariables(equations)
-    @assert size(    u, 2) == nnodes(dg)
-    @assert size(    u, 3) == nnodes(dg)
-    @assert size(    u, 4) >= element_id
+    @assert element_id >= 1
+    @assert size(u, 1) == nvariables(equations)
+    @assert size(u, 2) == nnodes(dg)
+    @assert size(u, 3) == nnodes(dg)
+    @assert size(u, 4) >= element_id
   end
 
   for j in eachnode(dg), i in eachnode(dg)
@@ -296,22 +307,26 @@ function coarsen_elements!(u::AbstractArray{<:Any,4}, element_id,
 
     # Project from lower left element
     for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, lower_left_id) * reverse_lower[i, k] * reverse_lower[j, l]
+      acc += get_node_vars(old_u, equations, dg, k, l, lower_left_id) *
+             reverse_lower[i, k] * reverse_lower[j, l]
     end
 
     # Project from lower right element
     for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, lower_right_id) * reverse_upper[i, k] * reverse_lower[j, l]
+      acc += get_node_vars(old_u, equations, dg, k, l, lower_right_id) *
+             reverse_upper[i, k] * reverse_lower[j, l]
     end
 
     # Project from upper left element
     for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, upper_left_id) * reverse_lower[i, k] * reverse_upper[j, l]
+      acc += get_node_vars(old_u, equations, dg, k, l, upper_left_id) *
+             reverse_lower[i, k] * reverse_upper[j, l]
     end
 
     # Project from upper right element
     for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, upper_right_id) * reverse_upper[i, k] * reverse_upper[j, l]
+      acc += get_node_vars(old_u, equations, dg, k, l, upper_right_id) *
+             reverse_upper[i, k] * reverse_upper[j, l]
     end
 
     # Update value
@@ -321,13 +336,15 @@ end
 
 
 # this method is called when an `ControllerThreeLevel` is constructed
-function create_cache(::Type{ControllerThreeLevel}, mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations, dg::DG, cache)
+function create_cache(::Type{ControllerThreeLevel}, mesh::Union{TreeMesh{2},P4estMesh{2}},
+                      equations, dg::DG, cache)
 
   controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)
 end
 
-function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{2}, equations, dg::DG, cache)
+function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{2}, equations,
+                      dg::DG, cache)
 
   controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)

@@ -8,8 +8,10 @@
 
 abstract type AbstractVolumeIntegral end
 
-get_element_variables!(element_variables, u, mesh, equations,
-                       volume_integral::AbstractVolumeIntegral, dg, cache) = nothing
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::AbstractVolumeIntegral, dg, cache)
+  nothing
+end
 
 
 """
@@ -77,9 +79,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
   if get(io, :compact, false)
     show(io, integral)
   else
-    setup = [
-            "volume flux" => integral.volume_flux
-            ]
+    setup = ["volume flux" => integral.volume_flux]
     summary_box(io, "VolumeIntegralFluxDifferencing", setup)
   end
 end
@@ -101,19 +101,22 @@ The amount of blending is determined by the `indicator`, e.g.,
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-struct VolumeIntegralShockCapturingHG{VolumeFluxDG, VolumeFluxFV, Indicator} <: AbstractVolumeIntegral
+struct VolumeIntegralShockCapturingHG{VolumeFluxDG,VolumeFluxFV,Indicator} <:
+       AbstractVolumeIntegral
   volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
   volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
   indicator::Indicator
 end
 
 function VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
-                                                   volume_flux_fv=flux_lax_friedrichs)
-  VolumeIntegralShockCapturingHG{typeof(volume_flux_dg), typeof(volume_flux_fv), typeof(indicator)}(
-    volume_flux_dg, volume_flux_fv, indicator)
+                                        volume_flux_fv=flux_lax_friedrichs)
+  VolumeIntegralShockCapturingHG{typeof(volume_flux_dg),typeof(volume_flux_fv),
+                                 typeof(indicator)}(volume_flux_dg, volume_flux_fv,
+                                                    indicator)
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShockCapturingHG)
+function Base.show(io::IO, mime::MIME"text/plain",
+                   integral::VolumeIntegralShockCapturingHG)
   @nospecialize integral # reduce precompilation time
 
   if get(io, :compact, false)
@@ -122,14 +125,15 @@ function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShock
     summary_header(io, "VolumeIntegralShockCapturingHG")
     summary_line(io, "volume flux DG", integral.volume_flux_dg)
     summary_line(io, "volume flux FV", integral.volume_flux_fv)
-    summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
+    summary_line(io, "indicator", nameof(typeof(integral.indicator)))
     show(increment_indent(io), mime, integral.indicator)
     summary_footer(io)
   end
 end
 
 function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralShockCapturingHG, dg, cache)
+                                volume_integral::VolumeIntegralShockCapturingHG, dg,
+                                cache)
   # call the indicator to get up-to-date values for IO
   volume_integral.indicator(u, mesh, equations, dg, cache)
   get_element_variables!(element_variables, volume_integral.indicator, volume_integral)
@@ -159,15 +163,14 @@ struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <: AbstractVolumeIntegral
 end
 # TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
 
-function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFiniteVolume)
+function Base.show(io::IO, ::MIME"text/plain",
+                   integral::VolumeIntegralPureLGLFiniteVolume)
   @nospecialize integral # reduce precompilation time
 
   if get(io, :compact, false)
     show(io, integral)
   else
-    setup = [
-            "FV flux" => integral.volume_flux_fv
-            ]
+    setup = ["FV flux" => integral.volume_flux_fv]
     summary_box(io, "VolumeIntegralPureLGLFiniteVolume", setup)
   end
 end
@@ -205,9 +208,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralUpwind)
   if get(io, :compact, false)
     show(io, integral)
   else
-    setup = [
-            "flux splitting" => integral.splitting
-            ]
+    setup = ["flux splitting" => integral.splitting]
     summary_box(io, "VolumeIntegralUpwind", setup)
   end
 end
@@ -246,9 +247,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralWeakForm
   if get(io, :compact, false)
     show(io, integral)
   else
-    setup = [
-            "surface flux" => integral.surface_flux
-            ]
+    setup = ["surface flux" => integral.surface_flux]
     summary_box(io, "SurfaceIntegralWeakForm", setup)
   end
 end
@@ -273,9 +272,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongFo
   if get(io, :compact, false)
     show(io, integral)
   else
-    setup = [
-            "surface flux" => integral.surface_flux
-            ]
+    setup = ["surface flux" => integral.surface_flux]
     summary_box(io, "SurfaceIntegralStrongForm", setup)
   end
 end
@@ -305,9 +302,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralUpwind)
   if get(io, :compact, false)
     show(io, integral)
   else
-    setup = [
-            "flux splitting" => integral.splitting
-            ]
+    setup = ["flux splitting" => integral.splitting]
     summary_box(io, "SurfaceIntegralUpwind", setup)
   end
 end
@@ -320,7 +315,7 @@ Create a discontinuous Galerkin method.
 If [`basis isa LobattoLegendreBasis`](@ref LobattoLegendreBasis),
 this creates a [`DGSEM`](@ref).
 """
-struct DG{Basis, Mortar, SurfaceIntegral, VolumeIntegral}
+struct DG{Basis,Mortar,SurfaceIntegral,VolumeIntegral}
   basis::Basis
   mortar::Mortar
   surface_integral::SurfaceIntegral
@@ -331,7 +326,7 @@ function Base.show(io::IO, dg::DG)
   @nospecialize dg # reduce precompilation time
 
   print(io, "DG{", real(dg), "}(")
-  print(io,       dg.basis)
+  print(io, dg.basis)
   print(io, ", ", dg.mortar)
   print(io, ", ", dg.surface_integral)
   print(io, ", ", dg.volume_integral)
@@ -347,9 +342,9 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
     summary_header(io, "DG{" * string(real(dg)) * "}")
     summary_line(io, "basis", dg.basis)
     summary_line(io, "mortar", dg.mortar)
-    summary_line(io, "surface integral", dg.surface_integral |> typeof |> nameof)
+    summary_line(io, "surface integral", nameof(typeof(dg.surface_integral)))
     show(increment_indent(io), mime, dg.surface_integral)
-    summary_line(io, "volume integral", dg.volume_integral |> typeof |> nameof)
+    summary_line(io, "volume integral", nameof(typeof(dg.volume_integral)))
     if !(dg.volume_integral isa VolumeIntegralWeakForm)
       show(increment_indent(io), mime, dg.volume_integral)
     end
@@ -363,13 +358,16 @@ Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 
 
 function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
-  get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral, dg, cache)
+  get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral, dg,
+                         cache)
 end
 
 
-const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh}
+const MeshesDGSEM = Union{TreeMesh,StructuredMesh,UnstructuredMesh2D,P4estMesh}
 
-@inline ndofs(mesh::MeshesDGSEM, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
+@inline function ndofs(mesh::MeshesDGSEM, dg::DG, cache)
+  nelements(cache.elements) * nnodes(dg)^ndims(mesh)
+end
 
 # TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM
 """
@@ -380,12 +378,14 @@ for the nodes in `dg`.
 In particular, not the nodes themselves are returned.
 """
 @inline eachnode(dg::DG) = Base.OneTo(nnodes(dg))
-@inline nnodes(dg::DG)   = nnodes(dg.basis)
+@inline nnodes(dg::DG) = nnodes(dg.basis)
 
 # This is used in some more general analysis code and needs to dispatch on the
 # `mesh` for some combinations of mesh/solver.
 @inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
-@inline ndofsglobal(mesh, dg::DG, cache) = nelementsglobal(dg, cache) * nnodes(dg)^ndims(mesh)
+@inline function ndofsglobal(mesh, dg::DG, cache)
+  nelementsglobal(dg, cache) * nnodes(dg)^ndims(mesh)
+end
 
 """
     eachelement(dg::DG, cache)
@@ -394,7 +394,7 @@ Return an iterator over the indices that specify the location in relevant data s
 for the elements in `cache`.
 In particular, not the elements themselves are returned.
 """
-@inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(dg, cache))
+@inline eachelement(dg::DG, cache) = Base.OneTo(nelements(dg, cache))
 
 """
     eachinterface(dg::DG, cache)
@@ -412,7 +412,7 @@ Return an iterator over the indices that specify the location in relevant data s
 for the boundaries in `cache`.
 In particular, not the boundaries themselves are returned.
 """
-@inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(dg, cache))
+@inline eachboundary(dg::DG, cache) = Base.OneTo(nboundaries(dg, cache))
 
 """
     eachmortar(dg::DG, cache)
@@ -421,7 +421,7 @@ Return an iterator over the indices that specify the location in relevant data s
 for the mortars in `cache`.
 In particular, not the mortars themselves are returned.
 """
-@inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(dg, cache))
+@inline eachmortar(dg::DG, cache) = Base.OneTo(nmortars(dg, cache))
 
 """
     eachmpiinterface(dg::DG, cache)
@@ -441,11 +441,13 @@ In particular, not the mortars themselves are returned.
 """
 @inline eachmpimortar(dg::DG, cache) = Base.OneTo(nmpimortars(dg, cache))
 
-@inline nelements(dg::DG, cache)   = nelements(cache.elements)
-@inline nelementsglobal(dg::DG, cache) = mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
+@inline nelements(dg::DG, cache) = nelements(cache.elements)
+@inline function nelementsglobal(dg::DG, cache)
+  mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
+end
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
 @inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
-@inline nmortars(dg::DG, cache)    = nmortars(cache.mortars)
+@inline nmortars(dg::DG, cache) = nmortars(cache.mortars)
 @inline nmpiinterfaces(dg::DG, cache) = nmpiinterfaces(cache.mpi_interfaces)
 @inline nmpimortars(dg::DG, cache) = nmpimortars(cache.mpi_mortars)
 
@@ -502,7 +504,8 @@ end
 # Use this function instead of `add_to_node_vars` to speed up
 # multiply-and-add-to-node-vars operations
 # See https://github.com/trixi-framework/Trixi.jl/pull/643
-@inline function multiply_add_to_node_vars!(u, factor, u_node, equations, solver::DG, indices...)
+@inline function multiply_add_to_node_vars!(u, factor, u_node, equations, solver::DG,
+                                            indices...)
   for v in eachvariable(equations)
     u[v, indices...] = u[v, indices...] + factor * u_node[v]
   end
@@ -532,12 +535,15 @@ include("fdsbp_tree/fdsbp.jl")
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
   # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
   # cf. wrap_array
-  zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+  zeros(eltype(cache.elements),
+        nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
 end
 
-@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DGSEM, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
+                            dg::DGSEM, cache)
   @boundscheck begin
-    @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
+    @assert length(u_ode) ==
+            nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end
   # We would like to use
   #     reshape(u_ode, (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
@@ -567,19 +573,23 @@ end
     #     is probably the best option since everything will be handed over to
     #     Chris Elrod, one of the best performance software engineers for Julia.
     PtrArray(pointer(u_ode),
-             (StaticInt(nvariables(equations)), ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))..., nelements(dg, cache)))
-            #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+             (StaticInt(nvariables(equations)),
+              ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))..., nelements(dg, cache)))
+    #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
   else
     # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-    unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
-                (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+    unsafe_wrap(Array{eltype(u_ode),ndims(mesh) + 2}, pointer(u_ode),
+                (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                 nelements(dg, cache)))
   end
 end
 
 # Finite difference summation by parts (FDSBP) methods
-@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::FDSBP, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
+                            dg::FDSBP, cache)
   @boundscheck begin
-    @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
+    @assert length(u_ode) ==
+            nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end
   # See comments on the DGSEM version above
   if LoopVectorization.check_args(u_ode)
@@ -587,32 +597,39 @@ end
     # - it will not be type stable (SBP operators just store it as a runtime value)
     # - FD methods tend to use high node counts
     PtrArray(pointer(u_ode),
-             (StaticInt(nvariables(equations)), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+             (StaticInt(nvariables(equations)), ntuple(_ -> nnodes(dg), ndims(mesh))...,
+              nelements(dg, cache)))
   else
     # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-    unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
-                (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+    unsafe_wrap(Array{eltype(u_ode),ndims(mesh) + 2}, pointer(u_ode),
+                (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                 nelements(dg, cache)))
   end
 end
 
 # General fallback
-@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DG, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DG,
+                            cache)
   wrap_array_native(u_ode, mesh, equations, dg, cache)
 end
 
 # Like `wrap_array`, but guarantees to return a plain `Array`, which can be better
 # for interfacing with external C libraries (MPI, HDF5, visualization),
 # writing solution files etc.
-@inline function wrap_array_native(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DG, cache)
+@inline function wrap_array_native(u_ode::AbstractVector, mesh::AbstractMesh, equations,
+                                   dg::DG, cache)
   @boundscheck begin
-    @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
+    @assert length(u_ode) ==
+            nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end
-  unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
-              (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+  unsafe_wrap(Array{eltype(u_ode),ndims(mesh) + 2}, pointer(u_ode),
+              (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
+               nelements(dg, cache)))
 end
 
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg::DG, cache)
+function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg::DG,
+                               cache)
 
   @threaded for element in eachelement(dg, cache)
     for i in eachnode(dg)
@@ -623,22 +640,26 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg:
   end
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{2}, equations, dg::DG, cache)
+function compute_coefficients!(u, func, t, mesh::AbstractMesh{2}, equations, dg::DG,
+                               cache)
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
-      x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
+      x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j,
+                               element)
       u_node = func(x_node, t, equations)
       set_node_vars!(u, u_node, equations, dg, i, j, element)
     end
   end
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg::DG, cache)
+function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg::DG,
+                               cache)
 
   @threaded for element in eachelement(dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-      x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, k, element)
+      x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, k,
+                               element)
       u_node = func(x_node, t, equations)
       set_node_vars!(u, u_node, equations, dg, i, j, k, element)
     end

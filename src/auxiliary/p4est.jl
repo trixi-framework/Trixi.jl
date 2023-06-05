@@ -27,12 +27,12 @@ end
 
 
 # Convert sc_array of type T to Julia array
-function unsafe_wrap_sc(::Type{T}, sc_array::Ptr{sc_array}) where T
+function unsafe_wrap_sc(::Type{T}, sc_array::Ptr{sc_array}) where {T}
   sc_array_obj = unsafe_load(sc_array)
   return unsafe_wrap_sc(T, sc_array_obj)
 end
 
-function unsafe_wrap_sc(::Type{T}, sc_array_obj::sc_array) where T
+function unsafe_wrap_sc(::Type{T}, sc_array_obj::sc_array) where {T}
   elem_count = sc_array_obj.elem_count
   array = sc_array_obj.array
 
@@ -41,12 +41,12 @@ end
 
 
 # Load the ith element (1-indexed) of an sc array of type T
-function unsafe_load_sc(::Type{T}, sc_array::Ptr{sc_array}, i=1) where T
+function unsafe_load_sc(::Type{T}, sc_array::Ptr{sc_array}, i=1) where {T}
   sc_array_obj = unsafe_load(sc_array)
   return unsafe_load_sc(T, sc_array_obj, i)
 end
 
-function unsafe_load_sc(::Type{T}, sc_array_obj::sc_array, i=1) where T
+function unsafe_load_sc(::Type{T}, sc_array_obj::sc_array, i=1) where {T}
   element_size = sc_array_obj.elem_size
   @assert element_size == sizeof(T)
 
@@ -71,7 +71,8 @@ end
 # 3D
 function new_p4est(connectivity::Ptr{p8est_connectivity_t}, initial_refinement_level)
   comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi.jl's MPI communicator if p4est supports MPI
-  p8est_new_ext(comm, connectivity, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
+  p8est_new_ext(comm, connectivity, 0, initial_refinement_level, true, 2 * sizeof(Int),
+                C_NULL, C_NULL)
 end
 
 
@@ -114,16 +115,24 @@ read_inp_p4est(meshfile, ::Val{3}) = p8est_connectivity_read_inp(meshfile)
 
 # Refine `p4est` if refine_fn_c returns 1
 # 2D
-refine_p4est!(p4est::Ptr{p4est_t}, recursive, refine_fn_c, init_fn_c) = p4est_refine(p4est, recursive, refine_fn_c, init_fn_c)
+function refine_p4est!(p4est::Ptr{p4est_t}, recursive, refine_fn_c, init_fn_c)
+  p4est_refine(p4est, recursive, refine_fn_c, init_fn_c)
+end
 # 3D
-refine_p4est!(p8est::Ptr{p8est_t}, recursive, refine_fn_c, init_fn_c) = p8est_refine(p8est, recursive, refine_fn_c, init_fn_c)
+function refine_p4est!(p8est::Ptr{p8est_t}, recursive, refine_fn_c, init_fn_c)
+  p8est_refine(p8est, recursive, refine_fn_c, init_fn_c)
+end
 
 
 # Refine `p4est` if coarsen_fn_c returns 1
 # 2D
-coarsen_p4est!(p4est::Ptr{p4est_t}, recursive, coarsen_fn_c, init_fn_c) = p4est_coarsen(p4est, recursive, coarsen_fn_c, init_fn_c)
+function coarsen_p4est!(p4est::Ptr{p4est_t}, recursive, coarsen_fn_c, init_fn_c)
+  p4est_coarsen(p4est, recursive, coarsen_fn_c, init_fn_c)
+end
 # 3D
-coarsen_p4est!(p8est::Ptr{p8est_t}, recursive, coarsen_fn_c, init_fn_c) = p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
+function coarsen_p4est!(p8est::Ptr{p8est_t}, recursive, coarsen_fn_c, init_fn_c)
+  p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
+end
 
 
 # Create new ghost layer from p4est, only connections via faces are relevant

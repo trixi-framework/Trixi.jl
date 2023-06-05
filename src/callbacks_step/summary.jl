@@ -18,13 +18,13 @@ beginning of a simulation and then resets the timer. When the returned callback 
 directly, the current timer values are shown.
 """
 function SummaryCallback()
-  DiscreteCallback(summary_callback, summary_callback,
-                   save_positions=(false,false),
+  DiscreteCallback(summary_callback, summary_callback;
+                   save_positions=(false, false),
                    initialize=initialize_summary_callback)
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:typeof(summary_callback)})
+function Base.show(io::IO, cb::DiscreteCallback{<:Any,<:typeof(summary_callback)})
   @nospecialize cb # reduce precompilation time
 
   print(io, "SummaryCallback")
@@ -32,24 +32,26 @@ end
 
 
 # Format a key/value pair for output from the SummaryCallback
-function format_key_value_line(key::AbstractString, value::AbstractString, key_width, total_width;
-                               indentation_level=0, guide='…', filler='…', prefix="│ ", suffix=" │")
+function format_key_value_line(key::AbstractString, value::AbstractString, key_width,
+                               total_width;
+                               indentation_level=0, guide='…', filler='…', prefix="│ ",
+                               suffix=" │")
   @assert key_width < total_width
-  line  = prefix
+  line = prefix
   # Indent the key as requested (or not at all if `indentation_level == 0`)
   indentation = prefix^indentation_level
   reduced_key_width = key_width - length(indentation)
-  squeezed_key = indentation * squeeze(key, reduced_key_width, filler=filler)
+  squeezed_key = indentation * squeeze(key, reduced_key_width; filler=filler)
   line *= squeezed_key
   line *= ": "
   short = key_width - length(squeezed_key)
   if short <= 1
     line *= " "
   else
-    line *= guide^(short-1) * " "
+    line *= guide^(short - 1) * " "
   end
   value_width = total_width - length(prefix) - length(suffix) - key_width - 2
-  squeezed_value = squeeze(value, value_width, filler=filler)
+  squeezed_value = squeeze(value, value_width; filler=filler)
   line *= squeezed_value
   short = value_width - length(squeezed_value)
   line *= " "^short
@@ -59,7 +61,9 @@ function format_key_value_line(key::AbstractString, value::AbstractString, key_w
 
   return line
 end
-format_key_value_line(key, value, args...; kwargs...) = format_key_value_line(string(key), string(value), args...; kwargs...)
+function format_key_value_line(key, value, args...; kwargs...)
+  format_key_value_line(string(key), string(value), args...; kwargs...)
+end
 
 # Squeeze a string to fit into a maximum width by deleting characters from the center
 function squeeze(message, max_width; filler::Char='…')
@@ -68,12 +72,12 @@ function squeeze(message, max_width; filler::Char='…')
   length(message) <= max_width && return message
 
   keep_front = div(max_width, 2)
-  keep_back  = div(max_width, 2) - (isodd(max_width) ? 0 : 1)
-  remove_back  = length(message) - keep_front
+  keep_back = div(max_width, 2) - (isodd(max_width) ? 0 : 1)
+  remove_back = length(message) - keep_front
   remove_front = length(message) - keep_back
-  squeezed = (chop(message, head=0, tail=remove_back)
+  squeezed = (chop(message; head=0, tail=remove_back)
               * filler *
-              chop(message, head=remove_front, tail=0))
+              chop(message; head=remove_front, tail=0))
 
   @assert length(squeezed) == max_width "`$(length(squeezed)) != $max_width` should not happen: algorithm error!"
 
@@ -99,7 +103,7 @@ function summary_header(io, heading; total_width=100, indentation_level=0)
   indentation_level > 0 && return
 
   # Print header
-  println(io, "┌" * "─"^(total_width-2) * "┐")
+  println(io, "┌" * "─"^(total_width - 2) * "┐")
   println(io, "│ " * heading * " "^(total_width - length(heading) - 4) * " │")
   println(io, "│ " * "═"^length(heading) * " "^(total_width - length(heading) - 4) * " │")
 end
@@ -112,7 +116,7 @@ function summary_line(io, key, value; key_width=30, total_width=100, indentation
   total_width = get(io, :total_width, total_width)
   indentation_level = get(io, :indentation_level, indentation_level)
 
-  s = format_key_value_line(key, value, key_width, total_width,
+  s = format_key_value_line(key, value, key_width, total_width;
                             indentation_level=indentation_level)
 
   println(io, s)
@@ -123,7 +127,7 @@ function summary_footer(io; total_width=100, indentation_level=0)
   indentation_level = get(io, :indentation_level, 0)
 
   if indentation_level == 0
-    s = "└" * "─"^(total_width-2) * "┘"
+    s = "└" * "─"^(total_width - 2) * "┘"
   else
     s = ""
   end
@@ -131,7 +135,9 @@ function summary_footer(io; total_width=100, indentation_level=0)
   print(io, s)
 end
 
-@inline increment_indent(io) = IOContext(io, :indentation_level => get(io, :indentation_level, 0) + 1)
+@inline function increment_indent(io)
+  IOContext(io, :indentation_level => get(io, :indentation_level, 0) + 1)
+end
 
 
 # Print information about the current simulation setup
@@ -179,30 +185,24 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
   end
 
   # time integration
-  setup = Pair{String,Any}[
-           "Start time" => first(integrator.sol.prob.tspan),
-           "Final time" => last(integrator.sol.prob.tspan),
-           "time integrator" => integrator.alg |> typeof |> nameof,
-           "adaptive" => integrator.opts.adaptive,
-          ]
+  setup = Pair{String,Any}["Start time" => first(integrator.sol.prob.tspan),
+                           "Final time" => last(integrator.sol.prob.tspan),
+                           "time integrator" => nameof(typeof(integrator.alg)),
+                           "adaptive" => integrator.opts.adaptive]
   if integrator.opts.adaptive
     push!(setup,
-      "abstol" => integrator.opts.abstol,
-      "reltol" => integrator.opts.reltol,
-      "controller" => integrator.opts.controller,
-    )
+          "abstol" => integrator.opts.abstol,
+          "reltol" => integrator.opts.reltol,
+          "controller" => integrator.opts.controller)
   end
   summary_box(io, "Time integration", setup)
   println()
 
   # technical details
-  setup = Pair{String,Any}[
-           "#threads" => Threads.nthreads(),
-          ]
+  setup = Pair{String,Any}["#threads" => Threads.nthreads()]
   if mpi_isparallel()
     push!(setup,
-      "#MPI ranks" => mpi_nranks(),
-    )
+          "#MPI ranks" => mpi_nranks())
   end
   summary_box(io, "Environment information", setup)
   println()
@@ -213,12 +213,13 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
 end
 
 
-function (cb::DiscreteCallback{Condition,Affect!})(io::IO=stdout) where {Condition, Affect!<:typeof(summary_callback)}
+function (cb::DiscreteCallback{Condition,Affect!})(io::IO=stdout) where {Condition,
+                                                                         Affect!<:typeof(summary_callback)}
 
   mpi_isroot() || return nothing
 
   TimerOutputs.complement!(timer())
-  print_timer(io, timer(), title="Trixi.jl",
+  print_timer(io, timer(); title="Trixi.jl",
               allocations=true, linechars=:unicode, compact=false)
   println(io)
   return nothing

@@ -11,27 +11,33 @@
 # Contains the data needed to represent a curved face with data points (x,y,z) as a Lagrange polynomial
 # interpolant written in barycentric form at a given set of nodes.
 struct CurvedFace{RealT<:Real}
-  nodes               ::Vector{RealT}
-  barycentric_weights ::Vector{RealT}
-  coordinates         ::Array{RealT, 3} #[ndims, nnodes, nnodes]
+  nodes::Vector{RealT}
+  barycentric_weights::Vector{RealT}
+  coordinates::Array{RealT,3} #[ndims, nnodes, nnodes]
 end
 
 
 # evaluate the Gamma face interpolant at a particular point s = (s_1, s_2) and return the (x,y,z) coordinate
 function evaluate_at(s, boundary_face::CurvedFace)
 
-   @unpack nodes, barycentric_weights, coordinates = boundary_face
+  @unpack nodes, barycentric_weights, coordinates = boundary_face
 
-   x_coordinate_at_s_on_boundary_face = lagrange_interpolation_2d(s, nodes, view(coordinates, 1, :, :),
-                                                                  barycentric_weights)
-   y_coordinate_at_s_on_boundary_face = lagrange_interpolation_2d(s, nodes, view(coordinates, 2, :, :),
-                                                                  barycentric_weights)
-   z_coordinate_at_s_on_boundary_face = lagrange_interpolation_2d(s, nodes, view(coordinates, 3, :, :),
-                                                                  barycentric_weights)
+  x_coordinate_at_s_on_boundary_face = lagrange_interpolation_2d(s, nodes,
+                                                                 view(coordinates, 1, :,
+                                                                      :),
+                                                                 barycentric_weights)
+  y_coordinate_at_s_on_boundary_face = lagrange_interpolation_2d(s, nodes,
+                                                                 view(coordinates, 2, :,
+                                                                      :),
+                                                                 barycentric_weights)
+  z_coordinate_at_s_on_boundary_face = lagrange_interpolation_2d(s, nodes,
+                                                                 view(coordinates, 3, :,
+                                                                      :),
+                                                                 barycentric_weights)
 
-   return x_coordinate_at_s_on_boundary_face,
-          y_coordinate_at_s_on_boundary_face,
-          z_coordinate_at_s_on_boundary_face
+  return x_coordinate_at_s_on_boundary_face,
+         y_coordinate_at_s_on_boundary_face,
+         z_coordinate_at_s_on_boundary_face
 end
 
 

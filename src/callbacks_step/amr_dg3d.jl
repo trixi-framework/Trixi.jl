@@ -8,7 +8,7 @@
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
 function refine!(u_ode::AbstractVector, adaptor,
-                 mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                 mesh::Union{TreeMesh{3},P4estMesh{3}},
                  equations, dg::DGSEM, cache, elements_to_refine)
   # Return early if there is nothing to do
   if isempty(elements_to_refine)
@@ -36,8 +36,10 @@ function refine!(u_ode::AbstractVector, adaptor,
     u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     # Loop over all elements in old container and either copy them or refine them
-    u_tmp1 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
-    u_tmp2 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
+    u_tmp1 = Array{eltype(u),4}(undef, nvariables(equations), nnodes(dg), nnodes(dg),
+                                nnodes(dg))
+    u_tmp2 = Array{eltype(u),4}(undef, nvariables(equations), nnodes(dg), nnodes(dg),
+                                nnodes(dg))
     element_id = 1
     for old_element_id in 1:old_n_elements
       if needs_refinement[old_element_id]
@@ -54,7 +56,8 @@ function refine!(u_ode::AbstractVector, adaptor,
     # If everything is correct, we should have processed all elements.
     # Depending on whether the last element processed above had to be refined or not,
     # the counter `element_id` can have two different values at the end.
-    @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+    @assert element_id == nelements(dg, cache) + 1 ||
+            element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
   # Sanity check
@@ -75,14 +78,14 @@ function refine_element!(u::AbstractArray{<:Any,5}, element_id,
   @unpack forward_upper, forward_lower = adaptor
 
   # Store new element ids
-  bottom_lower_left_id  = element_id
+  bottom_lower_left_id = element_id
   bottom_lower_right_id = element_id + 1
-  bottom_upper_left_id  = element_id + 2
+  bottom_upper_left_id = element_id + 2
   bottom_upper_right_id = element_id + 3
-  top_lower_left_id     = element_id + 4
-  top_lower_right_id    = element_id + 5
-  top_upper_left_id     = element_id + 6
-  top_upper_right_id    = element_id + 7
+  top_lower_left_id = element_id + 4
+  top_lower_right_id = element_id + 5
+  top_upper_left_id = element_id + 6
+  top_upper_right_id = element_id + 7
 
   @boundscheck begin
     @assert old_element_id >= 1
@@ -91,53 +94,53 @@ function refine_element!(u::AbstractArray{<:Any,5}, element_id,
     @assert size(old_u, 3) == nnodes(dg)
     @assert size(old_u, 4) == nnodes(dg)
     @assert size(old_u, 5) >= old_element_id
-    @assert     element_id >= 1
-    @assert size(    u, 1) == nvariables(equations)
-    @assert size(    u, 2) == nnodes(dg)
-    @assert size(    u, 3) == nnodes(dg)
-    @assert size(    u, 4) == nnodes(dg)
-    @assert size(    u, 5) >= element_id + 7
+    @assert element_id >= 1
+    @assert size(u, 1) == nvariables(equations)
+    @assert size(u, 2) == nnodes(dg)
+    @assert size(u, 3) == nnodes(dg)
+    @assert size(u, 4) == nnodes(dg)
+    @assert size(u, 5) >= element_id + 7
   end
 
   # Interpolate to bottom lower left element
-  multiply_dimensionwise!(
-    view(u,     :, :, :, :, bottom_lower_left_id), forward_lower, forward_lower, forward_lower,
-    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
+  multiply_dimensionwise!(view(u, :, :, :, :, bottom_lower_left_id), forward_lower,
+                          forward_lower, forward_lower,
+                          view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to bottom lower right element
-  multiply_dimensionwise!(
-    view(u,     :, :, :, :, bottom_lower_right_id), forward_upper, forward_lower, forward_lower,
-    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
+  multiply_dimensionwise!(view(u, :, :, :, :, bottom_lower_right_id), forward_upper,
+                          forward_lower, forward_lower,
+                          view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to bottom upper left element
-  multiply_dimensionwise!(
-    view(u,     :, :, :, :, bottom_upper_left_id), forward_lower, forward_upper, forward_lower,
-    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
+  multiply_dimensionwise!(view(u, :, :, :, :, bottom_upper_left_id), forward_lower,
+                          forward_upper, forward_lower,
+                          view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to bottom upper right element
-  multiply_dimensionwise!(
-    view(u,     :, :, :, :, bottom_upper_right_id), forward_upper, forward_upper, forward_lower,
-    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
+  multiply_dimensionwise!(view(u, :, :, :, :, bottom_upper_right_id), forward_upper,
+                          forward_upper, forward_lower,
+                          view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to top lower left element
-  multiply_dimensionwise!(
-    view(u,     :, :, :, :, top_lower_left_id), forward_lower, forward_lower, forward_upper,
-    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
+  multiply_dimensionwise!(view(u, :, :, :, :, top_lower_left_id), forward_lower,
+                          forward_lower, forward_upper,
+                          view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to top lower right element
-  multiply_dimensionwise!(
-    view(u,     :, :, :, :, top_lower_right_id), forward_upper, forward_lower, forward_upper,
-    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
+  multiply_dimensionwise!(view(u, :, :, :, :, top_lower_right_id), forward_upper,
+                          forward_lower, forward_upper,
+                          view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to top upper left element
-  multiply_dimensionwise!(
-    view(u,     :, :, :, :, top_upper_left_id), forward_lower, forward_upper, forward_upper,
-    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
+  multiply_dimensionwise!(view(u, :, :, :, :, top_upper_left_id), forward_lower,
+                          forward_upper, forward_upper,
+                          view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to top upper right element
-  multiply_dimensionwise!(
-    view(u,     :, :, :, :, top_upper_right_id), forward_upper, forward_upper, forward_upper,
-    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
+  multiply_dimensionwise!(view(u, :, :, :, :, top_upper_right_id), forward_upper,
+                          forward_upper, forward_upper,
+                          view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   return nothing
 end
@@ -146,7 +149,7 @@ end
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
 function coarsen!(u_ode::AbstractVector, adaptor,
-                  mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                  mesh::Union{TreeMesh{3},P4estMesh{3}},
                   equations, dg::DGSEM, cache, elements_to_remove)
   # Return early if there is nothing to do
   if isempty(elements_to_remove)
@@ -174,8 +177,10 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     # Loop over all elements in old container and either copy them or coarsen them
-    u_tmp1 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
-    u_tmp2 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
+    u_tmp1 = Array{eltype(u),4}(undef, nvariables(equations), nnodes(dg), nnodes(dg),
+                                nnodes(dg))
+    u_tmp2 = Array{eltype(u),4}(undef, nvariables(equations), nnodes(dg), nnodes(dg),
+                                nnodes(dg))
     skip = 0
     element_id = 1
     for old_element_id in 1:old_n_elements
@@ -189,7 +194,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
         # If an element is to be removed, sanity check if the following elements
         # are also marked - otherwise there would be an error in the way the
         # cells/elements are sorted
-        @assert all(to_be_removed[old_element_id:(old_element_id+2^ndims(mesh)-1)]) "bad cell/element order"
+        @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
 
         # Coarsen elements and store solution directly in new data structure
         coarsen_elements!(u, element_id, old_u, old_element_id,
@@ -224,14 +229,14 @@ function coarsen_elements!(u::AbstractArray{<:Any,5}, element_id,
   @unpack reverse_upper, reverse_lower = adaptor
 
   # Store old element ids
-  bottom_lower_left_id  = old_element_id
+  bottom_lower_left_id = old_element_id
   bottom_lower_right_id = old_element_id + 1
-  bottom_upper_left_id  = old_element_id + 2
+  bottom_upper_left_id = old_element_id + 2
   bottom_upper_right_id = old_element_id + 3
-  top_lower_left_id     = old_element_id + 4
-  top_lower_right_id    = old_element_id + 5
-  top_upper_left_id     = old_element_id + 6
-  top_upper_right_id    = old_element_id + 7
+  top_lower_left_id = old_element_id + 4
+  top_lower_right_id = old_element_id + 5
+  top_upper_left_id = old_element_id + 6
+  top_upper_right_id = old_element_id + 7
 
   @boundscheck begin
     @assert old_element_id >= 1
@@ -240,53 +245,56 @@ function coarsen_elements!(u::AbstractArray{<:Any,5}, element_id,
     @assert size(old_u, 3) == nnodes(dg)
     @assert size(old_u, 4) == nnodes(dg)
     @assert size(old_u, 5) >= old_element_id + 7
-    @assert     element_id >= 1
-    @assert size(    u, 1) == nvariables(equations)
-    @assert size(    u, 2) == nnodes(dg)
-    @assert size(    u, 3) == nnodes(dg)
-    @assert size(    u, 4) == nnodes(dg)
-    @assert size(    u, 5) >= element_id
+    @assert element_id >= 1
+    @assert size(u, 1) == nvariables(equations)
+    @assert size(u, 2) == nnodes(dg)
+    @assert size(u, 3) == nnodes(dg)
+    @assert size(u, 4) == nnodes(dg)
+    @assert size(u, 5) >= element_id
   end
 
   # Project from bottom lower left element
-  multiply_dimensionwise!(
-    view(u,     :, :, :, :, element_id), reverse_lower, reverse_lower, reverse_lower,
-    view(old_u, :, :, :, :, bottom_lower_left_id), u_tmp1, u_tmp2)
+  multiply_dimensionwise!(view(u, :, :, :, :, element_id), reverse_lower, reverse_lower,
+                          reverse_lower,
+                          view(old_u, :, :, :, :, bottom_lower_left_id), u_tmp1, u_tmp2)
 
   # Project from bottom lower right element_variables
-  add_multiply_dimensionwise!(
-    view(u,     :, :, :, :, element_id), reverse_upper, reverse_lower, reverse_lower,
-    view(old_u, :, :, :, :, bottom_lower_right_id), u_tmp1, u_tmp2)
+  add_multiply_dimensionwise!(view(u, :, :, :, :, element_id), reverse_upper,
+                              reverse_lower, reverse_lower,
+                              view(old_u, :, :, :, :, bottom_lower_right_id), u_tmp1,
+                              u_tmp2)
 
   # Project from bottom upper left element
-  add_multiply_dimensionwise!(
-    view(u,     :, :, :, :, element_id), reverse_lower, reverse_upper, reverse_lower,
-    view(old_u, :, :, :, :, bottom_upper_left_id), u_tmp1, u_tmp2)
+  add_multiply_dimensionwise!(view(u, :, :, :, :, element_id), reverse_lower,
+                              reverse_upper, reverse_lower,
+                              view(old_u, :, :, :, :, bottom_upper_left_id), u_tmp1,
+                              u_tmp2)
 
   # Project from bottom upper right element
-  add_multiply_dimensionwise!(
-    view(u,     :, :, :, :, element_id), reverse_upper, reverse_upper, reverse_lower,
-    view(old_u, :, :, :, :, bottom_upper_right_id), u_tmp1, u_tmp2)
+  add_multiply_dimensionwise!(view(u, :, :, :, :, element_id), reverse_upper,
+                              reverse_upper, reverse_lower,
+                              view(old_u, :, :, :, :, bottom_upper_right_id), u_tmp1,
+                              u_tmp2)
 
   # Project from top lower left element
-  add_multiply_dimensionwise!(
-    view(u,     :, :, :, :, element_id), reverse_lower, reverse_lower, reverse_upper,
-    view(old_u, :, :, :, :, top_lower_left_id), u_tmp1, u_tmp2)
+  add_multiply_dimensionwise!(view(u, :, :, :, :, element_id), reverse_lower,
+                              reverse_lower, reverse_upper,
+                              view(old_u, :, :, :, :, top_lower_left_id), u_tmp1, u_tmp2)
 
   # Project from top lower right element
-  add_multiply_dimensionwise!(
-    view(u,     :, :, :, :, element_id), reverse_upper, reverse_lower, reverse_upper,
-    view(old_u, :, :, :, :, top_lower_right_id), u_tmp1, u_tmp2)
+  add_multiply_dimensionwise!(view(u, :, :, :, :, element_id), reverse_upper,
+                              reverse_lower, reverse_upper,
+                              view(old_u, :, :, :, :, top_lower_right_id), u_tmp1, u_tmp2)
 
   # Project from top upper left element
-  add_multiply_dimensionwise!(
-    view(u,     :, :, :, :, element_id), reverse_lower, reverse_upper, reverse_upper,
-    view(old_u, :, :, :, :, top_upper_left_id), u_tmp1, u_tmp2)
+  add_multiply_dimensionwise!(view(u, :, :, :, :, element_id), reverse_lower,
+                              reverse_upper, reverse_upper,
+                              view(old_u, :, :, :, :, top_upper_left_id), u_tmp1, u_tmp2)
 
   # Project from top upper right element
-  add_multiply_dimensionwise!(
-    view(u,     :, :, :, :, element_id), reverse_upper, reverse_upper, reverse_upper,
-    view(old_u, :, :, :, :, top_upper_right_id), u_tmp1, u_tmp2)
+  add_multiply_dimensionwise!(view(u, :, :, :, :, element_id), reverse_upper,
+                              reverse_upper, reverse_upper,
+                              view(old_u, :, :, :, :, top_upper_right_id), u_tmp1, u_tmp2)
 
   return nothing
 end
@@ -294,7 +302,7 @@ end
 
 # this method is called when an `ControllerThreeLevel` is constructed
 function create_cache(::Type{ControllerThreeLevel},
-                      mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                      mesh::Union{TreeMesh{3},P4estMesh{3}},
                       equations, dg::DG, cache)
 
   controller_value = Vector{Int}(undef, nelements(dg, cache))

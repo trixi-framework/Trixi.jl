@@ -14,11 +14,11 @@ A structured curved mesh.
 Different numbers of cells per dimension are possible and arbitrary functions
 can be used as domain faces.
 """
-mutable struct StructuredMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
-  cells_per_dimension::NTuple{NDIMS, Int}
+mutable struct StructuredMesh{NDIMS,RealT<:Real} <: AbstractMesh{NDIMS}
+  cells_per_dimension::NTuple{NDIMS,Int}
   mapping::Any # Not relevant for performance
   mapping_as_string::String
-  periodicity::NTuple{NDIMS, Bool}
+  periodicity::NTuple{NDIMS,Bool}
   current_filename::String
   unsaved_changes::Bool
 end
@@ -45,23 +45,26 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
                                The code string must define the mapping function with the name `mapping`.
                                This will be changed in the future, see https://github.com/trixi-framework/Trixi.jl/issues/541.
 """
-function StructuredMesh(cells_per_dimension, mapping; RealT=Float64, periodicity=true, unsaved_changes=true,
-                    mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
+function StructuredMesh(cells_per_dimension, mapping; RealT=Float64, periodicity=true,
+                        unsaved_changes=true,
+                        mapping_as_string=mapping2string(mapping,
+                                                         length(cells_per_dimension)))
   NDIMS = length(cells_per_dimension)
 
   # Convert periodicity to a Tuple of a Bool for every dimension
   if all(periodicity)
     # Also catches case where periodicity = true
-    periodicity = ntuple(_->true, NDIMS)
+    periodicity = ntuple(_ -> true, NDIMS)
   elseif !any(periodicity)
     # Also catches case where periodicity = false
-    periodicity = ntuple(_->false, NDIMS)
+    periodicity = ntuple(_ -> false, NDIMS)
   else
     # Default case if periodicity is an iterable
     periodicity = Tuple(periodicity)
   end
 
-  return StructuredMesh{NDIMS, RealT}(Tuple(cells_per_dimension), mapping, mapping_as_string, periodicity, "", unsaved_changes)
+  return StructuredMesh{NDIMS,RealT}(Tuple(cells_per_dimension), mapping,
+                                     mapping_as_string, periodicity, "", unsaved_changes)
 end
 
 
@@ -84,7 +87,8 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
                  each dimension if the boundaries in this dimension are periodic.
 """
-function StructuredMesh(cells_per_dimension, faces::Tuple; RealT=Float64, periodicity=true)
+function StructuredMesh(cells_per_dimension, faces::Tuple; RealT=Float64,
+                        periodicity=true)
   NDIMS = length(cells_per_dimension)
 
   validate_faces(faces)
@@ -93,16 +97,17 @@ function StructuredMesh(cells_per_dimension, faces::Tuple; RealT=Float64, period
   mapping = transfinite_mapping(faces)
 
   # Collect definitions of face functions in one string (separated by semicolons)
-  face2substring(face) = code_string(face, ntuple(_ -> Float64, NDIMS-1))
+  face2substring(face) = code_string(face, ntuple(_ -> Float64, NDIMS - 1))
   join_semicolon(strings) = join(strings, "; ")
 
-  faces_definition = faces .|> face2substring .|> string |> join_semicolon
+  faces_definition = join_semicolon(string.(face2substring.(faces)))
 
   # Include faces definition in `mapping_as_string` to allow for evaluation
   # without knowing the face functions
   mapping_as_string = "$faces_definition; faces = $(string(faces)); mapping = transfinite_mapping(faces)"
 
-  return StructuredMesh(cells_per_dimension, mapping; RealT=RealT, periodicity=periodicity, mapping_as_string=mapping_as_string)
+  return StructuredMesh(cells_per_dimension, mapping; RealT=RealT,
+                        periodicity=periodicity, mapping_as_string=mapping_as_string)
 end
 
 
@@ -118,7 +123,8 @@ Create a StructuredMesh that represents a uncurved structured mesh with a rectan
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
                  each dimension if the boundaries in this dimension are periodic.
 """
-function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max; periodicity=true)
+function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
+                        periodicity=true)
   NDIMS = length(cells_per_dimension)
   RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
 
@@ -126,7 +132,8 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max; p
   mapping_as_string = "coordinates_min = $coordinates_min; " *
                       "coordinates_max = $coordinates_max; " *
                       "mapping = coordinates2mapping(coordinates_min, coordinates_max)"
-  return StructuredMesh(cells_per_dimension, mapping; RealT=RealT, periodicity=periodicity, mapping_as_string=mapping_as_string)
+  return StructuredMesh(cells_per_dimension, mapping; RealT=RealT,
+                        periodicity=periodicity, mapping_as_string=mapping_as_string)
 end
 
 
@@ -147,7 +154,9 @@ function code_string(f, t)
 end
 
 # Interpolate linearly between left and right value where s should be between -1 and 1
-linear_interpolate(s, left_value, right_value) = 0.5 * ((1 - s) * left_value + (1 + s) * right_value)
+function linear_interpolate(s, left_value, right_value)
+  0.5 * ((1 - s) * left_value + (1 + s) * right_value)
+end
 
 
 # Convert min and max coordinates of a rectangle to the corresponding transformation mapping
@@ -156,14 +165,18 @@ function coordinates2mapping(coordinates_min::NTuple{1}, coordinates_max::NTuple
 end
 
 function coordinates2mapping(coordinates_min::NTuple{2}, coordinates_max::NTuple{2})
-  mapping(xi, eta) = SVector(linear_interpolate(xi,  coordinates_min[1], coordinates_max[1]),
-                             linear_interpolate(eta, coordinates_min[2], coordinates_max[2]))
+  function mapping(xi, eta)
+    SVector(linear_interpolate(xi, coordinates_min[1], coordinates_max[1]),
+            linear_interpolate(eta, coordinates_min[2], coordinates_max[2]))
+  end
 end
 
 function coordinates2mapping(coordinates_min::NTuple{3}, coordinates_max::NTuple{3})
-  mapping(xi, eta, zeta) = SVector(linear_interpolate(xi,   coordinates_min[1], coordinates_max[1]),
-                                   linear_interpolate(eta,  coordinates_min[2], coordinates_max[2]),
-                                   linear_interpolate(zeta, coordinates_min[3], coordinates_max[3]))
+  function mapping(xi, eta, zeta)
+    SVector(linear_interpolate(xi, coordinates_min[1], coordinates_max[1]),
+            linear_interpolate(eta, coordinates_min[2], coordinates_max[2]),
+            linear_interpolate(zeta, coordinates_min[3], coordinates_max[3]))
+  end
 end
 
 
@@ -194,12 +207,12 @@ end
 function trilinear_mapping(x, y, z, faces)
   x1 = faces[1](-1, -1) # mapped from (-1,-1,-1)
   x2 = faces[2](-1, -1) # mapped from ( 1,-1,-1)
-  x3 = faces[1]( 1, -1) # mapped from (-1, 1,-1)
-  x4 = faces[2]( 1, -1) # mapped from ( 1, 1,-1)
-  x5 = faces[1](-1,  1) # mapped from (-1,-1, 1)
-  x6 = faces[2](-1,  1) # mapped from ( 1,-1, 1)
-  x7 = faces[1]( 1,  1) # mapped from (-1, 1, 1)
-  x8 = faces[2]( 1,  1) # mapped from ( 1, 1, 1)
+  x3 = faces[1](1, -1) # mapped from (-1, 1,-1)
+  x4 = faces[2](1, -1) # mapped from ( 1, 1,-1)
+  x5 = faces[1](-1, 1) # mapped from (-1,-1, 1)
+  x6 = faces[2](-1, 1) # mapped from ( 1,-1, 1)
+  x7 = faces[1](1, 1) # mapped from (-1, 1, 1)
+  x8 = faces[2](1, 1) # mapped from ( 1, 1, 1)
 
   return 0.125 * (x1 * (1 - x) * (1 - y) * (1 - z) +
                   x2 * (1 + x) * (1 - y) * (1 - z) +
@@ -208,19 +221,21 @@ function trilinear_mapping(x, y, z, faces)
                   x5 * (1 - x) * (1 - y) * (1 + z) +
                   x6 * (1 + x) * (1 - y) * (1 + z) +
                   x7 * (1 - x) * (1 + y) * (1 + z) +
-                  x8 * (1 + x) * (1 + y) * (1 + z) )
+                  x8 * (1 + x) * (1 + y) * (1 + z))
 end
 
 
 # Use linear mapping in 1D
-transfinite_mapping(faces::NTuple{2, Any}) = x -> linear_mapping(x, faces)
+transfinite_mapping(faces::NTuple{2,Any}) = x -> linear_mapping(x, faces)
 
 # In 2D
 # Transfinite mapping from the reference element to the domain described by the faces
-function transfinite_mapping(faces::NTuple{4, Any})
-  mapping(x, y) = (linear_interpolate(x, faces[1](y), faces[2](y)) +
-                   linear_interpolate(y, faces[3](x), faces[4](x)) -
-                   bilinear_mapping(x, y, faces))
+function transfinite_mapping(faces::NTuple{4,Any})
+  function mapping(x, y)
+    (linear_interpolate(x, faces[1](y), faces[2](y)) +
+     linear_interpolate(y, faces[3](x), faces[4](x)) -
+     bilinear_mapping(x, y, faces))
+  end
 end
 
 
@@ -228,22 +243,25 @@ end
 # Correction term for the Transfinite mapping
 function correction_term_3d(x, y, z, faces)
   # Correction for x-terms
-  c_x = linear_interpolate(x, linear_interpolate(y, faces[3](-1, z), faces[4](-1, z)) +
-                              linear_interpolate(z, faces[5](-1, y), faces[6](-1, y)),
-                              linear_interpolate(y, faces[3]( 1, z), faces[4]( 1, z)) +
-                              linear_interpolate(z, faces[5]( 1, y), faces[6]( 1, y)) )
+  c_x = linear_interpolate(x,
+                           linear_interpolate(y, faces[3](-1, z), faces[4](-1, z)) +
+                           linear_interpolate(z, faces[5](-1, y), faces[6](-1, y)),
+                           linear_interpolate(y, faces[3](1, z), faces[4](1, z)) +
+                           linear_interpolate(z, faces[5](1, y), faces[6](1, y)))
 
   # Correction for y-terms
-  c_y = linear_interpolate(y, linear_interpolate(x, faces[1](-1,  z), faces[2](-1,  z)) +
-                              linear_interpolate(z, faces[5]( x, -1), faces[6]( x, -1)),
-                              linear_interpolate(x, faces[1]( 1,  z), faces[2]( 1,  z)) +
-                              linear_interpolate(z, faces[5]( x,  1), faces[6]( x,  1)) )
+  c_y = linear_interpolate(y,
+                           linear_interpolate(x, faces[1](-1, z), faces[2](-1, z)) +
+                           linear_interpolate(z, faces[5](x, -1), faces[6](x, -1)),
+                           linear_interpolate(x, faces[1](1, z), faces[2](1, z)) +
+                           linear_interpolate(z, faces[5](x, 1), faces[6](x, 1)))
 
   # Correction for x-terms
-  c_z = linear_interpolate(z, linear_interpolate(x, faces[1](y, -1), faces[2](y, -1)) +
-                              linear_interpolate(y, faces[3](x, -1), faces[4](x, -1)),
-                              linear_interpolate(x, faces[1](y,  1), faces[2](y,  1)) +
-                              linear_interpolate(y, faces[3](x,  1), faces[4](x,  1)) )
+  c_z = linear_interpolate(z,
+                           linear_interpolate(x, faces[1](y, -1), faces[2](y, -1)) +
+                           linear_interpolate(y, faces[3](x, -1), faces[4](x, -1)),
+                           linear_interpolate(x, faces[1](y, 1), faces[2](y, 1)) +
+                           linear_interpolate(y, faces[3](x, 1), faces[4](x, 1)))
 
   return 0.5 * (c_x + c_y + c_z)
 end
@@ -251,56 +269,58 @@ end
 
 # In 3D
 # Transfinite mapping from the reference element to the domain described by the faces
-function transfinite_mapping(faces::NTuple{6, Any})
-  mapping(x, y, z) =  (linear_interpolate(x, faces[1](y, z), faces[2](y, z)) +
-                       linear_interpolate(y, faces[3](x, z), faces[4](x, z)) +
-                       linear_interpolate(z, faces[5](x, y), faces[6](x, y)) -
-                       correction_term_3d(x, y, z, faces) +
-                       trilinear_mapping(x, y, z, faces))
+function transfinite_mapping(faces::NTuple{6,Any})
+  function mapping(x, y, z)
+    (linear_interpolate(x, faces[1](y, z), faces[2](y, z)) +
+     linear_interpolate(y, faces[3](x, z), faces[4](x, z)) +
+     linear_interpolate(z, faces[5](x, y), faces[6](x, y)) -
+     correction_term_3d(x, y, z, faces) +
+     trilinear_mapping(x, y, z, faces))
+  end
 end
 
 
-function validate_faces(faces::NTuple{2, Any}) end
+function validate_faces(faces::NTuple{2,Any}) end
 
-function validate_faces(faces::NTuple{4, Any})
+function validate_faces(faces::NTuple{4,Any})
   @assert faces[1](-1) ≈ faces[3](-1) "faces[1](-1) needs to match faces[3](-1) (bottom left corner)"
-  @assert faces[2](-1) ≈ faces[3]( 1) "faces[2](-1) needs to match faces[3](1) (bottom right corner)"
-  @assert faces[1]( 1) ≈ faces[4](-1) "faces[1](1) needs to match faces[4](-1) (top left corner)"
-  @assert faces[2]( 1) ≈ faces[4]( 1) "faces[2](1) needs to match faces[4](1) (top right corner)"
+  @assert faces[2](-1) ≈ faces[3](1) "faces[2](-1) needs to match faces[3](1) (bottom right corner)"
+  @assert faces[1](1) ≈ faces[4](-1) "faces[1](1) needs to match faces[4](-1) (top left corner)"
+  @assert faces[2](1) ≈ faces[4](1) "faces[2](1) needs to match faces[4](1) (top right corner)"
 end
 
-function validate_faces(faces::NTuple{6, Any})
+function validate_faces(faces::NTuple{6,Any})
   @assert (faces[1](-1, -1) ≈
            faces[3](-1, -1) ≈
            faces[5](-1, -1)) "faces[1](-1, -1), faces[3](-1, -1) and faces[5](-1, -1) need to match at (-1, -1, -1) corner"
 
   @assert (faces[2](-1, -1) ≈
-           faces[3]( 1, -1) ≈
-           faces[5]( 1, -1)) "faces[2](-1, -1), faces[3](1, -1) and faces[5](1, -1) need to match at (1, -1, -1) corner"
+           faces[3](1, -1) ≈
+           faces[5](1, -1)) "faces[2](-1, -1), faces[3](1, -1) and faces[5](1, -1) need to match at (1, -1, -1) corner"
 
-  @assert (faces[1]( 1, -1) ≈
+  @assert (faces[1](1, -1) ≈
            faces[4](-1, -1) ≈
-           faces[5](-1,  1)) "faces[1](1, -1), faces[4](-1, -1) and faces[5](-1, 1) need to match at (-1, 1, -1) corner"
+           faces[5](-1, 1)) "faces[1](1, -1), faces[4](-1, -1) and faces[5](-1, 1) need to match at (-1, 1, -1) corner"
 
-  @assert (faces[2]( 1, -1) ≈
-           faces[4]( 1, -1) ≈
-           faces[5]( 1,  1)) "faces[2](1, -1), faces[4](1, -1) and faces[5](1, 1) need to match at (1, 1, -1) corner"
+  @assert (faces[2](1, -1) ≈
+           faces[4](1, -1) ≈
+           faces[5](1, 1)) "faces[2](1, -1), faces[4](1, -1) and faces[5](1, 1) need to match at (1, 1, -1) corner"
 
-  @assert (faces[1](-1,  1) ≈
-           faces[3](-1,  1) ≈
+  @assert (faces[1](-1, 1) ≈
+           faces[3](-1, 1) ≈
            faces[6](-1, -1)) "faces[1](-1, 1), faces[3](-1, 1) and faces[6](-1, -1) need to match at (-1, -1, 1) corner"
 
-  @assert (faces[2](-1,  1) ≈
-           faces[3]( 1,  1) ≈
-           faces[6]( 1, -1)) "faces[2](-1, 1), faces[3](1, 1) and faces[6](1, -1) need to match at (1, -1, 1) corner"
+  @assert (faces[2](-1, 1) ≈
+           faces[3](1, 1) ≈
+           faces[6](1, -1)) "faces[2](-1, 1), faces[3](1, 1) and faces[6](1, -1) need to match at (1, -1, 1) corner"
 
-  @assert (faces[1]( 1,  1) ≈
-           faces[4](-1,  1) ≈
-           faces[6](-1,  1)) "faces[1](1, 1), faces[4](-1, 1) and faces[6](-1, 1) need to match at (-1, 1, 1) corner"
+  @assert (faces[1](1, 1) ≈
+           faces[4](-1, 1) ≈
+           faces[6](-1, 1)) "faces[1](1, 1), faces[4](-1, 1) and faces[6](-1, 1) need to match at (-1, 1, 1) corner"
 
-  @assert (faces[2]( 1,  1) ≈
-           faces[4]( 1,  1) ≈
-           faces[6]( 1,  1)) "faces[2](1, 1), faces[4](1, 1) and faces[6](1, 1) need to match at (1, 1, 1) corner"
+  @assert (faces[2](1, 1) ≈
+           faces[4](1, 1) ≈
+           faces[6](1, 1)) "faces[2](1, 1), faces[4](1, 1) and faces[6](1, 1) need to match at (1, 1, 1) corner"
 end
 
 
@@ -309,7 +329,7 @@ isperiodic(mesh::StructuredMesh) = all(mesh.periodicity)
 isperiodic(mesh::StructuredMesh, dimension) = mesh.periodicity[dimension]
 
 @inline Base.ndims(::StructuredMesh{NDIMS}) where {NDIMS} = NDIMS
-@inline Base.real(::StructuredMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
+@inline Base.real(::StructuredMesh{NDIMS,RealT}) where {NDIMS,RealT} = RealT
 Base.size(mesh::StructuredMesh) = mesh.cells_per_dimension
 Base.size(mesh::StructuredMesh, i) = mesh.cells_per_dimension[i]
 Base.axes(mesh::StructuredMesh) = map(Base.OneTo, mesh.cells_per_dimension)
@@ -325,7 +345,9 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
   if get(io, :compact, false)
     show(io, mesh)
   else
-    summary_header(io, "StructuredMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}")
+    summary_header(io,
+                   "StructuredMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
+                   "}")
     summary_line(io, "size", size(mesh))
 
     summary_line(io, "mapping", "")

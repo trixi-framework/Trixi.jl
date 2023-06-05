@@ -8,15 +8,19 @@
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::P4estMesh{3}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
+function create_cache(mesh::P4estMesh{3}, equations, mortar_l2::LobattoLegendreMortarL2,
+                      uEltype)
   # TODO: Taal compare performance of different types
-  fstar_threaded = [Array{uEltype, 4}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2), 4)
+  fstar_threaded = [Array{uEltype,4}(undef, nvariables(equations), nnodes(mortar_l2),
+                                     nnodes(mortar_l2), 4)
                     for _ in 1:Threads.nthreads()]
 
-  fstar_tmp_threaded = [Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
-                         for _ in 1:Threads.nthreads()]
-  u_threaded          = [Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
-                         for _ in 1:Threads.nthreads()]
+  fstar_tmp_threaded = [Array{uEltype,3}(undef, nvariables(equations), nnodes(mortar_l2),
+                                         nnodes(mortar_l2))
+                        for _ in 1:Threads.nthreads()]
+  u_threaded = [Array{uEltype,3}(undef, nvariables(equations), nnodes(mortar_l2),
+                                 nnodes(mortar_l2))
+                for _ in 1:Threads.nthreads()]
 
   (; fstar_threaded, fstar_tmp_threaded, u_threaded)
 end
@@ -53,7 +57,7 @@ end
 #     end
 @inline function index_to_start_step_3d(index::Symbol, index_range)
   index_begin = first(index_range)
-  index_end   = last(index_range)
+  index_end = last(index_range)
 
   if index === :begin
     return index_begin, 0, 0
@@ -72,7 +76,7 @@ end
 
 # Extract the two varying indices from a symbolic index tuple.
 # For example, `surface_indices((:i_forward, :end, :j_forward)) == (:i_forward, :j_forward)`.
-@inline function surface_indices(indices::NTuple{3, Symbol})
+@inline function surface_indices(indices::NTuple{3,Symbol})
   i1, i2, i3 = indices
   index = i1
   (index === :begin || index === :end) && return (i2, i3)
@@ -100,9 +104,12 @@ function prolong2interfaces!(cache, u,
     primary_element = interfaces.neighbor_ids[1, interface]
     primary_indices = interfaces.node_indices[1, interface]
 
-    i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1], index_range)
-    j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2], index_range)
-    k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3], index_range)
+    i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                 index_range)
+    j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                 index_range)
+    k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                 index_range)
 
     i_primary = i_primary_start
     j_primary = j_primary_start
@@ -110,7 +117,8 @@ function prolong2interfaces!(cache, u,
     for j in eachnode(dg)
       for i in eachnode(dg)
         for v in eachvariable(equations)
-          interfaces.u[1, v, i, j, interface] = u[v, i_primary, j_primary, k_primary, primary_element]
+          interfaces.u[1, v, i, j, interface] = u[v, i_primary, j_primary, k_primary,
+                                                  primary_element]
         end
         i_primary += i_primary_step_i
         j_primary += j_primary_step_i
@@ -126,9 +134,12 @@ function prolong2interfaces!(cache, u,
     secondary_element = interfaces.neighbor_ids[2, interface]
     secondary_indices = interfaces.node_indices[2, interface]
 
-    i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1], index_range)
-    j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_indices[2], index_range)
-    k_secondary_start, k_secondary_step_i, k_secondary_step_j = index_to_start_step_3d(secondary_indices[3], index_range)
+    i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1],
+                                                                                       index_range)
+    j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_indices[2],
+                                                                                       index_range)
+    k_secondary_start, k_secondary_step_i, k_secondary_step_j = index_to_start_step_3d(secondary_indices[3],
+                                                                                       index_range)
 
     i_secondary = i_secondary_start
     j_secondary = j_secondary_start
@@ -136,7 +147,8 @@ function prolong2interfaces!(cache, u,
     for j in eachnode(dg)
       for i in eachnode(dg)
         for v in eachvariable(equations)
-          interfaces.u[2, v, i, j, interface] = u[v, i_secondary, j_secondary, k_secondary, secondary_element]
+          interfaces.u[2, v, i, j, interface] = u[v, i_secondary, j_secondary,
+                                                  k_secondary, secondary_element]
         end
         i_secondary += i_secondary_step_i
         j_secondary += j_secondary_step_i
@@ -162,13 +174,16 @@ function calc_interface_flux!(surface_flux_values,
 
   @threaded for interface in eachinterface(dg, cache)
     # Get element and side information on the primary element
-    primary_element  = neighbor_ids[1, interface]
-    primary_indices  = node_indices[1, interface]
+    primary_element = neighbor_ids[1, interface]
+    primary_indices = node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
 
-    i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1], index_range)
-    j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2], index_range)
-    k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3], index_range)
+    i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                 index_range)
+    j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                 index_range)
+    k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                 index_range)
 
     i_primary = i_primary_start
     j_primary = j_primary_start
@@ -183,8 +198,10 @@ function calc_interface_flux!(surface_flux_values,
     # Get the surface indexing on the secondary element.
     # Note that the indices of the primary side will always run forward but
     # the secondary indices might need to run backwards for flipped sides.
-    i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[1], index_range)
-    j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[2], index_range)
+    i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[1],
+                                                                                       index_range)
+    j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[2],
+                                                                                       index_range)
     i_secondary = i_secondary_start
     j_secondary = j_secondary_start
 
@@ -201,7 +218,8 @@ function calc_interface_flux!(surface_flux_values,
                              surface_integral, dg, cache,
                              interface, normal_direction,
                              i, j, primary_direction, primary_element,
-                             i_secondary, j_secondary, secondary_direction, secondary_element)
+                             i_secondary, j_secondary, secondary_direction,
+                             secondary_element)
 
         # Increment the primary element indices
         i_primary += i_primary_step_i
@@ -238,15 +256,16 @@ end
   @unpack u = cache.interfaces
   @unpack surface_flux = surface_integral
 
-  u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_i_node_index, primary_j_node_index, interface_index)
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_i_node_index,
+                                     primary_j_node_index, interface_index)
 
   flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
   for v in eachvariable(equations)
     surface_flux_values[v, primary_i_node_index, primary_j_node_index,
-                        primary_direction_index, primary_element_index] = flux_[v]
+    primary_direction_index, primary_element_index] = flux_[v]
     surface_flux_values[v, secondary_i_node_index, secondary_j_node_index,
-                        secondary_direction_index, secondary_element_index] = -flux_[v]
+    secondary_direction_index, secondary_element_index] = -flux_[v]
   end
 end
 
@@ -263,7 +282,8 @@ end
   @unpack u = cache.interfaces
   surface_flux, nonconservative_flux = surface_integral.surface_flux
 
-  u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_i_node_index, primary_j_node_index, interface_index)
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_i_node_index,
+                                     primary_j_node_index, interface_index)
 
   flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
@@ -272,8 +292,10 @@ end
   # vectors (normal direction) at the current node and the averaged ones.
   # However, both are the same at watertight interfaces, so we pass the
   # `normal_direction` twice.
-  noncons_primary   = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
-  noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, normal_direction, equations)
+  noncons_primary = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction,
+                                         equations)
+  noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, normal_direction,
+                                           equations)
 
   # Store the flux with nonconservative terms on the primary and secondary elements
   for v in eachvariable(equations)
@@ -281,9 +303,10 @@ end
     # the interpretation of global SBP operators coupled discontinuously via
     # central fluxes/SATs
     surface_flux_values[v, primary_i_node_index, primary_j_node_index,
-                        primary_direction_index, primary_element_index] = flux_[v] + 0.5 * noncons_primary[v]
+    primary_direction_index, primary_element_index] = flux_[v] + 0.5 * noncons_primary[v]
     surface_flux_values[v, secondary_i_node_index, secondary_j_node_index,
-                        secondary_direction_index, secondary_element_index] = -(flux_[v] + 0.5 * noncons_secondary[v])
+    secondary_direction_index, secondary_element_index] = -(flux_[v] +
+                                                            0.5 * noncons_secondary[v])
   end
 end
 
@@ -297,12 +320,15 @@ function prolong2boundaries!(cache, u,
   @threaded for boundary in eachboundary(dg, cache)
     # Copy solution data from the element using "delayed indexing" with
     # a start value and two step sizes to get the correct face and orientation.
-    element      = boundaries.neighbor_ids[boundary]
+    element = boundaries.neighbor_ids[boundary]
     node_indices = boundaries.node_indices[boundary]
 
-    i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1], index_range)
-    j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2], index_range)
-    k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3], index_range)
+    i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
+                                                                        index_range)
+    j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
+                                                                        index_range)
+    k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
+                                                                        index_range)
 
     i_node = i_node_start
     j_node = j_node_start
@@ -341,13 +367,16 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
 
     # Get information on the adjacent element, compute the surface fluxes,
     # and store them
-    element       = boundaries.neighbor_ids[boundary]
-    node_indices  = boundaries.node_indices[boundary]
-    direction     = indices2direction(node_indices)
+    element = boundaries.neighbor_ids[boundary]
+    node_indices = boundaries.node_indices[boundary]
+    direction = indices2direction(node_indices)
 
-    i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1], index_range)
-    j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2], index_range)
-    k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3], index_range)
+    i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
+                                                                        index_range)
+    j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
+                                                                        index_range)
+    k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
+                                                                        index_range)
 
     i_node = i_node_start
     j_node = j_node_start
@@ -365,7 +394,8 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
         x = get_node_coords(node_coordinates, equations, dg,
                             i_node, j_node, k_node, element)
 
-        flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+        flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux,
+                                   equations)
 
         # Copy flux to element storage in the correct orientation
         for v in eachvariable(equations)
@@ -397,9 +427,12 @@ function prolong2mortars!(cache, u,
     # a start value and two step sizes to get the correct face and orientation.
     small_indices = node_indices[1, mortar]
 
-    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1], index_range)
-    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2], index_range)
-    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3], index_range)
+    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                           index_range)
+    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                           index_range)
+    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                           index_range)
 
     for position in 1:4
       i_small = i_small_start
@@ -409,7 +442,8 @@ function prolong2mortars!(cache, u,
       for j in eachnode(dg)
         for i in eachnode(dg)
           for v in eachvariable(equations)
-            cache.mortars.u[1, v, position, i, j, mortar] = u[v, i_small, j_small, k_small, element]
+            cache.mortars.u[1, v, position, i, j, mortar] = u[v, i_small, j_small,
+                                                              k_small, element]
           end
           i_small += i_small_step_i
           j_small += j_small_step_i
@@ -432,9 +466,12 @@ function prolong2mortars!(cache, u,
     # correct orientation
     large_indices = node_indices[2, mortar]
 
-    i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1], index_range)
-    j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_indices[2], index_range)
-    k_large_start, k_large_step_i, k_large_step_j = index_to_start_step_3d(large_indices[3], index_range)
+    i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1],
+                                                                           index_range)
+    j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_indices[2],
+                                                                           index_range)
+    k_large_start, k_large_step_i, k_large_step_j = index_to_start_step_3d(large_indices[3],
+                                                                           index_range)
 
     i_large = i_large_start
     j_large = j_large_start
@@ -500,9 +537,12 @@ function calc_mortar_flux!(surface_flux_values,
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
 
-    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1], index_range)
-    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2], index_range)
-    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3], index_range)
+    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                           index_range)
+    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                           index_range)
+    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                           index_range)
 
     for position in 1:4
       i_small = i_small_start
@@ -554,7 +594,8 @@ end
   @unpack u = cache.mortars
   @unpack surface_flux = surface_integral
 
-  u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index, j_node_index, mortar_index)
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index,
+                                     j_node_index, mortar_index)
 
   flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
@@ -573,7 +614,8 @@ end
   @unpack u = cache.mortars
   surface_flux, nonconservative_flux = surface_integral.surface_flux
 
-  u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index, j_node_index, mortar_index)
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index,
+                                     j_node_index, mortar_index)
 
   # Compute conservative flux
   flux = surface_flux(u_ll, u_rr, normal_direction, equations)
@@ -581,23 +623,26 @@ end
   # Compute nonconservative flux and add it to the flux scaled by a factor of 0.5 based on
   # the interpretation of global SBP operators coupled discontinuously via
   # central fluxes/SATs
-  noncons = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
+  noncons = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction,
+                                 equations)
   flux_plus_noncons = flux + 0.5 * noncons
 
   # Copy to buffer
-  set_node_vars!(fstar, flux_plus_noncons, equations, dg, i_node_index, j_node_index, position_index)
+  set_node_vars!(fstar, flux_plus_noncons, equations, dg, i_node_index, j_node_index,
+                 position_index)
 end
 
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
                                             mesh::P4estMesh{3}, equations,
                                             mortar_l2::LobattoLegendreMortarL2,
-                                            dg::DGSEM, cache, mortar, fstar, u_buffer, fstar_tmp)
+                                            dg::DGSEM, cache, mortar, fstar, u_buffer,
+                                            fstar_tmp)
   @unpack neighbor_ids, node_indices = cache.mortars
   index_range = eachnode(dg)
 
   # Copy solution small to small
-  small_indices   = node_indices[1, mortar]
+  small_indices = node_indices[1, mortar]
   small_direction = indices2direction(small_indices)
 
   for position in 1:4
@@ -610,26 +655,22 @@ end
   end
 
   # Project small fluxes to large element.
-  multiply_dimensionwise!(
-    u_buffer,
-    mortar_l2.reverse_lower, mortar_l2.reverse_lower,
-    view(fstar, .., 1),
-    fstar_tmp)
-  add_multiply_dimensionwise!(
-    u_buffer,
-    mortar_l2.reverse_upper, mortar_l2.reverse_lower,
-    view(fstar, .., 2),
-    fstar_tmp)
-  add_multiply_dimensionwise!(
-    u_buffer,
-    mortar_l2.reverse_lower, mortar_l2.reverse_upper,
-    view(fstar, .., 3),
-    fstar_tmp)
-  add_multiply_dimensionwise!(
-    u_buffer,
-    mortar_l2.reverse_upper, mortar_l2.reverse_upper,
-    view(fstar, .., 4),
-    fstar_tmp)
+  multiply_dimensionwise!(u_buffer,
+                          mortar_l2.reverse_lower, mortar_l2.reverse_lower,
+                          view(fstar, .., 1),
+                          fstar_tmp)
+  add_multiply_dimensionwise!(u_buffer,
+                              mortar_l2.reverse_upper, mortar_l2.reverse_lower,
+                              view(fstar, .., 2),
+                              fstar_tmp)
+  add_multiply_dimensionwise!(u_buffer,
+                              mortar_l2.reverse_lower, mortar_l2.reverse_upper,
+                              view(fstar, .., 3),
+                              fstar_tmp)
+  add_multiply_dimensionwise!(u_buffer,
+                              mortar_l2.reverse_upper, mortar_l2.reverse_upper,
+                              view(fstar, .., 4),
+                              fstar_tmp)
 
   # The flux is calculated in the outward direction of the small elements,
   # so the sign must be switched to get the flux in outward direction
@@ -645,12 +686,14 @@ end
   # Note that the index of the small sides will always run forward but
   # the index of the large side might need to run backwards for flipped sides.
   large_element = neighbor_ids[5, mortar]
-  large_indices  = node_indices[2, mortar]
+  large_indices = node_indices[2, mortar]
   large_direction = indices2direction(large_indices)
   large_surface_indices = surface_indices(large_indices)
 
-  i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_surface_indices[1], index_range)
-  j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_surface_indices[2], index_range)
+  i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_surface_indices[1],
+                                                                         index_range)
+  j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_surface_indices[2],
+                                                                         index_range)
 
   # Note that the indices of the small sides will always run forward but
   # the large indices might need to run backwards for flipped sides.
@@ -659,7 +702,9 @@ end
   for j in eachnode(dg)
     for i in eachnode(dg)
       for v in eachvariable(equations)
-        surface_flux_values[v, i_large, j_large, large_direction, large_element] = u_buffer[v, i, j]
+        surface_flux_values[v, i_large, j_large, large_direction, large_element] = u_buffer[v,
+                                                                                            i,
+                                                                                            j]
       end
       i_large += i_large_step_i
       j_large += j_large_step_i
@@ -684,34 +729,37 @@ function calc_surface_integral!(du, u,
   # Access the factors only once before beginning the loop to increase performance.
   # We also use explicit assignments instead of `+=` to let `@muladd` turn these
   # into FMAs (see comment at the top of the file).
-  factor_1 = boundary_interpolation[1,          1]
+  factor_1 = boundary_interpolation[1, 1]
   factor_2 = boundary_interpolation[nnodes(dg), 2]
   @threaded for element in eachelement(dg, cache)
     for m in eachnode(dg), l in eachnode(dg)
       for v in eachvariable(equations)
         # surface at -x
-        du[v, 1,          l, m, element] = (
-          du[v, 1,          l, m, element] + surface_flux_values[v, l, m, 1, element] * factor_1)
+        du[v, 1, l, m, element] = (du[v, 1, l, m, element] +
+                                   surface_flux_values[v, l, m, 1, element] * factor_1)
 
         # surface at +x
-        du[v, nnodes(dg), l, m, element] = (
-          du[v, nnodes(dg), l, m, element] + surface_flux_values[v, l, m, 2, element] * factor_2)
+        du[v, nnodes(dg), l, m, element] = (du[v, nnodes(dg), l, m, element] +
+                                            surface_flux_values[v, l, m, 2, element] *
+                                            factor_2)
 
         # surface at -y
-        du[v, l, 1,          m, element] = (
-          du[v, l, 1,          m, element] + surface_flux_values[v, l, m, 3, element] * factor_1)
+        du[v, l, 1, m, element] = (du[v, l, 1, m, element] +
+                                   surface_flux_values[v, l, m, 3, element] * factor_1)
 
         # surface at +y
-        du[v, l, nnodes(dg), m, element] = (
-          du[v, l, nnodes(dg), m, element] + surface_flux_values[v, l, m, 4, element] * factor_2)
+        du[v, l, nnodes(dg), m, element] = (du[v, l, nnodes(dg), m, element] +
+                                            surface_flux_values[v, l, m, 4, element] *
+                                            factor_2)
 
         # surface at -z
-        du[v, l, m, 1,          element] = (
-          du[v, l, m, 1,          element] + surface_flux_values[v, l, m, 5, element] * factor_1)
+        du[v, l, m, 1, element] = (du[v, l, m, 1, element] +
+                                   surface_flux_values[v, l, m, 5, element] * factor_1)
 
         # surface at +z
-        du[v, l, m, nnodes(dg), element] = (
-          du[v, l, m, nnodes(dg), element] + surface_flux_values[v, l, m, 6, element] * factor_2)
+        du[v, l, m, nnodes(dg), element] = (du[v, l, m, nnodes(dg), element] +
+                                            surface_flux_values[v, l, m, 6, element] *
+                                            factor_2)
       end
     end
   end

@@ -19,7 +19,8 @@ using the associated `thresholds` to determine the minimal acceptable values.
 The order of the `variables` is important and might have a strong influence
 on the robustness.
 """
-struct PositivityPreservingLimiterZhangShu{N, Thresholds<:NTuple{N,<:Real}, Variables<:NTuple{N,Any}}
+struct PositivityPreservingLimiterZhangShu{N,Thresholds<:NTuple{N,<:Real},
+                                           Variables<:NTuple{N,Any}}
   thresholds::Thresholds
   variables::Variables
 end
@@ -29,11 +30,14 @@ function PositivityPreservingLimiterZhangShu(; thresholds, variables)
 end
 
 
-function (limiter!::PositivityPreservingLimiterZhangShu)(
-    u_ode, integrator, semi::AbstractSemidiscretization, t)
+function (limiter!::PositivityPreservingLimiterZhangShu)(u_ode, integrator,
+                                                         semi::AbstractSemidiscretization,
+                                                         t)
   u = wrap_array(u_ode, semi)
-  @trixi_timeit timer() "positivity-preserving limiter" limiter_zhang_shu!(
-    u, limiter!.thresholds, limiter!.variables, mesh_equations_solver_cache(semi)...)
+  @trixi_timeit timer() "positivity-preserving limiter" limiter_zhang_shu!(u,
+                                                                           limiter!.thresholds,
+                                                                           limiter!.variables,
+                                                                           mesh_equations_solver_cache(semi)...)
 end
 
 
@@ -53,7 +57,8 @@ function limiter_zhang_shu!(u, thresholds::NTuple{N,<:Real}, variables::NTuple{N
   remaining_variables = Base.tail(variables)
 
   limiter_zhang_shu!(u, threshold, variable, mesh, equations, solver, cache)
-  limiter_zhang_shu!(u, remaining_thresholds, remaining_variables, mesh, equations, solver, cache)
+  limiter_zhang_shu!(u, remaining_thresholds, remaining_variables, mesh, equations,
+                     solver, cache)
   return nothing
 end
 

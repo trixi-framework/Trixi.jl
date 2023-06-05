@@ -14,23 +14,24 @@ Create a nodal Lobatto-Legendre basis for polynomials of degree `polydeg`.
 For the special case `polydeg=0` the DG method reduces to a finite volume method.
 Therefore, this function sets the center point of the cell as single node.
 """
-struct LobattoLegendreBasis{RealT<:Real, NNODES,
+struct LobattoLegendreBasis{RealT<:Real,NNODES,
                             VectorT<:AbstractVector{RealT},
                             InverseVandermondeLegendre<:AbstractMatrix{RealT},
                             BoundaryMatrix<:AbstractMatrix{RealT},
-                            DerivativeMatrix<:AbstractMatrix{RealT}} <: AbstractBasisSBP{RealT}
-  nodes          ::VectorT
-  weights        ::VectorT
+                            DerivativeMatrix<:AbstractMatrix{RealT}} <:
+       AbstractBasisSBP{RealT}
+  nodes::VectorT
+  weights::VectorT
   inverse_weights::VectorT
 
   inverse_vandermonde_legendre::InverseVandermondeLegendre
-  boundary_interpolation      ::BoundaryMatrix # lhat
+  boundary_interpolation::BoundaryMatrix # lhat
 
-  derivative_matrix         ::DerivativeMatrix # strong form derivative matrix
-  derivative_split          ::DerivativeMatrix # strong form derivative matrix minus boundary terms
+  derivative_matrix::DerivativeMatrix # strong form derivative matrix
+  derivative_split::DerivativeMatrix # strong form derivative matrix minus boundary terms
   derivative_split_transpose::DerivativeMatrix # transpose of `derivative_split`
-  derivative_dhat           ::DerivativeMatrix # weak form matrix "dhat",
-                                               # negative adjoint wrt the SBP dot product
+  derivative_dhat::DerivativeMatrix # weak form matrix "dhat",
+  # negative adjoint wrt the SBP dot product
 end
 
 function LobattoLegendreBasis(RealT, polydeg::Integer)
@@ -44,33 +45,39 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
 
   boundary_interpolation_ = zeros(nnodes_, 2)
   boundary_interpolation_[:, 1] = calc_lhat(-1.0, nodes_, weights_)
-  boundary_interpolation_[:, 2] = calc_lhat( 1.0, nodes_, weights_)
+  boundary_interpolation_[:, 2] = calc_lhat(1.0, nodes_, weights_)
 
-  derivative_matrix_          = polynomial_derivative_matrix(nodes_)
-  derivative_split_           = calc_dsplit(nodes_, weights_)
+  derivative_matrix_ = polynomial_derivative_matrix(nodes_)
+  derivative_split_ = calc_dsplit(nodes_, weights_)
   derivative_split_transpose_ = Matrix(derivative_split_')
-  derivative_dhat_            = calc_dhat(nodes_, weights_)
+  derivative_dhat_ = calc_dhat(nodes_, weights_)
 
   # type conversions to get the requested real type and enable possible
   # optimizations of runtime performance and latency
-  nodes           = SVector{nnodes_, RealT}(nodes_)
-  weights         = SVector{nnodes_, RealT}(weights_)
-  inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
+  nodes = SVector{nnodes_,RealT}(nodes_)
+  weights = SVector{nnodes_,RealT}(weights_)
+  inverse_weights = SVector{nnodes_,RealT}(inverse_weights_)
 
   inverse_vandermonde_legendre = convert.(RealT, inverse_vandermonde_legendre_)
-  boundary_interpolation       = convert.(RealT, boundary_interpolation_)
+  boundary_interpolation = convert.(RealT, boundary_interpolation_)
 
   # Usually as fast as `SMatrix` (when using `let` in the volume integral/`@threaded`)
-  derivative_matrix          = Matrix{RealT}(derivative_matrix_)
-  derivative_split           = Matrix{RealT}(derivative_split_)
+  derivative_matrix = Matrix{RealT}(derivative_matrix_)
+  derivative_split = Matrix{RealT}(derivative_split_)
   derivative_split_transpose = Matrix{RealT}(derivative_split_transpose_)
-  derivative_dhat            = Matrix{RealT}(derivative_dhat_)
+  derivative_dhat = Matrix{RealT}(derivative_dhat_)
 
-  return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes), typeof(inverse_vandermonde_legendre), typeof(boundary_interpolation), typeof(derivative_matrix)}(
-    nodes, weights, inverse_weights,
-    inverse_vandermonde_legendre, boundary_interpolation,
-    derivative_matrix, derivative_split, derivative_split_transpose, derivative_dhat
-  )
+  return LobattoLegendreBasis{RealT,nnodes_,typeof(nodes),
+                              typeof(inverse_vandermonde_legendre),
+                              typeof(boundary_interpolation),typeof(derivative_matrix)}(nodes,
+                                                                                        weights,
+                                                                                        inverse_weights,
+                                                                                        inverse_vandermonde_legendre,
+                                                                                        boundary_interpolation,
+                                                                                        derivative_matrix,
+                                                                                        derivative_split,
+                                                                                        derivative_split_transpose,
+                                                                                        derivative_dhat)
 end
 
 LobattoLegendreBasis(polydeg::Integer) = LobattoLegendreBasis(Float64, polydeg)
@@ -83,7 +90,8 @@ end
 function Base.show(io::IO, ::MIME"text/plain", basis::LobattoLegendreBasis)
   @nospecialize basis # reduce precompilation time
 
-  print(io, "LobattoLegendreBasis{", real(basis), "} with polynomials of degree ", polydeg(basis))
+  print(io, "LobattoLegendreBasis{", real(basis), "} with polynomials of degree ",
+        polydeg(basis))
 end
 
 function Base.:(==)(b1::LobattoLegendreBasis, b2::LobattoLegendreBasis)
@@ -102,7 +110,7 @@ end
 
 @inline Base.real(basis::LobattoLegendreBasis{RealT}) where {RealT} = RealT
 
-@inline nnodes(basis::LobattoLegendreBasis{RealT, NNODES}) where {RealT, NNODES} = NNODES
+@inline nnodes(basis::LobattoLegendreBasis{RealT,NNODES}) where {RealT,NNODES} = NNODES
 
 """
     eachnode(basis::LobattoLegendreBasis)
@@ -143,7 +151,9 @@ right_boundary_weight(basis::LobattoLegendreBasis) = last(basis.weights)
 
 
 
-struct LobattoLegendreMortarL2{RealT<:Real, NNODES, ForwardMatrix<:AbstractMatrix{RealT}, ReverseMatrix<:AbstractMatrix{RealT}} <: AbstractMortarL2{RealT}
+struct LobattoLegendreMortarL2{RealT<:Real,NNODES,ForwardMatrix<:AbstractMatrix{RealT},
+                               ReverseMatrix<:AbstractMatrix{RealT}} <:
+       AbstractMortarL2{RealT}
   forward_upper::ForwardMatrix
   forward_lower::ForwardMatrix
   reverse_upper::ReverseMatrix
@@ -178,9 +188,10 @@ function MortarL2(basis::LobattoLegendreBasis)
   reverse_upper = Matrix{RealT}(reverse_upper_)
   reverse_lower = Matrix{RealT}(reverse_lower_)
 
-  LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper), typeof(reverse_upper)}(
-    forward_upper, forward_lower,
-    reverse_upper, reverse_lower)
+  LobattoLegendreMortarL2{RealT,nnodes_,typeof(forward_upper),typeof(reverse_upper)}(forward_upper,
+                                                                                     forward_lower,
+                                                                                     reverse_upper,
+                                                                                     reverse_lower)
 end
 
 function Base.show(io::IO, mortar::LobattoLegendreMortarL2)
@@ -191,12 +202,16 @@ end
 function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2)
   @nospecialize mortar # reduce precompilation time
 
-  print(io, "LobattoLegendreMortarL2{", real(mortar), "} with polynomials of degree ", polydeg(mortar))
+  print(io, "LobattoLegendreMortarL2{", real(mortar), "} with polynomials of degree ",
+        polydeg(mortar))
 end
 
 @inline Base.real(mortar::LobattoLegendreMortarL2{RealT}) where {RealT} = RealT
 
-@inline nnodes(mortar::LobattoLegendreMortarL2{RealT, NNODES}) where {RealT, NNODES} = NNODES
+@inline function nnodes(mortar::LobattoLegendreMortarL2{RealT,NNODES}) where {RealT,
+                                                                              NNODES}
+  NNODES
+end
 
 @inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
 
@@ -236,15 +251,17 @@ end
 
 
 
-struct LobattoLegendreAnalyzer{RealT<:Real, NNODES,
+struct LobattoLegendreAnalyzer{RealT<:Real,NNODES,
                                VectorT<:AbstractVector{RealT},
-                               Vandermonde<:AbstractMatrix{RealT}} <: SolutionAnalyzer{RealT}
-  nodes  ::VectorT
+                               Vandermonde<:AbstractMatrix{RealT}} <:
+       SolutionAnalyzer{RealT}
+  nodes::VectorT
   weights::VectorT
   vandermonde::Vandermonde
 end
 
-function SolutionAnalyzer(basis::LobattoLegendreBasis; analysis_polydeg=2*polydeg(basis))
+function SolutionAnalyzer(basis::LobattoLegendreBasis;
+                          analysis_polydeg=2 * polydeg(basis))
   RealT = real(basis)
   nnodes_ = analysis_polydeg + 1
 
@@ -254,29 +271,35 @@ function SolutionAnalyzer(basis::LobattoLegendreBasis; analysis_polydeg=2*polyde
 
   # type conversions to get the requested real type and enable possible
   # optimizations of runtime performance and latency
-  nodes   = SVector{nnodes_, RealT}(nodes_)
-  weights = SVector{nnodes_, RealT}(weights_)
+  nodes = SVector{nnodes_,RealT}(nodes_)
+  weights = SVector{nnodes_,RealT}(weights_)
 
   vandermonde = Matrix{RealT}(vandermonde_)
 
-  return LobattoLegendreAnalyzer{RealT, nnodes_, typeof(nodes), typeof(vandermonde)}(
-    nodes, weights, vandermonde)
+  return LobattoLegendreAnalyzer{RealT,nnodes_,typeof(nodes),typeof(vandermonde)}(nodes,
+                                                                                  weights,
+                                                                                  vandermonde)
 end
 
 function Base.show(io::IO, analyzer::LobattoLegendreAnalyzer)
   @nospecialize analyzer # reduce precompilation time
 
-  print(io, "LobattoLegendreAnalyzer{", real(analyzer), "}(polydeg=", polydeg(analyzer), ")")
+  print(io, "LobattoLegendreAnalyzer{", real(analyzer), "}(polydeg=", polydeg(analyzer),
+        ")")
 end
 function Base.show(io::IO, ::MIME"text/plain", analyzer::LobattoLegendreAnalyzer)
   @nospecialize analyzer # reduce precompilation time
 
-  print(io, "LobattoLegendreAnalyzer{", real(analyzer), "} with polynomials of degree ", polydeg(analyzer))
+  print(io, "LobattoLegendreAnalyzer{", real(analyzer), "} with polynomials of degree ",
+        polydeg(analyzer))
 end
 
 @inline Base.real(analyzer::LobattoLegendreAnalyzer{RealT}) where {RealT} = RealT
 
-@inline nnodes(analyzer::LobattoLegendreAnalyzer{RealT, NNODES}) where {RealT, NNODES} = NNODES
+@inline function nnodes(analyzer::LobattoLegendreAnalyzer{RealT,NNODES}) where {RealT,
+                                                                                NNODES}
+  NNODES
+end
 """
     eachnode(analyzer::LobattoLegendreAnalyzer)
 
@@ -290,7 +313,8 @@ In particular, not the nodes themselves are returned.
 
 
 
-struct LobattoLegendreAdaptorL2{RealT<:Real, NNODES, ForwardMatrix<:AbstractMatrix{RealT}, ReverseMatrix<:AbstractMatrix{RealT}} <: AdaptorL2{RealT}
+struct LobattoLegendreAdaptorL2{RealT<:Real,NNODES,ForwardMatrix<:AbstractMatrix{RealT},
+                                ReverseMatrix<:AbstractMatrix{RealT}} <: AdaptorL2{RealT}
   forward_upper::ForwardMatrix
   forward_lower::ForwardMatrix
   reverse_upper::ReverseMatrix
@@ -316,35 +340,41 @@ function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
   #       Check whether `@turbo` with `eachnode` in `multiply_dimensionwise!`
   #       can be faster than `@tullio` when the matrix sizes are not necessarily
   #       static.
-  forward_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(forward_upper_)
-  forward_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(forward_lower_)
+  forward_upper = SMatrix{nnodes_,nnodes_,RealT,nnodes_^2}(forward_upper_)
+  forward_lower = SMatrix{nnodes_,nnodes_,RealT,nnodes_^2}(forward_lower_)
   # forward_upper = Matrix{RealT}(forward_upper_)
   # forward_lower = Matrix{RealT}(forward_lower_)
 
-  reverse_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_upper_)
-  reverse_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_lower_)
+  reverse_upper = SMatrix{nnodes_,nnodes_,RealT,nnodes_^2}(reverse_upper_)
+  reverse_lower = SMatrix{nnodes_,nnodes_,RealT,nnodes_^2}(reverse_lower_)
   # reverse_upper = Matrix{RealT}(reverse_upper_)
   # reverse_lower = Matrix{RealT}(reverse_lower_)
 
-  LobattoLegendreAdaptorL2{RealT, nnodes_, typeof(forward_upper), typeof(reverse_upper)}(
-    forward_upper, forward_lower,
-    reverse_upper, reverse_lower)
+  LobattoLegendreAdaptorL2{RealT,nnodes_,typeof(forward_upper),typeof(reverse_upper)}(forward_upper,
+                                                                                      forward_lower,
+                                                                                      reverse_upper,
+                                                                                      reverse_lower)
 end
 
 function Base.show(io::IO, adaptor::LobattoLegendreAdaptorL2)
   @nospecialize adaptor # reduce precompilation time
 
-  print(io, "LobattoLegendreAdaptorL2{", real(adaptor), "}(polydeg=", polydeg(adaptor), ")")
+  print(io, "LobattoLegendreAdaptorL2{", real(adaptor), "}(polydeg=", polydeg(adaptor),
+        ")")
 end
 function Base.show(io::IO, ::MIME"text/plain", adaptor::LobattoLegendreAdaptorL2)
   @nospecialize adaptor # reduce precompilation time
 
-  print(io, "LobattoLegendreAdaptorL2{", real(adaptor), "} with polynomials of degree ", polydeg(adaptor))
+  print(io, "LobattoLegendreAdaptorL2{", real(adaptor), "} with polynomials of degree ",
+        polydeg(adaptor))
 end
 
 @inline Base.real(adaptor::LobattoLegendreAdaptorL2{RealT}) where {RealT} = RealT
 
-@inline nnodes(adaptor::LobattoLegendreAdaptorL2{RealT, NNODES}) where {RealT, NNODES} = NNODES
+@inline function nnodes(adaptor::LobattoLegendreAdaptorL2{RealT,NNODES}) where {RealT,
+                                                                                NNODES}
+  NNODES
+end
 
 @inline polydeg(adaptor::LobattoLegendreAdaptorL2) = nnodes(adaptor) - 1
 
@@ -373,7 +403,7 @@ function calc_dsplit(nodes, weights)
   dsplit = 2 .* polynomial_derivative_matrix(nodes)
 
   # Modify to account for
-  dsplit[  1,   1] += 1 / weights[1]
+  dsplit[1, 1] += 1 / weights[1]
   dsplit[end, end] -= 1 / weights[end]
 
   return dsplit
@@ -403,7 +433,8 @@ function polynomial_interpolation_matrix(nodes_in, nodes_out,
   n_nodes_in = length(nodes_in)
   n_nodes_out = length(nodes_out)
   vandermonde = Matrix{promote_type(eltype(nodes_in), eltype(nodes_out))}(undef,
-                  n_nodes_out, n_nodes_in)
+                                                                          n_nodes_out,
+                                                                          n_nodes_in)
   polynomial_interpolation_matrix!(vandermonde, nodes_in, nodes_out, baryweights_in)
 
   return vandermonde
@@ -445,7 +476,7 @@ function barycentric_weights(nodes)
   n_nodes = length(nodes)
   weights = ones(n_nodes)
 
-  for j = 2:n_nodes, k = 1:(j-1)
+  for j in 2:n_nodes, k in 1:(j - 1)
     weights[k] *= nodes[k] - nodes[j]
     weights[j] *= nodes[j] - nodes[k]
   end
@@ -479,7 +510,7 @@ function lagrange_interpolating_polynomials(x, nodes, wbary)
   polynomials = zeros(n_nodes)
 
   for i in 1:n_nodes
-    if isapprox(x, nodes[i], rtol=eps(x))
+    if isapprox(x, nodes[i]; rtol=eps(x))
       polynomials[i] = 1
       return polynomials
     end
@@ -526,32 +557,32 @@ function gauss_lobatto_nodes_weights(n_nodes::Integer)
 
   # Calculate interior values
   if N > 1
-    cont1 = pi/N
-    cont2 = 3/(8 * N * pi)
+    cont1 = pi / N
+    cont2 = 3 / (8 * N * pi)
 
     # Use symmetry -> only left side is computed
     for i in 1:(div(N + 1, 2) - 1)
       # Calculate node
       # Initial guess for Newton method
-      nodes[i+1] = -cos(cont1*(i+0.25) - cont2/(i+0.25))
+      nodes[i + 1] = -cos(cont1 * (i + 0.25) - cont2 / (i + 0.25))
 
       # Newton iteration to find root of Legendre polynomial (= integration node)
       for k in 0:n_iterations
-        q, qder, _ = calc_q_and_l(N, nodes[i+1])
-        dx = -q/qder
-        nodes[i+1] += dx
-        if abs(dx) < tolerance * abs(nodes[i+1])
+        q, qder, _ = calc_q_and_l(N, nodes[i + 1])
+        dx = -q / qder
+        nodes[i + 1] += dx
+        if abs(dx) < tolerance * abs(nodes[i + 1])
           break
         end
       end
 
       # Calculate weight
-      _, _, L = calc_q_and_l(N, nodes[i+1])
-      weights[i+1] = weights[1] / L^2
+      _, _, L = calc_q_and_l(N, nodes[i + 1])
+      weights[i + 1] = weights[1] / L^2
 
       # Set nodes and weights according to symmetry properties
-      nodes[N+1-i] = -nodes[i+1]
-      weights[N+1-i] = weights[i+1]
+      nodes[N + 1 - i] = -nodes[i + 1]
+      weights[N + 1 - i] = weights[i + 1]
     end
   end
 
@@ -583,7 +614,7 @@ function calc_q_and_l(N::Integer, x::Float64)
     Lder_Nm1 = Lder
   end
 
-  q = (2 * N + 1)/(N + 1) * (x * L - L_Nm2)
+  q = (2 * N + 1) / (N + 1) * (x * L - L_Nm2)
   qder = (2 * N + 1) * L
 
   return q, qder, L
@@ -608,7 +639,7 @@ function gauss_nodes_weights(n_nodes::Integer)
     weights .= 2.0
     return nodes, weights
   elseif N == 1
-    nodes[1] = -sqrt(1/3)
+    nodes[1] = -sqrt(1 / 3)
     nodes[end] = -nodes[1]
     weights .= 1.0
     return nodes, weights
@@ -616,25 +647,25 @@ function gauss_nodes_weights(n_nodes::Integer)
     # Use symmetry property of the roots of the Legendre polynomials
     for i in 0:(div(N + 1, 2) - 1)
       # Starting guess for Newton method
-      nodes[i+1] = -cos(pi / (2 * N + 2) * (2 * i + 1))
+      nodes[i + 1] = -cos(pi / (2 * N + 2) * (2 * i + 1))
 
       # Newton iteration to find root of Legendre polynomial (= integration node)
       for k in 0:n_iterations
-        poly, deriv = legendre_polynomial_and_derivative(N + 1, nodes[i+1])
+        poly, deriv = legendre_polynomial_and_derivative(N + 1, nodes[i + 1])
         dx = -poly / deriv
-        nodes[i+1] += dx
-        if abs(dx) < tolerance * abs(nodes[i+1])
+        nodes[i + 1] += dx
+        if abs(dx) < tolerance * abs(nodes[i + 1])
           break
         end
       end
 
       # Calculate weight
-      poly, deriv = legendre_polynomial_and_derivative(N + 1, nodes[i+1])
-      weights[i+1] = (2 * N + 3) / ((1 - nodes[i+1]^2) * deriv^2)
+      poly, deriv = legendre_polynomial_and_derivative(N + 1, nodes[i + 1])
+      weights[i + 1] = (2 * N + 3) / ((1 - nodes[i + 1]^2) * deriv^2)
 
       # Set nodes and weights according to symmetry properties
-      nodes[N+1-i] = -nodes[i+1]
-      weights[N+1-i] = weights[i+1]
+      nodes[N + 1 - i] = -nodes[i + 1]
+      weights[N + 1 - i] = weights[i + 1]
     end
 
     # If odd number of nodes, set center node to origin (= 0.0) and calculate weight
@@ -666,18 +697,18 @@ function legendre_polynomial_and_derivative(N::Int, x::Real)
     poly = 0.0
     deriv = 0.0
     for i in 2:N
-      poly = ((2*i-1) * x * poly_Nm1 - (i-1) * poly_Nm2) / i
-      deriv=deriv_Nm2 + (2*i-1)*poly_Nm1
-      poly_Nm2=poly_Nm1
-      poly_Nm1=poly
-      deriv_Nm2=deriv_Nm1
-      deriv_Nm1=deriv
+      poly = ((2 * i - 1) * x * poly_Nm1 - (i - 1) * poly_Nm2) / i
+      deriv = deriv_Nm2 + (2 * i - 1) * poly_Nm1
+      poly_Nm2 = poly_Nm1
+      poly_Nm1 = poly
+      deriv_Nm2 = deriv_Nm1
+      deriv_Nm1 = deriv
     end
   end
 
   # Normalize
-  poly = poly * sqrt(N+0.5)
-  deriv = deriv * sqrt(N+0.5)
+  poly = poly * sqrt(N + 0.5)
+  deriv = deriv * sqrt(N + 0.5)
 
   return poly, deriv
 end
@@ -691,7 +722,7 @@ function vandermonde_legendre(nodes, N)
 
   for i in 1:n_nodes
     for m in 1:n_modes
-      vandermonde[i, m], _ = legendre_polynomial_and_derivative(m-1, nodes[i])
+      vandermonde[i, m], _ = legendre_polynomial_and_derivative(m - 1, nodes[i])
     end
   end
   # for very high polynomial degree, this is not well conditioned

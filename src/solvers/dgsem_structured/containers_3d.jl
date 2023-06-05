@@ -9,7 +9,7 @@
 # Initialize data structures in element container
 function init_elements!(elements, mesh::StructuredMesh{3}, basis::LobattoLegendreBasis)
   @unpack node_coordinates, left_neighbors,
-          jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
+  jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
   linear_indices = LinearIndices(size(mesh))
 
@@ -17,11 +17,13 @@ function init_elements!(elements, mesh::StructuredMesh{3}, basis::LobattoLegendr
   for cell_z in 1:size(mesh, 3), cell_y in 1:size(mesh, 2), cell_x in 1:size(mesh, 1)
     element = linear_indices[cell_x, cell_y, cell_z]
 
-    calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, cell_z, mesh.mapping, mesh, basis)
+    calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, cell_z,
+                           mesh.mapping, mesh, basis)
 
     calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
 
-    calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix, node_coordinates, basis)
+    calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix,
+                                node_coordinates, basis)
 
     calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, basis)
   end
@@ -46,21 +48,22 @@ function calc_node_coordinates!(node_coordinates, element,
   dz = 2 / size(mesh, 3)
 
   # Calculate node coordinates of reference mesh
-  cell_x_offset = -1 + (cell_x-1) * dx + dx/2
-  cell_y_offset = -1 + (cell_y-1) * dy + dy/2
-  cell_z_offset = -1 + (cell_z-1) * dz + dz/2
+  cell_x_offset = -1 + (cell_x - 1) * dx + dx / 2
+  cell_y_offset = -1 + (cell_y - 1) * dy + dy / 2
+  cell_z_offset = -1 + (cell_z - 1) * dz + dz / 2
 
   for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
     # node_coordinates are the mapped reference node_coordinates
-    node_coordinates[:, i, j, k, element] .= mapping(cell_x_offset + dx/2 * nodes[i],
-                                                     cell_y_offset + dy/2 * nodes[j],
-                                                     cell_z_offset + dz/2 * nodes[k])
+    node_coordinates[:, i, j, k, element] .= mapping(cell_x_offset + dx / 2 * nodes[i],
+                                                     cell_y_offset + dy / 2 * nodes[j],
+                                                     cell_z_offset + dz / 2 * nodes[k])
   end
 end
 
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
-function calc_jacobian_matrix!(jacobian_matrix::AbstractArray{<:Any,6}, element, node_coordinates, basis)
+function calc_jacobian_matrix!(jacobian_matrix::AbstractArray{<:Any,6}, element,
+                               node_coordinates, basis)
   # The code below is equivalent to the following matrix multiplications but much faster.
   #
   # for dim in 1:3, j in eachnode(basis), i in eachnode(basis)
@@ -109,8 +112,10 @@ end
 # Calculate contravariant vectors, multiplied by the Jacobian determinant J of the transformation mapping,
 # using the invariant curl form.
 # These are called Ja^i in Kopriva's blue book.
-function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,6}, element,
-                                     jacobian_matrix, node_coordinates, basis::LobattoLegendreBasis)
+function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,6},
+                                     element,
+                                     jacobian_matrix, node_coordinates,
+                                     basis::LobattoLegendreBasis)
   @unpack derivative_matrix = basis
 
   # The general form is
@@ -131,9 +136,11 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
 
       for ii in eachnode(basis)
         # Multiply derivative_matrix to j-dimension to differentiate wrt η
-        result += 0.5 * derivative_matrix[j, ii] * (
-          node_coordinates[m, i, ii, k, element] * jacobian_matrix[l, 3, i, ii, k, element] -
-          node_coordinates[l, i, ii, k, element] * jacobian_matrix[m, 3, i, ii, k, element])
+        result += 0.5 * derivative_matrix[j, ii] *
+                  (node_coordinates[m, i, ii, k, element] *
+                   jacobian_matrix[l, 3, i, ii, k, element] -
+                   node_coordinates[l, i, ii, k, element] *
+                   jacobian_matrix[m, 3, i, ii, k, element])
       end
 
       contravariant_vectors[n, 1, i, j, k, element] = result
@@ -145,9 +152,11 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
 
       for ii in eachnode(basis)
         # Multiply derivative_matrix to k-dimension to differentiate wrt ζ
-        result += 0.5 * derivative_matrix[k, ii] * (
-          node_coordinates[m, i, j, ii, element] * jacobian_matrix[l, 2, i, j, ii, element] -
-          node_coordinates[l, i, j, ii, element] * jacobian_matrix[m, 2, i, j, ii, element])
+        result += 0.5 * derivative_matrix[k, ii] *
+                  (node_coordinates[m, i, j, ii, element] *
+                   jacobian_matrix[l, 2, i, j, ii, element] -
+                   node_coordinates[l, i, j, ii, element] *
+                   jacobian_matrix[m, 2, i, j, ii, element])
       end
 
       contravariant_vectors[n, 1, i, j, k, element] -= result
@@ -161,9 +170,11 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
 
       for ii in eachnode(basis)
         # Multiply derivative_matrix to k-dimension to differentiate wrt ζ
-        result += 0.5 * derivative_matrix[k, ii] * (
-          node_coordinates[m, i, j, ii, element] * jacobian_matrix[l, 1, i, j, ii, element] -
-          node_coordinates[l, i, j, ii, element] * jacobian_matrix[m, 1, i, j, ii, element])
+        result += 0.5 * derivative_matrix[k, ii] *
+                  (node_coordinates[m, i, j, ii, element] *
+                   jacobian_matrix[l, 1, i, j, ii, element] -
+                   node_coordinates[l, i, j, ii, element] *
+                   jacobian_matrix[m, 1, i, j, ii, element])
       end
 
       contravariant_vectors[n, 2, i, j, k, element] = result
@@ -175,9 +186,11 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
 
       for ii in eachnode(basis)
         # Multiply derivative_matrix to i-dimension to differentiate wrt ξ
-        result += 0.5 * derivative_matrix[i, ii] * (
-          node_coordinates[m, ii, j, k, element] * jacobian_matrix[l, 3, ii, j, k, element] -
-          node_coordinates[l, ii, j, k, element] * jacobian_matrix[m, 3, ii, j, k, element])
+        result += 0.5 * derivative_matrix[i, ii] *
+                  (node_coordinates[m, ii, j, k, element] *
+                   jacobian_matrix[l, 3, ii, j, k, element] -
+                   node_coordinates[l, ii, j, k, element] *
+                   jacobian_matrix[m, 3, ii, j, k, element])
       end
 
       contravariant_vectors[n, 2, i, j, k, element] -= result
@@ -191,9 +204,11 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
 
       for ii in eachnode(basis)
         # Multiply derivative_matrix to i-dimension to differentiate wrt ξ
-        result += 0.5 * derivative_matrix[i, ii] * (
-          node_coordinates[m, ii, j, k, element] * jacobian_matrix[l, 2, ii, j, k, element] -
-          node_coordinates[l, ii, j, k, element] * jacobian_matrix[m, 2, ii, j, k, element])
+        result += 0.5 * derivative_matrix[i, ii] *
+                  (node_coordinates[m, ii, j, k, element] *
+                   jacobian_matrix[l, 2, ii, j, k, element] -
+                   node_coordinates[l, ii, j, k, element] *
+                   jacobian_matrix[m, 2, ii, j, k, element])
       end
 
       contravariant_vectors[n, 3, i, j, k, element] = result
@@ -205,9 +220,11 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
 
       for ii in eachnode(basis)
         # Multiply derivative_matrix to j-dimension to differentiate wrt η
-        result += 0.5 * derivative_matrix[j, ii] * (
-          node_coordinates[m, i, ii, k, element] * jacobian_matrix[l, 1, i, ii, k, element] -
-          node_coordinates[l, i, ii, k, element] * jacobian_matrix[m, 1, i, ii, k, element])
+        result += 0.5 * derivative_matrix[j, ii] *
+                  (node_coordinates[m, i, ii, k, element] *
+                   jacobian_matrix[l, 1, i, ii, k, element] -
+                   node_coordinates[l, i, ii, k, element] *
+                   jacobian_matrix[m, 1, i, ii, k, element])
       end
 
       contravariant_vectors[n, 3, i, j, k, element] -= result
@@ -219,16 +236,28 @@ end
 
 
 # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
-function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, element, jacobian_matrix, basis)
+function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any,4}, element,
+                                jacobian_matrix, basis)
   @turbo for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
     # Calculate Determinant by using Sarrus formula (about 100 times faster than LinearAlgebra.det())
-    inverse_jacobian[i, j, k, element] = inv(
-        jacobian_matrix[1, 1, i, j, k, element] * jacobian_matrix[2, 2, i, j, k, element] * jacobian_matrix[3, 3, i, j, k, element] +
-        jacobian_matrix[1, 2, i, j, k, element] * jacobian_matrix[2, 3, i, j, k, element] * jacobian_matrix[3, 1, i, j, k, element] +
-        jacobian_matrix[1, 3, i, j, k, element] * jacobian_matrix[2, 1, i, j, k, element] * jacobian_matrix[3, 2, i, j, k, element] -
-        jacobian_matrix[3, 1, i, j, k, element] * jacobian_matrix[2, 2, i, j, k, element] * jacobian_matrix[1, 3, i, j, k, element] -
-        jacobian_matrix[3, 2, i, j, k, element] * jacobian_matrix[2, 3, i, j, k, element] * jacobian_matrix[1, 1, i, j, k, element] -
-        jacobian_matrix[3, 3, i, j, k, element] * jacobian_matrix[2, 1, i, j, k, element] * jacobian_matrix[1, 2, i, j, k, element] )
+    inverse_jacobian[i, j, k, element] = inv(jacobian_matrix[1, 1, i, j, k, element] *
+                                             jacobian_matrix[2, 2, i, j, k, element] *
+                                             jacobian_matrix[3, 3, i, j, k, element] +
+                                             jacobian_matrix[1, 2, i, j, k, element] *
+                                             jacobian_matrix[2, 3, i, j, k, element] *
+                                             jacobian_matrix[3, 1, i, j, k, element] +
+                                             jacobian_matrix[1, 3, i, j, k, element] *
+                                             jacobian_matrix[2, 1, i, j, k, element] *
+                                             jacobian_matrix[3, 2, i, j, k, element] -
+                                             jacobian_matrix[3, 1, i, j, k, element] *
+                                             jacobian_matrix[2, 2, i, j, k, element] *
+                                             jacobian_matrix[1, 3, i, j, k, element] -
+                                             jacobian_matrix[3, 2, i, j, k, element] *
+                                             jacobian_matrix[2, 3, i, j, k, element] *
+                                             jacobian_matrix[1, 1, i, j, k, element] -
+                                             jacobian_matrix[3, 3, i, j, k, element] *
+                                             jacobian_matrix[2, 1, i, j, k, element] *
+                                             jacobian_matrix[1, 2, i, j, k, element])
   end
 
   return inverse_jacobian
@@ -236,7 +265,8 @@ end
 
 
 # Save id of left neighbor of every element
-function initialize_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{3}, linear_indices)
+function initialize_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{3},
+                                                linear_indices)
   # Neighbors in x-direction
   for cell_z in 1:size(mesh, 3), cell_y in 1:size(mesh, 2)
     # Inner elements
@@ -247,7 +277,8 @@ function initialize_left_neighbor_connectivity!(left_neighbors, mesh::Structured
 
     if isperiodic(mesh, 1)
       # Periodic boundary
-      left_neighbors[1, linear_indices[1, cell_y, cell_z]] = linear_indices[end, cell_y, cell_z]
+      left_neighbors[1, linear_indices[1, cell_y, cell_z]] = linear_indices[end, cell_y,
+                                                                            cell_z]
     else
       left_neighbors[1, linear_indices[1, cell_y, cell_z]] = 0
     end
@@ -263,7 +294,8 @@ function initialize_left_neighbor_connectivity!(left_neighbors, mesh::Structured
 
     if isperiodic(mesh, 2)
       # Periodic boundary
-      left_neighbors[2, linear_indices[cell_x, 1, cell_z]] = linear_indices[cell_x, end, cell_z]
+      left_neighbors[2, linear_indices[cell_x, 1, cell_z]] = linear_indices[cell_x, end,
+                                                                            cell_z]
     else
       left_neighbors[2, linear_indices[cell_x, 1, cell_z]] = 0
     end
@@ -279,7 +311,8 @@ function initialize_left_neighbor_connectivity!(left_neighbors, mesh::Structured
 
     if isperiodic(mesh, 3)
       # Periodic boundary
-      left_neighbors[3, linear_indices[cell_x, cell_y, 1]] = linear_indices[cell_x, cell_y, end]
+      left_neighbors[3, linear_indices[cell_x, cell_y, 1]] = linear_indices[cell_x,
+                                                                            cell_y, end]
     else
       left_neighbors[3, linear_indices[cell_x, cell_y, 1]] = 0
     end

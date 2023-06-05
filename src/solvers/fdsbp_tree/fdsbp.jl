@@ -29,7 +29,7 @@ The other arguments have the same meaning as in [`DG`](@ref) or [`DGSEM`](@ref).
 const FDSBP = DG{Basis} where {Basis<:AbstractDerivativeOperator}
 
 function FDSBP(D_SBP::AbstractDerivativeOperator; surface_integral, volume_integral)
-  return DG(D_SBP, nothing #= mortar =#, surface_integral, volume_integral)
+  return DG(D_SBP, nothing, surface_integral, volume_integral) #= mortar =#
 end
 
 

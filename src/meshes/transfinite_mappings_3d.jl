@@ -54,14 +54,14 @@ function straight_side_hex_map(xi, eta, zeta, corner_points)
 
   coordinate = zeros(eltype(xi), 3)
   for j in 1:3
-    coordinate[j] += (0.125 * ( corner_points[j, 1] * (1 - xi) * (1 - eta) * (1 - zeta)
-                              + corner_points[j, 2] * (1 + xi) * (1 - eta) * (1 - zeta)
-                              + corner_points[j, 3] * (1 + xi) * (1 + eta) * (1 - zeta)
-                              + corner_points[j, 4] * (1 - xi) * (1 + eta) * (1 - zeta)
-                              + corner_points[j, 5] * (1 - xi) * (1 - eta) * (1 + zeta)
-                              + corner_points[j, 6] * (1 + xi) * (1 - eta) * (1 + zeta)
-                              + corner_points[j, 7] * (1 + xi) * (1 + eta) * (1 + zeta)
-                              + corner_points[j, 8] * (1 - xi) * (1 + eta) * (1 + zeta) ) )
+    coordinate[j] += (0.125 * (corner_points[j, 1] * (1 - xi) * (1 - eta) * (1 - zeta)
+                               + corner_points[j, 2] * (1 + xi) * (1 - eta) * (1 - zeta)
+                               + corner_points[j, 3] * (1 + xi) * (1 + eta) * (1 - zeta)
+                               + corner_points[j, 4] * (1 - xi) * (1 + eta) * (1 - zeta)
+                               + corner_points[j, 5] * (1 - xi) * (1 - eta) * (1 + zeta)
+                               + corner_points[j, 6] * (1 + xi) * (1 - eta) * (1 + zeta)
+                               + corner_points[j, 7] * (1 + xi) * (1 + eta) * (1 + zeta)
+                               + corner_points[j, 8] * (1 - xi) * (1 + eta) * (1 + zeta)))
   end
 
   return coordinate
@@ -69,10 +69,12 @@ end
 
 
 # Construct the (x, y, z) node coordinates in the volume of a straight sided hexahedral element
-function calc_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5}, element, nodes, corners)
+function calc_node_coordinates!(node_coordinates::AbstractArray{<:Any,5}, element, nodes,
+                                corners)
 
   for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
-    node_coordinates[:, i, j, k, element] .= straight_side_hex_map(nodes[i], nodes[j], nodes[k], corners)
+    node_coordinates[:, i, j, k, element] .= straight_side_hex_map(nodes[i], nodes[j],
+                                                                   nodes[k], corners)
   end
 
   return node_coordinates
@@ -94,61 +96,61 @@ function transfinite_hex_map(xi, eta, zeta, face_curves::AbstractVector{<:Curved
   corners = zeros(eltype(xi), (3, 8))
 
   # Compute values along the face edges
-  edge_values[:, 1] .= evaluate_at(SVector(xi,   -1), face_curves[1])
-  edge_values[:, 2] .= evaluate_at(SVector( 1, zeta), face_curves[1])
-  edge_values[:, 3] .= evaluate_at(SVector(xi,    1), face_curves[1])
+  edge_values[:, 1] .= evaluate_at(SVector(xi, -1), face_curves[1])
+  edge_values[:, 2] .= evaluate_at(SVector(1, zeta), face_curves[1])
+  edge_values[:, 3] .= evaluate_at(SVector(xi, 1), face_curves[1])
   edge_values[:, 4] .= evaluate_at(SVector(-1, zeta), face_curves[1])
 
-  edge_values[:, 5] .= evaluate_at(SVector(xi,   -1), face_curves[2])
-  edge_values[:, 6] .= evaluate_at(SVector( 1, zeta), face_curves[2])
-  edge_values[:, 7] .= evaluate_at(SVector(xi,    1), face_curves[2])
+  edge_values[:, 5] .= evaluate_at(SVector(xi, -1), face_curves[2])
+  edge_values[:, 6] .= evaluate_at(SVector(1, zeta), face_curves[2])
+  edge_values[:, 7] .= evaluate_at(SVector(xi, 1), face_curves[2])
   edge_values[:, 8] .= evaluate_at(SVector(-1, zeta), face_curves[2])
 
-  edge_values[:, 9]  .= evaluate_at(SVector(eta, -1), face_curves[6])
+  edge_values[:, 9] .= evaluate_at(SVector(eta, -1), face_curves[6])
   edge_values[:, 10] .= evaluate_at(SVector(eta, -1), face_curves[4])
-  edge_values[:, 11] .= evaluate_at(SVector(eta,  1), face_curves[4])
-  edge_values[:, 12] .= evaluate_at(SVector(eta,  1), face_curves[6])
+  edge_values[:, 11] .= evaluate_at(SVector(eta, 1), face_curves[4])
+  edge_values[:, 12] .= evaluate_at(SVector(eta, 1), face_curves[6])
 
   # Compute values on the face
-  face_values[:, 1] .= evaluate_at(SVector( xi, zeta), face_curves[1])
-  face_values[:, 2] .= evaluate_at(SVector( xi, zeta), face_curves[2])
-  face_values[:, 3] .= evaluate_at(SVector( xi,  eta), face_curves[3])
+  face_values[:, 1] .= evaluate_at(SVector(xi, zeta), face_curves[1])
+  face_values[:, 2] .= evaluate_at(SVector(xi, zeta), face_curves[2])
+  face_values[:, 3] .= evaluate_at(SVector(xi, eta), face_curves[3])
   face_values[:, 4] .= evaluate_at(SVector(eta, zeta), face_curves[4])
-  face_values[:, 5] .= evaluate_at(SVector( xi,  eta), face_curves[5])
+  face_values[:, 5] .= evaluate_at(SVector(xi, eta), face_curves[5])
   face_values[:, 6] .= evaluate_at(SVector(eta, zeta), face_curves[6])
 
   # Pull the eight corner values and compute the straight sided hex mapping
-  corners[:,1] .= face_curves[1].coordinates[:, 1,   1]
-  corners[:,2] .= face_curves[1].coordinates[:, end, 1]
-  corners[:,3] .= face_curves[2].coordinates[:, end, 1]
-  corners[:,4] .= face_curves[2].coordinates[:, 1,   1]
-  corners[:,5] .= face_curves[1].coordinates[:, 1,   end]
-  corners[:,6] .= face_curves[1].coordinates[:, end, end]
-  corners[:,7] .= face_curves[2].coordinates[:, end, end]
-  corners[:,8] .= face_curves[2].coordinates[:, 1,   end]
+  corners[:, 1] .= face_curves[1].coordinates[:, 1, 1]
+  corners[:, 2] .= face_curves[1].coordinates[:, end, 1]
+  corners[:, 3] .= face_curves[2].coordinates[:, end, 1]
+  corners[:, 4] .= face_curves[2].coordinates[:, 1, 1]
+  corners[:, 5] .= face_curves[1].coordinates[:, 1, end]
+  corners[:, 6] .= face_curves[1].coordinates[:, end, end]
+  corners[:, 7] .= face_curves[2].coordinates[:, end, end]
+  corners[:, 8] .= face_curves[2].coordinates[:, 1, end]
 
   coordinate_straight = straight_side_hex_map(xi, eta, zeta, corners)
 
   # Compute the transfinite mapping
   for j in 1:3
     # Linear interpolation between opposite faces
-    coordinate[j] = ( 0.5 * ( face_values[j, 6] * (1 - xi  ) + face_values[j, 4] * (1 + xi  )
-                            + face_values[j, 1] * (1 - eta ) + face_values[j, 2] * (1 + eta )
-                            + face_values[j, 3] * (1 - zeta) + face_values[j, 5] * (1 + zeta) ) )
+    coordinate[j] = (0.5 * (face_values[j, 6] * (1 - xi) + face_values[j, 4] * (1 + xi)
+                            + face_values[j, 1] * (1 - eta) + face_values[j, 2] * (1 + eta)
+                            + face_values[j, 3] * (1 - zeta) + face_values[j, 5] * (1 + zeta)))
 
     # Edge corrections to ensure faces match
-    coordinate[j] -= ( 0.25 * ( edge_values[j, 1 ] * (1 - eta) * (1 - zeta)
-                              + edge_values[j, 2 ] * (1 + xi ) * (1 - eta )
-                              + edge_values[j, 3 ] * (1 - eta) * (1 + zeta)
-                              + edge_values[j, 4 ] * (1 - xi ) * (1 - eta )
-                              + edge_values[j, 5 ] * (1 + eta) * (1 - zeta)
-                              + edge_values[j, 6 ] * (1 + xi ) * (1 + eta )
-                              + edge_values[j, 7 ] * (1 + eta) * (1 + zeta)
-                              + edge_values[j, 8 ] * (1 - xi ) * (1 + eta )
-                              + edge_values[j, 9 ] * (1 - xi ) * (1 - zeta)
-                              + edge_values[j, 10] * (1 + xi ) * (1 - zeta)
-                              + edge_values[j, 11] * (1 + xi ) * (1 + zeta)
-                              + edge_values[j, 12] * (1 - xi ) * (1 + zeta) ) )
+    coordinate[j] -= (0.25 * (edge_values[j, 1] * (1 - eta) * (1 - zeta)
+                              + edge_values[j, 2] * (1 + xi) * (1 - eta)
+                              + edge_values[j, 3] * (1 - eta) * (1 + zeta)
+                              + edge_values[j, 4] * (1 - xi) * (1 - eta)
+                              + edge_values[j, 5] * (1 + eta) * (1 - zeta)
+                              + edge_values[j, 6] * (1 + xi) * (1 + eta)
+                              + edge_values[j, 7] * (1 + eta) * (1 + zeta)
+                              + edge_values[j, 8] * (1 - xi) * (1 + eta)
+                              + edge_values[j, 9] * (1 - xi) * (1 - zeta)
+                              + edge_values[j, 10] * (1 + xi) * (1 - zeta)
+                              + edge_values[j, 11] * (1 + xi) * (1 + zeta)
+                              + edge_values[j, 12] * (1 - xi) * (1 + zeta)))
 
     # Subtracted interior twice, so add back the straight-sided hexahedral mapping
     coordinate[j] += coordinate_straight[j]
@@ -159,11 +161,12 @@ end
 
 
 # Construct the (x, y, z) node coordinates in the volume of a curved sided hexahedral element
-function calc_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5}, element, nodes,
+function calc_node_coordinates!(node_coordinates::AbstractArray{<:Any,5}, element, nodes,
                                 face_curves::AbstractVector{<:CurvedFace})
 
   for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
-    node_coordinates[:, i, j, k, element] .= transfinite_hex_map(nodes[i], nodes[j], nodes[k], face_curves)
+    node_coordinates[:, i, j, k, element] .= transfinite_hex_map(nodes[i], nodes[j],
+                                                                 nodes[k], face_curves)
   end
 
   return node_coordinates

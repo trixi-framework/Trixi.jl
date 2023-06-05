@@ -14,81 +14,98 @@ function rhs!(du, u, t,
   @trixi_timeit timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
 
   # Prolong solution to MPI interfaces
-  @trixi_timeit timer() "prolong2mpiinterfaces" prolong2mpiinterfaces!(
-    cache, u, mesh, equations, dg.surface_integral, dg)
+  @trixi_timeit timer() "prolong2mpiinterfaces" prolong2mpiinterfaces!(cache, u, mesh,
+                                                                       equations,
+                                                                       dg.surface_integral,
+                                                                       dg)
 
   # Prolong solution to MPI mortars
-  @trixi_timeit timer() "prolong2mpimortars" prolong2mpimortars!(
-    cache, u, mesh, equations, dg.mortar, dg.surface_integral, dg)
+  @trixi_timeit timer() "prolong2mpimortars" prolong2mpimortars!(cache, u, mesh,
+                                                                 equations, dg.mortar,
+                                                                 dg.surface_integral, dg)
 
   # Start to send MPI data
-  @trixi_timeit timer() "start MPI send" start_mpi_send!(
-    cache.mpi_cache, mesh, equations, dg, cache)
+  @trixi_timeit timer() "start MPI send" start_mpi_send!(cache.mpi_cache, mesh, equations,
+                                                         dg, cache)
 
   # Reset du
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # Calculate volume integral
-  @trixi_timeit timer() "volume integral" calc_volume_integral!(
-    du, u, mesh,
-    have_nonconservative_terms(equations), equations,
-    dg.volume_integral, dg, cache)
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u, mesh,
+                                                                have_nonconservative_terms(equations),
+                                                                equations,
+                                                                dg.volume_integral, dg,
+                                                                cache)
 
   # Prolong solution to interfaces
-  @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
-    cache, u, mesh, equations, dg.surface_integral, dg)
+  @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(cache, u, mesh,
+                                                                 equations,
+                                                                 dg.surface_integral, dg)
 
   # Calculate interface fluxes
-  @trixi_timeit timer() "interface flux" calc_interface_flux!(
-    cache.elements.surface_flux_values, mesh,
-    have_nonconservative_terms(equations), equations,
-    dg.surface_integral, dg, cache)
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(cache.elements.surface_flux_values,
+                                                              mesh,
+                                                              have_nonconservative_terms(equations),
+                                                              equations,
+                                                              dg.surface_integral, dg,
+                                                              cache)
 
   # Prolong solution to boundaries
-  @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(
-    cache, u, mesh, equations, dg.surface_integral, dg)
+  @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(cache, u, mesh,
+                                                                 equations,
+                                                                 dg.surface_integral, dg)
 
   # Calculate boundary fluxes
-  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg.surface_integral, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
+                                                            mesh, equations,
+                                                            dg.surface_integral, dg)
 
   # Prolong solution to mortars
-  @trixi_timeit timer() "prolong2mortars" prolong2mortars!(
-    cache, u, mesh, equations, dg.mortar, dg.surface_integral, dg)
+  @trixi_timeit timer() "prolong2mortars" prolong2mortars!(cache, u, mesh, equations,
+                                                           dg.mortar, dg.surface_integral,
+                                                           dg)
 
   # Calculate mortar fluxes
-  @trixi_timeit timer() "mortar flux" calc_mortar_flux!(
-    cache.elements.surface_flux_values, mesh,
-    have_nonconservative_terms(equations), equations,
-    dg.mortar, dg.surface_integral, dg, cache)
+  @trixi_timeit timer() "mortar flux" calc_mortar_flux!(cache.elements.surface_flux_values,
+                                                        mesh,
+                                                        have_nonconservative_terms(equations),
+                                                        equations,
+                                                        dg.mortar, dg.surface_integral,
+                                                        dg, cache)
 
   # Finish to receive MPI data
-  @trixi_timeit timer() "finish MPI receive" finish_mpi_receive!(
-    cache.mpi_cache, mesh, equations, dg, cache)
+  @trixi_timeit timer() "finish MPI receive" finish_mpi_receive!(cache.mpi_cache, mesh,
+                                                                 equations, dg, cache)
 
   # Calculate MPI interface fluxes
-  @trixi_timeit timer() "MPI interface flux" calc_mpi_interface_flux!(
-    cache.elements.surface_flux_values, mesh,
-    have_nonconservative_terms(equations), equations,
-    dg.surface_integral, dg, cache)
+  @trixi_timeit timer() "MPI interface flux" calc_mpi_interface_flux!(cache.elements.surface_flux_values,
+                                                                      mesh,
+                                                                      have_nonconservative_terms(equations),
+                                                                      equations,
+                                                                      dg.surface_integral,
+                                                                      dg, cache)
 
   # Calculate MPI mortar fluxes
-  @trixi_timeit timer() "MPI mortar flux" calc_mpi_mortar_flux!(
-    cache.elements.surface_flux_values, mesh,
-    have_nonconservative_terms(equations), equations,
-    dg.mortar, dg.surface_integral, dg, cache)
+  @trixi_timeit timer() "MPI mortar flux" calc_mpi_mortar_flux!(cache.elements.surface_flux_values,
+                                                                mesh,
+                                                                have_nonconservative_terms(equations),
+                                                                equations,
+                                                                dg.mortar,
+                                                                dg.surface_integral, dg,
+                                                                cache)
 
   # Calculate surface integrals
-  @trixi_timeit timer() "surface integral" calc_surface_integral!(
-    du, u, mesh, equations, dg.surface_integral, dg, cache)
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, mesh, equations,
+                                                                  dg.surface_integral, dg,
+                                                                  cache)
 
   # Apply Jacobian from mapping to reference element
-  @trixi_timeit timer() "Jacobian" apply_jacobian!(
-    du, mesh, equations, dg, cache)
+  @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @trixi_timeit timer() "source terms" calc_sources!(
-    du, u, t, source_terms, equations, dg, cache)
+  @trixi_timeit timer() "source terms" calc_sources!(du, u, t, source_terms, equations,
+                                                     dg, cache)
 
   # Finish to send MPI data
   @trixi_timeit timer() "finish MPI send" finish_mpi_send!(cache.mpi_cache)
@@ -113,9 +130,12 @@ function prolong2mpiinterfaces!(cache, u,
     local_element = mpi_interfaces.local_neighbor_ids[interface]
     local_indices = mpi_interfaces.node_indices[interface]
 
-    i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1], index_range)
-    j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2], index_range)
-    k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3], index_range)
+    i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
+                                                                                 index_range)
+    j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2],
+                                                                                 index_range)
+    k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3],
+                                                                                 index_range)
 
     i_element = i_element_start
     j_element = j_element_start
@@ -123,7 +143,8 @@ function prolong2mpiinterfaces!(cache, u,
     for j in eachnode(dg)
       for i in eachnode(dg)
         for v in eachvariable(equations)
-          mpi_interfaces.u[local_side, v, i, j, interface] = u[v, i_element, j_element, k_element, local_element]
+          mpi_interfaces.u[local_side, v, i, j, interface] = u[v, i_element, j_element,
+                                                               k_element, local_element]
         end
         i_element += i_element_step_i
         j_element += j_element_step_i
@@ -155,9 +176,12 @@ function calc_mpi_interface_flux!(surface_flux_values,
     local_side = local_sides[interface]
 
     # Create the local i,j,k indexing on the local element used to pull normal direction information
-    i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1], index_range)
-    j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2], index_range)
-    k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3], index_range)
+    i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
+                                                                                 index_range)
+    j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2],
+                                                                                 index_range)
+    k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3],
+                                                                                 index_range)
 
     i_element = i_element_start
     j_element = j_element_start
@@ -166,8 +190,10 @@ function calc_mpi_interface_flux!(surface_flux_values,
     # Initiate the node indices to be used in the surface for loop,
     # the surface flux storage must be indexed in alignment with the local element indexing
     local_surface_indices = surface_indices(local_indices)
-    i_surface_start, i_surface_step_i, i_surface_step_j = index_to_start_step_3d(local_surface_indices[1], index_range)
-    j_surface_start, j_surface_step_i, j_surface_step_j = index_to_start_step_3d(local_surface_indices[2], index_range)
+    i_surface_start, i_surface_step_i, i_surface_step_j = index_to_start_step_3d(local_surface_indices[1],
+                                                                                 index_range)
+    j_surface_start, j_surface_step_i, j_surface_step_j = index_to_start_step_3d(local_surface_indices[2],
+                                                                                 index_range)
     i_surface = i_surface_start
     j_surface = j_surface_start
 
@@ -180,7 +206,8 @@ function calc_mpi_interface_flux!(surface_flux_values,
                                                 i_element, j_element, k_element,
                                                 local_element)
 
-        calc_mpi_interface_flux!(surface_flux_values, mesh, nonconservative_terms, equations,
+        calc_mpi_interface_flux!(surface_flux_values, mesh, nonconservative_terms,
+                                 equations,
                                  surface_integral, dg, cache,
                                  interface, normal_direction,
                                  i, j, local_side,
@@ -213,14 +240,16 @@ end
                                           nonconservative_terms::False, equations,
                                           surface_integral, dg::DG, cache,
                                           interface_index, normal_direction,
-                                          interface_i_node_index, interface_j_node_index, local_side,
+                                          interface_i_node_index, interface_j_node_index,
+                                          local_side,
                                           surface_i_node_index, surface_j_node_index,
                                           local_direction_index, local_element_index)
   @unpack u = cache.mpi_interfaces
   @unpack surface_flux = surface_integral
 
   u_ll, u_rr = get_surface_node_vars(u, equations, dg,
-                                     interface_i_node_index, interface_j_node_index, interface_index)
+                                     interface_i_node_index, interface_j_node_index,
+                                     interface_index)
 
   if local_side == 1
     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
@@ -230,7 +259,7 @@ end
 
   for v in eachvariable(equations)
     surface_flux_values[v, surface_i_node_index, surface_j_node_index,
-                        local_direction_index, local_element_index] = flux_[v]
+    local_direction_index, local_element_index] = flux_[v]
   end
 end
 
@@ -249,14 +278,20 @@ function prolong2mpimortars!(cache, u,
     # Get start value and step size for indices on both sides to get the correct face
     # and orientation
     small_indices = node_indices[1, mortar]
-    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1], index_range)
-    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2], index_range)
-    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3], index_range)
+    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                           index_range)
+    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                           index_range)
+    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                           index_range)
 
     large_indices = node_indices[2, mortar]
-    i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1], index_range)
-    j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_indices[2], index_range)
-    k_large_start, k_large_step_i, k_large_step_j = index_to_start_step_3d(large_indices[3], index_range)
+    i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1],
+                                                                           index_range)
+    j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_indices[2],
+                                                                           index_range)
+    k_large_start, k_large_step_i, k_large_step_j = index_to_start_step_3d(large_indices[3],
+                                                                           index_range)
 
 
     for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
@@ -314,7 +349,8 @@ function prolong2mpimortars!(cache, u,
         for j in eachnode(dg)
           for i in eachnode(dg)
             for v in eachvariable(equations)
-              cache.mpi_mortars.u[1, v, position, i, j, mortar] = u[v, i_small, j_small, k_small, element]
+              cache.mpi_mortars.u[1, v, position, i, j, mortar] = u[v, i_small, j_small,
+                                                                    k_small, element]
             end
             i_small += i_small_step_i
             j_small += j_small_step_i
@@ -350,9 +386,12 @@ function calc_mpi_mortar_flux!(surface_flux_values,
     # Get index information on the small elements
     small_indices = node_indices[1, mortar]
 
-    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1], index_range)
-    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2], index_range)
-    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3], index_range)
+    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                           index_range)
+    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                           index_range)
+    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                           index_range)
 
     for position in 1:4
       i_small = i_small_start
@@ -361,7 +400,8 @@ function calc_mpi_mortar_flux!(surface_flux_values,
       for j in eachnode(dg)
         for i in eachnode(dg)
           # Get the normal direction on the small element.
-          normal_direction = get_normal_direction(cache.mpi_mortars, i, j, position, mortar)
+          normal_direction = get_normal_direction(cache.mpi_mortars, i, j, position,
+                                                  mortar)
 
           calc_mpi_mortar_flux!(fstar, mesh, nonconservative_terms, equations,
                                 surface_integral, dg, cache,
@@ -400,7 +440,8 @@ end
   @unpack u = cache.mpi_mortars
   @unpack surface_flux = surface_integral
 
-  u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index, j_node_index, mortar_index)
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index,
+                                     j_node_index, mortar_index)
 
   flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
@@ -412,42 +453,42 @@ end
 @inline function mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                                 mesh::ParallelP4estMesh{3}, equations,
                                                 mortar_l2::LobattoLegendreMortarL2,
-                                                dg::DGSEM, cache, mortar, fstar, u_buffer, fstar_tmp)
+                                                dg::DGSEM, cache, mortar, fstar, u_buffer,
+                                                fstar_tmp)
   @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
   index_range = eachnode(dg)
 
-  small_indices   = node_indices[1, mortar]
+  small_indices = node_indices[1, mortar]
   small_direction = indices2direction(small_indices)
-  large_indices   = node_indices[2, mortar]
+  large_indices = node_indices[2, mortar]
   large_direction = indices2direction(large_indices)
   large_surface_indices = surface_indices(large_indices)
 
-  i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_surface_indices[1], index_range)
-  j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_surface_indices[2], index_range)
+  i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_surface_indices[1],
+                                                                         index_range)
+  j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_surface_indices[2],
+                                                                         index_range)
 
-  for (element, position) in zip(local_neighbor_ids[mortar], local_neighbor_positions[mortar])
+  for (element, position) in
+      zip(local_neighbor_ids[mortar], local_neighbor_positions[mortar])
     if position == 5 # -> large element
       # Project small fluxes to large element.
-      multiply_dimensionwise!(
-        u_buffer,
-        mortar_l2.reverse_lower, mortar_l2.reverse_lower,
-        view(fstar, .., 1),
-        fstar_tmp)
-      add_multiply_dimensionwise!(
-        u_buffer,
-        mortar_l2.reverse_upper, mortar_l2.reverse_lower,
-        view(fstar, .., 2),
-        fstar_tmp)
-      add_multiply_dimensionwise!(
-        u_buffer,
-        mortar_l2.reverse_lower, mortar_l2.reverse_upper,
-        view(fstar, .., 3),
-        fstar_tmp)
-      add_multiply_dimensionwise!(
-        u_buffer,
-        mortar_l2.reverse_upper, mortar_l2.reverse_upper,
-        view(fstar, .., 4),
-        fstar_tmp)
+      multiply_dimensionwise!(u_buffer,
+                              mortar_l2.reverse_lower, mortar_l2.reverse_lower,
+                              view(fstar, .., 1),
+                              fstar_tmp)
+      add_multiply_dimensionwise!(u_buffer,
+                                  mortar_l2.reverse_upper, mortar_l2.reverse_lower,
+                                  view(fstar, .., 2),
+                                  fstar_tmp)
+      add_multiply_dimensionwise!(u_buffer,
+                                  mortar_l2.reverse_lower, mortar_l2.reverse_upper,
+                                  view(fstar, .., 3),
+                                  fstar_tmp)
+      add_multiply_dimensionwise!(u_buffer,
+                                  mortar_l2.reverse_upper, mortar_l2.reverse_upper,
+                                  view(fstar, .., 4),
+                                  fstar_tmp)
       # The flux is calculated in the outward direction of the small elements,
       # so the sign must be switched to get the flux in outward direction
       # of the large element.
@@ -465,7 +506,9 @@ end
       for j in eachnode(dg)
         for i in eachnode(dg)
           for v in eachvariable(equations)
-            surface_flux_values[v, i_large, j_large, large_direction, element] = u_buffer[v, i, j]
+            surface_flux_values[v, i_large, j_large, large_direction, element] = u_buffer[v,
+                                                                                          i,
+                                                                                          j]
           end
           i_large += i_large_step_i
           j_large += j_large_step_i
@@ -478,7 +521,8 @@ end
       for j in eachnode(dg)
         for i in eachnode(dg)
           for v in eachvariable(equations)
-            surface_flux_values[v, i, j, small_direction, element] = fstar[v, i, j, position]
+            surface_flux_values[v, i, j, small_direction, element] = fstar[v, i, j,
+                                                                           position]
           end
         end
       end

@@ -19,7 +19,7 @@ An abstract supertype of specific equations such as the compressible Euler equat
 The type parameters encode the number of spatial dimensions (`NDIMS`) and the
 number of primary variables (`NVARS`) of the physics model.
 """
-abstract type AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractEquations{NDIMS,NVARS} end
 
 
 """
@@ -75,14 +75,16 @@ Base.show(io::IO, ::BoundaryConditionPeriodic) = print(io, "boundary_condition_p
 struct BoundaryConditionDoNothing end
 
 # This version can be called by hyperbolic solvers on logically Cartesian meshes
-@inline function (::BoundaryConditionDoNothing)(
-    u_inner, orientation_or_normal_direction, direction::Integer, x, t, surface_flux, equations)
+@inline function (::BoundaryConditionDoNothing)(u_inner, orientation_or_normal_direction,
+                                                direction::Integer, x, t, surface_flux,
+                                                equations)
 
   return flux(u_inner, orientation_or_normal_direction, equations)
 end
 
 # This version can be called by hyperbolic solvers on unstructured, curved meshes
-@inline function (::BoundaryConditionDoNothing)(u_inner, outward_direction::AbstractVector,
+@inline function (::BoundaryConditionDoNothing)(u_inner,
+                                                outward_direction::AbstractVector,
                                                 x, t, surface_flux, equations)
 
   return flux(u_inner, outward_direction, equations)
@@ -100,6 +102,8 @@ Imposing no boundary condition just evaluates the flux at the inner state.
 """
 const boundary_condition_do_nothing = BoundaryConditionDoNothing()
 
-Base.show(io::IO, ::BoundaryConditionDoNothing) = print(io, "boundary_condition_do_nothing")
+function Base.show(io::IO, ::BoundaryConditionDoNothing)
+  print(io, "boundary_condition_do_nothing")
+end
 
 end # @muladd

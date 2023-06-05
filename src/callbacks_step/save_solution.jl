@@ -22,7 +22,7 @@ at a single point to a set of solution variables. The first parameter passed
 to `solution_variables` will be the set of conservative variables
 and the second parameter is the equation struct.
 """
-mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
+mutable struct SaveSolutionCallback{IntervalType,SolutionVariablesType}
   interval_or_dt::IntervalType
   save_initial_solution::Bool
   save_final_solution::Bool
@@ -31,7 +31,7 @@ mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
+function Base.show(io::IO, cb::DiscreteCallback{<:Any,<:SaveSolutionCallback})
   @nospecialize cb # reduce precompilation time
 
   save_solution_callback = cb.affect!
@@ -39,14 +39,16 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
 end
 
 function Base.show(io::IO,
-                   cb::DiscreteCallback{<:Any, <:PeriodicCallbackAffect{<:SaveSolutionCallback}})
+                   cb::DiscreteCallback{<:Any,
+                                        <:PeriodicCallbackAffect{<:SaveSolutionCallback}})
   @nospecialize cb # reduce precompilation time
 
   save_solution_callback = cb.affect!.affect!
   print(io, "SaveSolutionCallback(dt=", save_solution_callback.interval_or_dt, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
+function Base.show(io::IO, ::MIME"text/plain",
+                   cb::DiscreteCallback{<:Any,<:SaveSolutionCallback})
   @nospecialize cb # reduce precompilation time
 
   if get(io, :compact, false)
@@ -54,19 +56,20 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Sav
   else
     save_solution_callback = cb.affect!
 
-    setup = [
-             "interval" => save_solution_callback.interval_or_dt,
+    setup = ["interval" => save_solution_callback.interval_or_dt,
              "solution variables" => save_solution_callback.solution_variables,
-             "save initial solution" => save_solution_callback.save_initial_solution ? "yes" : "no",
-             "save final solution" => save_solution_callback.save_final_solution ? "yes" : "no",
-             "output directory" => abspath(normpath(save_solution_callback.output_directory)),
-            ]
+             "save initial solution" => save_solution_callback.save_initial_solution ?
+                                        "yes" : "no",
+             "save final solution" => save_solution_callback.save_final_solution ? "yes" :
+                                      "no",
+             "output directory" => abspath(normpath(save_solution_callback.output_directory))]
     summary_box(io, "SaveSolutionCallback", setup)
   end
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
-                   cb::DiscreteCallback{<:Any, <:PeriodicCallbackAffect{<:SaveSolutionCallback}})
+                   cb::DiscreteCallback{<:Any,
+                                        <:PeriodicCallbackAffect{<:SaveSolutionCallback}})
   @nospecialize cb # reduce precompilation time
 
   if get(io, :compact, false)
@@ -74,24 +77,24 @@ function Base.show(io::IO, ::MIME"text/plain",
   else
     save_solution_callback = cb.affect!.affect!
 
-    setup = [
-             "dt" => save_solution_callback.interval_or_dt,
+    setup = ["dt" => save_solution_callback.interval_or_dt,
              "solution variables" => save_solution_callback.solution_variables,
-             "save initial solution" => save_solution_callback.save_initial_solution ? "yes" : "no",
-             "save final solution" => save_solution_callback.save_final_solution ? "yes" : "no",
-             "output directory" => abspath(normpath(save_solution_callback.output_directory)),
-            ]
+             "save initial solution" => save_solution_callback.save_initial_solution ?
+                                        "yes" : "no",
+             "save final solution" => save_solution_callback.save_final_solution ? "yes" :
+                                      "no",
+             "output directory" => abspath(normpath(save_solution_callback.output_directory))]
     summary_box(io, "SaveSolutionCallback", setup)
   end
 end
 
 
 function SaveSolutionCallback(; interval::Integer=0,
-                                dt=nothing,
-                                save_initial_solution=true,
-                                save_final_solution=true,
-                                output_directory="out",
-                                solution_variables=cons2prim)
+                              dt=nothing,
+                              save_initial_solution=true,
+                              save_final_solution=true,
+                              output_directory="out",
+                              solution_variables=cons2prim)
 
   if !isnothing(dt) && interval > 0
     throw(ArgumentError("You can either set the number of steps between output (using `interval`) or the time between outputs (using `dt`) but not both simultaneously"))
@@ -112,12 +115,12 @@ function SaveSolutionCallback(; interval::Integer=0,
   if isnothing(dt)
     # Save every `interval` (accepted) time steps
     # The first one is the condition, the second the affect!
-    return DiscreteCallback(solution_callback, solution_callback,
-                            save_positions=(false,false),
+    return DiscreteCallback(solution_callback, solution_callback;
+                            save_positions=(false, false),
                             initialize=initialize_save_cb!)
   else
     # Add a `tstop` every `dt`, and save the final solution.
-    return PeriodicCallback(solution_callback, dt,
+    return PeriodicCallback(solution_callback, dt;
                             save_positions=(false, false),
                             initialize=initialize_save_cb!,
                             final_affect=save_final_solution)
@@ -161,9 +164,9 @@ function (solution_callback::SaveSolutionCallback)(u, t, integrator)
   #    (total #steps)       (#accepted steps)
   # We need to check the number of accepted steps since callbacks are not
   # activated after a rejected step.
-  return interval_or_dt > 0 && (
-    ((integrator.stats.naccept % interval_or_dt == 0) && !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
-    (save_final_solution && isfinished(integrator)))
+  return interval_or_dt > 0 && (((integrator.stats.naccept % interval_or_dt == 0) &&
+                                 !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
+                                (save_final_solution && isfinished(integrator)))
 end
 
 
@@ -177,25 +180,30 @@ function (solution_callback::SaveSolutionCallback)(integrator)
 
   @trixi_timeit timer() "I/O" begin
     @trixi_timeit timer() "save mesh" if mesh.unsaved_changes
-      mesh.current_filename = save_mesh_file(mesh, solution_callback.output_directory, iter)
+      mesh.current_filename = save_mesh_file(mesh, solution_callback.output_directory,
+                                             iter)
       mesh.unsaved_changes = false
     end
 
-    element_variables = Dict{Symbol, Any}()
+    element_variables = Dict{Symbol,Any}()
     @trixi_timeit timer() "get element variables" begin
       get_element_variables!(element_variables, u_ode, semi)
       callbacks = integrator.opts.callback
       if callbacks isa CallbackSet
         for cb in callbacks.continuous_callbacks
-          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.stats.naccept)
+          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t,
+                                 iter=integrator.stats.naccept)
         end
         for cb in callbacks.discrete_callbacks
-          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.stats.naccept)
+          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t,
+                                 iter=integrator.stats.naccept)
         end
       end
     end
 
-    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi, solution_callback, element_variables)
+    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi,
+                                                             solution_callback,
+                                                             element_variables)
   end
 
   # avoid re-evaluating possible FSAL stages
@@ -209,7 +217,8 @@ end
                                     element_variables=Dict{Symbol,Any}())
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array_native(u_ode, mesh, equations, solver, cache)
-  save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback, element_variables)
+  save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback,
+                     element_variables)
 end
 
 

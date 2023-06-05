@@ -27,13 +27,14 @@ types used in the solver and the cache.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-mutable struct TimeSeriesCallback{RealT<:Real, uEltype<:Real, SolutionVariables, VariableNames, Cache}
+mutable struct TimeSeriesCallback{RealT<:Real,uEltype<:Real,SolutionVariables,
+                                  VariableNames,Cache}
   interval::Int
   solution_variables::SolutionVariables
   variable_names::VariableNames
   output_directory::String
   filename::String
-  point_coordinates::Array{RealT, 2}
+  point_coordinates::Array{RealT,2}
   # Point data is stored as a vector of vectors of the solution data type:
   # * the "outer" `Vector` contains one vector for each point at which a time_series is recorded
   # * the "inner" `Vector` contains the actual time series for a single point,
@@ -47,20 +48,21 @@ mutable struct TimeSeriesCallback{RealT<:Real, uEltype<:Real, SolutionVariables,
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:TimeSeriesCallback})
+function Base.show(io::IO, cb::DiscreteCallback{<:Any,<:TimeSeriesCallback})
   @nospecialize cb # reduce precompilation time
 
   time_series_callback = cb.affect!
   @unpack interval, solution_variables, output_directory, filename = time_series_callback
   print(io, "TimeSeriesCallback(",
-            "interval=", interval, ", ",
-            "solution_variables=", interval, ", ",
-            "output_directory=", "\"output_directory\"", ", ",
-            "filename=", "\"filename\"",
-            ")")
+        "interval=", interval, ", ",
+        "solution_variables=", interval, ", ",
+        "output_directory=", "\"output_directory\"", ", ",
+        "filename=", "\"filename\"",
+        ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:TimeSeriesCallback})
+function Base.show(io::IO, ::MIME"text/plain",
+                   cb::DiscreteCallback{<:Any,<:TimeSeriesCallback})
   @nospecialize cb # reduce precompilation time
 
   if get(io, :compact, false)
@@ -68,13 +70,11 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Tim
   else
     time_series_callback = cb.affect!
 
-    setup = [
-             "#points" => size(time_series_callback.point_coordinates, 2),
+    setup = ["#points" => size(time_series_callback.point_coordinates, 2),
              "interval" => time_series_callback.interval,
              "solution_variables" => time_series_callback.solution_variables,
              "output_directory" => time_series_callback.output_directory,
-             "filename" => time_series_callback.filename,
-            ]
+             "filename" => time_series_callback.filename]
     summary_box(io, "TimeSeriesCallback", setup)
   end
 end
@@ -108,9 +108,10 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
     #    (total #steps)       (#accepted steps)
     # We need to check the number of accepted steps since callbacks are not
     # activated after a rejected step.
-    condition = (u, t, integrator) -> ( (integrator.stats.naccept % interval == 0 &&
-                                        !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
-                                      isfinished(integrator))
+    condition = (u, t, integrator) -> ((integrator.stats.naccept % interval == 0 &&
+                                        !(integrator.stats.naccept == 0 &&
+                                          integrator.iter > 0)) ||
+                                       isfinished(integrator))
   else # disable the callback for interval == 0
     condition = (u, t, integrator) -> false
   end
@@ -124,17 +125,17 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
   time_series_cache = create_cache_time_series(point_coordinates_, mesh, solver, cache)
 
   time_series_callback = TimeSeriesCallback(interval,
-                                           solution_variables,
-                                           variable_names,
-                                           output_directory,
-                                           filename,
-                                           point_coordinates_,
-                                           point_data,
-                                           time,
-                                           step,
-                                           time_series_cache)
+                                            solution_variables,
+                                            variable_names,
+                                            output_directory,
+                                            filename,
+                                            point_coordinates_,
+                                            point_data,
+                                            time,
+                                            step,
+                                            time_series_cache)
 
-  return DiscreteCallback(condition, time_series_callback, save_positions=(false,false))
+  return DiscreteCallback(condition, time_series_callback; save_positions=(false, false))
 end
 
 
@@ -147,11 +148,13 @@ end
 
 
 # Convenience constructor that converts a vector of points into a Trixi.jl-style coordinate array
-function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates::AbstractVector;
+function TimeSeriesCallback(mesh, equations, solver, cache,
+                            point_coordinates::AbstractVector;
                             kwargs...)
   # Coordinates are usually stored in [ndims, n_points], but here as [n_points, ndims]
   n_points = length(point_coordinates)
-  point_coordinates_ = Matrix{eltype(eltype(point_coordinates))}(undef, n_points, ndims(mesh))
+  point_coordinates_ = Matrix{eltype(eltype(point_coordinates))}(undef, n_points,
+                                                                 ndims(mesh))
 
   for p in 1:n_points
     for d in 1:ndims(mesh)
@@ -187,10 +190,11 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
       u = wrap_array(u_ode, mesh, equations, solver, cache)
 
       @unpack (point_data, solution_variables,
-              variable_names, time_series_cache) = time_series_callback
+      variable_names, time_series_cache) = time_series_callback
 
       # Record state at points (solver/mesh-dependent implementation)
-      record_state_at_points!(point_data, u, solution_variables, length(variable_names), mesh,
+      record_state_at_points!(point_data, u, solution_variables, length(variable_names),
+                              mesh,
                               equations, solver, time_series_cache)
     end
   end

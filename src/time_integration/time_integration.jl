@@ -8,7 +8,7 @@
 
 # Wrapper type for solutions from Trixi.jl's own time integrators, partially mimicking
 # SciMLBase.ODESolution
-struct TimeIntegratorSolution{tType, uType, P}
+struct TimeIntegratorSolution{tType,uType,P}
   t::tType
   u::uType
   prob::P

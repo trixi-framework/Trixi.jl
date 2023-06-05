@@ -22,7 +22,7 @@ struct GlmSpeedCallback{RealT<:Real}
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
+function Base.show(io::IO, cb::DiscreteCallback{<:Any,<:GlmSpeedCallback})
   @nospecialize cb # reduce precompilation time
 
   glm_speed_callback = cb.affect!
@@ -31,7 +31,8 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
 end
 
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
+function Base.show(io::IO, ::MIME"text/plain",
+                   cb::DiscreteCallback{<:Any,<:GlmSpeedCallback})
   @nospecialize cb # reduce precompilation time
 
   if get(io, :compact, false)
@@ -39,10 +40,8 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Glm
   else
     glm_speed_callback = cb.affect!
 
-    setup = [
-             "GLM wave speed scaling" => glm_speed_callback.glm_scale,
-             "Expected CFL number" => glm_speed_callback.cfl,
-            ]
+    setup = ["GLM wave speed scaling" => glm_speed_callback.glm_scale,
+             "Expected CFL number" => glm_speed_callback.cfl]
     summary_box(io, "GlmSpeedCallback", setup)
   end
 end
@@ -54,13 +53,14 @@ function GlmSpeedCallback(; glm_scale=0.5, cfl)
 
   glm_speed_callback = GlmSpeedCallback(glm_scale, cfl)
 
-  DiscreteCallback(glm_speed_callback, glm_speed_callback, # the first one is the condition, the second the affect!
-                   save_positions=(false,false),
+  DiscreteCallback(glm_speed_callback, glm_speed_callback; # the first one is the condition, the second the affect!
+                   save_positions=(false, false),
                    initialize=initialize!)
 end
 
 
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:GlmSpeedCallback}
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t,
+                     integrator) where {Condition,Affect!<:GlmSpeedCallback}
   cb.affect!(integrator)
 end
 

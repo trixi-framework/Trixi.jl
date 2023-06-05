@@ -10,7 +10,7 @@
 # See https://github.com/trixi-framework/Trixi.jl/pull/924 for a performance comparison.
 function reset_du!(du, dg, cache)
   @threaded for element in eachelement(dg, cache)
-      du[.., element] .= zero(eltype(du))
+    du[.., element] .= zero(eltype(du))
   end
 
   return du
@@ -22,13 +22,14 @@ end
 # Given blending factors `alpha` and the solver `dg`, fill
 # `element_ids_dg` with the IDs of elements using a pure DG scheme and
 # `element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
-function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::DG, cache)
+function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::DG,
+                                       cache)
   empty!(element_ids_dg)
   empty!(element_ids_dgfv)
 
   for element in eachelement(dg, cache)
     # Clip blending factor for values close to zero (-> pure DG)
-    dg_only = isapprox(alpha[element], 0, atol=1e-12)
+    dg_only = isapprox(alpha[element], 0; atol=1e-12)
     if dg_only
       push!(element_ids_dg, element)
     else

@@ -11,15 +11,15 @@
 #     Alg. 95 from the blue book of Kopriva
 function straight_side_quad_map(xi, eta, corner_points)
 
-  x = (0.25 * (  corner_points[1,1] * (1.0 - xi) * (1.0 - eta)
-               + corner_points[2,1] * (1.0 + xi) * (1.0 - eta)
-               + corner_points[3,1] * (1.0 + xi) * (1.0 + eta)
-               + corner_points[4,1] * (1.0 - xi) * (1.0 + eta)) )
+  x = (0.25 * (corner_points[1, 1] * (1.0 - xi) * (1.0 - eta)
+               + corner_points[2, 1] * (1.0 + xi) * (1.0 - eta)
+               + corner_points[3, 1] * (1.0 + xi) * (1.0 + eta)
+               + corner_points[4, 1] * (1.0 - xi) * (1.0 + eta)))
 
-  y = (0.25 * (  corner_points[1,2] * (1.0 - xi) * (1.0 - eta)
-               + corner_points[2,2] * (1.0 + xi) * (1.0 - eta)
-               + corner_points[3,2] * (1.0 + xi) * (1.0 + eta)
-               + corner_points[4,2] * (1.0 - xi) * (1.0 + eta)) )
+  y = (0.25 * (corner_points[1, 2] * (1.0 - xi) * (1.0 - eta)
+               + corner_points[2, 2] * (1.0 + xi) * (1.0 - eta)
+               + corner_points[3, 2] * (1.0 + xi) * (1.0 + eta)
+               + corner_points[4, 2] * (1.0 - xi) * (1.0 + eta)))
 
   return x, y
 end
@@ -29,27 +29,33 @@ end
 #     Alg. 100 from the blue book of Kopriva
 function straight_side_quad_map_metrics(xi, eta, corner_points)
 
-  X_xi  = ( 0.25 * (  (1.0 - eta) * (corner_points[2,1] - corner_points[1,1])
-                    + (1.0 + eta) * (corner_points[3,1] - corner_points[4,1])) )
+  X_xi = (0.25 * ((1.0 - eta) * (corner_points[2, 1] - corner_points[1, 1])
+                  +
+                  (1.0 + eta) * (corner_points[3, 1] - corner_points[4, 1])))
 
-  X_eta = ( 0.25 * (  (1.0 - xi) * (corner_points[4,1] - corner_points[1,1])
-                    + (1.0 + xi) * (corner_points[3,1] - corner_points[2,1])) )
+  X_eta = (0.25 * ((1.0 - xi) * (corner_points[4, 1] - corner_points[1, 1])
+                   +
+                   (1.0 + xi) * (corner_points[3, 1] - corner_points[2, 1])))
 
-  Y_xi  = ( 0.25 * (  (1.0 - eta) * (corner_points[2,2] - corner_points[1,2])
-                    + (1.0 + eta) * (corner_points[3,2] - corner_points[4,2])) )
+  Y_xi = (0.25 * ((1.0 - eta) * (corner_points[2, 2] - corner_points[1, 2])
+                  +
+                  (1.0 + eta) * (corner_points[3, 2] - corner_points[4, 2])))
 
-  Y_eta = ( 0.25 * (  (1.0 - xi) * (corner_points[4,2] - corner_points[1,2])
-                    + (1.0 + xi) * (corner_points[3,2] - corner_points[2,2])) )
+  Y_eta = (0.25 * ((1.0 - xi) * (corner_points[4, 2] - corner_points[1, 2])
+                   +
+                   (1.0 + xi) * (corner_points[3, 2] - corner_points[2, 2])))
 
   return X_xi, X_eta, Y_xi, Y_eta
 end
 
 
 # construct the (x,y) node coordinates in the volume of a straight sided element
-function calc_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4}, element, nodes, corners)
+function calc_node_coordinates!(node_coordinates::AbstractArray{<:Any,4}, element, nodes,
+                                corners)
 
   for j in eachindex(nodes), i in eachindex(nodes)
-    node_coordinates[:, i ,j ,element] .= straight_side_quad_map(nodes[i], nodes[j], corners)
+    node_coordinates[:, i, j, element] .= straight_side_quad_map(nodes[i], nodes[j],
+                                                                 corners)
   end
 
   return node_coordinates
@@ -66,10 +72,11 @@ function calc_metric_terms!(jacobian_matrix, element, nodes, corners)
   #   jacobian_matrix[2,2,:,:,:] <- Y_eta
   for j in eachindex(nodes), i in eachindex(nodes)
     (jacobian_matrix[1, 1, i, j, element],
-     jacobian_matrix[1, 2, i, j, element],
-     jacobian_matrix[2, 1, i, j, element],
-     jacobian_matrix[2, 2, i, j, element]) = straight_side_quad_map_metrics(nodes[i], nodes[j],
-                                                                            corners)
+    jacobian_matrix[1, 2, i, j, element],
+    jacobian_matrix[2, 1, i, j, element],
+    jacobian_matrix[2, 2, i, j, element]) = straight_side_quad_map_metrics(nodes[i],
+                                                                           nodes[j],
+                                                                           corners)
   end
 
   return jacobian_matrix
@@ -85,29 +92,29 @@ function calc_normal_directions!(normal_directions, element, nodes, corners)
     # side 2
     X_xi, X_eta, Y_xi, Y_eta = straight_side_quad_map_metrics(1.0, nodes[j], corners)
     Jtemp = X_xi * Y_eta - X_eta * Y_xi
-    normal_directions[1, j, 2, element] = sign(Jtemp) * ( Y_eta )
-    normal_directions[2, j, 2, element] = sign(Jtemp) * (-X_eta )
+    normal_directions[1, j, 2, element] = sign(Jtemp) * (Y_eta)
+    normal_directions[2, j, 2, element] = sign(Jtemp) * (-X_eta)
 
     # side 4
     X_xi, X_eta, Y_xi, Y_eta = straight_side_quad_map_metrics(-1.0, nodes[j], corners)
-    Jtemp =  X_xi * Y_eta - X_eta * Y_xi
-    normal_directions[1, j, 4, element] = -sign(Jtemp) * ( Y_eta )
-    normal_directions[2, j, 4, element] = -sign(Jtemp) * (-X_eta )
+    Jtemp = X_xi * Y_eta - X_eta * Y_xi
+    normal_directions[1, j, 4, element] = -sign(Jtemp) * (Y_eta)
+    normal_directions[2, j, 4, element] = -sign(Jtemp) * (-X_eta)
   end
 
   # normal directions on the boundary for the top (local side 3) and bottom (local side 1)
   for i in eachindex(nodes)
     # side 1
     X_xi, X_eta, Y_xi, Y_eta = straight_side_quad_map_metrics(nodes[i], -1.0, corners)
-    Jtemp =  X_xi * Y_eta - X_eta * Y_xi
-    normal_directions[1, i, 1, element] = -sign(Jtemp) * (-Y_xi )
-    normal_directions[2, i, 1, element] = -sign(Jtemp) * ( X_xi )
+    Jtemp = X_xi * Y_eta - X_eta * Y_xi
+    normal_directions[1, i, 1, element] = -sign(Jtemp) * (-Y_xi)
+    normal_directions[2, i, 1, element] = -sign(Jtemp) * (X_xi)
 
     # side 3
     X_xi, X_eta, Y_xi, Y_eta = straight_side_quad_map_metrics(nodes[i], 1.0, corners)
     Jtemp = X_xi * Y_eta - X_eta * Y_xi
-    normal_directions[1, i, 3, element] = sign(Jtemp) * (-Y_xi )
-    normal_directions[2, i, 3, element] = sign(Jtemp) * ( X_xi )
+    normal_directions[1, i, 3, element] = sign(Jtemp) * (-Y_xi)
+    normal_directions[2, i, 3, element] = sign(Jtemp) * (X_xi)
   end
 
   return normal_directions

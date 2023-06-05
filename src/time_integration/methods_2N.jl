@@ -21,12 +21,12 @@ the low-storage explicit Runge-Kutta method of
 using the same interface as OrdinaryDiffEq.jl.
 """
 struct CarpenterKennedy2N54 <: SimpleAlgorithm2N
-  a::SVector{5, Float64}
-  b::SVector{5, Float64}
-  c::SVector{5, Float64}
+  a::SVector{5,Float64}
+  b::SVector{5,Float64}
+  c::SVector{5,Float64}
 
   function CarpenterKennedy2N54()
-    a = SVector(0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
+    a = SVector(0.0, 567301805773.0 / 1357537059087.0, 2404267990393.0 / 2016746695238.0,
                 3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0)
     b = SVector(1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
                 1720146321549.0 / 2090206949498.0, 3134564353537.0 / 4481467310338.0,
@@ -45,9 +45,9 @@ end
 Carpenter, Kennedy (1994) Third order 2N storage RK schemes with error control
 """
 struct CarpenterKennedy2N43 <: SimpleAlgorithm2N
-  a::SVector{4, Float64}
-  b::SVector{4, Float64}
-  c::SVector{4, Float64}
+  a::SVector{4,Float64}
+  b::SVector{4,Float64}
+  c::SVector{4,Float64}
 
   function CarpenterKennedy2N43()
     a = SVector(0, 756391 / 934407, 36441873 / 15625000, 1953125 / 1085297)
@@ -69,15 +69,16 @@ mutable struct SimpleIntegrator2NOptions{Callback}
 end
 
 function SimpleIntegrator2NOptions(callback, tspan; maxiters=typemax(Int), kwargs...)
-  SimpleIntegrator2NOptions{typeof(callback)}(
-    callback, false, Inf, maxiters, [last(tspan)])
+  SimpleIntegrator2NOptions{typeof(callback)}(callback, false, Inf, maxiters,
+                                              [last(tspan)])
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
-mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, F, Alg, SimpleIntegrator2NOptions}
+mutable struct SimpleIntegrator2N{RealT<:Real,uType,Params,Sol,F,Alg,
+                                  SimpleIntegrator2NOptions}
   u::uType #
   du::uType
   u_tmp::uType
@@ -96,7 +97,7 @@ end
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
 function Base.getproperty(integrator::SimpleIntegrator2N, field::Symbol)
   if field === :stats
-    return (naccept = getfield(integrator, :iter),)
+    return (naccept=getfield(integrator, :iter),)
   end
   # general fallback
   return getfield(integrator, field)
@@ -111,8 +112,9 @@ function solve(ode::ODEProblem, alg::T;
   t = first(ode.tspan)
   iter = 0
   integrator = SimpleIntegrator2N(u, du, u_tmp, t, dt, zero(dt), iter, ode.p,
-                  (prob=ode,), ode.f, alg,
-                  SimpleIntegrator2NOptions(callback, ode.tspan; kwargs...), false)
+                                  (prob=ode,), ode.f, alg,
+                                  SimpleIntegrator2NOptions(callback, ode.tspan;
+                                                            kwargs...), false)
 
   # initialize callbacks
   if callback isa CallbackSet
@@ -142,7 +144,8 @@ function solve!(integrator::SimpleIntegrator2N)
     end
 
     # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end || isapprox(integrator.t + integrator.dt, t_end)
+    if integrator.t + integrator.dt > t_end ||
+       isapprox(integrator.t + integrator.dt, t_end)
       integrator.dt = t_end - integrator.t
       terminate!(integrator)
     end
@@ -153,7 +156,7 @@ function solve!(integrator::SimpleIntegrator2N)
       t_stage = integrator.t + integrator.dt * alg.c[stage]
       integrator.f(integrator.du, integrator.u, prob.p, t_stage)
 
-      a_stage    = alg.a[stage]
+      a_stage = alg.a[stage]
       b_stage_dt = alg.b[stage] * integrator.dt
       @trixi_timeit timer() "Runge-Kutta step" begin
         @threaded for i in eachindex(integrator.u)

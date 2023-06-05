@@ -40,12 +40,12 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening=true)
 
     # Check if all children of the last parent are leaves
     if allow_coarsening &&
-        all(id -> is_leaf(mesh.tree, id), @view mesh.tree.child_ids[:, parent_id]) &&
-        d < length(n_leaves_per_rank) - 1
+       all(id -> is_leaf(mesh.tree, id), @view mesh.tree.child_ids[:, parent_id]) &&
+       d < length(n_leaves_per_rank) - 1
 
       # To keep children of parent together if they are all leaves,
       # all children are added to this rank
-      additional_cells = (last_id+1):mesh.tree.child_ids[end, parent_id]
+      additional_cells = (last_id + 1):mesh.tree.child_ids[end, parent_id]
       if length(additional_cells) > 0
         last_id = additional_cells[end]
 
@@ -53,7 +53,7 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening=true)
         leaf_count += additional_leaves
         # Add leaves to this rank, remove from next rank
         n_leaves_per_rank[d] += additional_leaves
-        n_leaves_per_rank[d+1] -= additional_leaves
+        n_leaves_per_rank[d + 1] -= additional_leaves
       end
     end
 
@@ -64,11 +64,12 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening=true)
 
     # Set first cell of next rank
     if d < length(n_leaves_per_rank) - 1
-      mesh.first_cell_by_rank[d+1] = mesh.first_cell_by_rank[d] + mesh.n_cells_by_rank[d]
+      mesh.first_cell_by_rank[d + 1] = mesh.first_cell_by_rank[d] +
+                                       mesh.n_cells_by_rank[d]
     end
   end
 
-  @assert all(x->x >= 0, mesh.tree.mpi_ranks[1:length(mesh.tree)])
+  @assert all(x -> x >= 0, mesh.tree.mpi_ranks[1:length(mesh.tree)])
   @assert sum(mesh.n_cells_by_rank) == length(mesh.tree)
 
   return nothing

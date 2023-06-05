@@ -11,23 +11,25 @@
 # Contains the data needed to represent a curve with data points (x,y) as a Lagrange polynomial
 # interpolant written in barycentric form at a given set of nodes.
 struct CurvedSurface{RealT<:Real}
-  nodes               ::Vector{RealT}
-  barycentric_weights ::Vector{RealT}
-  coordinates         ::Array{RealT, 2} #[nnodes, ndims]
+  nodes::Vector{RealT}
+  barycentric_weights::Vector{RealT}
+  coordinates::Array{RealT,2} #[nnodes, ndims]
 end
 
 
 # evaluate the Gamma curve interpolant at a particular point s and return the (x,y) coordinate
 function evaluate_at(s, boundary_curve::CurvedSurface)
 
-   @unpack nodes, barycentric_weights, coordinates = boundary_curve
+  @unpack nodes, barycentric_weights, coordinates = boundary_curve
 
-   x_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, view(coordinates, :, 1),
-                                                                barycentric_weights)
-   y_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, view(coordinates, :, 2),
-                                                                barycentric_weights)
+  x_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes,
+                                                               view(coordinates, :, 1),
+                                                               barycentric_weights)
+  y_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes,
+                                                               view(coordinates, :, 2),
+                                                               barycentric_weights)
 
-   return x_coordinate_at_s_on_boundary_curve, y_coordinate_at_s_on_boundary_curve
+  return x_coordinate_at_s_on_boundary_curve, y_coordinate_at_s_on_boundary_curve
 end
 
 
@@ -35,15 +37,20 @@ end
 # and return the (x,y) coordinate
 function derivative_at(s, boundary_curve::CurvedSurface)
 
-   @unpack nodes, barycentric_weights, coordinates = boundary_curve
+  @unpack nodes, barycentric_weights, coordinates = boundary_curve
 
-   x_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes,
-                                                                                 view(coordinates, :, 1),
-                                                                                 barycentric_weights)
-   y_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes,
-                                                                                 view(coordinates, :, 2),
-                                                                                 barycentric_weights)
-   return x_coordinate_at_s_on_boundary_curve_prime, y_coordinate_at_s_on_boundary_curve_prime
+  x_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes,
+                                                                                view(coordinates,
+                                                                                     :,
+                                                                                     1),
+                                                                                barycentric_weights)
+  y_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes,
+                                                                                view(coordinates,
+                                                                                     :,
+                                                                                     2),
+                                                                                barycentric_weights)
+  return x_coordinate_at_s_on_boundary_curve_prime,
+         y_coordinate_at_s_on_boundary_curve_prime
 end
 
 
@@ -51,17 +58,17 @@ end
 function chebyshev_gauss_lobatto_nodes_weights(n_nodes::Integer)
 
   # Initialize output
-  nodes   = zeros(n_nodes)
+  nodes = zeros(n_nodes)
   weights = zeros(n_nodes)
 
   # Get polynomial degree for convenience
   N = n_nodes - 1
 
   for j in 1:n_nodes
-    nodes[j]   = -cospi( (j-1) / N )
+    nodes[j] = -cospi((j - 1) / N)
     weights[j] = pi / N
   end
-  weights[1]   = 0.5 * weights[1]
+  weights[1] = 0.5 * weights[1]
   weights[end] = 0.5 * weights[end]
 
   return nodes, weights
@@ -71,20 +78,20 @@ end
 # Calculate Lagrange interpolating polynomial of a function f(x) at a given point x for a given
 # node distribution.
 function lagrange_interpolation(x, nodes, fvals, wbary)
-# Barycentric two formulation of Lagrange interpolant
-  numerator   = zero(eltype(fvals))
+  # Barycentric two formulation of Lagrange interpolant
+  numerator = zero(eltype(fvals))
   denominator = zero(eltype(fvals))
 
   for j in eachindex(nodes)
-    if isapprox(x, nodes[j], rtol=eps(x))
+    if isapprox(x, nodes[j]; rtol=eps(x))
       return fvals[j]
     end
-    t            = wbary[j] / ( x - nodes[j] )
-    numerator   += t * fvals[j]
+    t = wbary[j] / (x - nodes[j])
+    numerator += t * fvals[j]
     denominator += t
   end
 
-  return numerator/denominator
+  return numerator / denominator
 end
 
 
@@ -92,36 +99,36 @@ end
 # point x for a given node distribution.
 function lagrange_interpolation_derivative(x, nodes, fvals, wbary)
 
-  at_node   = false
+  at_node = false
   numerator = zero(eltype(fvals))
-  i         = 0
+  i = 0
 
   for j in eachindex(nodes)
     if isapprox(x, nodes[j])
-      at_node     = true
-      p           = fvals[j]
+      at_node = true
+      p = fvals[j]
       denominator = -wbary[j]
-      i           = j
+      i = j
     end
   end
 
   if at_node
     for j in eachindex(nodes)
       if j != i
-        numerator += wbary[j] * ( p - fvals[j] ) / ( x - nodes[j] )
+        numerator += wbary[j] * (p - fvals[j]) / (x - nodes[j])
       end
     end
   else
     denominator = zero(eltype(fvals))
     p = lagrange_interpolation(x, nodes, fvals, wbary)
     for j in eachindex(nodes)
-      t            = wbary[j] / (x - nodes[j])
-      numerator   += t * ( p - fvals[j] ) / ( x - nodes[j] )
+      t = wbary[j] / (x - nodes[j])
+      numerator += t * (p - fvals[j]) / (x - nodes[j])
       denominator += t
     end
   end
 
-  return numerator/denominator # p_prime
+  return numerator / denominator # p_prime
 end
 
 

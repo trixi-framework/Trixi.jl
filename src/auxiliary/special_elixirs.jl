@@ -61,7 +61,8 @@ This function assumes that the spatial resolution is set via the keywords
 integers, one per spatial dimension).
 """
 function convergence_test(mod::Module, elixir::AbstractString, iterations; kwargs...)
-  @assert(iterations > 1, "Number of iterations must be bigger than 1 for a convergence analysis")
+  @assert(iterations > 1,
+          "Number of iterations must be bigger than 1 for a convergence analysis")
 
   # Types of errors to be calculated
   errors = Dict(:l2 => Float64[], :linf => Float64[])
@@ -77,7 +78,7 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
     l2_error, linf_error = mod.analysis_callback(mod.sol)
 
     # collect errors as one vector to reshape later
-    append!(errors[:l2],   l2_error)
+    append!(errors[:l2], l2_error)
     append!(errors[:linf], linf_error)
 
     println("\n\n")
@@ -91,11 +92,13 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
 
   # Reshape errors to get a matrix where the i-th row represents the i-th iteration
   # and the j-th column represents the j-th variable
-  errorsmatrix = Dict(kind => transpose(reshape(error, (nvariables, iterations))) for (kind, error) in errors)
+  errorsmatrix = Dict(kind => transpose(reshape(error, (nvariables, iterations)))
+                      for (kind, error) in errors)
 
   # Calculate EOCs where the columns represent the variables
   # As dx halves in every iteration the denominator needs to be log(1/2)
-  eocs = Dict(kind => log.(error[2:end, :] ./ error[1:end-1, :]) ./ log(1 / 2) for (kind, error) in errorsmatrix)
+  eocs = Dict(kind => log.(error[2:end, :] ./ error[1:(end - 1), :]) ./ log(1 / 2)
+              for (kind, error) in errorsmatrix)
 
   eoc_mean_values = Dict{Symbol,Any}()
   eoc_mean_values[:variables] = variablenames
@@ -108,24 +111,24 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
     end
     println("")
 
-    for k = 1:nvariables
+    for k in 1:nvariables
       @printf("%-10s", "error")
       @printf("%-10s", "EOC")
     end
     println("")
 
     # Print errors for the first iteration
-    for k = 1:nvariables
+    for k in 1:nvariables
       @printf("%-10.2e", error[1, k])
       @printf("%-10s", "-")
     end
     println("")
 
     # For the following iterations print errors and EOCs
-    for j = 2:iterations
-      for k = 1:nvariables
+    for j in 2:iterations
+      for k in 1:nvariables
         @printf("%-10.2e", error[j, k])
-        @printf("%-10.2f", eocs[kind][j-1, k])
+        @printf("%-10.2f", eocs[kind][j - 1, k])
       end
       println("")
     end
@@ -146,7 +149,9 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
   return eoc_mean_values
 end
 
-convergence_test(elixir::AbstractString, iterations; kwargs...) = convergence_test(Main, elixir::AbstractString, iterations; kwargs...)
+function convergence_test(elixir::AbstractString, iterations; kwargs...)
+  convergence_test(Main, elixir::AbstractString, iterations; kwargs...)
+end
 
 
 
@@ -175,7 +180,8 @@ function insert_maxiters(expr)
         for arg in x.args
           # This detects the case where `maxiters` is set as keyword argument
           # without or before a semicolon
-          if (arg isa Expr && arg.head === Symbol("kw") && arg.args[1] === Symbol("maxiters"))
+          if (arg isa Expr && arg.head === Symbol("kw") &&
+              arg.args[1] === Symbol("maxiters"))
             return x
           end
 
@@ -207,9 +213,9 @@ function replace_assignments(expr; kwargs...)
   # replace explicit and keyword assignments
   expr = walkexpr(expr) do x
     if x isa Expr
-      for (key,val) in kwargs
+      for (key, val) in kwargs
         if (x.head === Symbol("=") || x.head === :kw) && x.args[1] === Symbol(key)
-          x.args[2] = :( $val )
+          x.args[2] = :($val)
           # dump(x)
         end
       end
@@ -273,12 +279,14 @@ end
 # runs the specified elixir with a doubled resolution each time iter is increased by 1
 # works for TreeMesh
 function include_refined(mod, elixir, initial_refinement_level::Int, iter; kwargs)
-  trixi_include(mod, elixir; kwargs..., initial_refinement_level=initial_refinement_level+iter-1)
+  trixi_include(mod, elixir; kwargs...,
+                initial_refinement_level=initial_refinement_level + iter - 1)
 end
 
 # runs the specified elixir with a doubled resolution each time iter is increased by 1
 # works for StructuredMesh
-function include_refined(mod, elixir, cells_per_dimension::NTuple{NDIMS, Int}, iter; kwargs) where {NDIMS}
+function include_refined(mod, elixir, cells_per_dimension::NTuple{NDIMS,Int}, iter;
+                         kwargs) where {NDIMS}
   new_cells_per_dimension = cells_per_dimension .* 2^(iter - 1)
 
   trixi_include(mod, elixir; kwargs..., cells_per_dimension=new_cells_per_dimension)

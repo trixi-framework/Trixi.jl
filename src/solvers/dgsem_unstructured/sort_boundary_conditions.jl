@@ -14,10 +14,10 @@ It stores a set of global indices for each boundary condition type to expedite c
 during the call to `calc_boundary_flux!`. The original dictionary form of the boundary conditions
 set by the user in the elixir file is also stored for printing.
 """
-mutable struct UnstructuredSortedBoundaryTypes{N, BCs<:NTuple{N, Any}}
+mutable struct UnstructuredSortedBoundaryTypes{N,BCs<:NTuple{N,Any}}
   boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionDirichlet
-  boundary_indices::NTuple{N, Vector{Int}} # integer vectors containing global boundary indices
-  boundary_dictionary::Dict{Symbol, Any} # boundary conditions as set by the user in the elixir file
+  boundary_indices::NTuple{N,Vector{Int}} # integer vectors containing global boundary indices
+  boundary_dictionary::Dict{Symbol,Any} # boundary conditions as set by the user in the elixir file
 end
 
 
@@ -30,14 +30,17 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::Dict, cache)
   n_boundary_types = length(boundary_condition_types)
   boundary_indices = ntuple(_ -> [], n_boundary_types)
 
-  container = UnstructuredSortedBoundaryTypes{n_boundary_types, typeof(boundary_condition_types)}(
-    boundary_condition_types, boundary_indices, boundary_conditions)
+  container = UnstructuredSortedBoundaryTypes{n_boundary_types,
+                                              typeof(boundary_condition_types)}(boundary_condition_types,
+                                                                                boundary_indices,
+                                                                                boundary_conditions)
 
   initialize!(container, cache)
 end
 
 
-function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N}, cache) where N
+function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N},
+                     cache) where {N}
   @unpack boundary_dictionary, boundary_condition_types = boundary_types_container
 
   unique_names = unique(cache.boundaries.name)
@@ -49,7 +52,8 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     if mpi_isroot()
       recv_buffer_length = MPI.Gather(length(send_buffer), mpi_root(), mpi_comm())
       recv_buffer = Vector{UInt8}(undef, sum(recv_buffer_length))
-      MPI.Gatherv!(send_buffer, MPI.VBuffer(recv_buffer, recv_buffer_length), mpi_root(), mpi_comm())
+      MPI.Gatherv!(send_buffer, MPI.VBuffer(recv_buffer, recv_buffer_length), mpi_root(),
+                   mpi_comm())
       all_names = unique(Symbol.(split(String(recv_buffer), "\0"; keepempty=false)))
       for key in keys(boundary_dictionary)
         if !(key in all_names)
@@ -81,7 +85,7 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
   for j in 1:N
     indices_for_current_type = Int[]
     for (test_name, test_condition) in boundary_dictionary
-      temp_indices = findall(x->x===test_name, cache.boundaries.name)
+      temp_indices = findall(x -> x === test_name, cache.boundaries.name)
       if test_condition === boundary_condition_types[j]
         indices_for_current_type = vcat(indices_for_current_type, temp_indices)
       end

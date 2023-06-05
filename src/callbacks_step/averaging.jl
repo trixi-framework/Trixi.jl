@@ -19,7 +19,7 @@ mean speed of sound, mean density, and mean vorticity for each node over the tim
 `tspan` and stores the results in an HDF5 file `filename` in the directory `output_directory`. Note
 that this callback does not support adaptive mesh refinement ([`AMRCallback`](@ref)).
 """
-struct AveragingCallback{TSpan, MeanValues, Cache}
+struct AveragingCallback{TSpan,MeanValues,Cache}
   tspan::TSpan
   mean_values::MeanValues
   cache::Cache
@@ -28,7 +28,7 @@ struct AveragingCallback{TSpan, MeanValues, Cache}
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:AveragingCallback})
+function Base.show(io::IO, cb::DiscreteCallback{<:Any,<:AveragingCallback})
   @nospecialize cb # reduce precompilation time
   averaging_callback = cb.affect!
   @unpack tspan = averaging_callback
@@ -36,7 +36,8 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:AveragingCallback})
   print(io, "AveragingCallback(tspan=", tspan, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:AveragingCallback})
+function Base.show(io::IO, ::MIME"text/plain",
+                   cb::DiscreteCallback{<:Any,<:AveragingCallback})
   @nospecialize cb # reduce precompilation time
 
   if get(io, :compact, false)
@@ -44,29 +45,30 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Ave
   else
     averaging_callback = cb.affect!
 
-    setup = [
-             "Start time" => first(averaging_callback.tspan),
-             "Final time" => last(averaging_callback.tspan)
-            ]
+    setup = ["Start time" => first(averaging_callback.tspan),
+             "Final time" => last(averaging_callback.tspan)]
     summary_box(io, "AveragingCallback", setup)
   end
 end
 
-function AveragingCallback(semi::SemidiscretizationHyperbolic{<:Any, <:CompressibleEulerEquations2D},
+function AveragingCallback(semi::SemidiscretizationHyperbolic{<:Any,
+                                                              <:CompressibleEulerEquations2D},
                            tspan; output_directory="out", filename="averaging.h5")
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   mean_values = initialize_mean_values(mesh, equations, solver, cache)
   cache = create_cache(AveragingCallback, mesh, equations, solver, cache)
 
-  averaging_callback = AveragingCallback(tspan, mean_values, cache, output_directory, filename)
+  averaging_callback = AveragingCallback(tspan, mean_values, cache, output_directory,
+                                         filename)
   condition = (u, t, integrator) -> first(tspan) <= t <= last(tspan)
 
-  return DiscreteCallback(condition, averaging_callback, save_positions=(false,false),
+  return DiscreteCallback(condition, averaging_callback; save_positions=(false, false),
                           initialize=initialize!)
 end
 
 
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AveragingCallback}
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t,
+                     integrator) where {Condition,Affect!<:AveragingCallback}
   averaging_callback = cb.affect!
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
@@ -97,7 +99,8 @@ function (averaging_callback::AveragingCallback)(integrator)
 
   integration_constant = 0.5 * dt / (tspan[2] - tspan[1]) # .5 due to trapezoidal rule
 
-  @trixi_timeit timer() "averaging" calc_mean_values!(mean_values, averaging_callback.cache,
+  @trixi_timeit timer() "averaging" calc_mean_values!(mean_values,
+                                                      averaging_callback.cache,
                                                       u, u_prev, integration_constant,
                                                       mesh, equations, solver, cache)
 

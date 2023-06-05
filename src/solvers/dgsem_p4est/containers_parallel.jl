@@ -6,18 +6,21 @@
 #! format: noindent
 
 
-mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContainer
-  u                 ::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
+mutable struct P4estMPIInterfaceContainer{NDIMS,uEltype<:Real,NDIMSP2} <:
+               AbstractContainer
+  u::Array{uEltype,NDIMSP2}       # [primary/secondary, variable, i, j, interface]
   local_neighbor_ids::Vector{Int}                   # [interface]
-  node_indices      ::Vector{NTuple{NDIMS, Symbol}} # [interface]
-  local_sides       ::Vector{Int}                   # [interface]
+  node_indices::Vector{NTuple{NDIMS,Symbol}} # [interface]
+  local_sides::Vector{Int}                   # [interface]
 
   # internal `resize!`able storage
-  _u                ::Vector{uEltype}
+  _u::Vector{uEltype}
 end
 
-@inline nmpiinterfaces(interfaces::P4estMPIInterfaceContainer) = length(interfaces.local_sides)
-@inline Base.ndims(::P4estMPIInterfaceContainer{NDIMS}) where NDIMS = NDIMS
+@inline function nmpiinterfaces(interfaces::P4estMPIInterfaceContainer)
+  length(interfaces.local_sides)
+end
+@inline Base.ndims(::P4estMPIInterfaceContainer{NDIMS}) where {NDIMS} = NDIMS
 
 function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
   @unpack _u, local_neighbor_ids, node_indices, local_sides = mpi_interfaces
@@ -26,9 +29,10 @@ function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
   n_nodes = size(mpi_interfaces.u, 3)
   n_variables = size(mpi_interfaces.u, 2)
 
-  resize!(_u, 2 * n_variables * n_nodes^(n_dims-1) * capacity)
+  resize!(_u, 2 * n_variables * n_nodes^(n_dims - 1) * capacity)
   mpi_interfaces.u = unsafe_wrap(Array, pointer(_u),
-    (2, n_variables, ntuple(_ -> n_nodes, n_dims-1)..., capacity))
+                                 (2, n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
+                                  capacity))
 
   resize!(local_neighbor_ids, capacity)
 
@@ -48,18 +52,23 @@ function init_mpi_interfaces(mesh::ParallelP4estMesh, equations, basis, elements
   # Initialize container
   n_mpi_interfaces = count_required_surfaces(mesh).mpi_interfaces
 
-  _u = Vector{uEltype}(undef, 2 * nvariables(equations) * nnodes(basis)^(NDIMS-1) * n_mpi_interfaces)
+  _u = Vector{uEltype}(undef,
+                       2 * nvariables(equations) * nnodes(basis)^(NDIMS - 1) *
+                       n_mpi_interfaces)
   u = unsafe_wrap(Array, pointer(_u),
-    (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_mpi_interfaces))
+                  (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                   n_mpi_interfaces))
 
   local_neighbor_ids = Vector{Int}(undef, n_mpi_interfaces)
 
-  node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_mpi_interfaces)
+  node_indices = Vector{NTuple{NDIMS,Symbol}}(undef, n_mpi_interfaces)
 
   local_sides = Vector{Int}(undef, n_mpi_interfaces)
 
-  mpi_interfaces = P4estMPIInterfaceContainer{NDIMS, uEltype, NDIMS+2}(
-    u, local_neighbor_ids, node_indices, local_sides, _u)
+  mpi_interfaces = P4estMPIInterfaceContainer{NDIMS,uEltype,NDIMS + 2}(u,
+                                                                       local_neighbor_ids,
+                                                                       node_indices,
+                                                                       local_sides, _u)
 
   init_mpi_interfaces!(mpi_interfaces, mesh)
 
@@ -79,20 +88,23 @@ end
 # `local_neighbor_ids` and `local_neighbor_positions` to describe the ids and positions of the locally
 # available elements belonging to a particular MPI mortar. Furthermore, `normal_directions` holds
 # the normal vectors on the surface of the small elements for each mortar.
-mutable struct P4estMPIMortarContainer{NDIMS, uEltype<:Real, RealT<:Real, NDIMSP1, NDIMSP2, NDIMSP3} <: AbstractContainer
-  u                       ::Array{uEltype, NDIMSP3} # [small/large side, variable, position, i, j, mortar]
-  local_neighbor_ids      ::Vector{Vector{Int}} # [mortar]
+mutable struct P4estMPIMortarContainer{NDIMS,uEltype<:Real,RealT<:Real,NDIMSP1,NDIMSP2,
+                                       NDIMSP3} <: AbstractContainer
+  u::Array{uEltype,NDIMSP3} # [small/large side, variable, position, i, j, mortar]
+  local_neighbor_ids::Vector{Vector{Int}} # [mortar]
   local_neighbor_positions::Vector{Vector{Int}} # [mortar]
-  node_indices            ::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
-  normal_directions       ::Array{RealT, NDIMSP2} # [dimension, i, j, position, mortar]
+  node_indices::Matrix{NTuple{NDIMS,Symbol}} # [small/large, mortar]
+  normal_directions::Array{RealT,NDIMSP2} # [dimension, i, j, position, mortar]
   # internal `resize!`able storage
-  _u                      ::Vector{uEltype}
-  _node_indices           ::Vector{NTuple{NDIMS, Symbol}}
-  _normal_directions      ::Vector{RealT}
+  _u::Vector{uEltype}
+  _node_indices::Vector{NTuple{NDIMS,Symbol}}
+  _normal_directions::Vector{RealT}
 end
 
-@inline nmpimortars(mpi_mortars::P4estMPIMortarContainer) = length(mpi_mortars.local_neighbor_ids)
-@inline Base.ndims(::P4estMPIMortarContainer{NDIMS}) where NDIMS = NDIMS
+@inline function nmpimortars(mpi_mortars::P4estMPIMortarContainer)
+  length(mpi_mortars.local_neighbor_ids)
+end
+@inline Base.ndims(::P4estMPIMortarContainer{NDIMS}) where {NDIMS} = NDIMS
 
 function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
   @unpack _u, _node_indices, _normal_directions = mpi_mortars
@@ -101,9 +113,10 @@ function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
   n_nodes = size(mpi_mortars.u, 4)
   n_variables = size(mpi_mortars.u, 2)
 
-  resize!(_u, 2 * n_variables * 2^(n_dims-1) * n_nodes^(n_dims-1) * capacity)
+  resize!(_u, 2 * n_variables * 2^(n_dims - 1) * n_nodes^(n_dims - 1) * capacity)
   mpi_mortars.u = unsafe_wrap(Array, pointer(_u),
-    (2, n_variables, 2^(n_dims-1), ntuple(_ -> n_nodes, n_dims-1)..., capacity))
+                              (2, n_variables, 2^(n_dims - 1),
+                               ntuple(_ -> n_nodes, n_dims - 1)..., capacity))
 
   resize!(mpi_mortars.local_neighbor_ids, capacity)
   resize!(mpi_mortars.local_neighbor_positions, capacity)
@@ -111,9 +124,11 @@ function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
   resize!(_node_indices, 2 * capacity)
   mpi_mortars.node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, capacity))
 
-  resize!(_normal_directions, n_dims * n_nodes^(n_dims-1) * 2^(n_dims-1) * capacity)
+  resize!(_normal_directions, n_dims * n_nodes^(n_dims - 1) * 2^(n_dims - 1) * capacity)
   mpi_mortars.normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
-    (n_dims, ntuple(_ -> n_nodes, n_dims-1)..., 2^(n_dims-1), capacity))
+                                              (n_dims,
+                                               ntuple(_ -> n_nodes, n_dims - 1)...,
+                                               2^(n_dims - 1), capacity))
 
   return nothing
 end
@@ -129,23 +144,30 @@ function init_mpi_mortars(mesh::ParallelP4estMesh, equations, basis, elements)
   n_mpi_mortars = count_required_surfaces(mesh).mpi_mortars
 
   _u = Vector{uEltype}(undef,
-    2 * nvariables(equations) * 2^(NDIMS-1) * nnodes(basis)^(NDIMS-1) * n_mpi_mortars)
+                       2 * nvariables(equations) * 2^(NDIMS - 1) *
+                       nnodes(basis)^(NDIMS - 1) * n_mpi_mortars)
   u = unsafe_wrap(Array, pointer(_u),
-    (2, nvariables(equations), 2^(NDIMS-1), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_mpi_mortars))
+                  (2, nvariables(equations), 2^(NDIMS - 1),
+                   ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mpi_mortars))
 
   local_neighbor_ids = fill(Vector{Int}(), n_mpi_mortars)
   local_neighbor_positions = fill(Vector{Int}(), n_mpi_mortars)
 
-  _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mpi_mortars)
+  _node_indices = Vector{NTuple{NDIMS,Symbol}}(undef, 2 * n_mpi_mortars)
   node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mpi_mortars))
 
-  _normal_directions = Vector{RealT}(undef, NDIMS * nnodes(basis)^(NDIMS-1) * 2^(NDIMS-1) * n_mpi_mortars)
+  _normal_directions = Vector{RealT}(undef,
+                                     NDIMS * nnodes(basis)^(NDIMS - 1) * 2^(NDIMS - 1) *
+                                     n_mpi_mortars)
   normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
-    (NDIMS, ntuple(_ -> nnodes(basis), NDIMS-1)..., 2^(NDIMS-1), n_mpi_mortars))
+                                  (NDIMS, ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                   2^(NDIMS - 1), n_mpi_mortars))
 
-  mpi_mortars = P4estMPIMortarContainer{NDIMS, uEltype, RealT, NDIMS+1, NDIMS+2, NDIMS+3}(
-    u, local_neighbor_ids, local_neighbor_positions, node_indices, normal_directions,
-    _u, _node_indices, _normal_directions)
+  mpi_mortars = P4estMPIMortarContainer{NDIMS,uEltype,RealT,NDIMS + 1,NDIMS + 2,
+                                        NDIMS + 3}(u, local_neighbor_ids,
+                                                   local_neighbor_positions, node_indices,
+                                                   normal_directions,
+                                                   _u, _node_indices, _normal_directions)
 
   if n_mpi_mortars > 0
     init_mpi_mortars!(mpi_mortars, mesh, basis, elements)
@@ -231,25 +253,35 @@ end
 
 
 # A helper struct used in initialization methods below
-mutable struct ParallelInitSurfacesIterFaceUserData{Interfaces, Mortars, Boundaries, MPIInterfaces, MPIMortars, Mesh}
-  interfaces      ::Interfaces
-  interface_id    ::Int
-  mortars         ::Mortars
-  mortar_id       ::Int
-  boundaries      ::Boundaries
-  boundary_id     ::Int
-  mpi_interfaces  ::MPIInterfaces
+mutable struct ParallelInitSurfacesIterFaceUserData{Interfaces,Mortars,Boundaries,
+                                                    MPIInterfaces,MPIMortars,Mesh}
+  interfaces::Interfaces
+  interface_id::Int
+  mortars::Mortars
+  mortar_id::Int
+  boundaries::Boundaries
+  boundary_id::Int
+  mpi_interfaces::MPIInterfaces
   mpi_interface_id::Int
-  mpi_mortars     ::MPIMortars
-  mpi_mortar_id   ::Int
-  mesh            ::Mesh
+  mpi_mortars::MPIMortars
+  mpi_mortar_id::Int
+  mesh::Mesh
 end
 
 function ParallelInitSurfacesIterFaceUserData(interfaces, mortars, boundaries,
                                               mpi_interfaces, mpi_mortars, mesh)
-  return ParallelInitSurfacesIterFaceUserData{
-    typeof(interfaces), typeof(mortars), typeof(boundaries), typeof(mpi_interfaces), typeof(mpi_mortars), typeof(mesh)}(
-      interfaces, 1, mortars, 1, boundaries, 1, mpi_interfaces, 1, mpi_mortars, 1, mesh)
+  return ParallelInitSurfacesIterFaceUserData{typeof(interfaces),typeof(mortars),
+                                              typeof(boundaries),typeof(mpi_interfaces),
+                                              typeof(mpi_mortars),typeof(mesh)}(interfaces,
+                                                                                1,
+                                                                                mortars,
+                                                                                1,
+                                                                                boundaries,
+                                                                                1,
+                                                                                mpi_interfaces,
+                                                                                1,
+                                                                                mpi_mortars,
+                                                                                1, mesh)
 end
 
 
@@ -262,12 +294,19 @@ function init_surfaces_iter_face_parallel(info, user_data)
 end
 
 # 2D
-cfunction(::typeof(init_surfaces_iter_face_parallel), ::Val{2}) = @cfunction(init_surfaces_iter_face_parallel, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+function cfunction(::typeof(init_surfaces_iter_face_parallel), ::Val{2})
+  @cfunction(init_surfaces_iter_face_parallel, Cvoid,
+             (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+end
 # 3D
-cfunction(::typeof(init_surfaces_iter_face_parallel), ::Val{3}) = @cfunction(init_surfaces_iter_face_parallel, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
+function cfunction(::typeof(init_surfaces_iter_face_parallel), ::Val{3})
+  @cfunction(init_surfaces_iter_face_parallel, Cvoid,
+             (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
+end
 
 # Function barrier for type stability, overload for parallel P4estMesh
-function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIterFaceUserData)
+function init_surfaces_iter_face_inner(info,
+                                       user_data::ParallelInitSurfacesIterFaceUserData)
   @unpack interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars = user_data
   # This function is called during `init_surfaces!`, more precisely it is called for each face
   # while p4est iterates over the forest. Since `init_surfaces!` can be used to initialize all
@@ -406,7 +445,8 @@ function init_mpi_mortars_iter_face_inner(info, sides, user_data)
 
   # Get id of local small quadrants within their tree
   # Indexing CBinding.Caccessor via a Vector does not work here -> use map instead
-  tree_small_quad_ids = map(p->sides[hanging_side].is.hanging.quadid[p], local_small_quad_positions)
+  tree_small_quad_ids = map(p -> sides[hanging_side].is.hanging.quadid[p],
+                            local_small_quad_positions)
   local_small_quad_ids = offsets[hanging_side] .+ tree_small_quad_ids # ids cumulative over local trees
 
   # Determine if large quadrant is available and if yes, determine its id
@@ -423,7 +463,7 @@ function init_mpi_mortars_iter_face_inner(info, sides, user_data)
   # Add large element information if it is locally available
   if local_large_quad_id > -1
     push!(local_neighbor_ids, local_large_quad_id + 1) # convert to 1-based index
-    push!(local_neighbor_positions, 2^(ndims(mesh)-1) + 1)
+    push!(local_neighbor_positions, 2^(ndims(mesh) - 1) + 1)
   end
 
   mpi_mortars.local_neighbor_ids[mpi_mortar_id] = local_neighbor_ids
@@ -431,7 +471,8 @@ function init_mpi_mortars_iter_face_inner(info, sides, user_data)
 
   # init_mortar_node_indices! expects side 1 to contain small elements
   faces = (sides[hanging_side].face, sides[full_side].face)
-  init_mortar_node_indices!(mpi_mortars, faces, unsafe_load(info).orientation, mpi_mortar_id)
+  init_mortar_node_indices!(mpi_mortars, faces, unsafe_load(info).orientation,
+                            mpi_mortar_id)
 
   return nothing
 end
@@ -509,9 +550,15 @@ function count_surfaces_iter_face_parallel(info, user_data)
 end
 
 # 2D
-cfunction(::typeof(count_surfaces_iter_face_parallel), ::Val{2}) = @cfunction(count_surfaces_iter_face_parallel, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+function cfunction(::typeof(count_surfaces_iter_face_parallel), ::Val{2})
+  @cfunction(count_surfaces_iter_face_parallel, Cvoid,
+             (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+end
 # 3D
-cfunction(::typeof(count_surfaces_iter_face_parallel), ::Val{3}) = @cfunction(count_surfaces_iter_face_parallel, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
+function cfunction(::typeof(count_surfaces_iter_face_parallel), ::Val{3})
+  @cfunction(count_surfaces_iter_face_parallel, Cvoid,
+             (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
+end
 
 function count_required_surfaces(mesh::ParallelP4estMesh)
   # Let p4est iterate over all interfaces and call count_surfaces_iter_face_parallel
@@ -523,11 +570,11 @@ function count_required_surfaces(mesh::ParallelP4estMesh)
   iterate_p4est(mesh.p4est, user_data; ghost_layer=mesh.ghost, iter_face_c=iter_face_c)
 
   # Return counters
-  return (interfaces     = user_data[1],
-          mortars        = user_data[2],
-          boundaries     = user_data[3],
-          mpi_interfaces = user_data[4],
-          mpi_mortars    = user_data[5])
+  return (interfaces=user_data[1],
+          mortars=user_data[2],
+          boundaries=user_data[3],
+          mpi_interfaces=user_data[4],
+          mpi_mortars=user_data[5])
 end
 
 

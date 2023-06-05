@@ -7,10 +7,10 @@
 
 
 # Container data structure (structure-of-arrays style) for DG elements
-mutable struct ElementContainer2D{RealT<:Real, uEltype<:Real} <: AbstractContainer
+mutable struct ElementContainer2D{RealT<:Real,uEltype<:Real} <: AbstractContainer
   inverse_jacobian::Vector{RealT}        # [elements]
-  node_coordinates::Array{RealT, 4}      # [orientation, i, j, elements]
-  surface_flux_values::Array{uEltype, 4} # [variables, i, direction, elements]
+  node_coordinates::Array{RealT,4}      # [orientation, i, j, elements]
+  surface_flux_values::Array{uEltype,4} # [variables, i, direction, elements]
   cell_ids::Vector{Int}                  # [elements]
   # internal `resize!`able storage
   _node_coordinates::Vector{RealT}
@@ -30,7 +30,7 @@ function Base.resize!(elements::ElementContainer2D, capacity)
   n_nodes = nnodes(elements)
   n_variables = nvariables(elements)
   @unpack _node_coordinates, _surface_flux_values,
-          inverse_jacobian, cell_ids = elements
+  inverse_jacobian, cell_ids = elements
 
   resize!(inverse_jacobian, capacity)
 
@@ -48,7 +48,8 @@ function Base.resize!(elements::ElementContainer2D, capacity)
 end
 
 
-function ElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables, n_nodes) where {RealT<:Real, uEltype<:Real}
+function ElementContainer2D{RealT,uEltype}(capacity::Integer, n_variables,
+                                           n_nodes) where {RealT<:Real,uEltype<:Real}
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
@@ -66,9 +67,9 @@ function ElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables, n_no
   cell_ids = fill(typemin(Int), capacity)
 
 
-  return ElementContainer2D{RealT, uEltype}(
-    inverse_jacobian, node_coordinates, surface_flux_values, cell_ids,
-    _node_coordinates, _surface_flux_values)
+  return ElementContainer2D{RealT,uEltype}(inverse_jacobian, node_coordinates,
+                                           surface_flux_values, cell_ids,
+                                           _node_coordinates, _surface_flux_values)
 end
 
 
@@ -89,11 +90,12 @@ In particular, not the elements themselves are returned.
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh2D,
                        equations::AbstractEquations{2},
-                       basis, ::Type{RealT}, ::Type{uEltype}) where {RealT<:Real, uEltype<:Real}
+                       basis, ::Type{RealT},
+                       ::Type{uEltype}) where {RealT<:Real,uEltype<:Real}
   # Initialize container
   n_elements = length(cell_ids)
-  elements = ElementContainer2D{RealT, uEltype}(
-    n_elements, nvariables(equations), nnodes(basis))
+  elements = ElementContainer2D{RealT,uEltype}(n_elements, nvariables(equations),
+                                               nnodes(basis))
 
   init_elements!(elements, cell_ids, mesh, basis)
   return elements
@@ -129,10 +131,12 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh2D, basis)
     # Hence, we need to add an offset for `nodes` with a midpoint
     # different from zero.
     for j in eachnode(basis), i in eachnode(basis)
-      elements.node_coordinates[1, i, j, element] = (
-          mesh.tree.coordinates[1, cell_id] + jacobian * (nodes[i] - reference_offset))
-      elements.node_coordinates[2, i, j, element] = (
-          mesh.tree.coordinates[2, cell_id] + jacobian * (nodes[j] - reference_offset))
+      elements.node_coordinates[1, i, j, element] = (mesh.tree.coordinates[1, cell_id] +
+                                                     jacobian *
+                                                     (nodes[i] - reference_offset))
+      elements.node_coordinates[2, i, j, element] = (mesh.tree.coordinates[2, cell_id] +
+                                                     jacobian *
+                                                     (nodes[j] - reference_offset))
     end
   end
 
@@ -143,8 +147,8 @@ end
 
 # Container data structure (structure-of-arrays style) for DG interfaces
 mutable struct InterfaceContainer2D{uEltype<:Real} <: AbstractContainer
-  u::Array{uEltype, 4}        # [leftright, variables, i, interfaces]
-  neighbor_ids::Array{Int, 2} # [leftright, interfaces]
+  u::Array{uEltype,4}        # [leftright, variables, i, interfaces]
+  neighbor_ids::Array{Int,2} # [leftright, interfaces]
   orientations::Vector{Int}   # [interfaces]
   # internal `resize!`able storage
   _u::Vector{uEltype}
@@ -175,7 +179,8 @@ function Base.resize!(interfaces::InterfaceContainer2D, capacity)
 end
 
 
-function InterfaceContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes) where {uEltype<:Real}
+function InterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
+                                       n_nodes) where {uEltype<:Real}
   nan = convert(uEltype, NaN)
 
   # Initialize fields with defaults
@@ -190,9 +195,8 @@ function InterfaceContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes) 
   orientations = fill(typemin(Int), capacity)
 
 
-  return InterfaceContainer2D{uEltype}(
-    u, neighbor_ids, orientations,
-    _u, _neighbor_ids)
+  return InterfaceContainer2D{uEltype}(u, neighbor_ids, orientations,
+                                       _u, _neighbor_ids)
 end
 
 
@@ -205,8 +209,8 @@ function init_interfaces(cell_ids, mesh::TreeMesh2D,
                          elements::ElementContainer2D)
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
-  interfaces = InterfaceContainer2D{eltype(elements)}(
-    n_interfaces, nvariables(elements), nnodes(elements))
+  interfaces = InterfaceContainer2D{eltype(elements)}(n_interfaces, nvariables(elements),
+                                                      nnodes(elements))
 
   # Connect elements with interfaces
   init_interfaces!(interfaces, elements, mesh)
@@ -310,13 +314,13 @@ end
 
 
 # Container data structure (structure-of-arrays style) for DG boundaries
-mutable struct BoundaryContainer2D{RealT<:Real, uEltype<:Real} <: AbstractContainer
-  u::Array{uEltype, 4}              # [leftright, variables, i, boundaries]
+mutable struct BoundaryContainer2D{RealT<:Real,uEltype<:Real} <: AbstractContainer
+  u::Array{uEltype,4}              # [leftright, variables, i, boundaries]
   neighbor_ids::Vector{Int}         # [boundaries]
   orientations::Vector{Int}         # [boundaries]
   neighbor_sides::Vector{Int}       # [boundaries]
-  node_coordinates::Array{RealT, 3} # [orientation, i, elements]
-  n_boundaries_per_direction::SVector{4, Int} # [direction]
+  node_coordinates::Array{RealT,3} # [orientation, i, elements]
+  n_boundaries_per_direction::SVector{4,Int} # [direction]
   # internal `resize!`able storage
   _u::Vector{uEltype}
   _node_coordinates::Vector{RealT}
@@ -331,7 +335,7 @@ function Base.resize!(boundaries::BoundaryContainer2D, capacity)
   n_nodes = nnodes(boundaries)
   n_variables = nvariables(boundaries)
   @unpack _u, _node_coordinates,
-          neighbor_ids, orientations, neighbor_sides = boundaries
+  neighbor_ids, orientations, neighbor_sides = boundaries
 
   resize!(_u, 2 * n_variables * n_nodes * capacity)
   boundaries.u = unsafe_wrap(Array, pointer(_u),
@@ -351,7 +355,8 @@ function Base.resize!(boundaries::BoundaryContainer2D, capacity)
 end
 
 
-function BoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables, n_nodes) where {RealT<:Real, uEltype<:Real}
+function BoundaryContainer2D{RealT,uEltype}(capacity::Integer, n_variables,
+                                            n_nodes) where {RealT<:Real,uEltype<:Real}
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
@@ -372,10 +377,9 @@ function BoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables, n_n
 
   n_boundaries_per_direction = SVector(0, 0, 0, 0)
 
-  return BoundaryContainer2D{RealT, uEltype}(
-    u, neighbor_ids, orientations, neighbor_sides,
-    node_coordinates, n_boundaries_per_direction,
-    _u, _node_coordinates)
+  return BoundaryContainer2D{RealT,uEltype}(u, neighbor_ids, orientations, neighbor_sides,
+                                            node_coordinates, n_boundaries_per_direction,
+                                            _u, _node_coordinates)
 end
 
 
@@ -388,8 +392,9 @@ function init_boundaries(cell_ids, mesh::TreeMesh2D,
                          elements::ElementContainer2D)
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer2D{real(elements), eltype(elements)}(
-    n_boundaries, nvariables(elements), nnodes(elements))
+  boundaries = BoundaryContainer2D{real(elements),eltype(elements)}(n_boundaries,
+                                                                    nvariables(elements),
+                                                                    nnodes(elements))
 
   # Connect elements with boundaries
   init_boundaries!(boundaries, elements, mesh)
@@ -478,13 +483,13 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
       # Store node coordinates
       enc = elements.node_coordinates
       if direction == 1 # -x direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, 1,   :,   element]
+        boundaries.node_coordinates[:, :, count] .= enc[:, 1, :, element]
       elseif direction == 2 # +x direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, end, :,   element]
+        boundaries.node_coordinates[:, :, count] .= enc[:, end, :, element]
       elseif direction == 3 # -y direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, :,   1,   element]
+        boundaries.node_coordinates[:, :, count] .= enc[:, :, 1, element]
       elseif direction == 4 # +y direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, :,   end, element]
+        boundaries.node_coordinates[:, :, count] .= enc[:, :, end, element]
       else
         error("should not happen")
       end
@@ -513,9 +518,9 @@ end
 # lower = 1 |    |
 #           |    |
 mutable struct L2MortarContainer2D{uEltype<:Real} <: AbstractContainer
-  u_upper::Array{uEltype, 4}  # [leftright, variables, i, mortars]
-  u_lower::Array{uEltype, 4}  # [leftright, variables, i, mortars]
-  neighbor_ids::Array{Int, 2} # [position, mortars]
+  u_upper::Array{uEltype,4}  # [leftright, variables, i, mortars]
+  u_lower::Array{uEltype,4}  # [leftright, variables, i, mortars]
+  neighbor_ids::Array{Int,2} # [position, mortars]
   # Large sides: left -> 1, right -> 2
   large_sides::Vector{Int}  # [mortars]
   orientations::Vector{Int} # [mortars]
@@ -534,7 +539,7 @@ function Base.resize!(mortars::L2MortarContainer2D, capacity)
   n_nodes = nnodes(mortars)
   n_variables = nvariables(mortars)
   @unpack _u_upper, _u_lower, _neighbor_ids,
-          large_sides, orientations = mortars
+  large_sides, orientations = mortars
 
   resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
   mortars.u_upper = unsafe_wrap(Array, pointer(_u_upper),
@@ -546,7 +551,7 @@ function Base.resize!(mortars::L2MortarContainer2D, capacity)
 
   resize!(_neighbor_ids, 3 * capacity)
   mortars.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
-                                        (3, capacity))
+                                     (3, capacity))
 
   resize!(large_sides, capacity)
 
@@ -556,7 +561,8 @@ function Base.resize!(mortars::L2MortarContainer2D, capacity)
 end
 
 
-function L2MortarContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes) where {uEltype<:Real}
+function L2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
+                                      n_nodes) where {uEltype<:Real}
   nan = convert(uEltype, NaN)
 
   # Initialize fields with defaults
@@ -572,13 +578,13 @@ function L2MortarContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes) w
   neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
                              (3, capacity))
 
-  large_sides  = fill(typemin(Int), capacity)
+  large_sides = fill(typemin(Int), capacity)
 
   orientations = fill(typemin(Int), capacity)
 
-  return L2MortarContainer2D{uEltype}(
-    u_upper, u_lower, neighbor_ids, large_sides, orientations,
-    _u_upper, _u_lower, _neighbor_ids)
+  return L2MortarContainer2D{uEltype}(u_upper, u_lower, neighbor_ids, large_sides,
+                                      orientations,
+                                      _u_upper, _u_lower, _neighbor_ids)
 end
 
 
@@ -600,7 +606,7 @@ function Base.show(io::IO, ::MIME"text/plain", c::L2MortarContainer2D)
   println(io, "transpose(c.neighbor_ids) = $(transpose(c.neighbor_ids))")
   println(io, "c.large_sides = $(c.large_sides)")
   println(io, "c.orientations = $(c.orientations)")
-  print(io,   '*'^20)
+  print(io, '*'^20)
 end
 
 
@@ -610,8 +616,8 @@ function init_mortars(cell_ids, mesh::TreeMesh2D,
                       ::LobattoLegendreMortarL2)
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
-  mortars = L2MortarContainer2D{eltype(elements)}(
-    n_mortars, nvariables(elements), nnodes(elements))
+  mortars = L2MortarContainer2D{eltype(elements)}(n_mortars, nvariables(elements),
+                                                  nnodes(elements))
 
   # Connect elements with mortars
   init_mortars!(mortars, elements, mesh)
@@ -658,7 +664,7 @@ function count_required_mortars(mesh::TreeMesh2D, cell_ids)
         end
       end
 
-      count +=1
+      count += 1
     end
   end
 
@@ -768,7 +774,7 @@ end
 
 # Container data structure (structure-of-arrays style) for DG MPI interfaces
 mutable struct MPIInterfaceContainer2D{uEltype<:Real} <: AbstractContainer
-  u::Array{uEltype, 4}           # [leftright, variables, i, interfaces]
+  u::Array{uEltype,4}           # [leftright, variables, i, interfaces]
   local_neighbor_ids::Vector{Int} # [interfaces]
   orientations::Vector{Int}      # [interfaces]
   remote_sides::Vector{Int}      # [interfaces]
@@ -800,7 +806,8 @@ function Base.resize!(mpi_interfaces::MPIInterfaceContainer2D, capacity)
 end
 
 
-function MPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes) where {uEltype<:Real}
+function MPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
+                                          n_nodes) where {uEltype<:Real}
   nan = convert(uEltype, NaN)
 
   # Initialize fields with defaults
@@ -814,15 +821,17 @@ function MPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables, n_node
 
   remote_sides = fill(typemin(Int), capacity)
 
-  return MPIInterfaceContainer2D{uEltype}(
-    u, local_neighbor_ids, orientations, remote_sides,
-    _u)
+  return MPIInterfaceContainer2D{uEltype}(u, local_neighbor_ids, orientations,
+                                          remote_sides,
+                                          _u)
 end
 
 
 # TODO: Taal, rename to ninterfaces?
 # Return number of interfaces
-nmpiinterfaces(mpi_interfaces::MPIInterfaceContainer2D) = length(mpi_interfaces.orientations)
+function nmpiinterfaces(mpi_interfaces::MPIInterfaceContainer2D)
+  length(mpi_interfaces.orientations)
+end
 
 
 # Create MPI interface container and initialize MPI interface data in `elements`.
@@ -830,8 +839,9 @@ function init_mpi_interfaces(cell_ids, mesh::TreeMesh2D,
                              elements::ElementContainer2D)
   # Initialize container
   n_mpi_interfaces = count_required_mpi_interfaces(mesh, cell_ids)
-  mpi_interfaces = MPIInterfaceContainer2D{eltype(elements)}(
-    n_mpi_interfaces, nvariables(elements), nnodes(elements))
+  mpi_interfaces = MPIInterfaceContainer2D{eltype(elements)}(n_mpi_interfaces,
+                                                             nvariables(elements),
+                                                             nnodes(elements))
 
   # Connect elements with interfaces
   init_mpi_interfaces!(mpi_interfaces, elements, mesh)
@@ -926,7 +936,8 @@ function init_mpi_interfaces!(mpi_interfaces, elements, mesh::TreeMesh2D)
   end
 
   @assert count == nmpiinterfaces(mpi_interfaces) ("Actual interface count ($count) does not match "
-                                                   * "expectations $(nmpiinterfaces(mpi_interfaces))")
+                                                   *
+                                                   "expectations $(nmpiinterfaces(mpi_interfaces))")
 end
 
 
@@ -941,8 +952,8 @@ end
 # lower = 1 |    |
 #           |    |
 mutable struct MPIL2MortarContainer2D{uEltype<:Real} <: AbstractContainer
-  u_upper::Array{uEltype, 4} # [leftright, variables, i, mortars]
-  u_lower::Array{uEltype, 4} # [leftright, variables, i, mortars]
+  u_upper::Array{uEltype,4} # [leftright, variables, i, mortars]
+  u_lower::Array{uEltype,4} # [leftright, variables, i, mortars]
   local_neighbor_ids::Vector{Vector{Int}}       # [mortars]
   local_neighbor_positions::Vector{Vector{Int}} # [mortars]
   # Large sides: left -> 1, right -> 2
@@ -962,7 +973,7 @@ function Base.resize!(mpi_mortars::MPIL2MortarContainer2D, capacity)
   n_nodes = nnodes(mpi_mortars)
   n_variables = nvariables(mpi_mortars)
   @unpack _u_upper, _u_lower, local_neighbor_ids, local_neighbor_positions,
-          large_sides, orientations = mpi_mortars
+  large_sides, orientations = mpi_mortars
 
   resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
   mpi_mortars.u_upper = unsafe_wrap(Array, pointer(_u_upper),
@@ -983,7 +994,8 @@ function Base.resize!(mpi_mortars::MPIL2MortarContainer2D, capacity)
 end
 
 
-function MPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes) where {uEltype<:Real}
+function MPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
+                                         n_nodes) where {uEltype<:Real}
   nan = convert(uEltype, NaN)
 
   # Initialize fields with defaults
@@ -1002,14 +1014,17 @@ function MPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes
 
   orientations = fill(typemin(Int), capacity)
 
-  return MPIL2MortarContainer2D{uEltype}(
-    u_upper, u_lower, local_neighbor_ids, local_neighbor_positions, large_sides, orientations,
-    _u_upper, _u_lower)
+  return MPIL2MortarContainer2D{uEltype}(u_upper, u_lower, local_neighbor_ids,
+                                         local_neighbor_positions, large_sides,
+                                         orientations,
+                                         _u_upper, _u_lower)
 end
 
 
 # Return number of L2 mortars
-@inline nmpimortars(mpi_l2mortars::MPIL2MortarContainer2D) = length(mpi_l2mortars.orientations)
+@inline function nmpimortars(mpi_l2mortars::MPIL2MortarContainer2D)
+  length(mpi_l2mortars.orientations)
+end
 
 
 # Create MPI mortar container and initialize MPI mortar data in `elements`.
@@ -1018,8 +1033,9 @@ function init_mpi_mortars(cell_ids, mesh::TreeMesh2D,
                           ::LobattoLegendreMortarL2)
   # Initialize containers
   n_mpi_mortars = count_required_mpi_mortars(mesh, cell_ids)
-  mpi_mortars = MPIL2MortarContainer2D{eltype(elements)}(
-    n_mpi_mortars, nvariables(elements), nnodes(elements))
+  mpi_mortars = MPIL2MortarContainer2D{eltype(elements)}(n_mpi_mortars,
+                                                         nvariables(elements),
+                                                         nnodes(elements))
 
   # Connect elements with mortars
   init_mpi_mortars!(mpi_mortars, elements, mesh)

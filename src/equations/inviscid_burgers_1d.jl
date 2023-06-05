@@ -15,11 +15,11 @@ The inviscid Burgers' equation
 ```
 in one space dimension.
 """
-struct InviscidBurgersEquation1D <: AbstractInviscidBurgersEquation{1, 1} end
+struct InviscidBurgersEquation1D <: AbstractInviscidBurgersEquation{1,1} end
 
 
-varnames(::typeof(cons2cons), ::InviscidBurgersEquation1D) = ("scalar", )
-varnames(::typeof(cons2prim), ::InviscidBurgersEquation1D) = ("scalar", )
+varnames(::typeof(cons2cons), ::InviscidBurgersEquation1D) = ("scalar",)
+varnames(::typeof(cons2prim), ::InviscidBurgersEquation1D) = ("scalar",)
 
 
 # Set initial conditions at physical location `x` for time `t`
@@ -42,7 +42,7 @@ function initial_condition_convergence_test(x, t, equation::InviscidBurgersEquat
   c = 2.0
   A = 1.0
   L = 1
-  f = 1/L
+  f = 1 / L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * (x[1] - t))
 
@@ -56,12 +56,13 @@ end
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
 """
-@inline function source_terms_convergence_test(u, x, t, equations::InviscidBurgersEquation1D)
+@inline function source_terms_convergence_test(u, x, t,
+                                               equations::InviscidBurgersEquation1D)
   # Same settings as in `initial_condition`
   c = 2.0
   A = 1.0
   L = 1
-  f = 1/L
+  f = 1 / L
   omega = 2 * pi * f
   du = omega * A * cos(omega * (x[1] - t)) * (c - 1 + A * sin(omega * (x[1] - t)))
 
@@ -80,7 +81,8 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::InviscidBurgersEquation1D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::InviscidBurgersEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
@@ -88,7 +90,8 @@ end
 end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::InviscidBurgersEquation1D)
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::InviscidBurgersEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
@@ -153,7 +156,7 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
 @inline function splitting_lax_friedrichs(u, orientation::Integer,
                                           equations::InviscidBurgersEquation1D)
   fm = splitting_lax_friedrichs(u, Val{:minus}(), orientation, equations)
-  fp = splitting_lax_friedrichs(u, Val{:plus}(),  orientation, equations)
+  fp = splitting_lax_friedrichs(u, Val{:plus}(), orientation, equations)
   return fm, fp
 end
 
@@ -186,7 +189,9 @@ end
 
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(u::Real, ::InviscidBurgersEquation1D) = 0.5 * u^2
-@inline energy_total(u, equation::InviscidBurgersEquation1D) = energy_total(u[1], equation)
+@inline function energy_total(u, equation::InviscidBurgersEquation1D)
+  energy_total(u[1], equation)
+end
 
 
 end # @muladd

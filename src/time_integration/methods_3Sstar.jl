@@ -17,20 +17,30 @@ Five stage, second-order accurate explicit Runge-Kutta scheme with stability reg
 the hyperbolic diffusion equation with LLF flux and polynomials of degree polydeg=3.
 """
 struct HypDiffN3Erk3Sstar52 <: SimpleAlgorithm3Sstar
-  gamma1::SVector{5, Float64}
-  gamma2::SVector{5, Float64}
-  gamma3::SVector{5, Float64}
-  beta::SVector{5, Float64}
-  delta::SVector{5, Float64}
-  c::SVector{5, Float64}
+  gamma1::SVector{5,Float64}
+  gamma2::SVector{5,Float64}
+  gamma3::SVector{5,Float64}
+  beta::SVector{5,Float64}
+  delta::SVector{5,Float64}
+  c::SVector{5,Float64}
 
   function HypDiffN3Erk3Sstar52()
-    gamma1 = SVector(0.0000000000000000E+00, 5.2656474556752575E-01,  1.0385212774098265E+00, 3.6859755007388034E-01, -6.3350615190506088E-01)
-    gamma2 = SVector(1.0000000000000000E+00, 4.1892580153419307E-01, -2.7595818152587825E-02, 9.1271323651988631E-02,  6.8495995159465062E-01)
-    gamma3 = SVector(0.0000000000000000E+00, 0.0000000000000000E+00,  0.0000000000000000E+00, 4.1301005663300466E-01, -5.4537881202277507E-03)
-    beta   = SVector(4.5158640252832094E-01, 7.5974836561844006E-01,  3.7561630338850771E-01, 2.9356700007428856E-02,  2.5205285143494666E-01)
-    delta  = SVector(1.0000000000000000E+00, 1.3011720142005145E-01,  2.6579275844515687E-01, 9.9687218193685878E-01,  0.0000000000000000E+00)
-    c      = SVector(0.0000000000000000E+00, 4.5158640252832094E-01,  1.0221535725056414E+00, 1.4280257701954349E+00,  7.1581334196229851E-01)
+    gamma1 = SVector(0.0000000000000000E+00, 5.2656474556752575E-01,
+                     1.0385212774098265E+00, 3.6859755007388034E-01,
+                     -6.3350615190506088E-01)
+    gamma2 = SVector(1.0000000000000000E+00, 4.1892580153419307E-01,
+                     -2.7595818152587825E-02, 9.1271323651988631E-02,
+                     6.8495995159465062E-01)
+    gamma3 = SVector(0.0000000000000000E+00, 0.0000000000000000E+00,
+                     0.0000000000000000E+00, 4.1301005663300466E-01,
+                     -5.4537881202277507E-03)
+    beta = SVector(4.5158640252832094E-01, 7.5974836561844006E-01, 3.7561630338850771E-01,
+                   2.9356700007428856E-02, 2.5205285143494666E-01)
+    delta = SVector(1.0000000000000000E+00, 1.3011720142005145E-01,
+                    2.6579275844515687E-01, 9.9687218193685878E-01,
+                    0.0000000000000000E+00)
+    c = SVector(0.0000000000000000E+00, 4.5158640252832094E-01, 1.0221535725056414E+00,
+                1.4280257701954349E+00, 7.1581334196229851E-01)
 
     new(gamma1, gamma2, gamma3, beta, delta, c)
   end
@@ -45,20 +55,41 @@ Parsani, Ketcheson, Deconinck (2013)
 [DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
 """
 struct ParsaniKetchesonDeconinck3Sstar94 <: SimpleAlgorithm3Sstar
-  gamma1::SVector{9, Float64}
-  gamma2::SVector{9, Float64}
-  gamma3::SVector{9, Float64}
-  beta::SVector{9, Float64}
-  delta::SVector{9, Float64}
-  c::SVector{9, Float64}
+  gamma1::SVector{9,Float64}
+  gamma2::SVector{9,Float64}
+  gamma3::SVector{9,Float64}
+  beta::SVector{9,Float64}
+  delta::SVector{9,Float64}
+  c::SVector{9,Float64}
 
   function ParsaniKetchesonDeconinck3Sstar94()
-    gamma1 = SVector(0.0000000000000000E+00, -4.6556413837561301E+00, -7.7202649689034453E-01, -4.0244202720632174E+00, -2.1296873883702272E-02, -2.4350219407769953E+00, 1.9856336960249132E-02, -2.8107894116913812E-01, 1.6894354373677900E-01)
-    gamma2 = SVector(1.0000000000000000E+00, 2.4992627683300688E+00, 5.8668202764174726E-01, 1.2051419816240785E+00, 3.4747937498564541E-01, 1.3213458736302766E+00, 3.1196363453264964E-01, 4.3514189245414447E-01, 2.3596980658341213E-01)
-    gamma3 = SVector(0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 7.6209857891449362E-01, -1.9811817832965520E-01, -6.2289587091629484E-01, -3.7522475499063573E-01, -3.3554373281046146E-01, -4.5609629702116454E-02)
-    beta   = SVector(2.8363432481011769E-01, 9.7364980747486463E-01, 3.3823592364196498E-01, -3.5849518935750763E-01, -4.1139587569859462E-03, 1.4279689871485013E+00, 1.8084680519536503E-02, 1.6057708856060501E-01, 2.9522267863254809E-01)
-    delta  = SVector(1.0000000000000000E+00, 1.2629238731608268E+00, 7.5749675232391733E-01, 5.1635907196195419E-01, -2.7463346616574083E-02, -4.3826743572318672E-01, 1.2735870231839268E+00, -6.2947382217730230E-01, 0.0000000000000000E+00)
-    c      = SVector(0.0000000000000000E+00, 2.8363432481011769E-01, 5.4840742446661772E-01, 3.6872298094969475E-01, -6.8061183026103156E-01, 3.5185265855105619E-01, 1.6659419385562171E+00, 9.7152778807463247E-01, 9.0515694340066954E-01)
+    gamma1 = SVector(0.0000000000000000E+00, -4.6556413837561301E+00,
+                     -7.7202649689034453E-01, -4.0244202720632174E+00,
+                     -2.1296873883702272E-02, -2.4350219407769953E+00,
+                     1.9856336960249132E-02, -2.8107894116913812E-01,
+                     1.6894354373677900E-01)
+    gamma2 = SVector(1.0000000000000000E+00, 2.4992627683300688E+00,
+                     5.8668202764174726E-01, 1.2051419816240785E+00,
+                     3.4747937498564541E-01, 1.3213458736302766E+00,
+                     3.1196363453264964E-01, 4.3514189245414447E-01,
+                     2.3596980658341213E-01)
+    gamma3 = SVector(0.0000000000000000E+00, 0.0000000000000000E+00,
+                     0.0000000000000000E+00, 7.6209857891449362E-01,
+                     -1.9811817832965520E-01, -6.2289587091629484E-01,
+                     -3.7522475499063573E-01, -3.3554373281046146E-01,
+                     -4.5609629702116454E-02)
+    beta = SVector(2.8363432481011769E-01, 9.7364980747486463E-01, 3.3823592364196498E-01,
+                   -3.5849518935750763E-01, -4.1139587569859462E-03,
+                   1.4279689871485013E+00, 1.8084680519536503E-02, 1.6057708856060501E-01,
+                   2.9522267863254809E-01)
+    delta = SVector(1.0000000000000000E+00, 1.2629238731608268E+00,
+                    7.5749675232391733E-01, 5.1635907196195419E-01,
+                    -2.7463346616574083E-02, -4.3826743572318672E-01,
+                    1.2735870231839268E+00, -6.2947382217730230E-01,
+                    0.0000000000000000E+00)
+    c = SVector(0.0000000000000000E+00, 2.8363432481011769E-01, 5.4840742446661772E-01,
+                3.6872298094969475E-01, -6.8061183026103156E-01, 3.5185265855105619E-01,
+                1.6659419385562171E+00, 9.7152778807463247E-01, 9.0515694340066954E-01)
 
     new(gamma1, gamma2, gamma3, beta, delta, c)
   end
@@ -73,20 +104,24 @@ Parsani, Ketcheson, Deconinck (2013)
 [DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
 """
 struct ParsaniKetchesonDeconinck3Sstar32 <: SimpleAlgorithm3Sstar
-  gamma1::SVector{3, Float64}
-  gamma2::SVector{3, Float64}
-  gamma3::SVector{3, Float64}
-  beta::SVector{3, Float64}
-  delta::SVector{3, Float64}
-  c::SVector{3, Float64}
+  gamma1::SVector{3,Float64}
+  gamma2::SVector{3,Float64}
+  gamma3::SVector{3,Float64}
+  beta::SVector{3,Float64}
+  delta::SVector{3,Float64}
+  c::SVector{3,Float64}
 
   function ParsaniKetchesonDeconinck3Sstar32()
-    gamma1 = SVector(0.0000000000000000E+00, -1.2664395576322218E-01,  1.1426980685848858E+00)
-    gamma2 = SVector(1.0000000000000000E+00,  6.5427782599406470E-01, -8.2869287683723744E-02)
-    gamma3 = SVector(0.0000000000000000E+00,  0.0000000000000000E+00,  0.0000000000000000E+00)
-    beta   = SVector(7.2366074728360086E-01,  3.4217876502651023E-01,  3.6640216242653251E-01)
-    delta  = SVector(1.0000000000000000E+00,  7.2196567116037724E-01,  0.0000000000000000E+00)
-    c      = SVector(0.0000000000000000E+00,  7.2366074728360086E-01,  5.9236433182015646E-01)
+    gamma1 = SVector(0.0000000000000000E+00, -1.2664395576322218E-01,
+                     1.1426980685848858E+00)
+    gamma2 = SVector(1.0000000000000000E+00, 6.5427782599406470E-01,
+                     -8.2869287683723744E-02)
+    gamma3 = SVector(0.0000000000000000E+00, 0.0000000000000000E+00,
+                     0.0000000000000000E+00)
+    beta = SVector(7.2366074728360086E-01, 3.4217876502651023E-01, 3.6640216242653251E-01)
+    delta = SVector(1.0000000000000000E+00, 7.2196567116037724E-01,
+                    0.0000000000000000E+00)
+    c = SVector(0.0000000000000000E+00, 7.2366074728360086E-01, 5.9236433182015646E-01)
 
     new(gamma1, gamma2, gamma3, beta, delta, c)
   end
@@ -102,11 +137,12 @@ mutable struct SimpleIntegrator3SstarOptions{Callback}
 end
 
 function SimpleIntegrator3SstarOptions(callback, tspan; maxiters=typemax(Int), kwargs...)
-  SimpleIntegrator3SstarOptions{typeof(callback)}(
-    callback, false, Inf, maxiters, [last(tspan)])
+  SimpleIntegrator3SstarOptions{typeof(callback)}(callback, false, Inf, maxiters,
+                                                  [last(tspan)])
 end
 
-mutable struct SimpleIntegrator3Sstar{RealT<:Real, uType, Params, Sol, F, Alg, SimpleIntegrator3SstarOptions}
+mutable struct SimpleIntegrator3Sstar{RealT<:Real,uType,Params,Sol,F,Alg,
+                                      SimpleIntegrator3SstarOptions}
   u::uType #
   du::uType
   u_tmp1::uType
@@ -126,7 +162,7 @@ end
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
 function Base.getproperty(integrator::SimpleIntegrator3Sstar, field::Symbol)
   if field === :stats
-    return (naccept = getfield(integrator, :iter),)
+    return (naccept=getfield(integrator, :iter),)
   end
   # general fallback
   return getfield(integrator, field)
@@ -142,8 +178,9 @@ function solve(ode::ODEProblem, alg::T;
   t = first(ode.tspan)
   iter = 0
   integrator = SimpleIntegrator3Sstar(u, du, u_tmp1, u_tmp2, t, dt, zero(dt), iter, ode.p,
-                  (prob=ode,), ode.f, alg,
-                  SimpleIntegrator3SstarOptions(callback, ode.tspan; kwargs...), false)
+                                      (prob=ode,), ode.f, alg,
+                                      SimpleIntegrator3SstarOptions(callback, ode.tspan;
+                                                                    kwargs...), false)
 
   # initialize callbacks
   if callback isa CallbackSet
@@ -173,7 +210,8 @@ function solve!(integrator::SimpleIntegrator3Sstar)
     end
 
     # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end || isapprox(integrator.t + integrator.dt, t_end)
+    if integrator.t + integrator.dt > t_end ||
+       isapprox(integrator.t + integrator.dt, t_end)
       integrator.dt = t_end - integrator.t
       terminate!(integrator)
     end
@@ -185,18 +223,18 @@ function solve!(integrator::SimpleIntegrator3Sstar)
       t_stage = integrator.t + integrator.dt * alg.c[stage]
       prob.f(integrator.du, integrator.u, prob.p, t_stage)
 
-      delta_stage   = alg.delta[stage]
-      gamma1_stage  = alg.gamma1[stage]
-      gamma2_stage  = alg.gamma2[stage]
-      gamma3_stage  = alg.gamma3[stage]
+      delta_stage = alg.delta[stage]
+      gamma1_stage = alg.gamma1[stage]
+      gamma2_stage = alg.gamma2[stage]
+      gamma3_stage = alg.gamma3[stage]
       beta_stage_dt = alg.beta[stage] * integrator.dt
       @trixi_timeit timer() "Runge-Kutta step" begin
         @threaded for i in eachindex(integrator.u)
           integrator.u_tmp1[i] += delta_stage * integrator.u[i]
-          integrator.u[i]       = (gamma1_stage * integrator.u[i] +
-                                   gamma2_stage * integrator.u_tmp1[i] +
-                                   gamma3_stage * integrator.u_tmp2[i] +
-                                   beta_stage_dt * integrator.du[i])
+          integrator.u[i] = (gamma1_stage * integrator.u[i] +
+                             gamma2_stage * integrator.u_tmp1[i] +
+                             gamma3_stage * integrator.u_tmp2[i] +
+                             beta_stage_dt * integrator.du[i])
         end
       end
     end
