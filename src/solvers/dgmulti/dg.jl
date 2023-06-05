@@ -199,8 +199,8 @@ function estimate_dt(mesh::DGMultiMesh, dg::DGMulti)
   return StartUpDG.estimate_h(rd, mesh.md) / StartUpDG.inverse_trace_constant(rd)
 end
 
-dt_polydeg_scaling(dg::DGMulti) = inv(dg.basis.N+1)
-dt_polydeg_scaling(dg::DGMulti{3, <:Wedge, <: TensorProductWedge}) = inv(maximum(dg.basis.N)+1)
+dt_polydeg_scaling(dg::DGMulti) = inv(dg.basis.N + 1)
+dt_polydeg_scaling(dg::DGMulti{3, <:Wedge, <: TensorProductWedge}) = inv(maximum(dg.basis.N) + 1)
 
 # for the stepsize callback
 function max_dt(u, t, mesh::DGMultiMesh,

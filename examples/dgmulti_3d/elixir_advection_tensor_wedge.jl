@@ -12,17 +12,17 @@ initial_condition = initial_condition_convergence_test
 tensor_polydeg = (3, 4)
 
 dg = DGMulti(element_type = Wedge(),
-            approximation_type = Polynomial(),
-            surface_flux = flux_lax_friedrichs,
-            polydeg = tensor_polydeg)
+             approximation_type = Polynomial(),
+             surface_flux = flux_lax_friedrichs,
+             polydeg = tensor_polydeg)
 
 
 cells_per_dimension = (8, 8, 8)
 mesh = DGMultiMesh(dg, 
-                cells_per_dimension,
-                coordinates_min = (-1.0, -1.0, -1.0), 
-                coordinates_max = (1.0, 1.0, 1.0),
-                periodicity = true)
+                   cells_per_dimension,
+                   coordinates_min = (-1.0, -1.0, -1.0), 
+                   coordinates_max = (1.0, 1.0, 1.0),
+                   periodicity = true)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
