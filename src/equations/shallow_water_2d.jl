@@ -494,14 +494,14 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
 
   if (h_ll_star <= threshold)
     h_ll_star = threshold
-    v1_ll = 0
-    v2_ll = 0
+    v1_ll = zero(v1_ll)
+    v2_ll = zero(v2_ll)
   end
 
   if (h_rr_star <= threshold)
     h_rr_star = threshold
-    v1_rr = 0
-    v2_rr = 0
+    v1_rr = zero(v1_rr)
+    v2_rr = zero(v2_rr)
   end
 
   # Create the conservative variables using the reconstruted water heights
