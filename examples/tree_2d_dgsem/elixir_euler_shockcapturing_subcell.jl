@@ -39,7 +39,7 @@ surface_flux = flux_lax_friedrichs
 volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorIDP(equations, basis;
-                            IDPPositivity=true, variables_cons=(Trixi.density,), positCorrFactor=0.5)
+                            positivity=true, variables_cons=(Trixi.density,), positivity_correction_factor=0.5)
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,
                                                       volume_flux_fv=surface_flux)

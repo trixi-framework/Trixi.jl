@@ -187,22 +187,22 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, number_bounds)
-  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorIDP{real(basis)}(0, nnodes(basis), number_bounds)
+  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorIDP2D{real(basis)}(0, nnodes(basis), number_bounds)
 
   cache = (; ContainerShockCapturingIndicator)
 
   return cache
 end
 
-function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSEM, t, dt; kwargs...)
-  @unpack alpha = indicator_IDP.cache.ContainerShockCapturingIndicator
-  alpha .= 0.0
+function (indicator::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSEM, t, dt; kwargs...)
+  @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+  alpha .= zero(eltype(alpha))
 
-  indicator_IDP.IDPPositivity  &&
-    @trixi_timeit timer() "IDPPositivity"  IDP_positivity!(alpha, indicator_IDP, u, dt, semi)
+  indicator.positivity &&
+    @trixi_timeit timer() "positivity" idp_positivity!(alpha, indicator, u, dt, semi)
 
   # Calculate alpha1 and alpha2
-  @unpack alpha1, alpha2 = indicator_IDP.cache.ContainerShockCapturingIndicator
+  @unpack alpha1, alpha2 = indicator.cache.ContainerShockCapturingIndicator
   @threaded for element in eachelement(dg, semi.cache)
     for j in eachnode(dg), i in 2:nnodes(dg)
       alpha1[i, j, element] = max(alpha[i-1, j, element], alpha[i, j, element])
@@ -219,43 +219,42 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSE
   return nothing
 end
 
-@inline function IDP_positivity!(alpha, indicator_IDP, u, dt, semi)
-
+@inline function idp_positivity!(alpha, indicator, u, dt, semi)
   # Conservative variables
-  for (index, variable) in enumerate(indicator_IDP.variables_cons)
-    IDP_positivity!(alpha, indicator_IDP, u, dt, semi, variable, index)
+  for (index, variable) in enumerate(indicator.variables_cons)
+    idp_positivity!(alpha, indicator, u, dt, semi, variable, index)
   end
 
   return nothing
 end
 
-@inline function IDP_positivity!(alpha, indicator_IDP, u, dt, semi, variable, index)
+@inline function idp_positivity!(alpha, indicator, u, dt, semi, variable, index)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
-  @unpack positCorrFactor = indicator_IDP
+  @unpack positivity_correction_factor = indicator
 
-  @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
+  @unpack variable_bounds = indicator.cache.ContainerShockCapturingIndicator
 
-  var_min = var_bounds[index]
+  var_min = variable_bounds[index]
 
   @threaded for element in eachelement(dg, semi.cache)
     inverse_jacobian = cache.elements.inverse_jacobian[element]
     for j in eachnode(dg), i in eachnode(dg)
       var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
       if var < 0.0
-        println("Error: safe $variable is not safe. element=$element, node: $i $j, value=$var")
+        error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
       end
 
       # Compute bound
-      var_min[i, j, element] = positCorrFactor * var
+      var_min[i, j, element] = positivity_correction_factor * var
 
       # Real one-sided Zalesak-type limiter
       # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
       # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
       # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
       #       for each interface, not each node
-      Qm = min(0.0, (var_min[i, j, element] - var) / dt)
+      Qm = min(0, (var_min[i, j, element] - var) / dt)
 
       # Calculate Pm
       # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
@@ -264,8 +263,8 @@ end
       val_flux2_local     =  inverse_weights[j] * variable(get_node_vars(antidiffusive_flux2, equations, dg,   i,   j, element), equations)
       val_flux2_local_jp1 = -inverse_weights[j] * variable(get_node_vars(antidiffusive_flux2, equations, dg,   i, j+1, element), equations)
 
-      Pm = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
-           min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
+      Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
+           min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
       Pm = inverse_jacobian * Pm
 
       # Compute blending coefficient avoiding division by zero

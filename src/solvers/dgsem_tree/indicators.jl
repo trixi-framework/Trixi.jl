@@ -216,7 +216,7 @@ end
     IndicatorIDP(equations::AbstractEquations, basis;
                  IDPPositivity=false,
                  variables_cons=(first,),
-                 positCorrFactor=0.1)
+                 positivity_correction_factor=0.1)
 
 Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturingSubcell`](@ref) including:
 - positivity limiting for conservative variables.
@@ -233,36 +233,35 @@ Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturi
     This is an experimental feature and may change in future releases.
 """
 struct IndicatorIDP{RealT<:Real, LimitingVariablesCons, Cache} <: AbstractIndicator
-  IDPPositivity::Bool
-  variables_cons::LimitingVariablesCons # Positivity of conservative variables
+  positivity::Bool
+  variables_cons::LimitingVariablesCons   # Positivity of conservative variables
   cache::Cache
-  positCorrFactor::RealT                # Correction factor for IDPPositivity
+  positivity_correction_factor::RealT     # Correction factor for IDPPositivity
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorIDP(equations::AbstractEquations, basis;
-                      IDPPositivity=false,
-                      variables_cons=(first,),
-                      positCorrFactor=0.1)
-
-  number_bounds = IDPPositivity * length(variables_cons)
+                      positivity=false,
+                      variables_cons=(),
+                      positivity_correction_factor=0.1)
+  number_bounds = positivity * length(variables_cons)
 
   cache = create_cache(IndicatorIDP, equations, basis, number_bounds)
 
-  IndicatorIDP{typeof(positCorrFactor), typeof(variables_cons), typeof(cache)}(IDPPositivity, variables_cons,
-      cache, positCorrFactor)
+  IndicatorIDP{typeof(positivity_correction_factor), typeof(variables_cons), typeof(cache)}(positivity,
+      variables_cons, cache, positivity_correction_factor)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
   @nospecialize indicator # reduce precompilation time
-  @unpack IDPPositivity = indicator
+  @unpack positivity = indicator
 
   print(io, "IndicatorIDP(")
-  if !(IDPPositivity)
+  if !(positivity)
     print(io, "No limiter selected => pure DG method")
   else
     print(io, "limiter=(")
-    IDPPositivity && print(io, "IDPPositivity with variables $(indicator.variables_cons)")
+    positivity && print(io, "Positivity with variables $(indicator.variables_cons)")
     print(io, "), ")
   end
   print(io, ")")
@@ -270,19 +269,19 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
   @nospecialize indicator # reduce precompilation time
-  @unpack IDPPositivity = indicator
+  @unpack positivity = indicator
 
   if get(io, :compact, false)
     show(io, indicator)
   else
-    if !(IDPPositivity)
+    if !(positivity)
       setup = ["limiter" => "No limiter selected => pure DG method"]
     else
       setup = ["limiter" => ""]
-      if IDPPositivity
-        string = "IDPPositivity with variables $(indicator.variables_cons))"
+      if positivity
+        string = "Positivity with variables $(indicator.variables_cons))"
         setup = [setup..., "" => string]
-        setup = [setup..., "" => " "^14 * "and positivity correlation factor $(indicator.positCorrFactor)"]
+        setup = [setup..., "" => " "^14 * "and positivity correction factor $(indicator.positivity_correction_factor)"]
       end
     end
     summary_box(io, "IndicatorIDP", setup)

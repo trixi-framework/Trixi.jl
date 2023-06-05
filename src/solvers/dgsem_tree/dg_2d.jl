@@ -81,7 +81,6 @@ end
 
 function create_cache(mesh::TreeMesh{2}, equations,
                       volume_integral::VolumeIntegralShockCapturingSubcell, dg::DG, uEltype)
-
   cache = create_cache(mesh, equations,
                        VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
                        dg, uEltype)
@@ -570,17 +569,10 @@ end
 end
 
 
-#     calcflux_fhat!(fhat1, fhat2, u, mesh,
-#                    nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
-#
 # Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
 # (**without non-conservative terms**).
 #
 # See also `flux_differencing_kernel!`.
-#
-# # Arguments
-# - `fhat1::AbstractArray{<:Real, 3}`
-# - `fhat2::AbstractArray{<:Real, 3}`
 @inline function calcflux_fhat!(fhat1, fhat2, u,
                                 mesh::TreeMesh{2}, nonconservative_terms::False, equations,
                                 volume_flux, dg::DGSEM, element, cache)
@@ -649,17 +641,7 @@ end
   return nothing
 end
 
-
-#     calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
-#                             nonconservative_terms, equations, indicator::IndicatorIDP, dg, element, cache)
-#
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar`.
-#
-# # Arguments
-# - `fhat1::AbstractArray{<:Real, 3}`
-# - `fhat2::AbstractArray{<:Real, 3}`
-# - `fstar1::AbstractArray{<:Real, 3}`
-# - `fstar2::AbstractArray{<:Real, 3}`
 @inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations, indicator::IndicatorIDP, dg, element, cache)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D

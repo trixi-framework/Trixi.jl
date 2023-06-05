@@ -1315,19 +1315,19 @@ end
 
 
 # Container data structure (structure-of-arrays style) for variables used for IDP limiting
-mutable struct ContainerShockCapturingIndicatorIDP{uEltype<:Real}
+mutable struct ContainerShockCapturingIndicatorIDP2D{uEltype<:Real}
   alpha::Array{uEltype, 3}                  # [i, j, element]
   alpha1::Array{uEltype, 3}
   alpha2::Array{uEltype, 3}
-  var_bounds::Vector{Array{uEltype, 3}}
+  variable_bounds::Vector{Array{uEltype, 3}}
   # internal `resize!`able storage
   _alpha::Vector{uEltype}
   _alpha1::Vector{uEltype}
   _alpha2::Vector{uEltype}
-  _var_bounds::Vector{Vector{uEltype}}
+  _variable_bounds::Vector{Vector{uEltype}}
 end
 
-function ContainerShockCapturingIndicatorIDP{uEltype}(capacity::Integer, n_nodes, number_bounds) where uEltype<:Real
+function ContainerShockCapturingIndicatorIDP2D{uEltype}(capacity::Integer, n_nodes, number_bounds) where uEltype<:Real
   nan_uEltype = convert(uEltype, NaN)
 
   # Initialize fields with defaults
@@ -1338,25 +1338,25 @@ function ContainerShockCapturingIndicatorIDP{uEltype}(capacity::Integer, n_nodes
   _alpha2 = fill(nan_uEltype, n_nodes * (n_nodes+1) * capacity)
   alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes+1, capacity))
 
-  _var_bounds = Vector{Vector{uEltype}}(undef, number_bounds)
-  var_bounds  = Vector{Array{uEltype, 3}}(undef, number_bounds)
+  _variable_bounds = Vector{Vector{uEltype}}(undef, number_bounds)
+  variable_bounds  = Vector{Array{uEltype, 3}}(undef, number_bounds)
   for i in 1:number_bounds
-    _var_bounds[i] = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-    var_bounds[i] = unsafe_wrap(Array, pointer(_var_bounds[i]), (n_nodes, n_nodes, capacity))
+    _variable_bounds[i] = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+    variable_bounds[i] = unsafe_wrap(Array, pointer(_variable_bounds[i]), (n_nodes, n_nodes, capacity))
   end
 
-  return ContainerShockCapturingIndicatorIDP{uEltype}(alpha,  alpha1,  alpha2,  var_bounds,
-                                                      _alpha, _alpha1, _alpha2, _var_bounds)
+  return ContainerShockCapturingIndicatorIDP2D{uEltype}(alpha,  alpha1,  alpha2,  variable_bounds,
+                                                      _alpha, _alpha1, _alpha2, _variable_bounds)
 end
 
-nnodes(indicator::ContainerShockCapturingIndicatorIDP) = size(indicator.alpha, 1)
+nnodes(indicator::ContainerShockCapturingIndicatorIDP2D) = size(indicator.alpha, 1)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(indicator::ContainerShockCapturingIndicatorIDP, capacity)
+function Base.resize!(indicator::ContainerShockCapturingIndicatorIDP2D, capacity)
   n_nodes = nnodes(indicator)
 
   @unpack _alpha, _alpha1, _alpha2 = indicator
@@ -1367,10 +1367,10 @@ function Base.resize!(indicator::ContainerShockCapturingIndicatorIDP, capacity)
   resize!(_alpha2, n_nodes * (n_nodes + 1) * capacity)
   indicator.alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes + 1, capacity))
 
-  @unpack _var_bounds = indicator
-  for i in 1:length(_var_bounds)
-    resize!(_var_bounds[i], n_nodes * n_nodes * capacity)
-    indicator.var_bounds[i] = unsafe_wrap(Array, pointer(_var_bounds[i]), (n_nodes, n_nodes, capacity))
+  @unpack _variable_bounds = indicator
+  for i in 1:length(_variable_bounds)
+    resize!(_variable_bounds[i], n_nodes * n_nodes * capacity)
+    indicator.variable_bounds[i] = unsafe_wrap(Array, pointer(_variable_bounds[i]), (n_nodes, n_nodes, capacity))
   end
 
   return nothing

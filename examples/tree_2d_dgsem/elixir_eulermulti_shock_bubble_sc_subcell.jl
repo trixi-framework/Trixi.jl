@@ -87,7 +87,7 @@ density1(u, equations::CompressibleEulerMulticomponentEquations2D) = u[1+3]
 density2(u, equations::CompressibleEulerMulticomponentEquations2D) = u[2+3]
 
 indicator_sc = IndicatorIDP(equations, basis;
-                            IDPPositivity=true,
+                            positivity=true,
                             variables_cons=(density1, density2))
 
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
