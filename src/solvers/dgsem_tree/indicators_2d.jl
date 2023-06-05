@@ -114,7 +114,11 @@ function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{
     end
 
     # Clip the maximum amount of FV allowed or set to 1 depending on indicator_wet
-    alpha[element] = indicator_wet * min(alpha_max, alpha_element) - (indicator_wet - 1)
+    if indicator_wet == 0
+      alpha[element] = 1
+    else # Element is not defined as dry but wet
+      alpha[element] = min(alpha_max, alpha_element)
+    end
   end
 
   if alpha_smooth
