@@ -1,6 +1,7 @@
 
 using OrdinaryDiffEq
 using Trixi
+using Printf: @printf, @sprintf
 
 ###############################################################################
 # Semidiscretization of the shallow water equations
@@ -185,10 +186,10 @@ end
 
 # report the well-balancedness lake-at-rest error to the screen
 println("─"^100)
-println(" Lake-at-rest error for '", Trixi.get_name(equations), "' with ", Trixi.summary(solver),
-        " at final time " * Trixi.@sprintf("%10.8e", tspan[end]))
+println(" Lake-at-rest error for '", Trixi.get_name(equations), "' with ", summary(solver),
+        " at final time " * @sprintf("%10.8e", tspan[end]))
 
-Trixi.@printf(" %-12s:", Trixi.pretty_form_utf(lake_at_rest_error))
-Trixi.@printf("  % 10.8e", l1_well_balance_error)
+@printf(" %-12s:", Trixi.pretty_form_utf(lake_at_rest_error))
+@printf("  % 10.8e", l1_well_balance_error)
 println()
 println("─"^100)
