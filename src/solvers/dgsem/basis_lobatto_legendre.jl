@@ -9,6 +9,9 @@
     LobattoLegendreBasis([RealT=Float64,] polydeg::Integer)
 
 Create a nodal Lobatto-Legendre basis for polynomials of degree `polydeg`.
+
+For the special case `polydeg=0` the DG method reduces to a finite volume method.
+Therefore, this function sets the center point of the cell as single node.
 """
 struct LobattoLegendreBasis{RealT<:Real, NNODES,
                             VectorT<:AbstractVector{RealT},
@@ -503,6 +506,13 @@ function gauss_lobatto_nodes_weights(n_nodes::Integer)
   # Initialize output
   nodes = zeros(n_nodes)
   weights = zeros(n_nodes)
+
+  # Special case for polynomial degree zero (first order finite volume)
+  if n_nodes == 1
+    nodes[1] = 0
+    weights[1] = 2
+    return nodes, weights
+  end
 
   # Get polynomial degree for convenience
   N = n_nodes - 1
