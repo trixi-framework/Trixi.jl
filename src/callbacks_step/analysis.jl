@@ -678,9 +678,8 @@ function (analysis_callback_coupled::AnalysisCallbackCoupled)(integrator)
   for i in 1:nsystems(semi)
     semi_ = semi.semis[i]
     u_ode_ = get_system_u_ode(u_ode, i, semi)
-    du_ode_ = get_system_u_ode(u_ode, i, semi)
+    du_ode_ = get_system_u_ode(du_ode, i, semi)
     cb_ = analysis_callback_coupled.callbacks[i]
-    # This offending line breaks the simulation.
     cb_.affect!(u_ode_, du_ode_, integrator, semi_)
   end
 end
