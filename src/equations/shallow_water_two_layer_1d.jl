@@ -257,18 +257,19 @@ h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
 b_rr = u_rr[5]
 b_ll = u_ll[5]
 
-h_upper_avg = 0.5 * (h_upper_ll + h_upper_rr)
-h_lower_avg = 0.5 * (h_lower_ll + h_lower_rr)
-b_avg       = 0.5 * (b_ll + b_rr)
+# Calculate jumps
+h_upper_jump =  (h_upper_rr - h_upper_ll)
+h_lower_jump =  (h_lower_rr - h_lower_ll)
+b_jump       =  (b_rr       - b_ll)
 
 z = zero(eltype(u_ll))
 
 # Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x, 
 #                                        0, g*h_lower*(b+r*h_upper)_x, 0)
 f = SVector(z,
-equations.gravity * h_upper_ll * 2.0 * (b_avg + h_lower_avg),
+equations.gravity * h_upper_ll * (b_jump + h_lower_jump),
 z,
-equations.gravity * h_lower_ll * 2.0 * (b_avg + equations.r * h_upper_avg),
+equations.gravity * h_lower_ll * (b_jump + equations.r * h_upper_jump),
 z)
 return f
 end
