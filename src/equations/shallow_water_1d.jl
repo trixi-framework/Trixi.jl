@@ -334,7 +334,7 @@ conservation and well-balancedness in both the volume and surface when combined 
   z = zero(eltype(u_ll))
 
   # Bottom gradient nonconservative term: (0, g h b_x, 0)
-  f = SVector(z, equations.gravity * h_ll * (b_jump), z)
+  f = SVector(z, equations.gravity * h_ll * b_jump, z)
 
   return f
 end

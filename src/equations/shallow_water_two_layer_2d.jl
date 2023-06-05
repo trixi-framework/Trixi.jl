@@ -446,8 +446,8 @@ end
     flux_es_ersing_etal(u_ll, u_rr, orientation_or_normal_direction,
                            equations::ShallowWaterTwoLayerEquations2D)
 Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy conservative 
-flux_wintermeyer_etal and adds a Lax-Friedrichs type dissipation dependent on the jump of entropy
-variables. 
+[`flux_wintermeyer_etal`](@ref) and adds a Lax-Friedrichs type dissipation dependent on the jump of 
+entropy variables. 
 """
 @inline function flux_es_ersing_etal(u_ll, u_rr,
                                         orientation_or_normal_direction, 
