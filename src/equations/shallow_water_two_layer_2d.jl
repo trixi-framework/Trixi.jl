@@ -337,16 +337,10 @@ b_ll = u_ll[7]
 h_upper_jump =  (h_upper_rr - h_upper_ll)
 h_lower_jump =  (h_lower_rr - h_lower_ll)
 b_jump       =  (b_rr       - b_ll)
-# Calculate jumps
-h_upper_jump =  (h_upper_rr - h_upper_ll)
-h_lower_jump =  (h_lower_rr - h_lower_ll)
-b_jump       =  (b_rr       - b_ll)
 
 # Note this routine only uses the `normal_direction_average` and the average of the
 # bottom topography to get a quadratic split form DG gradient on curved elements
 return SVector(zero(eltype(u_ll)),
-               normal_direction_average[1] * equations.gravity * h_upper_ll * (b_jump + h_lower_jump),
-               normal_direction_average[2] * equations.gravity * h_upper_ll * (b_jump + h_lower_jump),
                normal_direction_average[1] * equations.gravity * h_upper_ll * (b_jump + h_lower_jump),
                normal_direction_average[2] * equations.gravity * h_upper_ll * (b_jump + h_lower_jump),
                zero(eltype(u_ll)),
