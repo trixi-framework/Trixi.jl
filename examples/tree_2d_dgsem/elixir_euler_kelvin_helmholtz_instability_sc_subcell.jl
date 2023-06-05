@@ -37,10 +37,10 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 indicator_sc = IndicatorIDP(equations, basis;
-                            IDPPositivity=true, variables_cons=(Trixi.density,), variables_nonlinear=(pressure,),
-                            IDPDensityTVD=false,
-                            IDPSpecEntropy=false,
-                            BarStates=true)
+                            positivity=true, variables_cons=(Trixi.density,), variables_nonlinear=(pressure,),
+                            density_tvd=false,
+                            spec_entropy=false,
+                            bar_states=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)

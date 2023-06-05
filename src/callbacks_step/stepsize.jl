@@ -92,7 +92,7 @@ max_dt(u, t, mesh, constant_speed, equations, semi, dg, cache, volume_integral::
 @inline function max_dt(u, t, mesh,
                         constant_speed, equations, semi, dg, cache, volume_integral::VolumeIntegralShockCapturingSubcell)
   @unpack indicator = volume_integral
-  if indicator isa IndicatorIDP && !indicator.BarStates
+  if indicator isa IndicatorIDP && !indicator.bar_states
     return max_dt(u, t, mesh, constant_speed, equations, dg, cache)
   else
     return max_dt(u, t, mesh, constant_speed, equations, semi, dg, cache, indicator)

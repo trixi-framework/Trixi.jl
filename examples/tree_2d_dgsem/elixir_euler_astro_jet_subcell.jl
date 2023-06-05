@@ -44,10 +44,10 @@ basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example
 indicator_sc = IndicatorIDP(equations, basis;
-                            IDPDensityTVD=true,
-                            IDPSpecEntropy=true,
-                            BarStates=true,
-                            IDPMaxIter=25)
+                            density_tvd=true,
+                            spec_entropy=true,
+                            bar_states=true,
+                            max_iterations_newton=25)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)

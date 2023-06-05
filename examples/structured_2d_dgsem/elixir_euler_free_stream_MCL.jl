@@ -21,7 +21,7 @@ indicator_sc = IndicatorMCL(equations, basis;
                             PressurePositivityLimiterKuzmin=true, PressurePositivityLimiterKuzminExact=true,
                             DensityPositivityLimiter=true,
                             SemiDiscEntropyLimiter=false,
-                            indicator_smooth=false,
+                            smoothness_indicator=false,
                             Plotting=true)
 
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;

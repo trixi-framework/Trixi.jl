@@ -7,8 +7,8 @@
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache, indicator::IndicatorIDP,
                               time, iter, output_directory, save_errors, interval)
-  @unpack IDPDensityTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = solver.volume_integral.indicator
-  @unpack var_bounds = indicator.cache.ContainerShockCapturingIndicator
+  @unpack density_tvd, positivity, spec_entropy, math_entropy = solver.volume_integral.indicator
+  @unpack variable_bounds = indicator.cache.ContainerShockCapturingIndicator
   @unpack idp_bounds_delta = indicator.cache
 
   save_errors_ = save_errors && (iter % interval == 0)
@@ -18,12 +18,12 @@
       print(f, iter, ", ", time);
     end
   end
-  if IDPDensityTVD
+  if density_tvd
     deviation_min = zero(eltype(u))
     deviation_max = zero(eltype(u))
     for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
-      deviation_min = max(deviation_min, var_bounds[1][i, j, element] - u[1, i, j, element])
-      deviation_max = max(deviation_max, u[1, i, j, element] - var_bounds[2][i, j, element])
+      deviation_min = max(deviation_min, variable_bounds[1][i, j, element] - u[1, i, j, element])
+      deviation_max = max(deviation_max, u[1, i, j, element] - variable_bounds[2][i, j, element])
     end
     idp_bounds_delta[1] = max(idp_bounds_delta[1], deviation_min)
     idp_bounds_delta[2] = max(idp_bounds_delta[2], deviation_max)
@@ -36,11 +36,11 @@
     end
     counter += 2
   end
-  if IDPSpecEntropy
+  if spec_entropy
     deviation_min = zero(eltype(u))
     for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
       s = entropy_spec(get_node_vars(u, equations, solver, i, j, element), equations)
-      deviation_min = max(deviation_min, var_bounds[counter][i, j, element] - s)
+      deviation_min = max(deviation_min, variable_bounds[counter][i, j, element] - s)
     end
     idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
     if save_errors_
@@ -51,11 +51,11 @@
     end
     counter += 1
   end
-  if IDPMathEntropy
+  if math_entropy
     deviation_max = zero(eltype(u))
     for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
       s = entropy_math(get_node_vars(u, equations, solver, i, j, element), equations)
-      deviation_max = max(deviation_max, s - var_bounds[counter][i, j, element])
+      deviation_max = max(deviation_max, s - variable_bounds[counter][i, j, element])
     end
     idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_max)
     if save_errors_
@@ -66,15 +66,15 @@
     end
     counter += 1
   end
-  if IDPPositivity
+  if positivity
     for variable in indicator.variables_cons
-      if variable == Trixi.density && IDPDensityTVD
+      if variable == Trixi.density && density_tvd
         continue
       end
       deviation_min = zero(eltype(u))
       for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
         var = variable(get_node_vars(u, equations, solver, i, j, element), equations)
-        deviation_min = max(deviation_min, var_bounds[counter][i, j, element] - var)
+        deviation_min = max(deviation_min, variable_bounds[counter][i, j, element] - var)
       end
       idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
       if save_errors_
@@ -89,7 +89,7 @@
       deviation_min = zero(eltype(u))
       for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
         var = variable(get_node_vars(u, equations, solver, i, j, element), equations)
-        deviation_min = max(deviation_min, var_bounds[counter][i, j, element] - var)
+        deviation_min = max(deviation_min, variable_bounds[counter][i, j, element] - var)
       end
       idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
       if save_errors_

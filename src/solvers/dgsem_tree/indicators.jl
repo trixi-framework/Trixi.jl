@@ -231,105 +231,105 @@ Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturi
     This is an experimental feature and may change in future releases.
 """
 struct IndicatorIDP{RealT<:Real, LimitingVariablesCons, LimitingVariablesNonlinear, Cache, Indicator} <: AbstractIndicator
-  IDPDensityTVD::Bool
-  IDPPositivity::Bool
+  density_tvd::Bool
+  positivity::Bool
   variables_cons::LimitingVariablesCons           # Positivity of conservative variables
   variables_nonlinear::LimitingVariablesNonlinear # Positivity of nonlinear variables
-  IDPSpecEntropy::Bool
-  IDPMathEntropy::Bool
-  BarStates::Bool
+  spec_entropy::Bool
+  math_entropy::Bool
+  bar_states::Bool
   cache::Cache
-  positCorrFactor::RealT          # Correction factor for IDPPositivity
-  IDPMaxIter::Int                 # Maximal number of iterations for Newton's method
-  newton_tol::Tuple{RealT, RealT} # Relative and absolute tolerances for Newton's method
-  IDPgamma::RealT                 # Constant for the subcell limiting of convex (nonlinear) constraints
-                                  # (must be IDPgamma>=2*d, where d is the number of dimensions of the problem)
-  indicator_smooth::Bool          # activates smoothness indicator: IndicatorHennemannGassner
-  thr_smooth::RealT               # threshold for smoothness indicator
+  positivity_correction_factor::RealT             # Correction factor for positivity
+  max_iterations_newton::Int                      # Maximal number of iterations for Newton's method
+  newton_tolerances::Tuple{RealT, RealT}          # Relative and absolute tolerances for Newton's method
+  gamma_constant_newton::RealT                    # Constant for the subcell limiting of convex (nonlinear) constraints
+                                                  # (gamma_constant_newton>=2*d, where d=#dimensions)
+  smoothness_indicator::Bool                      # activates smoothness indicator: IndicatorHennemannGassner
+  threshold_smoothness_indicator::RealT           # threshold for smoothness indicator
   IndicatorHG::Indicator
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorIDP(equations::AbstractEquations, basis;
-                      IDPDensityTVD=false,
-                      IDPPositivity=false,
-                      variables_cons=(first,),
+                      density_tvd=false,
+                      positivity=false,
+                      variables_cons=(),
                       variables_nonlinear=(),
-                      IDPSpecEntropy=false,
-                      IDPMathEntropy=false,
-                      BarStates=true,
-                      positCorrFactor=0.1, IDPMaxIter=10,
-                      newton_tol=(1.0e-12, 1.0e-14), IDP_gamma=2*ndims(equations),
-                      indicator_smooth=false, thr_smooth=0.1, variable_smooth=density_pressure)
-
-  if IDPMathEntropy && IDPSpecEntropy
-    error("Only one of the two can be selected: IDPMathEntropy/IDPSpecEntropy")
+                      spec_entropy=false,
+                      math_entropy=false,
+                      bar_states=true,
+                      positivity_correction_factor=0.1, max_iterations_newton=10,
+                      newton_tolerances=(1.0e-12, 1.0e-14), gamma_constant_newton=2*ndims(equations),
+                      smoothness_indicator=false, threshold_smoothness_indicator=0.1,
+                      variable_smoothness_indicator=density_pressure)
+  if math_entropy && spec_entropy
+    error("Only one of the two can be selected: math_entropy/spec_entropy")
   end
 
-  number_bounds = IDPPositivity * (length(variables_cons) + length(variables_nonlinear)) +
-                  IDPSpecEntropy + IDPMathEntropy
+  number_bounds = positivity * (length(variables_cons) + length(variables_nonlinear)) +
+                  spec_entropy + math_entropy
   if equations isa AbstractCompressibleEulerEquations
-    if IDPDensityTVD
-      number_bounds += 2 - IDPPositivity * (Trixi.density in variables_cons)
+    if density_tvd
+      number_bounds += 2 - positivity * (Trixi.density in variables_cons)
     end
   end
 
-  cache = create_cache(IndicatorIDP, equations, basis, number_bounds, BarStates)
+  cache = create_cache(IndicatorIDP, equations, basis, number_bounds, bar_states)
 
-  if indicator_smooth
+  if smoothness_indicator
     IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_max=1.0, alpha_smooth=false,
-                                            variable=variable_smooth)
+                                            variable=variable_smoothness_indicator)
   else
     IndicatorHG = nothing
   end
-  IndicatorIDP{typeof(positCorrFactor), typeof(variables_cons), typeof(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(
-    IDPDensityTVD, IDPPositivity, variables_cons, variables_nonlinear, IDPSpecEntropy, IDPMathEntropy,
-    BarStates, cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma, indicator_smooth, thr_smooth, IndicatorHG)
+  IndicatorIDP{typeof(positivity_correction_factor), typeof(variables_cons), typeof(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(
+    density_tvd, positivity, variables_cons, variables_nonlinear, spec_entropy, math_entropy,
+    bar_states, cache, positivity_correction_factor, max_iterations_newton, newton_tolerances, gamma_constant_newton, smoothness_indicator, threshold_smoothness_indicator, IndicatorHG)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
   @nospecialize indicator # reduce precompilation time
-  @unpack IDPDensityTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
+  @unpack density_tvd, positivity, spec_entropy, math_entropy = indicator
 
   print(io, "IndicatorIDP(")
-  if !(IDPDensityTVD || IDPPositivity || IDPSpecEntropy || IDPMathEntropy)
+  if !(density_tvd || positivity || spec_entropy || math_entropy)
     print(io, "No limiter selected => pure DG method")
   else
     print(io, "limiter=(")
-    IDPDensityTVD  && print(io, "IDPDensityTVD, ")
-    IDPPositivity  && print(io, "IDPPositivity, ")
-    IDPSpecEntropy && print(io, "IDPSpecEntropy, ")
-    IDPMathEntropy && print(io, "IDPMathEntropy, ")
+    density_tvd  && print(io, "density, ")
+    positivity  && print(io, "positivity, ")
+    spec_entropy && print(io, "specific entropy, ")
+    math_entropy && print(io, "mathematical entropy, ")
     print(io, "), ")
   end
-  indicator.indicator_smooth && print(io, ", Smoothness indicator: ", indicator.IndicatorHG,
-    " with threshold ", indicator.thr_smooth, "), ")
-  print(io, "Local bounds with $(indicator.BarStates ? "Bar States" : "FV solution")")
+  indicator.smoothness_indicator && print(io, ", Smoothness indicator: ", indicator.IndicatorHG,
+    " with threshold ", indicator.threshold_smoothness_indicator, "), ")
+  print(io, "Local bounds with $(indicator.bar_states ? "Bar States" : "FV solution")")
   print(io, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
   @nospecialize indicator # reduce precompilation time
-  @unpack IDPDensityTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
+  @unpack density_tvd, positivity, spec_entropy, math_entropy = indicator
 
   if get(io, :compact, false)
     show(io, indicator)
   else
-    if !(IDPDensityTVD || IDPPositivity || IDPSpecEntropy || IDPMathEntropy)
+    if !(density_tvd || positivity || spec_entropy || math_entropy)
       setup = ["limiter" => "No limiter selected => pure DG method"]
     else
       setup = ["limiter" => ""]
-      IDPDensityTVD  && (setup = [setup..., "" => "IDPDensityTVD"])
-      if IDPPositivity
-        string = "IDPPositivity with variables $(tuple(indicator.variables_cons..., indicator.variables_nonlinear...))"
+      density_tvd  && (setup = [setup..., "" => "density"])
+      if positivity
+        string = "positivity with variables $(tuple(indicator.variables_cons..., indicator.variables_nonlinear...))"
         setup = [setup..., "" => string]
-        setup = [setup..., "" => " "^14 * "and positivity correlation factor $(indicator.positCorrFactor)"]
+        setup = [setup..., "" => " "^14 * "and positivity correlation factor $(indicator.positivity_correction_factor)"]
       end
-      IDPSpecEntropy && (setup = [setup..., "" => "IDPSpecEntropy"])
-      IDPMathEntropy && (setup = [setup..., "" => "IDPMathEntropy"])
-      setup = [setup..., "Local bounds" => (indicator.BarStates ? "Bar States" : "FV solution")]
-      if indicator.indicator_smooth
-        setup = [setup..., "Smoothness indicator" => "$(indicator.IndicatorHG) using threshold $(indicator.thr_smooth)"]
+      spec_entropy && (setup = [setup..., "" => "specific entropy"])
+      math_entropy && (setup = [setup..., "" => "mathematical entropy"])
+      setup = [setup..., "Local bounds" => (indicator.bar_states ? "Bar States" : "FV solution")]
+      if indicator.smoothness_indicator
+        setup = [setup..., "Smoothness indicator" => "$(indicator.IndicatorHG) using threshold $(indicator.threshold_smoothness_indicator)"]
       end
     end
     summary_box(io, "IndicatorIDP", setup)
@@ -362,8 +362,8 @@ struct IndicatorMCL{RealT<:Real, Cache, Indicator} <: AbstractIndicator
   DensityPositivityLimiter::Bool
   DensityPositivityCorrelationFactor::RealT
   SemiDiscEntropyLimiter::Bool                # synchronized semidiscrete entropy fix
-  indicator_smooth::Bool                      # activates smoothness indicator: IndicatorHennemannGassner
-  thr_smooth::RealT                           # threshold for smoothness indicator
+  smoothness_indicator::Bool                      # activates smoothness indicator: IndicatorHennemannGassner
+  threshold_smoothness_indicator::RealT                           # threshold for smoothness indicator
   IndicatorHG::Indicator
   Plotting::Bool
 end
@@ -379,23 +379,23 @@ function IndicatorMCL(equations::AbstractEquations, basis;
                       DensityPositivityLimiter=false,       # Impose positivity for cons(1)
                       DensityPositivityCorrelationFactor=0.0,# Correlation Factor for DensityPositivityLimiter in [0,1)
                       SemiDiscEntropyLimiter=false,
-                      indicator_smooth=false, thr_smooth=0.1, variable_smooth=density_pressure,
+                      smoothness_indicator=false, threshold_smoothness_indicator=0.1, variable_smoothness_indicator=density_pressure,
                       Plotting=true)
   if SequentialLimiter && ConservativeLimiter
     error("Only one of the two can be selected: SequentialLimiter/ConservativeLimiter")
   end
   cache = create_cache(IndicatorMCL, equations, basis, PressurePositivityLimiterKuzmin)
-  if indicator_smooth
+  if smoothness_indicator
     IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_smooth=false,
-                                            variable=variable_smooth)
+                                            variable=variable_smoothness_indicator)
   else
     IndicatorHG = nothing
   end
-  IndicatorMCL{typeof(thr_smooth), typeof(cache), typeof(IndicatorHG)}(cache,
+  IndicatorMCL{typeof(threshold_smoothness_indicator), typeof(cache), typeof(IndicatorHG)}(cache,
     DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
     PressurePositivityLimiterKuzmin, PressurePositivityLimiterKuzminExact,
     DensityPositivityLimiter, DensityPositivityCorrelationFactor, SemiDiscEntropyLimiter,
-    indicator_smooth, thr_smooth, IndicatorHG, Plotting)
+    smoothness_indicator, threshold_smoothness_indicator, IndicatorHG, Plotting)
 end
 
 function Base.show(io::IO, indicator::IndicatorMCL)
@@ -412,8 +412,8 @@ function Base.show(io::IO, indicator::IndicatorMCL)
   indicator.DensityPositivityLimiter && print(io, "; dens pos")
   (indicator.DensityPositivityCorrelationFactor != 0.0) && print(io, " with correlation factor $(indicator.DensityPositivityCorrelationFactor)")
   indicator.SemiDiscEntropyLimiter && print(io, "; semid. entropy")
-  indicator.indicator_smooth && print(io, "; Smoothness indicator: ", indicator.IndicatorHG,
-    " with threshold ", indicator.thr_smooth)
+  indicator.smoothness_indicator && print(io, "; Smoothness indicator: ", indicator.IndicatorHG,
+    " with threshold ", indicator.threshold_smoothness_indicator)
   print(io, ")")
 end
 
@@ -441,8 +441,8 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMCL)
       end
     end
     SemiDiscEntropyLimiter && (setup = [setup..., "" => "SemiDiscEntropyLimiter"])
-    if indicator.indicator_smooth
-      setup = [setup..., "Smoothness indicator" => "$(indicator.IndicatorHG) using threshold $(indicator.thr_smooth)"]
+    if indicator.smoothness_indicator
+      setup = [setup..., "Smoothness indicator" => "$(indicator.IndicatorHG) using threshold $(indicator.threshold_smoothness_indicator)"]
     end
     summary_box(io, "IndicatorMCL", setup)
   end

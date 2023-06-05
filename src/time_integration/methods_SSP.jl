@@ -260,7 +260,7 @@ function Base.resize!(semi, volume_integral::VolumeIntegralShockCapturingSubcell
   resize!(volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)
   # Calc subcell normal directions before StepsizeCallback
   @unpack indicator = volume_integral
-  if indicator isa IndicatorMCL || (indicator isa IndicatorIDP && indicator.BarStates)
+  if indicator isa IndicatorMCL || (indicator isa IndicatorIDP && indicator.bar_states)
     resize!(indicator.cache.ContainerBarStates, new_size)
     calc_normal_directions!(indicator.cache.ContainerBarStates, mesh_equations_solver_cache(semi)...)
   end

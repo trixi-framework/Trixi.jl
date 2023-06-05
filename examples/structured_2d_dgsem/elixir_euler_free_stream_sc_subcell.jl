@@ -14,13 +14,13 @@ volume_flux  = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorIDP(equations, basis;
-                            IDPDensityTVD=false,
-                            IDPPositivity=true, variables_cons=(Trixi.density,), variables_nonlinear=(pressure,),
-                            IDPSpecEntropy=false,
-                            indicator_smooth=false,
-                            BarStates=true,
-                            positCorrFactor=0.1, IDPMaxIter=10,
-                            newton_tol=(1.0e-12, 1.0e-14))
+                            density_tvd=false,
+                            positivity=true, variables_cons=(Trixi.density,), variables_nonlinear=(pressure,),
+                            spec_entropy=false,
+                            smoothness_indicator=false,
+                            bar_states=true,
+                            positivity_correction_factor=0.1, max_iterations_newton=10,
+                            newton_tolerances=(1.0e-12, 1.0e-14))
 
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,

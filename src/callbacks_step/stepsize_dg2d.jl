@@ -47,11 +47,11 @@ end
   @unpack inverse_weights = dg.basis
   @trixi_timeit timer() "calc_lambda!" calc_lambdas_bar_states!(u, t, mesh, have_nonconservative_terms(equations), equations,
                                                                 indicator, dg, cache, semi.boundary_conditions;
-                                                                calcBarStates=false)
+                                                                calc_bar_states=false)
   @unpack lambda1, lambda2 = indicator.cache.ContainerBarStates
 
   maxdt = typemax(eltype(u))
-  if indicator.indicator_smooth
+  if indicator.smoothness_indicator
     @unpack element_ids_dg, element_ids_dgfv = cache
     alpha_element = @trixi_timeit timer() "element-wise blending factors" indicator.IndicatorHG(u, mesh, equations, dg, cache)
     pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha_element, dg, cache)
@@ -74,7 +74,7 @@ end
     end
   end
 
-  if indicator.indicator_smooth && !isempty(element_ids_dg)
+  if indicator.smoothness_indicator && !isempty(element_ids_dg)
     maxdt = min(maxdt,
                 max_dt_RK(u, t, mesh, constant_speed, equations, dg, cache, indicator, element_ids_dg))
   end

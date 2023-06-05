@@ -33,16 +33,16 @@ function (antidiffusive_stage!::AntidiffusiveStage)(u_ode, semi, t, dt, indicato
 
   @trixi_timeit timer() "alpha calculation" semi.solver.volume_integral.indicator(u, semi, solver, t, dt)
 
-  perform_IDP_correction(u, dt, mesh, equations, solver, cache)
+  perform_idp_correction(u, dt, mesh, equations, solver, cache)
 
   return nothing
 end
 
-@inline function perform_IDP_correction(u, dt, mesh::TreeMesh2D, equations, dg, cache)
+@inline function perform_idp_correction(u, dt, mesh::TreeMesh2D, equations, dg, cache)
   @unpack inverse_weights = dg.basis
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack alpha1, alpha2 = dg.volume_integral.indicator.cache.ContainerShockCapturingIndicator
-  if dg.volume_integral.indicator.indicator_smooth
+  if dg.volume_integral.indicator.smoothness_indicator
     elements = cache.element_ids_dgfv
   else
     elements = eachelement(dg, cache)
