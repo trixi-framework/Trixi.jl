@@ -723,8 +723,8 @@ function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect
   @unpack callbacks = cb.affect!
 
   uEltype = real(semi_coupled)
-  l2_error_list = uEltype[]
-  linf_error_list = uEltype[]
+  l2_error_collection = uEltype[]
+  linf_error_collection = uEltype[]
   for i in 1:nsystems(semi_coupled)
     analysis_callback = callbacks[i].affect!
     @unpack analyzer = analysis_callback
@@ -734,11 +734,11 @@ function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect
     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
 
     l2_error, linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi, cache_analysis)
-    append!(l2_error_list, l2_error)
-    append!(linf_error_list, linf_error)
+    append!(l2_error_collection, l2_error)
+    append!(linf_error_collection, linf_error)
   end
 
-  (; l2=l2_error_list, linf=linf_error_list)
+  (; l2=l2_error_collection, linf=linf_error_collection)
 end
 
 
