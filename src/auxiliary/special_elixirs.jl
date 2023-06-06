@@ -83,9 +83,67 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
     println("#"^100)
   end
 
-  # number of variables
-  _, equations, _, _ = mesh_equations_solver_cache(mod.semi)
+  # Use raw error values to compute EOC
+  analyze_convergence(errors, iterations, mod.semi)
+end
+
+# Analyze convergence for any semidiscretization
+# Note: this intermediate method is to allow dispatching on the semidiscretization
+function analyze_convergence(errors, iterations, semi::AbstractSemidiscretization)
+  _, equations, _, _ = mesh_equations_solver_cache(semi)
   variablenames = varnames(cons2cons, equations)
+  analyze_convergence(errors, iterations, variablenames)
+end
+
+# Analyze convergence for SemidiscretizationCoupled
+function analyze_convergence(errors_coupled, iterations, semi_coupled::SemidiscretizationCoupled)
+  # Extract errors: the errors are currently stored as
+  # | iter 1 sys 1 var 1...n | iter 1 sys 2 var 1...n | ... | iter 2 sys 1 var 1...n | ...
+  # but for calling `analyze_convergence` below, we need the following layout
+  # sys n: | iter 1 var 1...n | iter 1 var 1...n | ... | iter 2 var 1...n | ...
+  # That is, we need to extract and join the data for a single system
+  errors = []
+  for i in 1:nsystems(semi_coupled)
+    push!(errors, Dict(:l2 => Float64[], :linf => Float64[]))
+  end
+  offset = 0
+  for iter in 1:iterations, i in 1:nsystems(semi_coupled)
+    # Extract information on current semi
+    semi = semi_coupled.semis[i]
+    _, equations, _, _ = mesh_equations_solver_cache(semi)
+    variablenames = varnames(cons2cons, equations)
+
+    # Compute offset
+    first = offset + 1
+    last = offset + length(variablenames)
+    offset += length(variablenames)
+
+    # Append errors to appropriate storage
+    append!(errors[i][:l2], errors_coupled[:l2][first:last])
+    append!(errors[i][:linf], errors_coupled[:linf][first:last])
+  end
+
+  eoc_mean_values = Vector{Dict{Symbol, Any}}(undef, nsystems(semi_coupled))
+  for i in 1:nsystems(semi_coupled)
+    # Use visual cues to separate output from multiple systems
+    println()
+    println("="^100)
+    println("# System $i")
+    println("="^100)
+
+    # Extract information on current semi
+    semi = semi_coupled.semis[i]
+    _, equations, _, _ = mesh_equations_solver_cache(semi)
+    variablenames = varnames(cons2cons, equations)
+
+    eoc_mean_values[i] = analyze_convergence(errors[i], iterations, variablenames)
+  end
+
+  return eoc_mean_values
+end
+
+# This method is called with the collected error values to actually compute and print the EOC
+function analyze_convergence(errors, iterations, variablenames::Union{Tuple,AbstractArray})
   nvariables = length(variablenames)
 
   # Reshape errors to get a matrix where the i-th row represents the i-th iteration
