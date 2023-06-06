@@ -1,0 +1,47 @@
+stages:
+    - precompile
+    - test
+
+
+default:
+    tags: [ "downscope" ]
+
+.julia-job:
+    variables:
+        SLURM_PARAM_ACCOUNT: "-A thes1464"
+        SLURM_PARAM_TASKS: "-n 1"
+        SLURM_PARAM_CPUS: "--cpus-per-task=24"
+        SLURM_PARAM_TIME: "-t 20:00"
+    before-script:
+        - path=('/work/co693196/MA/.juliaup/bin' $path)
+        - export PATH
+
+precompile-job:
+    extends: .julia-job
+    stage: precompile
+    script:
+        - mkdir run
+        - cd run
+        - julia --project="." -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))'
+
+.test-job:
+    extends: .julia-job
+    stage: test
+    before-script:
+        - mkdir run
+        - cd run
+        - julia --project="." -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))'
+
+cpu-test-job:
+    extends: .test-job
+    script:
+        - cd run
+        - julia --project="." --threads=24 -e 'using Trixi; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=false)'
+
+gpu-test-job:
+    extends: .test-job
+    variables:        
+        SLURM_PARAM_GPUS: "--gres=gpu:volta:1"
+    script:
+        - cd run
+        - julia --project="." --threads=24 -e 'using Trixi; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=true)'
