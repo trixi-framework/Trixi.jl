@@ -639,19 +639,20 @@ struct AnalysisCallbackCoupled{CB}
   callbacks::CB
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:AnalysisCallbackCoupled})
-  @nospecialize cb # reduce precompilation time
+function Base.show(io::IO, ::MIME"text/plain", cb_coupled::DiscreteCallback{<:Any, <:AnalysisCallbackCoupled})
+  @nospecialize cb_coupled # reduce precompilation time
 
   if get(io, :compact, false)
-    show(io, cb)
+    show(io, cb_coupled)
   else
-    analysis_callback_coupled = cb.affect!
+    analysis_callback_coupled = cb_coupled.affect!
 
-    setup = Pair{String,Any}[]
-    for (idx, cb_) in enumerate(analysis_callback_coupled.callbacks)
-        push!(setup, "│ interval system " * string(idx) => cb_.affect!.interval)
+    summary_header(io, "AnalysisCallbackCoupled")
+    for (i, cb) in enumerate(analysis_callback_coupled.callbacks)
+      summary_line(io, "Callback #$i", "")
+      show(increment_indent(io), MIME"text/plain"(), cb)
     end
-    summary_box(io, "AnalysisCallbackCoupled", setup)
+    summary_footer(io)
   end
 end
 
