@@ -9,6 +9,9 @@
     AntidiffusiveStage()
 
 Perform antidiffusive stage for IDP limiting.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 struct AntidiffusiveStage end
 
