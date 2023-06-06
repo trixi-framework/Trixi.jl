@@ -84,11 +84,13 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Ana
 end
 
 
+# This is the convenience constructor that gets called from the elixirs
 function AnalysisCallback(semi::AbstractSemidiscretization; kwargs...)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   AnalysisCallback(mesh, equations, solver, cache; kwargs...)
 end
 
+# This is the actual constructor
 function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           interval=0,
                           save_analysis=false,
@@ -127,6 +129,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
 end
 
 
+# This method gets called from OrdinaryDiffEq's `solve(...)`
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AnalysisCallback}
   semi = integrator.p
   du_ode = first(get_tmp_cache(integrator))
@@ -134,6 +137,8 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
 end
 
 
+# This is the actual initialization method
+# Note: we have this indirection to allow initializing a callback from the AnalysisCallbackCoupled
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, du_ode, t, integrator, semi) where {Condition, Affect!<:AnalysisCallback}
   initial_state_integrals = integrate(u_ode, semi)
   _, equations, _, _ = mesh_equations_solver_cache(semi)
@@ -207,7 +212,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, du_ode, t, 
   return nothing
 end
 
-# This function gets called from OrdinaryDiffEq's `solve(...)`
+# This method gets called from OrdinaryDiffEq's `solve(...)`
 function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
   du_ode = first(get_tmp_cache(integrator))
@@ -215,7 +220,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
   analysis_callback(u_ode, du_ode, integrator, semi)
 end
 
-# This function gets called internally as the main entry point to the AnalysiCallback
+# This method gets called internally as the main entry point to the AnalysiCallback
 # TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
 function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
@@ -618,33 +623,49 @@ pretty_form_utf(::typeof(lake_at_rest_error)) = "∑|H₀-(h+b)|"
 pretty_form_ascii(::typeof(lake_at_rest_error)) = "|H0-(h+b)|"
 
 
+"""
+    AnalysisCallbackCoupled(semi, callbacks...)
+
+Combine multiple analysis callbacks for coupled simulations with a
+[`SemidiscretizationCoupled`](@ref). For each coupled system, an indididual
+[`AnalysisCallback`](@ref) **must** be created and passed to the `AnalysisCallbackCoupled` **in
+order**, i.e., in the same sequence as the indidvidual semidiscretizations are stored in the
+`SemidiscretizationCoupled`.
+
+!!! warning "Experimental code"
+    This is an experimental feature and can change any time.
+"""
 struct AnalysisCallbackCoupled{CB}
   callbacks::CB
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:AnalysisCallbackCoupled})
-  @nospecialize cb # reduce precompilation time
+function Base.show(io::IO, ::MIME"text/plain", cb_coupled::DiscreteCallback{<:Any, <:AnalysisCallbackCoupled})
+  @nospecialize cb_coupled # reduce precompilation time
 
   if get(io, :compact, false)
-    show(io, cb)
+    show(io, cb_coupled)
   else
-    analysis_callback_coupled = cb.affect!
+    analysis_callback_coupled = cb_coupled.affect!
 
-    setup = Pair{String,Any}[]
-    for (idx, cb_) in enumerate(analysis_callback_coupled.callbacks)
-        push!(setup, "│ interval system " * string(idx) => cb_.affect!.interval)
+    summary_header(io, "AnalysisCallbackCoupled")
+    for (i, cb) in enumerate(analysis_callback_coupled.callbacks)
+      summary_line(io, "Callback #$i", "")
+      show(increment_indent(io), MIME"text/plain"(), cb)
     end
-    summary_box(io, "AnalysisCallbackCoupled", setup)
+    summary_footer(io)
   end
 end
 
-function AnalysisCallbackCoupled(semi, callbacks...)
-  if length(callbacks) != nsystems(semi)
+
+# Convenience constructor for the coupled callback that gets called directly from the elixirs
+function AnalysisCallbackCoupled(semi_coupled, callbacks...)
+  if length(callbacks) != nsystems(semi_coupled)
     error("an AnalysisCallbackCoupled requires one AnalysisCallback for each semidiscretization")
   end
 
   analysis_callback_coupled = AnalysisCallbackCoupled{typeof(callbacks)}(callbacks)
 
+  # This callback is triggered if any of its subsidiary callbacks' condition is triggered
   condition = (u, t, integrator) -> any(callbacks) do callback
     callback.condition(u, t, integrator)
   end
@@ -655,57 +676,69 @@ function AnalysisCallbackCoupled(semi, callbacks...)
 end
 
 
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where
-    {Condition, Affect!<:AnalysisCallbackCoupled}
-  analysis_callback_coupled = cb.affect!
-  semi = integrator.p
-  du_ode = first(get_tmp_cache(integrator))
+# This method gets called during initialization from OrdinaryDiffEq's `solve(...)`
+function initialize!(cb_coupled::DiscreteCallback{Condition,Affect!}, u_ode_coupled, t, integrator) where {Condition, Affect!<:AnalysisCallbackCoupled}
+  analysis_callback_coupled = cb_coupled.affect!
+  semi_coupled = integrator.p
+  du_ode_coupled = first(get_tmp_cache(integrator))
 
-  for i in 1:nsystems(semi)
-    cb_ = analysis_callback_coupled.callbacks[i]
-    semi_ = semi.semis[i]
-    u_ode_ = get_system_u_ode(u_ode, i, semi)
-    du_ode_ = get_system_u_ode(du_ode, i, semi)
-    initialize!(cb_, u_ode_, du_ode_, t, integrator, semi_)
+  # Loop over coupled systems' callbacks and initialize them individually
+  for i in 1:nsystems(semi_coupled)
+    cb = analysis_callback_coupled.callbacks[i]
+    semi = semi_coupled.semis[i]
+    u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+    du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
+    initialize!(cb, u_ode, du_ode, t, integrator, semi)
   end
 end
 
-function (analysis_callback_coupled::AnalysisCallbackCoupled)(integrator)
-  semi = integrator.p
-  u_ode = integrator.u
-  du_ode = first(get_tmp_cache(integrator))
 
-  for i in 1:nsystems(semi)
-    semi_ = semi.semis[i]
-    u_ode_ = get_system_u_ode(u_ode, i, semi)
-    du_ode_ = get_system_u_ode(du_ode, i, semi)
-    cb_ = analysis_callback_coupled.callbacks[i]
-    cb_.affect!(u_ode_, du_ode_, integrator, semi_)
+# This method gets called from OrdinaryDiffEq's `solve(...)`
+function (analysis_callback_coupled::AnalysisCallbackCoupled)(integrator)
+  semi_coupled = integrator.p
+  u_ode_coupled = integrator.u
+  du_ode_coupled = first(get_tmp_cache(integrator))
+
+  # Loop over coupled systems' callbacks and call them individually
+  for i in 1:nsystems(semi_coupled)
+    @unpack condition = analysis_callback_coupled.callbacks[i]
+    analysis_callback = analysis_callback_coupled.callbacks[i].affect!
+    u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+
+    # Check condition and skip callback if it is not yet its turn
+    if !condition(u_ode, integrator.t, integrator)
+      continue
+    end
+
+    semi = semi_coupled.semis[i]
+    du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
+    analysis_callback(u_ode, du_ode, integrator, semi)
   end
 end
 
 # used for error checks and EOC analysis
 function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect!<:AnalysisCallbackCoupled}
-  semi = sol.prob.p
+  semi_coupled = sol.prob.p
+  u_ode_coupled = sol.u[end]
   @unpack callbacks = cb.affect!
 
-  l2_errors = []
-  linf_errors = []
-  for i in 1:nsystems(semi)
+  uEltype = real(semi_coupled)
+  l2_errors = uEltype[]
+  linf_errors = uEltype[]
+  for i in 1:nsystems(semi_coupled)
     analysis_callback = callbacks[i].affect!
     @unpack analyzer = analysis_callback
     cache_analysis = analysis_callback.cache
 
-    semi_ = semi.semis[i]
-    u_ode = get_system_u_ode(sol.u[end], i, semi)
+    semi = semi_coupled.semis[i]
+    u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
 
-    l2_error, linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi_, cache_analysis)
-    push!(l2_errors, l2_error)
-    push!(linf_errors, linf_error)
+    l2_error, linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi, cache_analysis)
+    append!(l2_errors, l2_error)
+    append!(linf_errors, linf_error)
   end
 
-  # TODO This is not type stable
-  (; l2=tuple(l2_errors...), linf=tuple(linf_errors...))
+  (; l2=l2_errors, linf=linf_errors)
 end
 
 
