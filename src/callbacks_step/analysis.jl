@@ -721,8 +721,9 @@ function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect
   u_ode_coupled = sol.u[end]
   @unpack callbacks = cb.affect!
 
-  l2_errors = []
-  linf_errors = []
+  uEltype = real(semi_coupled)
+  l2_errors = Vector{uEltype}[]
+  linf_errors = Vector{uEltype}[]
   for i in 1:nsystems(semi_coupled)
     analysis_callback = callbacks[i].affect!
     @unpack analyzer = analysis_callback
@@ -736,8 +737,7 @@ function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect
     push!(linf_errors, linf_error)
   end
 
-  # TODO This is not type stable
-  (; l2=tuple(l2_errors...), linf=tuple(linf_errors...))
+  (; l2=l2_errors, linf=linf_errors)
 end
 
 
