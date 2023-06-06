@@ -385,7 +385,7 @@ end
     end
 
     # Limited bar states \bar{u}^{Lim} = \bar{u} + Δf^{Lim} / λ
-    beta = indicator.DensityPositivityCorrelationFactor
+    beta = indicator.DensityPositivityCorrectionFactor
     # Checking the bounds for...
     # - density (rho):
     #   beta * \bar{rho} <= \bar{rho}^{Lim}

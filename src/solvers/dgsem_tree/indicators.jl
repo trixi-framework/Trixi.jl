@@ -216,16 +216,43 @@ end
 
 
 """
-    IndicatorIDP
+    IndicatorIDP(equations::AbstractEquations, basis;
+                 density_tvd=false,
+                 positivity=false,
+                 variables_cons=(),
+                 variables_nonlinear=(),
+                 spec_entropy=false,
+                 math_entropy=false,
+                 bar_states=true,
+                 positivity_correction_factor=0.1, max_iterations_newton=10,
+                 newton_tolerances=(1.0e-12, 1.0e-14), gamma_constant_newton=2*ndims(equations),
+                 smoothness_indicator=false, threshold_smoothness_indicator=0.1,
+                 variable_smoothness_indicator=density_pressure)
 
-TODO: docstring
+Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralShockCapturingSubcell`](@ref)
+including:
+- two-sided Zalesak-type limiting for density (`density_tvd`)
+- positivity limiting for conservative and non-linear variables (`positivity`)
+- one-sided limiting for specific and mathematical entropy (`spec_entropy`, `math_entropy`)
 
-Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturingSubcell`](@ref) proposed by
+The bounds can be calculated using the `bar_states` or the low-order FV solution. The positivity
+limiter uses `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
+The Newton-bisection method for the limiting of non-linear variables uses maximal `max_iterations_newton`
+iterations, tolerances `newton_tolerances` and the gamma constant `gamma_constant_newton`
+(gamma_constant_newton>=2*d, where d=#dimensions).
+
+A hard-switch [IndicatorHennemannGassner](@ref) can be activated (`smoothness_indicator`) with
+`variable_smoothness_indicator`, which disables subcell blending for element-wise
+indicator values <= `threshold_smoothness_indicator`.
+
+## References
+
 - Rueda-Ramírez, Pazner, Gassner (2022)
-  "Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods"
+  Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods
+  [DOI: 10.1016/j.compfluid.2022.105627](https://doi.org/10.1016/j.compfluid.2022.105627)
 - Pazner (2020)
-  "Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting"
-  [arXiv:2004.08503](https://doi.org/10.1016/j.cma.2021.113876)
+  Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
+  [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -239,13 +266,12 @@ struct IndicatorIDP{RealT<:Real, LimitingVariablesCons, LimitingVariablesNonline
   math_entropy::Bool
   bar_states::Bool
   cache::Cache
-  positivity_correction_factor::RealT             # Correction factor for positivity
-  max_iterations_newton::Int                      # Maximal number of iterations for Newton's method
+  positivity_correction_factor::RealT
+  max_iterations_newton::Int
   newton_tolerances::Tuple{RealT, RealT}          # Relative and absolute tolerances for Newton's method
   gamma_constant_newton::RealT                    # Constant for the subcell limiting of convex (nonlinear) constraints
-                                                  # (gamma_constant_newton>=2*d, where d=#dimensions)
-  smoothness_indicator::Bool                      # activates smoothness indicator: IndicatorHennemannGassner
-  threshold_smoothness_indicator::RealT           # threshold for smoothness indicator
+  smoothness_indicator::Bool
+  threshold_smoothness_indicator::RealT
   IndicatorHG::Indicator
 end
 
@@ -323,7 +349,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
       if positivity
         string = "positivity with variables $(tuple(indicator.variables_cons..., indicator.variables_nonlinear...))"
         setup = [setup..., "" => string]
-        setup = [setup..., "" => " "^14 * "and positivity correlation factor $(indicator.positivity_correction_factor)"]
+        setup = [setup..., "" => " "^14 * "and positivity correction factor $(indicator.positivity_correction_factor)"]
       end
       spec_entropy && (setup = [setup..., "" => "specific entropy"])
       math_entropy && (setup = [setup..., "" => "mathematical entropy"])
@@ -338,48 +364,85 @@ end
 
 function get_node_variables!(node_variables, indicator::IndicatorIDP, ::VolumeIntegralShockCapturingSubcell, equations)
   node_variables[:indicator_shock_capturing] = indicator.cache.container_shock_capturing.alpha
-  # TODO BB: Im ersten Zeitschritt scheint alpha noch nicht befüllt zu sein.
+  # TODO: Im ersten Zeitschritt scheint alpha noch nicht befüllt zu sein.
   return nothing
 end
 
 
 """
-IndicatorMCL
+    IndicatorMCL(equations::AbstractEquations, basis;
+                 DensityLimiter=true,
+                 DensityAlphaForAll=false,
+                 SequentialLimiter=true,
+                 ConservativeLimiter=false,
+                 PressurePositivityLimiterKuzmin=false,
+                 PressurePositivityLimiterKuzminExact=true,
+                 DensityPositivityLimiter=false,
+                 DensityPositivityCorrectionFactor=0.0,
+                 SemiDiscEntropyLimiter=false,
+                 smoothness_indicator=false, threshold_smoothness_indicator=0.1,
+                 variable_smoothness_indicator=density_pressure,
+                 Plotting=true)
 
-TODO: docstring
+Subcell monolithic convex limiting (MCL) used with [`VolumeIntegralShockCapturingSubcell`](@ref) including:
+- local two-sided limiting for `cons(1)` (`DensityLimiter`)
+- transfer amount of `DensityLimiter` to all quantities (`DensityAlphaForAll`)
+- local two-sided limiting for variables `phi:=cons(i)/cons(1)` (`SequentialLimiter`)
+- local two-sided limiting for conservative variables (`ConservativeLimiter`)
+- positivity limiting for `cons(1)` (`DensityPositivityLimiter`) and pressure (`PressurePositivityLimiterKuzmin`)
+- semidiscrete entropy fix (`SemiDiscEntropyLimiter`)
+
+The pressure positivity limiting preserves a sharp version (`PressurePositivityLimiterKuzminExact`)
+and a more cautious one. The density positivity limiter uses a `DensityPositivityCorrectionFactor`
+such that `u^new >= positivity_correction_factor * u^FV`. All additional analyses for plotting routines
+can be disabled via `Plotting=false` (see `save_alpha` and `update_alpha_max_avg!`).
+
+A hard-switch [IndicatorHennemannGassner](@ref) can be activated (`smoothness_indicator`) with
+`variable_smoothness_indicator`, which disables subcell blending for element-wise
+indicator values <= `threshold_smoothness_indicator`.
+
+## References
+
+- Rueda-Ramírez, Bolm, Kuzmin, Gassner (2023)
+  Monolithic Convex Limiting for Legendre-Gauss-Lobatto Discontinuous Galerkin Spectral Element Methods
+  [arXiv:2303.00374](https://doi.org/10.48550/arXiv.2303.00374)
+- Kuzmin (2020)
+  Monolithic convex limiting for continuous finite element discretizations of hyperbolic conservation laws
+  [DOI: 10.1016/j.cma.2019.112804](https://doi.org/10.1016/j.cma.2019.112804)
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
 struct IndicatorMCL{RealT<:Real, Cache, Indicator} <: AbstractIndicator
   cache::Cache
-  DensityLimiter::Bool
-  DensityAlphaForAll::Bool
-  SequentialLimiter::Bool
-  ConservativeLimiter::Bool
-  PressurePositivityLimiterKuzmin::Bool       # synchronized pressure limiting à la Kuzmin
+  DensityLimiter::Bool        # Impose local maximum/minimum for cons(1) based on bar states
+  DensityAlphaForAll::Bool    # Use the cons(1) blending coefficient for all quantities
+  SequentialLimiter::Bool     # Impose local maximum/minimum for variables phi:=cons(i)/cons(1) i 2:nvariables based on bar states
+  ConservativeLimiter::Bool   # Impose local maximum/minimum for conservative variables 2:nvariables based on bar states
+  PressurePositivityLimiterKuzmin::Bool       # Impose positivity for pressure â la Kuzmin
   PressurePositivityLimiterKuzminExact::Bool  # Only for PressurePositivityLimiterKuzmin=true: Use the exact calculation of alpha
-  DensityPositivityLimiter::Bool
-  DensityPositivityCorrelationFactor::RealT
+  DensityPositivityLimiter::Bool              # Impose positivity for cons(1)
+  DensityPositivityCorrectionFactor::RealT    # Correction Factor for DensityPositivityLimiter in [0,1)
   SemiDiscEntropyLimiter::Bool                # synchronized semidiscrete entropy fix
-  smoothness_indicator::Bool                      # activates smoothness indicator: IndicatorHennemannGassner
-  threshold_smoothness_indicator::RealT                           # threshold for smoothness indicator
+  smoothness_indicator::Bool                  # activates smoothness indicator: IndicatorHennemannGassner
+  threshold_smoothness_indicator::RealT       # threshold for smoothness indicator
   IndicatorHG::Indicator
   Plotting::Bool
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorMCL(equations::AbstractEquations, basis;
-                      DensityLimiter=true,                  # Impose local maximum/minimum for cons(1) based on bar states
-                      DensityAlphaForAll=false,             # Use the cons(1) blending coefficient for all quantities
-                      SequentialLimiter=true,               # Impose local maximum/minimum for variables phi:=cons(i)/cons(1) i 2:nvariables based on bar states
-                      ConservativeLimiter=false,            # Impose local maximum/minimum for conservative variables 2:nvariables based on bar states
-                      PressurePositivityLimiterKuzmin=false,# Impose positivity for pressure â la Kuzmin
-                      PressurePositivityLimiterKuzminExact=true,# Only for PressurePositivityLimiterKuzmin=true: Use the exact calculation of alpha
-                      DensityPositivityLimiter=false,       # Impose positivity for cons(1)
-                      DensityPositivityCorrelationFactor=0.0,# Correlation Factor for DensityPositivityLimiter in [0,1)
+                      DensityLimiter=true,
+                      DensityAlphaForAll=false,
+                      SequentialLimiter=true,
+                      ConservativeLimiter=false,
+                      PressurePositivityLimiterKuzmin=false,
+                      PressurePositivityLimiterKuzminExact=true,
+                      DensityPositivityLimiter=false,
+                      DensityPositivityCorrectionFactor=0.0,
                       SemiDiscEntropyLimiter=false,
-                      smoothness_indicator=false, threshold_smoothness_indicator=0.1, variable_smoothness_indicator=density_pressure,
+                      smoothness_indicator=false, threshold_smoothness_indicator=0.1,
+                      variable_smoothness_indicator=density_pressure,
                       Plotting=true)
   if SequentialLimiter && ConservativeLimiter
     error("Only one of the two can be selected: SequentialLimiter/ConservativeLimiter")
@@ -394,7 +457,7 @@ function IndicatorMCL(equations::AbstractEquations, basis;
   IndicatorMCL{typeof(threshold_smoothness_indicator), typeof(cache), typeof(IndicatorHG)}(cache,
     DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
     PressurePositivityLimiterKuzmin, PressurePositivityLimiterKuzminExact,
-    DensityPositivityLimiter, DensityPositivityCorrelationFactor, SemiDiscEntropyLimiter,
+    DensityPositivityLimiter, DensityPositivityCorrectionFactor, SemiDiscEntropyLimiter,
     smoothness_indicator, threshold_smoothness_indicator, IndicatorHG, Plotting)
 end
 
@@ -410,7 +473,9 @@ function Base.show(io::IO, indicator::IndicatorMCL)
     print(io, "; $(indicator.PressurePositivityLimiterKuzminExact ? "pres (Kuzmin ex)" : "pres (Kuzmin)")")
   end
   indicator.DensityPositivityLimiter && print(io, "; dens pos")
-  (indicator.DensityPositivityCorrelationFactor != 0.0) && print(io, " with correlation factor $(indicator.DensityPositivityCorrelationFactor)")
+  if indicator.DensityPositivityCorrectionFactor != 0
+    print(io, " with correction factor $(indicator.DensityPositivityCorrectionFactor)")
+  end
   indicator.SemiDiscEntropyLimiter && print(io, "; semid. entropy")
   indicator.smoothness_indicator && print(io, "; Smoothness indicator: ", indicator.IndicatorHG,
     " with threshold ", indicator.threshold_smoothness_indicator)
@@ -434,8 +499,8 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMCL)
       setup = [setup..., "" => "PressurePositivityLimiterKuzmin $(PressurePositivityLimiterKuzminExact ? "(exact)" : "")"]
     end
     if DensityPositivityLimiter
-      if indicator.DensityPositivityCorrelationFactor != 0.0
-        setup = [setup..., "" => "DensityPositivityLimiter with correlation factor $(indicator.DensityPositivityCorrelationFactor)"]
+      if indicator.DensityPositivityCorrectionFactor != 0.0
+        setup = [setup..., "" => "DensityPositivityLimiter with correction factor $(indicator.DensityPositivityCorrectionFactor)"]
       else
         setup = [setup..., "" => "DensityPositivityLimiter"]
       end

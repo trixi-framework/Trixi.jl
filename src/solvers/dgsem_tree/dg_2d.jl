@@ -1413,7 +1413,7 @@ end
 
   # Density positivity limiter
   if indicator.DensityPositivityLimiter
-    beta = indicator.DensityPositivityCorrelationFactor
+    beta = indicator.DensityPositivityCorrectionFactor
     for j in eachnode(dg), i in 2:nnodes(dg)
       lambda = lambda1[i, j, element]
       bar_state_rho = bar_states1[1, i, j, element]
