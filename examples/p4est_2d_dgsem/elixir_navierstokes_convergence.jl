@@ -176,7 +176,6 @@ end
 initial_condition = initial_condition_navier_stokes_convergence_test
 
 # BC types
-# TODO: parabolic. This is wrong! We got lucky because the velocity is actually zero at the boundaries. 
 velocity_bc_top_bottom = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x, t, equations)[2:3])
 heat_bc_top_bottom = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_top_bottom, heat_bc_top_bottom)
