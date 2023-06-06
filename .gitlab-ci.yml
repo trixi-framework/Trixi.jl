@@ -12,7 +12,7 @@ default:
         SLURM_PARAM_TASKS: "-n 1"
         SLURM_PARAM_CPUS: "--cpus-per-task=24"
         SLURM_PARAM_TIME: "-t 20:00"
-    before-script:
+    before_script:
         - path=('/work/co693196/MA/.juliaup/bin' $path)
         - export PATH
 
@@ -27,7 +27,7 @@ precompile-job:
 .test-job:
     extends: .julia-job
     stage: test
-    before-script:
+    before_script:
         - mkdir run
         - cd run
         - julia --project="." -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))'
