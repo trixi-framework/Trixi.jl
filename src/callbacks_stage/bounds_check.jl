@@ -6,7 +6,7 @@
 
 
 """
-    BoundsCheckCallback(; output_directory="out", save_errors=false, interval=0)
+    BoundsCheckCallback(; output_directory="out", save_errors=false, interval=1)
 
 Bounds checking routine for `IndicatorIDP` and `IndicatorMCL`. Applied as a stage callback for
 SSPRK methods. If `save_errors` is `true`, the resulting deviations are saved in
