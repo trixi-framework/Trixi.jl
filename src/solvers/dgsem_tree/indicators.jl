@@ -215,7 +215,7 @@ end
 """
     IndicatorIDP(equations::AbstractEquations, basis;
                  IDPPositivity=false,
-                 variables_cons=(first,),
+                 variables_cons=(),
                  positivity_correction_factor=0.1)
 
 Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturingSubcell`](@ref) including:

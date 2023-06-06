@@ -10,10 +10,15 @@ abstract type SimpleAlgorithmSSP end
 
 
 """
-    SimpleSSPRK33()
+    SimpleSSPRK33(; stage_callbacks=(AntidiffusiveStage(),))
 
-The third-order SSP Runge-Kutta method of
-    Shu, Osher (1988) Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes, eq. 2.18.
+The third-order SSP Runge-Kutta method of Shu and Osher.
+
+## References
+
+- Shu, Osher (1988)
+  "Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes" (Eq. 2.18)
+  [DOI: 10.1016/0021-9991(88)90177-5](https://doi.org/10.1016/0021-9991(88)90177-5)
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -85,7 +90,7 @@ function Base.getproperty(integrator::SimpleIntegratorSSP, field::Symbol)
 end
 
 """
-    solve(ode; dt, callbacks, kwargs...)
+    solve(ode, alg; dt, callbacks, kwargs...)
 
 The following structures and methods provide a implementation of the third-order SSP Runge-Kutta
 method [`SimpleSSPRK33`](@ref).
@@ -93,7 +98,7 @@ method [`SimpleSSPRK33`](@ref).
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
+function solve(ode::ODEProblem, alg=SimpleSSPRK33()::SimpleAlgorithmSSP;
                dt, callback=nothing, kwargs...)
   u = copy(ode.u0)
   du = similar(u)

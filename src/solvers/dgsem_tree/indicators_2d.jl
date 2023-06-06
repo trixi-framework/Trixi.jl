@@ -198,8 +198,9 @@ function (indicator::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSEM, t
   @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
   alpha .= zero(eltype(alpha))
 
-  indicator.positivity &&
+  if indicator.positivity
     @trixi_timeit timer() "positivity" idp_positivity!(alpha, indicator, u, dt, semi)
+  end
 
   # Calculate alpha1 and alpha2
   @unpack alpha1, alpha2 = indicator.cache.ContainerShockCapturingIndicator
@@ -242,7 +243,7 @@ end
     inverse_jacobian = cache.elements.inverse_jacobian[element]
     for j in eachnode(dg), i in eachnode(dg)
       var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
-      if var < 0.0
+      if var < 0
         error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
       end
 
@@ -269,7 +270,7 @@ end
 
       # Compute blending coefficient avoiding division by zero
       # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-      Qm = abs(Qm) / (abs(Pm) + eps() * 100)
+      Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100)
 
       # Calculate alpha
       alpha[i, j, element]  = max(alpha[i, j, element], 1 - Qm)
