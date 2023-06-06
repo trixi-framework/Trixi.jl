@@ -146,7 +146,7 @@ function solve!(integrator::SimpleIntegratorSSP)
   end
 
   integrator.finalstep = false
-  @trixi_timeit timer() "main loop" while !integrator.finalstep
+  while !integrator.finalstep
     if isnan(integrator.dt)
       error("time step size `dt` is NaN")
     end
@@ -175,14 +175,12 @@ function solve!(integrator::SimpleIntegratorSSP)
 
     @. integrator.r0 = integrator.u
     for stage in eachindex(alg.c)
-      @trixi_timeit timer() "Runge-Kutta stage" begin
-        t_stage = integrator.t + integrator.dt * alg.c[stage]
-        # compute du
-        integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
+      t_stage = integrator.t + integrator.dt * alg.c[stage]
+      # compute du
+      integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
 
-        # perform forward Euler step
-        @. integrator.u = integrator.u + integrator.dt * integrator.du
-      end
+      # perform forward Euler step
+      @. integrator.u = integrator.u + integrator.dt * integrator.du
 
       @trixi_timeit timer() "update_alpha_max_avg!" update_alpha_max_avg!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
 
