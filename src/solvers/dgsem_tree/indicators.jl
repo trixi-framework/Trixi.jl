@@ -214,20 +214,25 @@ end
 
 """
     IndicatorIDP(equations::AbstractEquations, basis;
-                 IDPPositivity=false,
+                 positivity=false,
                  variables_cons=(),
                  positivity_correction_factor=0.1)
 
-Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturingSubcell`](@ref) including:
-- positivity limiting for conservative variables.
+Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralShockCapturingSubcell`](@ref)
+including:
+- positivity limiting for conservative variables (`positivity`)
+
+The bounds are calculated using the low-order FV solution. The positivity limiter uses
+`positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
 
 ## References
 
 - Rueda-Ramírez, Pazner, Gassner (2022)
-  "Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods"
+  Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods
+  [DOI: 10.1016/j.compfluid.2022.105627](https://doi.org/10.1016/j.compfluid.2022.105627)
 - Pazner (2020)
-  "Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting"
-  [arXiv:2004.08503](https://doi.org/10.1016/j.cma.2021.113876)
+  Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
+  [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -236,7 +241,7 @@ struct IndicatorIDP{RealT<:Real, LimitingVariablesCons, Cache} <: AbstractIndica
   positivity::Bool
   variables_cons::LimitingVariablesCons   # Positivity of conservative variables
   cache::Cache
-  positivity_correction_factor::RealT     # Correction factor for IDPPositivity
+  positivity_correction_factor::RealT
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
