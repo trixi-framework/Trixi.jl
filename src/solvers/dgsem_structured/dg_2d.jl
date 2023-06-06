@@ -421,10 +421,10 @@ end
   if indicator isa IndicatorIDP && !indicator.bar_states
     return nothing
   end
-  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerBarStates
+  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.container_bar_states
   @unpack contravariant_vectors = cache.elements
 
-  @unpack normal_direction_xi, normal_direction_eta = indicator.cache.ContainerBarStates
+  @unpack normal_direction_xi, normal_direction_eta = indicator.cache.container_bar_states
 
   # Calc lambdas and bar states inside elements
   @threaded for element in eachelement(dg, cache)

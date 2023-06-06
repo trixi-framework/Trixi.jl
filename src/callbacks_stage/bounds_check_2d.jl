@@ -8,7 +8,7 @@
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache, indicator::IndicatorIDP,
                               time, iter, output_directory, save_errors, interval)
   @unpack density_tvd, positivity, spec_entropy, math_entropy = solver.volume_integral.indicator
-  @unpack variable_bounds = indicator.cache.ContainerShockCapturingIndicator
+  @unpack variable_bounds = indicator.cache.container_shock_capturing
   @unpack idp_bounds_delta = indicator.cache
 
   save_errors_ = save_errors && (iter % interval == 0)
@@ -111,8 +111,8 @@ end
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache, indicator::IndicatorMCL,
                               time, iter, output_directory, save_errors, interval)
-  @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
-  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
+  @unpack var_min, var_max = indicator.cache.container_shock_capturing
+  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.container_bar_states
   @unpack idp_bounds_delta = solver.volume_integral.indicator.cache
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
 

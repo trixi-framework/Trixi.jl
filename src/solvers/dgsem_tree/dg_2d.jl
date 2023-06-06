@@ -792,7 +792,7 @@ end
   if indicator isa IndicatorIDP && !indicator.bar_states
     return nothing
   end
-  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerBarStates
+  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.container_bar_states
 
   # Calc lambdas and bar states inside elements
   @threaded for element in eachelement(dg, cache)
@@ -958,8 +958,8 @@ end
   if !indicator.bar_states
     return nothing
   end
-  @unpack variable_bounds = indicator.cache.ContainerShockCapturingIndicator
-  @unpack bar_states1, bar_states2 = indicator.cache.ContainerBarStates
+  @unpack variable_bounds = indicator.cache.container_shock_capturing
+  @unpack bar_states1, bar_states2 = indicator.cache.container_bar_states
 
   counter = 1
   # Density
@@ -1042,8 +1042,8 @@ end
 end
 
 @inline function calc_variable_bounds!(u, mesh, nonconservative_terms, equations, indicator::IndicatorMCL, dg, cache)
-  @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
-  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
+  @unpack var_min, var_max = indicator.cache.container_shock_capturing
+  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.container_bar_states
 
   @threaded for element in eachelement(dg, cache)
     for v in eachvariable(equations)
@@ -1153,11 +1153,11 @@ end
 @inline function calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms, equations, indicator, dg, element, cache,
                                                  fstar1, fstar2)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
-  @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
-  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
+  @unpack var_min, var_max = indicator.cache.container_shock_capturing
+  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.container_bar_states
 
   if indicator.Plotting
-    @unpack alpha_mean, alpha_mean_pressure, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+    @unpack alpha_mean, alpha_mean_pressure, alpha_mean_entropy = indicator.cache.container_shock_capturing
     for j in eachnode(dg), i in eachnode(dg)
       alpha_mean[:, i, j, element] .= zero(eltype(alpha_mean))
       alpha_mean_pressure[i, j, element] = zero(eltype(alpha_mean_pressure))
@@ -1198,7 +1198,7 @@ end
         end
 
         if indicator.Plotting
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
           alpha_mean[1, i-1, j, element] += coefficient
@@ -1240,7 +1240,7 @@ end
         end
 
         if indicator.Plotting
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
           alpha_mean[1, i, j-1, element] += coefficient
@@ -1291,7 +1291,7 @@ end
           else
             coefficient = min(1, (g_limited + sign(g_limited) * eps()) / (g + sign(g_limited) * eps()))
           end
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
           alpha_mean[v, i-1, j, element] += coefficient
@@ -1332,7 +1332,7 @@ end
           else
             coefficient = min(1, (g_limited + sign(g_limited) * eps()) / (g + sign(g_limited) * eps()))
           end
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
           alpha_mean[v, i, j-1, element] += coefficient
@@ -1367,7 +1367,7 @@ end
           else
             coefficient = min(1, (flux_limited + sign(flux_limited) * eps()) / (antidiffusive_flux1[v, i, j, element] + sign(flux_limited) * eps()))
           end
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
           alpha_mean[v, i-1, j, element] += coefficient
@@ -1400,7 +1400,7 @@ end
           else
             coefficient = min(1, (flux_limited + sign(flux_limited) * eps()) / (antidiffusive_flux2[v, i, j, element] + sign(flux_limited) * eps()))
           end
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
           alpha_mean[v, i, j-1, element] += coefficient
@@ -1436,7 +1436,7 @@ end
         end
 
         if indicator.Plotting
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
           if !indicator.DensityLimiter
@@ -1477,7 +1477,7 @@ end
         end
 
         if indicator.Plotting
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
           if !indicator.DensityLimiter
@@ -1499,7 +1499,7 @@ end
 
   # Divide alpha_mean by number of additions
   if indicator.Plotting
-    @unpack alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+    @unpack alpha_mean = indicator.cache.container_shock_capturing
     # Interfaces contribute with 1.0
     if indicator.DensityLimiter || indicator.DensityPositivityLimiter
       for i in eachnode(dg)
@@ -1529,7 +1529,7 @@ end
 
   # Limit pressure à la Kuzmin
   if indicator.PressurePositivityLimiterKuzmin
-    @unpack alpha_pressure, alpha_mean_pressure = indicator.cache.ContainerShockCapturingIndicator
+    @unpack alpha_pressure, alpha_mean_pressure = indicator.cache.container_shock_capturing
     for j in eachnode(dg), i in 2:nnodes(dg)
       bar_state_velocity = bar_states1[2, i, j, element]^2 + bar_states1[3, i, j, element]^2
       flux_velocity = antidiffusive_flux1[2, i, j, element]^2 + antidiffusive_flux1[3, i, j, element]^2
@@ -1610,7 +1610,7 @@ end
       end
     end
     if indicator.Plotting
-      @unpack alpha_mean_pressure = indicator.cache.ContainerShockCapturingIndicator
+      @unpack alpha_mean_pressure = indicator.cache.container_shock_capturing
       # Interfaces contribute with 1.0
       for i in eachnode(dg)
         alpha_mean_pressure[i, 1, element] += 1.0
@@ -1660,7 +1660,7 @@ end
         end
       end
       if indicator.Plotting
-        @unpack alpha_entropy, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+        @unpack alpha_entropy, alpha_mean_entropy = indicator.cache.container_shock_capturing
         alpha_entropy[i-1, j, element] = min(alpha_entropy[i-1, j, element], alpha)
         alpha_entropy[i,   j, element] = min(alpha_entropy[i,   j, element], alpha)
         alpha_mean_entropy[i-1, j, element] += alpha
@@ -1700,7 +1700,7 @@ end
         end
       end
       if indicator.Plotting
-        @unpack alpha_entropy, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+        @unpack alpha_entropy, alpha_mean_entropy = indicator.cache.container_shock_capturing
         alpha_entropy[i, j-1, element] = min(alpha_entropy[i, j-1, element], alpha)
         alpha_entropy[i,   j, element] = min(alpha_entropy[i,   j, element], alpha)
         alpha_mean_entropy[i, j-1, element] += alpha
@@ -1708,7 +1708,7 @@ end
       end
     end
     if indicator.Plotting
-      @unpack alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+      @unpack alpha_mean_entropy = indicator.cache.container_shock_capturing
       # Interfaces contribute with 1.0
       for i in eachnode(dg)
         alpha_mean_entropy[i, 1, element] += 1.0

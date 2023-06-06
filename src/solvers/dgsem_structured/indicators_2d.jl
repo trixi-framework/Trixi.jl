@@ -233,7 +233,7 @@ end
   _, _, solver, cache = mesh_equations_solver_cache(semi)
   @unpack weights = solver.basis
   @unpack alpha_max_avg = indicator.cache
-  @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha = indicator.cache.container_shock_capturing
 
   alpha_max_avg[1] = max(alpha_max_avg[1], maximum(alpha))
   alpha_avg = zero(eltype(alpha))
@@ -253,7 +253,7 @@ end
 @inline function save_alpha(indicator::IndicatorMCL, time, iter, semi, mesh::StructuredMesh{2}, output_directory)
   _, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack weights = dg.basis
-  @unpack alpha, alpha_pressure, alpha_entropy, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha, alpha_pressure, alpha_entropy, alpha_mean = indicator.cache.container_shock_capturing
 
   # Save the alphas every x iterations
   x = 1

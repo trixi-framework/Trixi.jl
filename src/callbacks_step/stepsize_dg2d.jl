@@ -48,7 +48,7 @@ end
   @trixi_timeit timer() "calc_lambda!" calc_lambdas_bar_states!(u, t, mesh, have_nonconservative_terms(equations), equations,
                                                                 indicator, dg, cache, semi.boundary_conditions;
                                                                 calc_bar_states=false)
-  @unpack lambda1, lambda2 = indicator.cache.ContainerBarStates
+  @unpack lambda1, lambda2 = indicator.cache.container_bar_states
 
   maxdt = typemax(eltype(u))
   if indicator.smoothness_indicator

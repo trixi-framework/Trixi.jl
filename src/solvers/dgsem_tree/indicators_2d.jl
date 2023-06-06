@@ -187,23 +187,23 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, number_bounds, bar_states)
-  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorIDP2D{real(basis)}(0, nnodes(basis), number_bounds)
+  container_shock_capturing = Trixi.ContainerShockCapturingIndicatorIDP2D{real(basis)}(0, nnodes(basis), number_bounds)
 
   cache = (; )
   if bar_states
-    ContainerBarStates = Trixi.ContainerBarStates{real(basis)}(0, nvariables(equations), nnodes(basis))
-    cache = (; cache..., ContainerBarStates)
+    container_bar_states = Trixi.ContainerBarStates{real(basis)}(0, nvariables(equations), nnodes(basis))
+    cache = (; cache..., container_bar_states)
   end
 
   alpha_max_avg = zeros(real(basis), 2)
 
   idp_bounds_delta = zeros(real(basis), number_bounds)
 
-  return (; cache..., alpha_max_avg, ContainerShockCapturingIndicator, idp_bounds_delta)
+  return (; cache..., alpha_max_avg, container_shock_capturing, idp_bounds_delta)
 end
 
 function (indicator::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSEM, t, dt; kwargs...)
-  @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha = indicator.cache.container_shock_capturing
   alpha .= zero(eltype(alpha))
   if indicator.smoothness_indicator
     elements = semi.cache.element_ids_dgfv
@@ -225,7 +225,7 @@ function (indicator::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSEM, t
   end
 
   # Calculate alpha1 and alpha2
-  @unpack alpha1, alpha2 = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha1, alpha2 = indicator.cache.container_shock_capturing
   @threaded for element in elements
     for j in eachnode(dg), i in 2:nnodes(dg)
       alpha1[i, j, element] = max(alpha[i-1, j, element], alpha[i, j, element])
@@ -453,7 +453,7 @@ end
 @inline function idp_density_tvd!(alpha, indicator, u, t, dt, semi, elements)
   mesh, _, dg, cache = mesh_equations_solver_cache(semi)
   @unpack boundary_conditions = semi
-  @unpack variable_bounds = indicator.cache.ContainerShockCapturingIndicator
+  @unpack variable_bounds = indicator.cache.container_shock_capturing
 
   rho_min = variable_bounds[1]
   rho_max = variable_bounds[2]
@@ -513,7 +513,7 @@ end
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack boundary_conditions = semi
   @unpack density_tvd, positivity = indicator
-  @unpack variable_bounds = indicator.cache.ContainerShockCapturingIndicator
+  @unpack variable_bounds = indicator.cache.container_shock_capturing
 
   s_min = variable_bounds[2 * density_tvd + 1]
   if !indicator.bar_states
@@ -541,7 +541,7 @@ specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack boundary_conditions = semi
   @unpack density_tvd, positivity, spec_entropy = indicator
-  @unpack variable_bounds = indicator.cache.ContainerShockCapturingIndicator
+  @unpack variable_bounds = indicator.cache.container_shock_capturing
 
   s_max = variable_bounds[2 * density_tvd + spec_entropy + 1]
   if !indicator.bar_states
@@ -586,7 +586,7 @@ end
   @unpack inverse_weights = dg.basis
   @unpack density_tvd, spec_entropy, math_entropy, positivity_correction_factor, variables_cons = indicator
 
-  @unpack variable_bounds = indicator.cache.ContainerShockCapturingIndicator
+  @unpack variable_bounds = indicator.cache.container_shock_capturing
 
   if Trixi.density in variables_cons && density_tvd
     if Trixi.density == variables_cons[index]
@@ -654,7 +654,7 @@ end
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack density_tvd, spec_entropy, math_entropy, positivity_correction_factor, variables_cons, variables_nonlinear = indicator
 
-  @unpack variable_bounds = indicator.cache.ContainerShockCapturingIndicator
+  @unpack variable_bounds = indicator.cache.container_shock_capturing
 
   var_min = variable_bounds[2 * density_tvd + spec_entropy + math_entropy +
                             length(variables_cons) - min(density_tvd, Trixi.density in variables_cons) +
@@ -815,7 +815,7 @@ standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol,
   _, _, solver, cache = mesh_equations_solver_cache(semi)
   @unpack weights = solver.basis
   @unpack alpha_max_avg = indicator.cache
-  @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha = indicator.cache.container_shock_capturing
 
   alpha_max_avg[1] = max(alpha_max_avg[1], maximum(alpha))
   alpha_avg = zero(eltype(alpha))
@@ -863,12 +863,12 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(indicator::Type{IndicatorMCL}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, PressurePositivityLimiterKuzmin)
-  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorMCL2D{real(basis)}(0, nvariables(equations), nnodes(basis))
-  ContainerBarStates = Trixi.ContainerBarStates{real(basis)}(0, nvariables(equations), nnodes(basis))
+  container_shock_capturing = Trixi.ContainerShockCapturingIndicatorMCL2D{real(basis)}(0, nvariables(equations), nnodes(basis))
+  container_bar_states = Trixi.ContainerBarStates{real(basis)}(0, nvariables(equations), nnodes(basis))
 
   idp_bounds_delta = zeros(real(basis), 2, nvariables(equations) + PressurePositivityLimiterKuzmin)
 
-  return (; ContainerShockCapturingIndicator, ContainerBarStates, idp_bounds_delta)
+  return (; container_shock_capturing, container_bar_states, idp_bounds_delta)
 end
 
 update_alpha_max_avg!(indicator::AbstractIndicator, timestep, n_stages, semi, mesh) = nothing
@@ -876,7 +876,7 @@ update_alpha_max_avg!(indicator::AbstractIndicator, timestep, n_stages, semi, me
 @inline function save_alpha(indicator::IndicatorMCL, time, iter, semi, mesh::TreeMesh2D, output_directory)
   _, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack weights = dg.basis
-  @unpack alpha, alpha_pressure, alpha_entropy, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha, alpha_pressure, alpha_entropy, alpha_mean = indicator.cache.container_shock_capturing
 
   # Save the alphas every x iterations
   x = 1

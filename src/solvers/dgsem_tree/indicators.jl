@@ -337,7 +337,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
 end
 
 function get_node_variables!(node_variables, indicator::IndicatorIDP, ::VolumeIntegralShockCapturingSubcell, equations)
-  node_variables[:indicator_shock_capturing] = indicator.cache.ContainerShockCapturingIndicator.alpha
+  node_variables[:indicator_shock_capturing] = indicator.cache.container_shock_capturing.alpha
   # TODO BB: Im ersten Zeitschritt scheint alpha noch nicht befüllt zu sein.
   return nothing
 end
@@ -452,7 +452,7 @@ function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIn
   if !indicator.Plotting
     return nothing
   end
-  @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha = indicator.cache.container_shock_capturing
   variables = varnames(cons2cons, equations)
   for v in eachvariable(equations)
     s = Symbol("alpha_", variables[v])
@@ -460,30 +460,28 @@ function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIn
   end
 
   if indicator.PressurePositivityLimiterKuzmin
-    @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
+    @unpack alpha_pressure = indicator.cache.container_shock_capturing
     node_variables[:alpha_pressure] = alpha_pressure
   end
 
   if indicator.SemiDiscEntropyLimiter
-    @unpack alpha_entropy = indicator.cache.ContainerShockCapturingIndicator
+    @unpack alpha_entropy = indicator.cache.container_shock_capturing
     node_variables[:alpha_entropy] = alpha_entropy
   end
 
-  @unpack alpha_mean = indicator.cache.ContainerShockCapturingIndicator
   for v in eachvariable(equations)
+    @unpack alpha_mean = indicator.cache.container_shock_capturing
     s = Symbol("alpha_mean_", variables[v])
     node_variables[s] = copy(alpha_mean[v, ntuple(_ -> :, size(alpha, 2) + 1)...])
   end
 
-  @unpack alpha_mean_pressure = indicator.cache.ContainerShockCapturingIndicator
   if indicator.PressurePositivityLimiterKuzmin
-    @unpack alpha_mean_pressure = indicator.cache.ContainerShockCapturingIndicator
+    @unpack alpha_mean_pressure = indicator.cache.container_shock_capturing
     node_variables[:alpha_mean_pressure] = alpha_mean_pressure
   end
 
-  @unpack alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
   if indicator.SemiDiscEntropyLimiter
-    @unpack alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+    @unpack alpha_mean_entropy = indicator.cache.container_shock_capturing
     node_variables[:alpha_mean_entropy] = alpha_mean_entropy
   end
 
