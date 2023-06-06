@@ -8,7 +8,7 @@
 @inline function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations, dg, cache)
   @unpack inverse_weights = dg.basis
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
-  @unpack alpha1, alpha2 = dg.volume_integral.indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha1, alpha2 = dg.volume_integral.indicator.cache.container_shock_capturing
 
   @threaded for element in eachelement(dg, cache)
     # Sign switch as in apply_jacobian!
@@ -35,7 +35,7 @@ end
 @inline function perform_idp_correction!(u, dt, mesh::StructuredMesh{2}, equations, dg, cache)
   @unpack inverse_weights = dg.basis
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
-  @unpack alpha1, alpha2 = dg.volume_integral.indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha1, alpha2 = dg.volume_integral.indicator.cache.container_shock_capturing
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)

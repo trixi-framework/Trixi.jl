@@ -187,15 +187,15 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, number_bounds)
-  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorIDP2D{real(basis)}(0, nnodes(basis), number_bounds)
+  container_shock_capturing = Trixi.ContainerShockCapturingIndicatorIDP2D{real(basis)}(0, nnodes(basis), number_bounds)
 
-  cache = (; ContainerShockCapturingIndicator)
+  cache = (; container_shock_capturing)
 
   return cache
 end
 
 function (indicator::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSEM, t, dt; kwargs...)
-  @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha = indicator.cache.container_shock_capturing
   alpha .= zero(eltype(alpha))
 
   if indicator.positivity
@@ -203,7 +203,7 @@ function (indicator::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSEM, t
   end
 
   # Calculate alpha1 and alpha2
-  @unpack alpha1, alpha2 = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha1, alpha2 = indicator.cache.container_shock_capturing
   @threaded for element in eachelement(dg, semi.cache)
     for j in eachnode(dg), i in 2:nnodes(dg)
       alpha1[i, j, element] = max(alpha[i-1, j, element], alpha[i, j, element])
@@ -235,7 +235,7 @@ end
   @unpack inverse_weights = dg.basis
   @unpack positivity_correction_factor = indicator
 
-  @unpack variable_bounds = indicator.cache.ContainerShockCapturingIndicator
+  @unpack variable_bounds = indicator.cache.container_shock_capturing
 
   var_min = variable_bounds[index]
 

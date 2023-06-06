@@ -234,8 +234,8 @@ function Base.resize!(semi, volume_integral::VolumeIntegralShockCapturingSubcell
   # Resize container_antidiffusive_flux
   resize!(semi.cache.container_antidiffusive_flux, new_size)
 
-  # Resize ContainerShockCapturingIndicator
-  resize!(volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)
+  # Resize container_shock_capturing
+  resize!(volume_integral.indicator.cache.container_shock_capturing, new_size)
 end
 
 end # @muladd
