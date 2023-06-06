@@ -145,7 +145,7 @@ callbacks = CallbackSet(summary_callback,
 
 stage_callbacks = (BoundsCheckCallback(save_errors=true),)
 
-sol = Trixi.solve(ode; alg=Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks),
+sol = Trixi.solve(ode, alg=Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks);
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback=callbacks);
 summary_callback() # print the timer summary

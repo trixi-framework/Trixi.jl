@@ -24,14 +24,17 @@ function (antidiffusive_stage!::AntidiffusiveStage)(u_ode, semi, t, dt, volume_i
   @trixi_timeit timer() "antidiffusive_stage!" antidiffusive_stage!(u_ode, semi, t, dt, volume_integral.indicator)
 end
 
-(::AntidiffusiveStage)(u_ode, semi, t, dt, indicator::IndicatorMCL) = nothing
+(::AntidiffusiveStage)(u_ode, semi, t, dt, indicator::AbstractIndicator) = nothing
 
 function (antidiffusive_stage!::AntidiffusiveStage)(u_ode, semi, t, dt, indicator::IndicatorIDP)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  @trixi_timeit timer() "alpha calculation" semi.solver.volume_integral.indicator(u, semi, solver, t, dt)
+  # Calculate blending factor alpha in [0,1]
+  # f_ij = alpha_ij * f^(FV)_ij + (1 - alpha_ij) * f^(DG)_ij
+  #      = f^(FV)_ij + (1 - alpha_ij) * f^(antidiffusive)_ij
+  @trixi_timeit timer() "blending factor alpha" semi.solver.volume_integral.indicator(u, semi, solver, t, dt)
 
   perform_idp_correction!(u, dt, mesh, equations, solver, cache)
 

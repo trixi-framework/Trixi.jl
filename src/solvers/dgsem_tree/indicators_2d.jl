@@ -211,14 +211,18 @@ function (indicator::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSEM, t
     elements = eachelement(dg, semi.cache)
   end
 
-  indicator.density_tvd  &&
+  if indicator.density_tvd
     @trixi_timeit timer() "density_tvd"  idp_density_tvd!( alpha, indicator, u, t, dt, semi, elements)
-  indicator.positivity  &&
+  end
+  if indicator.positivity
     @trixi_timeit timer() "positivity"   idp_positivity!( alpha, indicator, u,    dt, semi, elements)
-  indicator.spec_entropy &&
+  end
+  if indicator.spec_entropy
     @trixi_timeit timer() "spec_entropy" idp_spec_entropy!(alpha, indicator, u, t, dt, semi, elements)
-  indicator.math_entropy &&
+  end
+  if indicator.math_entropy
     @trixi_timeit timer() "math_entropy" idp_math_entropy!(alpha, indicator, u, t, dt, semi, elements)
+  end
 
   # Calculate alpha1 and alpha2
   @unpack alpha1, alpha2 = indicator.cache.ContainerShockCapturingIndicator
@@ -494,8 +498,8 @@ end
 
       # Compute blending coefficient avoiding division by zero
       # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-      Qp = abs(Qp) / (abs(Pp) + eps() * 100 * abs(rho_max[i, j, element]))
-      Qm = abs(Qm) / (abs(Pm) + eps() * 100 * abs(rho_max[i, j, element]))
+      Qp = abs(Qp) / (abs(Pp) + eps(typeof(Qp)) * 100 * abs(rho_max[i, j, element]))
+      Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100 * abs(rho_max[i, j, element]))
 
       # Calculate alpha at nodes
       alpha[i, j, element] = 1 - min(1, Qp, Qm)
@@ -604,7 +608,7 @@ end
       end
 
       var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
-      if var < 0.0
+      if var < 0
         error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
       end
 
@@ -635,7 +639,7 @@ end
 
       # Compute blending coefficient avoiding division by zero
       # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-      Qm = abs(Qm) / (abs(Pm) + eps() * 100)
+      Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100)
 
       # Calculate alpha
       alpha[i, j, element]  = max(alpha[i, j, element], 1 - Qm)
@@ -661,7 +665,7 @@ end
       # Compute bound
       u_local = get_node_vars(u, equations, dg, i, j, element)
       var = variable(u_local, equations)
-      if var < 0.0
+      if var < 0
         error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
       end
       var_min[i, j, element] = positivity_correction_factor * var
@@ -678,7 +682,7 @@ end
 
 pressure_goal(bound, u, equations) = bound - pressure(u, equations)
 pressure_dgoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(dpdu(u, equations), dt * antidiffusive_flux)
-pressure_initialCheck(bound, goal, newton_abstol) = goal <= 0.0
+pressure_initialCheck(bound, goal, newton_abstol) = goal <= 0
 pressure_finalCheck(bound, goal, newton_abstol) = (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 
 @inline function newton_loops_alpha!(alpha, bound, u, i, j, element,
@@ -740,16 +744,16 @@ end
     if isValidState(u_curr, equations)
       dSdbeta = dgoal_fct(u_curr, dt, antidiffusive_flux, equations)
     else # Otherwise, perform a bisection step
-      dSdbeta = 0.0
+      dSdbeta = 0
     end
 
-    if dSdbeta != 0.0
+    if dSdbeta != 0
       # Update beta with Newton's method
       beta = beta - as / dSdbeta
     end
 
     # Check bounds
-    if (beta < beta_L) || (beta > beta_R) || (dSdbeta == 0.0) || isnan(beta)
+    if (beta < beta_L) || (beta > beta_R) || (dSdbeta == 0) || isnan(beta)
       # Out of bounds, do a bisection step
       beta = 0.5 * (beta_L + beta_R)
       # Get new u
@@ -795,7 +799,7 @@ end
     end
   end
 
-  new_alpha = 1.0 - beta
+  new_alpha = 1 - beta
   if alpha[i, j, element] > new_alpha + newton_abstol
     error("Alpha is getting smaller. old: $(alpha[i, j, element]), new: $new_alpha")
   else
@@ -867,10 +871,7 @@ function create_cache(indicator::Type{IndicatorMCL}, equations::AbstractEquation
   return (; ContainerShockCapturingIndicator, ContainerBarStates, idp_bounds_delta)
 end
 
-@inline function update_alpha_max_avg!(indicator::IndicatorMCL, timestep, n_stages, semi, mesh)
-
-  return nothing
-end
+update_alpha_max_avg!(indicator::AbstractIndicator, timestep, n_stages, semi, mesh) = nothing
 
 @inline function save_alpha(indicator::IndicatorMCL, time, iter, semi, mesh::TreeMesh2D, output_directory)
   _, equations, dg, cache = mesh_equations_solver_cache(semi)
