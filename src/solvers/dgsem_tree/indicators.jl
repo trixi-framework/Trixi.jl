@@ -241,7 +241,7 @@ The Newton-bisection method for the limiting of non-linear variables uses maxima
 iterations, tolerances `newton_tolerances` and the gamma constant `gamma_constant_newton`
 (gamma_constant_newton>=2*d, where d=#dimensions).
 
-A hard-switch [IndicatorHennemannGassner](@ref) can be activated (`smoothness_indicator`) with
+A hard-switch [`IndicatorHennemannGassner`](@ref) can be activated (`smoothness_indicator`) with
 `variable_smoothness_indicator`, which disables subcell blending for element-wise
 indicator values <= `threshold_smoothness_indicator`.
 
@@ -397,7 +397,7 @@ and a more cautious one. The density positivity limiter uses a `DensityPositivit
 such that `u^new >= positivity_correction_factor * u^FV`. All additional analyses for plotting routines
 can be disabled via `Plotting=false` (see `save_alpha` and `update_alpha_max_avg!`).
 
-A hard-switch [IndicatorHennemannGassner](@ref) can be activated (`smoothness_indicator`) with
+A hard-switch [`IndicatorHennemannGassner`](@ref) can be activated (`smoothness_indicator`) with
 `variable_smoothness_indicator`, which disables subcell blending for element-wise
 indicator values <= `threshold_smoothness_indicator`.
 
