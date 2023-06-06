@@ -253,8 +253,8 @@ end
 Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
 
 function Base.resize!(semi, volume_integral::VolumeIntegralShockCapturingSubcell, new_size)
-  # Resize ContainerAntidiffusiveFlux2D
-  resize!(semi.cache.ContainerAntidiffusiveFlux2D, new_size)
+  # Resize container_antidiffusive_flux
+  resize!(semi.cache.container_antidiffusive_flux, new_size)
 
   # Resize ContainerShockCapturingIndicator
   resize!(volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)

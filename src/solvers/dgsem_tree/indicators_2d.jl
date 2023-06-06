@@ -457,7 +457,7 @@ end
     calc_bounds_2sided!(rho_min, rho_max, density, u, t, semi)
   end
 
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
   @unpack inverse_weights = dg.basis
 
   @threaded for element in elements
@@ -578,7 +578,7 @@ end
 
 @inline function idp_positivity!(alpha, indicator, u, dt, semi, elements, variable, index)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
   @unpack inverse_weights = dg.basis
   @unpack density_tvd, spec_entropy, math_entropy, positivity_correction_factor, variables_cons = indicator
 
@@ -685,7 +685,7 @@ pressure_finalCheck(bound, goal, newton_abstol) = (goal <= eps()) && (goal > -ma
                                      goal_fct, dgoal_fct, initialCheck, finalCheck,
                                      dt, mesh, equations, dg, cache, indicator)
   @unpack inverse_weights = dg.basis
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
   if mesh isa TreeMesh
     inverse_jacobian = cache.elements.inverse_jacobian[element]
   else # mesh isa StructuredMesh

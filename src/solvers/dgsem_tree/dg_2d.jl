@@ -98,9 +98,9 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
   fhat2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
   flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
 
-  ContainerAntidiffusiveFlux2D = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0, nvariables(equations), nnodes(dg))
+  container_antidiffusive_flux = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0, nvariables(equations), nnodes(dg))
 
-  return (; cache..., ContainerAntidiffusiveFlux2D, fhat1_threaded, fhat2_threaded, flux_temp_threaded)
+  return (; cache..., container_antidiffusive_flux, fhat1_threaded, fhat2_threaded, flux_temp_threaded)
 end
 
 
@@ -651,7 +651,7 @@ end
   calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms, equations, indicator, dg, element, cache,
                                   fstar1_L, fstar2_L)
 
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
   for j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)
       du[v, i, j, element] += inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
@@ -741,7 +741,7 @@ end
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar`.
 @inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations, indicator::IndicatorIDP, dg, element, cache)
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
 
   for j in eachnode(dg), i in 2:nnodes(dg)
     for v in eachvariable(equations)
@@ -765,7 +765,7 @@ end
 
 @inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations, indicator::IndicatorMCL, dg, element, cache)
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
 
   for j in eachnode(dg), i in 2:nnodes(dg)
     for v in eachvariable(equations)
@@ -1152,7 +1152,7 @@ end
 
 @inline function calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms, equations, indicator, dg, element, cache,
                                                  fstar1, fstar2)
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
   @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
   @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
 

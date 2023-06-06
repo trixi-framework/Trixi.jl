@@ -114,7 +114,7 @@ end
   @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
   @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
   @unpack idp_bounds_delta = solver.volume_integral.indicator.cache
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
 
   n_vars = nvariables(equations)
 
