@@ -149,8 +149,8 @@ macro test_nowarn_mod(expr, additional_ignore_content=String[])
           "[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.\n",
           # TODO: Upstream (PlotUtils). This should be removed again once the
           #       deprecated stuff is fixed upstream.
-          "WARNING: importing deprecated binding Colors.RGB1 into PlotUtils.\n",
-          "WARNING: importing deprecated binding Colors.RGB4 into PlotUtils.\n",
+          "WARNING: importing deprecated binding Colors.RGB1 into Plots.\n",
+          "WARNING: importing deprecated binding Colors.RGB4 into Plots.\n",
           r"┌ Warning: Keyword argument letter not supported with Plots.+\n└ @ Plots.+\n",
           r"┌ Warning: `parse\(::Type, ::Coloarant\)` is deprecated.+\n│.+\n│.+\n└ @ Plots.+\n",
           # TODO: Silence warning introduced by Flux v0.13.13. Should be properly fixed.
