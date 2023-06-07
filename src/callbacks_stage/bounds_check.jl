@@ -6,7 +6,7 @@
 
 
 """
-    BoundsCheckCallback(; output_directory="out", save_errors=false, interval=0)
+    BoundsCheckCallback(; output_directory="out", save_errors=false, interval=1)
 
 Bounds checking routine for `IndicatorIDP` and `IndicatorMCL`. Applied as a stage callback for
 SSPRK methods. If `save_errors` is `true`, the resulting deviations are saved in
@@ -64,23 +64,23 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
     return nothing
   end
 
-  @unpack IDPDensityTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
+  @unpack density_tvd, positivity, spec_entropy, math_entropy = indicator
   @unpack output_directory = callback
   mkpath(output_directory)
   open("$output_directory/deviations.txt", "a") do f;
     print(f, "# iter, simu_time")
-    if IDPDensityTVD
+    if density_tvd
       print(f, ", rho_min, rho_max");
     end
-    if IDPSpecEntropy
+    if spec_entropy
       print(f, ", specEntr_min");
     end
-    if IDPMathEntropy
+    if math_entropy
       print(f, ", mathEntr_max");
     end
-    if IDPPositivity
+    if positivity
       for variable in indicator.variables_cons
-        if variable == Trixi.density && IDPDensityTVD
+        if variable == Trixi.density && density_tvd
           continue
         end
         print(f, ", $(variable)_min");
@@ -127,28 +127,28 @@ end
 
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi, indicator::IndicatorIDP)
-  @unpack IDPDensityTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
+  @unpack density_tvd, positivity, spec_entropy, math_entropy = indicator
   @unpack idp_bounds_delta = indicator.cache
 
   println("─"^100)
   println("Maximum deviation from bounds:")
   println("─"^100)
   counter = 1
-  if IDPDensityTVD
+  if density_tvd
     println("rho:\n- lower bound: ", idp_bounds_delta[counter], "\n- upper bound: ", idp_bounds_delta[counter+1])
     counter += 2
   end
-  if IDPSpecEntropy
+  if spec_entropy
     println("spec. entropy:\n- lower bound: ", idp_bounds_delta[counter])
     counter += 1
   end
-  if IDPMathEntropy
+  if math_entropy
     println("math. entropy:\n- upper bound: ", idp_bounds_delta[counter])
     counter += 1
   end
-  if IDPPositivity
+  if positivity
     for variable in indicator.variables_cons
-      if variable == Trixi.density && IDPDensityTVD
+      if variable == Trixi.density && density_tvd
         continue
       end
       println("$(variable):\n- positivity: ", idp_bounds_delta[counter])

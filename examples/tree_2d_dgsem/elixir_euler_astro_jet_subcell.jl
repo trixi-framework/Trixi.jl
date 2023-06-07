@@ -44,10 +44,10 @@ basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example
 indicator_sc = IndicatorIDP(equations, basis;
-                            IDPDensityTVD=true,
-                            IDPSpecEntropy=true,
-                            BarStates=true,
-                            IDPMaxIter=25)
+                            density_tvd=true,
+                            spec_entropy=true,
+                            bar_states=true,
+                            max_iterations_newton=25)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -88,9 +88,9 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-stage_callbacks = (AntidiffusiveStage(), BoundsCheckCallback(save_errors=true))
+stage_callbacks = (AntidiffusiveStage(), BoundsCheckCallback(save_errors=false))
 
-sol = Trixi.solve(ode; alg=Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks),
+sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks);
                   maxiters=1e6, dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback=callbacks);
 summary_callback() # print the timer summary

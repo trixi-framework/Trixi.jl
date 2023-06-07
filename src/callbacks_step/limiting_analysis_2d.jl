@@ -7,7 +7,7 @@
 
 @inline function analyze_coefficient_IDP(mesh::TreeMesh2D, equations, dg, cache, indicator)
   @unpack weights = dg.basis
-  @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha = indicator.cache.container_shock_capturing
 
   alpha_avg_ = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
@@ -24,7 +24,7 @@ end
 
 @inline function analyze_coefficient_IDP(mesh::StructuredMesh{2}, equations, dg, cache, indicator)
   @unpack weights = dg.basis
-  @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha = indicator.cache.container_shock_capturing
 
   alpha_avg_ = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
@@ -43,7 +43,7 @@ end
 function analyze_coefficient_MCL(mesh::TreeMesh2D, equations, dg, cache, indicator)
   @unpack weights = dg.basis
   @unpack alpha, alpha_mean, alpha_pressure,
-          alpha_mean_pressure, alpha_entropy, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+          alpha_mean_pressure, alpha_entropy, alpha_mean_entropy = indicator.cache.container_shock_capturing
 
   n_vars = nvariables(equations)
 
@@ -77,7 +77,7 @@ end
 function analyze_coefficient_MCL(mesh::StructuredMesh{2}, equations, dg, cache, indicator)
   @unpack weights = dg.basis
   @unpack alpha, alpha_mean, alpha_pressure,
-          alpha_mean_pressure, alpha_entropy, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+          alpha_mean_pressure, alpha_entropy, alpha_mean_entropy = indicator.cache.container_shock_capturing
 
   n_vars = nvariables(equations)
 

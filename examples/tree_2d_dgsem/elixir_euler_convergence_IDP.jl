@@ -14,13 +14,13 @@ volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorIDP(equations, basis;
-                            IDPDensityTVD=false,
-                            IDPPositivity=true,
-                            IDPSpecEntropy=false,
-                            positCorrFactor=0.1, IDPMaxIter=10,
-                            newton_tol=(1.0e-12, 1.0e-14),
-                            BarStates=true,
-                            indicator_smooth=false)
+                            density_tvd=false,
+                            positivity=true,
+                            spec_entropy=false,
+                            positivity_correction_factor=0.1, max_iterations_newton=10,
+                            newton_tolerances=(1.0e-12, 1.0e-14),
+                            bar_states=true,
+                            smoothness_indicator=false)
 
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,
@@ -63,9 +63,9 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (AntidiffusiveStage(), BoundsCheckCallback(save_errors=true))
+stage_callbacks = (AntidiffusiveStage(), BoundsCheckCallback(save_errors=false))
 
-sol = Trixi.solve(ode; alg=Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks),
+sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks);
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

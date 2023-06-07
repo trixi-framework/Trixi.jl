@@ -4,16 +4,21 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-# Abstract base type for time integration schemes of explicit strong stabilitypreserving (SSP)
+# Abstract base type for time integration schemes of explicit strong stability-preserving (SSP)
 # Runge-Kutta (RK) methods. They are high-order time discretizations that guarantee the TVD property.
 abstract type SimpleAlgorithmSSP end
 
 
 """
-    SimpleSSPRK33()
+    SimpleSSPRK33(; stage_callbacks=(AntidiffusiveStage(), BoundsCheckCallback()))
 
-The third-order SSP Runge-Kutta method of
-    Shu, Osher (1988) Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes, eq. 2.18.
+The third-order SSP Runge-Kutta method of Shu and Osher.
+
+## References
+
+- Shu, Osher (1988)
+  "Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes" (Eq. 2.18)
+  [DOI: 10.1016/0021-9991(88)90177-5](https://doi.org/10.1016/0021-9991(88)90177-5)
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -85,7 +90,7 @@ function Base.getproperty(integrator::SimpleIntegratorSSP, field::Symbol)
 end
 
 """
-    solve(ode; dt, callbacks, kwargs...)
+    solve(ode, alg; dt, callbacks, kwargs...)
 
 The following structures and methods provide a implementation of the third-order SSP Runge-Kutta
 method [`SimpleSSPRK33`](@ref).
@@ -93,7 +98,7 @@ method [`SimpleSSPRK33`](@ref).
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
+function solve(ode::ODEProblem, alg=SimpleSSPRK33()::SimpleAlgorithmSSP;
                dt, callback=nothing, kwargs...)
   u = copy(ode.u0)
   du = similar(u)
@@ -140,7 +145,7 @@ function solve!(integrator::SimpleIntegratorSSP)
   end
 
   integrator.finalstep = false
-  @trixi_timeit timer() "main loop" while !integrator.finalstep
+  while !integrator.finalstep
     if isnan(integrator.dt)
       error("time step size `dt` is NaN")
     end
@@ -153,14 +158,12 @@ function solve!(integrator::SimpleIntegratorSSP)
 
     @. integrator.r0 = integrator.u
     for stage in eachindex(alg.c)
-      @trixi_timeit timer() "Runge-Kutta stage" begin
-        t_stage = integrator.t + integrator.dt * alg.c[stage]
-        # compute du
-        integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
+      t_stage = integrator.t + integrator.dt * alg.c[stage]
+      # compute du
+      integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
 
-        # perform forward Euler step
-        @. integrator.u = integrator.u + integrator.dt * integrator.du
-      end
+      # perform forward Euler step
+      @. integrator.u = integrator.u + integrator.dt * integrator.du
 
       for stage_callback in alg.stage_callbacks
         stage_callback(integrator.u, integrator, stage)
@@ -232,26 +235,26 @@ end
 Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
 
 function Base.resize!(semi, volume_integral::VolumeIntegralShockCapturingSubcell, new_size)
-  # Resize ContainerAntidiffusiveFlux2D
-  resize!(semi.cache.ContainerAntidiffusiveFlux2D, new_size)
+  # Resize container_antidiffusive_flux
+  resize!(semi.cache.container_antidiffusive_flux, new_size)
 
-  # Resize ContainerShockCapturingIndicator
-  resize!(volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)
+  # Resize container_shock_capturing
+  resize!(volume_integral.indicator.cache.container_shock_capturing, new_size)
   # Calc subcell normal directions before StepsizeCallback
   @unpack indicator = volume_integral
-  if indicator isa IndicatorMCL || (indicator isa IndicatorIDP && indicator.BarStates)
-    resize!(indicator.cache.ContainerBarStates, new_size)
-    calc_normal_directions!(indicator.cache.ContainerBarStates, mesh_equations_solver_cache(semi)...)
+  if indicator isa IndicatorMCL || (indicator isa IndicatorIDP && indicator.bar_states)
+    resize!(indicator.cache.container_bar_states, new_size)
+    calc_normal_directions!(indicator.cache.container_bar_states, mesh_equations_solver_cache(semi)...)
   end
 end
 
-calc_normal_directions!(ContainerBarStates, mesh::TreeMesh, equations, dg, cache) = nothing
+calc_normal_directions!(container_bar_states, mesh::TreeMesh, equations, dg, cache) = nothing
 
-function calc_normal_directions!(ContainerBarStates, mesh::StructuredMesh, equations, dg, cache)
+function calc_normal_directions!(container_bar_states, mesh::StructuredMesh, equations, dg, cache)
   @unpack weights, derivative_matrix = dg.basis
   @unpack contravariant_vectors = cache.elements
 
-  @unpack normal_direction_xi, normal_direction_eta = ContainerBarStates
+  @unpack normal_direction_xi, normal_direction_eta = container_bar_states
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg)
       normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, element)

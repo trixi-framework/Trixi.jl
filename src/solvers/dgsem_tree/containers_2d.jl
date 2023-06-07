@@ -1314,19 +1314,19 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
 end
 
 
-mutable struct ContainerShockCapturingIndicatorIDP{uEltype<:Real}
+mutable struct ContainerShockCapturingIndicatorIDP2D{uEltype<:Real}
   alpha::Array{uEltype, 3}                  # [i, j, element]
   alpha1::Array{uEltype, 3}
   alpha2::Array{uEltype, 3}
-  var_bounds::Vector{Array{uEltype, 3}}
+  variable_bounds::Vector{Array{uEltype, 3}}
   # internal `resize!`able storage
   _alpha::Vector{uEltype}
   _alpha1::Vector{uEltype}
   _alpha2::Vector{uEltype}
-  _var_bounds::Vector{Vector{uEltype}}
+  _variable_bounds::Vector{Vector{uEltype}}
 end
 
-function ContainerShockCapturingIndicatorIDP{uEltype}(capacity::Integer, n_nodes, length) where uEltype<:Real
+function ContainerShockCapturingIndicatorIDP2D{uEltype}(capacity::Integer, n_nodes, length) where uEltype<:Real
   nan_uEltype = convert(uEltype, NaN)
 
   # Initialize fields with defaults
@@ -1337,25 +1337,25 @@ function ContainerShockCapturingIndicatorIDP{uEltype}(capacity::Integer, n_nodes
   _alpha2 = fill(nan_uEltype, n_nodes * (n_nodes+1) * capacity)
   alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes+1, capacity))
 
-  _var_bounds = Vector{Vector{uEltype}}(undef, length)
-  var_bounds  = Vector{Array{uEltype, 3}}(undef, length)
+  _variable_bounds = Vector{Vector{uEltype}}(undef, length)
+  variable_bounds  = Vector{Array{uEltype, 3}}(undef, length)
   for i in 1:length
-    _var_bounds[i] = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-    var_bounds[i] = unsafe_wrap(Array, pointer(_var_bounds[i]), (n_nodes, n_nodes, capacity))
+    _variable_bounds[i] = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+    variable_bounds[i] = unsafe_wrap(Array, pointer(_variable_bounds[i]), (n_nodes, n_nodes, capacity))
   end
 
-  return ContainerShockCapturingIndicatorIDP{uEltype}(alpha,  alpha1,  alpha2,  var_bounds,
-                                                      _alpha, _alpha1, _alpha2, _var_bounds)
+  return ContainerShockCapturingIndicatorIDP2D{uEltype}(alpha,  alpha1,  alpha2,  variable_bounds,
+                                                      _alpha, _alpha1, _alpha2, _variable_bounds)
 end
 
-nnodes(indicator::ContainerShockCapturingIndicatorIDP) = size(indicator.alpha, 1)
+nnodes(indicator::ContainerShockCapturingIndicatorIDP2D) = size(indicator.alpha, 1)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(indicator::ContainerShockCapturingIndicatorIDP, capacity)
+function Base.resize!(indicator::ContainerShockCapturingIndicatorIDP2D, capacity)
   n_nodes = nnodes(indicator)
 
   @unpack _alpha, _alpha1, _alpha2 = indicator
@@ -1366,16 +1366,16 @@ function Base.resize!(indicator::ContainerShockCapturingIndicatorIDP, capacity)
   resize!(_alpha2, n_nodes * (n_nodes + 1) * capacity)
   indicator.alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes + 1, capacity))
 
-  @unpack _var_bounds = indicator
-  for i in 1:length(_var_bounds)
-    resize!(_var_bounds[i], n_nodes * n_nodes * capacity)
-    indicator.var_bounds[i] = unsafe_wrap(Array, pointer(_var_bounds[i]), (n_nodes, n_nodes, capacity))
+  @unpack _variable_bounds = indicator
+  for i in 1:length(_variable_bounds)
+    resize!(_variable_bounds[i], n_nodes * n_nodes * capacity)
+    indicator.variable_bounds[i] = unsafe_wrap(Array, pointer(_variable_bounds[i]), (n_nodes, n_nodes, capacity))
   end
 
   return nothing
 end
 
-mutable struct ContainerShockCapturingIndicatorMCL{uEltype<:Real}
+mutable struct ContainerShockCapturingIndicatorMCL2D{uEltype<:Real}
   var_min::Array{uEltype, 4}                # [variable, i, j, element]
   var_max::Array{uEltype, 4}                # [variable, i, j, element]
   alpha::Array{uEltype, 4}                  # [variable, i, j, element]
@@ -1395,7 +1395,7 @@ mutable struct ContainerShockCapturingIndicatorMCL{uEltype<:Real}
   _alpha_mean_entropy::Vector{uEltype}
 end
 
-function ContainerShockCapturingIndicatorMCL{uEltype}(capacity::Integer, n_variables, n_nodes) where uEltype<:Real
+function ContainerShockCapturingIndicatorMCL2D{uEltype}(capacity::Integer, n_variables, n_nodes) where uEltype<:Real
   nan_uEltype = convert(uEltype, NaN)
 
   _var_min = Vector{uEltype}(undef, n_variables*n_nodes^2*capacity)
@@ -1422,19 +1422,19 @@ function ContainerShockCapturingIndicatorMCL{uEltype}(capacity::Integer, n_varia
   _alpha_mean_entropy = fill(nan_uEltype, n_nodes * n_nodes * capacity)
   alpha_mean_entropy = unsafe_wrap(Array, pointer(_alpha_mean_entropy), (n_nodes, n_nodes, capacity))
 
-  return ContainerShockCapturingIndicatorMCL{uEltype}(var_min, var_max, alpha, alpha_pressure, alpha_entropy, alpha_mean, alpha_mean_pressure, alpha_mean_entropy,
+  return ContainerShockCapturingIndicatorMCL2D{uEltype}(var_min, var_max, alpha, alpha_pressure, alpha_entropy, alpha_mean, alpha_mean_pressure, alpha_mean_entropy,
                                                       _var_min, _var_max, _alpha, _alpha_pressure, _alpha_entropy, _alpha_mean, _alpha_mean_pressure, _alpha_mean_entropy)
 end
 
-nvariables(container::ContainerShockCapturingIndicatorMCL) = size(container.var_min, 1)
-nnodes(container::ContainerShockCapturingIndicatorMCL) = size(container.var_min, 2)
+nvariables(container::ContainerShockCapturingIndicatorMCL2D) = size(container.var_min, 1)
+nnodes(container::ContainerShockCapturingIndicatorMCL2D) = size(container.var_min, 2)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(container::ContainerShockCapturingIndicatorMCL, capacity)
+function Base.resize!(container::ContainerShockCapturingIndicatorMCL2D, capacity)
   n_variables = nvariables(container)
   n_nodes = nnodes(container)
 

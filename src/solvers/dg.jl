@@ -218,7 +218,7 @@ end
 
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralShockCapturingSubcell, dg, cache)
-  if volume_integral.indicator.indicator_smooth
+  if volume_integral.indicator.smoothness_indicator
     # call the indicator to get up-to-date values for IO
     volume_integral.indicator.IndicatorHG(u, mesh, equations, dg, cache)
     get_element_variables!(element_variables, volume_integral.indicator, volume_integral)

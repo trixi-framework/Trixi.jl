@@ -129,7 +129,7 @@ end
 @inline function (limiting_analysis_callback::LimitingAnalysisCallback)(mesh, equations, dg, cache,
                                                                         indicator::IndicatorIDP, time, iter)
   @unpack output_directory = limiting_analysis_callback
-  @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+  @unpack alpha = indicator.cache.container_shock_capturing
 
   alpha_avg = analyze_coefficient_IDP(mesh, equations, dg, cache, indicator)
 
@@ -143,7 +143,7 @@ end
   @unpack output_directory = limiting_analysis_callback
   @unpack weights = dg.basis
   @unpack alpha, alpha_pressure, alpha_entropy,
-          alpha_mean, alpha_mean_pressure, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+          alpha_mean, alpha_mean_pressure, alpha_mean_entropy = indicator.cache.container_shock_capturing
 
   n_vars = nvariables(equations)
 

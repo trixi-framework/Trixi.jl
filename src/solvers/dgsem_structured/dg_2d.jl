@@ -417,15 +417,14 @@ end
 
 
 @inline function calc_lambdas_bar_states!(u, t, mesh::StructuredMesh,
-    nonconservative_terms, equations, indicator, dg, cache, boundary_conditions; calcBarStates=true)
-
-  if indicator isa IndicatorIDP && !indicator.BarStates
+    nonconservative_terms, equations, indicator, dg, cache, boundary_conditions; calc_bar_states=true)
+  if indicator isa IndicatorIDP && !indicator.bar_states
     return nothing
   end
-  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerBarStates
+  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.container_bar_states
   @unpack contravariant_vectors = cache.elements
 
-  @unpack normal_direction_xi, normal_direction_eta = indicator.cache.ContainerBarStates
+  @unpack normal_direction_xi, normal_direction_eta = indicator.cache.container_bar_states
 
   # Calc lambdas and bar states inside elements
   @threaded for element in eachelement(dg, cache)
@@ -437,7 +436,7 @@ end
 
       lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node, normal_direction, equations)
 
-      !calcBarStates && continue
+      !calc_bar_states && continue
 
       flux1     = flux(u_node,     normal_direction, equations)
       flux1_im1 = flux(u_node_im1, normal_direction, equations)
@@ -454,7 +453,7 @@ end
 
       lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node, normal_direction, equations)
 
-      !calcBarStates && continue
+      !calc_bar_states && continue
 
       flux2     = flux(u_node,     normal_direction, equations)
       flux2_jm1 = flux(u_node_jm1, normal_direction, equations)
@@ -481,7 +480,7 @@ end
         lambda1[nnodes(dg)+1, i, left]    = lambda
         lambda1[1,            i, element] = lambda
 
-        !calcBarStates && continue
+        !calc_bar_states && continue
 
         flux_left    = flux(u_left,    Ja1, equations)
         flux_element = flux(u_element, Ja1, equations)
@@ -503,7 +502,7 @@ end
         lambda2[i, nnodes(dg)+1, lower]   = lambda
         lambda2[i,            1, element] = lambda
 
-        !calcBarStates && continue
+        !calc_bar_states && continue
 
         flux_lower   = flux(u_lower,   Ja2, equations)
         flux_element = flux(u_element, Ja2, equations)
@@ -532,7 +531,7 @@ end
                                            equations, dg, 1, j, element)
         lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, Ja1, equations)
 
-        !calcBarStates && continue
+        !calc_bar_states && continue
 
         flux_inner = flux(u_inner, Ja1, equations)
         flux_outer = flux(u_outer, Ja1, equations)
@@ -551,7 +550,7 @@ end
                                            equations, dg, nnodes(dg), j, element)
         lambda1[nnodes(dg)+1, j, element] = max_abs_speed_naive(u_inner, u_outer, Ja1, equations)
 
-        !calcBarStates && continue
+        !calc_bar_states && continue
 
         flux_inner = flux(u_inner, Ja1, equations)
         flux_outer = flux(u_outer, Ja1, equations)
@@ -572,7 +571,7 @@ end
                                            equations, dg, i, 1, element)
         lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, Ja2, equations)
 
-        !calcBarStates && continue
+        !calc_bar_states && continue
 
         flux_inner = flux(u_inner, Ja2, equations)
         flux_outer = flux(u_outer, Ja2, equations)
@@ -591,45 +590,13 @@ end
                                            equations, dg, i, nnodes(dg), element)
         lambda2[i, nnodes(dg)+1, element] = max_abs_speed_naive(u_inner, u_outer, Ja2, equations)
 
-        !calcBarStates && continue
+        !calc_bar_states && continue
 
         flux_inner = flux(u_inner, Ja2, equations)
         flux_outer = flux(u_outer, Ja2, equations)
         for v in eachvariable(equations)
           bar_states2[v, i, nnodes(dg)+1, element] = 0.5 * (u_outer[v] + u_inner[v]) - 0.5 * (flux_outer[v] - flux_inner[v]) / lambda2[i, nnodes(dg)+1, element]
         end
-      end
-    end
-  end
-
-  return nothing
-end
-
-@inline function perform_IDP_correction(u, dt, mesh::StructuredMesh{2}, equations, dg, cache)
-  @unpack inverse_weights = dg.basis
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
-  @unpack alpha1, alpha2 = dg.volume_integral.indicator.cache.ContainerShockCapturingIndicator
-
-  if dg.volume_integral.indicator.indicator_smooth
-    elements = cache.element_ids_dgfv
-  else
-    elements = eachelement(dg, cache)
-  end
-
-  @threaded for element in elements
-  # @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      inverse_jacobian = -cache.elements.inverse_jacobian[i, j, element]
-
-      # Note: antidiffusive_flux1[v, i, xi, element] = antidiffusive_flux2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
-      alpha_flux1     = (1.0 - alpha1[i,   j, element]) * get_node_vars(antidiffusive_flux1, equations, dg, i,   j, element)
-      alpha_flux1_ip1 = (1.0 - alpha1[i+1, j, element]) * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j, element)
-      alpha_flux2     = (1.0 - alpha2[i,   j, element]) * get_node_vars(antidiffusive_flux2, equations, dg, i,   j, element)
-      alpha_flux2_jp1 = (1.0 - alpha2[i, j+1, element]) * get_node_vars(antidiffusive_flux2, equations, dg, i, j+1, element)
-
-      for v in eachvariable(equations)
-        u[v, i, j, element] += dt * inverse_jacobian * (inverse_weights[i] * (alpha_flux1_ip1[v] - alpha_flux1[v]) +
-                                                        inverse_weights[j] * (alpha_flux2_jp1[v] - alpha_flux2[v]) )
       end
     end
   end

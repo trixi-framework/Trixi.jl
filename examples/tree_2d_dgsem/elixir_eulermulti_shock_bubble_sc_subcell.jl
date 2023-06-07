@@ -87,12 +87,12 @@ density1(u, equations::CompressibleEulerMulticomponentEquations2D) = u[1+3]
 density2(u, equations::CompressibleEulerMulticomponentEquations2D) = u[2+3]
 
 indicator_sc = IndicatorIDP(equations, basis;
-                            IDPPositivity=true,
+                            positivity=true,
                             variables_cons=(density1, density2),
-                            variables_nonlinear=(), positCorrFactor=0.1,
-                            IDPDensityTVD=false,
-                            IDPSpecEntropy=false,
-                            BarStates=true)
+                            variables_nonlinear=(), positivity_correction_factor=0.1,
+                            density_tvd=false,
+                            spec_entropy=false,
+                            bar_states=false)
 
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
@@ -102,7 +102,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min     = (-2.25, -2.225)
 coordinates_max     = ( 2.20,  2.225)
 mesh                = TreeMesh(coordinates_min, coordinates_max,
-                               initial_refinement_level=6,
+                               initial_refinement_level=3,
                                n_cells_max=1_000_000)
 
 semi                = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -141,7 +141,7 @@ callbacks           = CallbackSet(summary_callback,
 
 stage_callbacks = (AntidiffusiveStage(), BoundsCheckCallback(save_errors=false))
 
-sol = Trixi.solve(ode; alg=Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks),
+sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks);
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

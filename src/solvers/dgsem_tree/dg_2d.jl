@@ -81,11 +81,10 @@ end
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
                       volume_integral::VolumeIntegralShockCapturingSubcell, dg::DG, uEltype)
-
   cache = create_cache(mesh, equations,
                        VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
                        dg, uEltype)
-  if volume_integral.indicator.indicator_smooth
+  if volume_integral.indicator.smoothness_indicator
     element_ids_dg   = Int[]
     element_ids_dgfv = Int[]
     cache = (; cache..., element_ids_dg, element_ids_dgfv)
@@ -99,9 +98,9 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
   fhat2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
   flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
 
-  ContainerAntidiffusiveFlux2D = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0, nvariables(equations), nnodes(dg))
+  container_antidiffusive_flux = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0, nvariables(equations), nnodes(dg))
 
-  return (; cache..., ContainerAntidiffusiveFlux2D, fhat1_threaded, fhat2_threaded, flux_temp_threaded)
+  return (; cache..., container_antidiffusive_flux, fhat1_threaded, fhat2_threaded, flux_temp_threaded)
 end
 
 
@@ -541,9 +540,9 @@ function calc_volume_integral!(du, u,
   @trixi_timeit timer() "calc_lambdas_bar_states!" calc_lambdas_bar_states!(u, t, mesh,
       nonconservative_terms, equations, indicator, dg, cache, boundary_conditions)
   # Calculate boundaries
-  @trixi_timeit timer() "calc_var_bounds!" calc_var_bounds!(u, mesh, nonconservative_terms, equations, indicator, dg, cache)
+  @trixi_timeit timer() "calc_variable_bounds!" calc_variable_bounds!(u, mesh, nonconservative_terms, equations, indicator, dg, cache)
 
-  if indicator.indicator_smooth
+  if indicator.smoothness_indicator
     @unpack element_ids_dg, element_ids_dgfv = cache
     # Calculate element-wise blending factors α
     alpha_element = @trixi_timeit timer() "element-wise blending factors" indicator.IndicatorHG(u, mesh, equations, dg, cache)
@@ -567,7 +566,7 @@ function calc_volume_integral!(du, u,
                                volume_integral, indicator,
                                dg, cache)
     end
-  else # indicator.indicator_smooth == false
+  else # indicator.smoothness_indicator == false
     # Loop over all elements
     @trixi_timeit timer() "subcell-wise blended DG-FV" @threaded for element in eachelement(dg, cache)
       subcell_limiting_kernel!(du, u, element, mesh,
@@ -652,7 +651,7 @@ end
   calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms, equations, indicator, dg, element, cache,
                                   fstar1_L, fstar2_L)
 
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
   for j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)
       du[v, i, j, element] += inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
@@ -667,15 +666,10 @@ end
 end
 
 
-#     calcflux_fhat!(fhat1, fhat2, u, mesh,
-#                    nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
-#
 # Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
 # (**without non-conservative terms**).
 #
-# # Arguments
-# - `fhat1::AbstractArray{<:Real, 3}`
-# - `fhat2::AbstractArray{<:Real, 3}`
+# See also `flux_differencing_kernel!`.
 @inline function calcflux_fhat!(fhat1, fhat2, u,
                                 mesh::TreeMesh{2}, nonconservative_terms::False, equations,
                                 volume_flux, dg::DGSEM, element, cache)
@@ -744,9 +738,10 @@ end
   return nothing
 end
 
+# Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar`.
 @inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations, indicator::IndicatorIDP, dg, element, cache)
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
 
   for j in eachnode(dg), i in 2:nnodes(dg)
     for v in eachvariable(equations)
@@ -770,7 +765,7 @@ end
 
 @inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations, indicator::IndicatorMCL, dg, element, cache)
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
 
   for j in eachnode(dg), i in 2:nnodes(dg)
     for v in eachvariable(equations)
@@ -793,12 +788,11 @@ end
 end
 
 @inline function calc_lambdas_bar_states!(u, t, mesh::TreeMesh,
-    nonconservative_terms, equations, indicator, dg, cache, boundary_conditions; calcBarStates=true)
-
-  if indicator isa IndicatorIDP && !indicator.BarStates
+    nonconservative_terms, equations, indicator, dg, cache, boundary_conditions; calc_bar_states=true)
+  if indicator isa IndicatorIDP && !indicator.bar_states
     return nothing
   end
-  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerBarStates
+  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.container_bar_states
 
   # Calc lambdas and bar states inside elements
   @threaded for element in eachelement(dg, cache)
@@ -807,7 +801,7 @@ end
       u_node_im1 = get_node_vars(u, equations, dg, i-1, j, element)
       lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node, 1, equations)
 
-      !calcBarStates && continue
+      !calc_bar_states && continue
 
       flux1     = flux(u_node,     1, equations)
       flux1_im1 = flux(u_node_im1, 1, equations)
@@ -821,7 +815,7 @@ end
       u_node_jm1 = get_node_vars(u, equations, dg, i, j-1, element)
       lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node, 2, equations)
 
-      !calcBarStates && continue
+      !calc_bar_states && continue
 
       flux2     = flux(u_node,     2, equations)
       flux2_jm1 = flux(u_node_jm1, 2, equations)
@@ -848,7 +842,7 @@ end
         lambda1[nnodes(dg)+1, j, left_id]  = lambda
         lambda1[1,            j, right_id] = lambda
 
-        !calcBarStates && continue
+        !calc_bar_states && continue
 
         flux_left  = flux(u_left,  orientation, equations)
         flux_right = flux(u_right, orientation, equations)
@@ -867,7 +861,7 @@ end
         lambda2[i, nnodes(dg)+1, left_id]  = lambda
         lambda2[i,            1, right_id] = lambda
 
-        !calcBarStates && continue
+        !calc_bar_states && continue
 
         flux_left  = flux(u_left,  orientation, equations)
         flux_right = flux(u_right, orientation, equations)
@@ -894,7 +888,7 @@ end
                                              equations, dg, 1, j, element)
           lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
 
-          !calcBarStates && continue
+          !calc_bar_states && continue
 
           flux_inner = flux(u_inner, orientation, equations)
           flux_outer = flux(u_outer, orientation, equations)
@@ -910,7 +904,7 @@ end
                                              equations, dg, nnodes(dg), j, element)
           lambda1[nnodes(dg)+1, j, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
 
-          !calcBarStates && continue
+          !calc_bar_states && continue
 
           flux_inner = flux(u_inner, orientation, equations)
           flux_outer = flux(u_outer, orientation, equations)
@@ -928,7 +922,7 @@ end
                                              equations, dg, i, 1, element)
           lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
 
-          !calcBarStates && continue
+          !calc_bar_states && continue
 
           flux_inner = flux(u_inner, orientation, equations)
           flux_outer = flux(u_outer, orientation, equations)
@@ -944,7 +938,7 @@ end
                                              equations, dg, i, nnodes(dg), element)
           lambda2[i, nnodes(dg)+1, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
 
-          !calcBarStates && continue
+          !calc_bar_states && continue
 
           flux_inner = flux(u_inner, orientation, equations)
           flux_outer = flux(u_outer, orientation, equations)
@@ -960,18 +954,18 @@ end
   return nothing
 end
 
-@inline function calc_var_bounds!(u, mesh, nonconservative_terms, equations, indicator::IndicatorIDP, dg, cache)
-  if !indicator.BarStates
+@inline function calc_variable_bounds!(u, mesh, nonconservative_terms, equations, indicator::IndicatorIDP, dg, cache)
+  if !indicator.bar_states
     return nothing
   end
-  @unpack var_bounds = indicator.cache.ContainerShockCapturingIndicator
-  @unpack bar_states1, bar_states2 = indicator.cache.ContainerBarStates
+  @unpack variable_bounds = indicator.cache.container_shock_capturing
+  @unpack bar_states1, bar_states2 = indicator.cache.container_bar_states
 
   counter = 1
   # Density
-  if indicator.IDPDensityTVD
-    rho_min = var_bounds[1]
-    rho_max = var_bounds[2]
+  if indicator.density_tvd
+    rho_min = variable_bounds[1]
+    rho_max = variable_bounds[2]
     @threaded for element in eachelement(dg, cache)
       rho_min[:, :, element] .= typemax(eltype(rho_min))
       rho_max[:, :, element] .= typemin(eltype(rho_max))
@@ -996,8 +990,8 @@ end
     counter += 2
   end
   # Specific Entropy
-  if indicator.IDPSpecEntropy
-    s_min = var_bounds[counter]
+  if indicator.spec_entropy
+    s_min = variable_bounds[counter]
     @threaded for element in eachelement(dg, cache)
       s_min[:, :, element] .= typemax(eltype(s_min))
       for j in eachnode(dg), i in eachnode(dg)
@@ -1021,8 +1015,8 @@ end
     counter += 1
   end
   # Mathematical entropy
-  if indicator.IDPMathEntropy
-    s_max = var_bounds[counter]
+  if indicator.math_entropy
+    s_max = variable_bounds[counter]
     @threaded for element in eachelement(dg, cache)
       s_max[:, :, element] .= typemin(eltype(s_max))
       for j in eachnode(dg), i in eachnode(dg)
@@ -1047,9 +1041,9 @@ end
   return nothing
 end
 
-@inline function calc_var_bounds!(u, mesh, nonconservative_terms, equations, indicator::IndicatorMCL, dg, cache)
-  @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
-  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
+@inline function calc_variable_bounds!(u, mesh, nonconservative_terms, equations, indicator::IndicatorMCL, dg, cache)
+  @unpack var_min, var_max = indicator.cache.container_shock_capturing
+  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.container_bar_states
 
   @threaded for element in eachelement(dg, cache)
     for v in eachvariable(equations)
@@ -1158,13 +1152,13 @@ end
 
 @inline function calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms, equations, indicator, dg, element, cache,
                                                  fstar1, fstar2)
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
-  @unpack var_min, var_max = indicator.cache.ContainerShockCapturingIndicator
-  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerBarStates
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+  @unpack var_min, var_max = indicator.cache.container_shock_capturing
+  @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.container_bar_states
 
   if indicator.Plotting
     @unpack alpha, alpha_pressure, alpha_entropy,
-            alpha_mean, alpha_mean_pressure, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+            alpha_mean, alpha_mean_pressure, alpha_mean_entropy = indicator.cache.container_shock_capturing
     for j in eachnode(dg), i in eachnode(dg)
       alpha_mean[:, i, j, element] .= zero(eltype(alpha_mean))
       alpha_mean_pressure[i, j, element] = zero(eltype(alpha_mean_pressure))
@@ -1212,7 +1206,7 @@ end
         end
 
         if indicator.Plotting
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
           alpha_mean[1, i-1, j, element] += coefficient
@@ -1254,7 +1248,7 @@ end
         end
 
         if indicator.Plotting
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
           alpha_mean[1, i, j-1, element] += coefficient
@@ -1305,7 +1299,7 @@ end
           else
             coefficient = min(1, (g_limited + sign(g_limited) * eps()) / (g + sign(g_limited) * eps()))
           end
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
           alpha_mean[v, i-1, j, element] += coefficient
@@ -1346,7 +1340,7 @@ end
           else
             coefficient = min(1, (g_limited + sign(g_limited) * eps()) / (g + sign(g_limited) * eps()))
           end
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
           alpha_mean[v, i, j-1, element] += coefficient
@@ -1381,7 +1375,7 @@ end
           else
             coefficient = min(1, (flux_limited + sign(flux_limited) * eps()) / (antidiffusive_flux1[v, i, j, element] + sign(flux_limited) * eps()))
           end
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[v, i-1, j, element] = min(alpha[v, i-1, j, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
           alpha_mean[v, i-1, j, element] += coefficient
@@ -1414,7 +1408,7 @@ end
           else
             coefficient = min(1, (flux_limited + sign(flux_limited) * eps()) / (antidiffusive_flux2[v, i, j, element] + sign(flux_limited) * eps()))
           end
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[v, i, j-1, element] = min(alpha[v, i, j-1, element], coefficient)
           alpha[v, i,   j, element] = min(alpha[v, i,   j, element], coefficient)
           alpha_mean[v, i, j-1, element] += coefficient
@@ -1427,7 +1421,7 @@ end
 
   # Density positivity limiter
   if indicator.DensityPositivityLimiter
-    beta = indicator.DensityPositivityCorrelationFactor
+    beta = indicator.DensityPositivityCorrectionFactor
     for j in eachnode(dg), i in 2:nnodes(dg)
       lambda = lambda1[i, j, element]
       bar_state_rho = bar_states1[1, i, j, element]
@@ -1450,7 +1444,7 @@ end
         end
 
         if indicator.Plotting
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[1, i-1, j, element] = min(alpha[1, i-1, j, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
           if !indicator.DensityLimiter
@@ -1491,7 +1485,7 @@ end
         end
 
         if indicator.Plotting
-          @unpack alpha, alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+          @unpack alpha, alpha_mean = indicator.cache.container_shock_capturing
           alpha[1, i, j-1, element] = min(alpha[1, i, j-1, element], coefficient)
           alpha[1, i,   j, element] = min(alpha[1, i,   j, element], coefficient)
           if !indicator.DensityLimiter
@@ -1513,7 +1507,7 @@ end
 
   # Divide alpha_mean by number of additions
   if indicator.Plotting
-    @unpack alpha_mean = indicator.cache.ContainerShockCapturingIndicator
+    @unpack alpha_mean = indicator.cache.container_shock_capturing
     # Interfaces contribute with 1.0
     if indicator.DensityLimiter || indicator.DensityPositivityLimiter
       for i in eachnode(dg)
@@ -1543,7 +1537,7 @@ end
 
   # Limit pressure à la Kuzmin
   if indicator.PressurePositivityLimiterKuzmin
-    @unpack alpha_pressure, alpha_mean_pressure = indicator.cache.ContainerShockCapturingIndicator
+    @unpack alpha_pressure, alpha_mean_pressure = indicator.cache.container_shock_capturing
     for j in eachnode(dg), i in 2:nnodes(dg)
       bar_state_velocity = bar_states1[2, i, j, element]^2 + bar_states1[3, i, j, element]^2
       flux_velocity = antidiffusive_flux1[2, i, j, element]^2 + antidiffusive_flux1[3, i, j, element]^2
@@ -1624,7 +1618,7 @@ end
       end
     end
     if indicator.Plotting
-      @unpack alpha_mean_pressure = indicator.cache.ContainerShockCapturingIndicator
+      @unpack alpha_mean_pressure = indicator.cache.container_shock_capturing
       # Interfaces contribute with 1.0
       for i in eachnode(dg)
         alpha_mean_pressure[i, 1, element] += 1.0
@@ -1674,7 +1668,7 @@ end
         end
       end
       if indicator.Plotting
-        @unpack alpha_entropy, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+        @unpack alpha_entropy, alpha_mean_entropy = indicator.cache.container_shock_capturing
         alpha_entropy[i-1, j, element] = min(alpha_entropy[i-1, j, element], alpha)
         alpha_entropy[i,   j, element] = min(alpha_entropy[i,   j, element], alpha)
         alpha_mean_entropy[i-1, j, element] += alpha
@@ -1714,7 +1708,7 @@ end
         end
       end
       if indicator.Plotting
-        @unpack alpha_entropy, alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+        @unpack alpha_entropy, alpha_mean_entropy = indicator.cache.container_shock_capturing
         alpha_entropy[i, j-1, element] = min(alpha_entropy[i, j-1, element], alpha)
         alpha_entropy[i,   j, element] = min(alpha_entropy[i,   j, element], alpha)
         alpha_mean_entropy[i, j-1, element] += alpha
@@ -1722,7 +1716,7 @@ end
       end
     end
     if indicator.Plotting
-      @unpack alpha_mean_entropy = indicator.cache.ContainerShockCapturingIndicator
+      @unpack alpha_mean_entropy = indicator.cache.container_shock_capturing
       # Interfaces contribute with 1.0
       for i in eachnode(dg)
         alpha_mean_entropy[i, 1, element] += 1.0
