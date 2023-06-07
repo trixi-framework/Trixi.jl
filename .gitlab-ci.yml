@@ -30,7 +30,7 @@ precompile-job:
         - source /work/co693196/MA/julia.sh
         - mkdir run
         - cd run
-        - julia --project="." -e 'using Pkg; Pkg.add(name="OrdinaryDiffEq", version="6.52.0"); Pkg.develop(PackageSpec(path=".."));'
+        - julia --project="." -e 'using Pkg; Pkg.add(name="OrdinaryDiffEq", version="6.52.0"); Pkg.add(name="KernelAbstractions", version="0.9.4"); Pkg.develop(PackageSpec(path=".."));'
 
 cpu-test-job:
     extends: .test-job
