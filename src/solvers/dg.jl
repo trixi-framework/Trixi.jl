@@ -616,6 +616,11 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg:
   @threaded for element in eachelement(dg, cache)
     for i in eachnode(dg)
       x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, element)
+      if i == 1
+        x_node = SVector(nextfloat(x_node[1]))
+      elseif i == nnodes(dg)
+        x_node = SVector(prevfloat(x_node[1]))
+      end
       u_node = func(x_node, t, equations)
       set_node_vars!(u, u_node, equations, dg, i, element)
     end
