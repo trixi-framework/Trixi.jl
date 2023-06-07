@@ -9,8 +9,10 @@
     LimitingAnalysisCallback(; output_directory="out", interval=1)
 
 Analyze the subcell blending coefficient of IDP limiting (`IndicatorIDP`) and monolithic convex
-limiting (MCL) (`IndicatorMCL`) every `interval` time steps and save the results
-to `output_directory/alpha.txt`.
+limiting (MCL) (`IndicatorMCL`) in the last RK stage of every `interval` time steps. This contains
+a volume-weighted average of the node coefficients. For MCL, the node coefficients are calculated
+using either the minimum or the mean of the adjacent subcell interfaces. The results are saved in
+`alphas.txt` (for IDP limiting), `alpha_min.txt` and `alphas_mean.txt` (for MCL) in `output_directory`.
 """
 struct LimitingAnalysisCallback
   output_directory::String
