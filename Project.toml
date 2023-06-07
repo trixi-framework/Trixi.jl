@@ -84,7 +84,7 @@ TimerOutputs = "0.5"
 Triangulate = "2.0"
 TriplotBase = "0.1"
 TriplotRecipes = "0.1"
-julia = "1.8"
+julia = "1.9"
 
 [extras]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
