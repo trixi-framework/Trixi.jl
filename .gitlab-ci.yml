@@ -11,7 +11,7 @@ default:
         SLURM_PARAM_ACCOUNT: "-A thes1464"
         SLURM_PARAM_TASKS: "-n 1"
         SLURM_PARAM_CPUS: "--cpus-per-task=24"
-        SLURM_PARAM_TIME: "-t 20:00"
+        SLURM_PARAM_TIME: "-t 01:00:00"
     before_script:
         - source /work/co693196/MA/julia.sh
 
@@ -30,7 +30,7 @@ precompile-job:
         - source /work/co693196/MA/julia.sh
         - mkdir run
         - cd run
-        - julia --project="." -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "CUDA"]); Pkg.develop(PackageSpec(path=".."));'
+        - julia --project="." -e 'using Pkg; Pkg.add(name="OrdinaryDiffEq", version="6.52.0"); Pkg.develop(PackageSpec(path=".."));'
 
 cpu-test-job:
     extends: .test-job
@@ -48,4 +48,5 @@ gpu-offload-test-job:
         SLURM_PARAM_GPUS: "--gres=gpu:volta:1"
         SLURM_PARAM_PARTITION: "--partition=c18g"
     script:
+        - julia --project="." --threads=24 -e 'using Pkg; Pkg.add(name="CUDA", version="4.3.2")'
         - julia --project="." --threads=24 -e 'using Trixi, CUDA; using CUDA.CUDAKernels; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=true, backend=CUDABackend())'
