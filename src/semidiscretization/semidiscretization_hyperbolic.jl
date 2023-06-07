@@ -286,7 +286,8 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolic)
 end
 
 
-function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
+function rhs!(du_ode, u_ode, params::ODEParams, t)
+  @unpack semi = params
   @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
 
   u  = wrap_array(u_ode,  mesh, equations, solver, cache)

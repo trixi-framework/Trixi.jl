@@ -80,7 +80,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan; offload::Bool=f
   if offload
     return ODEProblem{iip}(rhs_gpu!, u0_ode, tspan, ODEParams(semi, backend))
   else
-    return ODEProblem{iip}(rhs!, u0_ode, tspan, semi)
+    return ODEProblem{iip}(rhs!, u0_ode, tspan, ODEParams(semi, CPU()))
   end
 end
 
