@@ -196,7 +196,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     u_loc  = get_system_u_ode(u_ode, i, semi)
     du_loc = get_system_u_ode(du_ode, i, semi)
 
-    rhs!(du_loc, u_loc, semi.semis[i], t)
+    @trixi_timeit timer() "system #$i" rhs!(du_loc, u_loc, semi.semis[i], t)
   end
 
   runtime = time_ns() - time_start
