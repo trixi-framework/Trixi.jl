@@ -1161,13 +1161,13 @@ end
             alpha_mean, alpha_mean_pressure, alpha_mean_entropy = indicator.cache.container_shock_capturing
     for j in eachnode(dg), i in eachnode(dg)
       alpha_mean[:, i, j, element] .= zero(eltype(alpha_mean))
-      alpha_mean_pressure[i, j, element] = zero(eltype(alpha_mean_pressure))
-      alpha_mean_entropy[i, j, element] = zero(eltype(alpha_mean_entropy))
       alpha[:, i, j, element] .= one(eltype(alpha))
       if indicator.PressurePositivityLimiterKuzmin
+        alpha_mean_pressure[i, j, element] = zero(eltype(alpha_mean_pressure))
         alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
       end
       if indicator.SemiDiscEntropyLimiter
+        alpha_mean_entropy[i, j, element] = zero(eltype(alpha_mean_entropy))
         alpha_entropy[i, j, element] = one(eltype(alpha_entropy))
       end
     end
