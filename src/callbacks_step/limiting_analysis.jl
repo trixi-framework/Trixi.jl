@@ -9,7 +9,7 @@
     LimitingAnalysisCallback(; output_directory="out", interval=1)
 
 Analyze the subcell blending coefficient of IDP limiting (`IndicatorIDP`) and monolithic convex
-limiting (MCL) (`IndicatorMCL`) every `interval` time steps and saeves the results
+limiting (MCL) (`IndicatorMCL`) every `interval` time steps and save the results
 to `output_directory/alpha.txt`.
 """
 struct LimitingAnalysisCallback
@@ -76,25 +76,17 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   vars = varnames(cons2cons, integrator.p.equations)
 
   mkpath(output_directory)
-  open("$output_directory/alphas_min.txt", "a") do f;
-    print(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
-    if indicator.PressurePositivityLimiterKuzmin
-      print(f, ", alpha_min_pressure, alpha_avg_pressure")
+  for file in ["alphas_min.txt", "alphas_mean.txt"]
+    open("$output_directory/$file", "a") do f;
+      print(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
+      if indicator.PressurePositivityLimiterKuzmin
+        print(f, ", alpha_min_pressure, alpha_avg_pressure")
+      end
+      if indicator.SemiDiscEntropyLimiter
+        print(f, ", alpha_min_entropy, alpha_avg_entropy")
+      end
+      println(f)
     end
-    if indicator.SemiDiscEntropyLimiter
-      print(f, ", alpha_min_entropy, alpha_avg_entropy")
-    end
-    println(f)
-  end
-  open("$output_directory/alphas_mean.txt", "a") do f;
-    print(f, "# iter, simu_time", join(", alpha_min_$v, alpha_avg_$v" for v in vars));
-    if indicator.PressurePositivityLimiterKuzmin
-      print(f, ", alpha_min_pressure, alpha_avg_pressure")
-    end
-    if indicator.SemiDiscEntropyLimiter
-      print(f, ", alpha_min_entropy, alpha_avg_entropy")
-    end
-    println(f)
   end
 
   return nothing
@@ -182,6 +174,7 @@ end
 
   return nothing
 end
+
 
 end # @muladd
 

@@ -9,34 +9,34 @@
   @unpack weights = dg.basis
   @unpack alpha = indicator.cache.container_shock_capturing
 
-  alpha_avg_ = zero(eltype(alpha))
+  alpha_avg = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
   for element in eachelement(dg, cache)
     jacobian = inv(cache.elements.inverse_jacobian[element])
     for j in eachnode(dg), i in eachnode(dg)
-      alpha_avg_ += jacobian * weights[i] * weights[j] * alpha[i, j, element]
+      alpha_avg += jacobian * weights[i] * weights[j] * alpha[i, j, element]
       total_volume += jacobian * weights[i] * weights[j]
     end
   end
 
-  return alpha_avg_ / total_volume
+  return alpha_avg / total_volume
 end
 
 @inline function analyze_coefficient_IDP(mesh::StructuredMesh{2}, equations, dg, cache, indicator)
   @unpack weights = dg.basis
   @unpack alpha = indicator.cache.container_shock_capturing
 
-  alpha_avg_ = zero(eltype(alpha))
+  alpha_avg = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
   for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       jacobian = inv(cache.elements.inverse_jacobian[i, j, element])
-      alpha_avg_ += jacobian * weights[i] * weights[j] * alpha[i, j, element]
+      alpha_avg += jacobian * weights[i] * weights[j] * alpha[i, j, element]
       total_volume += jacobian * weights[i] * weights[j]
     end
   end
 
-  return alpha_avg_ / total_volume
+  return alpha_avg / total_volume
 end
 
 
