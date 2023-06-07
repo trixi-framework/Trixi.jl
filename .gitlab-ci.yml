@@ -13,8 +13,7 @@ default:
         SLURM_PARAM_CPUS: "--cpus-per-task=24"
         SLURM_PARAM_TIME: "-t 20:00"
     before_script:
-        - path=('/work/co693196/MA/.juliaup/bin' $path)
-        - export PATH
+        - source /work/co693196/MA/julia.sh
 
 precompile-job:
     extends: .julia-job
@@ -27,21 +26,25 @@ precompile-job:
 .test-job:
     extends: .julia-job
     stage: test
-    before_script:
+    script:
         - mkdir run
         - cd run
         - julia --project="." -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))'
 
 cpu-test-job:
     extends: .test-job
-    script:
-        - cd run
+    after_script:
         - julia --project="." --threads=24 -e 'using Trixi; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=false)'
 
-gpu-test-job:
+cpu-offload-test-job:
+    extends: .test-job
+    after_script:
+        - julia --project="." --threads=24 -e 'using Trixi; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=true)'
+
+gpu-offload-test-job:
     extends: .test-job
     variables:        
         SLURM_PARAM_GPUS: "--gres=gpu:volta:1"
-    script:
-        - cd run
-        - julia --project="." --threads=24 -e 'using Trixi; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=true)'
+    after_script:
+        - julia --project="." --threads=24 -e 'using Pkg; Pkg.add("CUDA")'
+        - julia --project="." --threads=24 -e 'using Trixi, CUDA; using CUDA.CUDAKernels; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=true, backend=CUDABackend())'
