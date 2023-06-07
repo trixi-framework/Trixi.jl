@@ -30,7 +30,7 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
         @test isapprox(mean_convergence[:l2], [4.0], rtol=0.05)
       end
 
-      @timed_testset "structured_2d_dgsem" begin
+      @timed_testset "structured_2d_dgsem coupled" begin
         mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_basic_coupled.jl"), 3)
         @test isapprox((mean_convergence[1][:l2] + mean_convergence[2][:l2])/2.0, [4.0], rtol=0.05)
       end
@@ -62,6 +62,7 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
       @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
       @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 2, initial_refinement_level=0, tspan=(0.0, 0.1))
       @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_basic_coupled.jl"), 2, tspan=(0.0, 0.01))
       @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 2, cells_per_dimension=(1, 1), tspan=(0.0, 0.1))
     end
   end
