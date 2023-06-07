@@ -15,7 +15,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [6.627000273229378e-5],
       # Let the small basic test run to the end
       coverage_override = (maxiters=10^5,),
-      offload=false)
+      offload=false, backend=CPU())
   end
 
   #@trixi_testset "elixir_advection_extended.jl with polydeg=1" begin

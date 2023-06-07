@@ -156,15 +156,15 @@ end
 function rhs_gpu!(du, u, t,
   mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations,
   initial_condition, boundary_conditions, source_terms::Source,
-  dg::DG, cache) where {Source}
+  dg::DG, cache, backend::Backend) where {Source}
 
   # Select backend
-  backend = CUDABackend()
+  #backend = CUDABackend()
   #backend = CPU()
 
   # Offload u to device storage
   dev_u  = KernelAbstractions.allocate(backend, eltype(u),  size(u))
-  if backend != CPU()
+  if !(backend isa CPU)
     KernelAbstractions.copyto!(backend, dev_u, u)
   else
     Base.copyto!(dev_u, u)
@@ -179,7 +179,7 @@ function rhs_gpu!(du, u, t,
     have_nonconservative_terms(equations), equations,
     dg.volume_integral, dg, cache)
 
-  if backend != CPU()
+  if !(backend isa CPU)
     KernelAbstractions.copyto!(backend, du, dev_du)
   else
     Base.copyto!(du, dev_du)
@@ -252,12 +252,7 @@ function calc_volume_integral_gpu!(du, u,
 
   backend = get_backend(du)
 
-  @kernel function launch_weak_form_kernel!(du, u, equations, derivative_dhat, num_nodes)
-    element = @index(Global)
-    weak_form_kernel_gpu!(du, u, element, equations, derivative_dhat, num_nodes)
-  end
-
-  kernel! = launch_weak_form_kernel!(backend)
+  kernel! = weak_form_kernel_gpu!(backend)
   # Determine gridsize by number of node for each element
   num_nodes = length(eachnode(dg))
   num_elements = length(eachelement(dg, cache))
@@ -270,7 +265,7 @@ function calc_volume_integral_gpu!(du, u,
     Base.copyto!(dev_derivative_dhat, derivative_dhat)
   end
 
-  kernel!(du, u, equations, dev_derivative_dhat, num_nodes, ndrange=num_elements)
+  kernel!(du, u, equations, dev_derivative_dhat, num_nodes, ndrange=num_elements, workgroupsize=1)
   # Ensure that device is finished
   KernelAbstractions.synchronize(backend)
 
@@ -279,8 +274,10 @@ end
 
 end #@muladd
 
-function weak_form_kernel_gpu!(du, u,
-                               element, equations, derivative_dhat, num_nodes)
+@kernel function weak_form_kernel_gpu!(du, u,
+                                       equations, derivative_dhat, num_nodes)
+
+  element = @index(Group)
 
   for j in 1:num_nodes, i in 1:num_nodes
     #u_node = get_node_vars(u, equations, dg, i, j, element)

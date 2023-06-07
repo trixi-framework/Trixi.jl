@@ -301,7 +301,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
   return nothing
 end
 
-function rhs_gpu!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
+function rhs_gpu!(du_ode, u_ode, params::ODEParams, t)
+  @unpack semi, backend = params
   @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
 
   u  = wrap_array(u_ode,  mesh, equations, solver, cache)
@@ -309,7 +310,7 @@ function rhs_gpu!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
 
   # TODO: Taal decide, do we need to pass the mesh?
   time_start = time_ns()
-  @trixi_timeit timer() "rhs!" rhs_gpu!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
+  @trixi_timeit timer() "rhs_gpu!" rhs_gpu!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache, backend)
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
 

@@ -128,7 +128,7 @@ end
 
 
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AnalysisCallback}
-  semi = integrator.p
+  @unpack semi = integrator.p
   initial_state_integrals = integrate(u_ode, semi)
   _, equations, _, _ = mesh_equations_solver_cache(semi)
 
@@ -204,7 +204,7 @@ end
 
 # TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
 function (analysis_callback::AnalysisCallback)(integrator)
-  semi = integrator.p
+  @unpack semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack dt, t = integrator
   iter = integrator.stats.naccept
@@ -294,7 +294,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     # However, we want to allow users to modify the ODE RHS outside of Trixi.jl
     # and allow us to pass a combined ODE RHS to OrdinaryDiffEq, e.g., for
     # hyperbolic-parabolic systems.
-    @notimeit timer() integrator.f(du_ode, integrator.u, semi, t)
+    @notimeit timer() integrator.f(du_ode, integrator.u, integrator.p, t)
     u  = wrap_array(integrator.u, mesh, equations, solver, cache)
     du = wrap_array(du_ode,       mesh, equations, solver, cache)
     l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
@@ -531,7 +531,7 @@ end
 # used for error checks and EOC analysis
 function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect!<:AnalysisCallback}
   analysis_callback = cb.affect!
-  semi = sol.prob.p
+  @unpack semi = sol.prob.p
   @unpack analyzer = analysis_callback
   cache_analysis = analysis_callback.cache
 
