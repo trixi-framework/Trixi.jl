@@ -26,25 +26,26 @@ precompile-job:
 .test-job:
     extends: .julia-job
     stage: test
-    script:
+    before_script:
+        - source /work/co693196/MA/julia.sh
         - mkdir run
         - cd run
         - julia --project="." -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))'
 
 cpu-test-job:
     extends: .test-job
-    after_script:
+    script:
         - julia --project="." --threads=24 -e 'using Trixi; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=false)'
 
 cpu-offload-test-job:
     extends: .test-job
-    after_script:
+    script:
         - julia --project="." --threads=24 -e 'using Trixi; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=true)'
 
 gpu-offload-test-job:
     extends: .test-job
     variables:        
         SLURM_PARAM_GPUS: "--gres=gpu:volta:1"
-    after_script:
+    script:
         - julia --project="." --threads=24 -e 'using Pkg; Pkg.add("CUDA")'
         - julia --project="." --threads=24 -e 'using Trixi, CUDA; using CUDA.CUDAKernels; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=true, backend=CUDABackend())'
