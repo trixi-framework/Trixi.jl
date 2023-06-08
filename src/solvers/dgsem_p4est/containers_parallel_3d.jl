@@ -3,10 +3,12 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Initialize node_indices of MPI interface container
-@inline function init_mpi_interface_node_indices!(mpi_interfaces::P4estMPIInterfaceContainer{3},
+@inline function init_mpi_interface_node_indices!(mpi_interfaces::P4estMPIInterfaceContainer{
+                                                                                             3
+                                                                                             },
                                                   faces, local_side, orientation,
                                                   mpi_interface_id)
   # Align interface at the primary element (primary element has surface indices (:i_forward, :j_forward)).
@@ -15,24 +17,28 @@
     surface_index1 = :i_forward
     surface_index2 = :j_forward
   else # local_side == 2
-    surface_index1, surface_index2 = orientation_to_indices_p4est(faces[2], faces[1], orientation)
+    surface_index1, surface_index2 = orientation_to_indices_p4est(faces[2], faces[1],
+                                                                  orientation)
   end
 
   if faces[local_side] == 0
     # Index face in negative x-direction
-    mpi_interfaces.node_indices[mpi_interface_id] = (:begin, surface_index1, surface_index2)
+    mpi_interfaces.node_indices[mpi_interface_id] = (:begin, surface_index1,
+                                                     surface_index2)
   elseif faces[local_side] == 1
     # Index face in positive x-direction
     mpi_interfaces.node_indices[mpi_interface_id] = (:end, surface_index1, surface_index2)
   elseif faces[local_side] == 2
     # Index face in negative y-direction
-    mpi_interfaces.node_indices[mpi_interface_id] = (surface_index1, :begin, surface_index2)
+    mpi_interfaces.node_indices[mpi_interface_id] = (surface_index1, :begin,
+                                                     surface_index2)
   elseif faces[local_side] == 3
     # Index face in positive y-direction
     mpi_interfaces.node_indices[mpi_interface_id] = (surface_index1, :end, surface_index2)
   elseif faces[local_side] == 4
     # Index face in negative z-direction
-    mpi_interfaces.node_indices[mpi_interface_id] = (surface_index1, surface_index2, :begin)
+    mpi_interfaces.node_indices[mpi_interface_id] = (surface_index1, surface_index2,
+                                                     :begin)
   else # faces[local_side] == 5
     # Index face in positive z-direction
     mpi_interfaces.node_indices[mpi_interface_id] = (surface_index1, surface_index2, :end)
@@ -40,7 +46,6 @@
 
   return mpi_interfaces
 end
-
 
 # Initialize node_indices of MPI mortar container. Works the same as for its serial counterpart.
 # faces[1] is expected to be the face of the small side.
@@ -53,7 +58,8 @@ end
       surface_index1 = :i_forward
       surface_index2 = :j_forward
     else
-      surface_index1, surface_index2 = orientation_to_indices_p4est(faces[2], faces[1], orientation)
+      surface_index1, surface_index2 = orientation_to_indices_p4est(faces[2], faces[1],
+                                                                    orientation)
     end
 
     if faces[side] == 0
@@ -80,7 +86,6 @@ end
   return mortars
 end
 
-
 # Normal directions of small element surfaces are needed to calculate the mortar fluxes. Initialize
 # them for locally available small elements.
 function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{3}, basis, elements)
@@ -92,11 +97,15 @@ function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{3}, basis,
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
 
-    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1], index_range)
-    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2], index_range)
-    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3], index_range)
+    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                           index_range)
+    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                           index_range)
+    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                           index_range)
 
-    for (element, position) in zip(local_neighbor_ids[mortar], local_neighbor_positions[mortar])
+    for (element, position) in zip(local_neighbor_ids[mortar],
+                                   local_neighbor_positions[mortar])
       # ignore large elements
       if position == 5
         continue
@@ -125,6 +134,4 @@ function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{3}, basis,
     end
   end
 end
-
-
 end # muladd

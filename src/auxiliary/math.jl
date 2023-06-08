@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 """
     ln_mean(x, y)
@@ -82,8 +82,6 @@ multiplication.
     return log(y / x) / (y - x)
   end
 end
-
-
 
 # `Base.max` and `Base.min` perform additional checks for signed zeros and `NaN`s
 # which are not present in comparable functions in Fortran/C++. For example,
@@ -190,8 +188,6 @@ julia> min(2, 5, 1)
 """
 @inline min(args...) = @fastmath min(args...)
 
-
-
 """
     positive_part(x)
 
@@ -211,6 +207,4 @@ Return `x` if `x` is negative, else zero. In other words, return
 @inline function negative_part(x)
   return min(x, zero(x))
 end
-
-
 end # @muladd

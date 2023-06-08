@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 """
     AveragingCallback(semi::SemidiscretizationHyperbolic, tspan; output_directory="out",
@@ -26,7 +26,6 @@ struct AveragingCallback{TSpan, MeanValues, Cache}
   filename::String
 end
 
-
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:AveragingCallback})
   @nospecialize cb # reduce precompilation time
   averaging_callback = cb.affect!
@@ -35,7 +34,8 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:AveragingCallback})
   print(io, "AveragingCallback(tspan=", tspan, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:AveragingCallback})
+function Base.show(io::IO, ::MIME"text/plain",
+                   cb::DiscreteCallback{<:Any, <:AveragingCallback})
   @nospecialize cb # reduce precompilation time
 
   if get(io, :compact, false)
@@ -44,28 +44,31 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Ave
     averaging_callback = cb.affect!
 
     setup = [
-             "Start time" => first(averaging_callback.tspan),
-             "Final time" => last(averaging_callback.tspan)
-            ]
+      "Start time" => first(averaging_callback.tspan),
+      "Final time" => last(averaging_callback.tspan),
+    ]
     summary_box(io, "AveragingCallback", setup)
   end
 end
 
-function AveragingCallback(semi::SemidiscretizationHyperbolic{<:Any, <:CompressibleEulerEquations2D},
-                           tspan; output_directory="out", filename="averaging.h5")
+function AveragingCallback(semi::SemidiscretizationHyperbolic{<:Any,
+                                                              <:CompressibleEulerEquations2D
+                                                              },
+                           tspan; output_directory = "out", filename = "averaging.h5")
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   mean_values = initialize_mean_values(mesh, equations, solver, cache)
   cache = create_cache(AveragingCallback, mesh, equations, solver, cache)
 
-  averaging_callback = AveragingCallback(tspan, mean_values, cache, output_directory, filename)
+  averaging_callback = AveragingCallback(tspan, mean_values, cache, output_directory,
+                                         filename)
   condition = (u, t, integrator) -> first(tspan) <= t <= last(tspan)
 
-  return DiscreteCallback(condition, averaging_callback, save_positions=(false,false),
-                          initialize=initialize!)
+  return DiscreteCallback(condition, averaging_callback, save_positions = (false, false),
+                          initialize = initialize!)
 end
 
-
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AveragingCallback}
+function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
+                     integrator) where {Condition, Affect! <: AveragingCallback}
   averaging_callback = cb.affect!
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
@@ -96,7 +99,8 @@ function (averaging_callback::AveragingCallback)(integrator)
 
   integration_constant = 0.5 * dt / (tspan[2] - tspan[1]) # .5 due to trapezoidal rule
 
-  @trixi_timeit timer() "averaging" calc_mean_values!(mean_values, averaging_callback.cache,
+  @trixi_timeit timer() "averaging" calc_mean_values!(mean_values,
+                                                      averaging_callback.cache,
                                                       u, u_prev, integration_constant,
                                                       mesh, equations, solver, cache)
 
@@ -111,7 +115,6 @@ function (averaging_callback::AveragingCallback)(integrator)
   return nothing
 end
 
-
 function save_averaging_file(averaging_callback, semi::AbstractSemidiscretization)
   # Create output directory if it doesn't exist
   mkpath(averaging_callback.output_directory)
@@ -123,8 +126,6 @@ function load_averaging_file(averaging_file, semi::AbstractSemidiscretization)
   load_averaging_file(averaging_file, mesh_equations_solver_cache(semi)...)
 end
 
-
 include("averaging_dg.jl")
 include("averaging_dg2d.jl")
-
 end # @muladd

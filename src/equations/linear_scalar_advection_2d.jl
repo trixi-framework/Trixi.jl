@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 @doc raw"""
     LinearScalarAdvectionEquation2D
@@ -14,11 +14,12 @@ The linear scalar advection equation
 ```
 in two space dimensions with constant velocity `a`.
 """
-struct LinearScalarAdvectionEquation2D{RealT<:Real} <: AbstractLinearScalarAdvectionEquation{2, 1}
+struct LinearScalarAdvectionEquation2D{RealT <: Real} <:
+       AbstractLinearScalarAdvectionEquation{2, 1}
   advection_velocity::SVector{2, RealT}
 end
 
-function LinearScalarAdvectionEquation2D(a::NTuple{2,<:Real})
+function LinearScalarAdvectionEquation2D(a::NTuple{2, <:Real})
   LinearScalarAdvectionEquation2D(SVector(a))
 end
 
@@ -26,15 +27,15 @@ function LinearScalarAdvectionEquation2D(a1::Real, a2::Real)
   LinearScalarAdvectionEquation2D(SVector(a1, a2))
 end
 
-
-varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation2D) = ("scalar", )
-varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation2D) = ("scalar", )
+varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation2D) = ("scalar",)
+varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation2D) = ("scalar",)
 
 # Calculates translated coordinates `x` for a periodic domain
 function x_trans_periodic_2d(x, domain_length = SVector(10, 10), center = SVector(0, 0))
   x_normalized = x .- center
   x_shifted = x_normalized .% domain_length
-  x_offset = ((x_shifted .< -0.5*domain_length) - (x_shifted .> 0.5*domain_length)) .* domain_length
+  x_offset = ((x_shifted .< -0.5 * domain_length) - (x_shifted .> 0.5 * domain_length)) .*
+             domain_length
   return center + x_shifted + x_offset
 end
 
@@ -51,25 +52,24 @@ function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquatio
   return SVector(2.0)
 end
 
-
 """
     initial_condition_convergence_test(x, t, equations::LinearScalarAdvectionEquation2D)
 
 A smooth initial condition used for convergence tests.
 """
-function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
+function initial_condition_convergence_test(x, t,
+                                            equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advection_velocity * t
 
   c = 1.0
   A = 0.5
   L = 2
-  f = 1/L
+  f = 1 / L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x_trans))
   return SVector(scalar)
 end
-
 
 """
     initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation2D)
@@ -85,7 +85,6 @@ function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation2D
   return SVector(scalar)
 end
 
-
 """
     initial_condition_sin_sin(x, t, equations::LinearScalarAdvectionEquation2D)
 
@@ -98,7 +97,6 @@ function initial_condition_sin_sin(x, t, equation::LinearScalarAdvectionEquation
   scalar = sinpi(2 * x_trans[1]) * sinpi(2 * x_trans[2])
   return SVector(scalar)
 end
-
 
 """
     initial_condition_linear_x_y(x, t, equations::LinearScalarAdvectionEquation2D)
@@ -136,7 +134,6 @@ function boundary_condition_linear_x_y(u_inner, orientation, direction, x, t,
   return flux
 end
 
-
 """
     initial_condition_linear_x(x, t, equations::LinearScalarAdvectionEquation2D)
 
@@ -172,7 +169,6 @@ function boundary_condition_linear_x(u_inner, orientation, direction, x, t,
 
   return flux
 end
-
 
 """
     initial_condition_linear_y(x, t, equations::LinearScalarAdvectionEquation2D)
@@ -210,10 +206,8 @@ function boundary_condition_linear_y(u_inner, orientation, direction, x, t,
   return flux
 end
 
-
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::LinearScalarAdvectionEquation2D)
-
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equation::LinearScalarAdvectionEquation2D)
@@ -221,31 +215,31 @@ end
   return a * u
 end
 
-
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equation::LinearScalarAdvectionEquation2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equation::LinearScalarAdvectionEquation2D)
   λ_max = abs(equation.advection_velocity[orientation])
 end
 
-
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
-@inline function flux(u, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation2D)
+@inline function flux(u, normal_direction::AbstractVector,
+                      equation::LinearScalarAdvectionEquation2D)
   a = dot(equation.advection_velocity, normal_direction) # velocity in normal direction
   return a * u
 end
 
-
 # Calculate maximum wave speed in the normal direction for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equation::LinearScalarAdvectionEquation2D)
   a = dot(equation.advection_velocity, normal_direction) # velocity in normal direction
   return abs(a)
 end
 
-
 # Essentially first order upwind, see e.g.
 # https://math.stackexchange.com/a/4355076/805029
-function flux_godunov(u_ll, u_rr, orientation::Integer, equation::LinearScalarAdvectionEquation2D)
+function flux_godunov(u_ll, u_rr, orientation::Integer,
+                      equation::LinearScalarAdvectionEquation2D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
@@ -259,7 +253,8 @@ end
 
 # Essentially first order upwind, see e.g.
 # https://math.stackexchange.com/a/4355076/805029
-function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation2D)
+function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
+                      equation::LinearScalarAdvectionEquation2D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
@@ -271,13 +266,11 @@ function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector, equation::Li
   end
 end
 
-
 @inline have_constant_speed(::LinearScalarAdvectionEquation2D) = True()
 
 @inline function max_abs_speeds(equation::LinearScalarAdvectionEquation2D)
   return abs.(equation.advection_velocity)
 end
-
 
 # Convert conservative variables to primitive
 @inline cons2prim(u, equation::LinearScalarAdvectionEquation2D) = u
@@ -285,15 +278,13 @@ end
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation2D) = u
 
-
 # Calculate entropy for a conservative state `cons`
 @inline entropy(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5 * u^2
 @inline entropy(u, equation::LinearScalarAdvectionEquation2D) = entropy(u[1], equation)
 
-
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5 * u^2
-@inline energy_total(u, equation::LinearScalarAdvectionEquation2D) = energy_total(u[1], equation)
-
-
+@inline function energy_total(u, equation::LinearScalarAdvectionEquation2D)
+  energy_total(u[1], equation)
+end
 end # @muladd

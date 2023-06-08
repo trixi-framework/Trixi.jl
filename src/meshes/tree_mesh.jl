@@ -3,12 +3,11 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 include("abstract_tree.jl")
 include("serial_tree.jl")
 include("parallel_tree.jl")
-
 
 get_name(mesh::AbstractMesh) = mesh |> typeof |> nameof |> string
 
@@ -25,14 +24,16 @@ get_name(mesh::AbstractMesh) = mesh |> typeof |> nameof |> string
 
 A Cartesian mesh based on trees of hypercubes to support adaptive mesh refinement.
 """
-mutable struct TreeMesh{NDIMS, TreeType<:AbstractTree{NDIMS}} <: AbstractMesh{NDIMS}
+mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}} <: AbstractMesh{NDIMS}
   tree::TreeType
   current_filename::String
   unsaved_changes::Bool
   first_cell_by_rank::OffsetVector{Int, Vector{Int}}
   n_cells_by_rank::OffsetVector{Int, Vector{Int}}
 
-  function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer) where {NDIMS, TreeType<:AbstractTree{NDIMS}}
+  function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer) where {NDIMS,
+                                                                  TreeType <:
+                                                                  AbstractTree{NDIMS}}
     # Create mesh
     m = new()
     m.tree = TreeType(n_cells_max)
@@ -47,8 +48,12 @@ mutable struct TreeMesh{NDIMS, TreeType<:AbstractTree{NDIMS}} <: AbstractMesh{ND
   # TODO: Taal refactor, order of important arguments, use of n_cells_max?
   # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
   # TODO: Taal refactor, use NTuple instead of domain_center::AbstractArray{Float64}
-  function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer, domain_center::AbstractArray{Float64},
-                                     domain_length, periodicity=true) where {NDIMS, TreeType<:AbstractTree{NDIMS}}
+  function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer,
+                                     domain_center::AbstractArray{Float64},
+                                     domain_length,
+                                     periodicity = true) where {NDIMS,
+                                                                TreeType <:
+                                                                AbstractTree{NDIMS}}
     @assert NDIMS isa Integer && NDIMS > 0
 
     # Create mesh
@@ -67,7 +72,7 @@ const TreeMesh1D = TreeMesh{1, TreeType} where {TreeType <: AbstractTree{1}}
 const TreeMesh2D = TreeMesh{2, TreeType} where {TreeType <: AbstractTree{2}}
 const TreeMesh3D = TreeMesh{3, TreeType} where {TreeType <: AbstractTree{3}}
 
-const SerialTreeMesh{NDIMS}   = TreeMesh{NDIMS, <:SerialTree{NDIMS}}
+const SerialTreeMesh{NDIMS} = TreeMesh{NDIMS, <:SerialTree{NDIMS}}
 const ParallelTreeMesh{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
 
 @inline mpi_parallel(mesh::SerialTreeMesh) = False()
@@ -75,28 +80,37 @@ const ParallelTreeMesh{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
 
 partition!(mesh::SerialTreeMesh) = nothing
 
-
 # Constructor for passing the dimension and mesh type as an argument
-TreeMesh(::Type{TreeType}, args...) where {NDIMS, TreeType<:AbstractTree{NDIMS}} = TreeMesh{NDIMS, TreeType}(args...)
+function TreeMesh(::Type{TreeType},
+                  args...) where {NDIMS, TreeType <: AbstractTree{NDIMS}}
+  TreeMesh{NDIMS, TreeType}(args...)
+end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
-function TreeMesh{1, TreeType}(n::Int, center::Real, len::Real, periodicity=true) where {TreeType<:AbstractTree{1}}
+function TreeMesh{1, TreeType}(n::Int, center::Real, len::Real,
+                               periodicity = true) where {TreeType <: AbstractTree{1}}
   # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
-  return TreeMesh{1, TreeType}(n, SVector{1,Float64}(center), len, periodicity)
+  return TreeMesh{1, TreeType}(n, SVector{1, Float64}(center), len, periodicity)
 end
 
-function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer, domain_center::NTuple{NDIMS,Real}, domain_length::Real, periodicity=true) where {NDIMS, TreeType<:AbstractTree{NDIMS}}
+function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer,
+                                   domain_center::NTuple{NDIMS, Real},
+                                   domain_length::Real,
+                                   periodicity = true) where {NDIMS,
+                                                              TreeType <:
+                                                              AbstractTree{NDIMS}}
   # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
-  TreeMesh{NDIMS, TreeType}(n_cells_max, SVector{NDIMS,Float64}(domain_center), convert(Float64, domain_length), periodicity)
+  TreeMesh{NDIMS, TreeType}(n_cells_max, SVector{NDIMS, Float64}(domain_center),
+                            convert(Float64, domain_length), periodicity)
 end
 
-function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{NDIMS,Real};
+function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
+                  coordinates_max::NTuple{NDIMS, Real};
                   n_cells_max,
-                  periodicity=true,
+                  periodicity = true,
                   initial_refinement_level,
-                  refinement_patches=(),
-                  coarsening_patches=(),
-                  ) where {NDIMS}
+                  refinement_patches = (),
+                  coarsening_patches = ()) where {NDIMS}
   # check arguments
   if !(n_cells_max isa Integer && n_cells_max > 0)
     throw(ArgumentError("`n_cells_max` must be a positive integer (provided `n_cells_max = $n_cells_max`)"))
@@ -121,7 +135,10 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   end
 
   # Create mesh
-  mesh = @trixi_timeit timer() "creation" TreeMesh{NDIMS, TreeType}(n_cells_max, domain_center, domain_length, periodicity)
+  mesh = @trixi_timeit timer() "creation" TreeMesh{NDIMS, TreeType}(n_cells_max,
+                                                                    domain_center,
+                                                                    domain_length,
+                                                                    periodicity)
 
   # Initialize mesh
   initialize!(mesh, initial_refinement_level, refinement_patches, coarsening_patches)
@@ -132,7 +149,8 @@ end
 function initialize!(mesh::TreeMesh, initial_refinement_level,
                      refinement_patches, coarsening_patches)
   # Create initial refinement
-  @trixi_timeit timer() "initial refinement" refine_uniformly!(mesh.tree, initial_refinement_level)
+  @trixi_timeit timer() "initial refinement" refine_uniformly!(mesh.tree,
+                                                               initial_refinement_level)
 
   # Apply refinement patches
   @trixi_timeit timer() "refinement patches" for patch in refinement_patches
@@ -166,30 +184,27 @@ function TreeMesh(coordinates_min::Real, coordinates_max::Real; kwargs...)
   TreeMesh((coordinates_min,), (coordinates_max,); kwargs...)
 end
 
-
 function Base.show(io::IO, mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeType}
   print(io, "TreeMesh{", NDIMS, ", ", TreeType, "} with length ", mesh.tree.length)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeType}
+function Base.show(io::IO, ::MIME"text/plain",
+                   mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeType}
   if get(io, :compact, false)
     show(io, mesh)
   else
     setup = [
-             "center" => mesh.tree.center_level_0,
-             "length" => mesh.tree.length_level_0,
-             "periodicity" => mesh.tree.periodicity,
-             "current #cells" => mesh.tree.length,
-             "maximum #cells" => mesh.tree.capacity,
-            ]
+      "center" => mesh.tree.center_level_0,
+      "length" => mesh.tree.length_level_0,
+      "periodicity" => mesh.tree.periodicity,
+      "current #cells" => mesh.tree.length,
+      "maximum #cells" => mesh.tree.capacity,
+    ]
     summary_box(io, "TreeMesh{" * string(NDIMS) * ", " * string(TreeType) * "}", setup)
   end
 end
 
-
 @inline Base.ndims(mesh::TreeMesh) = ndims(mesh.tree)
-
-
 
 # Obtain the mesh filename from a restart file
 function get_restart_mesh_filename(restart_filename, mpi_parallel::False)
@@ -206,13 +221,9 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::False)
   return joinpath(dirname, mesh_file)
 end
 
-
 function total_volume(mesh::TreeMesh)
   return mesh.tree.length_level_0^ndims(mesh)
 end
 
-
 include("parallel_tree_mesh.jl")
-
-
 end # @muladd

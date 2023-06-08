@@ -3,10 +3,12 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Initialize node_indices of MPI interface container
-@inline function init_mpi_interface_node_indices!(mpi_interfaces::P4estMPIInterfaceContainer{2},
+@inline function init_mpi_interface_node_indices!(mpi_interfaces::P4estMPIInterfaceContainer{
+                                                                                             2
+                                                                                             },
                                                   faces, local_side, orientation,
                                                   mpi_interface_id)
   # Align interface in positive coordinate direction of primary element.
@@ -37,7 +39,6 @@
   return mpi_interfaces
 end
 
-
 # Normal directions of small element surfaces are needed to calculate the mortar fluxes. Initialize
 # them for locally available small elements.
 function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{2}, basis, elements)
@@ -52,7 +53,8 @@ function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{2}, basis,
     i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
     j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
 
-    for (element, position) in zip(local_neighbor_ids[mortar], local_neighbor_positions[mortar])
+    for (element, position) in zip(local_neighbor_ids[mortar],
+                                   local_neighbor_positions[mortar])
       # ignore large elements
       if position == 3
         continue
@@ -74,6 +76,4 @@ function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{2}, basis,
     end
   end
 end
-
-
 end # muladd

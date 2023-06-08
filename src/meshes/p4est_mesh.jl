@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 """
     P4estMesh{NDIMS} <: AbstractMesh{NDIMS}
@@ -11,21 +11,23 @@
 An unstructured curved mesh based on trees that uses the C library `p4est`
 to manage trees and mesh refinement.
 """
-mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, Ghost, NDIMSP2, NNODES} <: AbstractMesh{NDIMS}
-  p4est                 ::P # Either Ptr{p4est_t} or Ptr{p8est_t}
-  is_parallel           ::IsParallel
-  ghost                 ::Ghost # Either Ptr{p4est_ghost_t} or Ptr{p8est_ghost_t}
+mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NNODES} <:
+               AbstractMesh{NDIMS}
+  p4est::P # Either Ptr{p4est_t} or Ptr{p8est_t}
+  is_parallel::IsParallel
+  ghost::Ghost # Either Ptr{p4est_ghost_t} or Ptr{p8est_ghost_t}
   # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).
   # This specifies the geometry interpolation for each tree.
-  tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
-  nodes                 ::SVector{NNODES, RealT}
-  boundary_names        ::Array{Symbol, 2}      # [face direction, tree]
-  current_filename      ::String
-  unsaved_changes       ::Bool
+  tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
+  nodes::SVector{NNODES, RealT}
+  boundary_names::Array{Symbol, 2}      # [face direction, tree]
+  current_filename::String
+  unsaved_changes::Bool
   p4est_partition_allow_for_coarsening::Bool
 
   function P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes, boundary_names,
-                            current_filename, unsaved_changes, p4est_partition_allow_for_coarsening) where NDIMS
+                            current_filename, unsaved_changes,
+                            p4est_partition_allow_for_coarsening) where {NDIMS}
     if NDIMS == 2
       @assert p4est isa Ptr{p4est_t}
     elseif NDIMS == 3
@@ -43,9 +45,12 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, Ghost, NDIMSP2, NNOD
 
     ghost = ghost_new_p4est(p4est)
 
-    mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(is_parallel), typeof(p4est), typeof(ghost), NDIMS+2, length(nodes)}(
-      p4est, is_parallel, ghost, tree_node_coordinates, nodes, boundary_names, current_filename, unsaved_changes,
-      p4est_partition_allow_for_coarsening)
+    mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(is_parallel), typeof(p4est),
+               typeof(ghost), NDIMS + 2, length(nodes)}(p4est, is_parallel, ghost,
+                                                        tree_node_coordinates, nodes,
+                                                        boundary_names, current_filename,
+                                                        unsaved_changes,
+                                                        p4est_partition_allow_for_coarsening)
 
     # Destroy `p4est` structs when the mesh is garbage collected
     finalizer(destroy_mesh, mesh)
@@ -54,12 +59,11 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, Ghost, NDIMSP2, NNOD
   end
 end
 
-const SerialP4estMesh{NDIMS}   = P4estMesh{NDIMS, <:Real, <:False}
+const SerialP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:False}
 const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:True}
 
 @inline mpi_parallel(mesh::SerialP4estMesh) = False()
 @inline mpi_parallel(mesh::ParallelP4estMesh) = True()
-
 
 function destroy_mesh(mesh::P4estMesh{2})
   connectivity = unsafe_load(mesh.p4est).connectivity
@@ -75,8 +79,7 @@ function destroy_mesh(mesh::P4estMesh{3})
   p8est_connectivity_destroy(connectivity)
 end
 
-
-@inline Base.ndims(::P4estMesh{NDIMS}) where NDIMS = NDIMS
+@inline Base.ndims(::P4estMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
 @inline function ntrees(mesh::P4estMesh)
@@ -85,7 +88,6 @@ end
 end
 # returns Int32 by default which causes a weird method error when creating the cache
 @inline ncells(mesh::P4estMesh) = Int(unsafe_load(mesh.p4est).local_num_quadrants)
-
 
 function Base.show(io::IO, mesh::P4estMesh)
   print(io, "P4estMesh{", ndims(mesh), ", ", real(mesh), "}")
@@ -96,14 +98,14 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
     show(io, mesh)
   else
     setup = [
-             "#trees" => ntrees(mesh),
-             "current #cells" => ncells(mesh),
-             "polydeg" => length(mesh.nodes) - 1,
-            ]
-    summary_box(io, "P4estMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}", setup)
+      "#trees" => ntrees(mesh),
+      "current #cells" => ncells(mesh),
+      "polydeg" => length(mesh.nodes) - 1,
+    ]
+    summary_box(io, "P4estMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}",
+                setup)
   end
 end
-
 
 """
     P4estMesh(trees_per_dimension; polydeg,
@@ -153,17 +155,15 @@ Non-periodic boundaries will be called `:x_neg`, `:x_pos`, `:y_neg`, `:y_pos`, `
                                                 to permit more fine-grained partitioning.
 """
 function P4estMesh(trees_per_dimension; polydeg,
-                   mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
-                   RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true,
-                   p4est_partition_allow_for_coarsening=true)
-
-  @assert (
-    (coordinates_min === nothing) === (coordinates_max === nothing)
-  ) "Either both or none of coordinates_min and coordinates_max must be specified"
+                   mapping = nothing, faces = nothing, coordinates_min = nothing,
+                   coordinates_max = nothing,
+                   RealT = Float64, initial_refinement_level = 0, periodicity = true,
+                   unsaved_changes = true,
+                   p4est_partition_allow_for_coarsening = true)
+  @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
 
   @assert count(i -> i !== nothing,
-    (mapping, faces, coordinates_min)
-  ) == 1 "Exactly one of mapping, faces and coordinates_min/max must be specified"
+                (mapping, faces, coordinates_min))==1 "Exactly one of mapping, faces and coordinates_min/max must be specified"
 
   # Extract mapping
   if faces !== nothing
@@ -178,10 +178,10 @@ function P4estMesh(trees_per_dimension; polydeg,
   # Convert periodicity to a Tuple of a Bool for every dimension
   if all(periodicity)
     # Also catches case where periodicity = true
-    periodicity = ntuple(_->true, NDIMS)
+    periodicity = ntuple(_ -> true, NDIMS)
   elseif !any(periodicity)
     # Also catches case where periodicity = false
-    periodicity = ntuple(_->false, NDIMS)
+    periodicity = ntuple(_ -> false, NDIMS)
   else
     # Default case if periodicity is an iterable
     periodicity = Tuple(periodicity)
@@ -189,9 +189,9 @@ function P4estMesh(trees_per_dimension; polydeg,
 
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes
-  tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
-                                                ntuple(_ -> length(nodes), NDIMS)...,
-                                                prod(trees_per_dimension))
+  tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
+                                                  ntuple(_ -> length(nodes), NDIMS)...,
+                                                  prod(trees_per_dimension))
   calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, trees_per_dimension)
 
   # p4est_connectivity_new_brick has trees in Z-order, so use our own function for this
@@ -210,7 +210,8 @@ function P4estMesh(trees_per_dimension; polydeg,
 end
 
 # 2D version
-function structured_boundary_names!(boundary_names, trees_per_dimension::NTuple{2}, periodicity)
+function structured_boundary_names!(boundary_names, trees_per_dimension::NTuple{2},
+                                    periodicity)
   linear_indices = LinearIndices(trees_per_dimension)
 
   # Boundaries in x-direction
@@ -237,7 +238,8 @@ function structured_boundary_names!(boundary_names, trees_per_dimension::NTuple{
 end
 
 # 3D version
-function structured_boundary_names!(boundary_names, trees_per_dimension::NTuple{3}, periodicity)
+function structured_boundary_names!(boundary_names, trees_per_dimension::NTuple{3},
+                                    periodicity)
   linear_indices = LinearIndices(trees_per_dimension)
 
   # Boundaries in x-direction
@@ -273,7 +275,6 @@ function structured_boundary_names!(boundary_names, trees_per_dimension::NTuple{
     end
   end
 end
-
 
 """
     P4estMesh{NDIMS}(meshfile::String;
@@ -337,9 +338,9 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
                                                 to permit more fine-grained partitioning.
 """
 function P4estMesh{NDIMS}(meshfile::String;
-                          mapping=nothing, polydeg=1, RealT=Float64,
-                          initial_refinement_level=0, unsaved_changes=true,
-                          p4est_partition_allow_for_coarsening=true) where NDIMS
+                          mapping = nothing, polydeg = 1, RealT = Float64,
+                          initial_refinement_level = 0, unsaved_changes = true,
+                          p4est_partition_allow_for_coarsening = true) where {NDIMS}
   # Prevent `p4est` from crashing Julia if the file doesn't exist
   @assert isfile(meshfile)
 
@@ -352,13 +353,18 @@ function P4estMesh{NDIMS}(meshfile::String;
   # Check if the meshfile was generated using HOHQMesh
   if header == " File created by HOHQMesh"
     # Mesh curvature and boundary naming is handled with additional information available in meshfile
-    p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
-                                                                                          NDIMS, RealT)
+    p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_hohqmesh_abaqus(meshfile,
+                                                                                          initial_refinement_level,
+                                                                                          NDIMS,
+                                                                                          RealT)
   else
     # Mesh curvature is handled directly by applying the mapping keyword argument
-    p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
+    p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_standard_abaqus(meshfile,
+                                                                                          mapping,
+                                                                                          polydeg,
                                                                                           initial_refinement_level,
-                                                                                          NDIMS, RealT)
+                                                                                          NDIMS,
+                                                                                          RealT)
   end
 
   return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
@@ -366,12 +372,12 @@ function P4estMesh{NDIMS}(meshfile::String;
                           p4est_partition_allow_for_coarsening)
 end
 
-
 # Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
 # and a list of boundary names for the `P4estMesh`. High-order boundary curve information as well as
 # the boundary names on each tree are provided by the `meshfile` created by
 # [`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl).
-function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_dimensions, RealT)
+function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_dimensions,
+                                         RealT)
   # Create the mesh connectivity using `p4est`
   connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
   connectivity_obj = unsafe_load(connectivity)
@@ -399,12 +405,14 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_d
   nodes = SVector{mesh_nnodes}(cheby_nodes)
 
   # Allocate the memory for the tree node coordinates
-  tree_node_coordinates = Array{RealT, n_dimensions+2}(undef, n_dimensions,
-                                                       ntuple(_ -> length(nodes), n_dimensions)...,
-                                                       n_trees)
+  tree_node_coordinates = Array{RealT, n_dimensions + 2}(undef, n_dimensions,
+                                                         ntuple(_ -> length(nodes),
+                                                                n_dimensions)...,
+                                                         n_trees)
 
   # Compute the tree node coordinates and return the updated file index
-  file_idx = calc_tree_node_coordinates!(tree_node_coordinates, file_lines, nodes, vertices, RealT)
+  file_idx = calc_tree_node_coordinates!(tree_node_coordinates, file_lines, nodes,
+                                         vertices, RealT)
 
   # Allocate the memory for the boundary labels
   boundary_names = Array{Symbol}(undef, (2 * n_dimensions, n_trees))
@@ -422,12 +430,12 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_d
   return p4est, tree_node_coordinates, nodes, boundary_names
 end
 
-
 # Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
 # and a list of boundary names for the `P4estMesh`. The tree node coordinates are computed according to
 # the `mapping` passed to this function using polynomial interpolants of degree `polydeg`. All boundary
 # names are given the name `:all`.
-function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg, initial_refinement_level, n_dimensions, RealT)
+function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
+                                         initial_refinement_level, n_dimensions, RealT)
   # Create the mesh connectivity using `p4est`
   connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
   connectivity_obj = unsafe_load(connectivity)
@@ -436,16 +444,19 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg, initial_ref
   n_trees::Int = connectivity_obj.num_trees
   n_vertices::Int = connectivity_obj.num_vertices
 
-  vertices       = unsafe_wrap(Array, connectivity_obj.vertices, (3, n_vertices))
-  tree_to_vertex = unsafe_wrap(Array, connectivity_obj.tree_to_vertex, (2^n_dimensions, n_trees))
+  vertices = unsafe_wrap(Array, connectivity_obj.vertices, (3, n_vertices))
+  tree_to_vertex = unsafe_wrap(Array, connectivity_obj.tree_to_vertex,
+                               (2^n_dimensions, n_trees))
 
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes
 
-  tree_node_coordinates = Array{RealT, n_dimensions+2}(undef, n_dimensions,
-                                                       ntuple(_ -> length(nodes), n_dimensions)...,
-                                                       n_trees)
-  calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices, tree_to_vertex)
+  tree_node_coordinates = Array{RealT, n_dimensions + 2}(undef, n_dimensions,
+                                                         ntuple(_ -> length(nodes),
+                                                                n_dimensions)...,
+                                                         n_trees)
+  calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices,
+                              tree_to_vertex)
 
   p4est = new_p4est(connectivity, initial_refinement_level)
 
@@ -454,7 +465,6 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg, initial_ref
 
   return p4est, tree_node_coordinates, nodes, boundary_names
 end
-
 
 """
     P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
@@ -485,9 +495,9 @@ The mesh will have two boundaries, `:inside` and `:outside`.
                                                 to permit more fine-grained partitioning.
 """
 function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
-                              polydeg, RealT=Float64,
-                              initial_refinement_level=0, unsaved_changes=true,
-                              p4est_partition_allow_for_coarsening=true)
+                              polydeg, RealT = Float64,
+                              initial_refinement_level = 0, unsaved_changes = true,
+                              p4est_partition_allow_for_coarsening = true)
   connectivity = connectivity_cubed_sphere(trees_per_face_dimension, layers)
 
   n_trees = 6 * trees_per_face_dimension^2 * layers
@@ -498,7 +508,8 @@ function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, th
   tree_node_coordinates = Array{RealT, 5}(undef, 3,
                                           ntuple(_ -> length(nodes), 3)...,
                                           n_trees)
-  calc_tree_node_coordinates!(tree_node_coordinates, nodes, trees_per_face_dimension, layers,
+  calc_tree_node_coordinates!(tree_node_coordinates, nodes, trees_per_face_dimension,
+                              layers,
                               inner_radius, thickness)
 
   p4est = new_p4est(connectivity, initial_refinement_level)
@@ -511,7 +522,6 @@ function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, th
                       boundary_names, "", unsaved_changes,
                       p4est_partition_allow_for_coarsening)
 end
-
 
 # Create a new p4est_connectivity that represents a structured rectangle.
 # Similar to p4est_connectivity_new_brick, but doesn't use Morton order.
@@ -596,10 +606,10 @@ function connectivity_structured(n_cells_x, n_cells_y, periodicity)
   corner_to_corner = C_NULL
 
   connectivity = p4est_connectivity_new_copy(n_vertices, n_trees, n_corners,
-                                     vertices, tree_to_vertex,
-                                     tree_to_tree, tree_to_face,
-                                     tree_to_corner, ctt_offset,
-                                     corner_to_tree, corner_to_corner)
+                                             vertices, tree_to_vertex,
+                                             tree_to_tree, tree_to_face,
+                                             tree_to_corner, ctt_offset,
+                                             corner_to_tree, corner_to_corner)
 
   @assert p4est_connectivity_is_valid(connectivity) == 1
 
@@ -718,24 +728,24 @@ function connectivity_structured(n_cells_x, n_cells_y, n_cells_z, periodicity)
   corner_to_corner = C_NULL
 
   connectivity = p8est_connectivity_new_copy(n_vertices, n_trees, n_corners, n_edges,
-                                     vertices, tree_to_vertex,
-                                     tree_to_tree, tree_to_face,
-                                     tree_to_edge, ett_offset,
-                                     edge_to_tree, edge_to_edge,
-                                     tree_to_corner, ctt_offset,
-                                     corner_to_tree, corner_to_corner)
+                                             vertices, tree_to_vertex,
+                                             tree_to_tree, tree_to_face,
+                                             tree_to_edge, ett_offset,
+                                             edge_to_tree, edge_to_edge,
+                                             tree_to_corner, ctt_offset,
+                                             corner_to_tree, corner_to_corner)
 
   @assert p8est_connectivity_is_valid(connectivity) == 1
 
   return connectivity
 end
 
-
 function connectivity_cubed_sphere(trees_per_face_dimension, layers)
   n_cells_x = n_cells_y = trees_per_face_dimension
   n_cells_z = layers
 
-  linear_indices = LinearIndices((trees_per_face_dimension, trees_per_face_dimension, layers, 6))
+  linear_indices = LinearIndices((trees_per_face_dimension, trees_per_face_dimension,
+                                  layers, 6))
 
   # Vertices represent the coordinates of the forest. This is used by `p4est`
   # to write VTK files.
@@ -954,18 +964,17 @@ function connectivity_cubed_sphere(trees_per_face_dimension, layers)
   corner_to_corner = C_NULL
 
   connectivity = p8est_connectivity_new_copy(n_vertices, n_trees, n_corners, n_edges,
-                                     vertices, tree_to_vertex,
-                                     tree_to_tree, tree_to_face,
-                                     tree_to_edge, ett_offset,
-                                     edge_to_tree, edge_to_edge,
-                                     tree_to_corner, ctt_offset,
-                                     corner_to_tree, corner_to_corner)
+                                             vertices, tree_to_vertex,
+                                             tree_to_tree, tree_to_face,
+                                             tree_to_edge, ett_offset,
+                                             edge_to_tree, edge_to_edge,
+                                             tree_to_corner, ctt_offset,
+                                             corner_to_tree, corner_to_corner)
 
   @assert p8est_connectivity_is_valid(connectivity) == 1
 
   return connectivity
 end
-
 
 # Calculate physical coordinates of each node of a structured mesh.
 # This function assumes a structured mesh with trees in row order.
@@ -982,13 +991,13 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
     tree_id = linear_indices[cell_x, cell_y]
 
     # Calculate node coordinates of reference mesh
-    cell_x_offset = -1 + (cell_x-1) * dx + dx/2
-    cell_y_offset = -1 + (cell_y-1) * dy + dy/2
+    cell_x_offset = -1 + (cell_x - 1) * dx + dx / 2
+    cell_y_offset = -1 + (cell_y - 1) * dy + dy / 2
 
     for j in eachindex(nodes), i in eachindex(nodes)
       # node_coordinates are the mapped reference node coordinates
-      node_coordinates[:, i, j, tree_id] .= mapping(cell_x_offset + dx/2 * nodes[i],
-                                                    cell_y_offset + dy/2 * nodes[j])
+      node_coordinates[:, i, j, tree_id] .= mapping(cell_x_offset + dx / 2 * nodes[i],
+                                                    cell_y_offset + dy / 2 * nodes[j])
     end
   end
 end
@@ -1010,19 +1019,18 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     tree_id = linear_indices[cell_x, cell_y, cell_z]
 
     # Calculate node coordinates of reference mesh
-    cell_x_offset = -1 + (cell_x-1) * dx + dx/2
-    cell_y_offset = -1 + (cell_y-1) * dy + dy/2
-    cell_z_offset = -1 + (cell_z-1) * dz + dz/2
+    cell_x_offset = -1 + (cell_x - 1) * dx + dx / 2
+    cell_y_offset = -1 + (cell_y - 1) * dy + dy / 2
+    cell_z_offset = -1 + (cell_z - 1) * dz + dz / 2
 
     for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
       # node_coordinates are the mapped reference node coordinates
-      node_coordinates[:, i, j, k, tree_id] .= mapping(cell_x_offset + dx/2 * nodes[i],
-                                                       cell_y_offset + dy/2 * nodes[j],
-                                                       cell_z_offset + dz/2 * nodes[k])
+      node_coordinates[:, i, j, k, tree_id] .= mapping(cell_x_offset + dx / 2 * nodes[i],
+                                                       cell_y_offset + dy / 2 * nodes[j],
+                                                       cell_z_offset + dz / 2 * nodes[k])
     end
   end
 end
-
 
 # Calculate physical coordinates of each node of an unstructured mesh.
 # Extract corners of each tree from the connectivity,
@@ -1031,7 +1039,7 @@ end
 # 2D version
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
                                      nodes, mapping,
-                                     vertices, tree_to_vertex) where RealT
+                                     vertices, tree_to_vertex) where {RealT}
   nodes_in = [-1.0, 1.0]
   matrix = polynomial_interpolation_matrix(nodes_in, nodes)
   data_in = Array{RealT, 3}(undef, 2, 2, 2)
@@ -1045,12 +1053,10 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
     @views data_in[:, 2, 2] .= vertices[1:2, tree_to_vertex[4, tree] + 1]
 
     # Interpolate corner coordinates to specified nodes
-    multiply_dimensionwise!(
-      view(node_coordinates, :, :, :, tree),
-      matrix, matrix,
-      data_in,
-      tmp1
-    )
+    multiply_dimensionwise!(view(node_coordinates, :, :, :, tree),
+                            matrix, matrix,
+                            data_in,
+                            tmp1)
   end
 
   map_node_coordinates!(node_coordinates, mapping)
@@ -1068,14 +1074,15 @@ function map_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4}, mappin
   return node_coordinates
 end
 
-function map_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4}, mapping::Nothing)
+function map_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
+                               mapping::Nothing)
   return node_coordinates
 end
 
 # 3D version
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 5},
                                      nodes, mapping,
-                                     vertices, tree_to_vertex) where RealT
+                                     vertices, tree_to_vertex) where {RealT}
   nodes_in = [-1.0, 1.0]
   matrix = polynomial_interpolation_matrix(nodes_in, nodes)
   data_in = Array{RealT, 4}(undef, 3, 2, 2, 2)
@@ -1092,11 +1099,9 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 5},
     @views data_in[:, 2, 2, 2] .= vertices[:, tree_to_vertex[8, tree] + 1]
 
     # Interpolate corner coordinates to specified nodes
-    multiply_dimensionwise!(
-      view(node_coordinates, :, :, :, :, tree),
-      matrix, matrix, matrix,
-      data_in
-    )
+    multiply_dimensionwise!(view(node_coordinates, :, :, :, :, tree),
+                            matrix, matrix, matrix,
+                            data_in)
   end
 
   map_node_coordinates!(node_coordinates, mapping)
@@ -1116,14 +1121,15 @@ function map_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5}, mappin
   return node_coordinates
 end
 
-function map_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5}, mapping::Nothing)
+function map_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
+                               mapping::Nothing)
   return node_coordinates
 end
 
-
 # Calculate physical coordinates of each node of a cubed sphere mesh.
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
-                                     nodes, trees_per_face_dimension, layers, inner_radius, thickness)
+                                     nodes, trees_per_face_dimension, layers,
+                                     inner_radius, thickness)
   n_cells_x = n_cells_y = trees_per_face_dimension
   n_cells_z = layers
 
@@ -1138,17 +1144,20 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     for cell_z in 1:n_cells_z, cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
       tree = linear_indices[cell_x, cell_y, cell_z, direction]
 
-      x_offset = -1 + (cell_x - 1) * dx + dx/2
-      y_offset = -1 + (cell_y - 1) * dy + dy/2
-      z_offset = -1 + (cell_z - 1) * dz + dz/2
+      x_offset = -1 + (cell_x - 1) * dx + dx / 2
+      y_offset = -1 + (cell_y - 1) * dy + dy / 2
+      z_offset = -1 + (cell_z - 1) * dz + dz / 2
 
       for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
         # node_coordinates are the mapped reference node coordinates
-        node_coordinates[:, i, j, k, tree] .= cubed_sphere_mapping(
-          x_offset + dx/2 * nodes[i],
-          y_offset + dy/2 * nodes[j],
-          z_offset + dz/2 * nodes[k],
-          inner_radius, thickness, direction)
+        node_coordinates[:, i, j, k, tree] .= cubed_sphere_mapping(x_offset +
+                                                                   dx / 2 * nodes[i],
+                                                                   y_offset +
+                                                                   dy / 2 * nodes[j],
+                                                                   z_offset +
+                                                                   dz / 2 * nodes[k],
+                                                                   inner_radius,
+                                                                   thickness, direction)
       end
     end
   end
@@ -1157,8 +1166,8 @@ end
 # Map the computational coordinates xi, eta, zeta to the specified side of a cubed sphere
 # with the specified inner radius and thickness.
 function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
-  alpha = xi * pi/4
-  beta = eta * pi/4
+  alpha = xi * pi / 4
+  beta = eta * pi / 4
 
   # Equiangular projection
   x = tan(alpha)
@@ -1166,11 +1175,11 @@ function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
 
   # Coordinates on unit cube per direction, see illustration above in the function connectivity_cubed_sphere
   cube_coordinates = (SVector(-1, -x, y),
-                      SVector( 1,  x, y),
-                      SVector( x, -1, y),
-                      SVector(-x,  1, y),
+                      SVector(1, x, y),
+                      SVector(x, -1, y),
+                      SVector(-x, 1, y),
                       SVector(-x, y, -1),
-                      SVector( x, y,  1))
+                      SVector(x, y, 1))
 
   # Radius on cube surface
   r = sqrt(1 + x^2 + y^2)
@@ -1181,7 +1190,6 @@ function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
   # Projection onto the sphere
   return R / r * cube_coordinates[direction]
 end
-
 
 # Calculate physical coordinates of each element of an unstructured mesh read
 # in from a HOHQMesh file. This calculation is done with the transfinite interpolation
@@ -1216,7 +1224,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
   # avoid the Abaqus comment character "** "
   for tree in 1:n_trees
     # Pull the vertex node IDs
-    current_line        = split(file_lines[file_idx])
+    current_line = split(file_lines[file_idx])
     element_node_ids[1] = parse(Int, current_line[2])
     element_node_ids[2] = parse(Int, current_line[3])
     element_node_ids[3] = parse(Int, current_line[4])
@@ -1228,7 +1236,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
     end
     # Pull the information to check if boundary is curved in order to read in additional data
     file_idx += 1
-    current_line    = split(file_lines[file_idx])
+    current_line = split(file_lines[file_idx])
     curved_check[1] = parse(Int, current_line[2])
     curved_check[2] = parse(Int, current_line[3])
     curved_check[3] = parse(Int, current_line[4])
@@ -1250,8 +1258,12 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
           # When curved_check[i] is 0 then the "curve" from vertex `i` to vertex `i+1` is a straight line.
           # Evaluate a linear interpolant between the two points at each of the nodes.
           for k in 1:nnodes
-            curve_values[k, 1] = linear_interpolate(nodes[k], quad_vertices_flipped[m1, 1], quad_vertices_flipped[m2, 1])
-            curve_values[k, 2] = linear_interpolate(nodes[k], quad_vertices_flipped[m1, 2], quad_vertices_flipped[m2, 2])
+            curve_values[k, 1] = linear_interpolate(nodes[k],
+                                                    quad_vertices_flipped[m1, 1],
+                                                    quad_vertices_flipped[m2, 1])
+            curve_values[k, 2] = linear_interpolate(nodes[k],
+                                                    quad_vertices_flipped[m1, 2],
+                                                    quad_vertices_flipped[m2, 2])
           end
         else
           # When curved_check[i] is 1 this curved boundary information is supplied by the mesh
@@ -1259,8 +1271,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
           for k in 1:nnodes
             file_idx += 1
             current_line = split(file_lines[file_idx])
-            curve_values[k, 1] = parse(RealT,current_line[2])
-            curve_values[k, 2] = parse(RealT,current_line[3])
+            curve_values[k, 1] = parse(RealT, current_line[2])
+            curve_values[k, 2] = parse(RealT, current_line[3])
           end
         end
         # Construct the curve interpolant for the current side
@@ -1279,11 +1291,10 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
     end
     # Move file index to the next tree
     file_idx += 1
-   end
+  end
 
   return file_idx
 end
-
 
 # Calculate physical coordinates of each element of an unstructured mesh read
 # in from a HOHQMesh file. This calculation is done with the transfinite interpolation
@@ -1318,7 +1329,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
   # avoid the Abaqus comment character "** "
   for tree in 1:n_trees
     # pull the vertex node IDs
-    current_line        = split(file_lines[file_idx])
+    current_line = split(file_lines[file_idx])
     element_node_ids[1] = parse(Int, current_line[2])
     element_node_ids[2] = parse(Int, current_line[3])
     element_node_ids[3] = parse(Int, current_line[4])
@@ -1334,7 +1345,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     end
     # Pull the information to check if boundary is curved in order to read in additional data
     file_idx += 1
-    current_line    = split(file_lines[file_idx])
+    current_line = split(file_lines[file_idx])
     curved_check[1] = parse(Int, current_line[2])
     curved_check[2] = parse(Int, current_line[3])
     curved_check[3] = parse(Int, current_line[4])
@@ -1351,16 +1362,17 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
           # Face is a flat plane. Evaluate a bilinear interpolant between the four vertices of the face at each of the nodes.
           get_vertices_for_bilinear_interpolant!(face_vertices, face, hex_vertices)
           for q in 1:nnodes, p in 1:nnodes
-            @views bilinear_interpolation!(curve_values[:, p, q], face_vertices, nodes[p], nodes[q])
+            @views bilinear_interpolation!(curve_values[:, p, q], face_vertices, nodes[p],
+                                           nodes[q])
           end
         else # curved_check[face] == 1
           # Curved face boundary information is supplied by the mesh file. Just read it into a work array
           for q in 1:nnodes, p in 1:nnodes
             file_idx += 1
             current_line = split(file_lines[file_idx])
-            curve_values[1, p, q] = parse(RealT,current_line[2])
-            curve_values[2, p, q] = parse(RealT,current_line[3])
-            curve_values[3, p, q] = parse(RealT,current_line[4])
+            curve_values[1, p, q] = parse(RealT, current_line[2])
+            curve_values[2, p, q] = parse(RealT, current_line[3])
+            curve_values[3, p, q] = parse(RealT, current_line[4])
           end
         end
         # Construct the curve interpolant for the current side
@@ -1371,11 +1383,10 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     end
     # Move file index to the next tree
     file_idx += 1
-   end
+  end
 
   return file_idx
 end
-
 
 # Given the eight `hex_vertices` for a hexahedral element extract
 # the four `face_vertices` for a particular `face_index`.
@@ -1413,7 +1424,6 @@ function get_vertices_for_bilinear_interpolant!(face_vertices, face_index, hex_v
   end
 end
 
-
 # Evaluate a bilinear interpolant at a point (u,v) given the four vertices where the face is right-handed
 #      4                3
 #      o----------------o
@@ -1428,39 +1438,36 @@ end
 # and return the 3D coordinate point (x, y, z)
 function bilinear_interpolation!(coordinate, face_vertices, u, v)
   for j in 1:3
-    coordinate[j] = 0.25 * (  face_vertices[j,1] * (1 - u) * (1 - v)
-                            + face_vertices[j,2] * (1 + u) * (1 - v)
-                            + face_vertices[j,3] * (1 + u) * (1 + v)
-                            + face_vertices[j,4] * (1 - u) * (1 + v) )
+    coordinate[j] = 0.25 * (face_vertices[j, 1] * (1 - u) * (1 - v)
+                     + face_vertices[j, 2] * (1 + u) * (1 - v)
+                     + face_vertices[j, 3] * (1 + u) * (1 + v)
+                     + face_vertices[j, 4] * (1 - u) * (1 + v))
   end
 end
 
-
-function balance!(mesh::P4estMesh{2}, init_fn=C_NULL)
+function balance!(mesh::P4estMesh{2}, init_fn = C_NULL)
   p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
   # Due to a bug in `p4est`, the forest needs to be rebalanced twice sometimes
   # See https://github.com/cburstedde/p4est/issues/112
   p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
 end
 
-function balance!(mesh::P4estMesh{3}, init_fn=C_NULL)
+function balance!(mesh::P4estMesh{3}, init_fn = C_NULL)
   p8est_balance(mesh.p4est, P8EST_CONNECT_FACE, init_fn)
 end
 
-function partition!(mesh::P4estMesh{2}; weight_fn=C_NULL)
+function partition!(mesh::P4estMesh{2}; weight_fn = C_NULL)
   p4est_partition(mesh.p4est, Int(mesh.p4est_partition_allow_for_coarsening), weight_fn)
 end
 
-function partition!(mesh::P4estMesh{3}; weight_fn=C_NULL)
+function partition!(mesh::P4estMesh{3}; weight_fn = C_NULL)
   p8est_partition(mesh.p4est, Int(mesh.p4est_partition_allow_for_coarsening), weight_fn)
 end
-
 
 function update_ghost_layer!(mesh::P4estMesh)
   ghost_destroy_p4est(mesh.ghost)
   mesh.ghost = ghost_new_p4est(mesh.p4est)
 end
-
 
 function init_fn(p4est, which_tree, quadrant)
   # Unpack quadrant's user data ([global quad ID, controller_value])
@@ -1474,9 +1481,13 @@ function init_fn(p4est, which_tree, quadrant)
 end
 
 # 2D
-cfunction(::typeof(init_fn), ::Val{2}) = @cfunction(init_fn, Cvoid, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
+function cfunction(::typeof(init_fn), ::Val{2})
+  @cfunction(init_fn, Cvoid, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
+end
 # 3D
-cfunction(::typeof(init_fn), ::Val{3}) = @cfunction(init_fn, Cvoid, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{p8est_quadrant_t}))
+function cfunction(::typeof(init_fn), ::Val{3})
+  @cfunction(init_fn, Cvoid, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{p8est_quadrant_t}))
+end
 
 function refine_fn(p4est, which_tree, quadrant)
   # Controller value has been copied to the quadrant's user data storage before.
@@ -1494,9 +1505,13 @@ function refine_fn(p4est, which_tree, quadrant)
 end
 
 # 2D
-cfunction(::typeof(refine_fn), ::Val{2}) = @cfunction(refine_fn, Cint, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
+function cfunction(::typeof(refine_fn), ::Val{2})
+  @cfunction(refine_fn, Cint, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
+end
 # 3D
-cfunction(::typeof(refine_fn), ::Val{3}) = @cfunction(refine_fn, Cint, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{p8est_quadrant_t}))
+function cfunction(::typeof(refine_fn), ::Val{3})
+  @cfunction(refine_fn, Cint, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{p8est_quadrant_t}))
+end
 
 # Refine marked cells and rebalance forest.
 # Return a list of all cells that have been refined during refinement or rebalancing.
@@ -1515,7 +1530,6 @@ function refine!(mesh::P4estMesh)
 
   return collect_changed_cells(mesh, original_n_cells)
 end
-
 
 function coarsen_fn(p4est, which_tree, quadrants_ptr)
   quadrants = unsafe_wrap_quadrants(quadrants_ptr, p4est)
@@ -1536,14 +1550,24 @@ function coarsen_fn(p4est, which_tree, quadrants_ptr)
 end
 
 # 2D
-unsafe_wrap_quadrants(quadrants_ptr, ::Ptr{p4est_t}) = unsafe_wrap(Array, quadrants_ptr, 4)
+function unsafe_wrap_quadrants(quadrants_ptr, ::Ptr{p4est_t})
+  unsafe_wrap(Array, quadrants_ptr, 4)
+end
 # 3D
-unsafe_wrap_quadrants(quadrants_ptr, ::Ptr{p8est_t}) = unsafe_wrap(Array, quadrants_ptr, 8)
+function unsafe_wrap_quadrants(quadrants_ptr, ::Ptr{p8est_t})
+  unsafe_wrap(Array, quadrants_ptr, 8)
+end
 
 # 2D
-cfunction(::typeof(coarsen_fn), ::Val{2}) = @cfunction(coarsen_fn, Cint, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{Ptr{p4est_quadrant_t}}))
+function cfunction(::typeof(coarsen_fn), ::Val{2})
+  @cfunction(coarsen_fn, Cint,
+             (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{Ptr{p4est_quadrant_t}}))
+end
 # 3D
-cfunction(::typeof(coarsen_fn), ::Val{3}) = @cfunction(coarsen_fn, Cint, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{Ptr{p8est_quadrant_t}}))
+function cfunction(::typeof(coarsen_fn), ::Val{3})
+  @cfunction(coarsen_fn, Cint,
+             (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{Ptr{p8est_quadrant_t}}))
+end
 
 # Coarsen marked cells if the forest will stay balanced.
 # Return a list of all cells that have been coarsened.
@@ -1556,7 +1580,8 @@ function coarsen!(mesh::P4estMesh)
   coarsen_fn_c = cfunction(coarsen_fn, Val(ndims(mesh)))
   init_fn_c = cfunction(init_fn, Val(ndims(mesh)))
 
-  @trixi_timeit timer() "coarsen!" coarsen_p4est!(mesh.p4est, false, coarsen_fn_c, init_fn_c)
+  @trixi_timeit timer() "coarsen!" coarsen_p4est!(mesh.p4est, false, coarsen_fn_c,
+                                                  init_fn_c)
 
   # IDs of newly created cells (one-based)
   new_cells = collect_new_cells(mesh)
@@ -1592,7 +1617,6 @@ function coarsen!(mesh::P4estMesh)
   return coarsened_cells_vec[coarsened_cells_vec .>= 0]
 end
 
-
 # Copy global quad ID to quad's user data storage, will be called below
 function save_original_id_iter_volume(info, user_data)
   info_obj = unsafe_load(info)
@@ -1613,17 +1637,22 @@ function save_original_id_iter_volume(info, user_data)
 end
 
 # 2D
-cfunction(::typeof(save_original_id_iter_volume), ::Val{2}) = @cfunction(save_original_id_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+function cfunction(::typeof(save_original_id_iter_volume), ::Val{2})
+  @cfunction(save_original_id_iter_volume, Cvoid,
+             (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+end
 # 3D
-cfunction(::typeof(save_original_id_iter_volume), ::Val{3}) = @cfunction(save_original_id_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
+function cfunction(::typeof(save_original_id_iter_volume), ::Val{3})
+  @cfunction(save_original_id_iter_volume, Cvoid,
+             (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
+end
 
 # Copy old element IDs to each quad's user data storage
 function save_original_ids(mesh::P4estMesh)
   iter_volume_c = cfunction(save_original_id_iter_volume, Val(ndims(mesh)))
 
-  iterate_p4est(mesh.p4est, C_NULL; iter_volume_c=iter_volume_c)
+  iterate_p4est(mesh.p4est, C_NULL; iter_volume_c = iter_volume_c)
 end
-
 
 # Extract information about which cells have been changed
 function collect_changed_iter_volume(info, user_data)
@@ -1649,9 +1678,15 @@ function collect_changed_iter_volume(info, user_data)
 end
 
 # 2D
-cfunction(::typeof(collect_changed_iter_volume), ::Val{2}) = @cfunction(collect_changed_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+function cfunction(::typeof(collect_changed_iter_volume), ::Val{2})
+  @cfunction(collect_changed_iter_volume, Cvoid,
+             (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+end
 # 3D
-cfunction(::typeof(collect_changed_iter_volume), ::Val{3}) = @cfunction(collect_changed_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
+function cfunction(::typeof(collect_changed_iter_volume), ::Val{3})
+  @cfunction(collect_changed_iter_volume, Cvoid,
+             (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
+end
 
 function collect_changed_cells(mesh::P4estMesh, original_n_cells)
   original_cells = collect(1:original_n_cells)
@@ -1659,14 +1694,13 @@ function collect_changed_cells(mesh::P4estMesh, original_n_cells)
   # Iterate over all quads and set original cells that haven't been changed to zero
   iter_volume_c = cfunction(collect_changed_iter_volume, Val(ndims(mesh)))
 
-  iterate_p4est(mesh.p4est, original_cells; iter_volume_c=iter_volume_c)
+  iterate_p4est(mesh.p4est, original_cells; iter_volume_c = iter_volume_c)
 
   # Changed cells are all that haven't been set to zero above
   changed_original_cells = original_cells[original_cells .> 0]
 
   return changed_original_cells
 end
-
 
 # Extract newly created cells
 function collect_new_iter_volume(info, user_data)
@@ -1697,9 +1731,13 @@ function collect_new_iter_volume(info, user_data)
 end
 
 # 2D
-cfunction(::typeof(collect_new_iter_volume), ::Val{2}) = @cfunction(collect_new_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+function cfunction(::typeof(collect_new_iter_volume), ::Val{2})
+  @cfunction(collect_new_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+end
 # 3D
-cfunction(::typeof(collect_new_iter_volume), ::Val{3}) = @cfunction(collect_new_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
+function cfunction(::typeof(collect_new_iter_volume), ::Val{3})
+  @cfunction(collect_new_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
+end
 
 function collect_new_cells(mesh::P4estMesh)
   cell_is_new = zeros(Int, ncells(mesh))
@@ -1707,13 +1745,11 @@ function collect_new_cells(mesh::P4estMesh)
   # Iterate over all quads and set original cells that have been changed to one
   iter_volume_c = cfunction(collect_new_iter_volume, Val(ndims(mesh)))
 
-  iterate_p4est(mesh.p4est, cell_is_new; iter_volume_c=iter_volume_c)
+  iterate_p4est(mesh.p4est, cell_is_new; iter_volume_c = iter_volume_c)
 
   # Changed cells are all that haven't been set to zero above
   new_cells = findall(==(1), cell_is_new)
 
   return new_cells
 end
-
-
 end # @muladd

@@ -3,6 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 #   hadamard_sum!(du, A,
 #                 flux_is_symmetric, volume_flux,
@@ -36,7 +37,8 @@
       # is symmetric).
       if j > i
         u_j = u[j]
-        AF_ij = 2 * A[i,j] * volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
+        AF_ij = 2 * A[i, j] *
+                volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
         du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
       end
@@ -57,7 +59,7 @@ end
     for j in col_ids
       u_j = u[j]
       f_ij = volume_flux(u_i, u_j, orientation, equations)
-      du_i = du_i + 2 * A[i,j] * f_ij
+      du_i = du_i + 2 * A[i, j] * f_ij
     end
     du[i] = du_i
   end
@@ -77,14 +79,15 @@ end
       # This is because on curved meshes, nonconservative fluxes are
       # evaluated using both the normal and its average at interfaces.
       f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
-      du_i = du_i + 2 * A[i,j] * f_ij
+      du_i = du_i + 2 * A[i, j] * f_ij
     end
     du[i] = du_i
   end
 end
 
 # Version for sparse operators and symmetric fluxes
-@inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
+@inline function hadamard_sum!(du,
+                               A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
                                flux_is_symmetric::True, volume_flux,
                                orientation_or_normal_direction, u, equations)
   A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
@@ -104,7 +107,8 @@ end
       if j > i
         u_j = u[j]
         A_ij = vals[id]
-        AF_ij = 2 * A_ij * volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
+        AF_ij = 2 * A_ij *
+                volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
         du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
       end
@@ -114,7 +118,8 @@ end
 end
 
 # Version for sparse operators and symmetric fluxes with curved meshes
-@inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
+@inline function hadamard_sum!(du,
+                               A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
                                flux_is_symmetric::True, volume_flux,
                                normal_directions::AbstractVector{<:AbstractVector},
                                u, equations)
@@ -137,7 +142,8 @@ end
         A_ij = vals[id]
 
         # provably entropy stable de-aliasing of geometric terms
-        normal_direction = 0.5 * (getindex.(normal_directions, i) + getindex.(normal_directions, j))
+        normal_direction = 0.5 * (getindex.(normal_directions, i) +
+                            getindex.(normal_directions, j))
 
         AF_ij = 2 * A_ij * volume_flux(u_i, u_j, normal_direction, equations)
         du_i = du_i + AF_ij
@@ -150,7 +156,8 @@ end
 
 # TODO: DGMulti. Fix for curved meshes.
 # Version for sparse operators and non-symmetric fluxes
-@inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
+@inline function hadamard_sum!(du,
+                               A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
                                flux_is_symmetric::False, volume_flux,
                                normal_direction::AbstractVector, u, equations)
   A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
@@ -175,7 +182,6 @@ end
   end
 end
 
-
 # For DGMulti implementations, we construct "physical" differentiation operators by taking linear
 # combinations of reference differentiation operators scaled by geometric change of variables terms.
 # We use a lazy evaluation of physical differentiation operators, so that we can compute linear
@@ -186,7 +192,7 @@ end
   @unpack Qrst_skew = cache
   @unpack rxJ = mesh.md
   # ignore orientation
-  return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1,element],))
+  return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1, element],))
 end
 
 @inline function build_lazy_physical_derivative(element, orientation,
@@ -195,9 +201,11 @@ end
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
   if orientation == 1
-    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1,element], sxJ[1,element]))
+    return LazyMatrixLinearCombo(Qrst_skew,
+                                 operator_scaling .* (rxJ[1, element], sxJ[1, element]))
   else # if orientation == 2
-    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (ryJ[1,element], syJ[1,element]))
+    return LazyMatrixLinearCombo(Qrst_skew,
+                                 operator_scaling .* (ryJ[1, element], syJ[1, element]))
   end
 end
 
@@ -207,11 +215,17 @@ end
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
   if orientation == 1
-    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1, element], sxJ[1, element], txJ[1, element]))
+    return LazyMatrixLinearCombo(Qrst_skew,
+                                 operator_scaling .*
+                                 (rxJ[1, element], sxJ[1, element], txJ[1, element]))
   elseif orientation == 2
-    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (ryJ[1, element], syJ[1, element], tyJ[1, element]))
+    return LazyMatrixLinearCombo(Qrst_skew,
+                                 operator_scaling .*
+                                 (ryJ[1, element], syJ[1, element], tyJ[1, element]))
   else # if orientation == 3
-    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rzJ[1, element], szJ[1, element], tzJ[1, element]))
+    return LazyMatrixLinearCombo(Qrst_skew,
+                                 operator_scaling .*
+                                 (rzJ[1, element], szJ[1, element], tzJ[1, element]))
   end
 end
 
@@ -222,7 +236,8 @@ end
 # and jth reference coordinate, respectively. These are geometric terms which
 # appear when using the chain rule to compute physical derivatives as a linear
 # combination of reference derivatives.
-@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}, cache) where {NDIMS}
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS},
+                                          cache) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ], so that this will return
   # SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
 
@@ -231,7 +246,9 @@ end
   return SVector{NDIMS}(getindex.(dxidxhatj[:, orientation], 1, element))
 end
 
-@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine}, cache) where {NDIMS}
+@inline function get_contravariant_vector(element, orientation,
+                                          mesh::DGMultiMesh{NDIMS, NonAffine},
+                                          cache) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
 
   # assumes geometric terms vary spatially over each element
@@ -266,15 +283,14 @@ function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiffSBP, sparse_o
   return Qrst_skew
 end
 
-
 # For flux differencing SBP-type approximations, store solutions in Matrix{SVector{nvars}}.
 # This results in a slight speedup for `calc_volume_integral!`.
 function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFluxDiffSBP)
   return zeros(SVector{nvars, uEltype}, array_dimensions...)
 end
 
-function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, RealT, uEltype)
-
+function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, RealT,
+                      uEltype)
   rd = dg.basis
   md = mesh.md
 
@@ -289,20 +305,21 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, Real
   flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
   lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
 
-  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
+  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
+                           for _ in 1:Threads.nthreads()]
 
   # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
-  fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq) for _ in 1:Threads.nthreads()]
+  fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
+                             for _ in 1:Threads.nthreads()]
 
   return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
-            invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
-            u_values, u_face_values, flux_face_values,
-            local_values_threaded, fluxdiff_local_threaded)
+          invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
+          u_values, u_face_values, flux_face_values,
+          local_values_threaded, fluxdiff_local_threaded)
 end
 
 # most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
 function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, uEltype)
-
   rd = dg.basis
   @unpack md = mesh
 
@@ -314,8 +331,12 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
 
   # storage for all quadrature points (concatenated volume / face quadrature points)
   num_quad_points_total = rd.Nq + rd.Nfq
-  entropy_projected_u_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements), dg)
-  projected_entropy_var_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements), dg)
+  entropy_projected_u_values = allocate_nested_array(uEltype, nvars,
+                                                     (num_quad_points_total,
+                                                      md.num_elements), dg)
+  projected_entropy_var_values = allocate_nested_array(uEltype, nvars,
+                                                       (num_quad_points_total,
+                                                        md.num_elements), dg)
 
   # For this specific solver, `prolong2interfaces` will not be used anymore.
   # Instead, this step is also performed in `entropy_projection!`. Thus, we set
@@ -323,17 +344,20 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
   # the same for `u_values` since we will use that with LoopVectorization, which
   # cannot handle such views as of v0.12.66, the latest version at the time of writing.
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-  u_face_values = view(entropy_projected_u_values, rd.Nq+1:num_quad_points_total, :)
+  u_face_values = view(entropy_projected_u_values, (rd.Nq + 1):num_quad_points_total, :)
   flux_face_values = similar(u_face_values)
 
   # local storage for interface fluxes, rhs, and source
-  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
+  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
+                           for _ in 1:Threads.nthreads()]
 
   # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
   # The result is then transferred to rhs_local_threaded::StructArray{<:SVector} before
   # projecting it and storing it into `du`.
-  fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total) for _ in 1:Threads.nthreads()]
-  rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (num_quad_points_total,), dg)  for _ in 1:Threads.nthreads()]
+  fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total)
+                             for _ in 1:Threads.nthreads()]
+  rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (num_quad_points_total,),
+                                              dg) for _ in 1:Threads.nthreads()]
 
   # interpolate geometric terms to both quadrature and face values for curved meshes
   (; Vq, Vf) = dg.basis
@@ -341,16 +365,14 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
   J = rd.Vq * md.J
 
   return (; md, Qrst_skew, VhP, Ph,
-            invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
-            entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
-            u_values, u_face_values, flux_face_values,
-            local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
+          invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
+          entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
+          u_values, u_face_values, flux_face_values,
+          local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
 end
-
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti)
-
   rd = dg.basis
   @unpack Vq = rd
   @unpack VhP, entropy_var_values, u_values = cache
@@ -368,21 +390,21 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
 end
 
 @inline function cons2entropy!(entropy_var_values::StructArray,
-                               u_values          ::StructArray,
+                               u_values::StructArray,
                                equations)
   @threaded for i in eachindex(u_values)
     entropy_var_values[i] = cons2entropy(u_values[i], equations)
   end
 end
 
-@inline function entropy2cons!(entropy_projected_u_values  ::StructArray,
+@inline function entropy2cons!(entropy_projected_u_values::StructArray,
                                projected_entropy_var_values::StructArray,
                                equations)
   @threaded for i in eachindex(projected_entropy_var_values)
-    entropy_projected_u_values[i] = entropy2cons(projected_entropy_var_values[i], equations)
+    entropy_projected_u_values[i] = entropy2cons(projected_entropy_var_values[i],
+                                                 equations)
   end
 end
-
 
 # Trait-like system to dispatch based on whether or not the SBP operators are sparse.
 # Designed to be extendable to include specialized `approximation_types` too.
@@ -400,15 +422,24 @@ end
 
 # For traditional SBP operators on triangles, the operators are fully dense. We avoid using
 # sum factorization here, which is slower for fully dense matrices.
-@inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = False()
+@inline function has_sparse_operators(::Union{Tri, Tet},
+                                      approx_type::AT) where {AT <: SBP}
+  False()
+end
 
 # SBP/GaussSBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
 # more efficient and we use the sparsity structure.
-@inline has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = True()
+@inline function has_sparse_operators(::Union{Quad, Hex},
+                                      approx_type::AT) where {AT <: SBP}
+  True()
+end
 @inline has_sparse_operators(::Union{Quad, Hex}, approx_type::GaussSBP) = True()
 
 # FD SBP methods have sparse operators
-@inline has_sparse_operators(::Union{Line, Quad, Hex}, approx_type::AbstractDerivativeOperator) = True()
+@inline function has_sparse_operators(::Union{Line, Quad, Hex},
+                                      approx_type::AbstractDerivativeOperator)
+  True()
+end
 
 # Computes flux differencing contribution from each Cartesian direction over a single element.
 # For dense operators, we do not use sum factorization.
@@ -416,7 +447,6 @@ end
                                           has_nonconservative_terms::False, volume_flux,
                                           has_sparse_operators::False, mesh,
                                           equations, dg, cache)
-
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
     # True() indicates the volume flux is symmetric
@@ -439,7 +469,8 @@ end
                   dim, u_local, equations)
 
     # The final argument .5 scales the operator by 1/2 for the nonconservative terms.
-    half_Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache, 0.5)
+    half_Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache,
+                                                  0.5)
     # False() indicates the flux is non-symmetric.
     hadamard_sum!(fluxdiff_local, half_Qi_skew,
                   False(), flux_nonconservative,
@@ -495,7 +526,7 @@ end
                   normal_direction, u_local, equations)
 
     # We scale the operator by 1/2 for the nonconservative terms.
-    half_Q_skew = LazyMatrixLinearCombo((Q_skew, ), (0.5, ))
+    half_Q_skew = LazyMatrixLinearCombo((Q_skew,), (0.5,))
     # False() indicates the flux is non-symmetric
     hadamard_sum!(fluxdiff_local, half_Q_skew,
                   False(), flux_nonconservative,
@@ -510,7 +541,6 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGMultiFluxDiff,
                                cache)
-
   @unpack entropy_projected_u_values, Ph = cache
   @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
 
@@ -538,7 +568,6 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGMultiFluxDiffSBP,
                                cache)
-
   @unpack fluxdiff_local_threaded, inv_wq = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
@@ -557,7 +586,6 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
   end
 end
 
-
 # Specialize since `u_values` isn't computed for DGMultiFluxDiffSBP solvers.
 function calc_sources!(du, u, t, source_terms,
                        mesh, equations, dg::DGMultiFluxDiffSBP, cache)
@@ -570,34 +598,39 @@ function calc_sources!(du, u, t, source_terms,
   end
 end
 
-
 # Specializes on Polynomial (e.g., modal) DG methods with a flux differencing volume integral, e.g.,
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection!`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
 # Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff, cache) where {Source, BC}
-
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # this function evaluates the solution at volume and face quadrature points (which was previously
   # done in `prolong2interfaces` and `calc_volume_integral`)
-  @trixi_timeit timer() "entropy_projection!" entropy_projection!(cache, u, mesh, equations, dg)
+  @trixi_timeit timer() "entropy_projection!" entropy_projection!(cache, u, mesh,
+                                                                  equations, dg)
 
-  @trixi_timeit timer() "volume integral" calc_volume_integral!(
-    du, u, mesh, have_nonconservative_terms(equations), equations,
-    dg.volume_integral, dg, cache)
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u, mesh,
+                                                                have_nonconservative_terms(equations),
+                                                                equations,
+                                                                dg.volume_integral, dg,
+                                                                cache)
 
   # the following functions are the same as in VolumeIntegralWeakForm, and can be reused from dg.jl
-  @trixi_timeit timer() "interface flux" calc_interface_flux!(cache, dg.surface_integral, mesh,
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(cache, dg.surface_integral,
+                                                              mesh,
                                                               have_nonconservative_terms(equations),
                                                               equations, dg)
 
-  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, mesh,
-                                                            have_nonconservative_terms(equations), equations, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
+                                                            mesh,
+                                                            have_nonconservative_terms(equations),
+                                                            equations, dg)
 
   @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, mesh, equations,
-                                                                  dg.surface_integral, dg, cache)
+                                                                  dg.surface_integral, dg,
+                                                                  cache)
 
   @trixi_timeit timer() "Jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
 
@@ -614,36 +647,37 @@ end
 function rhs!(du, u, t, mesh, equations,
               initial_condition, boundary_conditions::BC, source_terms::Source,
               dg::DGMultiFluxDiffSBP, cache) where {BC, Source}
-
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
-  @trixi_timeit timer() "volume integral" calc_volume_integral!(
-    du, u, mesh, have_nonconservative_terms(equations), equations,
-    dg.volume_integral, dg, cache)
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u, mesh,
+                                                                have_nonconservative_terms(equations),
+                                                                equations,
+                                                                dg.volume_integral, dg,
+                                                                cache)
 
-  @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
-    cache, u, mesh, equations, dg.surface_integral, dg)
+  @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(cache, u, mesh,
+                                                                 equations,
+                                                                 dg.surface_integral, dg)
 
-  @trixi_timeit timer() "interface flux" calc_interface_flux!(
-    cache, dg.surface_integral, mesh,
-    have_nonconservative_terms(equations), equations, dg)
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(cache, dg.surface_integral,
+                                                              mesh,
+                                                              have_nonconservative_terms(equations),
+                                                              equations, dg)
 
-  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh,
-    have_nonconservative_terms(equations), equations, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
+                                                            mesh,
+                                                            have_nonconservative_terms(equations),
+                                                            equations, dg)
 
-  @trixi_timeit timer() "surface integral" calc_surface_integral!(
-    du, u, mesh, equations, dg.surface_integral, dg, cache)
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, mesh, equations,
+                                                                  dg.surface_integral, dg,
+                                                                  cache)
 
-  @trixi_timeit timer() "Jacobian" invert_jacobian!(
-    du, mesh, equations, dg, cache)
+  @trixi_timeit timer() "Jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "source terms" calc_sources!(
-    du, u, t, source_terms, mesh, equations, dg, cache)
+  @trixi_timeit timer() "source terms" calc_sources!(du, u, t, source_terms, mesh,
+                                                     equations, dg, cache)
 
   return nothing
 end
-
-
-
 end # @muladd

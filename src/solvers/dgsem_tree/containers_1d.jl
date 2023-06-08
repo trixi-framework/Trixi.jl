@@ -3,10 +3,10 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Container data structure (structure-of-arrays style) for DG elements
-mutable struct ElementContainer1D{RealT<:Real, uEltype<:Real} <: AbstractContainer
+mutable struct ElementContainer1D{RealT <: Real, uEltype <: Real} <: AbstractContainer
   inverse_jacobian::Vector{RealT}        # [elements]
   node_coordinates::Array{RealT, 3}      # [orientation, i, elements]
   surface_flux_values::Array{uEltype, 3} # [variables, direction, elements]
@@ -29,7 +29,7 @@ function Base.resize!(elements::ElementContainer1D, capacity)
   n_nodes = nnodes(elements)
   n_variables = nvariables(elements)
   @unpack _node_coordinates, _surface_flux_values,
-          inverse_jacobian, cell_ids = elements
+  inverse_jacobian, cell_ids = elements
 
   resize!(inverse_jacobian, capacity)
 
@@ -46,8 +46,9 @@ function Base.resize!(elements::ElementContainer1D, capacity)
   return nothing
 end
 
-
-function ElementContainer1D{RealT, uEltype}(capacity::Integer, n_variables, n_nodes) where {RealT<:Real, uEltype<:Real}
+function ElementContainer1D{RealT, uEltype}(capacity::Integer, n_variables,
+                                            n_nodes) where {RealT <: Real, uEltype <:
+                                                                           Real}
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
@@ -64,11 +65,10 @@ function ElementContainer1D{RealT, uEltype}(capacity::Integer, n_variables, n_no
 
   cell_ids = fill(typemin(Int), capacity)
 
-  return ElementContainer1D{RealT, uEltype}(
-    inverse_jacobian, node_coordinates, surface_flux_values, cell_ids,
-    _node_coordinates, _surface_flux_values)
+  return ElementContainer1D{RealT, uEltype}(inverse_jacobian, node_coordinates,
+                                            surface_flux_values, cell_ids,
+                                            _node_coordinates, _surface_flux_values)
 end
-
 
 # Return number of elements
 @inline nelements(elements::ElementContainer1D) = length(elements.cell_ids)
@@ -83,15 +83,15 @@ In particular, not the elements themselves are returned.
 @inline eachelement(elements::ElementContainer1D) = Base.OneTo(nelements(elements))
 @inline Base.real(elements::ElementContainer1D) = eltype(elements.node_coordinates)
 
-
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh1D,
                        equations::AbstractEquations{1},
-                       basis, ::Type{RealT}, ::Type{uEltype}) where {RealT<:Real, uEltype<:Real}
+                       basis, ::Type{RealT},
+                       ::Type{uEltype}) where {RealT <: Real, uEltype <: Real}
   # Initialize container
   n_elements = length(cell_ids)
-  elements = ElementContainer1D{RealT, uEltype}(
-    n_elements, nvariables(equations), nnodes(basis))
+  elements = ElementContainer1D{RealT, uEltype}(n_elements, nvariables(equations),
+                                                nnodes(basis))
 
   init_elements!(elements, cell_ids, mesh, basis)
   return elements
@@ -126,19 +126,18 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh1D, basis)
     # Note that the `tree_coordinates` are the midpoints of the cells.
     # Hence, we need to add an offset for `nodes` with a midpoint
     # different from zero.
-      for i in eachnode(basis)
-        elements.node_coordinates[1, i, element] = (
-            mesh.tree.coordinates[1, cell_id] + jacobian * (nodes[i] - reference_offset))
-      end
+    for i in eachnode(basis)
+      elements.node_coordinates[1, i, element] = (mesh.tree.coordinates[1, cell_id] +
+                                                  jacobian *
+                                                  (nodes[i] - reference_offset))
+    end
   end
 
   return elements
 end
 
-
-
 # Container data structure (structure-of-arrays style) for DG interfaces
-mutable struct InterfaceContainer1D{uEltype<:Real} <: AbstractContainer
+mutable struct InterfaceContainer1D{uEltype <: Real} <: AbstractContainer
   u::Array{uEltype, 3}      # [leftright, variables, interfaces]
   neighbor_ids::Matrix{Int} # [leftright, interfaces]
   orientations::Vector{Int} # [interfaces]
@@ -168,8 +167,8 @@ function Base.resize!(interfaces::InterfaceContainer1D, capacity)
   return nothing
 end
 
-
-function InterfaceContainer1D{uEltype}(capacity::Integer, n_variables, n_nodes) where {uEltype<:Real}
+function InterfaceContainer1D{uEltype}(capacity::Integer, n_variables,
+                                       n_nodes) where {uEltype <: Real}
   nan = convert(uEltype, NaN)
 
   # Initialize fields with defaults
@@ -183,23 +182,20 @@ function InterfaceContainer1D{uEltype}(capacity::Integer, n_variables, n_nodes) 
 
   orientations = fill(typemin(Int), capacity)
 
-  return InterfaceContainer1D{uEltype}(
-    u, neighbor_ids, orientations,
-    _u, _neighbor_ids)
+  return InterfaceContainer1D{uEltype}(u, neighbor_ids, orientations,
+                                       _u, _neighbor_ids)
 end
-
 
 # Return number of interfaces
 @inline ninterfaces(interfaces::InterfaceContainer1D) = length(interfaces.orientations)
-
 
 # Create interface container and initialize interface data in `elements`.
 function init_interfaces(cell_ids, mesh::TreeMesh1D,
                          elements::ElementContainer1D)
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
-  interfaces = InterfaceContainer1D{eltype(elements)}(
-    n_interfaces, nvariables(elements), nnodes(elements))
+  interfaces = InterfaceContainer1D{eltype(elements)}(n_interfaces, nvariables(elements),
+                                                      nnodes(elements))
 
   # Connect elements with interfaces
   init_interfaces!(interfaces, elements, mesh)
@@ -264,7 +260,8 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh1D)
       if has_neighbor(mesh.tree, cell_id, direction)
         neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
         if has_children(mesh.tree, neighbor_cell_id) # Cell has small neighbor
-          interfaces.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
+          interfaces.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[1,
+                                                                      neighbor_cell_id]]
         else # Cell has same refinement level neighbor
           interfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
         end
@@ -280,14 +277,12 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh1D)
     end
   end
 
-  @assert count == ninterfaces(interfaces) ("Actual interface count ($count) does not match " *
-                                            "expectations $(ninterfaces(interfaces))")
+  @assert count==ninterfaces(interfaces) ("Actual interface count ($count) does not match "*
+                                          "expectations $(ninterfaces(interfaces))")
 end
 
-
-
 # Container data structure (structure-of-arrays style) for DG boundaries
-mutable struct BoundaryContainer1D{RealT<:Real, uEltype<:Real} <: AbstractContainer
+mutable struct BoundaryContainer1D{RealT <: Real, uEltype <: Real} <: AbstractContainer
   u::Array{uEltype, 3}              # [leftright, variables, boundaries]
   neighbor_ids::Vector{Int}         # [boundaries]
   orientations::Vector{Int}         # [boundaries]
@@ -306,7 +301,7 @@ Base.eltype(boundaries::BoundaryContainer1D) = eltype(boundaries.u)
 function Base.resize!(boundaries::BoundaryContainer1D, capacity)
   n_variables = nvariables(boundaries)
   @unpack _u, _node_coordinates,
-          neighbor_ids, orientations, neighbor_sides = boundaries
+  neighbor_ids, orientations, neighbor_sides = boundaries
 
   resize!(_u, 2 * n_variables * capacity)
   boundaries.u = unsafe_wrap(Array, pointer(_u),
@@ -325,8 +320,9 @@ function Base.resize!(boundaries::BoundaryContainer1D, capacity)
   return nothing
 end
 
-
-function BoundaryContainer1D{RealT, uEltype}(capacity::Integer, n_variables, n_nodes) where {RealT<:Real, uEltype<:Real}
+function BoundaryContainer1D{RealT, uEltype}(capacity::Integer, n_variables,
+                                             n_nodes) where {RealT <: Real,
+                                                             uEltype <: Real}
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
@@ -347,24 +343,23 @@ function BoundaryContainer1D{RealT, uEltype}(capacity::Integer, n_variables, n_n
 
   n_boundaries_per_direction = SVector(0, 0)
 
-  return BoundaryContainer1D{RealT, uEltype}(
-    u, neighbor_ids, orientations, neighbor_sides,
-    node_coordinates, n_boundaries_per_direction,
-    _u, _node_coordinates)
+  return BoundaryContainer1D{RealT, uEltype}(u, neighbor_ids, orientations,
+                                             neighbor_sides,
+                                             node_coordinates, n_boundaries_per_direction,
+                                             _u, _node_coordinates)
 end
-
 
 # Return number of boundaries
 nboundaries(boundaries::BoundaryContainer1D) = length(boundaries.orientations)
-
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh1D,
                          elements::ElementContainer1D)
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer1D{real(elements), eltype(elements)}(
-    n_boundaries, nvariables(elements), nnodes(elements))
+  boundaries = BoundaryContainer1D{real(elements), eltype(elements)}(n_boundaries,
+                                                                     nvariables(elements),
+                                                                     nnodes(elements))
 
   # Connect elements with boundaries
   init_boundaries!(boundaries, elements, mesh)
@@ -444,7 +439,7 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
       # Store node coordinates
       enc = elements.node_coordinates
       if direction == 1 # -x direction
-        boundaries.node_coordinates[:, count] .= enc[:, 1,  element]
+        boundaries.node_coordinates[:, count] .= enc[:, 1, element]
       elseif direction == 2 # +x direction
         boundaries.node_coordinates[:, count] .= enc[:, end, element]
       else
@@ -453,14 +448,12 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
     end
   end
 
-  @assert count == nboundaries(boundaries) ("Actual boundaries count ($count) does not match " *
-                                            "expectations $(nboundaries(boundaries))")
+  @assert count==nboundaries(boundaries) ("Actual boundaries count ($count) does not match "*
+                                          "expectations $(nboundaries(boundaries))")
   @assert sum(counts_per_direction) == count
 
   boundaries.n_boundaries_per_direction = SVector(counts_per_direction)
 
   return boundaries.n_boundaries_per_direction
 end
-
-
 end # @muladd

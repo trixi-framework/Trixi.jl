@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 function max_dt(u, t, mesh::TreeMesh{1},
                 constant_speed::False, equations, dg::DG, cache)
@@ -25,7 +25,6 @@ function max_dt(u, t, mesh::TreeMesh{1},
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-
 function max_dt(u, t, mesh::TreeMesh{1},
                 constant_speed::True, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
@@ -40,7 +39,6 @@ function max_dt(u, t, mesh::TreeMesh{1},
 
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
-
 
 function max_dt(u, t, mesh::StructuredMesh{1},
                 constant_speed::False, equations, dg::DG, cache)
@@ -66,7 +64,6 @@ function max_dt(u, t, mesh::StructuredMesh{1},
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-
 function max_dt(u, t, mesh::StructuredMesh{1},
                 constant_speed::True, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
@@ -84,6 +81,4 @@ function max_dt(u, t, mesh::StructuredMesh{1},
 
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
-
-
 end # @muladd

@@ -3,6 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 @inline num_faces(elem::Tri) = 3
 @inline num_faces(elem::Quad) = 4
@@ -12,8 +13,8 @@
 # Computes the area of a triangle given `tri`, which is a tuple of three points (vectors),
 # using the [Shoelace_formula](https://en.wikipedia.org/wiki/Shoelace_formula).
 function compute_triangle_area(tri)
-    A, B, C = tri
-    return 0.5 * (A[1] * (B[2] - C[2]) + B[1] * (C[2]-A[2]) + C[1] * (A[2] - B[2]))
+  A, B, C = tri
+  return 0.5 * (A[1] * (B[2] - C[2]) + B[1] * (C[2] - A[2]) + C[1] * (A[2] - B[2]))
 end
 
 #   reference_plotting_triangulation(reference_plotting_coordinates)
@@ -26,7 +27,8 @@ end
 # triangulation of the plotting points, with zero-volume triangles removed.
 #
 # For example, r[t[1, i]] returns the first reference coordinate of the 1st point on the ith triangle.
-function reference_plotting_triangulation(reference_plotting_coordinates, tol=50*eps())
+function reference_plotting_triangulation(reference_plotting_coordinates,
+                                          tol = 50 * eps())
   # on-the-fly triangulation of plotting nodes on the reference element
   tri_in = Triangulate.TriangulateIO()
   tri_in.pointlist = permutedims(hcat(reference_plotting_coordinates...))
@@ -36,13 +38,13 @@ function reference_plotting_triangulation(reference_plotting_coordinates, tol=50
   # filter out sliver triangles
   has_volume = fill(true, size(triangles, 2))
   for i in axes(triangles, 2)
-      ids = @view triangles[:, i]
-      x_points = @view tri_out.pointlist[1, ids]
-      y_points = @view tri_out.pointlist[2, ids]
-      area = compute_triangle_area(zip(x_points, y_points))
-      if abs(area) < tol
-          has_volume[i] = false
-      end
+    ids = @view triangles[:, i]
+    x_points = @view tri_out.pointlist[1, ids]
+    y_points = @view tri_out.pointlist[2, ids]
+    area = compute_triangle_area(zip(x_points, y_points))
+    if abs(area) < tol
+      has_volume[i] = false
+    end
   end
   return permutedims(triangles[:, findall(has_volume)])
 end
@@ -64,8 +66,7 @@ end
 #   - u_plot = matrix of size (Nplot, K) representing solution to plot.
 #   - t = triangulation of reference plotting points
 function global_plotting_triangulation_triplot(xyz_plot, u_plot, t)
-
-  @assert size(first(xyz_plot), 1) == size(u_plot, 1) "Row dimension of u_plot does not match row dimension of xyz_plot"
+  @assert size(first(xyz_plot), 1)==size(u_plot, 1) "Row dimension of u_plot does not match row dimension of xyz_plot"
 
   # build discontinuous data on plotting triangular mesh
   num_plotting_points, num_elements = size(u_plot)
@@ -75,50 +76,57 @@ function global_plotting_triangulation_triplot(xyz_plot, u_plot, t)
   # each column of `tp` corresponds to a vertex of a plotting triangle
   tp = zeros(Int32, 3, num_plotting_elements_total)
   zp = similar(tp, eltype(u_plot))
-  for e = 1:num_elements
-    for i = 1:num_reference_plotting_triangles
-      tp[:, i + (e-1)*num_reference_plotting_triangles] .= @views t[i, :] .+ (e-1) * num_plotting_points
-      zp[:, i + (e-1)*num_reference_plotting_triangles] .= @views u_plot[t[i, :], e]
+  for e in 1:num_elements
+    for i in 1:num_reference_plotting_triangles
+      tp[:, i + (e - 1) * num_reference_plotting_triangles] .= @views t[i, :] .+
+                                                                      (e - 1) *
+                                                                      num_plotting_points
+      zp[:, i + (e - 1) * num_reference_plotting_triangles] .= @views u_plot[t[i, :], e]
     end
   end
   return vec.(xyz_plot)..., zp, tp
 end
 
-function get_face_node_indices(r, s, dg::DGSEM, tol=100*eps())
-  face_1 = findall(@. abs(s+1) < tol)
-  face_2 = findall(@. abs(r-1) < tol)
-  face_3 = findall(@. abs(s-1) < tol)
-  face_4 = findall(@. abs(r+1) < tol)
+function get_face_node_indices(r, s, dg::DGSEM, tol = 100 * eps())
+  face_1 = findall(@. abs(s + 1) < tol)
+  face_2 = findall(@. abs(r - 1) < tol)
+  face_3 = findall(@. abs(s - 1) < tol)
+  face_4 = findall(@. abs(r + 1) < tol)
   Fmask = hcat(face_1, face_2, face_3, face_4)
   return Fmask
 end
 
 # dispatch on semi
-mesh_plotting_wireframe(u, semi) = mesh_plotting_wireframe(u, mesh_equations_solver_cache(semi)...)
+function mesh_plotting_wireframe(u, semi)
+  mesh_plotting_wireframe(u, mesh_equations_solver_cache(semi)...)
+end
 
 #     mesh_plotting_wireframe(u, mesh, equations, dg::DGMulti, cache; num_plotting_pts=25)
 #
 # Generates data for plotting a mesh wireframe given StartUpDG data types.
 # Returns (plotting_coordinates_x, plotting_coordinates_y, nothing) for a 2D mesh wireframe.
 function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGMulti, cache;
-                                 nvisnodes=2*nnodes(dg))
+                                 nvisnodes = 2 * nnodes(dg))
   @unpack md = mesh
   rd = dg.basis
 
   # Construct 1D plotting interpolation matrix `Vp1D` for a single face
   @unpack N, Fmask = rd
   num_face_points = length(Fmask) ÷ num_faces(rd.element_type)
-  vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), num_face_points - 1))
+  vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N,
+                                                StartUpDG.nodes(Line(),
+                                                                num_face_points - 1))
   rplot = LinRange(-1, 1, nvisnodes)
   Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
 
   num_faces_total = num_faces(rd.element_type) * md.num_elements
-  xf, yf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), md.xyz)
+  xf, yf = map(x -> reshape(view(x, Fmask, :), num_face_points, num_faces_total), md.xyz)
   uf = similar(u, size(xf))
-  apply_to_each_field((out, x)->out .= reshape(view(x, Fmask, :), num_face_points, num_faces_total), uf, u)
+  apply_to_each_field((out, x) -> out .= reshape(view(x, Fmask, :), num_face_points,
+                                                 num_faces_total), uf, u)
 
   num_face_plotting_points = size(Vp1D, 1)
-  x_mesh, y_mesh = ntuple(_->zeros(num_face_plotting_points, num_faces_total), 2)
+  x_mesh, y_mesh = ntuple(_ -> zeros(num_face_plotting_points, num_faces_total), 2)
   u_mesh = similar(u, (num_face_plotting_points, num_faces_total))
   for f in 1:num_faces_total
     mul!(view(x_mesh, :, f), Vp1D, view(xf, :, f))
@@ -129,7 +137,8 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGMulti, c
   return x_mesh, y_mesh, u_mesh
 end
 
-function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cache; nvisnodes=2*nnodes(dg))
+function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cache;
+                                 nvisnodes = 2 * nnodes(dg))
 
   # build nodes on reference element (seems to be the right ordering)
   r, s = reference_node_coordinates_2d(dg)
@@ -144,24 +153,28 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cac
 
   # extract indices of local face nodes for wireframe plotting
   Fmask = get_face_node_indices(r, s, dg)
-  plotting_interp_matrix1D = face_plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
+  plotting_interp_matrix1D = face_plotting_interpolation_matrix(dg; nvisnodes = nvisnodes)
 
   # These 5 lines extract the face values on each element from the arrays x,y,sol_to_plot.
   # The resulting arrays are then reshaped so that xf, yf, sol_f are Matrix types of size
   # (Number of face plotting nodes) x (Number of faces).
   function face_first_reshape(x, num_nodes_1D, num_nodes, num_elements)
-      num_reference_faces = 2 * ndims(mesh)
-      xf = view(reshape(x, num_nodes, num_elements), vec(Fmask), :)
-      return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
+    num_reference_faces = 2 * ndims(mesh)
+    xf = view(reshape(x, num_nodes, num_elements), vec(Fmask), :)
+    return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
   end
-  reshape_and_interpolate(x) = plotting_interp_matrix1D * face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
+  function reshape_and_interpolate(x)
+    plotting_interp_matrix1D * face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
+  end
   xfp, yfp = map(reshape_and_interpolate, (x, y))
-  ufp = StructArray{SVector{nvars, uEltype}}(map(reshape_and_interpolate, StructArrays.components(u)))
+  ufp = StructArray{SVector{nvars, uEltype}}(map(reshape_and_interpolate,
+                                                 StructArrays.components(u)))
 
   return xfp, yfp, ufp
 end
 
-function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGSEM, cache; nvisnodes=2*nnodes(dg))
+function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGSEM, cache;
+                                 nvisnodes = 2 * nnodes(dg))
 
   # build nodes on reference element (seems to be the right ordering)
   r, s = reference_node_coordinates_2d(dg)
@@ -174,24 +187,26 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGSEM, cach
 
   # extract indices of local face nodes for wireframe plotting
   Fmask = get_face_node_indices(r, s, dg)
-  plotting_interp_matrix1D = face_plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
+  plotting_interp_matrix1D = face_plotting_interpolation_matrix(dg; nvisnodes = nvisnodes)
 
   # These 5 lines extract the face values on each element from the arrays x,y,sol_to_plot.
   # The resulting arrays are then reshaped so that xf, yf, sol_f are Matrix types of size
   # (Number of face plotting nodes) x (Number of faces).
   function face_first_reshape(x, num_nodes_1D, num_nodes, num_elements)
-      num_reference_faces = 2 * ndims(mesh)
-      xf = view(reshape(x, num_nodes, num_elements), vec(Fmask), :)
-      return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
+    num_reference_faces = 2 * ndims(mesh)
+    xf = view(reshape(x, num_nodes, num_elements), vec(Fmask), :)
+    return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
   end
-  reshape_and_interpolate(x) = plotting_interp_matrix1D * face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
+  function reshape_and_interpolate(x)
+    plotting_interp_matrix1D * face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
+  end
   xfp, yfp, ufp = map(reshape_and_interpolate, (x, y, u.data))
 
   return xfp, yfp, ufp
 end
 
-function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, cache; nvisnodes=2*nnodes(dg))
-
+function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, cache;
+                                 nvisnodes = 2 * nnodes(dg))
   @unpack md = mesh
   rd = dg.basis
 
@@ -201,12 +216,13 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, ca
   rplot = LinRange(-1, 1, nvisnodes)
   Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
 
-  num_face_points = N+1
+  num_face_points = N + 1
   num_faces_total = num_faces(rd.element_type) * md.num_elements
-  xf, yf, uf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), (md.xyz..., u.data))
+  xf, yf, uf = map(x -> reshape(view(x, Fmask, :), num_face_points, num_faces_total),
+                   (md.xyz..., u.data))
 
   num_face_plotting_points = size(Vp1D, 1)
-  x_mesh, y_mesh = ntuple(_->zeros(num_face_plotting_points, num_faces_total), 2)
+  x_mesh, y_mesh = ntuple(_ -> zeros(num_face_plotting_points, num_faces_total), 2)
   u_mesh = similar(u.data, (num_face_plotting_points, num_faces_total))
   for f in 1:num_faces_total
     mul!(view(x_mesh, :, f), Vp1D, view(xf, :, f))
@@ -216,8 +232,6 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, ca
 
   return x_mesh, y_mesh, u_mesh
 end
-
-
 
 # These methods are used internally to set the default value of the solution variables:
 # - If a `cons2prim` for the given `equations` exists, use it
@@ -231,7 +245,6 @@ function digest_solution_variables(equations, solution_variables::Nothing)
   end
 end
 
-
 """
     adapt_to_mesh_level!(u_ode, semi, level)
     adapt_to_mesh_level!(sol::Trixi.TrixiODESolution, level)
@@ -241,8 +254,9 @@ semidiscretization (mesh and caches) in place.
 """
 function adapt_to_mesh_level!(u_ode, semi, level)
   # Create AMR callback with controller that refines everything towards a single level
-  amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first), base_level=level)
-  amr_callback = AMRCallback(semi, amr_controller, interval=0)
+  amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
+                                        base_level = level)
+  amr_callback = AMRCallback(semi, amr_controller, interval = 0)
 
   # Adapt mesh until it does not change anymore
   has_changed = amr_callback.affect!(u_ode, semi, 0.0, 0)
@@ -253,8 +267,9 @@ function adapt_to_mesh_level!(u_ode, semi, level)
   return u_ode, semi
 end
 
-adapt_to_mesh_level!(sol::TrixiODESolution, level) = adapt_to_mesh_level!(sol.u[end], sol.prob.p, level)
-
+function adapt_to_mesh_level!(sol::TrixiODESolution, level)
+  adapt_to_mesh_level!(sol.u[end], sol.prob.p, level)
+end
 
 """
     adapt_to_mesh_level(u_ode, semi, level)
@@ -272,13 +287,14 @@ See also: [`adapt_to_mesh_level!`](@ref)
 function adapt_to_mesh_level(u_ode, semi, level)
   # Create new semidiscretization with copy of the current mesh
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
-  new_semi = remake(semi, mesh=deepcopy(mesh))
+  new_semi = remake(semi, mesh = deepcopy(mesh))
 
   return adapt_to_mesh_level!(deepcopy(u_ode), new_semi, level)
 end
 
-adapt_to_mesh_level(sol::TrixiODESolution, level) = adapt_to_mesh_level(sol.u[end], sol.prob.p, level)
-
+function adapt_to_mesh_level(sol::TrixiODESolution, level)
+  adapt_to_mesh_level(sol.u[end], sol.prob.p, level)
+end
 
 # Extract data from a 2D/3D DG solution and prepare it for visualization as a heatmap/contour plot.
 #
@@ -291,10 +307,11 @@ adapt_to_mesh_level(sol::TrixiODESolution, level) = adapt_to_mesh_level(sol.u[en
 #
 # Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
-function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, levels, ndims,
+function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, levels,
+                     ndims,
                      unstructured_data, n_nodes,
-                     grid_lines=false, max_supported_level=11, nvisnodes=nothing,
-                     slice=:xy, point=(0.0, 0.0, 0.0))
+                     grid_lines = false, max_supported_level = 11, nvisnodes = nothing,
+                     slice = :xy, point = (0.0, 0.0, 0.0))
   # Determine resolution for data interpolation
   max_level = maximum(levels)
   if max_level > max_supported_level
@@ -311,37 +328,41 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
   end
   nvisnodes_at_max_level = min(max_available_nodes_per_finest_element, max_nvisnodes)
   resolution = nvisnodes_at_max_level * 2^max_level
-  nvisnodes_per_level = [2^(max_level - level)*nvisnodes_at_max_level for level in 0:max_level]
+  nvisnodes_per_level = [2^(max_level - level) * nvisnodes_at_max_level
+                         for level in 0:max_level]
   # nvisnodes_per_level is an array (accessed by "level + 1" to accommodate
   # level-0-cell) that contains the number of visualization nodes for any
   # refinement level to visualize on an equidistant grid
 
   if ndims == 3
     (unstructured_data, coordinates, levels,
-        center_level_0) = unstructured_3d_to_2d(unstructured_data,
-        coordinates, levels, length_level_0, center_level_0, slice,
-        point)
+    center_level_0) = unstructured_3d_to_2d(unstructured_data,
+                                            coordinates, levels, length_level_0,
+                                            center_level_0, slice,
+                                            point)
   end
 
   # Normalize element coordinates: move center to (0, 0) and domain size to [-1, 1]²
   n_elements = length(levels)
   normalized_coordinates = similar(coordinates)
   for element_id in 1:n_elements
-    @views normalized_coordinates[:, element_id] .= (
-          (coordinates[:, element_id] .- center_level_0) ./ (length_level_0 / 2 ))
+    @views normalized_coordinates[:, element_id] .= ((coordinates[:, element_id] .-
+                                                      center_level_0) ./
+                                                     (length_level_0 / 2))
   end
 
   # Interpolate unstructured DG data to structured data
-  (structured_data =
-      unstructured2structured(unstructured_data, normalized_coordinates,
-                              levels, resolution, nvisnodes_per_level))
+  (structured_data = unstructured2structured(unstructured_data, normalized_coordinates,
+                                             levels, resolution, nvisnodes_per_level))
 
   # Interpolate cell-centered values to node-centered values
   node_centered_data = cell2node(structured_data)
 
   # Determine axis coordinates for contour plot
-  xs = collect(range(-1, 1, length=resolution+1)) .* length_level_0/2 .+ center_level_0[1]
-  ys = collect(range(-1, 1, length=resolution+1)) .* length_level_0/2 .+ center_level_0[2]
+  xs = collect(range(-1, 1, length = resolution + 1)) .* length_level_0 / 2 .+
+       center_level_0[1]
+  ys = collect(range(-1, 1, length = resolution + 1)) .* length_level_0 / 2 .+
+       center_level_0[2]
 
   # Determine element vertices to plot grid lines
   if grid_lines
@@ -353,7 +374,6 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
 
   return xs, ys, node_centered_data, mesh_vertices_x, mesh_vertices_y
 end
-
 
 # Extract data from a 1D DG solution and prepare it for visualization as a line plot.
 # This returns a tuple with
@@ -372,16 +392,18 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
   elseif nvisnodes == 0
     max_nvisnodes = n_nodes
   else
-    @assert nvisnodes >= 2 "nvisnodes must be zero or >= 2"
+    @assert nvisnodes>=2 "nvisnodes must be zero or >= 2"
     max_nvisnodes = nvisnodes
   end
 
-  interpolated_nodes = Array{eltype(original_nodes),    2}(undef, max_nvisnodes, n_elements)
-  interpolated_data  = Array{eltype(unstructured_data), 3}(undef, max_nvisnodes, n_elements, n_vars)
+  interpolated_nodes = Array{eltype(original_nodes), 2}(undef, max_nvisnodes, n_elements)
+  interpolated_data = Array{eltype(unstructured_data), 3}(undef, max_nvisnodes,
+                                                          n_elements, n_vars)
 
   for j in 1:n_elements
     # Interpolate on an equidistant grid.
-    interpolated_nodes[:, j] .= range(original_nodes[1,1,j], original_nodes[1,end,j], length = max_nvisnodes)
+    interpolated_nodes[:, j] .= range(original_nodes[1, 1, j], original_nodes[1, end, j],
+                                      length = max_nvisnodes)
   end
 
   nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
@@ -395,11 +417,12 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
     # Interpolate data for each element.
     for element in 1:n_elements
       multiply_scalar_dimensionwise!(@view(interpolated_data[:, element, v]),
-        vandermonde, @view(unstructured_data[:, element, v]))
+                                     vandermonde, @view(unstructured_data[:, element, v]))
     end
   end
   # Return results after data is reshaped
-  return vec(interpolated_nodes), reshape(interpolated_data, :, n_vars), vcat(original_nodes[1, 1, :], original_nodes[1, end, end])
+  return vec(interpolated_nodes), reshape(interpolated_data, :, n_vars),
+         vcat(original_nodes[1, 1, :], original_nodes[1, end, end])
 end
 
 # Change order of dimensions (variables are now last) and convert data to `solution_variables`
@@ -407,7 +430,6 @@ end
 # Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function get_unstructured_data(u, solution_variables, mesh, equations, solver, cache)
-
   if solution_variables === cons2cons
     raw_data = u
     n_vars = size(raw_data, 1)
@@ -426,12 +448,14 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
     reshaped_u = reshape(u, n_vars_in, :)
     reshaped_r = reshape(raw_data, n_vars, :)
     for idx in axes(reshaped_u, 2)
-      reshaped_r[:, idx] = solution_variables(get_node_vars(reshaped_u, equations, solver, idx), equations)
+      reshaped_r[:, idx] = solution_variables(get_node_vars(reshaped_u, equations, solver,
+                                                            idx), equations)
     end
   end
 
   unstructured_data = Array{eltype(raw_data)}(undef,
-                                              ntuple((d) -> nnodes(solver), ndims(equations))...,
+                                              ntuple((d) -> nnodes(solver),
+                                                     ndims(equations))...,
                                               nelements(solver, cache), n_vars)
   for variable in 1:n_vars
     @views unstructured_data[.., :, variable] .= raw_data[variable, .., :]
@@ -439,8 +463,6 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
 
   return unstructured_data
 end
-
-
 
 # Convert cell-centered values to node-centered values by averaging over all
 # four neighbors and making use of the periodicity of the solution
@@ -458,31 +480,30 @@ function cell2node(cell_centered_data)
   node_centered_data = [Matrix{Float64}(undef, resolution_out, resolution_out)
                         for _ in 1:length(cell_centered_data)]
 
-
   for (cell_data, node_data) in zip(cell_centered_data, node_centered_data)
     # Fill center with original data
-    tmp[2:end-1, 2:end-1] .= cell_data
+    tmp[2:(end - 1), 2:(end - 1)] .= cell_data
 
     # Fill sides with opposite data (periodic domain)
     # x-direction
-    tmp[1,   2:end-1] .= cell_data[end, :]
-    tmp[end, 2:end-1] .= cell_data[1,   :]
+    tmp[1, 2:(end - 1)] .= cell_data[end, :]
+    tmp[end, 2:(end - 1)] .= cell_data[1, :]
     # y-direction
-    tmp[2:end-1, 1, ] .= cell_data[:, end]
-    tmp[2:end-1, end] .= cell_data[:, 1, ]
+    tmp[2:(end - 1), 1] .= cell_data[:, end]
+    tmp[2:(end - 1), end] .= cell_data[:, 1]
     # Corners
-    tmp[1,   1, ] = cell_data[end, end]
-    tmp[end, 1, ] = cell_data[1,   end]
-    tmp[1,   end] = cell_data[end, 1, ]
-    tmp[end, end] = cell_data[1,   1, ]
+    tmp[1, 1] = cell_data[end, end]
+    tmp[end, 1] = cell_data[1, end]
+    tmp[1, end] = cell_data[end, 1]
+    tmp[end, end] = cell_data[1, 1]
 
     # Obtain node-centered value by averaging over neighboring cell-centered values
     for j in 1:resolution_out
       for i in 1:resolution_out
-        node_data[i, j] = (tmp[i,   j, ] +
-                           tmp[i+1, j, ] +
-                           tmp[i,   j+1] +
-                           tmp[i+1, j+1]) / 4
+        node_data[i, j] = (tmp[i, j] +
+                           tmp[i + 1, j] +
+                           tmp[i, j + 1] +
+                           tmp[i + 1, j + 1]) / 4
       end
     end
   end
@@ -494,7 +515,6 @@ function cell2node(cell_centered_data)
 
   return node_centered_data
 end
-
 
 # Convert 3d unstructured data to 2d data.
 # Additional to the new unstructured data updated coordinates, levels and
@@ -522,10 +542,10 @@ function unstructured_3d_to_2d(unstructured_data, coordinates, levels,
   lower_limit = center_level_0[slice_dimension] - length_level_0 / 2
   upper_limit = center_level_0[slice_dimension] + length_level_0 / 2
 
-  @assert length(point) >= 3 "Point must be three-dimensional."
+  @assert length(point)>=3 "Point must be three-dimensional."
   if point[slice_dimension] < lower_limit || point[slice_dimension] > upper_limit
     error(string("Slice plane is outside of domain.",
-        " point[$slice_dimension]=$(point[slice_dimension]) must be between $lower_limit and $upper_limit"))
+                 " point[$slice_dimension]=$(point[slice_dimension]) must be between $lower_limit and $upper_limit"))
   end
 
   # Extract data shape information
@@ -570,7 +590,7 @@ function unstructured_3d_to_2d(unstructured_data, coordinates, levels,
     # the domain due to this.
     if !((min_coordinate[slice_dimension] <= point[slice_dimension] &&
           max_coordinate[slice_dimension] > point[slice_dimension]) ||
-        (point[slice_dimension] == upper_limit &&
+         (point[slice_dimension] == upper_limit &&
           max_coordinate[slice_dimension] == upper_limit))
       # Continue for loop if they don't intersect
       continue
@@ -584,9 +604,8 @@ function unstructured_3d_to_2d(unstructured_data, coordinates, levels,
     new_levels[new_id] = levels[element_id]
 
     # Construct vandermonde matrix (or load from Dict if possible)
-    normalized_intercept =
-        (point[slice_dimension] - min_coordinate[slice_dimension]) /
-        element_length * 2 - 1
+    normalized_intercept = (point[slice_dimension] - min_coordinate[slice_dimension]) /
+                           element_length * 2 - 1
 
     if haskey(vandermonde_to_2d, normalized_intercept)
       vandermonde = vandermonde_to_2d[normalized_intercept]
@@ -622,7 +641,6 @@ end
 
 # Convert 2d unstructured data to 1d slice and interpolate them.
 function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
-
   if slice === :x
     slice_dimension = 2
     other_dimension = 1
@@ -644,10 +662,10 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
   lower_limit = original_nodes[1, 1, 1, 1]
   upper_limit = original_nodes[1, n_nodes_in, n_nodes_in, n_elements]
 
-  @assert length(point) >= 2 "Point must be two-dimensional."
+  @assert length(point)>=2 "Point must be two-dimensional."
   if point[slice_dimension] < lower_limit || point[slice_dimension] > upper_limit
     error(string("Slice axis is outside of domain. ",
-        " point[$slice_dimension]=$(point[slice_dimension]) must be between $lower_limit and $upper_limit"))
+                 " point[$slice_dimension]=$(point[slice_dimension]) must be between $lower_limit and $upper_limit"))
   end
 
   # Count the amount of new elements.
@@ -667,46 +685,49 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
 
     # Test if the element is on the slice axis. If not just continue with the next element.
     if !((min_coordinate[slice_dimension] <= point[slice_dimension] &&
-        max_coordinate[slice_dimension] > point[slice_dimension]) ||
-        (point[slice_dimension] == upper_limit && max_coordinate[slice_dimension] == upper_limit))
-
-        continue
+          max_coordinate[slice_dimension] > point[slice_dimension]) ||
+         (point[slice_dimension] == upper_limit &&
+          max_coordinate[slice_dimension] == upper_limit))
+      continue
     end
 
     new_id += 1
 
     # Construct vandermonde matrix for interpolation of each 2D element to a 1D element.
-    normalized_intercept =
-          (point[slice_dimension] - min_coordinate[slice_dimension]) /
-          element_length[1] * 2 - 1
+    normalized_intercept = (point[slice_dimension] - min_coordinate[slice_dimension]) /
+                           element_length[1] * 2 - 1
     vandermonde = polynomial_interpolation_matrix(nodes_in, normalized_intercept)
 
     # Interpolate to each node of new 1D element.
     for v in 1:n_variables
       for node in 1:n_nodes_in
-        new_unstructured_data[node, new_id, v] = (vandermonde*unstructured_data[node, :, element_id, v])[1]
+        new_unstructured_data[node, new_id, v] = (vandermonde * unstructured_data[node, :,
+                                                                                  element_id,
+                                                                                  v])[1]
       end
     end
 
     new_nodes[:, new_id] = original_nodes[other_dimension, :, 1, element_id]
   end
 
-  return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id), new_unstructured_data[:, 1:new_id, :], nvisnodes)
+  return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id),
+                     new_unstructured_data[:, 1:new_id, :], nvisnodes)
 end
 
 # Calculate the arc length of a curve given by ndims x npoints point coordinates (piece-wise linear approximation)
 function calc_arc_length(coordinates)
   n_points = size(coordinates)[2]
   arc_length = zeros(n_points)
-  for i in 1:n_points-1
-    arc_length[i+1] = arc_length[i] + sqrt(sum((coordinates[:,i]-coordinates[:,i+1]).^2))
+  for i in 1:(n_points - 1)
+    arc_length[i + 1] = arc_length[i] +
+                        sqrt(sum((coordinates[:, i] - coordinates[:, i + 1]) .^ 2))
   end
   return arc_length
 end
 
 # Convert 2d unstructured data to 1d data at given curve.
-function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
-
+function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve,
+                                     mesh, solver, cache)
   n_points_curve = size(curve)[2]
   n_nodes, _, n_elements, n_variables = size(unstructured_data)
   nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
@@ -714,10 +735,12 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
   # Check if input is correct.
   min = original_nodes[:, 1, 1, 1]
   max = max_coordinate = original_nodes[:, n_nodes, n_nodes, n_elements]
-  @assert size(curve) == (2, size(curve)[2]) "Coordinates along curve must be 2xn dimensional."
+  @assert size(curve)==(2, size(curve)[2]) "Coordinates along curve must be 2xn dimensional."
   for element in 1:n_points_curve
-    @assert (prod(vcat(curve[:, n_points_curve] .>= min, curve[:, n_points_curve]
-            .<= max))) "Some coordinates from `curve` are outside of the domain.."
+    @assert (prod(vcat(curve[:, n_points_curve] .>= min,
+                       curve[:, n_points_curve]
+                       .<=
+                       max))) "Some coordinates from `curve` are outside of the domain.."
   end
 
   # Set nodes according to the length of the curve.
@@ -732,21 +755,23 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
 
   # Iterate over all found elements.
   for element in 1:n_points_curve
-
     min_coordinate = original_nodes[:, 1, 1, element_ids[element]]
     max_coordinate = original_nodes[:, n_nodes, n_nodes, element_ids[element]]
     element_length = max_coordinate - min_coordinate
 
-    normalized_coordinates = (curve[:, element] - min_coordinate)/element_length[1]*2 .-1
+    normalized_coordinates = (curve[:, element] - min_coordinate) / element_length[1] *
+                             2 .- 1
 
     # Interpolate to a single point in each element.
     vandermonde_x = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
     vandermonde_y = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[2])
     for v in 1:n_variables
       for i in 1:n_nodes
-        temp_data[i, element, v] = (vandermonde_y*unstructured_data[i, :, element_ids[element], v])[1]
+        temp_data[i, element, v] = (vandermonde_y * unstructured_data[i, :,
+                                                                      element_ids[element],
+                                                                      v])[1]
       end
-      data_on_curve[element, v] = (vandermonde_x*temp_data[:, element, v])[]
+      data_on_curve[element, v] = (vandermonde_x * temp_data[:, element, v])[]
     end
   end
 
@@ -761,17 +786,17 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
     input_curve = axis_curve(pd.x, pd.y, nothing, slice, point, nvisnodes)
   end
 
-  @assert size(input_curve, 1) == 2 "Input 'curve' must be 2xn dimensional."
+  @assert size(input_curve, 1)==2 "Input 'curve' must be 2xn dimensional."
 
   # For each coordinate find the corresponding triangle with its ids.
   ids_by_coordinates = get_ids_by_coordinates(input_curve, pd)
   found_coordinates = ids_by_coordinates[:, 1] .!= nothing
 
-  @assert found_coordinates != zeros(size(input_curve, 2)) "No points of 'curve' are inside of the solutions domain."
+  @assert found_coordinates!=zeros(size(input_curve, 2)) "No points of 'curve' are inside of the solutions domain."
 
   # These hold the ids of the elements and triangles the points of the curve sit in.
   element_ids = @view ids_by_coordinates[found_coordinates, 1]
-  triangle_ids =  @view ids_by_coordinates[found_coordinates, 2]
+  triangle_ids = @view ids_by_coordinates[found_coordinates, 2]
 
   # Shorten the curve, so that it contains only point that were found.
   curve = @view input_curve[:, found_coordinates]
@@ -798,7 +823,9 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
       values_triangle = SVector{3}(getindex.(view(pd.data, triangle, element), v))
 
       # Linear interpolation in each triangle to the points on the curve.
-      data_on_curve[point, v] = triangle_interpolation(x_coordinates_triangle, y_coordinates_triangle, values_triangle, curve[:, point])
+      data_on_curve[point, v] = triangle_interpolation(x_coordinates_triangle,
+                                                       y_coordinates_triangle,
+                                                       values_triangle, curve[:, point])
     end
   end
 
@@ -806,8 +833,8 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
 end
 
 # Convert 3d unstructured data to 1d data at given curve.
-function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
-
+function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve,
+                                     mesh, solver, cache)
   n_points_curve = size(curve)[2]
   n_nodes, _, _, n_elements, n_variables = size(unstructured_data)
   nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
@@ -815,10 +842,12 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
   # Check if input is correct.
   min = original_nodes[:, 1, 1, 1, 1]
   max = max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, n_elements]
-  @assert size(curve) == (3, n_points_curve) "Coordinates along curve must be 3xn dimensional."
+  @assert size(curve)==(3, n_points_curve) "Coordinates along curve must be 3xn dimensional."
   for element in 1:n_points_curve
-    @assert (prod(vcat(curve[:, n_points_curve] .>= min, curve[:, n_points_curve]
-            .<= max))) "Some coordinates from `curve` are outside of the domain.."
+    @assert (prod(vcat(curve[:, n_points_curve] .>= min,
+                       curve[:, n_points_curve]
+                       .<=
+                       max))) "Some coordinates from `curve` are outside of the domain.."
   end
 
   # Set nodes according to the length of the curve.
@@ -826,19 +855,19 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
 
   # Setup data structures.
   data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
-  temp_data = Array{Float64}(undef, n_nodes, n_nodes+1, n_points_curve, n_variables)
+  temp_data = Array{Float64}(undef, n_nodes, n_nodes + 1, n_points_curve, n_variables)
 
   # For each coordinate find the corresponding element with its id.
   element_ids = get_elements_by_coordinates(curve, mesh, solver, cache)
 
   # Iterate over all found elements.
   for element in 1:n_points_curve
-
     min_coordinate = original_nodes[:, 1, 1, 1, element_ids[element]]
     max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, element_ids[element]]
     element_length = max_coordinate - min_coordinate
 
-    normalized_coordinates = (curve[:, element] - min_coordinate)/element_length[1]*2 .-1
+    normalized_coordinates = (curve[:, element] - min_coordinate) / element_length[1] *
+                             2 .- 1
 
     # Interpolate to a single point in each element.
     vandermonde_x = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
@@ -847,11 +876,14 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
     for v in 1:n_variables
       for i in 1:n_nodes
         for ii in 1:n_nodes
-          temp_data[i, ii, element, v] = (vandermonde_z*unstructured_data[i, ii, :, element_ids[element], v])[1]
+          temp_data[i, ii, element, v] = (vandermonde_z * unstructured_data[i, ii, :,
+                                                                            element_ids[element],
+                                                                            v])[1]
         end
-        temp_data[i, n_nodes+1, element, v] = (vandermonde_y*temp_data[i, 1:n_nodes, element, v])[1]
+        temp_data[i, n_nodes + 1, element, v] = (vandermonde_y * temp_data[i, 1:n_nodes,
+                                                                           element, v])[1]
       end
-      data_on_curve[element, v] = (vandermonde_x*temp_data[:, n_nodes+1, element, v])[1]
+      data_on_curve[element, v] = (vandermonde_x * temp_data[:, n_nodes + 1, element, v])[1]
     end
   end
 
@@ -862,7 +894,8 @@ end
 function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes)
   # If no curve is defined, create a axis curve.
   if curve === nothing
-    curve = axis_curve(nodes[1,:,:,:,:], nodes[2,:,:,:,:], nodes[3,:,:,:,:], slice, point, nvisnodes)
+    curve = axis_curve(nodes[1, :, :, :, :], nodes[2, :, :, :, :], nodes[3, :, :, :, :],
+                       slice, point, nvisnodes)
   end
 
   # Set up data structure.
@@ -872,7 +905,7 @@ function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes
 
   # Iterate over every point on the curve and determine the solutions value at given point.
   for i in 1:n_points_curve
-    @views data_on_curve[i, :] .= get_value_at_point(curve[:,i], nodes, data)
+    @views data_on_curve[i, :] .= get_value_at_point(curve[:, i], nodes, data)
   end
 
   mesh_vertices_x = nothing
@@ -881,48 +914,53 @@ function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes
 end
 
 # Check if the first 'amount'-many points can still form a valid tetrahedron.
-function is_valid_tetrahedron(amount, coordinates; tol=10^-4)
-  a = coordinates[:,1]; b = coordinates[:,2]; c = coordinates[:,3]; d = coordinates[:,4];
+function is_valid_tetrahedron(amount, coordinates; tol = 10^-4)
+  a = coordinates[:, 1]
+  b = coordinates[:, 2]
+  c = coordinates[:, 3]
+  d = coordinates[:, 4]
   if amount == 2 # If two points are the same, then no tetrahedron can be formed.
-    return !(isapprox(a, b; atol=tol))
+    return !(isapprox(a, b; atol = tol))
   elseif amount == 3 # Check if three points are on the same line.
-    return !on_the_same_line(a, b, c; tol=tol)
+    return !on_the_same_line(a, b, c; tol = tol)
   elseif amount == 4 # Check if four points form a tetrahedron.
     A = hcat(coordinates[1, :], coordinates[2, :], coordinates[3, :], SVector(1, 1, 1, 1))
-    return !isapprox(det(A), 0; atol=tol)
+    return !isapprox(det(A), 0; atol = tol)
   else # With one point a tetrahedron can always be formed.
     return true
   end
 end
 
 # Check if three given 3D-points are on the same line.
-function on_the_same_line(a, b, c; tol=10^-4)
+function on_the_same_line(a, b, c; tol = 10^-4)
   # Calculate the intersection of the a-b-axis at x=0.
   if b[1] == 0
     intersect_a_b = b
   else
-    intersect_a_b = a - b.*(a[1]/b[1])
+    intersect_a_b = a - b .* (a[1] / b[1])
   end
   # Calculate the intersection of the a-c-axis at x=0.
   if c[1] == 0
     intersect_a_c = c
   else
-    intersect_a_c = a - c.*(a[1]/c[1])
+    intersect_a_c = a - c .* (a[1] / c[1])
   end
-  return isapprox(intersect_a_b, intersect_a_c; atol=tol)
+  return isapprox(intersect_a_b, intersect_a_c; atol = tol)
 end
 
 # Interpolate from four corners of a tetrahedron to a single point.
-function tetrahedron_interpolation(x_coordinates_in, y_coordinates_in, z_coordinates_in, values_in, coordinate_out)
+function tetrahedron_interpolation(x_coordinates_in, y_coordinates_in, z_coordinates_in,
+                                   values_in, coordinate_out)
   A = hcat(x_coordinates_in, y_coordinates_in, z_coordinates_in, SVector(1, 1, 1, 1))
   c = A \ values_in
-  return c[1] * coordinate_out[1] + c[2] * coordinate_out[2] + c[3] * coordinate_out[3] + c[4]
+  return c[1] * coordinate_out[1] + c[2] * coordinate_out[2] + c[3] * coordinate_out[3] +
+         c[4]
 end
 
 # Calculate the distances from every entry in node to given point.
 function distances_from_single_point(nodes, point)
   _, n_nodes, _, _, n_elements = size(nodes)
-  shifted_data = nodes.-point
+  shifted_data = nodes .- point
   distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
 
   # Iterate over every entry.
@@ -930,7 +968,7 @@ function distances_from_single_point(nodes, point)
     for x in 1:n_nodes
       for y in 1:n_nodes
         for z in 1:n_nodes
-          distances[x,y,z,element] = norm(shifted_data[:,x,y,z,element])
+          distances[x, y, z, element] = norm(shifted_data[:, x, y, z, element])
         end
       end
     end
@@ -955,12 +993,12 @@ function get_value_at_point(point, nodes, data)
     return data[1, index[1], index[2], index[3], index[4]]
   end
 
-  @views coordinates_tetrahedron[:,1] = nodes[:, index[1], index[2], index[3], index[4]]
+  @views coordinates_tetrahedron[:, 1] = nodes[:, index[1], index[2], index[3], index[4]]
   @views value_tetrahedron[:, 1] = data[:, index[1], index[2], index[3], index[4]]
 
   # Restrict the interpolation to the closest element only.
   closest_element = index[4]
-  @views element_distances = distances[:,:,:,closest_element]
+  @views element_distances = distances[:, :, :, closest_element]
 
   # Find a tetrahedron, which is given by four corners, to interpolate from.
   for i in 1:4
@@ -969,8 +1007,10 @@ function get_value_at_point(point, nodes, data)
       index = argmin(element_distances)
       element_distances[index[1], index[2], index[3]] = maximum_distance
 
-      @views coordinates_tetrahedron[:,i] = nodes[:, index[1], index[2], index[3], closest_element]
-      @views value_tetrahedron[:, i] = data[:, index[1], index[2], index[3], closest_element]
+      @views coordinates_tetrahedron[:, i] = nodes[:, index[1], index[2], index[3],
+                                                   closest_element]
+      @views value_tetrahedron[:, i] = data[:, index[1], index[2], index[3],
+                                            closest_element]
 
       # Look for another point if current tetrahedron is not valid.
       if is_valid_tetrahedron(i, coordinates_tetrahedron)
@@ -982,7 +1022,10 @@ function get_value_at_point(point, nodes, data)
   # Interpolate from tetrahedron to given point.
   value_at_point = Array{Float64}(undef, n_variables)
   for v in 1:n_variables
-    value_at_point[v] = tetrahedron_interpolation(coordinates_tetrahedron[1, :], coordinates_tetrahedron[2, :], coordinates_tetrahedron[3, :], value_tetrahedron[v, :], point)
+    value_at_point[v] = tetrahedron_interpolation(coordinates_tetrahedron[1, :],
+                                                  coordinates_tetrahedron[2, :],
+                                                  coordinates_tetrahedron[3, :],
+                                                  value_tetrahedron[v, :], point)
   end
 
   return value_at_point
@@ -990,16 +1033,15 @@ end
 
 # Convert 3d unstructured data to 1d slice and interpolate them.
 function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
-
   if slice === :x
     slice_dimension = 1
-    other_dimensions = [2,3]
+    other_dimensions = [2, 3]
   elseif slice === :y
     slice_dimension = 2
-    other_dimensions = [1,3]
+    other_dimensions = [1, 3]
   elseif slice === :z
     slice_dimension = 3
-    other_dimensions = [1,2]
+    other_dimensions = [1, 2]
   else
     error("illegal dimension '$slice', supported dimensions are :x, :y and :z")
   end
@@ -1007,7 +1049,7 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
   # Set up data structures to store new 1D data.
   @views new_unstructured_data = similar(unstructured_data[1, 1, ..])
   @views temp_unstructured_data = similar(unstructured_data[1, ..])
-  @views new_nodes = similar(original_nodes[1, 1, 1,..])
+  @views new_nodes = similar(original_nodes[1, 1, 1, ..])
 
   n_nodes_in, _, _, n_elements, n_variables = size(unstructured_data)
   nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
@@ -1016,10 +1058,11 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
   lower_limit = original_nodes[1, 1, 1, 1, 1]
   upper_limit = original_nodes[1, n_nodes_in, n_nodes_in, n_nodes_in, n_elements]
 
-  @assert length(point) >= 3 "Point must be three-dimensional."
-  if prod(point[other_dimensions] .< lower_limit) || prod(point[other_dimensions] .> upper_limit)
+  @assert length(point)>=3 "Point must be three-dimensional."
+  if prod(point[other_dimensions] .< lower_limit) ||
+     prod(point[other_dimensions] .> upper_limit)
     error(string("Slice axis is outside of domain. ",
-        " point[$other_dimensions]=$(point[other_dimensions]) must be between $lower_limit and $upper_limit"))
+                 " point[$other_dimensions]=$(point[other_dimensions]) must be between $lower_limit and $upper_limit"))
   end
 
   # Count the amount of new elements.
@@ -1042,18 +1085,17 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
 
     # Test if the element is on the slice axis. If not just continue with the next element.
     if !((prod(min_coordinate[other_dimensions] .<= point[other_dimensions]) &&
-        prod(max_coordinate[other_dimensions] .> point[other_dimensions])) ||
-        (point[other_dimensions] == upper_limit && prod(max_coordinate[other_dimensions] .== upper_limit)))
-
-        continue
+          prod(max_coordinate[other_dimensions] .> point[other_dimensions])) ||
+         (point[other_dimensions] == upper_limit &&
+          prod(max_coordinate[other_dimensions] .== upper_limit)))
+      continue
     end
 
     new_id += 1
 
     # Construct vandermonde matrix for interpolation of each 2D element to a 1D element.
-    normalized_intercept =
-          (point[other_dimensions] .- min_coordinate[other_dimensions]) /
-          element_length[1] * 2 .- 1
+    normalized_intercept = (point[other_dimensions] .- min_coordinate[other_dimensions]) /
+                           element_length[1] * 2 .- 1
     vandermonde_i = polynomial_interpolation_matrix(nodes_in, normalized_intercept[1])
     vandermonde_ii = polynomial_interpolation_matrix(nodes_in, normalized_intercept[2])
 
@@ -1061,16 +1103,24 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
     for v in 1:n_variables
       for i in 1:n_nodes_in
         for ii in 1:n_nodes_in
-          temp_unstructured_data[i, ii, new_id, v] = (vandermonde_ii*unstructured_data[ii, :, i, element_id, v])[1]
+          temp_unstructured_data[i, ii, new_id, v] = (vandermonde_ii * unstructured_data[ii,
+                                                                                         :,
+                                                                                         i,
+                                                                                         element_id,
+                                                                                         v])[1]
         end
-        new_unstructured_data[i, new_id, v] = (vandermonde_i*temp_unstructured_data[i, :, new_id, v])[1]
+        new_unstructured_data[i, new_id, v] = (vandermonde_i * temp_unstructured_data[i,
+                                                                                      :,
+                                                                                      new_id,
+                                                                                      v])[1]
       end
     end
 
     new_nodes[:, new_id] = original_nodes[slice_dimension, 1, 1, :, element_id]
   end
 
-  return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id), new_unstructured_data[:, 1:new_id, :], nvisnodes)
+  return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id),
+                     new_unstructured_data[:, 1:new_id, :], nvisnodes)
 end
 
 # Interpolate unstructured DG data to structured data (cell-centered)
@@ -1094,12 +1144,13 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
   for l in 0:max_level
     n_nodes_out = nvisnodes_per_level[l + 1]
     dx = 2 / n_nodes_out
-    nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=n_nodes_out))
+    nodes_out = collect(range(-1 + dx / 2, 1 - dx / 2, length = n_nodes_out))
     push!(vandermonde_per_level, polynomial_interpolation_matrix(nodes_in, nodes_out))
   end
 
   # For each element, calculate index position at which to insert data in global data structure
-  lower_left_index = element2index(normalized_coordinates, levels, resolution, nvisnodes_per_level)
+  lower_left_index = element2index(normalized_coordinates, levels, resolution,
+                                   nvisnodes_per_level)
 
   # Create output data structure
   structured = [Matrix{Float64}(undef, resolution, resolution) for _ in 1:n_variables]
@@ -1107,7 +1158,8 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
   # For each variable, interpolate element data and store to global data structure
   for v in 1:n_variables
     # Reshape data array for use in multiply_dimensionwise function
-    reshaped_data = reshape(unstructured_data[:, :, :, v], 1, n_nodes_in, n_nodes_in, n_elements)
+    reshaped_data = reshape(unstructured_data[:, :, :, v], 1, n_nodes_in, n_nodes_in,
+                            n_elements)
 
     for element_id in 1:n_elements
       # Extract level for convenience
@@ -1120,15 +1172,18 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
       # Interpolate data
       vandermonde = vandermonde_per_level[level + 1]
-      structured[v][first[1]:last[1], first[2]:last[2]] .= (
-          reshape(multiply_dimensionwise(vandermonde, reshaped_data[:, :, :, element_id]),
-                  n_nodes_out, n_nodes_out))
+      structured[v][first[1]:last[1], first[2]:last[2]] .= (reshape(multiply_dimensionwise(vandermonde,
+                                                                                           reshaped_data[:,
+                                                                                                         :,
+                                                                                                         :,
+                                                                                                         element_id]),
+                                                                    n_nodes_out,
+                                                                    n_nodes_out))
     end
   end
 
   return structured
 end
-
 
 # For a given normalized element coordinate, return the index of its lower left
 # contribution to the global data structure
@@ -1136,7 +1191,7 @@ end
 # Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function element2index(normalized_coordinates, levels, resolution, nvisnodes_per_level)
-  @assert size(normalized_coordinates, 1) == 2 "only works in 2D"
+  @assert size(normalized_coordinates, 1)==2 "only works in 2D"
 
   n_elements = length(levels)
 
@@ -1146,10 +1201,10 @@ function element2index(normalized_coordinates, levels, resolution, nvisnodes_per
   lower_left_coordinate = Array{Float64}(undef, ndim, n_elements)
   for element_id in 1:n_elements
     nvisnodes = nvisnodes_per_level[levels[element_id] + 1]
-    lower_left_coordinate[1, element_id] = (
-        normalized_coordinates[1, element_id] - (nvisnodes - 1)/2 * dx)
-    lower_left_coordinate[2, element_id] = (
-        normalized_coordinates[2, element_id] - (nvisnodes - 1)/2 * dx)
+    lower_left_coordinate[1, element_id] = (normalized_coordinates[1, element_id] -
+                                            (nvisnodes - 1) / 2 * dx)
+    lower_left_coordinate[2, element_id] = (normalized_coordinates[2, element_id] -
+                                            (nvisnodes - 1) / 2 * dx)
   end
 
   # Then, convert coordinate to global index
@@ -1158,22 +1213,22 @@ function element2index(normalized_coordinates, levels, resolution, nvisnodes_per
   return indices
 end
 
-
 # Find 2D array index for a 2-tuple of normalized, cell-centered coordinates (i.e., in [-1,1])
 #
 # Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function coordinate2index(coordinate, resolution::Integer)
   # Calculate 1D normalized coordinates
-  dx = 2/resolution
-  mesh_coordinates = collect(range(-1 + dx/2, 1 - dx/2, length=resolution))
+  dx = 2 / resolution
+  mesh_coordinates = collect(range(-1 + dx / 2, 1 - dx / 2, length = resolution))
 
   # Find index
-  id_x = searchsortedfirst.(Ref(mesh_coordinates), coordinate[1, :], lt=(x,y)->x .< y .- dx/2)
-  id_y = searchsortedfirst.(Ref(mesh_coordinates), coordinate[2, :], lt=(x,y)->x .< y .- dx/2)
+  id_x = searchsortedfirst.(Ref(mesh_coordinates), coordinate[1, :],
+                            lt = (x, y) -> x .< y .- dx / 2)
+  id_y = searchsortedfirst.(Ref(mesh_coordinates), coordinate[2, :],
+                            lt = (x, y) -> x .< y .- dx / 2)
   return transpose(hcat(id_x, id_y))
 end
-
 
 # Calculate the vertices for each mesh cell such that it can be visualized as a closed box
 #
@@ -1181,36 +1236,35 @@ end
 #       thus be changed in future releases.
 function calc_vertices(coordinates, levels, length_level_0)
   ndim = size(coordinates, 1)
-  @assert ndim == 2 "only works in 2D"
+  @assert ndim==2 "only works in 2D"
 
   # Initialize output arrays
   n_elements = length(levels)
-  n_points_per_element = 2^ndim+2
-  x = Vector{Float64}(undef, n_points_per_element*n_elements)
-  y = Vector{Float64}(undef, n_points_per_element*n_elements)
+  n_points_per_element = 2^ndim + 2
+  x = Vector{Float64}(undef, n_points_per_element * n_elements)
+  y = Vector{Float64}(undef, n_points_per_element * n_elements)
 
   # Calculate vertices for all coordinates at once
   for element_id in 1:n_elements
     length = length_level_0 / 2^levels[element_id]
-    index = n_points_per_element*(element_id-1)
-    x[index+1] = coordinates[1, element_id] - 1/2 * length
-    x[index+2] = coordinates[1, element_id] + 1/2 * length
-    x[index+3] = coordinates[1, element_id] + 1/2 * length
-    x[index+4] = coordinates[1, element_id] - 1/2 * length
-    x[index+5] = coordinates[1, element_id] - 1/2 * length
-    x[index+6] = NaN
+    index = n_points_per_element * (element_id - 1)
+    x[index + 1] = coordinates[1, element_id] - 1 / 2 * length
+    x[index + 2] = coordinates[1, element_id] + 1 / 2 * length
+    x[index + 3] = coordinates[1, element_id] + 1 / 2 * length
+    x[index + 4] = coordinates[1, element_id] - 1 / 2 * length
+    x[index + 5] = coordinates[1, element_id] - 1 / 2 * length
+    x[index + 6] = NaN
 
-    y[index+1] = coordinates[2, element_id] - 1/2 * length
-    y[index+2] = coordinates[2, element_id] - 1/2 * length
-    y[index+3] = coordinates[2, element_id] + 1/2 * length
-    y[index+4] = coordinates[2, element_id] + 1/2 * length
-    y[index+5] = coordinates[2, element_id] - 1/2 * length
-    y[index+6] = NaN
+    y[index + 1] = coordinates[2, element_id] - 1 / 2 * length
+    y[index + 2] = coordinates[2, element_id] - 1 / 2 * length
+    y[index + 3] = coordinates[2, element_id] + 1 / 2 * length
+    y[index + 4] = coordinates[2, element_id] + 1 / 2 * length
+    y[index + 5] = coordinates[2, element_id] - 1 / 2 * length
+    y[index + 6] = NaN
   end
 
   return x, y
 end
-
 
 # Calculate the vertices to plot each grid line for StructuredMesh
 #
@@ -1218,7 +1272,7 @@ end
 #       thus be changed in future releases.
 function calc_vertices(node_coordinates, mesh)
   @unpack cells_per_dimension = mesh
-  @assert size(node_coordinates, 1) == 2 "only works in 2D"
+  @assert size(node_coordinates, 1)==2 "only works in 2D"
 
   linear_indices = LinearIndices(size(mesh))
 
@@ -1231,15 +1285,15 @@ function calc_vertices(node_coordinates, mesh)
   # The # of rows in the matrices must be sufficient to store the longest dimension (`max_length`),
   # and for each the node locations without doubling the corner nodes (`n_nodes-1`), plus the final node (`+1`)
   # Rely on Plots.jl to ignore `NaN`s (i.e., they are not plotted) to handle shorter lines
-  x = fill(NaN, max_length*(n_nodes-1)+1, n_lines)
-  y = fill(NaN, max_length*(n_nodes-1)+1, n_lines)
+  x = fill(NaN, max_length * (n_nodes - 1) + 1, n_lines)
+  y = fill(NaN, max_length * (n_nodes - 1) + 1, n_lines)
 
   line_index = 1
   # Lines in x-direction
   # Bottom boundary
   i = 1
   for cell_x in axes(mesh, 1)
-    for node in 1:(n_nodes-1)
+    for node in 1:(n_nodes - 1)
       x[i, line_index] = node_coordinates[1, node, 1, linear_indices[cell_x, 1]]
       y[i, line_index] = node_coordinates[2, node, 1, linear_indices[cell_x, 1]]
 
@@ -1255,7 +1309,7 @@ function calc_vertices(node_coordinates, mesh)
   for cell_y in axes(mesh, 2)
     i = 1
     for cell_x in axes(mesh, 1)
-      for node in 1:(n_nodes-1)
+      for node in 1:(n_nodes - 1)
         x[i, line_index] = node_coordinates[1, node, end, linear_indices[cell_x, cell_y]]
         y[i, line_index] = node_coordinates[2, node, end, linear_indices[cell_x, cell_y]]
 
@@ -1269,12 +1323,11 @@ function calc_vertices(node_coordinates, mesh)
     line_index += 1
   end
 
-
   # Lines in y-direction
   # Left boundary
   i = 1
   for cell_y in axes(mesh, 2)
-    for node in 1:(n_nodes-1)
+    for node in 1:(n_nodes - 1)
       x[i, line_index] = node_coordinates[1, 1, node, linear_indices[1, cell_y]]
       y[i, line_index] = node_coordinates[2, 1, node, linear_indices[1, cell_y]]
 
@@ -1286,11 +1339,11 @@ function calc_vertices(node_coordinates, mesh)
   y[i, line_index] = node_coordinates[2, 1, end, linear_indices[1, end]]
 
   # Other lines in y-direction
-  line_index +=1
+  line_index += 1
   for cell_x in axes(mesh, 1)
     i = 1
     for cell_y in axes(mesh, 2)
-      for node in 1:(n_nodes-1)
+      for node in 1:(n_nodes - 1)
         x[i, line_index] = node_coordinates[1, end, node, linear_indices[cell_x, cell_y]]
         y[i, line_index] = node_coordinates[2, end, node, linear_indices[cell_x, cell_y]]
 
@@ -1325,7 +1378,6 @@ function _get_orientations(mesh, slice)
   return orientation_x, orientation_y
 end
 
-
 # Convert `orientation` into a guide label (see also `_get_orientations`)
 function _get_guide(orientation::Integer)
   if orientation == 1
@@ -1338,7 +1390,6 @@ function _get_guide(orientation::Integer)
     return ""
   end
 end
-
 
 #   plotting_interpolation_matrix(dg; kwargs...)
 #
@@ -1356,11 +1407,12 @@ end
 # to define a multi-dimensional interpolation matrix later.
 plotting_interpolation_matrix(dg; kwargs...) = I(length(dg.basis.nodes))
 
-function face_plotting_interpolation_matrix(dg::DGSEM; nvisnodes=2*length(dg.basis.nodes))
+function face_plotting_interpolation_matrix(dg::DGSEM;
+                                            nvisnodes = 2 * length(dg.basis.nodes))
   return polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1, 1, nvisnodes))
 end
 
-function plotting_interpolation_matrix(dg::DGSEM; nvisnodes=2*length(dg.basis.nodes))
+function plotting_interpolation_matrix(dg::DGSEM; nvisnodes = 2 * length(dg.basis.nodes))
   Vp1D = polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1, 1, nvisnodes))
   # For quadrilateral elements, interpolation to plotting nodes involves applying a 1D interpolation
   # operator to each line of nodes. This is equivalent to multiplying the vector containing all node
@@ -1375,8 +1427,6 @@ function reference_node_coordinates_2d(dg::DGSEM)
   s = vec([nodes[j] for i in eachnode(dg), j in eachnode(dg)])
   return r, s
 end
-
-
 
 # Find element and triangle ids containing coordinates given as a matrix [ndims, npoints]
 function get_ids_by_coordinates!(ids, coordinates, pd)
@@ -1402,8 +1452,11 @@ end
 
 # Check if given 'point' is inside the triangle with corners corresponding to the coordinates of x and y.
 function is_in_triangle(point, x, y)
-  a = SVector(x[1], y[1]); b = SVector(x[2], y[2]); c = SVector(x[3], y[3])
-  return is_on_same_side(point, a, b, c) && is_on_same_side(point, b, c, a) && is_on_same_side(point, c, a, b)
+  a = SVector(x[1], y[1])
+  b = SVector(x[2], y[2])
+  c = SVector(x[3], y[3])
+  return is_on_same_side(point, a, b, c) && is_on_same_side(point, b, c, a) &&
+         is_on_same_side(point, c, a, b)
 end
 
 # Create an axis through x and y to then check if 'point' is on the same side of the axis as z.
@@ -1434,7 +1487,8 @@ function find_element(point, pd)
 end
 
 # Interpolate from three corners of a triangle to a single point.
-function triangle_interpolation(x_coordinates_in, y_coordinates_in, values_in, coordinate_out)
+function triangle_interpolation(x_coordinates_in, y_coordinates_in, values_in,
+                                coordinate_out)
   A = hcat(x_coordinates_in, y_coordinates_in, SVector(1, 1, 1))
   c = A \ values_in
   return c[1] * coordinate_out[1] + c[2] * coordinate_out[2] + c[3]
@@ -1472,5 +1526,4 @@ function axis_curve(nodes_x, nodes_y, nodes_z, slice, point, n_points)
 
   return curve
 end
-
 end # @muladd

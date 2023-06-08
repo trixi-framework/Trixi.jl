@@ -3,10 +3,10 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::Union{TreeMesh, P4estMesh}, output_directory, timestep=0)
+function save_mesh_file(mesh::Union{TreeMesh, P4estMesh}, output_directory, timestep = 0)
   save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
 end
 
@@ -90,7 +90,6 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
   return filename
 end
 
-
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
@@ -112,7 +111,6 @@ function save_mesh_file(mesh::StructuredMesh, output_directory)
 
   return filename
 end
-
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the corresponding `.mesh` file used to construct the mesh.
@@ -136,7 +134,6 @@ function save_mesh_file(mesh::UnstructuredMesh2D, output_directory)
 
   return filename
 end
-
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the type of boundary mapping function.
@@ -169,8 +166,8 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
 
     file["tree_node_coordinates"] = mesh.tree_node_coordinates
     file["nodes"] = Vector(mesh.nodes) # the mesh uses `SVector`s for the nodes
-                                       # to increase the runtime performance
-                                       # but HDF5 can only handle plain arrays
+    # to increase the runtime performance
+    # but HDF5 can only handle plain arrays
     file["boundary_names"] = mesh.boundary_names .|> String
   end
 
@@ -209,27 +206,26 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
 
     file["tree_node_coordinates"] = mesh.tree_node_coordinates
     file["nodes"] = Vector(mesh.nodes) # the mesh uses `SVector`s for the nodes
-                                       # to increase the runtime performance
-                                       # but HDF5 can only handle plain arrays
+    # to increase the runtime performance
+    # but HDF5 can only handle plain arrays
     file["boundary_names"] = mesh.boundary_names .|> String
   end
 
   return filename
 end
 
-
 """
     load_mesh(restart_file::AbstractString; n_cells_max)
 
 Load the mesh from the `restart_file`.
 """
-function load_mesh(restart_file::AbstractString; n_cells_max=0, RealT=Float64)
+function load_mesh(restart_file::AbstractString; n_cells_max = 0, RealT = Float64)
   if mpi_isparallel()
     mesh_file = get_restart_mesh_filename(restart_file, True())
-    return load_mesh_parallel(mesh_file; n_cells_max=n_cells_max, RealT=RealT)
+    return load_mesh_parallel(mesh_file; n_cells_max = n_cells_max, RealT = RealT)
   else
     mesh_file = get_restart_mesh_filename(restart_file, False())
-    load_mesh_serial(mesh_file; n_cells_max=n_cells_max, RealT=RealT)
+    load_mesh_serial(mesh_file; n_cells_max = n_cells_max, RealT = RealT)
   end
 end
 
@@ -266,34 +262,34 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     end
 
     if ndims == 1
-      mapping = @eval function(xi)
+      mapping = @eval function (xi)
         $expr
         mapping(xi)
       end
     elseif ndims == 2
-      mapping = @eval function(xi, eta)
+      mapping = @eval function (xi, eta)
         $expr
         mapping(xi, eta)
       end
     else # ndims == 3
-      mapping = @eval function(xi, eta, zeta)
+      mapping = @eval function (xi, eta, zeta)
         $expr
         mapping(xi, eta, zeta)
       end
     end
 
-    mesh = StructuredMesh(size, mapping; RealT=RealT, unsaved_changes=false,
-                      mapping_as_string=mapping_as_string)
+    mesh = StructuredMesh(size, mapping; RealT = RealT, unsaved_changes = false,
+                          mapping_as_string = mapping_as_string)
   elseif mesh_type == "UnstructuredMesh2D"
     mesh_filename, periodicity_ = h5open(mesh_file, "r") do file
       return read(attributes(file)["mesh_filename"]),
              read(attributes(file)["periodicity"])
     end
-    mesh = UnstructuredMesh2D(mesh_filename; RealT=RealT, periodicity=periodicity_,
-                                unsaved_changes=false)
+    mesh = UnstructuredMesh2D(mesh_filename; RealT = RealT, periodicity = periodicity_,
+                              unsaved_changes = false)
   elseif mesh_type == "P4estMesh"
     p4est_filename, tree_node_coordinates,
-        nodes, boundary_names_ = h5open(mesh_file, "r") do file
+    nodes, boundary_names_ = h5open(mesh_file, "r") do file
       return read(attributes(file)["p4est_file"]),
              read(file["tree_node_coordinates"]),
              read(file["nodes"]),
@@ -326,7 +322,7 @@ function load_mesh!(mesh::SerialTreeMesh, mesh_file::AbstractString)
     # Set domain information
     mesh.tree.center_level_0 = read(attributes(file)["center_level_0"])
     mesh.tree.length_level_0 = read(attributes(file)["length_level_0"])
-    mesh.tree.periodicity    = Tuple(read(attributes(file)["periodicity"]))
+    mesh.tree.periodicity = Tuple(read(attributes(file)["periodicity"]))
 
     # Set length
     n_cells = read(attributes(file)["n_cells"])
@@ -343,12 +339,11 @@ function load_mesh!(mesh::SerialTreeMesh, mesh_file::AbstractString)
   return mesh
 end
 
-
 function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
   if mpi_isroot()
     ndims_, mesh_type = h5open(mesh_file, "r") do file
       return read(attributes(file)["ndims"]),
-            read(attributes(file)["mesh_type"])
+             read(attributes(file)["mesh_type"])
     end
     MPI.Bcast!(Ref(ndims_), mpi_root(), mpi_comm())
     MPI.bcast(mesh_type, mpi_root(), mpi_comm())
@@ -374,11 +369,11 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
   elseif mesh_type == "P4estMesh"
     if mpi_isroot()
       p4est_filename, tree_node_coordinates,
-          nodes, boundary_names_ = h5open(mesh_file, "r") do file
+      nodes, boundary_names_ = h5open(mesh_file, "r") do file
         return read(attributes(file)["p4est_file"]),
-              read(file["tree_node_coordinates"]),
-              read(file["nodes"]),
-              read(file["boundary_names"])
+               read(file["tree_node_coordinates"]),
+               read(file["nodes"]),
+               read(file["boundary_names"])
       end
 
       boundary_names = boundary_names_ .|> Symbol
@@ -398,7 +393,7 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
     p4est = load_p4est(p4est_file, Val(ndims_))
 
     mesh = P4estMesh{ndims_}(p4est, tree_node_coordinates,
-                            nodes, boundary_names, "", false, true)
+                             nodes, boundary_names, "", false, true)
   else
     error("Unknown mesh type!")
   end
@@ -415,10 +410,10 @@ function load_mesh!(mesh::ParallelTreeMesh, mesh_file::AbstractString)
       # Set domain information
       mesh.tree.center_level_0 = read(attributes(file)["center_level_0"])
       mesh.tree.length_level_0 = read(attributes(file)["length_level_0"])
-      mesh.tree.periodicity    = Tuple(read(attributes(file)["periodicity"]))
+      mesh.tree.periodicity = Tuple(read(attributes(file)["periodicity"]))
       MPI.Bcast!(collect(mesh.tree.center_level_0), mpi_root(), mpi_comm())
       MPI.Bcast!(collect(mesh.tree.length_level_0), mpi_root(), mpi_comm())
-      MPI.Bcast!(collect(mesh.tree.periodicity),    mpi_root(), mpi_comm())
+      MPI.Bcast!(collect(mesh.tree.periodicity), mpi_root(), mpi_comm())
 
       # Set length
       n_cells = read(attributes(file)["n_cells"])
@@ -431,28 +426,31 @@ function load_mesh!(mesh::ParallelTreeMesh, mesh_file::AbstractString)
       mesh.tree.neighbor_ids[:, 1:n_cells] = read(file["neighbor_ids"])
       mesh.tree.levels[1:n_cells] = read(file["levels"])
       mesh.tree.coordinates[:, 1:n_cells] = read(file["coordinates"])
-      @views MPI.Bcast!(mesh.tree.parent_ids[1:n_cells],      mpi_root(), mpi_comm())
-      @views MPI.Bcast!(mesh.tree.child_ids[:, 1:n_cells],    mpi_root(), mpi_comm())
+      @views MPI.Bcast!(mesh.tree.parent_ids[1:n_cells], mpi_root(), mpi_comm())
+      @views MPI.Bcast!(mesh.tree.child_ids[:, 1:n_cells], mpi_root(), mpi_comm())
       @views MPI.Bcast!(mesh.tree.neighbor_ids[:, 1:n_cells], mpi_root(), mpi_comm())
-      @views MPI.Bcast!(mesh.tree.levels[1:n_cells],          mpi_root(), mpi_comm())
-      @views MPI.Bcast!(mesh.tree.coordinates[:, 1:n_cells],  mpi_root(), mpi_comm())
+      @views MPI.Bcast!(mesh.tree.levels[1:n_cells], mpi_root(), mpi_comm())
+      @views MPI.Bcast!(mesh.tree.coordinates[:, 1:n_cells], mpi_root(), mpi_comm())
     end
   else # non-root ranks
     # Set domain information
-    mesh.tree.center_level_0 = MPI.Bcast!(collect(mesh.tree.center_level_0), mpi_root(), mpi_comm())
-    mesh.tree.length_level_0 = MPI.Bcast!(collect(mesh.tree.length_level_0), mpi_root(), mpi_comm())[1]
-    mesh.tree.periodicity    = Tuple(MPI.Bcast!(collect(mesh.tree.periodicity),    mpi_root(), mpi_comm()))
+    mesh.tree.center_level_0 = MPI.Bcast!(collect(mesh.tree.center_level_0), mpi_root(),
+                                          mpi_comm())
+    mesh.tree.length_level_0 = MPI.Bcast!(collect(mesh.tree.length_level_0), mpi_root(),
+                                          mpi_comm())[1]
+    mesh.tree.periodicity = Tuple(MPI.Bcast!(collect(mesh.tree.periodicity), mpi_root(),
+                                             mpi_comm()))
 
     # Set length
     n_cells = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
     resize!(mesh.tree, n_cells)
 
     # Read in data
-    @views MPI.Bcast!(mesh.tree.parent_ids[1:n_cells],      mpi_root(), mpi_comm())
-    @views MPI.Bcast!(mesh.tree.child_ids[:, 1:n_cells],    mpi_root(), mpi_comm())
+    @views MPI.Bcast!(mesh.tree.parent_ids[1:n_cells], mpi_root(), mpi_comm())
+    @views MPI.Bcast!(mesh.tree.child_ids[:, 1:n_cells], mpi_root(), mpi_comm())
     @views MPI.Bcast!(mesh.tree.neighbor_ids[:, 1:n_cells], mpi_root(), mpi_comm())
-    @views MPI.Bcast!(mesh.tree.levels[1:n_cells],          mpi_root(), mpi_comm())
-    @views MPI.Bcast!(mesh.tree.coordinates[:, 1:n_cells],  mpi_root(), mpi_comm())
+    @views MPI.Bcast!(mesh.tree.levels[1:n_cells], mpi_root(), mpi_comm())
+    @views MPI.Bcast!(mesh.tree.coordinates[:, 1:n_cells], mpi_root(), mpi_comm())
   end
 
   # Partition mesh
@@ -460,6 +458,4 @@ function load_mesh!(mesh::ParallelTreeMesh, mesh_file::AbstractString)
 
   return mesh
 end
-
-
 end # @muladd

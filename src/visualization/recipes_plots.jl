@@ -3,6 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 # Visualize a single variable in a 2D plot (default: heatmap)
 #
@@ -17,7 +18,7 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
   aspect_ratio --> :equal
 
   # Set annotation properties
-  legend -->  :none
+  legend --> :none
   title --> variable_names[variable_id]
   colorbar --> :true
   xguide --> _get_guide(orientation_x)
@@ -41,7 +42,7 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
   xlims --> (x[begin], x[end])
   ylims --> (y[begin], y[end])
   aspect_ratio --> :equal
-  legend -->  :none
+  legend --> :none
   grid --> false
 
   # Set series properties
@@ -53,11 +54,14 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
   mesh_vertices_x, mesh_vertices_y
 end
 
-
 # Visualize the mesh in a 2D plot
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any, <:AbstractVector{<:AbstractVector}}})
+RecipesBase.@recipe function f(pm::PlotMesh{
+                                            <:PlotData2DCartesian{<:Any,
+                                                                  <:AbstractVector{
+                                                                                   <:AbstractVector
+                                                                                   }}})
   @unpack plot_data = pm
   @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
 
@@ -65,7 +69,7 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any, <:Abstr
   xlims --> (minimum(x), maximum(x))
   ylims --> (minimum(y), maximum(y))
   aspect_ratio --> :equal
-  legend -->  :none
+  legend --> :none
   grid --> false
 
   # Set series properties
@@ -76,7 +80,6 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any, <:Abstr
   # Return data for plotting
   mesh_vertices_x, mesh_vertices_y
 end
-
 
 # Plot all available variables at once for convenience
 #
@@ -90,7 +93,7 @@ RecipesBase.@recipe function f(pd::AbstractPlotData)
     rows = 1
   else
     cols = ceil(Int, sqrt(length(pd)))
-    rows = ceil(Int, length(pd)/cols)
+    rows = ceil(Int, length(pd) / cols)
   end
 
   layout := (rows, cols)
@@ -104,7 +107,7 @@ RecipesBase.@recipe function f(pd::AbstractPlotData)
   end
 
   # Fill remaining subplots with empty plot
-  for i in (length(pd)+1):(rows*cols)
+  for i in (length(pd) + 1):(rows * cols)
     RecipesBase.@series begin
       subplot := i
       axis := false
@@ -139,7 +142,7 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{1}})
 
   # Set geometric and annotation properties
   xlims --> (x[begin], x[end])
-  legend -->  :none
+  legend --> :none
 
   # Set series properties
   seriestype --> :vline
@@ -149,7 +152,6 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{1}})
   # Return data for plotting
   mesh_vertices_x
 end
-
 
 # Create a plot directly from a TrixiODESolution for convenience
 # The plot is created by a PlotData1D or PlotData2D object.
@@ -164,11 +166,11 @@ end
 # Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
 #       constructor.
 RecipesBase.@recipe function f(u, semi::AbstractSemidiscretization;
-                               solution_variables=nothing)
+                               solution_variables = nothing)
   if ndims(semi) == 1
-    return PlotData1D(u, semi; solution_variables=solution_variables)
+    return PlotData1D(u, semi; solution_variables = solution_variables)
   else
-    return PlotData2D(u, semi; solution_variables=solution_variables)
+    return PlotData2D(u, semi; solution_variables = solution_variables)
   end
 end
 
@@ -176,9 +178,10 @@ end
 # Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
 #       constructor.
 RecipesBase.@recipe function f(u, semi::SemidiscretizationHyperbolic{<:TreeMesh};
-                               solution_variables=nothing,
-                               grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice=:xy,
-                               point=(0.0, 0.0, 0.0), curve=nothing)
+                               solution_variables = nothing,
+                               grid_lines = true, max_supported_level = 11,
+                               nvisnodes = nothing, slice = :xy,
+                               point = (0.0, 0.0, 0.0), curve = nothing)
   # Create a PlotData1D or PlotData2D object depending on the dimension.
   if ndims(semi) == 1
     return PlotData1D(u, semi; solution_variables, nvisnodes, slice, point, curve)
@@ -191,7 +194,6 @@ end
 
 # Series recipe for PlotData2DTriangulated
 RecipesBase.@recipe function f(pds::PlotDataSeries{<:PlotData2DTriangulated})
-
   pd = pds.plot_data
   @unpack variable_id = pds
   @unpack x, y, data, t, variable_names = pd
@@ -225,12 +227,12 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DTriangulated})
   # whose columns correspond to different elements. We add NaN separators by appending a row of
   # NaNs to this matrix. We also flatten (e.g., apply `vec` to) the result, as this speeds up
   # plotting.
-  x_face, y_face = map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (x_face, y_face))
+  x_face, y_face = map(x -> vec(vcat(x, fill(NaN, 1, size(x, 2)))), (x_face, y_face))
 
   xlims --> extrema(x_face)
   ylims --> extrema(y_face)
   aspect_ratio --> :equal
-  legend -->  :none
+  legend --> :none
 
   # Set series properties
   seriestype --> :path
@@ -243,7 +245,6 @@ end
 # Visualizes a single scalar field. Intended for use with ScalarPlotData2D.
 # Example usage: `plot(ScalarPlotData2D(u, semi))`.
 RecipesBase.@recipe function f(pd::PlotData2DTriangulated{<:ScalarData})
-
   @unpack x, y, data, t, variable_names = pd
 
   title_string = isnothing(variable_names) ? "" : variable_names
@@ -263,13 +264,13 @@ RecipesBase.@recipe function f(pd::PlotData2DTriangulated{<:ScalarData})
   return DGTriPseudocolor(global_plotting_triangulation_triplot((x, y), data.data, t)...)
 end
 
-RecipesBase.@recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
+RecipesBase.@recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback},
+                               point_id::Integer)
   return cb.affect!, point_id
 end
 
-RecipesBase.@recipe function f(time_series_callback::TimeSeriesCallback, point_id::Integer)
+RecipesBase.@recipe function f(time_series_callback::TimeSeriesCallback,
+                               point_id::Integer)
   return PlotData1D(time_series_callback, point_id)
 end
-
-
 end # @muladd

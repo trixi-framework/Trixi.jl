@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 @doc raw"""
     HyperbolicDiffusionEquations1D
@@ -19,21 +19,23 @@ Further analysis can be found in the paper
   schemes
   [DOI: 10.1016/j.jcp.2007.07.029](https://doi.org/10.1016/j.jcp.2007.07.029)
 """
-struct HyperbolicDiffusionEquations1D{RealT<:Real} <: AbstractHyperbolicDiffusionEquations{1, 2}
+struct HyperbolicDiffusionEquations1D{RealT <: Real} <:
+       AbstractHyperbolicDiffusionEquations{1, 2}
   Lr::RealT     # reference length scale
   inv_Tr::RealT # inverse of the reference time scale
   nu::RealT     # diffusion constant
 end
 
-function HyperbolicDiffusionEquations1D(; nu=1.0, Lr=inv(2pi))
+function HyperbolicDiffusionEquations1D(; nu = 1.0, Lr = inv(2pi))
   Tr = Lr^2 / nu
   HyperbolicDiffusionEquations1D(promote(Lr, inv(Tr), nu)...)
 end
 
-
 varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations1D) = ("phi", "q1")
 varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations1D) = ("phi", "q1")
-default_analysis_errors(::HyperbolicDiffusionEquations1D) = (:l2_error, :linf_error, :residual)
+function default_analysis_errors(::HyperbolicDiffusionEquations1D)
+  (:l2_error, :linf_error, :residual)
+end
 
 @inline function residual_steady_state(du, ::HyperbolicDiffusionEquations1D)
   abs(du[1])
@@ -47,16 +49,17 @@ A non-priodic smooth initial condition. Can be used for convergence tests in com
 !!! note
     The solution is periodic but the initial guess is not.
 """
-function initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations1D)
+function initial_condition_poisson_nonperiodic(x, t,
+                                               equations::HyperbolicDiffusionEquations1D)
   # elliptic equation: -νΔϕ = f
   # Taken from Section 6.1 of Nishikawa https://doi.org/10.1016/j.jcp.2007.07.029
   if t == 0.0
     # initial "guess" of the solution and its derivative
     phi = x[1]^2 - x[1]
-    q1  = 2*x[1] - 1
+    q1 = 2 * x[1] - 1
   else
     phi = sinpi(x[1])      # ϕ
-    q1  = pi * cospi(x[1]) # ϕ_x
+    q1 = pi * cospi(x[1]) # ϕ_x
   end
   return SVector(phi, q1)
 end
@@ -76,7 +79,7 @@ diffusion system that is used with [`initial_condition_poisson_nonperiodic`](@re
   @unpack inv_Tr = equations
 
   dphi = pi^2 * sinpi(x[1])
-  dq1  = -inv_Tr * u[2]
+  dq1 = -inv_Tr * u[2]
 
   return SVector(dphi, dq1)
 end
@@ -94,7 +97,7 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
                                                 equations::HyperbolicDiffusionEquations1D)
   # elliptic equation: -νΔϕ = f
   phi = sinpi(x[1])      # ϕ
-  q1  = pi * cospi(x[1]) # ϕ_x
+  q1 = pi * cospi(x[1]) # ϕ_x
   u_boundary = SVector(phi, q1)
 
   # Calculate boundary flux
@@ -106,7 +109,6 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
 
   return flux
 end
-
 
 """
     source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations1D)
@@ -122,7 +124,6 @@ Source term that only includes the forcing from the hyperbolic diffusion system.
   return SVector(zero(dq1), dq1)
 end
 
-
 """
     initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations1D)
 
@@ -132,7 +133,8 @@ Setup used for convergence tests of the Euler equations with self-gravity used i
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
 in combination with [`source_terms_harmonic`](@ref).
 """
-function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations1D)
+function initial_condition_eoc_test_coupled_euler_gravity(x, t,
+                                                          equations::HyperbolicDiffusionEquations1D)
 
   # Determine phi_x
   G = 1.0           # gravitational constant
@@ -141,11 +143,10 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Hyper
   rho1 = A * sinpi(x[1] - t)
   # initialize with ansatz of gravity potential
   phi = C * rho1
-  q1  = C * A * pi * cospi(x[1] - t) # = gravity acceleration in x-direction
+  q1 = C * A * pi * cospi(x[1] - t) # = gravity acceleration in x-direction
 
   return SVector(phi, q1)
 end
-
 
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::HyperbolicDiffusionEquations1D)
@@ -159,19 +160,17 @@ end
   return SVector(f1, f2)
 end
 
-
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations1D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::HyperbolicDiffusionEquations1D)
   λ_max = sqrt(equations.nu * equations.inv_Tr)
 end
-
 
 @inline have_constant_speed(::HyperbolicDiffusionEquations1D) = True()
 
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations1D)
   return sqrt(eq.nu * eq.inv_Tr)
 end
-
 
 # Convert conservative variables to primitive
 @inline cons2prim(u, equations::HyperbolicDiffusionEquations1D) = u
@@ -186,10 +185,8 @@ end
   return SVector(w1, w2)
 end
 
-
 # Calculate entropy for a conservative state `u` (here: same as total energy)
 @inline entropy(u, equations::HyperbolicDiffusionEquations1D) = energy_total(u, equations)
-
 
 # Calculate total energy for a conservative state `u`
 @inline function energy_total(u, equations::HyperbolicDiffusionEquations1D)
@@ -197,6 +194,4 @@ end
   phi, q1 = u
   return 0.5 * (phi^2 + equations.Lr^2 * q1^2)
 end
-
-
 end # @muladd

@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 """
     GlmSpeedCallback(; glm_scale=0.5, cfl)
@@ -15,11 +15,10 @@ The `cfl` number should be set to the same value as for the time step size calcu
 solution and should thus be set to a value within the interval [0,1]. Note that `glm_scale = 0`
 deactivates the divergence cleaning.
 """
-struct GlmSpeedCallback{RealT<:Real}
+struct GlmSpeedCallback{RealT <: Real}
   glm_scale::RealT
   cfl::RealT
 end
-
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
   @nospecialize cb # reduce precompilation time
@@ -29,8 +28,8 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
   print(io, "GlmSpeedCallback(glm_scale=", glm_scale, ", cfl=", cfl, ")")
 end
 
-
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
+function Base.show(io::IO, ::MIME"text/plain",
+                   cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
   @nospecialize cb # reduce precompilation time
 
   if get(io, :compact, false)
@@ -39,40 +38,35 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Glm
     glm_speed_callback = cb.affect!
 
     setup = [
-             "GLM wave speed scaling" => glm_speed_callback.glm_scale,
-             "Expected CFL number" => glm_speed_callback.cfl,
-            ]
+      "GLM wave speed scaling" => glm_speed_callback.glm_scale,
+      "Expected CFL number" => glm_speed_callback.cfl,
+    ]
     summary_box(io, "GlmSpeedCallback", setup)
   end
 end
 
-
-function GlmSpeedCallback(; glm_scale=0.5, cfl)
-
-  @assert 0 <= glm_scale <= 1 "glm_scale must be between 0 and 1"
+function GlmSpeedCallback(; glm_scale = 0.5, cfl)
+  @assert 0<=glm_scale<=1 "glm_scale must be between 0 and 1"
 
   glm_speed_callback = GlmSpeedCallback(glm_scale, cfl)
 
   DiscreteCallback(glm_speed_callback, glm_speed_callback, # the first one is the condition, the second the affect!
-                   save_positions=(false,false),
-                   initialize=initialize!)
+                   save_positions = (false, false),
+                   initialize = initialize!)
 end
 
-
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:GlmSpeedCallback}
+function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
+                     integrator) where {Condition, Affect! <: GlmSpeedCallback}
   cb.affect!(integrator)
 end
-
 
 # this method is called to determine whether the callback should be activated
 function (glm_speed_callback::GlmSpeedCallback)(u, t, integrator)
   return true
 end
 
-
 # This method is called as callback after the StepsizeCallback during the time integration.
 @inline function (glm_speed_callback::GlmSpeedCallback)(integrator)
-
   dt = get_proposed_dt(integrator)
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
@@ -91,6 +85,4 @@ end
 end
 
 include("glm_speed_dg.jl")
-
-
 end # @muladd

@@ -3,51 +3,56 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
-
-mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataCreator, PlotCreator}
+mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataCreator,
+                                     PlotCreator}
   interval::Int
   solution_variables::SolutionVariables
   variable_names::VariableNames
   show_mesh::Bool
   plot_data_creator::PlotDataCreator
   plot_creator::PlotCreator
-  plot_arguments::Dict{Symbol,Any}
+  plot_arguments::Dict{Symbol, Any}
 end
 
-
-function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:VisualizationCallback}
+function Base.show(io::IO,
+                   cb::DiscreteCallback{Condition, Affect!}) where {Condition,
+                                                                    Affect! <:
+                                                                    VisualizationCallback}
   visualization_callback = cb.affect!
   @unpack interval, plot_arguments, solution_variables, variable_names, show_mesh, plot_creator, plot_data_creator = visualization_callback
   print(io, "VisualizationCallback(",
-            "interval=", interval, ", ",
-            "solution_variables=", solution_variables, ", ",
-            "variable_names=", variable_names, ", ",
-            "show_mesh=", show_mesh, ", ",
-            "plot_data_creator=", plot_data_creator, ", ",
-            "plot_creator=", plot_creator, ", ",
-            "plot_arguments=", plot_arguments, ")")
+        "interval=", interval, ", ",
+        "solution_variables=", solution_variables, ", ",
+        "variable_names=", variable_names, ", ",
+        "show_mesh=", show_mesh, ", ",
+        "plot_data_creator=", plot_data_creator, ", ",
+        "plot_creator=", plot_creator, ", ",
+        "plot_arguments=", plot_arguments, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:VisualizationCallback}
+function Base.show(io::IO, ::MIME"text/plain",
+                   cb::DiscreteCallback{Condition, Affect!}) where {Condition,
+                                                                    Affect! <:
+                                                                    VisualizationCallback}
   if get(io, :compact, false)
     show(io, cb)
   else
     visualization_callback = cb.affect!
 
     setup = [
-             "interval" => visualization_callback.interval,
-             "plot arguments" => visualization_callback.plot_arguments,
-             "solution variables" => visualization_callback.solution_variables,
-             "variable names" => visualization_callback.variable_names,
-             "show mesh" => visualization_callback.show_mesh,
-             "plot creator" => visualization_callback.plot_creator,
-             "plot data creator" => visualization_callback.plot_data_creator,
-            ]
+      "interval" => visualization_callback.interval,
+      "plot arguments" => visualization_callback.plot_arguments,
+      "solution variables" => visualization_callback.solution_variables,
+      "variable names" => visualization_callback.variable_names,
+      "show mesh" => visualization_callback.show_mesh,
+      "plot creator" => visualization_callback.plot_creator,
+      "plot data creator" => visualization_callback.plot_data_creator,
+    ]
     summary_box(io, "VisualizationCallback", setup)
   end
 end
-
 
 """
     VisualizationCallback(; interval=0,
@@ -75,13 +80,13 @@ To customize the generated figure, `plot_data_creator` allows to use different p
 same interface as the default implementation [`show_plot`](@ref). All remaining
 keyword arguments are collected and passed as additional arguments to the plotting command.
 """
-function VisualizationCallback(; interval=0,
-                                 solution_variables=cons2prim,
-                                 variable_names=[],
-                                 show_mesh=false,
-                                 plot_data_creator=PlotData2D,
-                                 plot_creator=show_plot,
-                                 plot_arguments...)
+function VisualizationCallback(; interval = 0,
+                               solution_variables = cons2prim,
+                               variable_names = [],
+                               show_mesh = false,
+                               plot_data_creator = PlotData2D,
+                               plot_creator = show_plot,
+                               plot_arguments...)
   mpi_isparallel() && error("this callback does not work in parallel yet")
 
   if variable_names isa String
@@ -89,9 +94,10 @@ function VisualizationCallback(; interval=0,
   end
 
   visualization_callback = VisualizationCallback(interval,
-                                                 solution_variables, variable_names, show_mesh,
+                                                 solution_variables, variable_names,
+                                                 show_mesh,
                                                  plot_data_creator, plot_creator,
-                                                 Dict{Symbol,Any}(plot_arguments))
+                                                 Dict{Symbol, Any}(plot_arguments))
 
   # Warn users if they create a visualization callback without having loaded the Plots package
   #
@@ -102,24 +108,23 @@ function VisualizationCallback(; interval=0,
   #       Requires.jl only when Plots is present.
   #       In the future, we should update/remove this warning if other plotting packages are
   #       starting to be used.
-  if !(:Plots in names(@__MODULE__, all=true))
+  if !(:Plots in names(@__MODULE__, all = true))
     @warn "Package `Plots` not loaded but required by `VisualizationCallback` to visualize results"
   end
 
   DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
-                   save_positions=(false,false),
-                   initialize=initialize!)
+                   save_positions = (false, false),
+                   initialize = initialize!)
 end
 
-
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:VisualizationCallback}
+function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
+                     integrator) where {Condition, Affect! <: VisualizationCallback}
   visualization_callback = cb.affect!
 
   visualization_callback(integrator)
 
   return nothing
 end
-
 
 # this method is called to determine whether the callback should be activated
 function (visualization_callback::VisualizationCallback)(u, t, integrator)
@@ -130,11 +135,10 @@ function (visualization_callback::VisualizationCallback)(u, t, integrator)
   #    (total #steps)       (#accepted steps)
   # We need to check the number of accepted steps since callbacks are not
   # activated after a rejected step.
-  return interval > 0 && ( (integrator.stats.naccept % interval == 0 &&
-                           !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
-                          isfinished(integrator))
+  return interval > 0 && ((integrator.stats.naccept % interval == 0 &&
+           !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
+          isfinished(integrator))
 end
-
 
 # this method is called when the callback is activated
 function (visualization_callback::VisualizationCallback)(integrator)
@@ -143,7 +147,7 @@ function (visualization_callback::VisualizationCallback)(integrator)
   @unpack plot_arguments, solution_variables, variable_names, show_mesh, plot_data_creator, plot_creator = visualization_callback
 
   # Extract plot data
-  plot_data = plot_data_creator(u_ode, semi, solution_variables=solution_variables)
+  plot_data = plot_data_creator(u_ode, semi, solution_variables = solution_variables)
 
   # If variable names were not specified, plot everything
   if isempty(variable_names)
@@ -152,14 +156,13 @@ function (visualization_callback::VisualizationCallback)(integrator)
 
   # Create plot
   plot_creator(plot_data, variable_names;
-               show_mesh=show_mesh, plot_arguments=plot_arguments,
-               time=integrator.t, timestep=integrator.stats.naccept)
+               show_mesh = show_mesh, plot_arguments = plot_arguments,
+               time = integrator.t, timestep = integrator.stats.naccept)
 
   # avoid re-evaluating possible FSAL stages
   u_modified!(integrator, false)
   return nothing
 end
-
 
 """
     show_plot(plot_data, variable_names;
@@ -179,8 +182,8 @@ This function is the default `plot_creator` argument for the [`VisualizationCall
 See also: [`VisualizationCallback`](@ref), [`save_plot`](@ref)
 """
 function show_plot(plot_data, variable_names;
-                   show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
-                   time=nothing, timestep=nothing)
+                   show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
+                   time = nothing, timestep = nothing)
   # Gather subplots
   plots = []
   for v in variable_names
@@ -210,9 +213,8 @@ function show_plot(plot_data, variable_names;
   layout = (rows, cols)
 
   # Show plot
-  display(Plots.plot(plots..., layout=layout))
+  display(Plots.plot(plots..., layout = layout))
 end
-
 
 """
     save_plot(plot_data, variable_names;
@@ -232,8 +234,8 @@ The `timestep` is used in the filename. `time` is currently unused by this funct
 See also: [`VisualizationCallback`](@ref), [`show_plot`](@ref)
 """
 function save_plot(plot_data, variable_names;
-                   show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
-                   time=nothing, timestep=nothing)
+                   show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
+                   time = nothing, timestep = nothing)
   # Gather subplots
   plots = []
   for v in variable_names
@@ -249,12 +251,10 @@ function save_plot(plot_data, variable_names;
   layout = (rows, cols)
 
   # Create plot
-  Plots.plot(plots..., layout=layout)
+  Plots.plot(plots..., layout = layout)
 
   # Determine filename and save plot
   filename = joinpath("out", @sprintf("solution_%06d.png", timestep))
   Plots.savefig(filename)
 end
-
-
 end # @muladd

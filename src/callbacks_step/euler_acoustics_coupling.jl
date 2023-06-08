@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 @doc raw"""
     EulerAcousticsCouplingCallback
@@ -34,33 +34,34 @@ the [`AveragingCallback`](@ref).
   A direct-hybrid method for aeroacoustic analysis
   [DOI: 10.18154/RWTH-2017-04082](https://doi.org/10.18154/RWTH-2017-04082)
 """
-mutable struct EulerAcousticsCouplingCallback{RealT<:Real, MeanValues, IntegratorEuler}
+mutable struct EulerAcousticsCouplingCallback{RealT <: Real, MeanValues, IntegratorEuler}
   stepsize_callback_acoustics::StepsizeCallback{RealT}
   stepsize_callback_euler::StepsizeCallback{RealT}
   mean_values::MeanValues
   integrator_euler::IntegratorEuler
 end
 
-
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:EulerAcousticsCouplingCallback})
   @nospecialize cb # reduce precompilation time
   euler_acoustics_coupling = cb.affect!
 
   print(io, "EulerAcousticsCouplingCallback(")
-  print(io,       euler_acoustics_coupling.stepsize_callback_acoustics)
+  print(io, euler_acoustics_coupling.stepsize_callback_acoustics)
   print(io, ", ", euler_acoustics_coupling.stepsize_callback_euler, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:EulerAcousticsCouplingCallback})
+function Base.show(io::IO, ::MIME"text/plain",
+                   cb::DiscreteCallback{<:Any, <:EulerAcousticsCouplingCallback})
   @nospecialize cb # reduce precompilation time
   euler_acoustics_coupling = cb.affect!
 
   summary_header(io, "EulerAcousticsCouplingCallback")
-  summary_line(io, "acoustics StepsizeCallback", euler_acoustics_coupling.stepsize_callback_acoustics)
-  summary_line(io, "Euler StepsizeCallback", euler_acoustics_coupling.stepsize_callback_euler)
+  summary_line(io, "acoustics StepsizeCallback",
+               euler_acoustics_coupling.stepsize_callback_acoustics)
+  summary_line(io, "Euler StepsizeCallback",
+               euler_acoustics_coupling.stepsize_callback_euler)
   summary_footer(io)
 end
-
 
 """
     EulerAcousticsCouplingCallback(ode_euler,
@@ -81,11 +82,15 @@ The mean values for the acoustic perturbation equations are read from `averaging
 (see [`AveragingCallback`](@ref)).
 """
 function EulerAcousticsCouplingCallback(ode_euler,
-                                        averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback},
-                                        alg, cfl_acoustics::Real, cfl_euler::Real; kwargs...)
+                                        averaging_callback::DiscreteCallback{<:Any,
+                                                                             <:AveragingCallback
+                                                                             },
+                                        alg, cfl_acoustics::Real, cfl_euler::Real;
+                                        kwargs...)
   @unpack mean_values = averaging_callback.affect!
 
-  return EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acoustics, cfl_euler;
+  return EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acoustics,
+                                        cfl_euler;
                                         kwargs...)
 end
 
@@ -111,28 +116,35 @@ function EulerAcousticsCouplingCallback(ode_euler, averaging_file::AbstractStrin
   semi_euler = ode_euler.p
   mean_values = load_averaging_file(averaging_file, semi_euler)
 
-  return EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acoustics, cfl_euler;
+  return EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acoustics,
+                                        cfl_euler;
                                         kwargs...)
 end
 
-function EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acoustics, cfl_euler;
+function EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acoustics,
+                                        cfl_euler;
                                         kwargs...)
   # Set up ODE Integrator for Euler equations
-  integrator_euler = init(ode_euler, alg, save_everystep=false, dt=1.0; kwargs...) # dt will be overwritten
+  integrator_euler = init(ode_euler, alg, save_everystep = false, dt = 1.0; kwargs...) # dt will be overwritten
 
   euler_acoustics_coupling = EulerAcousticsCouplingCallback{typeof(cfl_acoustics),
                                                             typeof(mean_values),
-                                                            typeof(integrator_euler)}(
-    StepsizeCallback(cfl_acoustics), StepsizeCallback(cfl_euler), mean_values, integrator_euler)
+                                                            typeof(integrator_euler)}(StepsizeCallback(cfl_acoustics),
+                                                                                      StepsizeCallback(cfl_euler),
+                                                                                      mean_values,
+                                                                                      integrator_euler)
   condition = (u, t, integrator) -> true
 
-  return DiscreteCallback(condition, euler_acoustics_coupling, save_positions=(false, false),
-                          initialize=initialize!)
+  return DiscreteCallback(condition, euler_acoustics_coupling,
+                          save_positions = (false, false),
+                          initialize = initialize!)
 end
 
-
 # This is called before the main loop and initializes the mean values in u_ode
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator_acoustics) where {Condition, Affect!<:EulerAcousticsCouplingCallback}
+function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
+                     integrator_acoustics) where {Condition,
+                                                  Affect! <:
+                                                  EulerAcousticsCouplingCallback}
   euler_acoustics_coupling = cb.affect!
   semi = integrator_acoustics.p
   @unpack semi_acoustics = semi
@@ -149,7 +161,6 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
 
   return nothing
 end
-
 
 # This function is called at the end of every time step and advances the Euler solution by one
 # time step, manages the time stepsize for both the acoustics and Euler solvers and calculates the
@@ -190,9 +201,12 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
   @unpack acoustic_source_terms, coupled_element_ids = semi.cache
   @unpack vorticity_mean = euler_acoustics_coupling.mean_values
 
-  @trixi_timeit timer() "calc acoustic source terms" calc_acoustic_sources!(
-    acoustic_source_terms, u_euler, u_acoustics, vorticity_mean, coupled_element_ids,
-    mesh_equations_solver_cache(semi_euler)...)
+  @trixi_timeit timer() "calc acoustic source terms" calc_acoustic_sources!(acoustic_source_terms,
+                                                                            u_euler,
+                                                                            u_acoustics,
+                                                                            vorticity_mean,
+                                                                            coupled_element_ids,
+                                                                            mesh_equations_solver_cache(semi_euler)...)
 
   # avoid re-evaluation possible FSAL stages
   u_modified!(integrator_acoustics, false)
@@ -202,5 +216,4 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
 end
 
 include("euler_acoustics_coupling_dg2d.jl")
-
 end # @muladd

@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 @doc raw"""
     ShallowWaterEquations1D(gravity, H0)
@@ -44,7 +44,7 @@ References for the SWE are many but a good introduction is available in Chapter 
   Finite Volume Methods for Hyperbolic Problems
   [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
-struct ShallowWaterEquations1D{RealT<:Real} <: AbstractShallowWaterEquations{1, 3}
+struct ShallowWaterEquations1D{RealT <: Real} <: AbstractShallowWaterEquations{1, 3}
   gravity::RealT # gravitational constant
   H0::RealT      # constant "lake-at-rest" total water height
 end
@@ -53,17 +53,15 @@ end
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
 # well-balancedness test cases
-function ShallowWaterEquations1D(; gravity_constant, H0=0.0)
+function ShallowWaterEquations1D(; gravity_constant, H0 = 0.0)
   ShallowWaterEquations1D(gravity_constant, H0)
 end
-
 
 have_nonconservative_terms(::ShallowWaterEquations1D) = True()
 varnames(::typeof(cons2cons), ::ShallowWaterEquations1D) = ("h", "h_v", "b")
 # Note, we use the total water height, H = h + b, as the first primitive variable for easier
 # visualization and setting initial conditions
 varnames(::typeof(cons2prim), ::ShallowWaterEquations1D) = ("H", "v", "b")
-
 
 # Set initial conditions at physical location `x` for time `t`
 """
@@ -76,7 +74,7 @@ A smooth initial condition used for convergence tests in combination with
 
 function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations1D)
   # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
-  c  = 7.0
+  c = 7.0
   omega_x = 2.0 * pi * sqrt(2.0)
   omega_t = 2.0 * pi
 
@@ -98,17 +96,18 @@ This manufactured solution source term is specifically designed for the bottom t
 as defined in [`initial_condition_convergence_test`](@ref).
 """
 
-@inline function source_terms_convergence_test(u, x, t, equations::ShallowWaterEquations1D)
+@inline function source_terms_convergence_test(u, x, t,
+                                               equations::ShallowWaterEquations1D)
   # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
   # this manufactured solution velocity is taken to be constant
-  c  = 7.0
+  c = 7.0
   omega_x = 2.0 * pi * sqrt(2.0)
   omega_t = 2.0 * pi
   omega_b = sqrt(2.0) * pi
   v = 0.5
 
   sinX, cosX = sincos(omega_x * x[1])
-  sinT, cosT = sincos(omega_t * t )
+  sinT, cosT = sincos(omega_t * t)
 
   H = c + cosX * cosT
   H_x = -omega_x * sinX * cosT
@@ -132,7 +131,6 @@ A weak blast wave discontinuity useful for testing, e.g., total energy conservat
 Note for the shallow water equations to the total energy acts as a mathematical entropy function.
 """
 function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations1D)
-
   inicenter = 0.7
   x_norm = x[1] - inicenter
   r = abs(x_norm)
@@ -265,7 +263,6 @@ and for curvilinear 2D case in the paper:
   return f
 end
 
-
 """
     flux_nonconservative_audusse_etal(u_ll, u_rr, orientation::Integer,
                                       equations::ShallowWaterEquations1D)
@@ -302,10 +299,10 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
   #        cross-averaging across a discontinuous bottom topography
   #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
   return SVector(z,
-                 equations.gravity * h_ll * b_ll + equations.gravity * ( h_ll^2 - h_ll_star^2 ),
+                 equations.gravity * h_ll * b_ll +
+                 equations.gravity * (h_ll^2 - h_ll_star^2),
                  z)
 end
-
 
 """
     flux_fjordholm_etal(u_ll, u_rr, orientation,
@@ -320,7 +317,8 @@ Details are available in Eq. (4.1) in the paper:
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 """
-@inline function flux_fjordholm_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations1D)
+@inline function flux_fjordholm_etal(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterEquations1D)
   # Unpack left and right state
   h_ll = waterheight(u_ll, equations)
   v_ll = velocity(u_ll, equations)
@@ -328,8 +326,8 @@ Details are available in Eq. (4.1) in the paper:
   v_rr = velocity(u_rr, equations)
 
   # Average each factor of products in flux
-  h_avg = 0.5 * (h_ll   + h_rr  )
-  v_avg = 0.5 * (v_ll  + v_rr )
+  h_avg = 0.5 * (h_ll + h_rr)
+  v_avg = 0.5 * (v_ll + v_rr)
   p_avg = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
 
   # Calculate fluxes depending on orientation
@@ -353,7 +351,8 @@ Further details are available in Theorem 1 of the paper:
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
-@inline function flux_wintermeyer_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations1D)
+@inline function flux_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
+                                       equations::ShallowWaterEquations1D)
   # Unpack left and right state
   h_ll, h_v_ll, _ = u_ll
   h_rr, h_v_rr, _ = u_rr
@@ -373,7 +372,6 @@ Further details are available in Theorem 1 of the paper:
   return SVector(f1, f2, zero(eltype(u_ll)))
 end
 
-
 """
     hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, orientation::Integer,
                                             equations::ShallowWaterEquations1D)
@@ -388,7 +386,8 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   A fast and stable well-balanced scheme with hydrostatic reconstruction for shallow water flows
   [DOI: 10.1137/S1064827503431090](https://doi.org/10.1137/S1064827503431090)
 """
-@inline function hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, equations::ShallowWaterEquations1D)
+@inline function hydrostatic_reconstruction_audusse_etal(u_ll, u_rr,
+                                                         equations::ShallowWaterEquations1D)
   # Unpack left and right water heights and bottom topographies
   h_ll, _, b_ll = u_ll
   h_rr, _, b_rr = u_rr
@@ -398,20 +397,20 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   v1_rr = velocity(u_rr, equations)
 
   # Compute the reconstructed water heights
-  h_ll_star = max(zero(h_ll) , h_ll + b_ll - max(b_ll, b_rr) )
-  h_rr_star = max(zero(h_rr) , h_rr + b_rr - max(b_ll, b_rr) )
+  h_ll_star = max(zero(h_ll), h_ll + b_ll - max(b_ll, b_rr))
+  h_rr_star = max(zero(h_rr), h_rr + b_rr - max(b_ll, b_rr))
 
   # Create the conservative variables using the reconstruted water heights
-  u_ll_star = SVector( h_ll_star , h_ll_star * v1_ll , b_ll )
-  u_rr_star = SVector( h_rr_star , h_rr_star * v1_rr , b_rr )
+  u_ll_star = SVector(h_ll_star, h_ll_star * v1_ll, b_ll)
+  u_rr_star = SVector(h_rr_star, h_rr_star * v1_rr, b_rr)
 
   return u_ll_star, u_rr_star
 end
 
-
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations1D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterEquations1D)
   # Get the velocity quantities
   v_ll = velocity(u_ll, equations)
   v_rr = velocity(u_rr, equations)
@@ -425,20 +424,20 @@ end
   return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
-
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography
-@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, orientation_or_normal_direction,
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
+                                                              orientation_or_normal_direction,
                                                               equations::ShallowWaterEquations1D)
   λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
   diss = -0.5 * λ * (u_rr - u_ll)
   return SVector(diss[1], diss[2], zero(eltype(u_ll)))
 end
 
-
 # Specialized `FluxHLL` to avoid spurious dissipation in the bottom topography
 @inline function (numflux::FluxHLL)(u_ll, u_rr, orientation_or_normal_direction,
                                     equations::ShallowWaterEquations1D)
-  λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
+  λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, orientation_or_normal_direction,
+                                       equations)
 
   if λ_min >= 0 && λ_max >= 0
     return flux(u_ll, orientation_or_normal_direction, equations)
@@ -452,10 +451,10 @@ end
     factor_rr = λ_min * inv_λ_max_minus_λ_min
     factor_diss = λ_min * λ_max * inv_λ_max_minus_λ_min
     diss = u_rr - u_ll
-    return factor_ll * f_ll - factor_rr * f_rr + factor_diss * SVector(diss[1], diss[2], zero(eltype(u_ll)))
+    return factor_ll * f_ll - factor_rr * f_rr +
+           factor_diss * SVector(diss[1], diss[2], zero(eltype(u_ll)))
   end
 end
-
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
@@ -471,7 +470,6 @@ end
   return λ_min, λ_max
 end
 
-
 @inline function max_abs_speeds(u, equations::ShallowWaterEquations1D)
   h = waterheight(u, equations)
   v = velocity(u, equations)
@@ -479,7 +477,6 @@ end
   c = equations.gravity * sqrt(h)
   return (abs(v) + c,)
 end
-
 
 # Helper function to extract the velocity vector from the conservative variables
 @inline function velocity(u, equations::ShallowWaterEquations1D)
@@ -490,7 +487,6 @@ end
   return v
 end
 
-
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::ShallowWaterEquations1D)
   h, _, b = u
@@ -499,7 +495,6 @@ end
   v = velocity(u, equations)
   return SVector(H, v, b)
 end
-
 
 # Convert conservative variables to entropy
 # Note, only the first two are the entropy variables, the third entry still
@@ -515,7 +510,6 @@ end
   return SVector(w1, w2, b)
 end
 
-
 # Convert entropy variables to conservative
 @inline function entropy2cons(w, equations::ShallowWaterEquations1D)
   w1, w2, b = w
@@ -524,7 +518,6 @@ end
   h_v = h * w2
   return SVector(h, h_v, b)
 end
-
 
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::ShallowWaterEquations1D)
@@ -536,11 +529,9 @@ end
   return SVector(h, h_v, b)
 end
 
-
 @inline function waterheight(u, equations::ShallowWaterEquations1D)
   return u[1]
 end
-
 
 @inline function pressure(u, equations::ShallowWaterEquations1D)
   h = waterheight(u, equations)
@@ -548,15 +539,12 @@ end
   return p
 end
 
-
 @inline function waterheight_pressure(u, equations::ShallowWaterEquations1D)
   return waterheight(u, equations) * pressure(u, equations)
 end
 
-
 # Entropy function for the shallow water equations is the total energy
 @inline entropy(cons, equations::ShallowWaterEquations1D) = energy_total(cons, equations)
-
 
 # Calculate total energy for a conservative state `cons`
 @inline function energy_total(cons, equations::ShallowWaterEquations1D)
@@ -566,19 +554,16 @@ end
   return e
 end
 
-
 # Calculate kinetic energy for a conservative state `cons`
 @inline function energy_kinetic(u, equations::ShallowWaterEquations1D)
   h, h_v, _ = u
   return (h_v^2) / (2 * h)
 end
 
-
 # Calculate potential energy for a conservative state `cons`
 @inline function energy_internal(cons, equations::ShallowWaterEquations1D)
   return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
-
 
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
 # be a constant value over time
@@ -586,5 +571,4 @@ end
   h, _, b = u
   return abs(equations.H0 - (h + b))
 end
-
 end # @muladd

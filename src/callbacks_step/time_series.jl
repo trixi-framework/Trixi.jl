@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 """
     TimeSeriesCallback(semi, point_coordinates;
@@ -26,7 +26,8 @@ types used in the solver and the cache.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-mutable struct TimeSeriesCallback{RealT<:Real, uEltype<:Real, SolutionVariables, VariableNames, Cache}
+mutable struct TimeSeriesCallback{RealT <: Real, uEltype <: Real, SolutionVariables,
+                                  VariableNames, Cache}
   interval::Int
   solution_variables::SolutionVariables
   variable_names::VariableNames
@@ -45,21 +46,21 @@ mutable struct TimeSeriesCallback{RealT<:Real, uEltype<:Real, SolutionVariables,
   time_series_cache::Cache
 end
 
-
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:TimeSeriesCallback})
   @nospecialize cb # reduce precompilation time
 
   time_series_callback = cb.affect!
   @unpack interval, solution_variables, output_directory, filename = time_series_callback
   print(io, "TimeSeriesCallback(",
-            "interval=", interval, ", ",
-            "solution_variables=", interval, ", ",
-            "output_directory=", "\"output_directory\"", ", ",
-            "filename=", "\"filename\"",
-            ")")
+        "interval=", interval, ", ",
+        "solution_variables=", interval, ", ",
+        "output_directory=", "\"output_directory\"", ", ",
+        "filename=", "\"filename\"",
+        ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:TimeSeriesCallback})
+function Base.show(io::IO, ::MIME"text/plain",
+                   cb::DiscreteCallback{<:Any, <:TimeSeriesCallback})
   @nospecialize cb # reduce precompilation time
 
   if get(io, :compact, false)
@@ -68,25 +69,24 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Tim
     time_series_callback = cb.affect!
 
     setup = [
-             "#points" => size(time_series_callback.point_coordinates, 2),
-             "interval" => time_series_callback.interval,
-             "solution_variables" => time_series_callback.solution_variables,
-             "output_directory" => time_series_callback.output_directory,
-             "filename" => time_series_callback.filename,
-            ]
+      "#points" => size(time_series_callback.point_coordinates, 2),
+      "interval" => time_series_callback.interval,
+      "solution_variables" => time_series_callback.solution_variables,
+      "output_directory" => time_series_callback.output_directory,
+      "filename" => time_series_callback.filename,
+    ]
     summary_box(io, "TimeSeriesCallback", setup)
   end
 end
 
-
 # Main constructor
 function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
-                            interval::Integer=1,
-                            solution_variables=cons2cons,
-                            output_directory="out",
-                            filename="time_series.h5",
-                            RealT=real(solver),
-                            uEltype=eltype(cache.elements))
+                            interval::Integer = 1,
+                            solution_variables = cons2cons,
+                            output_directory = "out",
+                            filename = "time_series.h5",
+                            RealT = real(solver),
+                            uEltype = eltype(cache.elements))
   # check arguments
   if !(interval isa Integer && interval >= 0)
     throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
@@ -107,9 +107,10 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
     #    (total #steps)       (#accepted steps)
     # We need to check the number of accepted steps since callbacks are not
     # activated after a rejected step.
-    condition = (u, t, integrator) -> ( (integrator.stats.naccept % interval == 0 &&
-                                        !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
-                                      isfinished(integrator))
+    condition = (u, t, integrator) -> ((integrator.stats.naccept % interval == 0 &&
+                                        !(integrator.stats.naccept == 0 &&
+                                          integrator.iter > 0)) ||
+                                       isfinished(integrator))
   else # disable the callback for interval == 0
     condition = (u, t, integrator) -> false
   end
@@ -123,19 +124,19 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
   time_series_cache = create_cache_time_series(point_coordinates_, mesh, solver, cache)
 
   time_series_callback = TimeSeriesCallback(interval,
-                                           solution_variables,
-                                           variable_names,
-                                           output_directory,
-                                           filename,
-                                           point_coordinates_,
-                                           point_data,
-                                           time,
-                                           step,
-                                           time_series_cache)
+                                            solution_variables,
+                                            variable_names,
+                                            output_directory,
+                                            filename,
+                                            point_coordinates_,
+                                            point_data,
+                                            time,
+                                            step,
+                                            time_series_cache)
 
-  return DiscreteCallback(condition, time_series_callback, save_positions=(false,false))
+  return DiscreteCallback(condition, time_series_callback,
+                          save_positions = (false, false))
 end
-
 
 # Convenience constructor that unpacks the semidiscretization into mesh, equations, solver, cache
 function TimeSeriesCallback(semi, point_coordinates; kwargs...)
@@ -144,13 +145,14 @@ function TimeSeriesCallback(semi, point_coordinates; kwargs...)
   return TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates; kwargs...)
 end
 
-
 # Convenience constructor that converts a vector of points into a Trixi.jl-style coordinate array
-function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates::AbstractVector;
+function TimeSeriesCallback(mesh, equations, solver, cache,
+                            point_coordinates::AbstractVector;
                             kwargs...)
   # Coordinates are usually stored in [ndims, n_points], but here as [n_points, ndims]
   n_points = length(point_coordinates)
-  point_coordinates_ = Matrix{eltype(eltype(point_coordinates))}(undef, n_points, ndims(mesh))
+  point_coordinates_ = Matrix{eltype(eltype(point_coordinates))}(undef, n_points,
+                                                                 ndims(mesh))
 
   for p in 1:n_points
     for d in 1:ndims(mesh)
@@ -160,7 +162,6 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates::A
 
   return TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates_; kwargs...)
 end
-
 
 # This method is called as callback during the time integration.
 function (time_series_callback::TimeSeriesCallback)(integrator)
@@ -186,10 +187,11 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
       u = wrap_array(u_ode, mesh, equations, solver, cache)
 
       @unpack (point_data, solution_variables,
-              variable_names, time_series_cache) = time_series_callback
+      variable_names, time_series_cache) = time_series_callback
 
       # Record state at points (solver/mesh-dependent implementation)
-      record_state_at_points!(point_data, u, solution_variables, length(variable_names), mesh,
+      record_state_at_points!(point_data, u, solution_variables, length(variable_names),
+                              mesh,
                               equations, solver, time_series_cache)
     end
   end
@@ -207,9 +209,6 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
   return nothing
 end
 
-
 include("time_series_dg.jl")
 include("time_series_dg2d.jl")
-
-
 end # @muladd

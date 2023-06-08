@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Dimension independent code related to containers of the DG solver
 # with the mesh type TreeMesh
@@ -50,11 +50,8 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
   end
 end
 
-
 # Dimension-specific implementations
 include("containers_1d.jl")
 include("containers_2d.jl")
 include("containers_3d.jl")
-
-
 end # @muladd

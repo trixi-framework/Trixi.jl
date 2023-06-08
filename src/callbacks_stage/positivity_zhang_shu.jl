@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 """
     PositivityPreservingLimiterZhangShu(; threshold, variables)
@@ -18,7 +18,8 @@ using the associated `thresholds` to determine the minimal acceptable values.
 The order of the `variables` is important and might have a strong influence
 on the robustness.
 """
-struct PositivityPreservingLimiterZhangShu{N, Thresholds<:NTuple{N,<:Real}, Variables<:NTuple{N,Any}}
+struct PositivityPreservingLimiterZhangShu{N, Thresholds <: NTuple{N, <:Real},
+                                           Variables <: NTuple{N, Any}}
   thresholds::Thresholds
   variables::Variables
 end
@@ -27,14 +28,15 @@ function PositivityPreservingLimiterZhangShu(; thresholds, variables)
   PositivityPreservingLimiterZhangShu(thresholds, variables)
 end
 
-
-function (limiter!::PositivityPreservingLimiterZhangShu)(
-    u_ode, integrator, semi::AbstractSemidiscretization, t)
+function (limiter!::PositivityPreservingLimiterZhangShu)(u_ode, integrator,
+                                                         semi::AbstractSemidiscretization,
+                                                         t)
   u = wrap_array(u_ode, semi)
-  @trixi_timeit timer() "positivity-preserving limiter" limiter_zhang_shu!(
-    u, limiter!.thresholds, limiter!.variables, mesh_equations_solver_cache(semi)...)
+  @trixi_timeit timer() "positivity-preserving limiter" limiter_zhang_shu!(u,
+                                                                           limiter!.thresholds,
+                                                                           limiter!.variables,
+                                                                           mesh_equations_solver_cache(semi)...)
 end
-
 
 # Iterate over tuples in a type-stable way using "lispy tuple programming",
 # similar to https://stackoverflow.com/a/55849398:
@@ -44,7 +46,7 @@ end
 # Note that you shouldn't use this with too many elements per tuple since the
 # compile times can increase otherwise - but a handful of elements per tuple
 # is definitely fine.
-function limiter_zhang_shu!(u, thresholds::NTuple{N,<:Real}, variables::NTuple{N,Any},
+function limiter_zhang_shu!(u, thresholds::NTuple{N, <:Real}, variables::NTuple{N, Any},
                             mesh, equations, solver, cache) where {N}
   threshold = first(thresholds)
   remaining_thresholds = Base.tail(thresholds)
@@ -52,7 +54,8 @@ function limiter_zhang_shu!(u, thresholds::NTuple{N,<:Real}, variables::NTuple{N
   remaining_variables = Base.tail(variables)
 
   limiter_zhang_shu!(u, threshold, variable, mesh, equations, solver, cache)
-  limiter_zhang_shu!(u, remaining_thresholds, remaining_variables, mesh, equations, solver, cache)
+  limiter_zhang_shu!(u, remaining_thresholds, remaining_variables, mesh, equations,
+                     solver, cache)
   return nothing
 end
 
@@ -62,10 +65,7 @@ function limiter_zhang_shu!(u, thresholds::Tuple{}, variables::Tuple{},
   nothing
 end
 
-
 include("positivity_zhang_shu_dg1d.jl")
 include("positivity_zhang_shu_dg2d.jl")
 include("positivity_zhang_shu_dg3d.jl")
-
-
 end # @muladd

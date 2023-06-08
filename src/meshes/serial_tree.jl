@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Composite type that represents a NDIMS-dimensional tree (serial version).
 #
@@ -41,7 +41,7 @@ mutable struct SerialTree{NDIMS} <: AbstractTree{NDIMS}
   length_level_0::Float64
   periodicity::NTuple{NDIMS, Bool}
 
-  function SerialTree{NDIMS}(capacity::Integer) where NDIMS
+  function SerialTree{NDIMS}(capacity::Integer) where {NDIMS}
     # Verify that NDIMS is an integer
     @assert NDIMS isa Integer
 
@@ -52,7 +52,7 @@ mutable struct SerialTree{NDIMS} <: AbstractTree{NDIMS}
     # Note: length as capacity + 1 is to use `capacity + 1` as temporary storage for swap operations
     t.parent_ids = fill(typemin(Int), capacity + 1)
     t.child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
-    t.neighbor_ids = fill(typemin(Int), 2*NDIMS, capacity + 1)
+    t.neighbor_ids = fill(typemin(Int), 2 * NDIMS, capacity + 1)
     t.levels = fill(typemin(Int), capacity + 1)
     t.coordinates = fill(NaN, NDIMS, capacity + 1)
     t.original_cell_ids = fill(typemin(Int), capacity + 1)
@@ -68,13 +68,12 @@ mutable struct SerialTree{NDIMS} <: AbstractTree{NDIMS}
   end
 end
 
-
 # Constructor for passing the dimension as an argument
-SerialTree(::Val{NDIMS}, args...) where NDIMS = SerialTree{NDIMS}(args...)
+SerialTree(::Val{NDIMS}, args...) where {NDIMS} = SerialTree{NDIMS}(args...)
 
 # Create and initialize tree
 function SerialTree{NDIMS}(capacity::Int, center::AbstractArray{Float64},
-                 length::Real, periodicity=true) where NDIMS
+                           length::Real, periodicity = true) where {NDIMS}
   # Create instance
   t = SerialTree{NDIMS}(capacity)
 
@@ -85,11 +84,13 @@ function SerialTree{NDIMS}(capacity::Int, center::AbstractArray{Float64},
 end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
-SerialTree{1}(cap::Int, center::Real, len::Real, periodicity=true) = SerialTree{1}(cap, [convert(Float64, center)], len, periodicity)
-
+function SerialTree{1}(cap::Int, center::Real, len::Real, periodicity = true)
+  SerialTree{1}(cap, [convert(Float64, center)], len, periodicity)
+end
 
 # Clear tree with deleting data structures, store center and length, and create root cell
-function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, periodicity=true)
+function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real,
+               periodicity = true)
   clear!(t)
 
   # Set domain information
@@ -108,11 +109,11 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
   if all(periodicity)
     # Also catches case where periodicity = true
     t.neighbor_ids[:, 1] .= 1
-    t.periodicity = ntuple(x->true, ndims(t))
+    t.periodicity = ntuple(x -> true, ndims(t))
   elseif !any(periodicity)
     # Also catches case where periodicity = false
     t.neighbor_ids[:, 1] .= 0
-    t.periodicity = ntuple(x->false, ndims(t))
+    t.periodicity = ntuple(x -> false, ndims(t))
   else
     # Default case if periodicity is an iterable
     for dimension in 1:ndims(t)
@@ -128,7 +129,6 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
     t.periodicity = Tuple(periodicity)
   end
 end
-
 
 # Convenience output for debugging
 function Base.show(io::IO, ::MIME"text/plain", t::SerialTree)
@@ -150,7 +150,6 @@ function Base.show(io::IO, ::MIME"text/plain", t::SerialTree)
   println(io, '*'^20)
 end
 
-
 # Set information for child cell `child_id` based on parent cell `cell_id` (except neighbors)
 function init_child!(t::SerialTree, cell_id, child, child_id)
   t.parent_ids[child_id] = cell_id
@@ -158,12 +157,12 @@ function init_child!(t::SerialTree, cell_id, child, child_id)
   t.child_ids[:, child_id] .= 0
   t.levels[child_id] = t.levels[cell_id] + 1
   set_cell_coordinates!(t,
-    child_coordinates(t, cell_coordinates(t, cell_id), length_at_cell(t, cell_id), child), child_id)
+                        child_coordinates(t, cell_coordinates(t, cell_id),
+                                          length_at_cell(t, cell_id), child), child_id)
   t.original_cell_ids[child_id] = 0
 
   return nothing
 end
-
 
 # Reset range of cells to values that are prone to cause errors as soon as they are used.
 #
@@ -183,33 +182,31 @@ function invalidate!(t::SerialTree, first::Int, last::Int)
   return nothing
 end
 
-
 # Raw copy operation for ranges of cells.
 #
 # This method is used by the higher-level copy operations for AbstractContainer
-function raw_copy!(target::SerialTree, source::SerialTree, first::Int, last::Int, destination::Int)
+function raw_copy!(target::SerialTree, source::SerialTree, first::Int, last::Int,
+                   destination::Int)
   copy_data!(target.parent_ids, source.parent_ids, first, last, destination)
   copy_data!(target.child_ids, source.child_ids, first, last, destination,
              n_children_per_cell(target))
   copy_data!(target.neighbor_ids, source.neighbor_ids, first, last,
              destination, n_directions(target))
   copy_data!(target.levels, source.levels, first, last, destination)
-  copy_data!(target.coordinates, source.coordinates, first, last, destination, ndims(target))
+  copy_data!(target.coordinates, source.coordinates, first, last, destination,
+             ndims(target))
   copy_data!(target.original_cell_ids, source.original_cell_ids, first, last, destination)
 end
 
-
 # Reset data structures by recreating all internal storage containers and invalidating all elements
-function reset_data_structures!(t::SerialTree{NDIMS}) where NDIMS
+function reset_data_structures!(t::SerialTree{NDIMS}) where {NDIMS}
   t.parent_ids = Vector{Int}(undef, t.capacity + 1)
   t.child_ids = Matrix{Int}(undef, 2^NDIMS, t.capacity + 1)
-  t.neighbor_ids = Matrix{Int}(undef, 2*NDIMS, t.capacity + 1)
+  t.neighbor_ids = Matrix{Int}(undef, 2 * NDIMS, t.capacity + 1)
   t.levels = Vector{Int}(undef, t.capacity + 1)
   t.coordinates = Matrix{Float64}(undef, NDIMS, t.capacity + 1)
   t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
 
   invalidate!(t, 1, capacity(t) + 1)
 end
-
-
 end # @muladd

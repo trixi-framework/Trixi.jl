@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 @doc raw"""
     InviscidBurgersEquation1D
@@ -16,10 +16,8 @@ in one space dimension.
 """
 struct InviscidBurgersEquation1D <: AbstractInviscidBurgersEquation{1, 1} end
 
-
-varnames(::typeof(cons2cons), ::InviscidBurgersEquation1D) = ("scalar", )
-varnames(::typeof(cons2prim), ::InviscidBurgersEquation1D) = ("scalar", )
-
+varnames(::typeof(cons2cons), ::InviscidBurgersEquation1D) = ("scalar",)
+varnames(::typeof(cons2prim), ::InviscidBurgersEquation1D) = ("scalar",)
 
 # Set initial conditions at physical location `x` for time `t`
 """
@@ -31,7 +29,6 @@ function initial_condition_constant(x, t, equation::InviscidBurgersEquation1D)
   return SVector(2.0)
 end
 
-
 """
     initial_condition_convergence_test(x, t, equations::InviscidBurgersEquation1D)
 
@@ -41,13 +38,12 @@ function initial_condition_convergence_test(x, t, equation::InviscidBurgersEquat
   c = 2.0
   A = 1.0
   L = 1
-  f = 1/L
+  f = 1 / L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * (x[1] - t))
 
   return SVector(scalar)
 end
-
 
 """
     source_terms_convergence_test(u, x, t, equations::InviscidBurgersEquation1D)
@@ -55,31 +51,30 @@ end
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
 """
-@inline function source_terms_convergence_test(u, x, t, equations::InviscidBurgersEquation1D)
+@inline function source_terms_convergence_test(u, x, t,
+                                               equations::InviscidBurgersEquation1D)
   # Same settings as in `initial_condition`
   c = 2.0
   A = 1.0
   L = 1
-  f = 1/L
+  f = 1 / L
   omega = 2 * pi * f
   du = omega * A * cos(omega * (x[1] - t)) * (c - 1 + A * sin(omega * (x[1] - t)))
 
   return SVector(du)
 end
 
-
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::InviscidBurgersEquation1D)
-
 
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equation::InviscidBurgersEquation1D)
   return SVector(0.5 * u[1]^2)
 end
 
-
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::InviscidBurgersEquation1D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::InviscidBurgersEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
@@ -87,7 +82,8 @@ end
 end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::InviscidBurgersEquation1D)
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::InviscidBurgersEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
@@ -101,7 +97,6 @@ end
   return (abs(u[1]),)
 end
 
-
 # (Symmetric) Entropy Conserving flux
 function flux_ec(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
   u_L = u_ll[1]
@@ -109,7 +104,6 @@ function flux_ec(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
 
   return SVector((u_L^2 + u_L * u_R + u_R^2) / 6)
 end
-
 
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
 # section 4.1.5 and especially equation (4.16).
@@ -120,7 +114,6 @@ function flux_godunov(u_ll, u_rr, orientation, equation::InviscidBurgersEquation
   return SVector(0.5 * max(max(u_L, zero(u_L))^2, min(u_R, zero(u_R))^2))
 end
 
-
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
 # section 4.2.5 and especially equation (4.34).
 function flux_engquist_osher(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
@@ -129,7 +122,6 @@ function flux_engquist_osher(u_ll, u_rr, orientation, equation::InviscidBurgersE
 
   return SVector(0.5 * (max(u_L, zero(u_L))^2 + min(u_R, zero(u_R))^2))
 end
-
 
 """
     splitting_lax_friedrichs(u, orientation::Integer,
@@ -152,7 +144,7 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
 @inline function splitting_lax_friedrichs(u, orientation::Integer,
                                           equations::InviscidBurgersEquation1D)
   fm = splitting_lax_friedrichs(u, Val{:minus}(), orientation, equations)
-  fp = splitting_lax_friedrichs(u, Val{:plus}(),  orientation, equations)
+  fp = splitting_lax_friedrichs(u, Val{:plus}(), orientation, equations)
   return fm, fp
 end
 
@@ -170,22 +162,19 @@ end
   return SVector(0.5 * (f - lambda * u[1]))
 end
 
-
 # Convert conservative variables to primitive
 @inline cons2prim(u, equation::InviscidBurgersEquation1D) = u
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::InviscidBurgersEquation1D) = u
 
-
 # Calculate entropy for a conservative state `cons`
 @inline entropy(u::Real, ::InviscidBurgersEquation1D) = 0.5 * u^2
 @inline entropy(u, equation::InviscidBurgersEquation1D) = entropy(u[1], equation)
 
-
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(u::Real, ::InviscidBurgersEquation1D) = 0.5 * u^2
-@inline energy_total(u, equation::InviscidBurgersEquation1D) = energy_total(u[1], equation)
-
-
+@inline function energy_total(u, equation::InviscidBurgersEquation1D)
+  energy_total(u[1], equation)
+end
 end # @muladd

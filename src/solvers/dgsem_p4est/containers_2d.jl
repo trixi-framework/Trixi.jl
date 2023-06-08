@@ -3,12 +3,12 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Initialize data structures in element container
 function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasis)
   @unpack node_coordinates, jacobian_matrix,
-          contravariant_vectors, inverse_jacobian = elements
+  contravariant_vectors, inverse_jacobian = elements
 
   calc_node_coordinates!(node_coordinates, mesh, basis)
 
@@ -23,14 +23,13 @@ function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasi
   return nothing
 end
 
-
 # Interpolate tree_node_coordinates to each quadrant at the nodes of the specified basis
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
                                 basis::LobattoLegendreBasis)
   # Hanging nodes will cause holes in the mesh if its polydeg is higher
   # than the polydeg of the solver.
-  @assert length(basis.nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
+  @assert length(basis.nodes)>=length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
 
   calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
 end
@@ -42,8 +41,8 @@ function calc_node_coordinates!(node_coordinates,
   # We use `StrideArray`s here since these buffers are used in performance-critical
   # places and the additional information passed to the compiler makes them faster
   # than native `Array`s.
-  tmp1    = StrideArray(undef, real(mesh),
-                        StaticInt(2), static_length(nodes), static_length(mesh.nodes))
+  tmp1 = StrideArray(undef, real(mesh),
+                     StaticInt(2), static_length(nodes), static_length(mesh.nodes))
   matrix1 = StrideArray(undef, real(mesh),
                         static_length(nodes), static_length(mesh.nodes))
   matrix2 = similar(matrix1)
@@ -65,23 +64,22 @@ function calc_node_coordinates!(node_coordinates,
 
       quad_length = p4est_quadrant_len(quad.level) / p4est_root_len
 
-      nodes_out_x = 2 * (quad_length * 1/2 * (nodes .+ 1) .+ quad.x / p4est_root_len) .- 1
-      nodes_out_y = 2 * (quad_length * 1/2 * (nodes .+ 1) .+ quad.y / p4est_root_len) .- 1
+      nodes_out_x = 2 * (quad_length * 1 / 2 * (nodes .+ 1) .+ quad.x / p4est_root_len) .-
+                    1
+      nodes_out_y = 2 * (quad_length * 1 / 2 * (nodes .+ 1) .+ quad.y / p4est_root_len) .-
+                    1
       polynomial_interpolation_matrix!(matrix1, mesh.nodes, nodes_out_x, baryweights_in)
       polynomial_interpolation_matrix!(matrix2, mesh.nodes, nodes_out_y, baryweights_in)
 
-      multiply_dimensionwise!(
-        view(node_coordinates, :, :, :, element),
-        matrix1, matrix2,
-        view(mesh.tree_node_coordinates, :, :, :, tree),
-        tmp1
-      )
+      multiply_dimensionwise!(view(node_coordinates, :, :, :, element),
+                              matrix1, matrix2,
+                              view(mesh.tree_node_coordinates, :, :, :, tree),
+                              tmp1)
     end
   end
 
   return node_coordinates
 end
-
 
 # Initialize node_indices of interface container
 @inline function init_interface_node_indices!(interfaces::P4estInterfaceContainer{2},
@@ -117,7 +115,6 @@ end
   return interfaces
 end
 
-
 # Initialize node_indices of boundary container
 @inline function init_boundary_node_indices!(boundaries::P4estBoundaryContainer{2},
                                              face, boundary_id)
@@ -137,7 +134,6 @@ end
 
   return boundaries
 end
-
 
 # Initialize node_indices of mortar container
 # faces[1] is expected to be the face of the small side.
@@ -171,6 +167,4 @@ end
 
   return mortars
 end
-
-
 end # @muladd

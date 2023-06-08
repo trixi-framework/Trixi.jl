@@ -3,9 +3,10 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
-
-function save_averaging_file(averaging_callback, mesh::TreeMesh, equations, dg::DGSEM, cache)
+function save_averaging_file(averaging_callback, mesh::TreeMesh, equations, dg::DGSEM,
+                             cache)
   @unpack output_directory, filename, mean_values = averaging_callback
   h5open(joinpath(output_directory, filename), "w") do file
     # Add context information
@@ -24,7 +25,6 @@ function save_averaging_file(averaging_callback, mesh::TreeMesh, equations, dg::
   return filename
 end
 
-
 function load_averaging_file(averaging_file, mesh::TreeMesh, equations, dg::DGSEM, cache)
   # Read and check mesh and solver info
   h5open(averaging_file, "r") do file
@@ -32,9 +32,9 @@ function load_averaging_file(averaging_file, mesh::TreeMesh, equations, dg::DGSE
     n_nodes = read(attributes(file)["polydeg"]) + 1
     n_elements = read(attributes(file)["n_elements"])
 
-    @assert n_dims == ndims(mesh) "ndims differs from value in averaging file"
-    @assert n_nodes - 1 == polydeg(dg) "polynomial degree in solver differs from value in averaging file"
-    @assert n_elements == nelements(dg, cache) "nelements in solver differs from value in averaging file"
+    @assert n_dims==ndims(mesh) "ndims differs from value in averaging file"
+    @assert n_nodes - 1==polydeg(dg) "polynomial degree in solver differs from value in averaging file"
+    @assert n_elements==nelements(dg, cache) "nelements in solver differs from value in averaging file"
   end
 
   # Read and return mean values
@@ -47,5 +47,4 @@ function load_averaging_file(averaging_file, mesh::TreeMesh, equations, dg::DGSE
 
   return (; v_mean, c_mean, rho_mean, vorticity_mean)
 end
-
 end # @muladd

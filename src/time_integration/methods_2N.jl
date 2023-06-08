@@ -3,11 +3,10 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Abstract base type for time integration schemes of storage class `2N`
 abstract type SimpleAlgorithm2N end
-
 
 """
     CarpenterKennedy2N54()
@@ -25,7 +24,7 @@ struct CarpenterKennedy2N54 <: SimpleAlgorithm2N
   c::SVector{5, Float64}
 
   function CarpenterKennedy2N54()
-    a = SVector(0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
+    a = SVector(0.0, 567301805773.0 / 1357537059087.0, 2404267990393.0 / 2016746695238.0,
                 3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0)
     b = SVector(1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
                 1720146321549.0 / 2090206949498.0, 3134564353537.0 / 4481467310338.0,
@@ -36,7 +35,6 @@ struct CarpenterKennedy2N54 <: SimpleAlgorithm2N
     new(a, b, c)
   end
 end
-
 
 """
       CarpenterKennedy2N43()
@@ -57,7 +55,6 @@ struct CarpenterKennedy2N43 <: SimpleAlgorithm2N
   end
 end
 
-
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
 mutable struct SimpleIntegrator2NOptions{Callback}
   callback::Callback # callbacks; used in Trixi.jl
@@ -67,16 +64,17 @@ mutable struct SimpleIntegrator2NOptions{Callback}
   tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
-function SimpleIntegrator2NOptions(callback, tspan; maxiters=typemax(Int), kwargs...)
-  SimpleIntegrator2NOptions{typeof(callback)}(
-    callback, false, Inf, maxiters, [last(tspan)])
+function SimpleIntegrator2NOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
+  SimpleIntegrator2NOptions{typeof(callback)}(callback, false, Inf, maxiters,
+                                              [last(tspan)])
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
-mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, F, Alg, SimpleIntegrator2NOptions}
+mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
+                                  SimpleIntegrator2NOptions}
   u::uType #
   du::uType
   u_tmp::uType
@@ -103,15 +101,16 @@ end
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
 function solve(ode::ODEProblem, alg::T;
-               dt, callback=nothing, kwargs...) where {T<:SimpleAlgorithm2N}
+               dt, callback = nothing, kwargs...) where {T <: SimpleAlgorithm2N}
   u = copy(ode.u0)
   du = similar(u)
   u_tmp = similar(u)
   t = first(ode.tspan)
   iter = 0
   integrator = SimpleIntegrator2N(u, du, u_tmp, t, dt, zero(dt), iter, ode.p,
-                  (prob=ode,), ode.f, alg,
-                  SimpleIntegrator2NOptions(callback, ode.tspan; kwargs...), false)
+                                  (prob = ode,), ode.f, alg,
+                                  SimpleIntegrator2NOptions(callback, ode.tspan;
+                                                            kwargs...), false)
 
   # initialize callbacks
   if callback isa CallbackSet
@@ -141,7 +140,8 @@ function solve!(integrator::SimpleIntegrator2N)
     end
 
     # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end || isapprox(integrator.t + integrator.dt, t_end)
+    if integrator.t + integrator.dt > t_end ||
+       isapprox(integrator.t + integrator.dt, t_end)
       integrator.dt = t_end - integrator.t
       terminate!(integrator)
     end
@@ -152,7 +152,7 @@ function solve!(integrator::SimpleIntegrator2N)
       t_stage = integrator.t + integrator.dt * alg.c[stage]
       integrator.f(integrator.du, integrator.u, prob.p, t_stage)
 
-      a_stage    = alg.a[stage]
+      a_stage = alg.a[stage]
       b_stage_dt = alg.b[stage] * integrator.dt
       @trixi_timeit timer() "Runge-Kutta step" begin
         @threaded for i in eachindex(integrator.u)
@@ -209,6 +209,4 @@ function Base.resize!(integrator::SimpleIntegrator2N, new_size)
   resize!(integrator.du, new_size)
   resize!(integrator.u_tmp, new_size)
 end
-
-
 end # @muladd

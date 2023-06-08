@@ -3,8 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
-
+#! format: noindent
 
 # TODO: Upstream, LoopVectorization
 #       At the time of writing, LoopVectorization.jl cannot handle this kind of
@@ -12,7 +11,7 @@
 #       `entropy2cons`. Thus, we need to insert the physics directly here to
 #       get a significant runtime performance improvement.
 function cons2entropy!(entropy_var_values::StructArray,
-                       u_values          ::StructArray,
+                       u_values::StructArray,
                        equations::CompressibleEulerEquations2D)
   # The following is semantically equivalent to
   # @threaded for i in eachindex(u_values)
@@ -25,13 +24,13 @@ function cons2entropy!(entropy_var_values::StructArray,
   rho_values, rho_v1_values, rho_v2_values, rho_e_values = StructArrays.components(u_values)
   w1_values, w2_values, w3_values, w4_values = StructArrays.components(entropy_var_values)
 
-  @turbo thread=true for i in eachindex(
-      rho_values, rho_v1_values, rho_v2_values, rho_e_values,
-      w1_values, w2_values, w3_values, w4_values)
-    rho    = rho_values[i]
+  @turbo thread=true for i in eachindex(rho_values, rho_v1_values, rho_v2_values,
+                                        rho_e_values,
+                                        w1_values, w2_values, w3_values, w4_values)
+    rho = rho_values[i]
     rho_v1 = rho_v1_values[i]
     rho_v2 = rho_v2_values[i]
-    rho_e  = rho_e_values[i]
+    rho_e = rho_e_values[i]
 
     # The following is basically the same code as in `cons2entropy`
     v1 = rho_v1 / rho
@@ -48,7 +47,7 @@ function cons2entropy!(entropy_var_values::StructArray,
   end
 end
 
-function entropy2cons!(entropy_projected_u_values  ::StructArray,
+function entropy2cons!(entropy_projected_u_values::StructArray,
                        projected_entropy_var_values::StructArray,
                        equations::CompressibleEulerEquations2D)
   # The following is semantically equivalent to
@@ -63,9 +62,9 @@ function entropy2cons!(entropy_projected_u_values  ::StructArray,
   rho_values, rho_v1_values, rho_v2_values, rho_e_values = StructArrays.components(entropy_projected_u_values)
   w1_values, w2_values, w3_values, w4_values = StructArrays.components(projected_entropy_var_values)
 
-  @turbo thread=true for i in eachindex(
-      rho_values, rho_v1_values, rho_v2_values, rho_e_values,
-      w1_values, w2_values, w3_values, w4_values)
+  @turbo thread=true for i in eachindex(rho_values, rho_v1_values, rho_v2_values,
+                                        rho_e_values,
+                                        w1_values, w2_values, w3_values, w4_values)
 
     # The following is basically the same code as in `entropy2cons`
     # Convert to entropy `-rho * s` used by
@@ -81,19 +80,19 @@ function entropy2cons!(entropy_projected_u_values  ::StructArray,
     s = gamma - w1 + (w2^2 + w3^2) / (2 * w4)
 
     # eq. (52)
-    rho_iota = (gamma_minus_one / (-w4)^gamma)^(inv_gamma_minus_one) * exp(-s * inv_gamma_minus_one)
+    rho_iota = (gamma_minus_one / (-w4)^gamma)^(inv_gamma_minus_one) *
+               exp(-s * inv_gamma_minus_one)
 
     # eq. (51)
-    rho_values[i]    = -rho_iota * w4
-    rho_v1_values[i] =  rho_iota * w2
-    rho_v2_values[i] =  rho_iota * w3
-    rho_e_values[i]  =  rho_iota * (1 - (w2^2 + w3^2) / (2 * w4))
+    rho_values[i] = -rho_iota * w4
+    rho_v1_values[i] = rho_iota * w2
+    rho_v2_values[i] = rho_iota * w3
+    rho_e_values[i] = rho_iota * (1 - (w2^2 + w3^2) / (2 * w4))
   end
 end
 
-
 function cons2entropy!(entropy_var_values::StructArray,
-                       u_values          ::StructArray,
+                       u_values::StructArray,
                        equations::CompressibleEulerEquations3D)
   # The following is semantically equivalent to
   # @threaded for i in eachindex(u_values)
@@ -106,14 +105,15 @@ function cons2entropy!(entropy_var_values::StructArray,
   rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values = StructArrays.components(u_values)
   w1_values, w2_values, w3_values, w4_values, w5_values = StructArrays.components(entropy_var_values)
 
-  @turbo thread=true for i in eachindex(
-      rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values,
-      w1_values, w2_values, w3_values, w4_values, w5_values)
-    rho    = rho_values[i]
+  @turbo thread=true for i in eachindex(rho_values, rho_v1_values, rho_v2_values,
+                                        rho_v3_values, rho_e_values,
+                                        w1_values, w2_values, w3_values, w4_values,
+                                        w5_values)
+    rho = rho_values[i]
     rho_v1 = rho_v1_values[i]
     rho_v2 = rho_v2_values[i]
     rho_v3 = rho_v3_values[i]
-    rho_e  = rho_e_values[i]
+    rho_e = rho_e_values[i]
 
     # The following is basically the same code as in `cons2entropy`
     v1 = rho_v1 / rho
@@ -132,7 +132,7 @@ function cons2entropy!(entropy_var_values::StructArray,
   end
 end
 
-function entropy2cons!(entropy_projected_u_values  ::StructArray,
+function entropy2cons!(entropy_projected_u_values::StructArray,
                        projected_entropy_var_values::StructArray,
                        equations::CompressibleEulerEquations3D)
   # The following is semantically equivalent to
@@ -147,9 +147,10 @@ function entropy2cons!(entropy_projected_u_values  ::StructArray,
   rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values = StructArrays.components(entropy_projected_u_values)
   w1_values, w2_values, w3_values, w4_values, w5_values = StructArrays.components(projected_entropy_var_values)
 
-  @turbo thread=true for i in eachindex(
-      rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values,
-      w1_values, w2_values, w3_values, w4_values, w5_values)
+  @turbo thread=true for i in eachindex(rho_values, rho_v1_values, rho_v2_values,
+                                        rho_v3_values, rho_e_values,
+                                        w1_values, w2_values, w3_values, w4_values,
+                                        w5_values)
 
     # The following is basically the same code as in `entropy2cons`
     # Convert to entropy `-rho * s` used by
@@ -166,17 +167,15 @@ function entropy2cons!(entropy_projected_u_values  ::StructArray,
     s = gamma - w1 + (w2^2 + w3^2 + w4^2) / (2 * w5)
 
     # eq. (52)
-    rho_iota = (gamma_minus_one / (-w5)^gamma)^(inv_gamma_minus_one) * exp(-s * inv_gamma_minus_one)
+    rho_iota = (gamma_minus_one / (-w5)^gamma)^(inv_gamma_minus_one) *
+               exp(-s * inv_gamma_minus_one)
 
     # eq. (51)
-    rho_values[i]    = -rho_iota * w5
-    rho_v1_values[i] =  rho_iota * w2
-    rho_v2_values[i] =  rho_iota * w3
-    rho_v3_values[i] =  rho_iota * w4
-    rho_e_values[i]  =  rho_iota * (1 - (w2^2 + w3^2 + w4^2) / (2 * w5))
+    rho_values[i] = -rho_iota * w5
+    rho_v1_values[i] = rho_iota * w2
+    rho_v2_values[i] = rho_iota * w3
+    rho_v3_values[i] = rho_iota * w4
+    rho_e_values[i] = rho_iota * (1 - (w2^2 + w3^2 + w4^2) / (2 * w5))
   end
 end
-
-
-
 end # @muladd

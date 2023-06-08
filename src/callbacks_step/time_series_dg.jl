@@ -3,13 +3,13 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Store time series file for a TreeMesh with a DG solver
 function save_time_series_file(time_series_callback, mesh::TreeMesh, equations, dg::DG)
   @unpack (interval, solution_variables, variable_names,
-           output_directory, filename, point_coordinates,
-           point_data, time, step, time_series_cache) = time_series_callback
+  output_directory, filename, point_coordinates,
+  point_data, time, step, time_series_cache) = time_series_callback
   n_points = length(point_data)
 
   h5open(joinpath(output_directory, filename), "w") do file
@@ -32,6 +32,4 @@ function save_time_series_file(time_series_callback, mesh::TreeMesh, equations, 
     end
   end
 end
-
-
 end # @muladd

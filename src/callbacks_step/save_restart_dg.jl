@@ -3,13 +3,13 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, SerialP4estMesh},
+                           mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D,
+                                       SerialP4estMesh},
                            equations, dg::DG, cache,
                            restart_callback)
-
   @unpack output_directory = restart_callback
 
   # Filename based on current time step
@@ -46,8 +46,8 @@ function save_restart_file(u, time, dt, timestep,
   return filename
 end
 
-
-function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, SerialP4estMesh},
+function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D,
+                                       SerialP4estMesh},
                            equations, dg::DG, cache, restart_file)
 
   # allocate memory
@@ -85,25 +85,25 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh, Unstructu
   return u_ode
 end
 
-
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
+                           mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations,
+                           dg::DG, cache,
                            restart_callback)
-
   @unpack output_directory = restart_callback
   # Filename based on current time step
   filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
 
   if HDF5.has_parallel()
-    save_restart_file_parallel(u, time, dt, timestep, mesh, equations, dg, cache, filename)
+    save_restart_file_parallel(u, time, dt, timestep, mesh, equations, dg, cache,
+                               filename)
   else
     save_restart_file_on_root(u, time, dt, timestep, mesh, equations, dg, cache, filename)
   end
 end
 
-
 function save_restart_file_parallel(u, time, dt, timestep,
-                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
+                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+                                    equations, dg::DG, cache,
                                     filename)
 
   # Restart files always store conservative variables
@@ -133,7 +133,8 @@ function save_restart_file_parallel(u, time, dt, timestep,
     # Store each variable of the solution
     for v in eachvariable(equations)
       # Need to create dataset explicitly in parallel case
-      var = create_dataset(file, "/variables_$v", datatype(eltype(data)), dataspace((ndofsglobal(mesh, dg, cache),)))
+      var = create_dataset(file, "/variables_$v", datatype(eltype(data)),
+                           dataspace((ndofsglobal(mesh, dg, cache),)))
       # Write data of each process in slices (ranks start with 0)
       slice = (cum_node_counts[mpi_rank() + 1] + 1):cum_node_counts[mpi_rank() + 2]
       # Convert to 1D array
@@ -146,9 +147,9 @@ function save_restart_file_parallel(u, time, dt, timestep,
   return filename
 end
 
-
 function save_restart_file_on_root(u, time, dt, timestep,
-                                   mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
+                                   mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+                                   equations, dg::DG, cache,
                                    filename)
 
   # Restart files always store conservative variables
@@ -187,7 +188,8 @@ function save_restart_file_on_root(u, time, dt, timestep,
     for v in eachvariable(equations)
       # Convert to 1D array
       recv = Vector{eltype(data)}(undef, sum(node_counts))
-      MPI.Gatherv!(vec(data[v, .., :]), MPI.VBuffer(recv, node_counts), mpi_root(), mpi_comm())
+      MPI.Gatherv!(vec(data[v, .., :]), MPI.VBuffer(recv, node_counts), mpi_root(),
+                   mpi_comm())
       file["variables_$v"] = recv
 
       # Add variable name as attribute
@@ -199,9 +201,8 @@ function save_restart_file_on_root(u, time, dt, timestep,
   return filename
 end
 
-
-function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache, restart_file)
-
+function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations,
+                           dg::DG, cache, restart_file)
   if HDF5.has_parallel()
     load_restart_file_parallel(mesh, equations, dg, cache, restart_file)
   else
@@ -209,8 +210,8 @@ function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equ
   end
 end
 
-
-function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache, restart_file)
+function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+                                    equations, dg::DG, cache, restart_file)
 
   # Calculate element and node counts by MPI rank
   element_size = nnodes(dg)^ndims(mesh)
@@ -259,8 +260,8 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
   return u_ode
 end
 
-
-function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache, restart_file)
+function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+                                   equations, dg::DG, cache, restart_file)
 
   # Calculate element and node counts by MPI rank
   element_size = nnodes(dg)^ndims(mesh)
@@ -321,6 +322,4 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
 
   return u_ode
 end
-
-
 end # @muladd

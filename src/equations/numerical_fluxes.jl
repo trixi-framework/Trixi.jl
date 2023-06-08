@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # This file contains general numerical fluxes that are not specific to certain equations
 
@@ -24,7 +24,6 @@ DG method (except floating point errors).
   return 0.5 * (f_ll + f_rr)
 end
 
-
 """
     FluxPlusDissipation(numerical_flux, dissipation)
 
@@ -35,15 +34,19 @@ struct FluxPlusDissipation{NumericalFlux, Dissipation}
   dissipation::Dissipation
 end
 
-@inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, orientation_or_normal_direction, equations)
+@inline function (numflux::FluxPlusDissipation)(u_ll, u_rr,
+                                                orientation_or_normal_direction,
+                                                equations)
   @unpack numerical_flux, dissipation = numflux
 
-  return ( numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
-            + dissipation(u_ll, u_rr, orientation_or_normal_direction, equations) )
+  return (numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
+          +
+          dissipation(u_ll, u_rr, orientation_or_normal_direction, equations))
 end
 
-Base.show(io::IO, f::FluxPlusDissipation) = print(io, "FluxPlusDissipation(",  f.numerical_flux, ", ", f.dissipation, ")")
-
+function Base.show(io::IO, f::FluxPlusDissipation)
+  print(io, "FluxPlusDissipation(", f.numerical_flux, ", ", f.dissipation, ")")
+end
 
 """
     FluxRotated(numerical_flux)
@@ -57,7 +60,6 @@ Requires a rotationally invariant equation with equation-specific functions
 struct FluxRotated{NumericalFlux}
   numerical_flux::NumericalFlux
 end
-
 
 # Rotated surface flux computation (2D version)
 @inline function (flux_rotated::FluxRotated)(u_ll, u_rr, normal_direction::AbstractVector,
@@ -75,7 +77,6 @@ end
 
   return rotate_from_x(f, normal_vector, equations) * norm_
 end
-
 
 # Rotated surface flux computation (3D version)
 @inline function (flux_rotated::FluxRotated)(u_ll, u_rr, normal_direction::AbstractVector,
@@ -104,8 +105,7 @@ end
   return rotate_from_x(f, normal_vector, tangent1, tangent2, equations) * norm_
 end
 
-Base.show(io::IO, f::FluxRotated) = print(io, "FluxRotated(",  f.numerical_flux, ")")
-
+Base.show(io::IO, f::FluxRotated) = print(io, "FluxRotated(", f.numerical_flux, ")")
 
 """
     DissipationGlobalLaxFriedrichs(λ)
@@ -116,18 +116,23 @@ struct DissipationGlobalLaxFriedrichs{RealT}
   λ::RealT
 end
 
-@inline function (dissipation::DissipationGlobalLaxFriedrichs)(u_ll, u_rr, orientation::Integer, equations)
+@inline function (dissipation::DissipationGlobalLaxFriedrichs)(u_ll, u_rr,
+                                                               orientation::Integer,
+                                                               equations)
   @unpack λ = dissipation
-  return -λ/2 * (u_rr - u_ll)
+  return -λ / 2 * (u_rr - u_ll)
 end
 
-@inline function (dissipation::DissipationGlobalLaxFriedrichs)(u_ll, u_rr, normal_direction::AbstractVector, equations)
+@inline function (dissipation::DissipationGlobalLaxFriedrichs)(u_ll, u_rr,
+                                                               normal_direction::AbstractVector,
+                                                               equations)
   @unpack λ = dissipation
-  return -λ/2 * norm(normal_direction) * (u_rr - u_ll)
+  return -λ / 2 * norm(normal_direction) * (u_rr - u_ll)
 end
 
-Base.show(io::IO, d::DissipationGlobalLaxFriedrichs) = print(io, "DissipationGlobalLaxFriedrichs(", d.λ, ")")
-
+function Base.show(io::IO, d::DissipationGlobalLaxFriedrichs)
+  print(io, "DissipationGlobalLaxFriedrichs(", d.λ, ")")
+end
 
 """
     DissipationLocalLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
@@ -143,13 +148,16 @@ end
 
 DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed_naive)
 
-@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, orientation_or_normal_direction, equations)
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
+                                                              orientation_or_normal_direction,
+                                                              equations)
   λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
   return -0.5 * λ * (u_rr - u_ll)
 end
 
-Base.show(io::IO, d::DissipationLocalLaxFriedrichs) = print(io, "DissipationLocalLaxFriedrichs(", d.max_abs_speed, ")")
-
+function Base.show(io::IO, d::DissipationLocalLaxFriedrichs)
+  print(io, "DissipationLocalLaxFriedrichs(", d.max_abs_speed, ")")
+end
 
 """
     max_abs_speed_naive(u_ll, u_rr, orientation::Integer,   equations)
@@ -164,11 +172,16 @@ For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_na
 function max_abs_speed_naive end
 
 # for non-integer `orientation_or_normal` arguments.
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::AbstractEquations{1})
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::AbstractEquations{1})
   return abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)
 end
 
-const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central), DissipationLocalLaxFriedrichs{MaxAbsSpeed}}
+const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central),
+                                                           DissipationLocalLaxFriedrichs{
+                                                                                         MaxAbsSpeed
+                                                                                         }
+                                                           }
 """
     FluxLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
 
@@ -176,11 +189,13 @@ Local Lax-Friedrichs (Rusanov) flux with maximum wave speed estimate provided by
 `max_abs_speed`, cf. [`DissipationLocalLaxFriedrichs`](@ref) and
 [`max_abs_speed_naive`](@ref).
 """
-function FluxLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
+function FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)
   FluxPlusDissipation(flux_central, DissipationLocalLaxFriedrichs(max_abs_speed))
 end
 
-Base.show(io::IO, f::FluxLaxFriedrichs) = print(io, "FluxLaxFriedrichs(", f.dissipation.max_abs_speed, ")")
+function Base.show(io::IO, f::FluxLaxFriedrichs)
+  print(io, "FluxLaxFriedrichs(", f.dissipation.max_abs_speed, ")")
+end
 
 """
     flux_lax_friedrichs
@@ -188,7 +203,6 @@ Base.show(io::IO, f::FluxLaxFriedrichs) = print(io, "FluxLaxFriedrichs(", f.diss
 See [`FluxLaxFriedrichs`](@ref).
 """
 const flux_lax_friedrichs = FluxLaxFriedrichs()
-
 
 """
     FluxHLL(min_max_speed=min_max_speed_naive)
@@ -217,8 +231,10 @@ left and right states `u_ll, u_rr`, usually based only on the local wave speeds 
 """
 function min_max_speed_naive end
 
-@inline function (numflux::FluxHLL)(u_ll, u_rr, orientation_or_normal_direction, equations)
-  λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
+@inline function (numflux::FluxHLL)(u_ll, u_rr, orientation_or_normal_direction,
+                                    equations)
+  λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, orientation_or_normal_direction,
+                                       equations)
 
   if λ_min >= 0 && λ_max >= 0
     return flux(u_ll, orientation_or_normal_direction, equations)
@@ -244,8 +260,6 @@ See [`FluxHLL`](@ref).
 """
 const flux_hll = FluxHLL()
 
-
-
 """
     flux_shima_etal_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
 
@@ -254,7 +268,8 @@ methods, e.g., when used with [`VolumeIntegralFluxDifferencing`](@ref).
 These specialized methods may enable better use of SIMD instructions to
 increase runtime efficiency on modern hardware.
 """
-@inline function flux_shima_etal_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
+@inline function flux_shima_etal_turbo(u_ll, u_rr, orientation_or_normal_direction,
+                                       equations)
   flux_shima_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
@@ -266,10 +281,10 @@ methods, e.g., when used with [`VolumeIntegralFluxDifferencing`](@ref).
 These specialized methods may enable better use of SIMD instructions to
 increase runtime efficiency on modern hardware.
 """
-@inline function flux_ranocha_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
+@inline function flux_ranocha_turbo(u_ll, u_rr, orientation_or_normal_direction,
+                                    equations)
   flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
-
 
 """
     FluxHydrostaticReconstruction(numerical_flux, hydrostatic_reconstruction)
@@ -315,7 +330,6 @@ end
   return numerical_flux(u_ll_star, u_rr_star, orientation_or_normal_direction, equations)
 end
 
-
 """
     FluxUpwind(splitting)
 
@@ -336,11 +350,9 @@ end
 @inline function (numflux::FluxUpwind)(u_ll, u_rr, orientation::Int, equations)
   @unpack splitting = numflux
   fm = splitting(u_rr, Val{:minus}(), orientation, equations)
-  fp = splitting(u_ll, Val{:plus}(),  orientation, equations)
+  fp = splitting(u_ll, Val{:plus}(), orientation, equations)
   return fm + fp
 end
 
-Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(",  f.splitting, ")")
-
-
+Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(", f.splitting, ")")
 end # @muladd

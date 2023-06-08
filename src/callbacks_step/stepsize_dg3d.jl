@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 function max_dt(u, t, mesh::TreeMesh{3},
                 constant_speed::False, equations, dg::DG, cache)
@@ -27,7 +27,6 @@ function max_dt(u, t, mesh::TreeMesh{3},
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-
 function max_dt(u, t, mesh::TreeMesh{3},
                 constant_speed::True, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
@@ -43,7 +42,6 @@ function max_dt(u, t, mesh::TreeMesh{3},
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-
 function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                 constant_speed::False, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
@@ -58,12 +56,15 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
       u_node = get_node_vars(u, equations, dg, i, j, k, element)
       λ1, λ2, λ3 = max_abs_speeds(u_node, equations)
 
-      Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
-      λ1_transformed   = abs(Ja11 * λ1 + Ja12 * λ2 + Ja13 * λ3)
-      Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
-      λ2_transformed   = abs(Ja21 * λ1 + Ja22 * λ2 + Ja23 * λ3)
-      Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
-      λ3_transformed   = abs(Ja31 * λ1 + Ja32 * λ2 + Ja33 * λ3)
+      Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k,
+                                                  element)
+      λ1_transformed = abs(Ja11 * λ1 + Ja12 * λ2 + Ja13 * λ3)
+      Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k,
+                                                  element)
+      λ2_transformed = abs(Ja21 * λ1 + Ja22 * λ2 + Ja23 * λ3)
+      Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k,
+                                                  element)
+      λ3_transformed = abs(Ja31 * λ1 + Ja32 * λ2 + Ja33 * λ3)
 
       inv_jacobian = abs(cache.elements.inverse_jacobian[i, j, k, element])
 
@@ -78,7 +79,6 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-
 function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                 constant_speed::True, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
@@ -91,23 +91,26 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
 
   for element in eachelement(dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-      Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
-      λ1_transformed   = abs(Ja11 * max_λ1 + Ja12 * max_λ2 + Ja13 * max_λ3)
-      Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
-      λ2_transformed   = abs(Ja21 * max_λ1 + Ja22 * max_λ2 + Ja23 * max_λ3)
-      Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
-      λ3_transformed   = abs(Ja31 * max_λ1 + Ja32 * max_λ2 + Ja33 * max_λ3)
+      Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k,
+                                                  element)
+      λ1_transformed = abs(Ja11 * max_λ1 + Ja12 * max_λ2 + Ja13 * max_λ3)
+      Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k,
+                                                  element)
+      λ2_transformed = abs(Ja21 * max_λ1 + Ja22 * max_λ2 + Ja23 * max_λ3)
+      Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k,
+                                                  element)
+      λ3_transformed = abs(Ja31 * max_λ1 + Ja32 * max_λ2 + Ja33 * max_λ3)
 
       inv_jacobian = abs(cache.elements.inverse_jacobian[i, j, k, element])
 
       max_scaled_speed = max(max_scaled_speed,
-                             inv_jacobian * (λ1_transformed + λ2_transformed + λ3_transformed))
+                             inv_jacobian *
+                             (λ1_transformed + λ2_transformed + λ3_transformed))
     end
   end
 
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
-
 
 function max_dt(u, t, mesh::ParallelP4estMesh{3},
                 constant_speed::False, equations, dg::DG, cache)
@@ -116,14 +119,13 @@ function max_dt(u, t, mesh::ParallelP4estMesh{3},
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
   #       Then, this specific array type should also work well with DiffEq etc.
   dt = invoke(max_dt,
-    Tuple{typeof(u), typeof(t), P4estMesh{3},
-          typeof(constant_speed), typeof(equations), typeof(dg), typeof(cache)},
-    u, t, mesh, constant_speed, equations, dg, cache)
+              Tuple{typeof(u), typeof(t), P4estMesh{3},
+                    typeof(constant_speed), typeof(equations), typeof(dg), typeof(cache)},
+              u, t, mesh, constant_speed, equations, dg, cache)
   dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
 
   return dt
 end
-
 
 function max_dt(u, t, mesh::ParallelP4estMesh{3},
                 constant_speed::True, equations, dg::DG, cache)
@@ -132,13 +134,11 @@ function max_dt(u, t, mesh::ParallelP4estMesh{3},
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
   #       Then, this specific array type should also work well with DiffEq etc.
   dt = invoke(max_dt,
-    Tuple{typeof(u), typeof(t), P4estMesh{3},
-          typeof(constant_speed), typeof(equations), typeof(dg), typeof(cache)},
-    u, t, mesh, constant_speed, equations, dg, cache)
+              Tuple{typeof(u), typeof(t), P4estMesh{3},
+                    typeof(constant_speed), typeof(equations), typeof(dg), typeof(cache)},
+              u, t, mesh, constant_speed, equations, dg, cache)
   dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
 
   return dt
 end
-
-
 end # @muladd

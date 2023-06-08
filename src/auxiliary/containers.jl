@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Abstract base type - all containers that want to use these features must inherit from it
 abstract type AbstractContainer end
@@ -15,32 +15,29 @@ function move_connectivity! end
 function delete_connectivity! end
 function reset_data_structures! end
 
-
 # Auxiliary copy function to copy data between containers
 function copy_data!(target::AbstractArray, source::AbstractArray,
-                    first::Int, last::Int, destination::Int, block_size::Int=1)
+                    first::Int, last::Int, destination::Int, block_size::Int = 1)
   count = last - first + 1
   if destination <= first || destination > last
     # In this case it is safe to copy forward (left-to-right) without overwriting data
-    for i in 0:(count-1), j in 1:block_size
-      target[block_size*(destination+i-1) + j] = source[block_size*(first+i-1) + j]
+    for i in 0:(count - 1), j in 1:block_size
+      target[block_size * (destination + i - 1) + j] = source[block_size * (first + i - 1) + j]
     end
   else
     # In this case we need to copy backward (right-to-left) to prevent overwriting data
-    for i in (count-1):-1:0, j in 1:block_size
-      target[block_size*(destination+i-1) + j] = source[block_size*(first+i-1) + j]
+    for i in (count - 1):-1:0, j in 1:block_size
+      target[block_size * (destination + i - 1) + j] = source[block_size * (first + i - 1) + j]
     end
   end
 
   return target
 end
 
-
 # Inquire about capacity and size
 capacity(c::AbstractContainer) = c.capacity
 Base.length(c::AbstractContainer) = c.length
 Base.size(c::AbstractContainer) = (length(c),)
-
 
 """
     resize!(c::AbstractContainer, new_length) -> AbstractContainer
@@ -50,8 +47,8 @@ length, the first `new_length` elements will be retained. If `new_length` is
 larger, the new elements are invalidated.
 """
 function Base.resize!(c::AbstractContainer, new_length)
-  @assert new_length >= zero(new_length) "New length must be >= 0"
-  @assert new_length <= capacity(c) "New length would exceed capacity"
+  @assert new_length>=zero(new_length) "New length must be >= 0"
+  @assert new_length<=capacity(c) "New length would exceed capacity"
 
   # If new length is greater than current length, append to container.
   # If new length is less than current length, shrink container.
@@ -70,18 +67,17 @@ function Base.resize!(c::AbstractContainer, new_length)
   return c
 end
 
-
 # Copy data range from source to target container.
 #
 # Calls `raw_copy` internally, which must be implemented for each concrete type
 # inheriting from AbstractContainer.
 # TODO: Shall we extend Base.copyto! ?
 function Trixi.copy!(target::AbstractContainer, source::AbstractContainer,
-               first::Int, last::Int, destination::Int)
-  @assert 1 <= first <= length(source) "First cell out of range"
-  @assert 1 <= last <= length(source) "Last cell out of range"
-  @assert 1 <= destination <= length(target) "Destination out of range"
-  @assert destination + (last - first) <= length(target) "Target range out of bounds"
+                     first::Int, last::Int, destination::Int)
+  @assert 1<=first<=length(source) "First cell out of range"
+  @assert 1<=last<=length(source) "Last cell out of range"
+  @assert 1<=destination<=length(target) "Destination out of range"
+  @assert destination + (last - first)<=length(target) "Target range out of bounds"
 
   # Return if copy would be a no-op
   if last < first || (source === target && first == destination)
@@ -93,31 +89,28 @@ function Trixi.copy!(target::AbstractContainer, source::AbstractContainer,
   return target
 end
 
-
 # Convenience method to copy a single element
-function Trixi.copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
+function Trixi.copy!(target::AbstractContainer, source::AbstractContainer, from::Int,
+                     destination::Int)
   Trixi.copy!(target, source, from, from, destination)
 end
-
 
 # Convenience method for copies within a single container
 function Trixi.copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   Trixi.copy!(c, c, first, last, destination)
 end
 
-
 # Convenience method for copying a single element within a single container
 function Trixi.copy!(c::AbstractContainer, from::Int, destination::Int)
   Trixi.copy!(c, c, from, from, destination)
 end
 
-
 # Move elements in a way that preserves connectivity.
 function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
-  @assert 1 <= first <= length(c) "First cell $first out of range"
-  @assert 1 <= last <= length(c) "Last cell $last out of range"
-  @assert 1 <= destination <= length(c) "Destination $destination out of range"
-  @assert destination + (last - first) <= length(c) "Target range out of bounds"
+  @assert 1<=first<=length(c) "First cell $first out of range"
+  @assert 1<=last<=length(c) "Last cell $last out of range"
+  @assert 1<=destination<=length(c) "Destination $destination out of range"
+  @assert destination + (last - first)<=length(c) "Target range out of bounds"
 
   # Return if move would be a no-op
   if last < first || first == destination
@@ -130,7 +123,6 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   # Move connectivity
   move_connectivity!(c, first, last, destination)
 
-
   # Invalidate original cell locations (unless they already contain new data due to overlap)
   # 1) If end of destination range is within original range, shift first_invalid to the right
   count = last - first + 1
@@ -142,7 +134,9 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
 
   return c
 end
-move!(c::AbstractContainer, from::Int, destination::Int) = move!(c, from, from, destination)
+function move!(c::AbstractContainer, from::Int, destination::Int)
+  move!(c, from, from, destination)
+end
 
 # Default implementation for moving a single element
 function move_connectivity!(c::AbstractContainer, from::Int, destination::Int)
@@ -154,11 +148,10 @@ function invalidate!(c::AbstractContainer, id::Int)
   return invalidate!(c, id, id)
 end
 
-
 # Swap two elements in a container while preserving element connectivity.
 function swap!(c::AbstractContainer, a::Int, b::Int)
-  @assert 1 <= a <= length(c) "a out of range"
-  @assert 1 <= b <= length(c) "b out of range"
+  @assert 1<=a<=length(c) "a out of range"
+  @assert 1<=b<=length(c) "b out of range"
 
   # Return if swap would be a no-op
   if a == b
@@ -183,15 +176,14 @@ function swap!(c::AbstractContainer, a::Int, b::Int)
   return c
 end
 
-
 # Insert blank elements in container, shifting the following elements back.
 #
 # After a call to insert!, the range `position:position + count - 1` will be available for use.
 # TODO: Shall we extend Base.insert! ?
 function insert!(c::AbstractContainer, position::Int, count::Int)
-  @assert 1 <= position <= length(c) + 1 "Insert position out of range"
-  @assert count >= 0 "Count must be non-negative"
-  @assert count + length(c) <= capacity(c) "New length would exceed capacity"
+  @assert 1<=position<=length(c)+1 "Insert position out of range"
+  @assert count>=0 "Count must be non-negative"
+  @assert count + length(c)<=capacity(c) "New length would exceed capacity"
 
   # Return if insertation would be a no-op
   if count == 0
@@ -216,12 +208,11 @@ function insert!(c::AbstractContainer, position::Int, count::Int)
   return c
 end
 
-
 # Erase elements from container, deleting their connectivity and then invalidating their data.
 # TODO: Shall we extend Base.deleteat! or Base.delete! ?
 function erase!(c::AbstractContainer, first::Int, last::Int)
-  @assert 1 <= first <= length(c) "First cell out of range"
-  @assert 1 <= last <= length(c) "Last cell out of range"
+  @assert 1<=first<=length(c) "First cell out of range"
+  @assert 1<=last<=length(c) "Last cell out of range"
 
   # Return if eraseure would be a no-op
   if last < first
@@ -236,11 +227,10 @@ function erase!(c::AbstractContainer, first::Int, last::Int)
 end
 erase!(c::AbstractContainer, id::Int) = erase!(c, id, id)
 
-
 # Remove cells and shift existing cells forward to close the gap
 function remove_shift!(c::AbstractContainer, first::Int, last::Int)
-  @assert 1 <= first <= length(c) "First cell out of range"
-  @assert 1 <= last <= length(c) "Last cell out of range"
+  @assert 1<=first<=length(c) "First cell out of range"
+  @assert 1<=last<=length(c) "Last cell out of range"
 
   # Return if removal would be a no-op
   if last < first
@@ -266,11 +256,10 @@ function remove_shift!(c::AbstractContainer, first::Int, last::Int)
 end
 remove_shift!(c::AbstractContainer, id::Int) = remove_shift!(c, id, id)
 
-
 # Remove cells and fill gap with cells from the end of the container (to reduce copy operations)
 function remove_fill!(c::AbstractContainer, first::Int, last::Int)
-  @assert 1 <= first <= length(c) "First cell out of range"
-  @assert 1 <= last <= length(c) "Last cell out of range"
+  @assert 1<=first<=length(c) "First cell out of range"
+  @assert 1<=last<=length(c) "Last cell out of range"
 
   # Return if removal would be a no-op
   if last < first
@@ -293,10 +282,9 @@ function remove_fill!(c::AbstractContainer, first::Int, last::Int)
   return c
 end
 
-
 # Reset container to zero-length and with a new capacity
 function reset!(c::AbstractContainer, capacity::Int)
-  @assert capacity >=0
+  @assert capacity >= 0
 
   c.capacity = capacity
   c.length = 0
@@ -306,7 +294,6 @@ function reset!(c::AbstractContainer, capacity::Int)
   return c
 end
 
-
 # Invalidate all elements and set length to zero.
 function clear!(c::AbstractContainer)
   invalidate!(c)
@@ -315,17 +302,15 @@ function clear!(c::AbstractContainer)
   return c
 end
 
-
 # Helpful overloads for `raw_copy`
 function raw_copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   raw_copy!(c, c, first, last, destination)
 end
-function raw_copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
+function raw_copy!(target::AbstractContainer, source::AbstractContainer, from::Int,
+                   destination::Int)
   raw_copy!(target, source, from, from, destination)
 end
 function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
   raw_copy!(c, c, from, from, destination)
 end
-
-
 end # @muladd

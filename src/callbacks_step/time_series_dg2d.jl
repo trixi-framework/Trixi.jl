@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Creates cache for time series callback
 function create_cache_time_series(point_coordinates, mesh::TreeMesh{2}, dg, cache)
@@ -11,14 +11,14 @@ function create_cache_time_series(point_coordinates, mesh::TreeMesh{2}, dg, cach
   element_ids = get_elements_by_coordinates(point_coordinates, mesh, dg, cache)
 
   # Calculate & store Lagrange interpolation polynomials
-  interpolating_polynomials = calc_interpolating_polynomials(point_coordinates, element_ids, mesh,
+  interpolating_polynomials = calc_interpolating_polynomials(point_coordinates,
+                                                             element_ids, mesh,
                                                              dg, cache)
 
   time_series_cache = (; element_ids, interpolating_polynomials)
 
   return time_series_cache
 end
-
 
 # Find element ids containing coordinates given as a matrix [ndims, npoints]
 function get_elements_by_coordinates!(element_ids, coordinates, mesh::TreeMesh, dg, cache)
@@ -67,7 +67,6 @@ function get_elements_by_coordinates!(element_ids, coordinates, mesh::TreeMesh, 
   return element_ids
 end
 
-
 function get_elements_by_coordinates(coordinates, mesh, dg, cache)
   element_ids = Vector{Int}(undef, size(coordinates, 2))
   get_elements_by_coordinates!(element_ids, coordinates, mesh, dg, cache)
@@ -75,10 +74,10 @@ function get_elements_by_coordinates(coordinates, mesh, dg, cache)
   return element_ids
 end
 
-
 # Calculate the interpolating polynomials to extract data at the given coordinates
 # The coordinates are known to be located in the respective element in `element_ids`
-function calc_interpolating_polynomials!(interpolating_polynomials, coordinates, element_ids,
+function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
+                                         element_ids,
                                          mesh::TreeMesh, dg::DGSEM, cache)
   @unpack tree = mesh
   @unpack nodes = dg.basis
@@ -97,24 +96,26 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
 
     # Calculate interpolating polynomial for each dimension, making use of tensor product structure
     for d in 1:ndims(mesh)
-      interpolating_polynomials[:, d, index] .= lagrange_interpolating_polynomials(
-          unit_coordinates[d], nodes, wbary)
+      interpolating_polynomials[:, d, index] .= lagrange_interpolating_polynomials(unit_coordinates[d],
+                                                                                   nodes,
+                                                                                   wbary)
     end
   end
 
   return interpolating_polynomials
 end
 
-
-function calc_interpolating_polynomials(coordinates, element_ids, mesh::TreeMesh, dg, cache)
+function calc_interpolating_polynomials(coordinates, element_ids, mesh::TreeMesh, dg,
+                                        cache)
   interpolating_polynomials = Array{real(dg), 3}(undef,
-                                                 nnodes(dg), ndims(mesh), length(element_ids))
-  calc_interpolating_polynomials!(interpolating_polynomials, coordinates, element_ids, mesh, dg,
+                                                 nnodes(dg), ndims(mesh),
+                                                 length(element_ids))
+  calc_interpolating_polynomials!(interpolating_polynomials, coordinates, element_ids,
+                                  mesh, dg,
                                   cache)
 
   return interpolating_polynomials
 end
-
 
 # Record the solution variables at each given point
 function record_state_at_points!(point_data, u, solution_variables, n_solution_variables,
@@ -131,20 +132,19 @@ function record_state_at_points!(point_data, u, solution_variables, n_solution_v
 
     # Make room for new data to be recorded
     resize!(data, new_length)
-    data[(old_length+1):new_length] .= zero(eltype(data))
+    data[(old_length + 1):new_length] .= zero(eltype(data))
 
     # Loop over all nodes to compute their contribution to the interpolated values
     for j in eachnode(dg), i in eachnode(dg)
-      u_node = solution_variables(get_node_vars(u, equations, dg, i, j, element_id), equations)
+      u_node = solution_variables(get_node_vars(u, equations, dg, i, j, element_id),
+                                  equations)
 
       for v in 1:length(u_node)
         data[old_length + v] += (u_node[v]
-                                * interpolating_polynomials[i, 1, index]
-                                * interpolating_polynomials[j, 2, index])
+                                 * interpolating_polynomials[i, 1, index]
+                                 * interpolating_polynomials[j, 2, index])
       end
     end
   end
 end
-
-
 end # @muladd

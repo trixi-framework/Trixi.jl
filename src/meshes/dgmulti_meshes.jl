@@ -3,6 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 """
     DGMultiMesh{NDIMS, ...}
@@ -17,7 +18,12 @@ struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, BoundaryFaceT}
 end
 
 # enable use of @set and setproperties(...) for DGMultiMesh
-ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4}}) where {T1, T2, T3, T4} = DGMultiMesh{T1, T2, T3, T4}
+function ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4}}) where {T1,
+                                                                                    T2,
+                                                                                    T3, T4
+                                                                                    }
+  DGMultiMesh{T1, T2, T3, T4}
+end
 
 Base.ndims(::DGMultiMesh{NDIMS}) where {NDIMS} = NDIMS
 
@@ -26,7 +32,8 @@ function Base.show(io::IO, mesh::DGMultiMesh{NDIMS, MeshType}) where {NDIMS, Mes
   print(io, "$MeshType DGMultiMesh with NDIMS = $NDIMS.")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::DGMultiMesh{NDIMS, MeshType}) where {NDIMS, MeshType}
+function Base.show(io::IO, ::MIME"text/plain",
+                   mesh::DGMultiMesh{NDIMS, MeshType}) where {NDIMS, MeshType}
   @nospecialize mesh # reduce precompilation time
   if get(io, :compact, false)
     show(io, mesh)
@@ -40,5 +47,4 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::DGMultiMesh{NDIMS, MeshType
     summary_footer(io)
   end
 end
-
 end # @muladd

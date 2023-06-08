@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 """
     UnstructuredMesh2D <: AbstractMesh{2}
@@ -15,30 +15,31 @@ An unstructured (possibly curved) quadrilateral mesh.
 All mesh information, neighbour coupling, and boundary curve information is read in
 from a mesh file `filename`.
 """
-mutable struct UnstructuredMesh2D{RealT<:Real, CurvedSurfaceT<:CurvedSurface{RealT}} <: AbstractMesh{2}
-  filename             ::String
-  n_corners            ::Int
-  n_surfaces           ::Int # total number of surfaces
-  n_interfaces         ::Int # number of interior surfaces
-  n_boundaries         ::Int # number of surfaces on the physical boundary
-  n_elements           ::Int
-  polydeg              ::Int
-  corners              ::Array{RealT, 2}  # [ndims, n_corners]
+mutable struct UnstructuredMesh2D{RealT <: Real, CurvedSurfaceT <: CurvedSurface{RealT}
+                                  } <: AbstractMesh{2}
+  filename::String
+  n_corners::Int
+  n_surfaces::Int # total number of surfaces
+  n_interfaces::Int # number of interior surfaces
+  n_boundaries::Int # number of surfaces on the physical boundary
+  n_elements::Int
+  polydeg::Int
+  corners::Array{RealT, 2}  # [ndims, n_corners]
   neighbour_information::Array{Int, 2}  # [neighbour node/element/edge ids, n_surfaces]
-  boundary_names       ::Array{Symbol, 2} # [local sides, n_elements]
-  periodicity          ::Bool
-  element_node_ids     ::Array{Int, 2} # [node ids, n_elements]
-  element_is_curved    ::Vector{Bool}
-  surface_curves       ::Array{CurvedSurfaceT, 2} # [local sides, n_elements]
-  current_filename     ::String
-  unsaved_changes      ::Bool # if true, the mesh will be saved for plotting
+  boundary_names::Array{Symbol, 2} # [local sides, n_elements]
+  periodicity::Bool
+  element_node_ids::Array{Int, 2} # [node ids, n_elements]
+  element_is_curved::Vector{Bool}
+  surface_curves::Array{CurvedSurfaceT, 2} # [local sides, n_elements]
+  current_filename::String
+  unsaved_changes::Bool # if true, the mesh will be saved for plotting
 end
-
 
 # constructor for an unstructured mesh read in from a file
 # TODO: this mesh file parsing and construction of the mesh skeleton can likely be improved in terms
 #       of performance
-function UnstructuredMesh2D(filename; RealT=Float64, periodicity=false, unsaved_changes=true)
+function UnstructuredMesh2D(filename; RealT = Float64, periodicity = false,
+                            unsaved_changes = true)
 
   # readin all the information from the mesh file into a string array
   file_lines = readlines(open(filename))
@@ -71,16 +72,17 @@ function UnstructuredMesh2D(filename; RealT=Float64, periodicity=false, unsaved_
   # create the Chebyshev-Gauss-Lobatto nodes used to represent any curved boundaries that are
   # required to construct the sides
   cheby_nodes_, _ = chebyshev_gauss_lobatto_nodes_weights(mesh_nnodes)
-  bary_weights_   = barycentric_weights(cheby_nodes_)
-  cheby_nodes  = SVector{mesh_nnodes}(cheby_nodes_)
+  bary_weights_ = barycentric_weights(cheby_nodes_)
+  cheby_nodes = SVector{mesh_nnodes}(cheby_nodes_)
   bary_weights = SVector{mesh_nnodes}(bary_weights_)
 
   arrays = (; corner_nodes, interface_info, element_node_ids, curved_check,
-              quad_corners, quad_corners_flipped, curve_values,
-              element_is_curved, surface_curves, boundary_names)
+            quad_corners, quad_corners_flipped, curve_values,
+            element_is_curved, surface_curves, boundary_names)
   counters = (; n_corners, n_surfaces, n_elements)
 
-  n_boundaries = parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, cheby_nodes, bary_weights)
+  n_boundaries = parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters,
+                                  cheby_nodes, bary_weights)
 
   # get the number of internal interfaces in the mesh
   if periodicity
@@ -90,17 +92,20 @@ function UnstructuredMesh2D(filename; RealT=Float64, periodicity=false, unsaved_
     n_interfaces = n_surfaces - n_boundaries
   end
 
-  return UnstructuredMesh2D{RealT, CurvedSurfaceT}(
-    filename, n_corners, n_surfaces, n_interfaces, n_boundaries,
-    n_elements, mesh_polydeg, corner_nodes,
-    interface_info, boundary_names, periodicity,
-    element_node_ids, element_is_curved, surface_curves, "", unsaved_changes)
+  return UnstructuredMesh2D{RealT, CurvedSurfaceT}(filename, n_corners, n_surfaces,
+                                                   n_interfaces, n_boundaries,
+                                                   n_elements, mesh_polydeg, corner_nodes,
+                                                   interface_info, boundary_names,
+                                                   periodicity,
+                                                   element_node_ids, element_is_curved,
+                                                   surface_curves, "", unsaved_changes)
 end
 
-function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, cheby_nodes, bary_weights)
-  @unpack ( corner_nodes, interface_info, element_node_ids, curved_check,
-            quad_corners, quad_corners_flipped, curve_values,
-            element_is_curved, surface_curves, boundary_names ) = arrays
+function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters,
+                          cheby_nodes, bary_weights)
+  @unpack (corner_nodes, interface_info, element_node_ids, curved_check,
+  quad_corners, quad_corners_flipped, curve_values,
+  element_is_curved, surface_curves, boundary_names) = arrays
   @unpack n_corners, n_surfaces, n_elements = counters
   mesh_nnodes = length(cheby_nodes)
 
@@ -136,7 +141,7 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
     interface_info[6, j] = parse(Int, current_line[6])
 
     # count the number of physical boundaries
-    if interface_info[4,j] == 0
+    if interface_info[4, j] == 0
       n_boundaries += 1
     end
     file_idx += 1
@@ -168,7 +173,7 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
     if sum(curved_check) == 0
       # quadrilateral element is straight sided
       element_is_curved[j] = false
-      file_idx  += 1
+      file_idx += 1
       # read all the boundary names
       boundary_names[:, j] = map(Symbol, split(file_lines[file_idx]))
     else
@@ -187,8 +192,12 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
           # when curved_check[i] is 0 then the "curve" from corner `i` to corner `i+1` is a
           # straight line. So we must construct the interpolant for this line
           for k in 1:mesh_nnodes
-            curve_values[k, 1] = linear_interpolate(cheby_nodes[k], quad_corners_flipped[m1, 1], quad_corners_flipped[m2, 1])
-            curve_values[k, 2] = linear_interpolate(cheby_nodes[k], quad_corners_flipped[m1, 2], quad_corners_flipped[m2, 2])
+            curve_values[k, 1] = linear_interpolate(cheby_nodes[k],
+                                                    quad_corners_flipped[m1, 1],
+                                                    quad_corners_flipped[m2, 1])
+            curve_values[k, 2] = linear_interpolate(cheby_nodes[k],
+                                                    quad_corners_flipped[m1, 2],
+                                                    quad_corners_flipped[m2, 2])
           end
         else
           # when curved_check[i] is 1 this curved boundary information is supplied by the mesh
@@ -196,12 +205,13 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
           for k in 1:mesh_nnodes
             file_idx += 1
             current_line = split(file_lines[file_idx])
-            curve_values[k, 1] = parse(RealT,current_line[1])
-            curve_values[k, 2] = parse(RealT,current_line[2])
+            curve_values[k, 1] = parse(RealT, current_line[1])
+            curve_values[k, 2] = parse(RealT, current_line[2])
           end
         end
         # construct the curve interpolant for the current side
-        surface_curves[i, j] = CurvedSurfaceT(cheby_nodes, bary_weights, copy(curve_values))
+        surface_curves[i, j] = CurvedSurfaceT(cheby_nodes, bary_weights,
+                                              copy(curve_values))
         # indexing update that contains a "flip" to ensure correct element orientation
         # if we need to construct the straight line "curves" when curved_check[i] == 0
         m1 += 1
@@ -212,7 +222,7 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
         end
       end
       # finally read in the boundary names where "---" means an internal connection
-      file_idx  += 1
+      file_idx += 1
       boundary_names[:, j] = map(Symbol, split(file_lines[file_idx]))
     end
     # one last increment to the global index to read the next piece of element information
@@ -230,17 +240,21 @@ isperiodic(mesh::UnstructuredMesh2D) = mesh.periodicity
 
 Base.length(mesh::UnstructuredMesh2D) = mesh.n_elements
 
-
-function Base.show(io::IO, ::UnstructuredMesh2D{RealT, CurvedSurfaceT}) where {RealT, CurvedSurfaceT}
+function Base.show(io::IO,
+                   ::UnstructuredMesh2D{RealT, CurvedSurfaceT}) where {RealT,
+                                                                       CurvedSurfaceT}
   print(io, "UnstructuredMesh2D{2, ", RealT, ", ", CurvedSurfaceT, "}")
 end
 
-
-function Base.show(io::IO, ::MIME"text/plain", mesh::UnstructuredMesh2D{RealT, CurvedSurfaceT}) where {RealT, CurvedSurfaceT}
+function Base.show(io::IO, ::MIME"text/plain",
+                   mesh::UnstructuredMesh2D{RealT, CurvedSurfaceT}) where {RealT,
+                                                                           CurvedSurfaceT}
   if get(io, :compact, false)
     show(io, mesh)
   else
-    summary_header(io, "UnstructuredMesh2D{" * string(2) * ", " * string(RealT) * ", " * string(CurvedSurfaceT) * "}")
+    summary_header(io,
+                   "UnstructuredMesh2D{" * string(2) * ", " * string(RealT) * ", " *
+                   string(CurvedSurfaceT) * "}")
     summary_line(io, "mesh file", mesh.filename)
     summary_line(io, "number of elements", length(mesh))
     summary_line(io, "faces", mesh.n_surfaces)
@@ -248,6 +262,4 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::UnstructuredMesh2D{RealT, C
     summary_footer(io)
   end
 end
-
-
 end # @muladd

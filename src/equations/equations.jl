@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Retrieve number of variables from equation instance
 @inline nvariables(::AbstractEquations{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
@@ -42,7 +42,6 @@ Common choices of the `conversion_function` are [`cons2cons`](@ref) and
 """
 function varnames end
 
-
 # Add methods to show some information on systems of equations.
 function Base.show(io::IO, equations::AbstractEquations)
   # Since this is not performance-critical, we can use `@nospecialize` to reduce latency.
@@ -74,12 +73,10 @@ function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
   end
 end
 
-
-@inline Base.ndims(::AbstractEquations{NDIMS}) where NDIMS = NDIMS
+@inline Base.ndims(::AbstractEquations{NDIMS}) where {NDIMS} = NDIMS
 
 # equations act like scalars in broadcasting
 Base.broadcastable(equations::AbstractEquations) = Ref(equations)
-
 
 """
     flux(u, orientation_or_normal, equations)
@@ -97,12 +94,12 @@ function flux end
 Enables calling `flux` with a non-integer argument `normal_direction` for one-dimensional
 equations. Returns the value of `flux(u, 1, equations)` scaled by `normal_direction[1]`.
 """
-@inline function flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})
+@inline function flux(u, normal_direction::AbstractVector,
+                      equations::AbstractEquations{1})
   # Call `flux` with `orientation::Int = 1` for dispatch. Note that the actual
   # `orientation` argument is ignored.
   return normal_direction[1] * flux(u, 1, equations)
 end
-
 
 """
     rotate_to_x(u, normal, equations)
@@ -125,7 +122,6 @@ invariant equations in arbitrary normal directions.
 See also: [`rotate_to_x`](@ref)
 """
 function rotate_from_x end
-
 
 """
     BoundaryConditionDirichlet(boundary_value_function)
@@ -150,10 +146,12 @@ struct BoundaryConditionDirichlet{B}
 end
 
 # Dirichlet-type boundary condition for use with TreeMesh or StructuredMesh
-@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation_or_normal,
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
+                                                                  orientation_or_normal,
                                                                   direction,
                                                                   x, t,
-                                                                  surface_flux_function, equations)
+                                                                  surface_flux_function,
+                                                                  equations)
   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
   # Calculate boundary flux
@@ -216,14 +214,13 @@ The return value will be `True()` or `False()` to allow dispatching on the retur
 have_nonconservative_terms(::AbstractEquations) = False()
 have_constant_speed(::AbstractEquations) = False()
 
-default_analysis_errors(::AbstractEquations)     = (:l2_error, :linf_error)
+default_analysis_errors(::AbstractEquations) = (:l2_error, :linf_error)
 """
     default_analysis_integrals(equations)
 
 Default analysis integrals used by the [`AnalysisCallback`](@ref).
 """
-default_analysis_integrals(::AbstractEquations)  = (entropy_timederivative,)
-
+default_analysis_integrals(::AbstractEquations) = (entropy_timederivative,)
 
 """
     cons2cons(u, equations)
@@ -333,35 +330,48 @@ function energy_internal end
 include("numerical_fluxes.jl")
 
 # Linear scalar advection
-abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
 
 # Inviscid Burgers
-abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
 include("inviscid_burgers_1d.jl")
 
 # Shallow water equations
-abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
 include("shallow_water_1d.jl")
 include("shallow_water_2d.jl")
 include("shallow_water_two_layer_1d.jl")
 include("shallow_water_two_layer_2d.jl")
 
 # CompressibleEulerEquations
-abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_1d.jl")
 include("compressible_euler_2d.jl")
 include("compressible_euler_3d.jl")
 
 # CompressibleEulerMulticomponentEquations
-abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <:
+              AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_multicomponent_1d.jl")
 include("compressible_euler_multicomponent_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
-@inline ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+@inline function ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS,
+                                                                                NVARS,
+                                                                                NCOMP}) where {
+                                                                                               NDIMS,
+                                                                                               NVARS,
+                                                                                               NCOMP
+                                                                                               }
+  NCOMP
+end
 """
     eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
 
@@ -369,21 +379,32 @@ Return an iterator over the indices that specify the location in relevant data s
 for the components in `AbstractCompressibleEulerMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
-@inline eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations) = Base.OneTo(ncomponents(equations))
+@inline function eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
+  Base.OneTo(ncomponents(equations))
+end
 
 # Ideal MHD
-abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
 include("ideal_glm_mhd_1d.jl")
 include("ideal_glm_mhd_2d.jl")
 include("ideal_glm_mhd_3d.jl")
 
 # IdealGlmMhdMulticomponentEquations
-abstract type AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS, NCOMP} <:
+              AbstractEquations{NDIMS, NVARS} end
 include("ideal_glm_mhd_multicomponent_1d.jl")
 include("ideal_glm_mhd_multicomponent_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
-@inline ncomponents(::AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+@inline function ncomponents(::AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS,
+                                                                          NCOMP}) where {
+                                                                                         NDIMS,
+                                                                                         NVARS,
+                                                                                         NCOMP
+                                                                                         }
+  NCOMP
+end
 """
     eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
 
@@ -391,27 +412,32 @@ Return an iterator over the indices that specify the location in relevant data s
 for the components in `AbstractIdealGlmMhdMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
-@inline eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations) = Base.OneTo(ncomponents(equations))
+@inline function eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
+  Base.OneTo(ncomponents(equations))
+end
 
 # Diffusion equation: first order hyperbolic system
-abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
 include("hyperbolic_diffusion_1d.jl")
 include("hyperbolic_diffusion_2d.jl")
 include("hyperbolic_diffusion_3d.jl")
 
 # Lattice-Boltzmann equation (advection part only)
-abstract type AbstractLatticeBoltzmannEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractLatticeBoltzmannEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
 include("lattice_boltzmann_2d.jl")
 include("lattice_boltzmann_3d.jl")
 
 # Acoustic perturbation equations
-abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
 
 # Linearized Euler equations
-abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
 include("linearized_euler_2d.jl")
 
 abstract type AbstractEquationsParabolic{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-
 end # @muladd
