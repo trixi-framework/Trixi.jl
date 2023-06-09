@@ -184,7 +184,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 
   @trixi_timeit timer() "copy to coupled boundaries" begin
     for semi_ in semi.semis
-      copy_to_coupled_boundary(semi_.boundary_conditions, u_ode, semi)
+      copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi)
     end
   end
 
@@ -204,16 +204,16 @@ end
 
 
 # Don't do anything for other BCs than BoundaryConditionCoupled
-function copy_to_coupled_boundary(boundary_condition, u_ode, semi) end
+function copy_to_coupled_boundary!(boundary_condition, u_ode, semi) end
 
-function copy_to_coupled_boundary(boundary_conditions::Union{Tuple, NamedTuple}, u_ode, semi)
+function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}, u_ode, semi)
   for boundary_condition in boundary_conditions
-    copy_to_coupled_boundary(boundary_condition, u_ode, semi)
+    copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
   end
 end
 
 # In 2D
-function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{2}, u_ode, semi)
+function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2}, u_ode, semi)
   @unpack u_indices = semi
   @unpack other_semi_index, other_orientation, indices = boundary_condition
 
