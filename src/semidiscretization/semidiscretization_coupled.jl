@@ -223,7 +223,7 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{2
   @unpack other_semi_index, other_orientation, indices = boundary_condition
 
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
-  @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
+  u = wrap_array(get_system_u_ode(u_ode, other_semi_index, semi), mesh, equations, solver, cache)
 
   linear_indices = LinearIndices(size(mesh))
 
