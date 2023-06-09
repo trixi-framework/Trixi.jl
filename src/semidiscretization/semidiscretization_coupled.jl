@@ -77,7 +77,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
 end
 
 
-function summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_context)
+function print_summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_context)
   show(io_context, MIME"text/plain"(), semi)
   println(io, "\n")
   for i in eachsystem(semi)
