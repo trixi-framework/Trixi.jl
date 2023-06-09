@@ -281,6 +281,7 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype<:Real, I}
   end
 end
 
+Base.eltype(boundary_condition::BoundaryConditionCoupled) = eltype(boundary_condition.u_boundary)
 
 function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction,
                                                         cell_indices, surface_node_indices,
@@ -326,7 +327,8 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
     cell_size = size(mesh, 1)
   end
 
-  boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations), nnodes(dg),
+  uEltype = eltype(boundary_condition)
+  boundary_condition.u_boundary = Array{uEltype, 3}(undef, nvariables(equations), nnodes(dg),
                                                     cell_size)
 end
 
