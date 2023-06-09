@@ -2,30 +2,30 @@
     SemidiscretizationCoupled
 
 A struct used to bundle multiple semidiscretizations.
-`semidiscretize` will return an `ODEproblem` that synchronizes time steps between the semidiscretizations.
+[`semidiscretize`](@ref) will return an `ODEProblem` that synchronizes time steps between the semidiscretizations.
 Each call of `rhs!` will call `rhs!` for each semidiscretization individually.
-The semidiscretizations can be coupled by gluing meshes together using `BoundaryConditionCoupled`.
+The semidiscretizations can be coupled by gluing meshes together using [`BoundaryConditionCoupled`](@ref).
 
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-struct SemidiscretizationCoupled{S, I, EquationList} <: AbstractSemidiscretization
+struct SemidiscretizationCoupled{S, Indices, EquationList} <: AbstractSemidiscretization
   semis::S
-  u_indices::I # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
+  u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
   performance_counter::PerformanceCounter
 end
 
 
 """
-    SemidiscretizationCoupled(semis)
+    SemidiscretizationCoupled(semis...)
 
-Create a coupled semidiscretization that consists of the semidiscretizations contained in the tuple `semis`.
+Create a coupled semidiscretization that consists of the semidiscretizations passed as arguments.
 """
-function SemidiscretizationCoupled(semis)
+function SemidiscretizationCoupled(semis...)
   @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
 
   # Number of coefficients for each semidiscretization
-  n_coefficients = zeros(Int64, length(semis))
+  n_coefficients = zeros(Int, length(semis))
   for i in 1:length(semis)
     _, equations, _, _ = mesh_equations_solver_cache(semis[i])
     n_coefficients[i] = ndofs(semis[i]) * nvariables(equations)
@@ -34,7 +34,7 @@ function SemidiscretizationCoupled(semis)
   # Compute range of coefficients associated with each semidiscretization and allocate coupled BCs
   u_indices = Vector{UnitRange{Int}}(undef, length(semis))
   for i in 1:length(semis)
-    offset = sum(n_coefficients[1:i-1]) + 1
+    offset = sum(n_coefficients[1:(i-1)]) + 1
     u_indices[i] = range(offset, length=n_coefficients[i])
 
     allocate_coupled_boundary_conditions(semis[i])
@@ -77,7 +77,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
 end
 
 
-function summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_context)
+function print_summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_context)
   show(io_context, MIME"text/plain"(), semi)
   println(io, "\n")
   for i in eachsystem(semi)
@@ -96,11 +96,6 @@ function summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_cont
     summary_footer(io)
     println(io, "\n")
   end
-end
-
-function Base.summary(semi::SemidiscretizationCoupled)
-  _, _, solver, _ = mesh_equations_solver_cache(semi.semis[1])
-  summary(solver)
 end
 
 
@@ -373,10 +368,10 @@ This is currently only implemented for [`StructuredMesh`](@ref).
 ```julia
 # Connect the left boundary of mesh 2 to our boundary such that our positive
 # boundary direction will match the positive y direction of the other boundary
-BoundaryConditionCoupled(2, (1, :i), Float64)
+BoundaryConditionCoupled(2, (:begin, :i), Float64)
 
 # Connect the same two boundaries oppositely oriented
-BoundaryConditionCoupled(2, (1, :i_backwards), Float64)
+BoundaryConditionCoupled(2, (:begin, :i_backwards), Float64)
 
 # Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
 BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64)
@@ -385,12 +380,13 @@ BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype<:Real, I}
+mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype<:Real, Indices}
+  # NDIMST2M1 == NDIMS * 2 - 1
   # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
   u_boundary       ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
   other_semi_index ::Int
   other_orientation::Int
-  indices          ::I
+  indices          ::Indices
 
   function BoundaryConditionCoupled(other_semi_index, indices, uEltype)
     NDIMS = length(indices)
@@ -400,7 +396,7 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype<:Real, I}
       other_orientation = 1
     elseif indices[2] in (:begin, :end)
       other_orientation = 2
-    else
+    else # indices[3] in (:begin, :end)
       other_orientation = 3
     end
 
@@ -409,6 +405,7 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype<:Real, I}
   end
 end
 
+Base.eltype(boundary_condition::BoundaryConditionCoupled) = eltype(boundary_condition.u_boundary)
 
 function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction,
                                                         cell_indices, surface_node_indices,
@@ -454,7 +451,8 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
     cell_size = size(mesh, 1)
   end
 
-  boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations), nnodes(dg),
+  uEltype = eltype(boundary_condition)
+  boundary_condition.u_boundary = Array{uEltype, 3}(undef, nvariables(equations), nnodes(dg),
                                                     cell_size)
 end
 

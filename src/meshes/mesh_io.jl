@@ -99,7 +99,6 @@ function save_mesh_file(mesh::StructuredMesh, output_directory; system="")
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
-  # filename = joinpath(output_directory, "mesh.h5")
   if isempty(system)
     filename = joinpath(output_directory, "mesh.h5")
   else
