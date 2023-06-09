@@ -25,7 +25,7 @@ function SemidiscretizationCoupled(semis)
   @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
 
   # Number of coefficients for each semidiscretization
-  n_coefficients = zeros(Int64, length(semis))
+  n_coefficients = zeros(Int, length(semis))
   for i in 1:length(semis)
     _, equations, _, _ = mesh_equations_solver_cache(semis[i])
     n_coefficients[i] = ndofs(semis[i]) * nvariables(equations)
