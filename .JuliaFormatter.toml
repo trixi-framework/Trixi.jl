@@ -3,6 +3,3 @@ style = "sciml"
 margin = 92
 indent = 4
 yas_style_nesting = true
-
-ignore = ["src/equations/shallow_water_two_layer_1d.jl",
-          "src/equations/shallow_water_two_layer_2d.jl"]
