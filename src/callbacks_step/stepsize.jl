@@ -95,19 +95,6 @@ function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
 end
 
 
-# In case of coupled system, use minimum timestep over all systems
-function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
-  @unpack u_indices = semi
-
-  dt = minimum(eachsystem(semi)) do i
-    u_ode_slice = @view u_ode[u_indices[i]]
-    calculate_dt(u_ode_slice, t, cfl_number, semi.semis[i])
-  end
-
-  return dt
-end
-
-
 # Time integration methods from the DiffEq ecosystem without adaptive time stepping on their own
 # such as `CarpenterKennedy2N54` require passing `dt=...` in `solve(ode, ...)`. Since we don't have
 # an integrator at this stage but only the ODE, this method will be used there. It's called in
