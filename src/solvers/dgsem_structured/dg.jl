@@ -111,9 +111,6 @@ function get_boundary_indices(element, orientation, mesh::StructuredMesh{2})
 end
 
 
-@inline ndofs(mesh::StructuredMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
-
-
 include("containers.jl")
 include("dg_1d.jl")
 include("dg_2d.jl")
