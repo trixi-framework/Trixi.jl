@@ -9,9 +9,9 @@ The semidiscretizations can be coupled by gluing meshes together using `Boundary
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-struct SemidiscretizationCoupled{S, I, EquationList} <: AbstractSemidiscretization
+struct SemidiscretizationCoupled{S, Indices, EquationList} <: AbstractSemidiscretization
   semis::S
-  u_indices::I # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
+  u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
   performance_counter::PerformanceCounter
 end
 
@@ -257,12 +257,12 @@ BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype<:Real, I}
+mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype<:Real, Indices}
   # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
   u_boundary       ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
   other_semi_index ::Int
   other_orientation::Int
-  indices          ::I
+  indices          ::Indices
 
   function BoundaryConditionCoupled(other_semi_index, indices, uEltype)
     NDIMS = length(indices)
