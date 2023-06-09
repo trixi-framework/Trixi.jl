@@ -272,7 +272,7 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype<:Real, I}
       other_orientation = 1
     elseif indices[2] in (:begin, :end)
       other_orientation = 2
-    else
+    else # indices[3] in (:begin, :end)
       other_orientation = 3
     end
 
