@@ -249,18 +249,19 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 end
 
 # type alias for dispatch in printing of boundary conditions
-const SemiHypMeshBCSolver{Mesh, BoundaryConditions, Solver} = SemidiscretizationHyperbolic{
-                                                                                           Mesh,
-                                                                                           Equations,
-                                                                                           InitialCondition,
-                                                                                           BoundaryConditions,
-                                                                                           SourceTerms,
-                                                                                           Solver
-                                                                                           } where {
-                                                                                                    Equations,
-                                                                                                    InitialCondition,
-                                                                                                    SourceTerms
-                                                                                                    }
+const SemiHypMeshBCSolver{
+Mesh,
+BoundaryConditions,
+Solver
+} = SemidiscretizationHyperbolic{Mesh,
+                             Equations,
+                             InitialCondition,
+                             BoundaryConditions,
+                             SourceTerms,
+                             Solver
+                             } where {Equations,
+                                      InitialCondition,
+                                      SourceTerms}
 
 # generic fallback: print the type of semi.boundary_condition.
 function print_boundary_conditions(io, semi::SemiHypMeshBCSolver)
