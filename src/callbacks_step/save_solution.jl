@@ -158,7 +158,7 @@ end
 
 # Save mesh for a coupled semidiscretization, which contains multiple meshes internally
 function save_mesh(semi::SemidiscretizationCoupled, output_directory, timestep=0)
-  for i in 1:nsystems(semi)
+  for i in eachsystem(semi)
     mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
 
     if mesh.unsaved_changes
@@ -233,7 +233,7 @@ end
                                     integrator)
   @unpack semis, u_indices = semi
 
-  for i in 1:nsystems(semi)
+  for i in eachsystem(semi)
     u_ode_slice = @view u_ode[u_indices[i]]
     save_solution_file(semis[i], u_ode_slice, solution_callback, integrator, system=i)
   end
