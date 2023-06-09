@@ -19,9 +19,9 @@ indicator_sc = IndicatorIDP(equations, basis;
                             density_tvd=true,
                             positivity=false,
                             smoothness_indicator=false)
-volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
-                                                      volume_flux_dg=volume_flux,
-                                                      volume_flux_fv=surface_flux)
+volume_integral = VolumeIntegralSubcellLimiting(indicator_sc;
+                                                volume_flux_dg=volume_flux,
+                                                volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 # Waving flag

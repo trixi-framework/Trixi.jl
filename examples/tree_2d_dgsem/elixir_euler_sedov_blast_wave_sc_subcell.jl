@@ -47,9 +47,9 @@ indicator_sc = IndicatorIDP(equations, basis;
                             spec_entropy=true,
                             smoothness_indicator=false,
                             bar_states=true)
-volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
-                                                      volume_flux_dg=volume_flux,
-                                                      volume_flux_fv=surface_flux)
+volume_integral = VolumeIntegralSubcellLimiting(indicator_sc;
+                                                volume_flux_dg=volume_flux,
+                                                volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2.0, -2.0)

@@ -255,7 +255,7 @@ end
 
 Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
 
-function Base.resize!(semi, volume_integral::VolumeIntegralShockCapturingSubcell, new_size)
+function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
   # Resize container_antidiffusive_flux
   resize!(semi.cache.container_antidiffusive_flux, new_size)
 

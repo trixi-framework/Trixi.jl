@@ -22,7 +22,7 @@ end
 
 (::APosterioriLimiter)(u_ode, semi, t, dt, volume_integral::AbstractVolumeIntegral) = nothing
 
-function (limiter!::APosterioriLimiter)(u_ode, semi, t, dt, volume_integral::VolumeIntegralShockCapturingSubcell)
+function (limiter!::APosterioriLimiter)(u_ode, semi, t, dt, volume_integral::VolumeIntegralSubcellLimiting)
 
   @trixi_timeit timer() "a posteriori limiter" limiter!(u_ode, semi, t, dt, volume_integral.indicator)
 end

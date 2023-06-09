@@ -22,9 +22,9 @@ indicator_sc = IndicatorIDP(equations, basis;
                             positivity_correction_factor=0.1, max_iterations_newton=10,
                             newton_tolerances=(1.0e-12, 1.0e-14))
 
-volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
-                                                      volume_flux_dg=volume_flux,
-                                                      volume_flux_fv=surface_flux)
+volume_integral = VolumeIntegralSubcellLimiting(indicator_sc;
+                                                volume_flux_dg=volume_flux,
+                                                volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 # Mapping as described in https://arxiv.org/abs/2012.12040 but reduced to 2D.
