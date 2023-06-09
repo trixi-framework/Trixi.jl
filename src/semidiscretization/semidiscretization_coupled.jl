@@ -17,11 +17,11 @@ end
 
 
 """
-    SemidiscretizationCoupled(semis)
+    SemidiscretizationCoupled(semis...)
 
-Create a coupled semidiscretization that consists of the semidiscretizations contained in the tuple `semis`.
+Create a coupled semidiscretization that consists of the semidiscretizations passed as arguments.
 """
-function SemidiscretizationCoupled(semis)
+function SemidiscretizationCoupled(semis...)
   @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
 
   # Number of coefficients for each semidiscretization

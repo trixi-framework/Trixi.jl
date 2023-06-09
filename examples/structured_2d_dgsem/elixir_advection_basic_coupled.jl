@@ -70,7 +70,7 @@ semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_converg
                                        y_pos=boundary_condition_periodic))
 
 # Create a semidiscretization that bundles semi1 and semi2
-semi = SemidiscretizationCoupled((semi1, semi2))
+semi = SemidiscretizationCoupled(semi1, semi2)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
