@@ -98,11 +98,6 @@ function summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_cont
   end
 end
 
-function Base.summary(semi::SemidiscretizationCoupled)
-  _, _, solver, _ = mesh_equations_solver_cache(semi.semis[1])
-  summary(solver)
-end
-
 
 @inline Base.ndims(semi::SemidiscretizationCoupled) = ndims(semi.semis[1])
 
