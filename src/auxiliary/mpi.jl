@@ -107,9 +107,8 @@ end
 recursive_length(u::Number) = length(u)
 recursive_length(u::AbstractArray{<:Number}) = length(u)
 recursive_length(u::AbstractArray{<:AbstractArray}) = sum(recursive_length, u)
-function recursive_length(u::AbstractArray{<:StaticArrays.StaticArray{S, <:Number}}) where {
-                                                                                            S
-                                                                                            }
+function recursive_length(u::AbstractArray{<:StaticArrays.StaticArray{S,
+                                                                      <:Number}}) where {S}
     prod(StaticArrays.Size(eltype(u))) * length(u)
 end
 
