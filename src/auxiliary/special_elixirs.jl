@@ -103,11 +103,11 @@ function analyze_convergence(errors_coupled, iterations, semi_coupled::Semidiscr
   # sys n: | iter 1 var 1...n | iter 1 var 1...n | ... | iter 2 var 1...n | ...
   # That is, we need to extract and join the data for a single system
   errors = []
-  for i in 1:nsystems(semi_coupled)
+  for i in eachsystem(semi_coupled)
     push!(errors, Dict(:l2 => Float64[], :linf => Float64[]))
   end
   offset = 0
-  for iter in 1:iterations, i in 1:nsystems(semi_coupled)
+  for iter in 1:iterations, i in eachsystem(semi_coupled)
     # Extract information on current semi
     semi = semi_coupled.semis[i]
     _, equations, _, _ = mesh_equations_solver_cache(semi)
@@ -124,7 +124,7 @@ function analyze_convergence(errors_coupled, iterations, semi_coupled::Semidiscr
   end
 
   eoc_mean_values = Vector{Dict{Symbol, Any}}(undef, nsystems(semi_coupled))
-  for i in 1:nsystems(semi_coupled)
+  for i in eachsystem(semi_coupled)
     # Use visual cues to separate output from multiple systems
     println()
     println("="^100)

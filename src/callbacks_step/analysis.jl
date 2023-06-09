@@ -683,7 +683,7 @@ function initialize!(cb_coupled::DiscreteCallback{Condition,Affect!}, u_ode_coup
   du_ode_coupled = first(get_tmp_cache(integrator))
 
   # Loop over coupled systems' callbacks and initialize them individually
-  for i in 1:nsystems(semi_coupled)
+  for i in eachsystem(semi_coupled)
     cb = analysis_callback_coupled.callbacks[i]
     semi = semi_coupled.semis[i]
     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
@@ -700,7 +700,7 @@ function (analysis_callback_coupled::AnalysisCallbackCoupled)(integrator)
   du_ode_coupled = first(get_tmp_cache(integrator))
 
   # Loop over coupled systems' callbacks and call them individually
-  for i in 1:nsystems(semi_coupled)
+  for i in eachsystem(semi_coupled)
     @unpack condition = analysis_callback_coupled.callbacks[i]
     analysis_callback = analysis_callback_coupled.callbacks[i].affect!
     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
@@ -725,7 +725,7 @@ function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect
   uEltype = real(semi_coupled)
   l2_error_collection = uEltype[]
   linf_error_collection = uEltype[]
-  for i in 1:nsystems(semi_coupled)
+  for i in eachsystem(semi_coupled)
     analysis_callback = callbacks[i].affect!
     @unpack analyzer = analysis_callback
     cache_analysis = analysis_callback.cache
