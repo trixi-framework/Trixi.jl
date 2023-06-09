@@ -54,7 +54,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
 end
 
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator,
-      volume_integral::VolumeIntegralShockCapturingSubcell) where {Condition, Affect!<:LimitingAnalysisCallback}
+      volume_integral::VolumeIntegralSubcellLimiting) where {Condition, Affect!<:LimitingAnalysisCallback}
 
   initialize!(cb, u_ode, t, integrator, volume_integral.indicator, cb.affect!.output_directory)
 
@@ -110,7 +110,7 @@ end
 end
 
 @inline function (limiting_analysis_callback::LimitingAnalysisCallback)(mesh, equations, solver, cache,
-                                                                        volume_integral::VolumeIntegralShockCapturingSubcell,
+                                                                        volume_integral::VolumeIntegralSubcellLimiting,
                                                                         t, iter)
   if limiting_analysis_callback.interval == 0 || (iter % limiting_analysis_callback.interval != 0)
     return nothing

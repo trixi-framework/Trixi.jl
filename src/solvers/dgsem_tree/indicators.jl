@@ -16,7 +16,7 @@ function get_element_variables!(element_variables, indicator::AbstractIndicator,
   return nothing
 end
 
-function get_element_variables!(element_variables, indicator::AbstractIndicator, ::VolumeIntegralShockCapturingSubcell)
+function get_element_variables!(element_variables, indicator::AbstractIndicator, ::VolumeIntegralSubcellLimiting)
   element_variables[:smooth_indicator_elementwise] = indicator.IndicatorHG.cache.alpha
   return nothing
 end
@@ -229,7 +229,7 @@ end
                  smoothness_indicator=false, threshold_smoothness_indicator=0.1,
                  variable_smoothness_indicator=density_pressure)
 
-Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralShockCapturingSubcell`](@ref)
+Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
 - two-sided Zalesak-type limiting for density (`density_tvd`)
 - positivity limiting for conservative and non-linear variables (`positivity`)
@@ -362,9 +362,9 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
   end
 end
 
-function get_node_variables!(node_variables, indicator::IndicatorIDP, ::VolumeIntegralShockCapturingSubcell, equations)
+function get_node_variables!(node_variables, indicator::IndicatorIDP, ::VolumeIntegralSubcellLimiting, equations)
   node_variables[:indicator_shock_capturing] = indicator.cache.container_shock_capturing.alpha
-  # TODO: Im ersten Zeitschritt scheint alpha noch nicht befüllt zu sein.
+  # TODO: alpha is not filled before the first timestep.
   return nothing
 end
 
@@ -384,7 +384,7 @@ end
                  variable_smoothness_indicator=density_pressure,
                  Plotting=true)
 
-Subcell monolithic convex limiting (MCL) used with [`VolumeIntegralShockCapturingSubcell`](@ref) including:
+Subcell monolithic convex limiting (MCL) used with [`VolumeIntegralSubcellLimiting`](@ref) including:
 - local two-sided limiting for `cons(1)` (`DensityLimiter`)
 - transfer amount of `DensityLimiter` to all quantities (`DensityAlphaForAll`)
 - local two-sided limiting for variables `phi:=cons(i)/cons(1)` (`SequentialLimiter`)
@@ -513,7 +513,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMCL)
   end
 end
 
-function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIntegralShockCapturingSubcell, equations)
+function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIntegralSubcellLimiting, equations)
   if !indicator.Plotting
     return nothing
   end

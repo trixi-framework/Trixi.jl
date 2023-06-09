@@ -176,38 +176,34 @@ end
 
 
 """
-    VolumeIntegralShockCapturingSubcell(indicator;
-                                        volume_flux_dg, volume_flux_fv)
+    VolumeIntegralSubcellLimiting(indicator;
+                                  volume_flux_dg, volume_flux_fv)
 
-A shock-capturing volume integral type for DG methods based on a subcell blending approach
-with a low-order FV method from the preprint paper
-- Rueda-Ramírez, Pazner, Gassner (2022)
-  "Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods"
+A subcell limiting volume integral type for DG methods based on subcell blending approaches
+with a low-order FV method. Used with the indicators [`IndicatorIDP`](@ref) and [`IndicatorMCL`](@ref).
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
-
-See also: [`VolumeIntegralShockCapturingHG`](@ref)
 """
-struct VolumeIntegralShockCapturingSubcell{VolumeFluxDG, VolumeFluxFV, Indicator} <: AbstractVolumeIntegral
+struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Indicator} <: AbstractVolumeIntegral
   volume_flux_dg::VolumeFluxDG
   volume_flux_fv::VolumeFluxFV
   indicator::Indicator
 end
 
-function VolumeIntegralShockCapturingSubcell(indicator; volume_flux_dg,
+function VolumeIntegralSubcellLimiting(indicator; volume_flux_dg,
                                                         volume_flux_fv)
-  VolumeIntegralShockCapturingSubcell{typeof(volume_flux_dg), typeof(volume_flux_fv), typeof(indicator)}(
+  VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv), typeof(indicator)}(
     volume_flux_dg, volume_flux_fv, indicator)
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShockCapturingSubcell)
+function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralSubcellLimiting)
   @nospecialize integral # reduce precompilation time
 
   if get(io, :compact, false)
     show(io, integral)
   else
-    summary_header(io, "VolumeIntegralShockCapturingSubcell")
+    summary_header(io, "VolumeIntegralSubcellLimiting")
     summary_line(io, "volume flux DG", integral.volume_flux_dg)
     summary_line(io, "volume flux FV", integral.volume_flux_fv)
     summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
@@ -217,7 +213,7 @@ function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShock
 end
 
 function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralShockCapturingSubcell, dg, cache)
+                                volume_integral::VolumeIntegralSubcellLimiting, dg, cache)
   if volume_integral.indicator.smoothness_indicator
     # call the indicator to get up-to-date values for IO
     volume_integral.indicator.IndicatorHG(u, mesh, equations, dg, cache)
@@ -226,7 +222,7 @@ function get_element_variables!(element_variables, u, mesh, equations,
 end
 
 function get_node_variables!(node_variables, mesh, equations,
-                             volume_integral::VolumeIntegralShockCapturingSubcell, dg, cache)
+                             volume_integral::VolumeIntegralSubcellLimiting, dg, cache)
   get_node_variables!(node_variables, volume_integral.indicator, volume_integral, equations)
 end
 

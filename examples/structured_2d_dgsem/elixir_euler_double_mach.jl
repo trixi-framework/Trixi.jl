@@ -98,8 +98,8 @@ indicator_sc = IndicatorIDP(equations, basis;
                             spec_entropy=true,
                             positivity_correction_factor=0.1, max_iterations_newton=100,
                             bar_states=true)
-volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
-                                                                  volume_flux_fv=surface_flux)
+volume_integral=VolumeIntegralSubcellLimiting(indicator_sc; volume_flux_dg=volume_flux,
+                                                            volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 initial_refinement_level = 6
@@ -139,7 +139,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (AntidiffusiveStage(), BoundsCheckCallback(save_errors=false))
+stage_callbacks = (APosterioriLimiter(), BoundsCheckCallback(save_errors=false))
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks);
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

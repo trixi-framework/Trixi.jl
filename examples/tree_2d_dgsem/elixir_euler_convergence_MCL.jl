@@ -22,9 +22,9 @@ indicator_sc = IndicatorMCL(equations, basis;
                             PressurePositivityLimiterKuzmin=true, PressurePositivityLimiterKuzminExact=true,
                             Plotting=true)
 
-volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
-                                                      volume_flux_dg=volume_flux,
-                                                      volume_flux_fv=surface_flux)
+volume_integral = VolumeIntegralSubcellLimiting(indicator_sc;
+                                                volume_flux_dg=volume_flux,
+                                                volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-1.0, -1.0)

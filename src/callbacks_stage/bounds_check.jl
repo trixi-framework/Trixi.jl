@@ -42,7 +42,7 @@ function check_bounds(u, mesh, equations, solver, cache, volume_integral::Abstra
   return nothing
 end
 
-function check_bounds(u, mesh, equations, solver, cache, volume_integral::VolumeIntegralShockCapturingSubcell,
+function check_bounds(u, mesh, equations, solver, cache, volume_integral::VolumeIntegralSubcellLimiting,
                       t, iter, output_directory, save_errors, interval)
   check_bounds(u, mesh, equations, solver, cache, volume_integral.indicator, t, iter,
                output_directory, save_errors, interval)
@@ -55,7 +55,7 @@ end
 
 init_callback(callback, semi, volume_integral::AbstractVolumeIntegral) = nothing
 
-function init_callback(callback, semi, volume_integral::VolumeIntegralShockCapturingSubcell)
+function init_callback(callback, semi, volume_integral::VolumeIntegralSubcellLimiting)
   init_callback(callback, semi, volume_integral.indicator)
 end
 
@@ -121,7 +121,7 @@ end
 
 finalize_callback(callback, semi, volume_integral::AbstractVolumeIntegral) = nothing
 
-function finalize_callback(callback, semi, volume_integral::VolumeIntegralShockCapturingSubcell)
+function finalize_callback(callback, semi, volume_integral::VolumeIntegralSubcellLimiting)
   finalize_callback(callback, semi, volume_integral.indicator)
 end
 

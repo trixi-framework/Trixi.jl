@@ -80,7 +80,7 @@ end
 
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
-                      volume_integral::VolumeIntegralShockCapturingSubcell, dg::DG, uEltype)
+                      volume_integral::VolumeIntegralSubcellLimiting, dg::DG, uEltype)
   cache = create_cache(mesh, equations,
                        VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
                        dg, uEltype)
@@ -532,7 +532,7 @@ end
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralShockCapturingSubcell,
+                               volume_integral::VolumeIntegralSubcellLimiting,
                                dg::DGSEM, cache, t, boundary_conditions)
   @unpack indicator = volume_integral
 

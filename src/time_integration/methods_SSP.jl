@@ -10,7 +10,7 @@ abstract type SimpleAlgorithmSSP end
 
 
 """
-    SimpleSSPRK33(; stage_callbacks=(AntidiffusiveStage(), BoundsCheckCallback()))
+    SimpleSSPRK33(; stage_callbacks=(APosterioriLimiter(), BoundsCheckCallback()))
 
 The third-order SSP Runge-Kutta method of Shu and Osher.
 
@@ -29,7 +29,7 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
   c::SVector{3, Float64}
   stage_callbacks::StageCallbacks
 
-  function SimpleSSPRK33(; stage_callbacks=(AntidiffusiveStage(), BoundsCheckCallback()))
+  function SimpleSSPRK33(; stage_callbacks=(APosterioriLimiter(), BoundsCheckCallback()))
     a = SVector(0.0, 3/4, 1/3)
     b = SVector(1.0, 1/4, 2/3)
     c = SVector(0.0, 1.0, 1/2)
@@ -92,8 +92,8 @@ end
 """
     solve(ode, alg; dt, callbacks, kwargs...)
 
-The following structures and methods provide a implementation of the third-order SSP Runge-Kutta
-method [`SimpleSSPRK33`](@ref).
+The following structures and methods provide the infrastructure for SSP Runge-Kutta methods
+of type `SimpleAlgorithmSSP`.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -234,7 +234,7 @@ end
 
 Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
 
-function Base.resize!(semi, volume_integral::VolumeIntegralShockCapturingSubcell, new_size)
+function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
   # Resize container_antidiffusive_flux
   resize!(semi.cache.container_antidiffusive_flux, new_size)
 
