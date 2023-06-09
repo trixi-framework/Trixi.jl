@@ -3,15 +3,13 @@ using Trixi
 
 
 ###############################################################################
-# semidiscretization of the linear advection equation
-
-advection_velocity = (0.2, -0.7)
-equations = LinearScalarAdvectionEquation2D(advection_velocity)
-
-# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
-
-# Setup overview
+# Coupled semidiscretization of two linear advection systems, which are connected periodically
+#
+# In this elixir, we have a square domain that is divided into a left half and a right half. On each
+# half of the domain, a completely independent SemidiscretizationHyperbolic is created for the
+# linear advection equations. The two systems are coupled in the x-direction and have periodic
+# boundaries in the y-direction. For a high-level overview, see also the figure below:
+#
 # (-1,  1)                                   ( 1,  1)
 #     ┌────────────────────┬────────────────────┐
 #     │    ↑ periodic ↑    │    ↑ periodic ↑    │
@@ -32,6 +30,12 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 #     │    ↓ periodic ↓    │    ↓ periodic ↓    │
 #     └────────────────────┴────────────────────┘
 # (-1, -1)                                   ( 1, -1)
+
+advection_velocity = (0.2, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
+
+# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 # First mesh is the left half of a [-1,1]^2 square
 coordinates_min1 = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
