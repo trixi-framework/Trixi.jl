@@ -26,10 +26,9 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
         # nicely with non-base array types
         old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
 
-        @trixi_timeit timer() "reinitialize data structures" reinitialize_containers!(mesh,
-                                                                                      equations,
-                                                                                      dg,
-                                                                                      cache)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
 
         resize!(u_ode,
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
