@@ -1,5 +1,5 @@
 style = "sciml"
 
-margin = 92
 indent = 4
 yas_style_nesting = true
+align_struct_field = true
