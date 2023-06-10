@@ -77,21 +77,21 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
 end
 
 
-function print_summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_context)
-  show(io_context, MIME"text/plain"(), semi)
+function print_summary_semidiscretization(io::IO, semi::SemidiscretizationCoupled)
+  show(io, MIME"text/plain"(), semi)
   println(io, "\n")
   for i in eachsystem(semi)
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
     summary_header(io, "System #$i")
 
-    summary_line(io_context, "mesh", mesh |> typeof |> nameof)
-    show(increment_indent(io_context), MIME"text/plain"(), mesh)
+    summary_line(io, "mesh", mesh |> typeof |> nameof)
+    show(increment_indent(io), MIME"text/plain"(), mesh)
 
-    summary_line(io_context, "equations", equations |> typeof |> nameof)
-    show(increment_indent(io_context), MIME"text/plain"(), equations)
+    summary_line(io, "equations", equations |> typeof |> nameof)
+    show(increment_indent(io), MIME"text/plain"(), equations)
 
-    summary_line(io_context, "solver", solver |> typeof |> nameof)
-    show(increment_indent(io_context), MIME"text/plain"(), solver)
+    summary_line(io, "solver", solver |> typeof |> nameof)
+    show(increment_indent(io), MIME"text/plain"(), solver)
 
     summary_footer(io)
     println(io, "\n")

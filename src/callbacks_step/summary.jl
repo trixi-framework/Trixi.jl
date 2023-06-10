@@ -149,7 +149,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
                          :indentation_level => 0)
 
   semi = integrator.p
-  print_summary_semidiscretization(semi, io, io_context)
+  print_summary_semidiscretization(io_context, semi)
 
   callbacks = integrator.opts.callback
   if callbacks isa CallbackSet
@@ -204,15 +204,15 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
 end
 
 
-function print_summary_semidiscretization(semi, io, io_context)
-  show(io_context, MIME"text/plain"(), semi)
+function print_summary_semidiscretization(io::IO, semi::AbstractSemidiscretization)
+  show(io, MIME"text/plain"(), semi)
   println(io, "\n")
   mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
-  show(io_context, MIME"text/plain"(), mesh)
+  show(io, MIME"text/plain"(), mesh)
   println(io, "\n")
-  show(io_context, MIME"text/plain"(), equations)
+  show(io, MIME"text/plain"(), equations)
   println(io, "\n")
-  show(io_context, MIME"text/plain"(), solver)
+  show(io, MIME"text/plain"(), solver)
   println(io, "\n")
 end
 
