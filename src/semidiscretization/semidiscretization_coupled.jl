@@ -316,10 +316,10 @@ end
 
 @inline function save_solution_file(semi::SemidiscretizationCoupled, u_ode, solution_callback,
                                     integrator)
-  @unpack semis, u_indices = semi
+  @unpack semis = semi
 
   for i in eachsystem(semi)
-    u_ode_slice = @view u_ode[u_indices[i]]
+    u_ode_slice = get_system_u_ode(u_ode, i, semi)
     save_solution_file(semis[i], u_ode_slice, solution_callback, integrator, system=i)
   end
 end
@@ -331,10 +331,8 @@ end
 
 # In case of coupled system, use minimum timestep over all systems
 function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
-  @unpack u_indices = semi
-
   dt = minimum(eachsystem(semi)) do i
-    u_ode_slice = @view u_ode[u_indices[i]]
+    u_ode_slice = get_system_u_ode(u_ode, i, semi)
     calculate_dt(u_ode_slice, t, cfl_number, semi.semis[i])
   end
 
