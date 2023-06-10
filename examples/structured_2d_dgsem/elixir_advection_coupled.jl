@@ -31,9 +31,6 @@ using Trixi
 #     └────────────────────┴────────────────────┘
 # (-1, -1)                                   ( 1, -1)
 
-# Define identical resolution such that it is easier to change from `trixi_include`
-cells_per_dimension = (8, 16)
-
 advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
@@ -43,6 +40,9 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 # First mesh is the left half of a [-1,1]^2 square
 coordinates_min1 = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max1 = ( 0.0,  1.0) # maximum coordinates (max(x), max(y))
+
+# Define identical resolution as a variable such that it is easier to change from `trixi_include`
+cells_per_dimension = (8, 16)
 
 cells_per_dimension1 = cells_per_dimension
 
