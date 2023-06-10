@@ -574,7 +574,7 @@ function analyze_convergence(errors_coupled, iterations, semi_coupled::Semidiscr
   # but for calling `analyze_convergence` below, we need the following layout
   # sys n: | iter 1 var 1...n | iter 1 var 1...n | ... | iter 2 var 1...n | ...
   # That is, we need to extract and join the data for a single system
-  errors = []
+  errors = Dict{Symbol, Vector{Float64}}[]
   for i in eachsystem(semi_coupled)
     push!(errors, Dict(:l2 => Float64[], :linf => Float64[]))
   end
