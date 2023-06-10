@@ -67,7 +67,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
       summary_line(increment_indent(io), "mesh", mesh |> typeof |> nameof)
       summary_line(increment_indent(io), "equations", equations |> typeof |> nameof)
       summary_line(increment_indent(io), "initial condition", semi.semis[i].initial_condition)
-      # TODO boundary conditions? That will be 36 BCs for a cubed sphere
+      # no boundary conditions since that could be too much
       summary_line(increment_indent(io), "source terms", semi.semis[i].source_terms)
       summary_line(increment_indent(io), "solver", solver |> typeof |> nameof)
     end
