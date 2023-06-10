@@ -78,8 +78,7 @@ using SummationByPartsOperators: AbstractDerivativeOperator,
 import SummationByPartsOperators: integrate, semidiscretize,
                                   compute_coefficients, compute_coefficients!,
                                   left_boundary_weight, right_boundary_weight
-@reexport using SummationByPartsOperators:
-                                           SummationByPartsOperators, derivative_operator,
+@reexport using SummationByPartsOperators: SummationByPartsOperators, derivative_operator,
                                            periodic_derivative_operator,
                                            upwind_operators
 
