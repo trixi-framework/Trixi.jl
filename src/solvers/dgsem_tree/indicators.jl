@@ -218,7 +218,7 @@ end
                  variables_cons=(),
                  positivity_correction_factor=0.1)
 
-Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralShockCapturingSubcell`](@ref)
+Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
 - positivity limiting for conservative variables (`positivity`)
 
