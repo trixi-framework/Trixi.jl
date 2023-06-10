@@ -15,7 +15,7 @@ Perform antidiffusive stage for a posteriori IDP limiting.
 """
 struct APosterioriLimiter end
 
-function (limiter!::APosterioriLimiter)(u_ode, integrator, stage)
+function (limiter!::APosterioriLimiter)(u_ode, integrator::Trixi.SimpleIntegratorSSP, stage)
 
   limiter!(u_ode, integrator.p, integrator.t, integrator.dt, integrator.p.solver.volume_integral)
 end
