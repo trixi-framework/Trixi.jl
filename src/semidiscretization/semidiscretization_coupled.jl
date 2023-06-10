@@ -143,6 +143,11 @@ function compute_coefficients(t, semi::SemidiscretizationCoupled)
 end
 
 
+@inline function get_system_u_ode(u_ode, index, semi::SemidiscretizationCoupled)
+  @view u_ode[semi.u_indices[index]]
+end
+
+
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
   @unpack u_indices = semi
 
@@ -156,16 +161,139 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 
   # Call rhs! for each semidiscretization
   for i in eachsystem(semi)
-    u_loc  = @view u_ode[u_indices[i]]
-    du_loc = @view du_ode[u_indices[i]]
+    u_loc  = get_system_u_ode(u_ode, i, semi)
+    du_loc = get_system_u_ode(du_ode, i, semi)
 
-    rhs!(du_loc, u_loc, semi.semis[i], t)
+    @trixi_timeit timer() "system #$i" rhs!(du_loc, u_loc, semi.semis[i], t)
   end
 
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
 
   return nothing
+end
+
+
+################################################################################
+### AnalysisCallback
+################################################################################
+
+"""
+    AnalysisCallbackCoupled(semi, callbacks...)
+
+Combine multiple analysis callbacks for coupled simulations with a
+[`SemidiscretizationCoupled`](@ref). For each coupled system, an indididual
+[`AnalysisCallback`](@ref) **must** be created and passed to the `AnalysisCallbackCoupled` **in
+order**, i.e., in the same sequence as the indidvidual semidiscretizations are stored in the
+`SemidiscretizationCoupled`.
+
+!!! warning "Experimental code"
+    This is an experimental feature and can change any time.
+"""
+struct AnalysisCallbackCoupled{CB}
+  callbacks::CB
+end
+
+function Base.show(io::IO, ::MIME"text/plain", cb_coupled::DiscreteCallback{<:Any, <:AnalysisCallbackCoupled})
+  @nospecialize cb_coupled # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, cb_coupled)
+  else
+    analysis_callback_coupled = cb_coupled.affect!
+
+    summary_header(io, "AnalysisCallbackCoupled")
+    for (i, cb) in enumerate(analysis_callback_coupled.callbacks)
+      summary_line(io, "Callback #$i", "")
+      show(increment_indent(io), MIME"text/plain"(), cb)
+    end
+    summary_footer(io)
+  end
+end
+
+
+# Convenience constructor for the coupled callback that gets called directly from the elixirs
+function AnalysisCallbackCoupled(semi_coupled, callbacks...)
+  if length(callbacks) != nsystems(semi_coupled)
+    error("an AnalysisCallbackCoupled requires one AnalysisCallback for each semidiscretization")
+  end
+
+  analysis_callback_coupled = AnalysisCallbackCoupled{typeof(callbacks)}(callbacks)
+
+  # This callback is triggered if any of its subsidiary callbacks' condition is triggered
+  condition = (u, t, integrator) -> any(callbacks) do callback
+    callback.condition(u, t, integrator)
+  end
+
+  DiscreteCallback(condition, analysis_callback_coupled,
+                   save_positions=(false,false),
+                   initialize=initialize!)
+end
+
+
+# This method gets called during initialization from OrdinaryDiffEq's `solve(...)`
+function initialize!(cb_coupled::DiscreteCallback{Condition,Affect!}, u_ode_coupled, t, integrator) where {Condition, Affect!<:AnalysisCallbackCoupled}
+  analysis_callback_coupled = cb_coupled.affect!
+  semi_coupled = integrator.p
+  du_ode_coupled = first(get_tmp_cache(integrator))
+
+  # Loop over coupled systems' callbacks and initialize them individually
+  for i in eachsystem(semi_coupled)
+    cb = analysis_callback_coupled.callbacks[i]
+    semi = semi_coupled.semis[i]
+    u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+    du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
+    initialize!(cb, u_ode, du_ode, t, integrator, semi)
+  end
+end
+
+
+# This method gets called from OrdinaryDiffEq's `solve(...)`
+function (analysis_callback_coupled::AnalysisCallbackCoupled)(integrator)
+  semi_coupled = integrator.p
+  u_ode_coupled = integrator.u
+  du_ode_coupled = first(get_tmp_cache(integrator))
+
+  # Loop over coupled systems' callbacks and call them individually
+  for i in eachsystem(semi_coupled)
+    @unpack condition = analysis_callback_coupled.callbacks[i]
+    analysis_callback = analysis_callback_coupled.callbacks[i].affect!
+    u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+
+    # Check condition and skip callback if it is not yet its turn
+    if !condition(u_ode, integrator.t, integrator)
+      continue
+    end
+
+    semi = semi_coupled.semis[i]
+    du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
+    analysis_callback(u_ode, du_ode, integrator, semi)
+  end
+end
+
+# used for error checks and EOC analysis
+function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect!<:AnalysisCallbackCoupled}
+  semi_coupled = sol.prob.p
+  u_ode_coupled = sol.u[end]
+  @unpack callbacks = cb.affect!
+
+  uEltype = real(semi_coupled)
+  l2_error_collection = uEltype[]
+  linf_error_collection = uEltype[]
+  for i in eachsystem(semi_coupled)
+    analysis_callback = callbacks[i].affect!
+    @unpack analyzer = analysis_callback
+    cache_analysis = analysis_callback.cache
+
+    semi = semi_coupled.semis[i]
+    u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+
+    l2_error, linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi, cache_analysis)
+    append!(l2_error_collection, l2_error)
+    append!(linf_error_collection, linf_error)
+  end
+
+  (; l2=l2_error_collection, linf=linf_error_collection)
 end
 
 
@@ -188,10 +316,10 @@ end
 
 @inline function save_solution_file(semi::SemidiscretizationCoupled, u_ode, solution_callback,
                                     integrator)
-  @unpack semis, u_indices = semi
+  @unpack semis = semi
 
   for i in eachsystem(semi)
-    u_ode_slice = @view u_ode[u_indices[i]]
+    u_ode_slice = get_system_u_ode(u_ode, i, semi)
     save_solution_file(semis[i], u_ode_slice, solution_callback, integrator, system=i)
   end
 end
@@ -203,10 +331,8 @@ end
 
 # In case of coupled system, use minimum timestep over all systems
 function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
-  @unpack u_indices = semi
-
   dt = minimum(eachsystem(semi)) do i
-    u_ode_slice = @view u_ode[u_indices[i]]
+    u_ode_slice = get_system_u_ode(u_ode, i, semi)
     calculate_dt(u_ode_slice, t, cfl_number, semi.semis[i])
   end
 
@@ -329,6 +455,7 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
                                                     cell_size)
 end
 
+
 # Don't do anything for other BCs than BoundaryConditionCoupled
 function copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
   return nothing
@@ -346,7 +473,7 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
   @unpack other_semi_index, other_orientation, indices = boundary_condition
 
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
-  @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
+  u = wrap_array(get_system_u_ode(u_ode, other_semi_index, semi), mesh, equations, solver, cache)
 
   linear_indices = LinearIndices(size(mesh))
 
@@ -433,4 +560,56 @@ function get_boundary_indices(element, orientation, mesh::StructuredMesh{2})
   end
 
   return cell_indices
+end
+
+
+################################################################################
+### Special elixirs
+################################################################################
+
+# Analyze convergence for SemidiscretizationCoupled
+function analyze_convergence(errors_coupled, iterations, semi_coupled::SemidiscretizationCoupled)
+  # Extract errors: the errors are currently stored as
+  # | iter 1 sys 1 var 1...n | iter 1 sys 2 var 1...n | ... | iter 2 sys 1 var 1...n | ...
+  # but for calling `analyze_convergence` below, we need the following layout
+  # sys n: | iter 1 var 1...n | iter 1 var 1...n | ... | iter 2 var 1...n | ...
+  # That is, we need to extract and join the data for a single system
+  errors = Dict{Symbol, Vector{Float64}}[]
+  for i in eachsystem(semi_coupled)
+    push!(errors, Dict(:l2 => Float64[], :linf => Float64[]))
+  end
+  offset = 0
+  for iter in 1:iterations, i in eachsystem(semi_coupled)
+    # Extract information on current semi
+    semi = semi_coupled.semis[i]
+    _, equations, _, _ = mesh_equations_solver_cache(semi)
+    variablenames = varnames(cons2cons, equations)
+
+    # Compute offset
+    first = offset + 1
+    last = offset + length(variablenames)
+    offset += length(variablenames)
+
+    # Append errors to appropriate storage
+    append!(errors[i][:l2], errors_coupled[:l2][first:last])
+    append!(errors[i][:linf], errors_coupled[:linf][first:last])
+  end
+
+  eoc_mean_values = Vector{Dict{Symbol, Any}}(undef, nsystems(semi_coupled))
+  for i in eachsystem(semi_coupled)
+    # Use visual cues to separate output from multiple systems
+    println()
+    println("="^100)
+    println("# System $i")
+    println("="^100)
+
+    # Extract information on current semi
+    semi = semi_coupled.semis[i]
+    _, equations, _, _ = mesh_equations_solver_cache(semi)
+    variablenames = varnames(cons2cons, equations)
+
+    eoc_mean_values[i] = analyze_convergence(errors[i], iterations, variablenames)
+  end
+
+  return eoc_mean_values
 end

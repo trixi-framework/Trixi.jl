@@ -83,9 +83,20 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
     println("#"^100)
   end
 
-  # number of variables
-  _, equations, _, _ = mesh_equations_solver_cache(mod.semi)
+  # Use raw error values to compute EOC
+  analyze_convergence(errors, iterations, mod.semi)
+end
+
+# Analyze convergence for any semidiscretization
+# Note: this intermediate method is to allow dispatching on the semidiscretization
+function analyze_convergence(errors, iterations, semi::AbstractSemidiscretization)
+  _, equations, _, _ = mesh_equations_solver_cache(semi)
   variablenames = varnames(cons2cons, equations)
+  analyze_convergence(errors, iterations, variablenames)
+end
+
+# This method is called with the collected error values to actually compute and print the EOC
+function analyze_convergence(errors, iterations, variablenames::Union{Tuple,AbstractArray})
   nvariables = length(variablenames)
 
   # Reshape errors to get a matrix where the i-th row represents the i-th iteration

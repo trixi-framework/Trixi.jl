@@ -41,7 +41,10 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 coordinates_min1 = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max1 = ( 0.0,  1.0) # maximum coordinates (max(x), max(y))
 
-cells_per_dimension1 = (8, 16)
+# Define identical resolution as a variable such that it is easier to change from `trixi_include`
+cells_per_dimension = (8, 16)
+
+cells_per_dimension1 = cells_per_dimension
 
 mesh1 = StructuredMesh(cells_per_dimension1, coordinates_min1, coordinates_max1)
 
@@ -60,7 +63,7 @@ semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_converg
 coordinates_min2 = (0.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max2 = (1.0,  1.0) # maximum coordinates (max(x), max(y))
 
-cells_per_dimension2 = (8, 16)
+cells_per_dimension2 = cells_per_dimension
 
 mesh2 = StructuredMesh(cells_per_dimension2, coordinates_min2, coordinates_max2)
 
@@ -79,12 +82,17 @@ semi = SemidiscretizationCoupled(semi1, semi2)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0));
+# Create ODE problem with time span from 0.0 to 2.0
+ode = semidiscretize(semi, (0.0, 2.0));
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
 summary_callback = SummaryCallback()
+
+# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
+analysis_callback1 = AnalysisCallback(semi1, interval=100)
+analysis_callback2 = AnalysisCallback(semi2, interval=100)
+analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback1, analysis_callback2)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval=100,
@@ -94,7 +102,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
 
 
 ###############################################################################

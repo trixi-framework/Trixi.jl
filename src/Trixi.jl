@@ -227,7 +227,7 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        AveragingCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
-       TrivialCallback
+       TrivialCallback, AnalysisCallbackCoupled
 
 export load_mesh, load_time
 
