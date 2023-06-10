@@ -4,28 +4,11 @@
 # TimeIntegratorSolution.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-const TrixiODESolution = Union{
-                               ODESolution{T, N, uType, uType2,
-                                           DType, tType, rateType, P
-                                           } where {
-                                   T,
-                                   N,
-                                   uType,
-                                   uType2,
-                                   DType,
-                                   tType,
-                                   rateType,
-                                   P <: ODEProblem{uType_,
-                                              tType_,
-                                              isinplace,
-                                              P_,
-                                              F_
-                                              } where {uType_,
-                                                       tType_,
-                                                       isinplace,
-                                                       P_ <: AbstractSemidiscretization, F_
-                                                       },
-                               }, TimeIntegratorSolution}
+#! format: off
+const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where
+    {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
+     {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_}}, TimeIntegratorSolution}
+#! format: on
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
