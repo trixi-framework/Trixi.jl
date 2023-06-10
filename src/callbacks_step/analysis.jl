@@ -262,7 +262,6 @@ function (analysis_callback::AnalysisCallback)(integrator)
         # General information
         mpi_println()
         mpi_println("─"^100)
-        # TODO: Taal refactor, polydeg is specific to DGSEM
         mpi_println(" Simulation running '", get_name(equations), "' with ",
                     summary(solver))
         mpi_println("─"^100)
