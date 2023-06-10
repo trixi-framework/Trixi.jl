@@ -216,7 +216,7 @@ end
 
 @inline function save_solution_file(u_ode, t, dt, iter,
                                     semi::AbstractSemidiscretization, solution_callback,
-                                    element_variables=Dict{Symbol,Any}(); integrator=nothing, system="")
+                                    element_variables=Dict{Symbol,Any}(); system="")
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array_native(u_ode, mesh, equations, solver, cache)
   save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback,

@@ -67,7 +67,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
       summary_line(increment_indent(io), "mesh", mesh |> typeof |> nameof)
       summary_line(increment_indent(io), "equations", equations |> typeof |> nameof)
       summary_line(increment_indent(io), "initial condition", semi.semis[i].initial_condition)
-      # TODO boundary conditions? That will be 36 BCs for a cubed sphere
+      # no boundary conditions since that could be too much
       summary_line(increment_indent(io), "source terms", semi.semis[i].source_terms)
       summary_line(increment_indent(io), "solver", solver |> typeof |> nameof)
     end
@@ -77,21 +77,21 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
 end
 
 
-function print_summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_context)
-  show(io_context, MIME"text/plain"(), semi)
+function print_summary_semidiscretization(io::IO, semi::SemidiscretizationCoupled)
+  show(io, MIME"text/plain"(), semi)
   println(io, "\n")
   for i in eachsystem(semi)
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
     summary_header(io, "System #$i")
 
-    summary_line(io_context, "mesh", mesh |> typeof |> nameof)
-    show(increment_indent(io_context), MIME"text/plain"(), mesh)
+    summary_line(io, "mesh", mesh |> typeof |> nameof)
+    show(increment_indent(io), MIME"text/plain"(), mesh)
 
-    summary_line(io_context, "equations", equations |> typeof |> nameof)
-    show(increment_indent(io_context), MIME"text/plain"(), equations)
+    summary_line(io, "equations", equations |> typeof |> nameof)
+    show(increment_indent(io), MIME"text/plain"(), equations)
 
-    summary_line(io_context, "solver", solver |> typeof |> nameof)
-    show(increment_indent(io_context), MIME"text/plain"(), solver)
+    summary_line(io, "solver", solver |> typeof |> nameof)
+    show(increment_indent(io), MIME"text/plain"(), solver)
 
     summary_footer(io)
     println(io, "\n")
@@ -440,6 +440,7 @@ end
 
 # Don't do anything for other BCs than BoundaryConditionCoupled
 function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, solver)
+  return nothing
 end
 
 # In 2D
@@ -458,7 +459,9 @@ end
 
 
 # Don't do anything for other BCs than BoundaryConditionCoupled
-function copy_to_coupled_boundary!(boundary_condition, u_ode, semi) end
+function copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
+  return nothing
+end
 
 function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}, u_ode, semi)
   for boundary_condition in boundary_conditions
