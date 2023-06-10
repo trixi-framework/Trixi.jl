@@ -73,7 +73,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan)
   #       mpi_isparallel() && MPI.Barrier(mpi_comm())
   #       See https://github.com/trixi-framework/Trixi.jl/issues/328
   iip = true # is-inplace, i.e., we modify a vector when calling rhs!
-  specialize = SciMLBase.FullSpecialize() # specialize on rhs! and parameters (semi)
+  specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
   return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
 end
 
@@ -91,7 +91,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan, restart_file::A
   #       mpi_isparallel() && MPI.Barrier(mpi_comm())
   #       See https://github.com/trixi-framework/Trixi.jl/issues/328
   iip = true # is-inplace, i.e., we modify a vector when calling rhs!
-  specialize = SciMLBase.FullSpecialize() # specialize on rhs! and parameters (semi)
+  specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
   return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
 end
 
