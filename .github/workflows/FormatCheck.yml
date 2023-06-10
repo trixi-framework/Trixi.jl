@@ -27,10 +27,10 @@ jobs:
         # julia  -e 'using Pkg; Pkg.add(PackageSpec(name = "JuliaFormatter", version = "0.13.0"))'
         #
         # TODO: Change the call below to
-        #       format(".", verbose = true)
+        #       format(".")
         run: |
           julia  -e 'using Pkg; Pkg.add(PackageSpec(name = "JuliaFormatter"))'
-          julia  -e 'using JuliaFormatter; format("src", verbose = true)'
+          julia  -e 'using JuliaFormatter; format("src")'
       - name: Format check
         run: |
           julia -e '
