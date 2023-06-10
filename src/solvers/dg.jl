@@ -177,7 +177,7 @@ end
                                   volume_flux_dg, volume_flux_fv)
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
-with a low-order FV method. Used with the indicators [`IndicatorIDP`](@ref) and [`IndicatorMCL`](@ref).
+with a low-order FV method. Used with indicator [`IndicatorIDP`](@ref).
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
