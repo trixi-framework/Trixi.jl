@@ -8,9 +8,9 @@
 function calc_error_norms(func, u, t, analyzer,
                           mesh::ParallelTreeMesh{2}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
-  l2_errors, linf_errors = calc_error_norms_per_element(func, u, t, analyzer,
-                                                        mesh, equations, initial_condition,
-                                                        dg, cache, cache_analysis)
+  l2_errors, linf_errors, l1_errors = calc_error_norms_per_element(func, u, t, analyzer,
+                                                                   mesh, equations, initial_condition,
+                                                                   dg, cache, cache_analysis)
 
   # Collect local error norms for each element on root process. That way, when aggregating the L2
   # errors, the order of summation is the same as in the serial case to ensure exact equality.
@@ -18,17 +18,21 @@ function calc_error_norms(func, u, t, analyzer,
   # https://github.com/trixi-framework/Trixi.jl/pull/850#pullrequestreview-757463943 for details).
   # Note that this approach does not scale.
   if mpi_isroot()
-    global_l2_errors = zeros(eltype(l2_errors), cache.mpi_cache.n_elements_global)
+    global_l2_errors   = zeros(eltype(l2_errors), cache.mpi_cache.n_elements_global)
     global_linf_errors = similar(global_l2_errors)
+    global_l1_errors   = similar(global_l2_errors)
 
     n_elements_by_rank = parent(cache.mpi_cache.n_elements_by_rank) # convert OffsetArray to Array
-    l2_buf = MPI.VBuffer(global_l2_errors, n_elements_by_rank)
+    l2_buf   = MPI.VBuffer(global_l2_errors, n_elements_by_rank)
     linf_buf = MPI.VBuffer(global_linf_errors, n_elements_by_rank)
+    l1_buf   = MPI.VBuffer(global_l1_errors, n_elements_by_rank)
     MPI.Gatherv!(l2_errors, l2_buf, mpi_root(), mpi_comm())
     MPI.Gatherv!(linf_errors, linf_buf, mpi_root(), mpi_comm())
+    MPI.Gatherv!(l1_errors, l1_buf, mpi_root(), mpi_comm())
   else
     MPI.Gatherv!(l2_errors, nothing, mpi_root(), mpi_comm())
     MPI.Gatherv!(linf_errors, nothing, mpi_root(), mpi_comm())
+    MPI.Gatherv!(l1_errors, nothing, mpi_root(), mpi_comm())
   end
 
   # Aggregate element error norms on root process
@@ -39,17 +43,25 @@ function calc_error_norms(func, u, t, analyzer,
     for error in global_l2_errors
       l2_error += error
     end
+
     linf_error = reduce((x, y) -> max.(x, y), global_linf_errors)
 
-    # For L2 error, divide by total volume
+    l1_error = zero(eltype(global_l1_errors))
+    for error in global_l1_errors
+      l1_error += error
+    end
+
+    # For L2/L1 error, divide by total volume
     total_volume_ = total_volume(mesh)
-    l2_error = @. sqrt(l2_error / total_volume_)
+    l2_error  = @. sqrt(l2_error / total_volume_)
+    l1_error /= total_volume_
   else
-    l2_error = convert(eltype(l2_errors), NaN * zero(eltype(l2_errors)))
+    l2_error   = convert(eltype(l2_errors), NaN * zero(eltype(l2_errors)))
     linf_error = convert(eltype(linf_errors), NaN * zero(eltype(linf_errors)))
+    l1_error   = convert(eltype(l2_errors), NaN * zero(eltype(l1_errors)))
   end
 
-  return l2_error, linf_error
+  return l2_error, linf_error, l1_error
 end
 
 function calc_error_norms_per_element(func, u, t, analyzer,
@@ -61,8 +73,9 @@ function calc_error_norms_per_element(func, u, t, analyzer,
 
   # Set up data structures
   T = typeof(zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations)))
-  l2_errors = zeros(T, nelements(dg, cache))
+  l2_errors   = zeros(T, nelements(dg, cache))
   linf_errors = copy(l2_errors)
+  l1_errors   = copy(l2_errors)
 
   # Iterate over all elements for error calculations
   for element in eachelement(dg, cache)
@@ -76,12 +89,14 @@ function calc_error_norms_per_element(func, u, t, analyzer,
     for j in eachnode(analyzer), i in eachnode(analyzer)
       u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j), t, equations)
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j), equations)
-      l2_errors[element] += diff.^2 * (weights[i] * weights[j] * volume_jacobian_)
+
+      l2_errors[element]  += diff.^2 * (weights[i] * weights[j] * volume_jacobian_)
       linf_errors[element] = @. max(linf_errors[element], abs(diff))
+      l1_errors[element]  += abs.(diff) * (weights[i] * weights[j] * volume_jacobian_)
     end
   end
 
-  return l2_errors, linf_errors
+  return l2_errors, linf_errors, l1_errors
 end
 
 
@@ -95,6 +110,7 @@ function calc_error_norms(func, u, t, analyzer,
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
   linf_error = copy(l2_error)
+  l1_error   = copy(l2_error)
   volume = zero(real(mesh))
 
   # Iterate over all elements for error calculations
@@ -110,8 +126,11 @@ function calc_error_norms(func, u, t, analyzer,
     for j in eachnode(analyzer), i in eachnode(analyzer)
       u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j), t, equations)
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j), equations)
-      l2_error += diff.^2 * (weights[i] * weights[j] * jacobian_local[i, j])
+
+      l2_error  += diff.^2 * (weights[i] * weights[j] * jacobian_local[i, j])
       linf_error = @. max(linf_error, abs(diff))
+      l1_error  += abs.(diff) * (weights[i] * weights[j] * jacobian_local[i, j])
+
       volume += weights[i] * weights[j] * jacobian_local[i, j]
     end
   end
@@ -119,20 +138,24 @@ function calc_error_norms(func, u, t, analyzer,
   # Accumulate local results on root process
   global_l2_error = Vector(l2_error)
   global_linf_error = Vector(linf_error)
+  global_l1_error = Vector(l1_error)
   MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
   MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm())
   total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
   if mpi_isroot()
     l2_error   = convert(typeof(l2_error),   global_l2_error)
     linf_error = convert(typeof(linf_error), global_linf_error)
-    # For L2 error, divide by total volume
-    l2_error = @. sqrt(l2_error / total_volume)
+    l1_error   = convert(typeof(l1_error),   global_l1_error)
+    # For L2/L1 error, divide by total volume
+    l2_error  = @. sqrt(l2_error / total_volume)
+    l1_error /= total_volume
   else
     l2_error   = convert(typeof(l2_error),   NaN * global_l2_error)
     linf_error = convert(typeof(linf_error), NaN * global_linf_error)
+    l1_error   = convert(typeof(l1_error),   NaN * global_l1_error)
   end
 
-  return l2_error, linf_error
+  return l2_error, linf_error, l1_error
 end
 
 

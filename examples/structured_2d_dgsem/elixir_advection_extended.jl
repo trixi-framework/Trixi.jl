@@ -48,6 +48,7 @@ summary_callback = SummaryCallback()
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     extra_analysis_errors=(:l1_error,),
                                      extra_analysis_integrals=(entropy, energy_total))
 
 # The AliveCallback prints short status information in regular intervals

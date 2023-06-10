@@ -61,6 +61,7 @@ function calc_error_norms(func, u, t, analyzer,
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
   linf_error = copy(l2_error)
+  l1_error   = copy(l2_error)
 
   # Iterate over all elements for error calculations
   # Accumulate L2 error on the element first so that the order of summation is the
@@ -68,8 +69,9 @@ function calc_error_norms(func, u, t, analyzer,
   # development and debugging (see
   # https://github.com/trixi-framework/Trixi.jl/pull/850#pullrequestreview-757463943 for details).
   for element in eachelement(dg, cache)
-    # Set up data structures for local element L2 error
+    # Set up data structures for local element L2/L1 error
     l2_error_local = zero(l2_error)
+    l1_error_local = zero(l1_error)
 
     # Interpolate solution and node locations to analysis nodes
     multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, :, element), u_tmp1)
@@ -81,17 +83,21 @@ function calc_error_norms(func, u, t, analyzer,
     for j in eachnode(analyzer), i in eachnode(analyzer)
       u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j), t, equations)
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j), equations)
+
       l2_error_local += diff.^2 * (weights[i] * weights[j] * volume_jacobian_)
-      linf_error = @. max(linf_error, abs(diff))
+      linf_error      = @. max(linf_error, abs(diff))
+      l1_error_local += abs.(diff) * (weights[i] * weights[j] * volume_jacobian_)
     end
     l2_error += l2_error_local
+    l1_error += l1_error_local
   end
 
-  # For L2 error, divide by total volume
+  # For L2/L1 error, divide by total volume
   total_volume_ = total_volume(mesh)
-  l2_error = @. sqrt(l2_error / total_volume_)
+  l2_error  = @. sqrt(l2_error / total_volume_)
+  l1_error /= total_volume_
 
-  return l2_error, linf_error
+  return l2_error, linf_error, l1_error
 end
 
 
@@ -105,6 +111,7 @@ function calc_error_norms(func, u, t, analyzer,
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
   linf_error = copy(l2_error)
+  l1_error   = copy(l2_error)
   total_volume = zero(real(mesh))
 
   # Iterate over all elements for error calculations
@@ -120,16 +127,20 @@ function calc_error_norms(func, u, t, analyzer,
     for j in eachnode(analyzer), i in eachnode(analyzer)
       u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j), t, equations)
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j), equations)
+
       l2_error += diff.^2 * (weights[i] * weights[j] * jacobian_local[i, j])
       linf_error = @. max(linf_error, abs(diff))
+      l1_error += abs.(diff) * (weights[i] * weights[j] * jacobian_local[i, j])
+
       total_volume += weights[i] * weights[j] * jacobian_local[i, j]
     end
   end
 
-  # For L2 error, divide by total volume
-  l2_error = @. sqrt(l2_error / total_volume)
+  # For L2/L1 error, divide by total volume
+  l2_error  = @. sqrt(l2_error / total_volume)
+  l1_error /= total_volume
 
-  return l2_error, linf_error
+  return l2_error, linf_error, l1_error
 end
 
 
