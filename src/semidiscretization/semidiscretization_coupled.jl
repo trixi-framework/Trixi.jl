@@ -121,13 +121,6 @@ end
   end
 end
 
-@inline function total_volume(semi::SemidiscretizationCoupled)
-  sum(semi.semis) do semi_
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
-    total_volume(mesh, solver, cache)
-  end
-end
-
 
 function compute_coefficients(t, semi::SemidiscretizationCoupled)
   @unpack u_indices = semi
