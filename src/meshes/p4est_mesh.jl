@@ -1466,7 +1466,7 @@ end
 
 function init_fn(p4est, which_tree, quadrant)
   # Unpack quadrant's user data ([global quad ID, controller_value])
-  pw = PointerWrapper(Int, quadrant.p.user_data)
+  pw = PointerWrapper(Int, unsafe_load(quadrant.p.user_data))
 
   # Initialize quad ID as -1 and controller_value as 0 (don't refine or coarsen)
   pw[1] = -1
@@ -1483,7 +1483,7 @@ cfunction(::typeof(init_fn), ::Val{3}) = @cfunction(init_fn, Cvoid, (Ptr{p8est_t
 function refine_fn(p4est, which_tree, quadrant)
   # Controller value has been copied to the quadrant's user data storage before.
   # Unpack quadrant's user data ([global quad ID, controller_value]).
-  pw = PointerWrapper(Int, quadrant.p.user_data)
+  pw = PointerWrapper(Int, unsafe_load(quadrant.p.user_data))
   controller_value = pw[2]
 
   if controller_value > 0
@@ -1524,7 +1524,7 @@ function coarsen_fn(p4est, which_tree, quadrants_ptr)
 
   # Controller value has been copied to the quadrant's user data storage before.
   # Load controller value from quadrant's user data ([global quad ID, controller_value]).
-  controller_value(i) = PointerWrapper(Int, quadrants[i].p.user_data)[2]
+  controller_value(i) = PointerWrapper(Int, unsafe_load(quadrants[i].p.user_data))[2]
 
   # `p4est` calls this function for each 2^ndims quads that could be coarsened to a single one.
   # Only coarsen if all these 2^ndims quads have been marked for coarsening.
@@ -1607,7 +1607,7 @@ function save_original_id_iter_volume(info, user_data)
   quad_id = offset + info_pw.quadid[]
 
   # Unpack quadrant's user data ([global quad ID, controller_value])
-  pw = PointerWrapper(Int, pointer(info_pw.quad.p.user_data))
+  pw = PointerWrapper(Int, info_pw.quad.p.user_data[])
   # Save global quad ID
   pw[1] = quad_id
 
@@ -1633,7 +1633,7 @@ function collect_changed_iter_volume(info, user_data)
 
   # The original element ID has been saved to user_data before.
   # Load original quad ID from quad's user data ([global quad ID, controller_value]).
-  quad_data_pw = PointerWrapper(Int, pointer(info_pw.quad.p.user_data))
+  quad_data_pw = PointerWrapper(Int, info_pw.quad.p.user_data[])
   original_id = quad_data_pw[1]
 
   # original_id of cells that have been newly created is -1
@@ -1676,7 +1676,7 @@ function collect_new_iter_volume(info, user_data)
 
   # The original element ID has been saved to user_data before.
   # Unpack quadrant's user data ([global quad ID, controller_value]).
-  original_id = info_pw.quad.p.user_data[1]
+  original_id = PointerWrapper(Int, info_pw.quad.p.user_data[])[1]
 
   # original_id of cells that have been newly created is -1
   if original_id < 0

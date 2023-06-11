@@ -350,7 +350,7 @@ function copy_to_quad_iter_volume(info, user_data)
   controller_value = user_data_pw[quad_id + 1]
 
   # Access quadrant's user data ([global quad ID, controller_value])
-  quad_data_pw = info_pw.quad.p.user_data
+  quad_data_pw = PointerWrapper(Int, info_pw.quad.p.user_data[])
   # Save controller value to quadrant's user data.
   quad_data_pw[2] = controller_value
 
