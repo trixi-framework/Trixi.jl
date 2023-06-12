@@ -71,9 +71,9 @@ function calc_gradient!(gradients, u_transformed, t,
                                                       i, j, element)
 
                 # note that the contravariant vectors are transposed compared with computations of flux
-                # divergences in `calc_volume_integral!`. See 
-                # https://github.com/trixi-framework/Trixi.jl/pull/1490#discussion_r1213345190 
-                # for a more detailed discussion. 
+                # divergences in `calc_volume_integral!`. See
+                # https://github.com/trixi-framework/Trixi.jl/pull/1490#discussion_r1213345190
+                # for a more detailed discussion.
                 gradient_x_node = Ja11 * gradients_reference_1 +
                                   Ja21 * gradients_reference_2
                 gradient_y_node = Ja12 * gradients_reference_1 +
@@ -88,32 +88,30 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(cache_parabolic,
-                                                                   u_transformed, mesh,
-                                                                   equations_parabolic,
-                                                                   dg.surface_integral, dg)
+    @trixi_timeit timer() "prolong2interfaces" begin
+        prolong2interfaces!(cache_parabolic, u_transformed, mesh,
+                            equations_parabolic, dg.surface_integral, dg)
+    end
 
-    # Calculate interface fluxes for the gradient. This reuses P4est `calc_interface_flux!` along with a 
+    # Calculate interface fluxes for the gradient. This reuses P4est `calc_interface_flux!` along with a
     # specialization for AbstractEquationsParabolic.
-    @trixi_timeit timer() "interface flux" calc_interface_flux!(cache_parabolic.elements.surface_flux_values,
-                                                                mesh, False(), # False() = no nonconservative terms
-                                                                equations_parabolic,
-                                                                dg.surface_integral, dg,
-                                                                cache_parabolic)
+    @trixi_timeit timer() "interface flux" begin
+        calc_interface_flux!(cache_parabolic.elements.surface_flux_values,
+                             mesh, False(), # False() = no nonconservative terms
+                             equations_parabolic, dg.surface_integral, dg, cache_parabolic)
+    end
 
     # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(cache_parabolic,
-                                                                   u_transformed, mesh,
-                                                                   equations_parabolic,
-                                                                   dg.surface_integral, dg)
+    @trixi_timeit timer() "prolong2boundaries" begin
+        prolong2boundaries!(cache_parabolic, u_transformed, mesh,
+                            equations_parabolic, dg.surface_integral, dg)
+    end
 
     # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" calc_boundary_flux_gradients!(cache_parabolic, t,
-                                                                        boundary_conditions_parabolic,
-                                                                        mesh,
-                                                                        equations_parabolic,
-                                                                        dg.surface_integral,
-                                                                        dg)
+    @trixi_timeit timer() "boundary flux" begin
+        calc_boundary_flux_gradients!(cache_parabolic, t, boundary_conditions_parabolic,
+                                      mesh, equations_parabolic, dg.surface_integral, dg)
+    end
 
     # TODO: parabolic; mortars
     @assert nmortars(dg, cache) == 0
@@ -235,7 +233,7 @@ end
     flux_ = 0.5 * (u_ll + u_rr) # we assume that the gradient computations utilize a central flux
 
     # Note that we don't flip the sign on the secondondary flux. This is because for parabolic terms,
-    # the normals are not embedded in `flux_` for the parabolic gradient computations. 
+    # the normals are not embedded in `flux_` for the parabolic gradient computations.
     for v in eachvariable(equations)
         surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_[v]
         surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = flux_[v]
@@ -343,8 +341,8 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
         j_secondary = j_secondary_start
         for i in eachnode(dg)
             # This is the outward normal direction on the secondary element.
-            # Here, we assume that normal_direction on the secondary element is 
-            # the negative of normal_direction on the primary element.  
+            # Here, we assume that normal_direction on the secondary element is
+            # the negative of normal_direction on the primary element.
             normal_direction = get_normal_direction(secondary_direction,
                                                     contravariant_vectors,
                                                     i_secondary, j_secondary,
@@ -407,7 +405,7 @@ function calc_interface_flux!(surface_flux_values,
         end
 
         for node in eachnode(dg)
-            # We prolong the viscous flux dotted with respect the outward normal on the 
+            # We prolong the viscous flux dotted with respect the outward normal on the
             # primary element. We assume a BR-1 type of flux.
             viscous_flux_normal_ll, viscous_flux_normal_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                                                                    equations_parabolic,

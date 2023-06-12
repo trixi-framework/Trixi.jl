@@ -68,10 +68,11 @@ end
         @unpack cfl_number = stepsize_callback
         u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-        dt = @trixi_timeit timer() "calculate dt" cfl_number*max_dt(u, t, mesh,
-                                                                    have_constant_speed(equations),
-                                                                    equations,
-                                                                    solver, cache)
+        dt = @trixi_timeit timer() "calculate dt" begin
+            cfl_number * max_dt(u, t, mesh, have_constant_speed(equations), equations,
+                   solver, cache)
+        end
+
         set_proposed_dt!(integrator, dt)
         integrator.opts.dtmax = dt
         integrator.dtcache = dt

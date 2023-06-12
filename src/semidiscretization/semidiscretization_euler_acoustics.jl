@@ -181,11 +181,11 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)
 
     @trixi_timeit timer() "acoustics rhs!" rhs!(du_ode, u_ode, semi_acoustics, t)
 
-    @trixi_timeit timer() "add acoustic source terms" add_acoustic_source_terms!(du_acoustics,
-                                                                                 acoustic_source_terms,
-                                                                                 acoustic_source_weights,
-                                                                                 coupled_element_ids,
-                                                                                 mesh_equations_solver_cache(semi_acoustics)...)
+    @trixi_timeit timer() "add acoustic source terms" begin
+        add_acoustic_source_terms!(du_acoustics, acoustic_source_terms,
+                                   acoustic_source_weights, coupled_element_ids,
+                                   mesh_equations_solver_cache(semi_acoustics)...)
+    end
 
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)

@@ -203,12 +203,11 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
     @unpack acoustic_source_terms, coupled_element_ids = semi.cache
     @unpack vorticity_mean = euler_acoustics_coupling.mean_values
 
-    @trixi_timeit timer() "calc acoustic source terms" calc_acoustic_sources!(acoustic_source_terms,
-                                                                              u_euler,
-                                                                              u_acoustics,
-                                                                              vorticity_mean,
-                                                                              coupled_element_ids,
-                                                                              mesh_equations_solver_cache(semi_euler)...)
+    @trixi_timeit timer() "calc acoustic source terms" begin
+        calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics,
+                               vorticity_mean, coupled_element_ids,
+                               mesh_equations_solver_cache(semi_euler)...)
+    end
 
     # avoid re-evaluation possible FSAL stages
     u_modified!(integrator_acoustics, false)

@@ -626,36 +626,37 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
 
     # this function evaluates the solution at volume and face quadrature points (which was previously
     # done in `prolong2interfaces` and `calc_volume_integral`)
-    @trixi_timeit timer() "entropy_projection!" entropy_projection!(cache, u, mesh,
-                                                                    equations, dg)
+    @trixi_timeit timer() "entropy_projection!" begin
+        entropy_projection!(cache, u, mesh, equations, dg)
+    end
 
-    @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u, mesh,
-                                                                  have_nonconservative_terms(equations),
-                                                                  equations,
-                                                                  dg.volume_integral,
-                                                                  dg, cache)
+    @trixi_timeit timer() "volume integral" begin
+        calc_volume_integral!(du, u, mesh, have_nonconservative_terms(equations),
+                              equations,
+                              dg.volume_integral, dg, cache)
+    end
 
     # the following functions are the same as in VolumeIntegralWeakForm, and can be reused from dg.jl
-    @trixi_timeit timer() "interface flux" calc_interface_flux!(cache,
-                                                                dg.surface_integral,
-                                                                mesh,
-                                                                have_nonconservative_terms(equations),
-                                                                equations, dg)
+    @trixi_timeit timer() "interface flux" begin
+        calc_interface_flux!(cache, dg.surface_integral, mesh,
+                             have_nonconservative_terms(equations), equations, dg)
+    end
 
-    @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t,
-                                                              boundary_conditions, mesh,
-                                                              have_nonconservative_terms(equations),
-                                                              equations, dg)
+    @trixi_timeit timer() "boundary flux" begin
+        calc_boundary_flux!(cache, t, boundary_conditions, mesh,
+                            have_nonconservative_terms(equations), equations, dg)
+    end
 
-    @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, mesh,
-                                                                    equations,
-                                                                    dg.surface_integral,
-                                                                    dg, cache)
+    @trixi_timeit timer() "surface integral" begin
+        calc_surface_integral!(du, u, mesh, equations,
+                               dg.surface_integral, dg, cache)
+    end
 
     @trixi_timeit timer() "Jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
 
-    @trixi_timeit timer() "source terms" calc_sources!(du, u, t, source_terms,
-                                                       mesh, equations, dg, cache)
+    @trixi_timeit timer() "source terms" begin
+        calc_sources!(du, u, t, source_terms, mesh, equations, dg, cache)
+    end
 
     return nothing
 end
