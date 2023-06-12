@@ -1,9 +1,9 @@
 """
     init_t8code()
 
-Initialize `t8code` by calling `t8_init` and setting the log level to `SC_LP_ERROR`.
-This function will check if `t8code` is already initialized
-and if yes, do nothing, thus it is safe to call it multiple times.
+Initialize `t8code` by calling `sc_init` and `t8_init` while setting the log
+level to `SC_LP_ERROR`.  This function will check if `t8code` is already
+initialized and if yes, do nothing, thus it is safe to call it multiple times.
 """
 function init_t8code()
   t8code_package_id = t8_get_package_id()
@@ -107,10 +107,6 @@ function trixi_t8_count_interfaces(forest)
       current_index += 1
     end # for
   end # for
-
-  println("local_num_conform  = ", local_num_conform)
-  println("local_num_mortars  = ", local_num_mortars)
-  println("local_num_boundary = ", local_num_boundary)
 
   return (interfaces = local_num_conform,
           mortars    = local_num_mortars,
@@ -252,8 +248,8 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
               else
                 # Backward indexing for large side with reversed orientation.
                 indexing = :i_backward
-                # TODO: Fully understand what is going on here. Generalize this for 3D.
-                # Has something to do with Morton ordering.
+                # Since the orientation is reversed we have to account for this
+                # when filling the `neighbor_ids` array.
                 mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[2] + 1
                 mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[1] + 1
               end
@@ -402,14 +398,14 @@ function trixi_t8_adapt_new(old_forest, indicators)
     t8_forest_set_adapt(new_forest, old_forest, @t8_adapt_callback(adapt_callback), recursive)
     t8_forest_set_balance(new_forest, set_from, no_repartition)
     t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
-    # t8_forest_set_ghost(new_forest, 1, T8_GHOST_FACES) # MPI support not available yet.
+    t8_forest_set_ghost(new_forest, 1, T8_GHOST_FACES) # Note: MPI support not available yet so it is a dummy call.
     t8_forest_commit(new_forest)
   end
 
   return new_forest
 end
 
-function trixi_t8_get_difference(old_levels, new_levels)
+function trixi_t8_get_difference(old_levels, new_levels, num_children)
 
   old_nelems = length(old_levels)
   new_nelems = length(new_levels)
@@ -420,9 +416,6 @@ function trixi_t8_get_difference(old_levels, new_levels)
   old_index = 1
   new_index = 1
 
-  # TODO: Make general for 2D/3D and hybrid grids.
-  T8_CHILDREN = 4
-
   while old_index <= old_nelems && new_index <= new_nelems
 
     if old_levels[old_index] < new_levels[new_index] 
@@ -431,16 +424,16 @@ function trixi_t8_get_difference(old_levels, new_levels)
       changes[old_index] = 1
 
       old_index += 1
-      new_index += T8_CHILDREN
+      new_index += num_children
 
     elseif old_levels[old_index] > new_levels[new_index] 
       # Coarsend.
 
-      for child_index = old_index:old_index+T8_CHILDREN-1
+      for child_index = old_index:old_index+num_children-1
         changes[child_index] = -1
       end
 
-      old_index += T8_CHILDREN
+      old_index += num_children
       new_index += 1
 
     else
@@ -466,7 +459,7 @@ function trixi_t8_adapt!(mesh, indicators)
 
   new_levels = trixi_t8_get_local_element_levels(forest_cached)
 
-  differences = trixi_t8_get_difference(old_levels, new_levels)
+  differences = trixi_t8_get_difference(old_levels, new_levels, 2^ndims(mesh))
 
   mesh.forest = forest_cached
 
