@@ -1,9 +1,10 @@
 """
     init_t8code()
 
-Initialize `t8code` by calling `sc_init` and `t8_init` while setting the log
-level to `SC_LP_ERROR`.  This function will check if `t8code` is already
-initialized and if yes, do nothing, thus it is safe to call it multiple times.
+Initialize `t8code` by calling `sc_init`, `p4est_init`, and `t8_init` while
+setting the log level to `SC_LP_ERROR`.  This function will check if `t8code`
+is already initialized and if yes, do nothing, thus it is safe to call it
+multiple times.
 """
 function init_t8code()
   t8code_package_id = t8_get_package_id()
@@ -13,7 +14,10 @@ function init_t8code()
 
   # Initialize the sc library, has to happen before we initialize t8code.
   T8code.Libt8.sc_init(mpi_comm(), 1, 1, C_NULL, T8code.Libt8.SC_LP_ERROR)
-  # Initialize `t8code` with log level ERROR to prevent a lot of output in AMR simulations
+
+  # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
+  T8code.Libt8.p4est_init(C_NULL, SC_LP_ERROR)
+  # Initialize t8code with log level ERROR to prevent a lot of output in AMR simulations.
   t8_init(T8code.Libt8.SC_LP_ERROR)
 
   return nothing
@@ -59,7 +63,6 @@ function trixi_t8_count_interfaces(forest)
       num_faces = t8_element_num_faces(eclass_scheme, element)
 
       for iface = 0:num_faces-1
-
         pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
         pneighbor_leafs_ref = Ref{Ptr{Ptr{t8_element}}}()
         pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
@@ -83,10 +86,6 @@ function trixi_t8_count_interfaces(forest)
 
           # Conforming interface: The second condition ensures we only visit the interface once.
           if level == neighbor_level && current_index <= neighbor_ielements[1]
-          # TODO: Find a fix for the case: Single element on root level with periodic boundaries.
-          # elseif level == neighbor_level && 
-          #   (all(Int32(current_index) .< neighbor_ielements) || 
-          #   level == 0 && (iface == 0 || iface == 2 || iface == 4))
             local_num_conform += 1
           elseif level < neighbor_level 
             local_num_mortars += 1
@@ -95,7 +94,6 @@ function trixi_t8_count_interfaces(forest)
         else
 
           local_num_boundary += 1
-
         end
        
         t8_free(dual_faces_ref[])
@@ -183,10 +181,6 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
 
           # Conforming interface: The second condition ensures we only visit the interface once.
           if level == neighbor_level && current_index <= neighbor_ielements[1]
-          # TODO: Find a fix for the case: Single element on root level with periodic boundaries.
-          # elseif level == neighbor_level &&
-          #   (all(Int32(current_index) .< neighbor_ielements) ||
-          #   level == 0 && (iface == 0 || iface == 2 || iface == 4))
             local_num_conform += 1
 
             faces = (iface, dual_faces[1])
@@ -381,7 +375,6 @@ function adapt_callback(forest,
   end
 
   return Cint(indicators[offset + lelement_id + 1])
-
 end
 
 function trixi_t8_adapt_new(old_forest, indicators)

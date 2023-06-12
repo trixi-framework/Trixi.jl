@@ -91,10 +91,6 @@ function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
   @unpack boundaries = cache
   resize!(boundaries, mesh.nboundaries)
 
-  # Re-initialize containers together to reduce
-  # the number of iterations over the mesh in `t8code`.
-  # init_surfaces!(elements,interfaces, mortars, boundaries, mesh)
-
   trixi_t8_fill_mesh_info(mesh.forest, elements, interfaces, mortars, boundaries, mesh.boundary_names)
 
   return nothing

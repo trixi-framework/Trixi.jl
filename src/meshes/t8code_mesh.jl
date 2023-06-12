@@ -17,12 +17,9 @@ mutable struct T8codeMesh{NDIMS, RealT<:Real, IsParallel, NDIMSP2, NNODES} <: Ab
   # Stores the quadrature nodes.
   nodes                 :: SVector{NNODES, RealT}
 
-
   boundary_names        :: Array{Symbol, 2}      # [face direction, tree]
   current_filename      :: String
-  unsaved_changes       :: Bool # Not used yet.
 
-  ncells                :: Int
   ninterfaces           :: Int
   nmortars              :: Int
   nboundaries           :: Int
@@ -51,13 +48,12 @@ mutable struct T8codeMesh{NDIMS, RealT<:Real, IsParallel, NDIMSP2, NNODES} <: Ab
 end
 
 function T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes, boundary_names,
-                          current_filename, unsaved_changes) where NDIMS
+                          current_filename) where NDIMS
 
   mesh = T8codeMesh{NDIMS}(cmesh, scheme, forest, nodes)
 
   mesh.nodes = nodes
   mesh.boundary_names = boundary_names
-  mesh.unsaved_changes = unsaved_changes
   mesh.current_filename = current_filename
   mesh.tree_node_coordinates = tree_node_coordinates
 
@@ -70,9 +66,7 @@ const SerialT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
 @inline Base.ndims(::T8codeMesh{NDIMS}) where NDIMS = NDIMS
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
-# TODO: What should be returned in case of parallel processes? Local vs global.
-@inline ntrees(mesh::T8codeMesh) = Int(t8_forest_get_num_global_trees(mesh.forest))
-# @inline ncells(mesh::T8codeMesh) = Int(t8_forest_get_global_num_elements(mesh.forest))
+@inline ntrees(mesh::T8codeMesh) = Int(t8_forest_get_num_local_trees(mesh.forest))
 @inline ncells(mesh::T8codeMesh) = Int(t8_forest_get_local_num_elements(mesh.forest))
 @inline ninterfaces(mesh::T8codeMesh) = mesh.ninterfaces
 @inline nmortars(mesh::T8codeMesh) = mesh.nmortars
@@ -96,15 +90,10 @@ function Base.show(io::IO, :: MIME"text/plain", mesh::T8codeMesh)
 end
 
 """
-    T8codeMesh(trees_per_dimension; polydeg,
-               mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
-               RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
+    T8codeMesh(trees_per_dimension; polydeg, mapping=identity,
+               RealT=Float64, initial_refinement_level=0, periodicity=true)
 
-Create a structured curved 'T8codeMesh' of the specified size.
-There are three ways to map the mesh to the physical domain.
-1. Define a `mapping` that maps the hypercube '[-1, 1]^n'.
-2. Specify a 'Tuple' 'faces' of functions that parametrize each face.
-3. Create a rectangular mesh by specifying 'coordinates_min' and 'coordinates_max'.
+Create a structured potentially curved 'T8codeMesh' of the specified size.
 
 Non-periodic boundaries will be called ':x_neg', ':x_pos', ':y_neg', ':y_pos', ':z_neg', ':z_pos'.
 
@@ -119,10 +108,9 @@ Non-periodic boundaries will be called ':x_neg', ':x_pos', ':y_neg', ':y_pos', '
 - 'initial_refinement_level::Integer': refine the mesh uniformly to this level before the simulation starts.
 - 'periodicity': either a 'Bool' deciding if all of the boundaries are periodic or an 'NTuple{NDIMS, Bool}'
                  deciding for each dimension if the boundaries in this dimension are periodic.
-- 'unsaved_changes::Bool': if set to 'true', the mesh will be saved to a mesh file.
 """
 function T8codeMesh(trees_per_dimension; polydeg,
-                   mapping, RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
+                   mapping=coordinates2mapping((-1.0,-1.0), (1.0,1.0)), RealT=Float64, initial_refinement_level=0, periodicity=true)
 
   NDIMS = length(trees_per_dimension)
 
@@ -140,13 +128,13 @@ function T8codeMesh(trees_per_dimension; polydeg,
     periodicity = Tuple(periodicity)
   end
 
-  conn = p4est_connectivity_new_brick(trees_per_dimension..., periodicity...)
+  conn = T8code.Libt8.p4est_connectivity_new_brick(trees_per_dimension..., periodicity...)
   do_partition = 0
   cmesh = t8_cmesh_new_from_p4est(conn,mpi_comm(),do_partition)
-  p4est_connectivity_destroy(conn)
+  T8code.Libt8.p4est_connectivity_destroy(conn)
 
   scheme = t8_scheme_new_default_cxx()
-  forest = t8_forest_new_uniform(cmesh,scheme,initial_refinement_level,0,mpi_comm().val)
+  forest = t8_forest_new_uniform(cmesh,scheme,initial_refinement_level,0,mpi_comm())
 
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes
@@ -188,16 +176,17 @@ function T8codeMesh(trees_per_dimension; polydeg,
     end
   end
 
-  return T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes, boundary_names, "", unsaved_changes)
-
+  return T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes, boundary_names, "")
 end
 
 """
     T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh},
                      mapping=nothing, polydeg=1, RealT=Float64,
-                     initial_refinement_level=0, unsaved_changes=true)
+                     initial_refinement_level=0)
+
 Main mesh constructor for the `T8codeMesh` that imports an unstructured,
-conforming mesh from `t8_cmesh` data structure.
+conforming mesh from a `t8_cmesh` data structure.
+
 # Arguments
 - `cmesh::Ptr{t8_cmesh}`: Pointer to a cmesh object.
 - `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
@@ -209,11 +198,10 @@ conforming mesh from `t8_cmesh` data structure.
                       will curve the imported uncurved mesh.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
-- `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
 """
 function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
                            mapping=nothing, polydeg=1, RealT=Float64,
-                           initial_refinement_level=0, unsaved_changes=true) where NDIMS
+                           initial_refinement_level=0) where NDIMS
 
   @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
 
@@ -270,70 +258,19 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
   # There's no simple and generic way to distinguish boundaries. Name all of them :all.
   boundary_names = fill(:all, 2 * NDIMS, num_local_trees)
 
-  return T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes, boundary_names, "", unsaved_changes)
+  return T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes, boundary_names, "")
 end
 
 """
-    T8codeMesh{NDIMS}(conn::Ptr{P4est.LibP4est.p4est_connectivity},
+    T8codeMesh{NDIMS}(conn::Ptr{p4est_connectivity},
                       mapping=nothing, polydeg=1, RealT=Float64,
-                      initial_refinement_level=0, unsaved_changes=true)
+                      initial_refinement_level=0)
 
-Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
-mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
-from the `meshfile` is created as a [`p4est`](https://github.com/cburstedde/p4est)
-tree datatype.
-Note that the `mapping` and `polydeg` keyword arguments are only used by the `p4est_mesh_from_standard_abaqus`
-function. The `p4est_mesh_from_hohqmesh_abaqus` function obtains the mesh `polydeg` directly from the `meshfile`
-and constructs the transfinite mapping internally.
-The particular strategy is selected according to the header present in the `meshfile` where
-the constructor checks whether or not the `meshfile` was created with
-[HOHQMesh.jl](https://github.com/trixi-framework/HOHQMesh.jl).
-If the Abaqus file header is not present in the `meshfile` then the `P4estMesh` is created
-with the function `p4est_mesh_from_standard_abaqus`.
-The default keyword argument `initial_refinement_level=0` corresponds to a forest
-where the number of trees is the same as the number of elements in the original `meshfile`.
-Increasing the `initial_refinement_level` allows one to uniformly refine the base mesh given
-in the `meshfile` to create a forest with more trees before the simulation begins.
-For example, if a two-dimensional base mesh contains 25 elements then setting
-`initial_refinement_level=1` creates an initial forest of `2^2 * 25 = 100` trees.
+Main mesh constructor for the `T8codeMesh` that imports an unstructured,
+conforming mesh from a `p4est_connectivity` data structure.
+
 # Arguments
 - `conn::Ptr{P4est.LibP4est.p4est_connectivity}`: Pointer to a cmesh object.
-- `kwargs`: keyword arguments
-"""
-function T8codeMesh{NDIMS}(conn::Ptr{P4est.LibP4est.p4est_connectivity}; kwargs...) where NDIMS
-
-  @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
-
-  cmesh = t8_cmesh_new_from_p4est(conn, mpi_comm(), 0)
-
-  return T8codeMesh{NDIMS}(cmesh; kwargs...)
-end
-
-
-"""
-    T8codeMesh{NDIMS}(meshfile::String;
-                     mapping=nothing, polydeg=1, RealT=Float64,
-                     initial_refinement_level=0, unsaved_changes=true)
-Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
-mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
-from the `meshfile` is created as a [`p4est`](https://github.com/cburstedde/p4est)
-tree datatype.
-Note that the `mapping` and `polydeg` keyword arguments are only used by the `p4est_mesh_from_standard_abaqus`
-function. The `p4est_mesh_from_hohqmesh_abaqus` function obtains the mesh `polydeg` directly from the `meshfile`
-and constructs the transfinite mapping internally.
-The particular strategy is selected according to the header present in the `meshfile` where
-the constructor checks whether or not the `meshfile` was created with
-[HOHQMesh.jl](https://github.com/trixi-framework/HOHQMesh.jl).
-If the Abaqus file header is not present in the `meshfile` then the `P4estMesh` is created
-with the function `p4est_mesh_from_standard_abaqus`.
-The default keyword argument `initial_refinement_level=0` corresponds to a forest
-where the number of trees is the same as the number of elements in the original `meshfile`.
-Increasing the `initial_refinement_level` allows one to uniformly refine the base mesh given
-in the `meshfile` to create a forest with more trees before the simulation begins.
-For example, if a two-dimensional base mesh contains 25 elements then setting
-`initial_refinement_level=1` creates an initial forest of `2^2 * 25 = 100` trees.
-# Arguments
-- `meshfile::String`: an uncurved Abaqus mesh file that can be imported by `p4est`.
 - `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
              the imported mesh to the physical domain. Use `nothing` for the identity map.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
@@ -343,7 +280,35 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
                       will curve the imported uncurved mesh.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
-- `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
+"""
+function T8codeMesh{NDIMS}(conn::Ptr{T8code.Libt8.p4est_connectivity}; kwargs...) where NDIMS
+
+  @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
+
+  cmesh = t8_cmesh_new_from_p4est(conn, mpi_comm(), 0)
+
+  return T8codeMesh{NDIMS}(cmesh; kwargs...)
+end
+
+"""
+    T8codeMesh{NDIMS}(meshfile::String;
+                     mapping=nothing, polydeg=1, RealT=Float64,
+                     initial_refinement_level=0)
+
+Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
+mesh from a Gmsh mesh file (`.msh`).
+
+# Arguments
+- `meshfile::String`: path to a Gmsh  mesh file.
+- `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
+             the imported mesh to the physical domain. Use `nothing` for the identity map.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+                      The default of `1` creates an uncurved geometry. Use a higher value if the mapping
+                      will curve the imported uncurved mesh.
+- `RealT::Type`: the type that should be used for coordinates.
+- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 """
 function T8codeMesh{NDIMS}(meshfile::String; kwargs...) where NDIMS
 
@@ -354,18 +319,17 @@ function T8codeMesh{NDIMS}(meshfile::String; kwargs...) where NDIMS
   
   meshfile_prefix, meshfile_suffix = splitext(meshfile)
 
-  cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), 2, 0, 0)
+  cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), NDIMS, 0, 0)
 
   return T8codeMesh{NDIMS}(cmesh; kwargs...)
-
 end
 
-# TODO: Just a placeholder. Will be implemented later.
+# TODO: Just a placeholder. Will be implemented later when MPI is supported.
 function balance!(mesh::T8codeMesh, init_fn=C_NULL)
   return nothing
 end
 
-# TODO: Just a placeholder. Will be implemented later.
+# TODO: Just a placeholder. Will be implemented later when MPI is supported.
 function partition!(mesh::T8codeMesh; allow_coarsening=true, weight_fn=C_NULL)
   return nothing
 end
