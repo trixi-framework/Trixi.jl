@@ -1466,6 +1466,8 @@ end
 
 function init_fn(p4est, which_tree, quadrant)
   # Unpack quadrant's user data ([global quad ID, controller_value])
+  # Use `unsafe_load` here since `quadrant.p.user_data isa Ptr{Ptr{Nothing}}`
+  # and we only need the first (only!) entry
   pw = PointerWrapper(Int, unsafe_load(quadrant.p.user_data))
 
   # Initialize quad ID as -1 and controller_value as 0 (don't refine or coarsen)
@@ -1483,6 +1485,8 @@ cfunction(::typeof(init_fn), ::Val{3}) = @cfunction(init_fn, Cvoid, (Ptr{p8est_t
 function refine_fn(p4est, which_tree, quadrant)
   # Controller value has been copied to the quadrant's user data storage before.
   # Unpack quadrant's user data ([global quad ID, controller_value]).
+  # Use `unsafe_load` here since `quadrant.p.user_data isa Ptr{Ptr{Nothing}}`
+  # and we only need the first (only!) entry
   pw = PointerWrapper(Int, unsafe_load(quadrant.p.user_data))
   controller_value = pw[2]
 
@@ -1524,6 +1528,8 @@ function coarsen_fn(p4est, which_tree, quadrants_ptr)
 
   # Controller value has been copied to the quadrant's user data storage before.
   # Load controller value from quadrant's user data ([global quad ID, controller_value]).
+  # Use `unsafe_load` here since `quadrant.p.user_data isa Ptr{Ptr{Nothing}}`
+  # and we only need the first (only!) entry
   controller_value(i) = PointerWrapper(Int, unsafe_load(quadrants[i].p.user_data))[2]
 
   # `p4est` calls this function for each 2^ndims quads that could be coarsened to a single one.
