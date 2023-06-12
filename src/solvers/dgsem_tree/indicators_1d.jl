@@ -347,7 +347,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(u::A
 
         for direction in eachdirection(mesh.tree)
             if !has_any_neighbor(mesh.tree, cell_id, direction)
-                neighbor_ids[direction] = element_id
+                neighbor_ids[direction] = element
                 continue
             end
             if has_neighbor(mesh.tree, cell_id, direction)
