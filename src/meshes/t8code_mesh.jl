@@ -17,6 +17,7 @@ mutable struct T8codeMesh{NDIMS, RealT<:Real, IsParallel, NDIMSP2, NNODES} <: Ab
   # Stores the quadrature nodes.
   nodes                 :: SVector{NNODES, RealT}
 
+
   boundary_names        :: Array{Symbol, 2}      # [face direction, tree]
   current_filename      :: String
   unsaved_changes       :: Bool # Not used yet.
@@ -26,7 +27,7 @@ mutable struct T8codeMesh{NDIMS, RealT<:Real, IsParallel, NDIMSP2, NNODES} <: Ab
   nmortars              :: Int
   nboundaries           :: Int
 
-  function T8codeMesh{NDIMS}(cmesh, scheme, forest) where NDIMS
+  function T8codeMesh{NDIMS}(cmesh, scheme, forest, nodes) where NDIMS
     # TODO: Implement MPI parallelization.
     # if mpi_isparallel()
     #   if !T8code.uses_mpi()
@@ -52,7 +53,7 @@ end
 function T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes, boundary_names,
                           current_filename, unsaved_changes) where NDIMS
 
-  mesh = T8codeMesh{NDIMS}(cmesh, scheme, forest)
+  mesh = T8codeMesh{NDIMS}(cmesh, scheme, forest, nodes)
 
   mesh.nodes = nodes
   mesh.boundary_names = boundary_names
