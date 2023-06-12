@@ -586,8 +586,8 @@ end
 
   @unpack variable_bounds = indicator.cache.container_shock_capturing
 
-  if Trixi.density in variables_cons && density_tvd
-    if Trixi.density == variables_cons[index]
+  if 1 in variables_cons && density_tvd
+    if variables_cons[variable] == 1
       var_min = variable_bounds[1]
     else
       var_min = variable_bounds[2 * density_tvd + spec_entropy + math_entropy + index - 1]
@@ -605,7 +605,7 @@ end
         inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
       end
 
-      var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
+      var = get_node_vars(u, equations, dg, i, j, element)[variable]
       if var < 0
         error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
       end
@@ -626,10 +626,10 @@ end
 
       # Calculate Pm
       # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
-      val_flux1_local     =  inverse_weights[i] * variable(get_node_vars(antidiffusive_flux1, equations, dg,   i,   j, element), equations)
-      val_flux1_local_ip1 = -inverse_weights[i] * variable(get_node_vars(antidiffusive_flux1, equations, dg, i+1,   j, element), equations)
-      val_flux2_local     =  inverse_weights[j] * variable(get_node_vars(antidiffusive_flux2, equations, dg,   i,   j, element), equations)
-      val_flux2_local_jp1 = -inverse_weights[j] * variable(get_node_vars(antidiffusive_flux2, equations, dg,   i, j+1, element), equations)
+      val_flux1_local     =  inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg,   i,   j, element)[variable]
+      val_flux1_local_ip1 = -inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i+1,   j, element)[variable]
+      val_flux2_local     =  inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg,   i,   j, element)[variable]
+      val_flux2_local_jp1 = -inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg,   i, j+1, element)[variable]
 
       Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
            min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
@@ -655,7 +655,7 @@ end
   @unpack variable_bounds = indicator.cache.container_shock_capturing
 
   var_min = variable_bounds[2 * density_tvd + spec_entropy + math_entropy +
-                            length(variables_cons) - min(density_tvd, Trixi.density in variables_cons) +
+                            length(variables_cons) - min(density_tvd, 1 in variables_cons) +
                             index]
 
   @threaded for element in elements

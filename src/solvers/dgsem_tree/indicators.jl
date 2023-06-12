@@ -219,7 +219,7 @@ end
     IndicatorIDP(equations::AbstractEquations, basis;
                  density_tvd=false,
                  positivity=false,
-                 variables_cons=(),
+                 variables_cons=[],
                  variables_nonlinear=(),
                  spec_entropy=false,
                  math_entropy=false,
@@ -257,10 +257,10 @@ indicator values <= `threshold_smoothness_indicator`.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorIDP{RealT<:Real, LimitingVariablesCons, LimitingVariablesNonlinear, Cache, Indicator} <: AbstractIndicator
+struct IndicatorIDP{RealT<:Real, LimitingVariablesNonlinear, Cache, Indicator} <: AbstractIndicator
   density_tvd::Bool
   positivity::Bool
-  variables_cons::LimitingVariablesCons           # Positivity of conservative variables
+  variables_cons::Vector{Int}                     # Impose positivity for conservative variables
   variables_nonlinear::LimitingVariablesNonlinear # Positivity of nonlinear variables
   spec_entropy::Bool
   math_entropy::Bool
@@ -279,7 +279,7 @@ end
 function IndicatorIDP(equations::AbstractEquations, basis;
                       density_tvd=false,
                       positivity=false,
-                      variables_cons=(),
+                      variables_cons=[],
                       variables_nonlinear=(),
                       spec_entropy=false,
                       math_entropy=false,
@@ -296,7 +296,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
                   spec_entropy + math_entropy
   if equations isa AbstractCompressibleEulerEquations
     if density_tvd
-      number_bounds += 2 - positivity * (Trixi.density in variables_cons)
+      number_bounds += 2 - positivity * (1 in variables_cons)
     end
   end
 
@@ -308,7 +308,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
   else
     IndicatorHG = nothing
   end
-  IndicatorIDP{typeof(positivity_correction_factor), typeof(variables_cons), typeof(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(
+  IndicatorIDP{typeof(positivity_correction_factor), typeof(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(
     density_tvd, positivity, variables_cons, variables_nonlinear, spec_entropy, math_entropy,
     bar_states, cache, positivity_correction_factor, max_iterations_newton, newton_tolerances, gamma_constant_newton, smoothness_indicator, threshold_smoothness_indicator, IndicatorHG)
 end
@@ -323,7 +323,7 @@ function Base.show(io::IO, indicator::IndicatorIDP)
   else
     print(io, "limiter=(")
     density_tvd  && print(io, "density, ")
-    positivity  && print(io, "positivity, ")
+    positivity   && print(io, "positivity, ")
     spec_entropy && print(io, "specific entropy, ")
     math_entropy && print(io, "mathematical entropy, ")
     print(io, "), ")
@@ -347,9 +347,9 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
       setup = ["limiter" => ""]
       density_tvd  && (setup = [setup..., "" => "density"])
       if positivity
-        string = "positivity with variables $(tuple(indicator.variables_cons..., indicator.variables_nonlinear...))"
+        string = "positivity with conservative variables $(indicator.variables_cons) and $(indicator.variables_nonlinear)"
         setup = [setup..., "" => string]
-        setup = [setup..., "" => " "^14 * "and positivity correction factor $(indicator.positivity_correction_factor)"]
+        setup = [setup..., "" => " "^11 * "and positivity correction factor $(indicator.positivity_correction_factor)"]
       end
       spec_entropy && (setup = [setup..., "" => "specific entropy"])
       math_entropy && (setup = [setup..., "" => "mathematical entropy"])
