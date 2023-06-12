@@ -1408,7 +1408,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                                        nodes[q])
                     end
                 else # curved_check[face] == 1
-                    # Curved face boundary information is supplied by the mesh file. Just read it into a work array
+                    # Curved face boundary information is supplied by 
+                    # the mesh file. Just read it into a work array
                     for q in 1:nnodes, p in 1:nnodes
                         file_idx += 1
                         current_line = split(file_lines[file_idx])
