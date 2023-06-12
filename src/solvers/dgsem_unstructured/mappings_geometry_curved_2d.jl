@@ -26,15 +26,13 @@ function transfinite_quad_map(xi, eta, surface_curves::AbstractVector{<:CurvedSu
     x = (0.5 *
          ((1.0 - xi) * x4 + (1.0 + xi) * x2 + (1.0 - eta) * x1 + (1.0 + eta) * x3)
          -
-         0.25 * ((1.0 - xi) * ((1.0 - eta) * x_corner1 + (1.0 + eta) * x_corner4)
-          +
+         0.25 * ((1.0 - xi) * ((1.0 - eta) * x_corner1 + (1.0 + eta) * x_corner4) +
           (1.0 + xi) * ((1.0 - eta) * x_corner2 + (1.0 + eta) * x_corner3)))
 
     y = (0.5 *
          ((1.0 - xi) * y4 + (1.0 + xi) * y2 + (1.0 - eta) * y1 + (1.0 + eta) * y3)
          -
-         0.25 * ((1.0 - xi) * ((1.0 - eta) * y_corner1 + (1.0 + eta) * y_corner4)
-          +
+         0.25 * ((1.0 - xi) * ((1.0 - eta) * y_corner1 + (1.0 + eta) * y_corner4) +
           (1.0 + xi) * ((1.0 - eta) * y_corner2 + (1.0 + eta) * y_corner3)))
 
     return x, y
