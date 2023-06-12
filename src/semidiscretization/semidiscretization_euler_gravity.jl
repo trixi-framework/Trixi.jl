@@ -16,12 +16,12 @@
 Set up parameters for the gravitational part of a [`SemidiscretizationEulerGravity`](@ref).
 """
 struct ParametersEulerGravity{RealT <: Real, TimestepGravity}
-    background_density::RealT # aka rho0
-    gravitational_constant::RealT # aka G
-    cfl::RealT
-    resid_tol::RealT
-    n_iterations_max::Int
-    timestep_gravity::TimestepGravity
+    background_density     :: RealT # aka rho0
+    gravitational_constant :: RealT # aka G
+    cfl                    :: RealT
+    resid_tol              :: RealT
+    n_iterations_max       :: Int
+    timestep_gravity       :: TimestepGravity
 end
 
 function ParametersEulerGravity(; background_density = 0.0,
@@ -79,12 +79,12 @@ the hyperblic diffusion equations.
 struct SemidiscretizationEulerGravity{SemiEuler, SemiGravity,
                                       Parameters <: ParametersEulerGravity, Cache} <:
        AbstractSemidiscretization
-    semi_euler::SemiEuler
-    semi_gravity::SemiGravity
-    parameters::Parameters
-    performance_counter::PerformanceCounter
-    gravity_counter::PerformanceCounter
-    cache::Cache
+    semi_euler          :: SemiEuler
+    semi_gravity        :: SemiGravity
+    parameters          :: Parameters
+    performance_counter :: PerformanceCounter
+    gravity_counter     :: PerformanceCounter
+    cache               :: Cache
 
     function SemidiscretizationEulerGravity{SemiEuler, SemiGravity, Parameters, Cache}(semi_euler::SemiEuler,
                                                                                        semi_gravity::SemiGravity,
