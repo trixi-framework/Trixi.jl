@@ -497,7 +497,7 @@ function count_surfaces_iter_face_parallel(info, user_data)
         pw[2] = id + 1
       end
     end
-  elseif info_pw.sides.elem_count == 1
+  elseif info_pw.sides.elem_count[] == 1
     # One neighboring elements => boundary
 
     # Unpack user_data = [boundary_count] and increment boundary_count
