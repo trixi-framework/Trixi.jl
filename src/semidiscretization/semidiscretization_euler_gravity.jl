@@ -424,7 +424,7 @@ end
                                     element_variables=Dict{Symbol,Any}(); system="")
   # If this is called already as part of a multi-system setup (i.e., system is non-empty),
   # we build a combined system name
-  if system != ""
+  if !isempty(system)
     system_euler = system * "_euler"
     system_gravity = system * "_gravity"
   else
