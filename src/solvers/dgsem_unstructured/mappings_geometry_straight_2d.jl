@@ -9,15 +9,15 @@
 # in physical coordinate space for a quadrilateral element with straight sides
 #     Alg. 95 from the blue book of Kopriva
 function straight_side_quad_map(xi, eta, corner_points)
-    x = (0.25 * (corner_points[1, 1] * (1.0 - xi) * (1.0 - eta)
-          + corner_points[2, 1] * (1.0 + xi) * (1.0 - eta)
-          + corner_points[3, 1] * (1.0 + xi) * (1.0 + eta)
-          + corner_points[4, 1] * (1.0 - xi) * (1.0 + eta)))
+    x = 0.25 * (corner_points[1, 1] * (1.0 - xi) * (1.0 - eta)
+         + corner_points[2, 1] * (1.0 + xi) * (1.0 - eta)
+         + corner_points[3, 1] * (1.0 + xi) * (1.0 + eta)
+         + corner_points[4, 1] * (1.0 - xi) * (1.0 + eta))
 
-    y = (0.25 * (corner_points[1, 2] * (1.0 - xi) * (1.0 - eta)
-          + corner_points[2, 2] * (1.0 + xi) * (1.0 - eta)
-          + corner_points[3, 2] * (1.0 + xi) * (1.0 + eta)
-          + corner_points[4, 2] * (1.0 - xi) * (1.0 + eta)))
+    y = 0.25 * (corner_points[1, 2] * (1.0 - xi) * (1.0 - eta)
+         + corner_points[2, 2] * (1.0 + xi) * (1.0 - eta)
+         + corner_points[3, 2] * (1.0 + xi) * (1.0 + eta)
+         + corner_points[4, 2] * (1.0 - xi) * (1.0 + eta))
 
     return x, y
 end
@@ -25,21 +25,17 @@ end
 # Compute the metric terms for the straight sided quadrilateral mapping
 #     Alg. 100 from the blue book of Kopriva
 function straight_side_quad_map_metrics(xi, eta, corner_points)
-    X_xi = (0.25 * ((1.0 - eta) * (corner_points[2, 1] - corner_points[1, 1])
-             +
-             (1.0 + eta) * (corner_points[3, 1] - corner_points[4, 1])))
+    X_xi = 0.25 * ((1.0 - eta) * (corner_points[2, 1] - corner_points[1, 1]) +
+            (1.0 + eta) * (corner_points[3, 1] - corner_points[4, 1]))
 
-    X_eta = (0.25 * ((1.0 - xi) * (corner_points[4, 1] - corner_points[1, 1])
-              +
-              (1.0 + xi) * (corner_points[3, 1] - corner_points[2, 1])))
+    X_eta = 0.25 * ((1.0 - xi) * (corner_points[4, 1] - corner_points[1, 1]) +
+             (1.0 + xi) * (corner_points[3, 1] - corner_points[2, 1]))
 
-    Y_xi = (0.25 * ((1.0 - eta) * (corner_points[2, 2] - corner_points[1, 2])
-             +
-             (1.0 + eta) * (corner_points[3, 2] - corner_points[4, 2])))
+    Y_xi = 0.25 * ((1.0 - eta) * (corner_points[2, 2] - corner_points[1, 2]) +
+            (1.0 + eta) * (corner_points[3, 2] - corner_points[4, 2]))
 
-    Y_eta = (0.25 * ((1.0 - xi) * (corner_points[4, 2] - corner_points[1, 2])
-              +
-              (1.0 + xi) * (corner_points[3, 2] - corner_points[2, 2])))
+    Y_eta = 0.25 * ((1.0 - xi) * (corner_points[4, 2] - corner_points[1, 2]) +
+             (1.0 + xi) * (corner_points[3, 2] - corner_points[2, 2]))
 
     return X_xi, X_eta, Y_xi, Y_eta
 end
