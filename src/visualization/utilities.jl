@@ -319,8 +319,7 @@ end
 # Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, levels,
-                     ndims,
-                     unstructured_data, n_nodes,
+                     ndims, unstructured_data, n_nodes,
                      grid_lines = false, max_supported_level = 11, nvisnodes = nothing,
                      slice = :xy, point = (0.0, 0.0, 0.0))
     # Determine resolution for data interpolation
