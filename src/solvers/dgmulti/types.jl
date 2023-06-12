@@ -104,7 +104,8 @@ function DGMulti(element_type::AbstractElemShape,
                  polydeg::Integer,
                  kwargs...)
     rd = RefElemData(element_type, approximation_type, polydeg; kwargs...)
-    return DG(rd, nothing, surface_integral, volume_integral) #= mortar =#
+    # `nothing` is passed as `mortar`
+    return DG(rd, nothing, surface_integral, volume_integral)
 end
 
 function DGMulti(basis::RefElemData; volume_integral, surface_integral)
