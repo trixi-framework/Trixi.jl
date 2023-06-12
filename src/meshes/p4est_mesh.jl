@@ -1397,7 +1397,9 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
             # Hexahedral element has at least one curved side
             for face in 1:6
                 if curved_check[face] == 0
-                    # Face is a flat plane. Evaluate a bilinear interpolant between the four vertices of the face at each of the nodes.
+                    # Face is a flat plane.
+                    # Evaluate a bilinear interpolant between the four vertices
+                    # of the face at each of the nodes.
                     get_vertices_for_bilinear_interpolant!(face_vertices, face,
                                                            hex_vertices)
                     for q in 1:nnodes, p in 1:nnodes
