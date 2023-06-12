@@ -406,7 +406,7 @@ function init_mpi_mortars_iter_face_inner(info_pw, sides_pw, user_data)
 
   # Get id of local small quadrants within their tree
   # Indexing CBinding.Caccessor via a Vector does not work here -> use map instead
-  tree_small_quad_ids = map(p->sides_pw[hanging_side].is.hanging.quadid[p], local_small_quad_positions)
+  tree_small_quad_ids = map(p->sides_pw[hanging_side].is.hanging.quadid[][p], local_small_quad_positions)
   local_small_quad_ids = offsets[hanging_side] .+ tree_small_quad_ids # ids cumulative over local trees
 
   # Determine if large quadrant is available and if yes, determine its id

@@ -414,7 +414,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
                                  info_pw.ghost_layer.proc_offsets,
                                  mpi_nranks() + 1)
       # indices of small remote quads inside the ghost layer, 0-based
-      ghost_ids = map(pos -> sides_pw[hanging_side].is.hanging.quadid[pos], remote_small_quad_positions)
+      ghost_ids = map(pos -> sides_pw[hanging_side].is.hanging.quadid[][pos], remote_small_quad_positions)
       neighbor_ranks = map(ghost_ids) do ghost_id
         return findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r+1],
                          1:mpi_nranks()) - 1 # MPI ranks are 0-based
