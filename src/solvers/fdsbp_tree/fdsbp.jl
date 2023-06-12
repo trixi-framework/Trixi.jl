@@ -28,7 +28,8 @@ The other arguments have the same meaning as in [`DG`](@ref) or [`DGSEM`](@ref).
 const FDSBP = DG{Basis} where {Basis <: AbstractDerivativeOperator}
 
 function FDSBP(D_SBP::AbstractDerivativeOperator; surface_integral, volume_integral)
-    return DG(D_SBP, nothing, surface_integral, volume_integral) #= mortar =#
+    # `nothing` is passed as `mortar`
+    return DG(D_SBP, nothing, surface_integral, volume_integral)
 end
 
 # General interface methods for SummationByPartsOperators.jl and Trixi.jl
