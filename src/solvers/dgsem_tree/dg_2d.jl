@@ -250,7 +250,7 @@ function calc_volume_integral_gpu!(du, u,
                                    volume_integral::VolumeIntegralWeakForm,
                                    dg::DGSEM, cache)
 
-  backend = get_backend(du)
+  backend = get_backend(u)
 
   kernel! = weak_form_kernel_gpu!(backend)
   # Determine gridsize by number of node for each element
@@ -265,7 +265,7 @@ function calc_volume_integral_gpu!(du, u,
     Base.copyto!(dev_derivative_dhat, derivative_dhat)
   end
 
-  kernel!(du, u, equations, dev_derivative_dhat, num_nodes, ndrange=num_elements, workgroupsize=1)
+  kernel!(du, u, equations, dev_derivative_dhat, num_nodes, ndrange=num_elements)
   # Ensure that device is finished
   KernelAbstractions.synchronize(backend)
 
@@ -277,7 +277,7 @@ end #@muladd
 @kernel function weak_form_kernel_gpu!(du, u,
                                        equations, derivative_dhat, num_nodes)
 
-  element = @index(Group)
+  element = @index(Global)
 
   for j in 1:num_nodes, i in 1:num_nodes
     #u_node = get_node_vars(u, equations, dg, i, j, element)
