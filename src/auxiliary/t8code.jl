@@ -11,18 +11,27 @@ function init_t8code()
     return nothing
   end
 
+
+  # Initialize the sc library, has to happen before we initialize t8code.
+  T8code.Libt8.sc_init(mpi_comm(), 1, 1, C_NULL, T8code.Libt8.SC_LP_ESSENTIAL)
   # Initialize `t8code` with log level ERROR to prevent a lot of output in AMR simulations
-  t8_init(SC_LP_ERROR)
+  t8_init(T8code.Libt8.SC_LP_ERROR)
 
   return nothing
 end
+
+function finalize_t8code()
+  T8code.Libt8.sc_finalize()
+end
+
+finalizer(finalize_t8code, T8code)
 
 function trixi_t8_unref_forest(forest)
   t8_forest_unref(Ref(forest))
 end
 
 function t8_free(ptr)
-  sc_free(t8_get_package_id(), ptr)
+  T8code.Libt8.sc_free(t8_get_package_id(), ptr)
 end
 
 function trixi_t8_count_interfaces(forest)
