@@ -23,7 +23,8 @@ function DGMulti(approximation_type::AbstractDerivativeOperator;
                  volume_integral = VolumeIntegralWeakForm(),
                  kwargs...)
     rd = RefElemData(element_type, approximation_type; kwargs...)
-    return DG(rd, nothing, surface_integral, volume_integral) #= mortar =#
+    # `nothing` is passed as `mortar`
+    return DG(rd, nothing, surface_integral, volume_integral)
 end
 
 function DGMulti(element_type::AbstractElemShape,
