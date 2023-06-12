@@ -17,22 +17,22 @@ from a mesh file `filename`.
 """
 mutable struct UnstructuredMesh2D{RealT <: Real, CurvedSurfaceT <: CurvedSurface{RealT}
                                   } <: AbstractMesh{2}
-    filename::String
-    n_corners::Int
-    n_surfaces::Int # total number of surfaces
-    n_interfaces::Int # number of interior surfaces
-    n_boundaries::Int # number of surfaces on the physical boundary
-    n_elements::Int
-    polydeg::Int
-    corners::Array{RealT, 2}  # [ndims, n_corners]
-    neighbour_information::Array{Int, 2}  # [neighbour node/element/edge ids, n_surfaces]
-    boundary_names::Array{Symbol, 2} # [local sides, n_elements]
-    periodicity::Bool
-    element_node_ids::Array{Int, 2} # [node ids, n_elements]
-    element_is_curved::Vector{Bool}
-    surface_curves::Array{CurvedSurfaceT, 2} # [local sides, n_elements]
-    current_filename::String
-    unsaved_changes::Bool # if true, the mesh will be saved for plotting
+    filename              :: String
+    n_corners             :: Int
+    n_surfaces            :: Int # total number of surfaces
+    n_interfaces          :: Int # number of interior surfaces
+    n_boundaries          :: Int # number of surfaces on the physical boundary
+    n_elements            :: Int
+    polydeg               :: Int
+    corners               :: Array{RealT, 2}  # [ndims, n_corners]
+    neighbour_information :: Array{Int, 2}  # [neighbour node/element/edge ids, n_surfaces]
+    boundary_names        :: Array{Symbol, 2} # [local sides, n_elements]
+    periodicity           :: Bool
+    element_node_ids      :: Array{Int, 2} # [node ids, n_elements]
+    element_is_curved     :: Vector{Bool}
+    surface_curves        :: Array{CurvedSurfaceT, 2} # [local sides, n_elements]
+    current_filename      :: String
+    unsaved_changes       :: Bool # if true, the mesh will be saved for plotting
 end
 
 # constructor for an unstructured mesh read in from a file
