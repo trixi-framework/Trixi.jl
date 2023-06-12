@@ -19,9 +19,9 @@ function calc_node_coordinates!(node_coordinates,
   current_index = 0
   for itree = 0:num_local_trees-1
 
-    tree_class = t8_forest_get_tree_class(mesh.forest, itree);
-    eclass_scheme = t8_forest_get_eclass_scheme(mesh.forest, tree_class);
-    num_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest, itree);
+    tree_class = t8_forest_get_tree_class(mesh.forest, itree)
+    eclass_scheme = t8_forest_get_eclass_scheme(mesh.forest, tree_class)
+    num_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest, itree)
 
     for ielement = 0:num_elements_in_tree-1
       element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)

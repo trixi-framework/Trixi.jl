@@ -158,7 +158,7 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
           t8_cmesh_get_face_neighbor(cmesh, itree_in_cmesh, iface_in_tree, C_NULL, orientation_ref)
           orientation = orientation_ref[]
         else
-          orientation = 0
+          orientation = zero(Cint)
         end
 
         pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
@@ -362,13 +362,13 @@ end
 #         smaller zero if the family `elements` shall be coarsened,
 #         zero else.
 function adapt_callback(forest,
-                         forest_from,
-                         which_tree,
-                         lelement_id,
-                         ts,
-                         is_family, 
-                         num_elements,
-                         elements) :: Cint
+                        forest_from,
+                        which_tree,
+                        lelement_id,
+                        ts,
+                        is_family, 
+                        num_elements,
+                        elements) :: Cint
 
   num_levels = t8_forest_get_local_num_elements(forest_from)
 

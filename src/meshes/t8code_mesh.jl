@@ -1,6 +1,8 @@
 """
     T8codeMesh{NDIMS} <: AbstractMesh{NDIMS}
-An unstructured curved mesh based on trees that uses the C library 't8code'
+
+An unstructured curved mesh based on trees that uses the C library 
+['t8code'](https://github.com/DLR-AMR/t8code)
 to manage trees and mesh refinement.
 """
 mutable struct T8codeMesh{NDIMS, RealT<:Real, IsParallel, NDIMSP2, NNODES} <: AbstractMesh{NDIMS}
@@ -94,14 +96,17 @@ end
 
 """
     T8codeMesh(trees_per_dimension; polydeg,
-              mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
-              RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
+               mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
+               RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
+
 Create a structured curved 'T8codeMesh' of the specified size.
 There are three ways to map the mesh to the physical domain.
-1. Define a 'mapping' that maps the hypercube '[-1, 1]^n'.
+1. Define a `mapping` that maps the hypercube '[-1, 1]^n'.
 2. Specify a 'Tuple' 'faces' of functions that parametrize each face.
 3. Create a rectangular mesh by specifying 'coordinates_min' and 'coordinates_max'.
+
 Non-periodic boundaries will be called ':x_neg', ':x_pos', ':y_neg', ':y_pos', ':z_neg', ':z_pos'.
+
 # Arguments
 - 'trees_per_dimension::NTupleE{NDIMS, Int}': the number of trees in each dimension.
 - 'polydeg::Integer': polynomial degree used to store the geometry of the mesh.
@@ -192,7 +197,6 @@ end
                      initial_refinement_level=0, unsaved_changes=true)
 Main mesh constructor for the `T8codeMesh` that imports an unstructured,
 conforming mesh from `t8_cmesh` data structure.
-
 # Arguments
 - `cmesh::Ptr{t8_cmesh}`: Pointer to a cmesh object.
 - `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
@@ -207,8 +211,8 @@ conforming mesh from `t8_cmesh` data structure.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
 """
 function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
-                          mapping=nothing, polydeg=1, RealT=Float64,
-                          initial_refinement_level=0, unsaved_changes=true) where NDIMS
+                           mapping=nothing, polydeg=1, RealT=Float64,
+                           initial_refinement_level=0, unsaved_changes=true) where NDIMS
 
   @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
 
@@ -270,8 +274,9 @@ end
 
 """
     T8codeMesh{NDIMS}(conn::Ptr{P4est.LibP4est.p4est_connectivity},
-                     mapping=nothing, polydeg=1, RealT=Float64,
-                     initial_refinement_level=0, unsaved_changes=true)
+                      mapping=nothing, polydeg=1, RealT=Float64,
+                      initial_refinement_level=0, unsaved_changes=true)
+
 Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
 mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
 from the `meshfile` is created as a [`p4est`](https://github.com/cburstedde/p4est)
