@@ -27,7 +27,7 @@ end
 
 function trixi_t8_count_interfaces(forest)
   # Check that forest is a committed, that is valid and usable, forest.
-  @T8_ASSERT (t8_forest_is_committed(forest) != 0)
+  @assert t8_forest_is_committed(forest) != 0
 
   # Get the number of local elements of forest.
   num_local_elements = t8_forest_get_local_num_elements(forest)
@@ -54,7 +54,7 @@ function trixi_t8_count_interfaces(forest)
 
       level = t8_element_level(eclass_scheme, element)
 
-      num_faces = t8_element_num_faces(eclass_scheme,element)
+      num_faces = t8_element_num_faces(eclass_scheme, element)
 
       for iface = 0:num_faces-1
 
@@ -67,13 +67,13 @@ function trixi_t8_count_interfaces(forest)
 
         forest_is_balanced = Cint(1)
 
-        t8_forest_leaf_face_neighbors(forest,itree,element,
+        t8_forest_leaf_face_neighbors(forest, itree, element,
           pneighbor_leafs_ref, iface, dual_faces_ref, num_neighbors_ref,
           pelement_indices_ref, pneigh_scheme_ref, forest_is_balanced)
 
         num_neighbors      = num_neighbors_ref[]
-        neighbor_ielements = unsafe_wrap(Array,pelement_indices_ref[],num_neighbors)
-        neighbor_leafs     = unsafe_wrap(Array,pneighbor_leafs_ref[],num_neighbors)
+        neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[], num_neighbors)
+        neighbor_leafs     = unsafe_wrap(Array, pneighbor_leafs_ref[], num_neighbors)
         neighbor_scheme    = pneigh_scheme_ref[]
 
         if num_neighbors > 0
@@ -85,9 +85,9 @@ function trixi_t8_count_interfaces(forest)
           # elseif level == neighbor_level && 
           #   (all(Int32(current_index) .< neighbor_ielements) || 
           #   level == 0 && (iface == 0 || iface == 2 || iface == 4))
-              local_num_conform += 1
+            local_num_conform += 1
           elseif level < neighbor_level 
-              local_num_mortars += 1
+            local_num_mortars += 1
           end
 
         else
@@ -106,6 +106,10 @@ function trixi_t8_count_interfaces(forest)
     end # for
   end # for
 
+  println("local_num_conform  = ", local_num_conform)
+  println("local_num_mortars  = ", local_num_mortars)
+  println("local_num_boundary = ", local_num_boundary)
+
   return (interfaces = local_num_conform,
           mortars    = local_num_mortars,
           boundaries = local_num_boundary)
@@ -113,7 +117,7 @@ end
 
 function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundaries, boundary_names)
   # Check that forest is a committed, that is valid and usable, forest.
-  @T8_ASSERT (t8_forest_is_committed(forest) != 0)
+  @assert t8_forest_is_committed(forest) != 0
 
   # Get the number of local elements of forest.
   num_local_elements = t8_forest_get_local_num_elements(forest)
@@ -171,9 +175,9 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
           pelement_indices_ref, pneigh_scheme_ref, forest_is_balanced)
 
         num_neighbors      = num_neighbors_ref[]
-        dual_faces         = unsafe_wrap(Array,dual_faces_ref[],num_neighbors)
-        neighbor_ielements = unsafe_wrap(Array,pelement_indices_ref[],num_neighbors)
-        neighbor_leafs     = unsafe_wrap(Array,pneighbor_leafs_ref[],num_neighbors)
+        dual_faces         = unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
+        neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[], num_neighbors)
+        neighbor_leafs     = unsafe_wrap(Array, pneighbor_leafs_ref[], num_neighbors)
         neighbor_scheme    = pneigh_scheme_ref[]
 
         if num_neighbors > 0
@@ -185,87 +189,87 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
           # elseif level == neighbor_level &&
           #   (all(Int32(current_index) .< neighbor_ielements) ||
           #   level == 0 && (iface == 0 || iface == 2 || iface == 4))
-              local_num_conform += 1
+            local_num_conform += 1
 
-              faces = (iface, dual_faces[1])
-              interface_id = local_num_conform
+            faces = (iface, dual_faces[1])
+            interface_id = local_num_conform
 
-              # Write data to interfaces container.
-              interfaces.neighbor_ids[1, interface_id] = current_index + 1
-              interfaces.neighbor_ids[2, interface_id] = neighbor_ielements[1] + 1
+            # Write data to interfaces container.
+            interfaces.neighbor_ids[1, interface_id] = current_index + 1
+            interfaces.neighbor_ids[2, interface_id] = neighbor_ielements[1] + 1
 
-              # Iterate over primary and secondary element.
-              for side = 1:2
-                # Align interface in positive coordinate direction of primary element.
-                # For orientation == 1, the secondary element needs to be indexed backwards
-                # relative to the interface.
-                if side == 1 || orientation == 0
-                  # Forward indexing
-                  indexing = :i_forward
-                else
-                  # Backward indexing
-                  indexing = :i_backward
-                end
-
-                if faces[side] == 0
-                  # Index face in negative x-direction
-                  interfaces.node_indices[side, interface_id] = (:begin, indexing)
-                elseif faces[side] == 1
-                  # Index face in positive x-direction
-                  interfaces.node_indices[side, interface_id] = (:end, indexing)
-                elseif faces[side] == 2
-                  # Index face in negative y-direction
-                  interfaces.node_indices[side, interface_id] = (indexing, :begin)
-                else # faces[side] == 3
-                  # Index face in positive y-direction
-                  interfaces.node_indices[side, interface_id] = (indexing, :end)
-                end
+            # Iterate over primary and secondary element.
+            for side = 1:2
+              # Align interface in positive coordinate direction of primary element.
+              # For orientation == 1, the secondary element needs to be indexed backwards
+              # relative to the interface.
+              if side == 1 || orientation == 0
+                # Forward indexing
+                indexing = :i_forward
+              else
+                # Backward indexing
+                indexing = :i_backward
               end
+
+              if faces[side] == 0
+                # Index face in negative x-direction
+                interfaces.node_indices[side, interface_id] = (:begin, indexing)
+              elseif faces[side] == 1
+                # Index face in positive x-direction
+                interfaces.node_indices[side, interface_id] = (:end, indexing)
+              elseif faces[side] == 2
+                # Index face in negative y-direction
+                interfaces.node_indices[side, interface_id] = (indexing, :begin)
+              else # faces[side] == 3
+                # Index face in positive y-direction
+                interfaces.node_indices[side, interface_id] = (indexing, :end)
+              end
+            end
 
           # Non-conforming interface.
           elseif level < neighbor_level 
-              local_num_mortars += 1
+            local_num_mortars += 1
 
-              faces = (dual_faces[1],iface)
+            faces = (dual_faces[1],iface)
 
-              mortar_id = local_num_mortars
+            mortar_id = local_num_mortars
 
-              # Last entry is the large element.
-              mortars.neighbor_ids[end, mortar_id] = current_index + 1
+            # Last entry is the large element.
+            mortars.neighbor_ids[end, mortar_id] = current_index + 1
 
-              # First `1:end-1` entries are the smaller elements.
-              mortars.neighbor_ids[1:end-1, mortar_id] .= neighbor_ielements[:] .+ 1
+            # First `1:end-1` entries are the smaller elements.
+            mortars.neighbor_ids[1:end-1, mortar_id] .= neighbor_ielements[:] .+ 1
 
-              for side = 1:2
-                # Align mortar in positive coordinate direction of small side.
-                # For orientation == 1, the large side needs to be indexed backwards
-                # relative to the mortar.
-                if side == 1 || orientation == 0
-                  # Forward indexing for small side or orientation == 0.
-                  indexing = :i_forward
-                else
-                  # Backward indexing for large side with reversed orientation.
-                  indexing = :i_backward
-                  # TODO: Fully understand what is going on here. Generalize this for 3D.
-                  # Has something to do with Morton ordering.
-                  mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[2] + 1
-                  mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[1] + 1
-                end
-
-                if faces[side] == 0
-                  # Index face in negative x-direction
-                  mortars.node_indices[side, mortar_id] = (:begin, indexing)
-                elseif faces[side] == 1
-                  # Index face in positive x-direction
-                  mortars.node_indices[side, mortar_id] = (:end, indexing)
-                elseif faces[side] == 2
-                  # Index face in negative y-direction
-                  mortars.node_indices[side, mortar_id] = (indexing, :begin)
-                else # faces[side] == 3
-                  # Index face in positive y-direction
-                  mortars.node_indices[side, mortar_id] = (indexing, :end)
-                end
+            for side = 1:2
+              # Align mortar in positive coordinate direction of small side.
+              # For orientation == 1, the large side needs to be indexed backwards
+              # relative to the mortar.
+              if side == 1 || orientation == 0
+                # Forward indexing for small side or orientation == 0.
+                indexing = :i_forward
+              else
+                # Backward indexing for large side with reversed orientation.
+                indexing = :i_backward
+                # TODO: Fully understand what is going on here. Generalize this for 3D.
+                # Has something to do with Morton ordering.
+                mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[2] + 1
+                mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[1] + 1
               end
+
+              if faces[side] == 0
+                # Index face in negative x-direction
+                mortars.node_indices[side, mortar_id] = (:begin, indexing)
+              elseif faces[side] == 1
+                # Index face in positive x-direction
+                mortars.node_indices[side, mortar_id] = (:end, indexing)
+              elseif faces[side] == 2
+                # Index face in negative y-direction
+                mortars.node_indices[side, mortar_id] = (indexing, :begin)
+              else # faces[side] == 3
+                # Index face in positive y-direction
+                mortars.node_indices[side, mortar_id] = (indexing, :end)
+              end
+            end
             
           # else: "level > neighbor_level" is skipped since we visit the mortar interface only once.
           end
@@ -312,7 +316,7 @@ end
 
 function trixi_t8_get_local_element_levels(forest)
   # Check that forest is a committed, that is valid and usable, forest.
-  @T8_ASSERT (t8_forest_is_committed(forest) != 0)
+  @assert t8_forest_is_committed(forest) != 0
 
   levels = Vector{Int}(undef, t8_forest_get_local_num_elements(forest))
 
@@ -338,6 +342,25 @@ function trixi_t8_get_local_element_levels(forest)
   return levels
 end
 
+# Callback function prototype to decide for refining and coarsening.
+# If `is_family` equals 1, the first `num_elements` in elements
+# form a family and we decide whether this family should be coarsened
+# or only the first element should be refined.
+# Otherwise `is_family` must equal zero and we consider the first entry
+# of the element array for refinement. 
+# Entries of the element array beyond the first `num_elements` are undefined.
+# \param [in] forest       the forest to which the new elements belong
+# \param [in] forest_from  the forest that is adapted.
+# \param [in] which_tree   the local tree containing `elements`
+# \param [in] lelement_id  the local element id in `forest_old` in the tree of the current element
+# \param [in] ts           the eclass scheme of the tree
+# \param [in] is_family    if 1, the first `num_elements` entries in `elements` form a family. If 0, they do not.
+# \param [in] num_elements the number of entries in `elements` that are defined
+# \param [in] elements     Pointers to a family or, if `is_family` is zero,
+#                          pointer to one element.
+# \return greater zero if the first entry in `elements` should be refined,
+#         smaller zero if the family `elements` shall be coarsened,
+#         zero else.
 function adapt_callback(forest,
                          forest_from,
                          which_tree,
@@ -365,7 +388,7 @@ end
 
 function trixi_t8_adapt_new(old_forest, indicators)
   # Check that forest is a committed, that is valid and usable, forest.
-  @T8_ASSERT (t8_forest_is_committed(old_forest) != 0)
+  @assert t8_forest_is_committed(old_forest) != 0
 
   # Init new forest.
   new_forest_ref = Ref{t8_forest_t}()
@@ -377,7 +400,7 @@ function trixi_t8_adapt_new(old_forest, indicators)
     t8_forest_set_adapt(new_forest, old_forest, @t8_adapt_callback(adapt_callback), recursive)
     t8_forest_set_balance(new_forest, set_from, no_repartition)
     t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
-    # t8_forest_set_ghost(new_forest, 1, T8_GHOST_FACES)
+    # t8_forest_set_ghost(new_forest, 1, T8_GHOST_FACES) # MPI support not available yet.
     t8_forest_commit(new_forest)
   end
 

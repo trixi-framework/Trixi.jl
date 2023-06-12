@@ -4,10 +4,6 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache(mesh::T8codeMesh, equations::AbstractEquations, dg::DG, ::Any, ::Type{uEltype}) where {uEltype<:Real}
-  # Make sure to balance the 't8code' before creating any containers
-  # in case someone has tampered with the 't8code' after creating the mesh.
-  # balance!(mesh)
-
   count_required_surfaces!(mesh)
 
   elements   = init_elements(mesh, equations, dg.basis, uEltype)

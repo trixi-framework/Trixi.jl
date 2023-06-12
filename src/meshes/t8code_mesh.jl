@@ -3,19 +3,17 @@
 An unstructured curved mesh based on trees that uses the C library 't8code'
 to manage trees and mesh refinement.
 """
-mutable struct T8codeMesh{NDIMS, RealT<:Real, IsParallel} <: AbstractMesh{NDIMS}
+mutable struct T8codeMesh{NDIMS, RealT<:Real, IsParallel, NDIMSP2, NNODES} <: AbstractMesh{NDIMS}
   cmesh                 :: Ptr{t8_cmesh} # cpointer to coarse mesh
   scheme                :: Ptr{t8_eclass_scheme} # cpointer to element scheme
   forest                :: Ptr{t8_forest} # cpointer to forest
   is_parallel           :: IsParallel
 
-  # ghost                 :: Ghost # Either Ptr{t8code_ghost_t} or Ptr{t8code_hex_ghost_t}
-  # Coordinates at the nodes specified by the tensor product of 'nodes' (NDIMS times).
   # This specifies the geometry interpolation for each tree.
-  
-  tree_node_coordinates # :: Array{RealT, NDIMS+2} # [dimension, i, j, k, tree]
+  tree_node_coordinates :: Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
 
-  nodes                 # :: SVector{NNODES, RealT}
+  # Stores the quadrature nodes.
+  nodes                 :: SVector{NNODES, RealT}
 
   boundary_names        :: Array{Symbol, 2}      # [face direction, tree]
   current_filename      :: String
@@ -38,7 +36,7 @@ mutable struct T8codeMesh{NDIMS, RealT<:Real, IsParallel} <: AbstractMesh{NDIMS}
     # end
     is_parallel = False()
 
-    mesh = new{NDIMS, Float64, typeof(is_parallel)}(cmesh, scheme, forest, is_parallel)
+    mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS+2, length(nodes)}(cmesh, scheme, forest, is_parallel)
 
     # Destroy 't8code' structs when the mesh is garbage collected.
     finalizer(function (mesh::T8codeMesh{NDIMS})
@@ -192,24 +190,9 @@ end
     T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh},
                      mapping=nothing, polydeg=1, RealT=Float64,
                      initial_refinement_level=0, unsaved_changes=true)
-Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
-mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
-from the `meshfile` is created as a [`p4est`](https://github.com/cburstedde/p4est)
-tree datatype.
-Note that the `mapping` and `polydeg` keyword arguments are only used by the `p4est_mesh_from_standard_abaqus`
-function. The `p4est_mesh_from_hohqmesh_abaqus` function obtains the mesh `polydeg` directly from the `meshfile`
-and constructs the transfinite mapping internally.
-The particular strategy is selected according to the header present in the `meshfile` where
-the constructor checks whether or not the `meshfile` was created with
-[HOHQMesh.jl](https://github.com/trixi-framework/HOHQMesh.jl).
-If the Abaqus file header is not present in the `meshfile` then the `P4estMesh` is created
-with the function `p4est_mesh_from_standard_abaqus`.
-The default keyword argument `initial_refinement_level=0` corresponds to a forest
-where the number of trees is the same as the number of elements in the original `meshfile`.
-Increasing the `initial_refinement_level` allows one to uniformly refine the base mesh given
-in the `meshfile` to create a forest with more trees before the simulation begins.
-For example, if a two-dimensional base mesh contains 25 elements then setting
-`initial_refinement_level=1` creates an initial forest of `2^2 * 25 = 100` trees.
+Main mesh constructor for the `T8codeMesh` that imports an unstructured,
+conforming mesh from `t8_cmesh` data structure.
+
 # Arguments
 - `cmesh::Ptr{t8_cmesh}`: Pointer to a cmesh object.
 - `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
