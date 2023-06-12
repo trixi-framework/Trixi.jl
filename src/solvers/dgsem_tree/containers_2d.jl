@@ -1422,8 +1422,10 @@ function ContainerShockCapturingIndicatorMCL2D{uEltype}(capacity::Integer, n_var
   _alpha_mean_entropy = fill(nan_uEltype, n_nodes * n_nodes * capacity)
   alpha_mean_entropy = unsafe_wrap(Array, pointer(_alpha_mean_entropy), (n_nodes, n_nodes, capacity))
 
-  return ContainerShockCapturingIndicatorMCL2D{uEltype}(var_min, var_max, alpha, alpha_pressure, alpha_entropy, alpha_mean, alpha_mean_pressure, alpha_mean_entropy,
-                                                      _var_min, _var_max, _alpha, _alpha_pressure, _alpha_entropy, _alpha_mean, _alpha_mean_pressure, _alpha_mean_entropy)
+  return ContainerShockCapturingIndicatorMCL2D{uEltype}(var_min, var_max, alpha, alpha_pressure, alpha_entropy,
+                                                        alpha_mean, alpha_mean_pressure, alpha_mean_entropy,
+                                                        _var_min, _var_max, _alpha, _alpha_pressure, _alpha_entropy,
+                                                        _alpha_mean, _alpha_mean_pressure, _alpha_mean_entropy)
 end
 
 nvariables(container::ContainerShockCapturingIndicatorMCL2D) = size(container.var_min, 1)
