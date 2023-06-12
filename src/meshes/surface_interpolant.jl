@@ -10,9 +10,9 @@
 # Contains the data needed to represent a curve with data points (x,y) as a Lagrange polynomial
 # interpolant written in barycentric form at a given set of nodes.
 struct CurvedSurface{RealT <: Real}
-    nodes::Vector{RealT}
-    barycentric_weights::Vector{RealT}
-    coordinates::Array{RealT, 2} #[nnodes, ndims]
+    nodes               :: Vector{RealT}
+    barycentric_weights :: Vector{RealT}
+    coordinates         :: Array{RealT, 2} #[nnodes, ndims]
 end
 
 # evaluate the Gamma curve interpolant at a particular point s and return the (x,y) coordinate
