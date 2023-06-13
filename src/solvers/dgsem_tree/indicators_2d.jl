@@ -461,8 +461,8 @@ end
   @unpack boundary_conditions = semi
   @unpack variable_bounds = indicator.cache.container_shock_capturing
 
-  var_min = variable_bounds[index]
-  var_max = variable_bounds[index + 1]
+  var_min = variable_bounds[2 * (index - 1) + 1]
+  var_max = variable_bounds[2 * (index - 1) + 2]
   if !indicator.bar_states
     calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
   end
@@ -508,7 +508,7 @@ end
       Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100 * abs(var_max[i, j, element]))
 
       # Calculate alpha at nodes
-      alpha[i, j, element] = 1 - min(1, Qp, Qm)
+      alpha[i, j, element] = max(alpha[i, j, element], 1 - min(1, Qp, Qm))
     end
   end
 
