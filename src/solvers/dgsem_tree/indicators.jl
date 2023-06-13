@@ -292,11 +292,14 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     error("Only one of the two can be selected: math_entropy/spec_entropy")
   end
 
-  number_bounds = positivity * (length(variables_cons) + length(variables_nonlinear)) +
+  number_bounds = 2 * density_tvd + positivity * length(variables_nonlinear) +
                   spec_entropy + math_entropy
-  if equations isa AbstractCompressibleEulerEquations
-    if density_tvd
-      number_bounds += 2 - positivity * (1 in variables_cons)
+
+  if positivity
+    for index in variables_cons
+      if !(density_tvd && index == 1)
+        number_bounds += 1
+      end
     end
   end
 

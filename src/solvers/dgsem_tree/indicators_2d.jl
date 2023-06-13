@@ -605,7 +605,7 @@ end
         inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
       end
 
-      var = get_node_vars(u, equations, dg, i, j, element)[variable]
+      var = u[variable, i, j, element]
       if var < 0
         error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
       end
