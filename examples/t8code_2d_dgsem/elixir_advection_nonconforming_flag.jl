@@ -66,7 +66,7 @@ let set_from = C_NULL, recursive = 1, set_for_coarsening = 0, no_repartition = 0
   Trixi.t8_forest_set_adapt(new_forest, mesh.forest, @Trixi.t8_adapt_callback(adapt_callback), recursive)
   Trixi.t8_forest_set_balance(new_forest, set_from, no_repartition)
   Trixi.t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
-  Trixi.t8_forest_set_ghost(new_forest, 1, T8_GHOST_FACES);
+  Trixi.t8_forest_set_ghost(new_forest, 1, Trixi.T8_GHOST_FACES);
   Trixi.t8_forest_commit(new_forest)
 end
 
