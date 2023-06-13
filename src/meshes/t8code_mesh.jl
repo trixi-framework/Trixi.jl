@@ -270,7 +270,7 @@ Main mesh constructor for the `T8codeMesh` that imports an unstructured,
 conforming mesh from a `p4est_connectivity` data structure.
 
 # Arguments
-- `conn::Ptr{P4est.LibP4est.p4est_connectivity}`: Pointer to a cmesh object.
+- `conn::Ptr{p4est_connectivity}`: Pointer to a P4est connectivity object.
 - `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
              the imported mesh to the physical domain. Use `nothing` for the identity map.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
@@ -299,7 +299,7 @@ Main mesh constructor for the `T8codeMesh` that imports an unstructured, conform
 mesh from a Gmsh mesh file (`.msh`).
 
 # Arguments
-- `meshfile::String`: path to a Gmsh  mesh file.
+- `meshfile::String`: path to a Gmsh mesh file.
 - `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
              the imported mesh to the physical domain. Use `nothing` for the identity map.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
