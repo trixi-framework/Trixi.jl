@@ -338,7 +338,7 @@ function copy_to_quad_iter_volume(info, user_data)
   info_pw = PointerWrapper(info)
 
   # Load tree from global trees array, one-based indexing
-  tree_pw = unsafe_load_tree(info_pw.p4est, info_pw.treeid[] + 1)
+  tree_pw = load_pointerwrapper_tree(info_pw.p4est, info_pw.treeid[] + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree_pw.quadrants_offset[]
   # Global quad ID
@@ -573,7 +573,7 @@ function extract_levels_iter_volume(info, user_data)
   info_pw = PointerWrapper(info)
 
   # Load tree from global trees array, one-based indexing
-  tree_pw = unsafe_load_tree(info_pw.p4est, info_pw.treeid[] + 1)
+  tree_pw = load_pointerwrapper_tree(info_pw.p4est, info_pw.treeid[] + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree_pw.quadrants_offset[]
   # Global quad ID

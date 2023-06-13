@@ -247,9 +247,9 @@ end
 # Function barrier for type stability
 function init_boundaries_iter_face_inner(info_pw, boundaries, boundary_id, mesh)
   # Extract boundary data
-  side_pw = unsafe_load_side(info_pw)
+  side_pw = load_pointerwrapper_side(info_pw)
   # Get local tree, one-based indexing
-  tree_pw = unsafe_load_tree(mesh.p4est, side_pw.treeid[] + 1)
+  tree_pw = load_pointerwrapper_tree(mesh.p4est, side_pw.treeid[] + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree_pw.quadrants_offset[]
 
@@ -442,7 +442,7 @@ function init_surfaces_iter_face_inner(info, user_data)
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
-    sides_pw = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
+    sides_pw = (load_pointerwrapper_side(info_pw, 1), load_pointerwrapper_side(info_pw, 2))
 
     if sides_pw[1].is_hanging[] == false && sides_pw[2].is_hanging[] == false
       # No hanging nodes => normal interface
@@ -483,8 +483,8 @@ function init_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
   user_data.interface_id += 1
 
   # Get Tuple of local trees, one-based indexing
-  trees_pw = (unsafe_load_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
-              unsafe_load_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
+  trees_pw = (load_pointerwrapper_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
+              load_pointerwrapper_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
   # Quadrant numbering offsets of the quadrants at this interface
   offsets = SVector(trees_pw[1].quadrants_offset[],
                     trees_pw[2].quadrants_offset[])
@@ -514,9 +514,9 @@ function init_boundaries_iter_face_inner(info_pw, user_data)
   user_data.boundary_id += 1
 
   # Extract boundary data
-  side_pw = unsafe_load_side(info_pw)
+  side_pw = load_pointerwrapper_side(info_pw)
   # Get local tree, one-based indexing
-  tree_pw = unsafe_load_tree(mesh.p4est, side_pw.treeid[] + 1)
+  tree_pw = load_pointerwrapper_tree(mesh.p4est, side_pw.treeid[] + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree_pw.quadrants_offset[]
 
@@ -550,8 +550,8 @@ function init_mortars_iter_face_inner(info_pw, sides_pw, user_data)
   user_data.mortar_id += 1
 
   # Get Tuple of local trees, one-based indexing
-  trees_pw = (unsafe_load_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
-              unsafe_load_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
+  trees_pw = (load_pointerwrapper_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
+              load_pointerwrapper_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
   # Quadrant numbering offsets of the quadrants at this interface
   offsets = SVector(trees_pw[1].quadrants_offset[],
                     trees_pw[2].quadrants_offset[])
@@ -606,7 +606,7 @@ function count_surfaces_iter_face(info, user_data)
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
-    sides_pw = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
+    sides_pw = (load_pointerwrapper_side(info_pw, 1), load_pointerwrapper_side(info_pw, 2))
 
     if sides_pw[1].is_hanging[] == false && sides_pw[2].is_hanging[] == false
       # No hanging nodes => normal interface

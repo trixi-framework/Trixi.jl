@@ -349,7 +349,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
   # interface/mortar
   if info_pw.sides.elem_count[] == 2 # MPI interfaces/mortars have two neighboring elements
     # Extract surface data
-    sides_pw = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
+    sides_pw = (load_pointerwrapper_side(info_pw, 1), load_pointerwrapper_side(info_pw, 2))
 
     if sides_pw[1].is_hanging[] == false && sides_pw[2].is_hanging[] == false # No hanging nodes for MPI interfaces
       if sides_pw[1].is.full.is_ghost[] == true
@@ -363,7 +363,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
       end
 
       # Sanity check, current face should belong to current MPI interface
-      local_tree_pw = unsafe_load_tree(mesh.p4est, sides_pw[local_side].treeid[] + 1) # one-based indexing
+      local_tree_pw = load_pointerwrapper_tree(mesh.p4est, sides_pw[local_side].treeid[] + 1) # one-based indexing
       local_quad_id = local_tree_pw.quadrants_offset[] + sides_pw[local_side].is.full.quadid[]
       @assert interfaces.local_neighbor_ids[interface_id] == local_quad_id + 1 # one-based indexing
 
@@ -405,8 +405,8 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
         return nothing
       end
 
-      trees_pw = (unsafe_load_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
-                  unsafe_load_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
+      trees_pw = (load_pointerwrapper_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
+                  load_pointerwrapper_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
 
       # Find small quads that are remote and determine which rank owns them
       remote_small_quad_positions = findall(sides_pw[hanging_side].is.hanging.is_ghost[] .== true)

@@ -56,7 +56,7 @@ end
 
 
 # Load the ith element (1-indexed) of an sc array of type T as PointerWrapper
-function unsafe_load_sc(::Type{T}, sc_array::PointerWrapper{sc_array}, i::Integer=1) where T
+function load_pointerwrapper_sc(::Type{T}, sc_array::PointerWrapper{sc_array}, i::Integer=1) where T
   return PointerWrapper(T, pointer(sc_array.array) + (i - 1) * sizeof(T))
 end
 
@@ -226,25 +226,25 @@ end
 
 # Load i-th element of the sc_array info.sides of the type p[48]est_iter_face_side_t
 # 2D version
-function unsafe_load_side(info::PointerWrapper{p4est_iter_face_info_t}, i::Integer=1)
-  return unsafe_load_sc(p4est_iter_face_side_t, info.sides, i)
+function load_pointerwrapper_side(info::PointerWrapper{p4est_iter_face_info_t}, i::Integer=1)
+  return load_pointerwrapper_sc(p4est_iter_face_side_t, info.sides, i)
 end
 
 # 3D version
-function unsafe_load_side(info::PointerWrapper{p8est_iter_face_info_t}, i::Integer=1)
-  return unsafe_load_sc(p8est_iter_face_side_t, info.sides, i)
+function load_pointerwrapper_side(info::PointerWrapper{p8est_iter_face_info_t}, i::Integer=1)
+  return load_pointerwrapper_sc(p8est_iter_face_side_t, info.sides, i)
 end
 
 
 # Load i-th element of the sc_array p4est.trees of the type p[48]est_tree_t
 # 2D version
-function unsafe_load_tree(p4est::PointerWrapper{p4est_t}, i::Integer=1)
-  return unsafe_load_sc(p4est_tree_t, p4est.trees, i)
+function load_pointerwrapper_tree(p4est::PointerWrapper{p4est_t}, i::Integer=1)
+  return load_pointerwrapper_sc(p4est_tree_t, p4est.trees, i)
 end
 
 # 3D version
-function unsafe_load_tree(p8est::PointerWrapper{p8est_t}, i::Integer=1)
-  return unsafe_load_sc(p8est_tree_t, p8est.trees, i)
+function load_pointerwrapper_tree(p8est::PointerWrapper{p8est_t}, i::Integer=1)
+  return load_pointerwrapper_sc(p8est_tree_t, p8est.trees, i)
 end
 
 

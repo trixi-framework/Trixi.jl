@@ -278,7 +278,7 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
-    sides_pw = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
+    sides_pw = (load_pointerwrapper_side(info_pw, 1), load_pointerwrapper_side(info_pw, 2))
 
     if sides_pw[1].is_hanging[] == false && sides_pw[2].is_hanging[] == false
       # No hanging nodes => normal interface or MPI interface
@@ -355,7 +355,7 @@ function init_mpi_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
   end
 
   # Get local tree, one-based indexing
-  tree_pw = unsafe_load_tree(mesh.p4est, sides_pw[local_side].treeid[] + 1)
+  tree_pw = load_pointerwrapper_tree(mesh.p4est, sides_pw[local_side].treeid[] + 1)
   # Quadrant numbering offset of the local quadrant at this interface
   offset = tree_pw.quadrants_offset[]
   tree_quad_id = sides_pw[local_side].is.full.quadid[] # quadid in the local tree
@@ -384,8 +384,8 @@ function init_mpi_mortars_iter_face_inner(info_pw, sides_pw, user_data)
   user_data.mpi_mortar_id += 1
 
   # Get Tuple of adjacent trees, one-based indexing
-  trees_pw = (unsafe_load_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
-              unsafe_load_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
+  trees_pw = (load_pointerwrapper_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
+              load_pointerwrapper_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
   # Quadrant numbering offsets of the quadrants at this mortar
   offsets = SVector(trees_pw[1].quadrants_offset[],
                     trees_pw[2].quadrants_offset[])
@@ -450,7 +450,7 @@ function count_surfaces_iter_face_parallel(info, user_data)
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
-    sides_pw = (unsafe_load_side(info_pw, 1), unsafe_load_side(info_pw, 2))
+    sides_pw = (load_pointerwrapper_side(info_pw, 1), load_pointerwrapper_side(info_pw, 2))
 
     if sides_pw[1].is_hanging[] == false && sides_pw[2].is_hanging[] == false
       # No hanging nodes => normal interface or MPI interface
