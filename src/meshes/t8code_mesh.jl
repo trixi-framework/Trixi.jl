@@ -110,11 +110,9 @@ Non-periodic boundaries will be called ':x_neg', ':x_pos', ':y_neg', ':y_pos', '
                  deciding for each dimension if the boundaries in this dimension are periodic.
 """
 function T8codeMesh(trees_per_dimension; polydeg,
-                   mapping=coordinates2mapping((-1.0,-1.0), (1.0,1.0)), RealT=Float64, initial_refinement_level=0, periodicity=true)
+                   mapping=nothing, RealT=Float64, initial_refinement_level=0, periodicity=true)
 
   NDIMS = length(trees_per_dimension)
-
-  @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
 
   # Convert periodicity to a Tuple of a Bool for every dimension
   if all(periodicity)
@@ -128,10 +126,17 @@ function T8codeMesh(trees_per_dimension; polydeg,
     periodicity = Tuple(periodicity)
   end
 
-  conn = T8code.Libt8.p4est_connectivity_new_brick(trees_per_dimension..., periodicity...)
-  do_partition = 0
-  cmesh = t8_cmesh_new_from_p4est(conn,mpi_comm(),do_partition)
-  T8code.Libt8.p4est_connectivity_destroy(conn)
+  if NDIMS == 2
+    conn = T8code.Libt8.p4est_connectivity_new_brick(trees_per_dimension..., periodicity...)
+    do_partition = 0
+    cmesh = t8_cmesh_new_from_p4est(conn,mpi_comm(),do_partition)
+    T8code.Libt8.p4est_connectivity_destroy(conn)
+  elseif NDIMS == 3
+    conn = T8code.Libt8.p8est_connectivity_new_brick(trees_per_dimension..., periodicity...)
+    do_partition = 0
+    cmesh = t8_cmesh_new_from_p8est(conn,mpi_comm(),do_partition)
+    T8code.Libt8.p8est_connectivity_destroy(conn)
+  end
 
   scheme = t8_scheme_new_default_cxx()
   forest = t8_forest_new_uniform(cmesh,scheme,initial_refinement_level,0,mpi_comm())
@@ -144,25 +149,42 @@ function T8codeMesh(trees_per_dimension; polydeg,
                                                 prod(trees_per_dimension))
 
   # Get cell length in reference mesh: Omega_ref = [-1,1]^2.
-  dx = 2 / trees_per_dimension[1]
-  dy = 2 / trees_per_dimension[2]
+  dx = [2 / n for n in trees_per_dimension]
 
   num_local_trees = t8_cmesh_get_num_local_trees(cmesh)
 
   # Non-periodic boundaries.
   boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
 
+  if mapping == nothing
+    mapping_ = coordinates2mapping(ntuple(_->-1.0,NDIMS), ntuple(_->1.0,NDIMS))
+  else
+    mapping_ = mapping
+  end
+
   for itree = 1:num_local_trees
     veptr = t8_cmesh_get_tree_vertices(cmesh, itree-1)
     verts = unsafe_wrap(Array,veptr,(3,1 << NDIMS))
 
-    # Calculate node coordinates of reference mesh.
-    cell_x_offset = (verts[1,1] - 1/2*(trees_per_dimension[1]-1)) * dx
-    cell_y_offset = (verts[2,1] - 1/2*(trees_per_dimension[2]-1)) * dy
+    if NDIMS == 2
+      # Calculate node coordinates of reference mesh.
+      cell_x_offset = (verts[1,1] - 0.5*(trees_per_dimension[1]-1)) * dx[1]
+      cell_y_offset = (verts[2,1] - 0.5*(trees_per_dimension[2]-1)) * dx[2]
 
-    for j in eachindex(nodes), i in eachindex(nodes)
-      tree_node_coordinates[:, i, j, itree] .= mapping(cell_x_offset + dx * nodes[i]/2,
-                                                       cell_y_offset + dy * nodes[j]/2)
+      for j in eachindex(nodes), i in eachindex(nodes)
+        tree_node_coordinates[:, i, j, itree] .= mapping_(cell_x_offset + dx[1] * nodes[i]/2,
+                                                          cell_y_offset + dx[2] * nodes[j]/2)
+      end
+    else
+      cell_x_offset = (verts[1,1] - 0.5*(trees_per_dimension[1]-1)) * dx[1]
+      cell_y_offset = (verts[2,1] - 0.5*(trees_per_dimension[2]-1)) * dx[2]
+      cell_z_offset = (verts[3,1] - 0.5*(trees_per_dimension[3]-1)) * dx[3]
+
+      for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
+        tree_node_coordinates[:, i, j, k, itree] .= mapping_(cell_x_offset + dx[1] * nodes[i]/2,
+                                                             cell_y_offset + dx[2] * nodes[j]/2,
+                                                             cell_z_offset + dx[3] * nodes[k]/2)
+      end
     end
 
     if !periodicity[1]
@@ -173,6 +195,13 @@ function T8codeMesh(trees_per_dimension; polydeg,
     if !periodicity[2]
       boundary_names[3, itree] = :y_neg
       boundary_names[4, itree] = :y_pos
+    end
+
+    if NDIMS > 2
+      if !periodicity[3]
+        boundary_names[5, itree] = :z_neg
+        boundary_names[6, itree] = :z_pos
+      end
     end
   end
 
@@ -203,8 +232,6 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
                            mapping=nothing, polydeg=1, RealT=Float64,
                            initial_refinement_level=0) where NDIMS
 
-  @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
-
   scheme = t8_scheme_new_default_cxx()
   forest = t8_forest_new_uniform(cmesh,scheme,initial_refinement_level,0,mpi_comm())
 
@@ -222,35 +249,74 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
   data_in = Array{RealT, 3}(undef, 2, 2, 2)
   tmp1 = zeros(RealT, 2, length(nodes), length(nodes_in))
 
-  for itree in 0:num_local_trees-1
+  if NDIMS == 2
+    for itree in 0:num_local_trees-1
+      veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
+      verts = unsafe_wrap(Array,veptr,(3,1 << NDIMS))
 
-    veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
-    verts = unsafe_wrap(Array,veptr,(3,1 << NDIMS))
+      u = verts[:,2] - verts[:,1]
+      v = verts[:,3] - verts[:,1]
+      w = [0.0,0.0,1.0]
 
-    u = verts[:,2] - verts[:,1]
-    v = verts[:,3] - verts[:,1]
-    w = [0.0,0.0,1.0]
+      vol = dot(cross(u,v),w)
 
-    vol = dot(cross(u,v),w)
+      if vol < 0.0
+        @warn "Discovered negative volumes in `cmesh`: vol = $vol"
+      end
 
-    if vol < 0.0
-      @warn "Discovered negative volumes in `cmesh`: vol = $vol"
+      # Tree vertices are stored in z-order.
+      @views data_in[:, 1, 1] .= verts[1:2,1]
+      @views data_in[:, 2, 1] .= verts[1:2,2]
+      @views data_in[:, 1, 2] .= verts[1:2,3]
+      @views data_in[:, 2, 2] .= verts[1:2,4]
+
+      # Interpolate corner coordinates to specified nodes.
+      multiply_dimensionwise!(
+        view(tree_node_coordinates, :, :, :, itree+1),
+        matrix, matrix,
+        data_in,
+        tmp1
+      )
     end
+    
+  else
 
-    # Tree vertices are stored in z-order.
-    @views data_in[:, 1, 1] .= verts[1:2,1]
-    @views data_in[:, 2, 1] .= verts[1:2,2]
-    @views data_in[:, 1, 2] .= verts[1:2,3]
-    @views data_in[:, 2, 2] .= verts[1:2,4]
+    for itree in 0:num_local_trees-1
+      veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
+      verts = unsafe_wrap(Array,veptr,(3,1 << NDIMS))
 
-    # Interpolate corner coordinates to specified nodes.
-    multiply_dimensionwise!(
-      view(tree_node_coordinates, :, :, :, itree+1),
-      matrix, matrix,
-      data_in,
-      tmp1
-    )
+      # TODO: Check for negative volumes. Probably not necessary since this is
+      # done within t8code.
+      # u = verts[:,2] - verts[:,1]
+      # v = verts[:,3] - verts[:,1]
+      # w = [0.0,0.0,1.0]
 
+      # vol = dot(cross(u,v),w)
+
+      # if vol < 0.0
+      #   @warn "Discovered negative volumes in `cmesh`: vol = $vol"
+      # end
+
+      # Tree vertices are stored in z-order.
+      @views data_in[:, 1, 1, 1] .= verts[1:3,1]
+      @views data_in[:, 2, 1, 1] .= verts[1:3,2]
+      @views data_in[:, 1, 2, 1] .= verts[1:3,3]
+      @views data_in[:, 2, 2, 1] .= verts[1:3,4]
+
+      @views data_in[:, 1, 1, 2] .= verts[1:3,5]
+      @views data_in[:, 2, 1, 2] .= verts[1:3,6]
+      @views data_in[:, 1, 2, 2] .= verts[1:3,7]
+      @views data_in[:, 2, 2, 2] .= verts[1:3,8]
+
+      # Interpolate corner coordinates to specified nodes.
+      multiply_dimensionwise!(
+        view(tree_node_coordinates, :, :, :, :, itree+1),
+        matrix, matrix,
+        data_in,
+        tmp1
+      )
+
+    end
   end
 
   map_node_coordinates!(tree_node_coordinates, mapping)
@@ -283,9 +349,38 @@ conforming mesh from a `p4est_connectivity` data structure.
 """
 function T8codeMesh{NDIMS}(conn::Ptr{p4est_connectivity}; kwargs...) where NDIMS
 
-  @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
+  @assert NDIMS == 2 # Only support for NDIMS = 2.
 
   cmesh = t8_cmesh_new_from_p4est(conn, mpi_comm(), 0)
+
+  return T8codeMesh{NDIMS}(cmesh; kwargs...)
+end
+
+"""
+    T8codeMesh{NDIMS}(conn::Ptr{p8est_connectivity},
+                      mapping=nothing, polydeg=1, RealT=Float64,
+                      initial_refinement_level=0)
+
+Main mesh constructor for the `T8codeMesh` that imports an unstructured,
+conforming mesh from a `p4est_connectivity` data structure.
+
+# Arguments
+- `conn::Ptr{p4est_connectivity}`: Pointer to a P4est connectivity object.
+- `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
+             the imported mesh to the physical domain. Use `nothing` for the identity map.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+                      The default of `1` creates an uncurved geometry. Use a higher value if the mapping
+                      will curve the imported uncurved mesh.
+- `RealT::Type`: the type that should be used for coordinates.
+- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+"""
+function T8codeMesh{NDIMS}(conn::Ptr{p8est_connectivity}; kwargs...) where NDIMS
+
+  @assert NDIMS == 3 # Only support for NDIMS = 3.
+
+  cmesh = t8_cmesh_new_from_p8est(conn, mpi_comm(), 0)
 
   return T8codeMesh{NDIMS}(cmesh; kwargs...)
 end
@@ -311,8 +406,6 @@ mesh from a Gmsh mesh file (`.msh`).
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 """
 function T8codeMesh{NDIMS}(meshfile::String; kwargs...) where NDIMS
-
-  @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
 
   # Prevent `t8code` from crashing Julia if the file doesn't exist.
   @assert isfile(meshfile)
