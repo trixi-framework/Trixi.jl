@@ -69,49 +69,21 @@ end
 
 
 """
-    initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
+    initial_condition_linear_wave(x, t, equations::PolytropicEulerEquations2D)
 
-A smooth initial condition used for convergence tests in combination with
-[`source_terms_convergence_test`](@ref)
-(and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
-"""
-function initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
-  c = 2
-  A = 0.1
-  L = 2
-  f = 1/L
-  ω = 2 * pi * f
-  ini = c + A * sin(ω * (x[1] + x[2] - t))
-
-  rho = ini
-  rho_v1 = ini
-  rho_v2 = ini
-
-  return SVector(rho, rho_v1, rho_v2)
-end
-
-
-"""
-    initial_condition_density_wave(x, t, equations::PolytropicEulerEquations2D)
-
-A sine wave in the density with constant velocity and pressure; reduces the
-compressible Euler equations to the linear advection equations.
-This setup is the test case for stability of EC fluxes from paper
-- Gregor J. Gassner, Magnus Svärd, Florian J. Hindenlang (2020)
-  Stability issues of entropy-stable and/or split-form high-order schemes
-  [arXiv: 2007.09026](https://arxiv.org/abs/2007.09026)
-with the following parameters
-- domain [-1, 1]
-- mesh = 4x4
-- polydeg = 5
+A linear density wave that travel into the negative x-direction.
 """
 function initial_condition_density_wave(x, t, equations::PolytropicEulerEquations2D)
-  v1 = 0.1
-  v2 = 0.2
-  rho = 1 + 0.98 * sinpi(2 * (x[1] + x[2] - t * (v1 + v2)))
+  v1 = 0.0
+  if x[1] > 0.0
+    rho = ((1.0 + 0.01*sin(x[1]*2*pi)) / kappa)^(1/gamma)
+    v1 = ((0.01*sin((x[1]-1/2)*2*pi)) / kappa)
+  end
+  v2 = 0.0
+
   rho_v1 = rho * v1
   rho_v2 = rho * v2
-  p = 20
+
   return SVector(rho, rho_v1, rho_v2)
 end
 
