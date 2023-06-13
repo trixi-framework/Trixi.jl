@@ -133,13 +133,12 @@ end
 @muladd begin
 #! format: noindent
 
+#! format: off
 # Interpolates values from volume Gauss nodes to face nodes on one element.
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{
-                                                                                       2,
-                                                                                       Interpolation
-                                                                                       },
+                                                     A::TensorProductGaussFaceOperator{2, Interpolation},
                                                      x_in::AbstractVector)
+#! format: on                                                     
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; nnodes_1d) = A
 
@@ -174,12 +173,11 @@ end
 end
 
 # Interpolates values from volume Gauss nodes to face nodes on one element.
+#! format: off
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{
-                                                                                       3,
-                                                                                       Interpolation
-                                                                                       },
+                                                     A::TensorProductGaussFaceOperator{3, Interpolation},
                                                      x::AbstractVector)
+#! format: on                                                     
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; nnodes_1d) = A
 
@@ -228,16 +226,11 @@ end
 end
 
 # Projects face node values to volume Gauss nodes on one element.
+#! format: off
 @inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{
-                                                                                       2,
-                                                                                       Projection{
-                                                                                                  ApplyFaceWeights
-                                                                                                  }
-                                                                                       },
-                                                     x::AbstractVector) where {
-                                                                               ApplyFaceWeights
-                                                                               }
+                                                     A::TensorProductGaussFaceOperator{2, Projection{ApplyFaceWeights}},
+                                                     x::AbstractVector) where {ApplyFaceWeights}
+#! format: on                                                     
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; inv_volume_weights_1d, nnodes_1d) = A
 
@@ -287,16 +280,11 @@ end
 end
 
 # Interpolates values from volume Gauss nodes to face nodes on one element.
+#! format: off
 @inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{
-                                                                                       3,
-                                                                                       Projection{
-                                                                                                  ApplyFaceWeights
-                                                                                                  }
-                                                                                       },
-                                                     x::AbstractVector) where {
-                                                                               ApplyFaceWeights
-                                                                               }
+                                                     A::TensorProductGaussFaceOperator{3, Projection{ApplyFaceWeights}},
+                                                     x::AbstractVector) where {ApplyFaceWeights}
+#! format: on                                                                               
     @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
     @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
 
