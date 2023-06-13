@@ -15,7 +15,7 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorIDP(equations, basis;
                             density_tvd=true,
-                            positivity=true, variables_cons=(Trixi.density,), variables_nonlinear=(pressure,),
+                            positivity=false, variables_cons=[1], variables_nonlinear=(pressure,),
                             bar_states=true,
                             smoothness_indicator=true)
 volume_integral = VolumeIntegralSubcellLimiting(indicator_sc;

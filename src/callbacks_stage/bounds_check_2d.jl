@@ -73,7 +73,7 @@
       end
       deviation_min = zero(eltype(u))
       for element in eachelement(solver, cache), j in eachnode(solver), i in eachnode(solver)
-        var = get_node_vars(u, equations, solver, i, j, element)[index]
+        var = u[index, i, j, element]
         deviation_min = max(deviation_min, variable_bounds[counter][i, j, element] - var)
       end
       idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
