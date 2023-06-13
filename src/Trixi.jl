@@ -136,7 +136,8 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
        ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
-       LinearizedEulerEquations2D
+       LinearizedEulerEquations2D,
+       PolytropicEulerEquations2D
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D,
        CompressibleNavierStokesDiffusion2D, CompressibleNavierStokesDiffusion3D
