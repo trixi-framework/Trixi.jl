@@ -327,5 +327,9 @@ function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
   raw_copy!(c, c, from, from, destination)
 end
 
+function get_array_type_of_backend(backend::Backend, uEltype::DataType, ndims::Int)
+  tmp = allocate(backend, uEltype, tuple(ones(Int, ndims)...))
+  return typeof(tmp)
+end
 
 end # @muladd

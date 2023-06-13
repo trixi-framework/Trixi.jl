@@ -56,9 +56,9 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
                                       RealT=real(solver), uEltype=RealT,
-                                      initial_cache=NamedTuple())
+                                      initial_cache=NamedTuple(), backend::Backend=CPU())
 
-  cache = (; create_cache(mesh, equations, solver, RealT, uEltype)..., initial_cache...)
+  cache = (; create_cache(mesh, equations, solver, RealT, uEltype, backend)..., initial_cache...)
   _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver, cache)
 
   SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(

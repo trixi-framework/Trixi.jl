@@ -174,19 +174,22 @@ function Base.resize!(interfaces::InterfaceContainer2D, capacity)
 end
 
 
-function InterfaceContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes) where {uEltype<:Real}
+function InterfaceContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes, backend::Backend) where {uEltype<:Real}
   nan = convert(uEltype, NaN)
+
+  uArrType = get_array_type_of_backend(backend, uEltype, 4)
+  neighborArrType = get_array_type_of_backend(backend, Int, 2)
 
   # Initialize fields with defaults
   _u = fill(nan, 2 * n_variables * n_nodes * capacity)
-  u = unsafe_wrap(Array, pointer(_u),
+  u = unsafe_wrap(uArrType, pointer(_u),
                   (2, n_variables, n_nodes, capacity))
 
   _neighbor_ids = fill(typemin(Int), 2 * capacity)
-  neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
+  neighbor_ids = unsafe_wrap(neighborArrType, pointer(_neighbor_ids),
                              (2, capacity))
 
-  orientations = fill(typemin(Int), capacity)
+  orientations = fill!(allocate(backend, Int, capacity), typemin(Int))
 
 
   return InterfaceContainer2D{uEltype}(
@@ -201,11 +204,11 @@ end
 
 # Create interface container and initialize interface data in `elements`.
 function init_interfaces(cell_ids, mesh::TreeMesh2D,
-                         elements::ElementContainer2D)
+                         elements::ElementContainer2D, backend::Backend)
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
   interfaces = InterfaceContainer2D{eltype(elements)}(
-    n_interfaces, nvariables(elements), nnodes(elements))
+    n_interfaces, nvariables(elements), nnodes(elements), backend)
 
   # Connect elements with interfaces
   init_interfaces!(interfaces, elements, mesh)
