@@ -38,7 +38,7 @@ basis = LobattoLegendreBasis(polydeg)
 
 indicator_sc = IndicatorIDP(equations, basis;
                             positivity=true, variables_cons=[1], variables_nonlinear=(pressure,),
-                            density_tvd=false,
+                            state_tvd=false,
                             spec_entropy=false,
                             bar_states=true)
 volume_integral=VolumeIntegralSubcellLimiting(indicator_sc; volume_flux_dg=volume_flux,

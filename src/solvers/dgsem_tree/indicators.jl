@@ -217,7 +217,8 @@ end
 
 """
     IndicatorIDP(equations::AbstractEquations, basis;
-                 density_tvd=false,
+                 state_tvd=false,
+                 variables_states=[],
                  positivity=false,
                  variables_cons=[],
                  variables_nonlinear=(),
@@ -231,7 +232,7 @@ end
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
-- two-sided Zalesak-type limiting for density (`density_tvd`)
+- two-sided Zalesak-type limiting for conservative variables (`state_tvd`)
 - positivity limiting for conservative and non-linear variables (`positivity`)
 - one-sided limiting for specific and mathematical entropy (`spec_entropy`, `math_entropy`)
 
@@ -258,10 +259,11 @@ indicator values <= `threshold_smoothness_indicator`.
     This is an experimental feature and may change in future releases.
 """
 struct IndicatorIDP{RealT<:Real, LimitingVariablesNonlinear, Cache, Indicator} <: AbstractIndicator
-  density_tvd::Bool
+  state_tvd::Bool
+  variables_states::Vector{Int}                   # Impose state limiting
   positivity::Bool
   variables_cons::Vector{Int}                     # Impose positivity for conservative variables
-  variables_nonlinear::LimitingVariablesNonlinear # Positivity of nonlinear variables
+  variables_nonlinear::LimitingVariablesNonlinear # Impose positivity of nonlinear variables
   spec_entropy::Bool
   math_entropy::Bool
   bar_states::Bool
@@ -277,7 +279,8 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorIDP(equations::AbstractEquations, basis;
-                      density_tvd=false,
+                      state_tvd=false,
+                      variables_states=[],
                       positivity=false,
                       variables_cons=[],
                       variables_nonlinear=(),
@@ -292,11 +295,13 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     error("Only one of the two can be selected: math_entropy/spec_entropy")
   end
 
-  number_bounds = positivity * (length(variables_cons) + length(variables_nonlinear)) +
+  number_bounds = state_tvd * 2 * length(variables_states) + positivity * length(variables_nonlinear) +
                   spec_entropy + math_entropy
-  if equations isa AbstractCompressibleEulerEquations
-    if density_tvd
-      number_bounds += 2 - positivity * (1 in variables_cons)
+  if positivity
+    for index in variables_cons
+      if !(state_tvd && index in variables_states)
+        number_bounds += 1
+      end
     end
   end
 
@@ -309,20 +314,20 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     IndicatorHG = nothing
   end
   IndicatorIDP{typeof(positivity_correction_factor), typeof(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(
-    density_tvd, positivity, variables_cons, variables_nonlinear, spec_entropy, math_entropy,
+    state_tvd, variables_states, positivity, variables_cons, variables_nonlinear, spec_entropy, math_entropy,
     bar_states, cache, positivity_correction_factor, max_iterations_newton, newton_tolerances, gamma_constant_newton, smoothness_indicator, threshold_smoothness_indicator, IndicatorHG)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
   @nospecialize indicator # reduce precompilation time
-  @unpack density_tvd, positivity, spec_entropy, math_entropy = indicator
+  @unpack state_tvd, positivity, spec_entropy, math_entropy = indicator
 
   print(io, "IndicatorIDP(")
-  if !(density_tvd || positivity || spec_entropy || math_entropy)
+  if !(state_tvd || positivity || spec_entropy || math_entropy)
     print(io, "No limiter selected => pure DG method")
   else
     print(io, "limiter=(")
-    density_tvd  && print(io, "density, ")
+    state_tvd    && print(io, "states, ")
     positivity   && print(io, "positivity, ")
     spec_entropy && print(io, "specific entropy, ")
     math_entropy && print(io, "mathematical entropy, ")
@@ -336,16 +341,18 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
   @nospecialize indicator # reduce precompilation time
-  @unpack density_tvd, positivity, spec_entropy, math_entropy = indicator
+  @unpack state_tvd, positivity, spec_entropy, math_entropy = indicator
 
   if get(io, :compact, false)
     show(io, indicator)
   else
-    if !(density_tvd || positivity || spec_entropy || math_entropy)
+    if !(state_tvd || positivity || spec_entropy || math_entropy)
       setup = ["limiter" => "No limiter selected => pure DG method"]
     else
       setup = ["limiter" => ""]
-      density_tvd  && (setup = [setup..., "" => "density"])
+      if state_tvd
+        setup = [setup..., "" => "state limiting for conservative variables $(indicator.variables_states)"]
+      end
       if positivity
         string = "positivity with conservative variables $(indicator.variables_cons) and $(indicator.variables_nonlinear)"
         setup = [setup..., "" => string]

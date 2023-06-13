@@ -39,7 +39,7 @@ surface_flux = flux_lax_friedrichs
 volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorIDP(equations, basis;
-                            density_tvd=true,
+                            state_tvd=true, variables_states=[1],
                             math_entropy=true,
                             bar_states=false,
                             smoothness_indicator=true)

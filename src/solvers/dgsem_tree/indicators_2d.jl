@@ -209,8 +209,8 @@ function (indicator::IndicatorIDP)(u::AbstractArray{<:Any,4}, semi, dg::DGSEM, t
     elements = eachelement(dg, semi.cache)
   end
 
-  if indicator.density_tvd
-    @trixi_timeit timer() "density_tvd"  idp_density_tvd!( alpha, indicator, u, t, dt, semi, elements)
+  if indicator.state_tvd
+    @trixi_timeit timer() "state_tvd"    idp_state_tvd!(  alpha, indicator, u, t, dt, semi, elements)
   end
   if indicator.positivity
     @trixi_timeit timer() "positivity"   idp_positivity!( alpha, indicator, u,    dt, semi, elements)
@@ -248,7 +248,7 @@ end
     var_max[:, :, element] .= typemin(eltype(var_max))
     # Calculate indicator variables at Gauss-Lobatto nodes
     for j in eachnode(dg), i in eachnode(dg)
-      var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
+      var = u[variable, i, j, element]
       var_min[i, j, element] = min(var_min[i, j, element], var)
       var_max[i, j, element] = max(var_max[i, j, element], var)
 
@@ -293,8 +293,8 @@ end
         index_left = reverse(index_left)
         index_right = reverse(index_right)
       end
-      var_left  = variable(get_node_vars(u, equations, dg, index_left...,  left),  equations)
-      var_right = variable(get_node_vars(u, equations, dg, index_right..., right), equations)
+      var_left  = u[variable, index_left...,  left]
+      var_right = u[variable, index_right..., right]
 
       var_min[index_right..., right] = min(var_min[index_right..., right], var_left)
       var_max[index_right..., right] = max(var_max[index_right..., right], var_left)
@@ -325,7 +325,7 @@ end
       u_inner = get_node_vars(u, equations, dg, index..., element)
       u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[boundary_index], orientation, boundary_index,
                                          equations, dg, index..., element)
-      var_outer = variable(u_outer, equations)
+      var_outer = u_outer[variable]
 
       var_min[index..., element] = min(var_min[index..., element], var_outer)
       var_max[index..., element] = max(var_max[index..., element], var_outer)
@@ -448,15 +448,23 @@ end
   return nothing
 end
 
-@inline function idp_density_tvd!(alpha, indicator, u, t, dt, semi, elements)
+@inline function idp_state_tvd!(alpha, indicator, u, t, dt, semi, elements)
+  for (index, variable) in enumerate(indicator.variables_states)
+    idp_state_tvd!(alpha, indicator, u, t, dt, semi, elements, variable, index)
+  end
+
+  return nothing
+end
+
+@inline function idp_state_tvd!(alpha, indicator, u, t, dt, semi, elements, variable, index)
   mesh, _, dg, cache = mesh_equations_solver_cache(semi)
   @unpack boundary_conditions = semi
   @unpack variable_bounds = indicator.cache.container_shock_capturing
 
-  rho_min = variable_bounds[1]
-  rho_max = variable_bounds[2]
+  var_min = variable_bounds[index]
+  var_max = variable_bounds[index + 1]
   if !indicator.bar_states
-    calc_bounds_2sided!(rho_min, rho_max, density, u, t, semi)
+    calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
   end
 
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
@@ -470,22 +478,22 @@ end
       if mesh isa StructuredMesh
         inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
       end
-      rho = u[1, i, j, element]
+      var = u[variable, i, j, element]
       # Real Zalesak type limiter
       #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
       #   * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
       #   Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
       #         for each interface, not each node
 
-      Qp = max(0, (rho_max[i, j, element] - rho) / dt)
-      Qm = min(0, (rho_min[i, j, element] - rho) / dt)
+      Qp = max(0, (var_max[i, j, element] - var) / dt)
+      Qm = min(0, (var_min[i, j, element] - var) / dt)
 
       # Calculate Pp and Pm
       # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
-      val_flux1_local     =  inverse_weights[i] * antidiffusive_flux1[1,   i,   j, element]
-      val_flux1_local_ip1 = -inverse_weights[i] * antidiffusive_flux1[1, i+1,   j, element]
-      val_flux2_local     =  inverse_weights[j] * antidiffusive_flux2[1,   i,   j, element]
-      val_flux2_local_jp1 = -inverse_weights[j] * antidiffusive_flux2[1,   i, j+1, element]
+      val_flux1_local     =  inverse_weights[i] * antidiffusive_flux1[variable,   i,   j, element]
+      val_flux1_local_ip1 = -inverse_weights[i] * antidiffusive_flux1[variable, i+1,   j, element]
+      val_flux2_local     =  inverse_weights[j] * antidiffusive_flux2[variable,   i,   j, element]
+      val_flux2_local_jp1 = -inverse_weights[j] * antidiffusive_flux2[variable,   i, j+1, element]
 
       Pp = max(0, val_flux1_local) + max(0, val_flux1_local_ip1) +
            max(0, val_flux2_local) + max(0, val_flux2_local_jp1)
@@ -496,8 +504,8 @@ end
 
       # Compute blending coefficient avoiding division by zero
       # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-      Qp = abs(Qp) / (abs(Pp) + eps(typeof(Qp)) * 100 * abs(rho_max[i, j, element]))
-      Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100 * abs(rho_max[i, j, element]))
+      Qp = abs(Qp) / (abs(Pp) + eps(typeof(Qp)) * 100 * abs(var_max[i, j, element]))
+      Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100 * abs(var_max[i, j, element]))
 
       # Calculate alpha at nodes
       alpha[i, j, element] = 1 - min(1, Qp, Qm)
@@ -510,10 +518,10 @@ end
 @inline function idp_spec_entropy!(alpha, indicator, u, t, dt, semi, elements)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack boundary_conditions = semi
-  @unpack density_tvd, positivity = indicator
+  @unpack state_tvd, positivity = indicator
   @unpack variable_bounds = indicator.cache.container_shock_capturing
 
-  s_min = variable_bounds[2 * density_tvd + 1]
+  s_min = variable_bounds[state_tvd * 2 * length(indicator.variables_states) + 1]
   if !indicator.bar_states
     calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u, t, semi)
   end
@@ -538,10 +546,10 @@ specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol
 @inline function idp_math_entropy!(alpha, indicator, u, t, dt, semi, elements)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack boundary_conditions = semi
-  @unpack density_tvd, positivity, spec_entropy = indicator
+  @unpack state_tvd, positivity, spec_entropy = indicator
   @unpack variable_bounds = indicator.cache.container_shock_capturing
 
-  s_max = variable_bounds[2 * density_tvd + spec_entropy + 1]
+  s_max = variable_bounds[state_tvd * 2 * length(indicator.variables_states) + spec_entropy + 1]
   if !indicator.bar_states
     calc_bounds_1sided!(s_max, max, typemin, entropy_math, u, t, semi)
   end
@@ -564,9 +572,10 @@ mathEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entrop
 mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_abstol, abs(bound) * newton_abstol)
 
 @inline function idp_positivity!(alpha, indicator, u, dt, semi, elements)
+  @unpack state_tvd, spec_entropy, math_entropy, variables_states, variables_cons = indicator
 
   # Conservative variables
-  for (index, variable) in enumerate(indicator.variables_cons)
+  for (index, variable) in enumerate(variables_cons)
     idp_positivity!(alpha, indicator, u, dt, semi, elements, variable, index)
   end
 
@@ -582,18 +591,29 @@ end
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
   @unpack inverse_weights = dg.basis
-  @unpack density_tvd, spec_entropy, math_entropy, positivity_correction_factor, variables_cons = indicator
+  @unpack state_tvd, spec_entropy, math_entropy, positivity_correction_factor = indicator
 
   @unpack variable_bounds = indicator.cache.container_shock_capturing
 
-  if 1 in variables_cons && density_tvd
-    if variables_cons[variable] == 1
-      var_min = variable_bounds[1]
+  counter = state_tvd * 2 * length(indicator.variables_states) + spec_entropy + math_entropy
+  if state_tvd
+    if variable in indicator.variables_states
+      for (index_, variable_) in enumerate(indicator.variables_states)
+        if variable == variable_
+          var_min = variable_bounds[2 * (index_ - 1) + 1]
+          break
+        end
+      end
     else
-      var_min = variable_bounds[2 * density_tvd + spec_entropy + math_entropy + index - 1]
+      for variable_ in indicator.variables_cons[1:index]
+        if !(variable_ in indicator.variable_states)
+          counter += 1
+        end
+      end
+      var_min = variable_bounds[counter]
     end
   else
-    var_min = variable_bounds[2 * density_tvd + spec_entropy + math_entropy + index]
+    var_min = variable_bounds[counter + index]
   end
 
   @threaded for element in elements
@@ -605,13 +625,13 @@ end
         inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
       end
 
-      var = get_node_vars(u, equations, dg, i, j, element)[variable]
+      var = u[variable, i, j, element]
       if var < 0
         error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
       end
 
       # Compute bound
-      if indicator.density_tvd
+      if state_tvd && variable in indicator.variables_states
         var_min[i, j, element] = max(var_min[i, j, element], positivity_correction_factor * var)
       else
         var_min[i, j, element] = positivity_correction_factor * var
@@ -650,13 +670,17 @@ end
 
 @inline function idp_positivity_newton!(alpha, indicator, u, dt, semi, elements, variable, index)
   mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-  @unpack density_tvd, spec_entropy, math_entropy, positivity_correction_factor, variables_cons, variables_nonlinear = indicator
+  @unpack state_tvd, spec_entropy, math_entropy, positivity_correction_factor = indicator
 
   @unpack variable_bounds = indicator.cache.container_shock_capturing
 
-  var_min = variable_bounds[2 * density_tvd + spec_entropy + math_entropy +
-                            length(variables_cons) - min(density_tvd, 1 in variables_cons) +
-                            index]
+  index_ = state_tvd * 2 * length(indicator.variables_states) + spec_entropy + math_entropy + index
+  for variable_ in indicator.variables_cons
+    if !(state_tvd && variable_ in indicator.variables_states)
+      index_ += 1
+    end
+  end
+  var_min = variable_bounds[index_]
 
   @threaded for element in elements
     for j in eachnode(dg), i in eachnode(dg)

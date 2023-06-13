@@ -16,7 +16,7 @@ volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorIDP(equations, basis;
-                            density_tvd=true,
+                            state_tvd=true, variables_states=[1],
                             positivity=false,
                             smoothness_indicator=false)
 volume_integral = VolumeIntegralSubcellLimiting(indicator_sc;

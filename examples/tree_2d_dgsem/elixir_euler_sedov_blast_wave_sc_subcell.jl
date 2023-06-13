@@ -42,7 +42,7 @@ surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorIDP(equations, basis;
-                            density_tvd=true,
+                            state_tvd=true, variables_states=[1],
                             positivity=false,
                             spec_entropy=true,
                             smoothness_indicator=false,

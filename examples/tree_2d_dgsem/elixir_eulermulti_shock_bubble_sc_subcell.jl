@@ -87,7 +87,7 @@ indicator_sc = IndicatorIDP(equations, basis;
                             positivity=true,
                             variables_cons=[(i+3 for i in eachcomponent(equations))...],
                             variables_nonlinear=(), positivity_correction_factor=0.1,
-                            density_tvd=false,
+                            state_tvd=false,
                             spec_entropy=false,
                             bar_states=false)
 

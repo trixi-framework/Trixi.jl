@@ -64,13 +64,17 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
     return nothing
   end
 
-  @unpack density_tvd, positivity, spec_entropy, math_entropy = indicator
+  @unpack state_tvd, positivity, spec_entropy, math_entropy = indicator
   @unpack output_directory = callback
+  variables = varnames(cons2cons, semi.equations)
+
   mkpath(output_directory)
   open("$output_directory/deviations.txt", "a") do f;
     print(f, "# iter, simu_time")
-    if density_tvd
-      print(f, ", rho_min, rho_max");
+    if state_tvd
+      for index in indicator.variables_states
+        print(f, ", $(variables[index])_min, $(variables[index])_max");
+      end
     end
     if spec_entropy
       print(f, ", specEntr_min");
@@ -79,9 +83,8 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
       print(f, ", mathEntr_max");
     end
     if positivity
-      variables = varnames(cons2cons, semi.equations)
       for index in indicator.variables_cons
-        if index == 1 && density_tvd
+        if state_tvd && index in indicator.variables_states
           continue
         end
         print(f, ", $(variables[index])_min");
@@ -128,16 +131,21 @@ end
 
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi, indicator::IndicatorIDP)
-  @unpack density_tvd, positivity, spec_entropy, math_entropy = indicator
+  @unpack state_tvd, positivity, spec_entropy, math_entropy = indicator
   @unpack idp_bounds_delta = indicator.cache
+  variables = varnames(cons2cons, semi.equations)
 
   println("─"^100)
   println("Maximum deviation from bounds:")
   println("─"^100)
   counter = 1
-  if density_tvd
-    println("rho:\n- lower bound: ", idp_bounds_delta[counter], "\n- upper bound: ", idp_bounds_delta[counter+1])
-    counter += 2
+  if state_tvd
+    for index in indicator.variables_states
+      println("$(variables[index]):")
+      println("-lower bound: ", idp_bounds_delta[counter])
+      println("-upper bound: ", idp_bounds_delta[counter + 1])
+      counter += 2
+    end
   end
   if spec_entropy
     println("spec. entropy:\n- lower bound: ", idp_bounds_delta[counter])
@@ -149,10 +157,10 @@ end
   end
   if positivity
     for index in indicator.variables_cons
-      if index == 1 && density_tvd
+      if state_tvd && (index in indicator.variables_states)
         continue
       end
-      println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
+      println("$(variables[index]):\n- positivity: ", idp_bounds_delta[counter])
       counter += 1
     end
     for variable in indicator.variables_nonlinear
