@@ -67,9 +67,8 @@ function Base.resize!(elements::P4estElementContainer, capacity)
   return nothing
 end
 
-
 # Create element container and initialize element data
-function init_elements(mesh::P4estMesh{NDIMS, RealT}, equations,
+function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, RealT}}, equations,
                        basis, ::Type{uEltype}) where {NDIMS, RealT<:Real, uEltype<:Real}
   nelements = ncells(mesh)
 
@@ -142,7 +141,7 @@ end
 
 
 # Create interface container and initialize interface data.
-function init_interfaces(mesh::P4estMesh, equations, basis, elements)
+function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
   NDIMS = ndims(elements)
   uEltype = eltype(elements)
 
@@ -211,7 +210,7 @@ end
 
 
 # Create interface container and initialize interface data in `elements`.
-function init_boundaries(mesh::P4estMesh, equations, basis, elements)
+function init_boundaries(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
   NDIMS = ndims(elements)
   uEltype = eltype(elements)
 
@@ -340,7 +339,7 @@ end
 
 
 # Create mortar container and initialize mortar data.
-function init_mortars(mesh::P4estMesh, equations, basis, elements)
+function init_mortars(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
   NDIMS = ndims(elements)
   uEltype = eltype(elements)
 
