@@ -109,6 +109,20 @@ isdir(outdir) && rm(outdir, recursive=true)
       restart_file="restart_000036.h5")
   end
 
+  @trixi_testset "elixir_euler_convergence_wavingflag_IDP.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_wavingflag_IDP.jl"),
+      l2   = [0.3398358793878119, 0.03398358793878129, 0.06796717587756244, 0.008495896984696072],
+      linf = [0.8360446582060936, 0.08360446582060972, 0.16720893164122444, 0.02090111645397741],
+      tspan = (0.0, 0.5))
+  end
+
+  @trixi_testset "elixir_euler_convergence_wavingflag_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_wavingflag_MCL.jl"),
+      l2   = [0.33983417649330827, 0.033983417649330924, 0.06796683529866161, 0.008495854412336827],
+      linf = [0.8360446582068146, 0.083604465820679, 0.16720893164136671, 0.02090111645399162],
+      tspan = (0.0, 0.5))
+  end
+
   @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
       # Expected errors are exactly the same as with TreeMesh!
@@ -156,6 +170,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [8.297006495561199e-5, 8.663281475951301e-5, 0.00012264160606778596, 0.00041818802502024965])
   end
 
+  @trixi_testset "elixir_euler_source_terms_sc_subcell.jl" begin
+    # Somehow the test fails because of replacing docs. Keeping it here for orientation.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_sc_subcell.jl"),
+      l2   = [0.0005410073263272928, 0.0004202892126963879, 0.00041243815462826874, 0.0008337413923563841],
+      linf = [0.002820853944058177, 0.002920003618928524, 0.0028228964420637936, 0.004689604214830556],
+      tspan = (0.0, 0.5))
+  end
+
   @trixi_testset "elixir_euler_source_terms_waving_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_waving_flag.jl"),
       l2   = [2.991891317562739e-5, 3.6063177168283174e-5, 2.7082941743640572e-5, 0.00011414695350996946],
@@ -191,6 +213,22 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [2.063350241405049e-15, 1.8571016296925367e-14, 3.1769447886391905e-14, 1.4104095258528071e-14],
       linf = [1.9539925233402755e-14, 2.9791447087035294e-13, 6.502853810985698e-13, 2.7000623958883807e-13],
       atol = 7.0e-13)
+  end
+
+  @trixi_testset "elixir_euler_double_mach.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach.jl"),
+      l2   = [0.8955457632754655, 6.8117495933240235, 3.2697118944675716, 77.5174041919109],
+      linf = [10.16165871096883, 133.2522870057006, 38.23157147773949, 1470.3950960145828],
+      initial_refinement_level = 3,
+      tspan = (0.0, 0.05))
+  end
+
+  @trixi_testset "elixir_euler_double_mach_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach_MCL.jl"),
+      l2   = [0.9266313242695542, 7.071517579972717, 3.2627078543492787, 80.24631724351916],
+      linf = [14.244598580563007, 138.4745277257612, 38.69633620234036, 1574.6686216469134],
+      initial_refinement_level = 3,
+      tspan = (0.0, 0.05))
   end
 
   @trixi_testset "elixir_euler_shock_upstream_sc_subcell.jl" begin

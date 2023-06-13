@@ -14,10 +14,22 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [9.577246529612893e-6, 1.1707525976012434e-5, 1.1707525976456523e-5, 4.8869615580926506e-5])
   end
 
+  @trixi_testset "elixir_euler_source_terms_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_sc_subcell.jl"),
+      l2   = [2.0633069593983843e-6, 1.9337331005472223e-6, 1.9337331005227536e-6, 5.885362117543159e-6],
+      linf = [1.636984098429828e-5, 1.5579038690871627e-5, 1.557903868998345e-5, 5.260532107742577e-5])
+  end
+
   @trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
       l2   = [0.026440292358506527, 0.013245905852168414, 0.013245905852168479, 0.03912520302609374],
       linf = [0.042130817806361964, 0.022685499230187034, 0.022685499230187922, 0.06999771202145322])
+  end
+
+  @trixi_testset "elixir_euler_convergence_IDP.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_IDP.jl"),
+      l2   = [0.1289984161854359, 0.012899841618543363, 0.025799683237087086, 0.003224960404636081],
+      linf = [0.9436588685021441, 0.0943658868502173, 0.1887317737004306, 0.02359147170911058])
   end
 
   @trixi_testset "elixir_euler_density_wave.jl" begin
