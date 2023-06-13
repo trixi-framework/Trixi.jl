@@ -281,7 +281,7 @@ conforming mesh from a `p4est_connectivity` data structure.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 """
-function T8codeMesh{NDIMS}(conn::Ptr{T8code.Libt8.p4est_connectivity}; kwargs...) where NDIMS
+function T8codeMesh{NDIMS}(conn::Ptr{p4est_connectivity}; kwargs...) where NDIMS
 
   @assert NDIMS == 2 # Only support for NDIMS = 2 yet.
 
