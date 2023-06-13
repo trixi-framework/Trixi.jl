@@ -1,24 +1,16 @@
+
 using OrdinaryDiffEq
-using Trixi2Vtk
 using Trixi
 
 ###############################################################################
 # semidiscretization of the polytropic Euler equations
-gamma = 1.001
-kappa = 1.0 # We might need to play around with this constant.
+
+gamma = 1.001   # Isotropic simulation. gamma = 1.0 would lead to a singularity.
+# gamma = 2.0   # Adiabatic monatomic gas in 2d.
+kappa = 1.0     # Scaling factor for the pressure.
 equations = PolytropicEulerEquations2D(gamma, kappa)
 
-
-function initial_condition_constant(x, t, equations::PolytropicEulerEquations2D)
-  rho = 1.0
-  v1 = 0.2
-  v2 = 0.1
-
-  return prim2cons(SVector(rho, v1, v2), equations)
-end
-initial_condition = initial_condition_constant
-
-
+# Linear pressure wave in the negative x-direction.
 function initial_condition_wave(x, t, equations::PolytropicEulerEquations2D)
   rho = 1.0
   v1 = 0.0
@@ -30,8 +22,6 @@ function initial_condition_wave(x, t, equations::PolytropicEulerEquations2D)
 
   return prim2cons(SVector(rho, v1, v2), equations)
 end
-
-
 initial_condition = initial_condition_wave
 
 volume_flux = flux_ranocha
@@ -61,7 +51,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 3.0)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -71,7 +61,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=1,
+save_solution = SaveSolutionCallback(interval=50,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
@@ -83,9 +73,9 @@ callbacks = CallbackSet(summary_callback,
                         save_solution,
                         stepsize_callback)
 
-
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(1.0e-4, 1.0e-4),
                                                      variables=(Trixi.density, pressure))
+
 
 ###############################################################################
 # run the simulation
@@ -93,8 +83,6 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(1.0e-4, 1.0e-4)
 sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
-summary_callback() # print the timer summary
 
-
-# # Convert the snapshots into vtk format.
-trixi2vtk("out/solution_*.h5")
+# Print the timer summary
+summary_callback()
