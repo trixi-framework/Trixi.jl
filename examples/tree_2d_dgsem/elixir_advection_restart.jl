@@ -22,11 +22,20 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 tspan = (load_time(restart_filename), 2.0)
 ode = semidiscretize(semi, tspan, restart_filename);
 
+# Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
+save_solution.condition.save_initial_solution = false
+
+integrator = init(ode, CarpenterKennedy2N54(williamson_condition=false),
+                  dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  save_everystep=false, callback=callbacks)
+
+# Get the last time index and work with that.
+integrator.iter = load_timestep(restart_filename)
+integrator.stats.naccept = integrator.iter
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+sol = solve!(integrator)
+
 summary_callback() # print the timer summary
