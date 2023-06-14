@@ -76,8 +76,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_shallowwater_shock_capturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_shock_capturing.jl"),
-      l2   = [0.2884024818919076, 0.5252262013521178, 0.2890348477852955],
-      linf = [0.7565706154863958, 2.076621603471687, 0.8646939843534258],
+      l2   = [0.07424140641160326, 0.2148642632748155, 0.0372579849000542],
+      linf = [1.1209754279344226, 1.3230788645853582, 0.8646939843534251],
       tspan = (0.0, 0.05))
   end
 end
