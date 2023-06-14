@@ -8,10 +8,20 @@
 """
     APosterioriLimiter()
 
-Perform antidiffusive stage for a posteriori IDP limiting.
+Perform antidiffusive stage for the a posteriori IDP limiter called with
+[`VolumeIntegralSubcellLimiting`](@ref) using [`IndicatorIDP`](@ref).
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
+
+## References
+
+- Rueda-Ramírez, Pazner, Gassner (2022)
+  Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods
+  [DOI: 10.1016/j.compfluid.2022.105627](https://doi.org/10.1016/j.compfluid.2022.105627)
+- Pazner (2020)
+  Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
+  [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
 """
 struct APosterioriLimiter end
 
@@ -20,14 +30,10 @@ function (limiter!::APosterioriLimiter)(u_ode, integrator::Trixi.SimpleIntegrato
   limiter!(u_ode, integrator.p, integrator.t, integrator.dt, integrator.p.solver.volume_integral)
 end
 
-(::APosterioriLimiter)(u_ode, semi, t, dt, volume_integral::AbstractVolumeIntegral) = nothing
-
 function (limiter!::APosterioriLimiter)(u_ode, semi, t, dt, volume_integral::VolumeIntegralSubcellLimiting)
 
   @trixi_timeit timer() "a posteriori limiter" limiter!(u_ode, semi, t, dt, volume_integral.indicator)
 end
-
-(::APosterioriLimiter)(u_ode, semi, t, dt, indicator::AbstractIndicator) = nothing
 
 function (limiter!::APosterioriLimiter)(u_ode, semi, t, dt, indicator::IndicatorIDP)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
