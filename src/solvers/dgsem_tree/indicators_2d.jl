@@ -646,10 +646,10 @@ end
 
       # Calculate Pm
       # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
-      val_flux1_local     =  inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg,   i,   j, element)[variable]
-      val_flux1_local_ip1 = -inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i+1,   j, element)[variable]
-      val_flux2_local     =  inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg,   i,   j, element)[variable]
-      val_flux2_local_jp1 = -inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg,   i, j+1, element)[variable]
+      val_flux1_local     =  inverse_weights[i] * antidiffusive_flux1[variable,   i,   j, element]
+      val_flux1_local_ip1 = -inverse_weights[i] * antidiffusive_flux1[variable, i+1,   j, element]
+      val_flux2_local     =  inverse_weights[j] * antidiffusive_flux2[variable,   i,   j, element]
+      val_flux2_local_jp1 = -inverse_weights[j] * antidiffusive_flux2[variable,   i, j+1, element]
 
       Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
            min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
