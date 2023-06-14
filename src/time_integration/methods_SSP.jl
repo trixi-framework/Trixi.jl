@@ -132,7 +132,6 @@ function solve(ode::ODEProblem, alg=SimpleSSPRK33()::SimpleAlgorithmSSP;
 end
 
 function solve!(integrator::SimpleIntegratorSSP)
-  @unpack indicator = integrator.p.solver.volume_integral
   @unpack prob = integrator.sol
   @unpack alg = integrator
   t_end = last(prob.tspan)
