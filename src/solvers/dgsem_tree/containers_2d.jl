@@ -142,12 +142,12 @@ end
 
 # Container data structure (structure-of-arrays style) for DG interfaces
 mutable struct InterfaceContainer2D{uEltype<:Real} <: AbstractContainer
-  u::Array{uEltype, 4}        # [leftright, variables, i, interfaces]
-  neighbor_ids::Array{Int, 2} # [leftright, interfaces]
-  orientations::Vector{Int}   # [interfaces]
+  u::DenseArray{uEltype, 4}        # [leftright, variables, i, interfaces]
+  neighbor_ids::DenseArray{Int, 2} # [leftright, interfaces]
+  orientations::DenseArray{Int, 1}   # [interfaces]
   # internal `resize!`able storage
-  _u::Vector{uEltype}
-  _neighbor_ids::Vector{Int}
+  _u::DenseArray{uEltype, 1}
+  _neighbor_ids::DenseArray{Int, 1}
 end
 
 nvariables(interfaces::InterfaceContainer2D) = size(interfaces.u, 2)
@@ -181,16 +181,15 @@ function InterfaceContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes, 
   neighborArrType = get_array_type_of_backend(backend, Int, 2)
 
   # Initialize fields with defaults
-  _u = fill(nan, 2 * n_variables * n_nodes * capacity)
+  _u = allocate(backend, uEltype, 2 * n_variables * n_nodes * capacity)
   u = unsafe_wrap(uArrType, pointer(_u),
                   (2, n_variables, n_nodes, capacity))
 
-  _neighbor_ids = fill(typemin(Int), 2 * capacity)
+  _neighbor_ids = fill!(allocate(backend, Int, 2 * capacity), typemin(Int))
   neighbor_ids = unsafe_wrap(neighborArrType, pointer(_neighbor_ids),
                              (2, capacity))
 
   orientations = fill!(allocate(backend, Int, capacity), typemin(Int))
-
 
   return InterfaceContainer2D{uEltype}(
     u, neighbor_ids, orientations,

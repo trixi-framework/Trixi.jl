@@ -685,7 +685,7 @@ function prolong2interfaces_gpu!(cache, u,
   kernel! = internal_prolong2interfaces_gpu!(backend)
   num_nodes = nnodes(dg)
   num_interfaces = ninterfaces(interfaces)
-
+  
   kernel!(u, interfaces.u, interfaces.neighbor_ids, orientations, equations, num_nodes, ndrange=num_interfaces)
   # Ensure that device is finished
   KernelAbstractions.synchronize(backend)
@@ -769,7 +769,7 @@ function calc_interface_flux_gpu!(surface_flux_values,
 
   dev_surface_flux_values = KernelAbstractions.allocate(backend, eltype(surface_flux_values), size(surface_flux_values))
   if !(backend isa CPU)
-    KernelAbstractions.copyto!(backend, dev_surface_flux_values, surface_flux_value)
+    KernelAbstractions.copyto!(backend, dev_surface_flux_values, surface_flux_values)
   else
     Base.copyto!(dev_surface_flux_values, surface_flux_values)
   end
@@ -783,7 +783,7 @@ function calc_interface_flux_gpu!(surface_flux_values,
   KernelAbstractions.synchronize(backend)
 
   if !(backend isa CPU)
-    KernelAbstractions.copyto!(backend, surface_flux_values, dev_surface_flux_value)
+    KernelAbstractions.copyto!(backend, surface_flux_values, dev_surface_flux_values)
   else
     Base.copyto!(surface_flux_values, dev_surface_flux_values)
   end
