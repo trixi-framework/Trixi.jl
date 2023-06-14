@@ -10,28 +10,28 @@
 Two-Layer Shallow Water equations (2LSWE) in one space dimension. The equations are given by
 ```math
 \begin{alignat*}{4}
-&\frac{\partial}{\partial t}h_{upper} 
-&&+ \frac{\partial}{\partial x}\left(h_{upper} v_{1,upper}\right) 
+&\frac{\partial}{\partial t}h_{upper}
+&&+ \frac{\partial}{\partial x}\left(h_{upper} v_{1,upper}\right)
 &&= 0 \\
-&\frac{\partial}{\partial t}\left(h_{upper}v_{1,upper}\right) 
-&&+ \frac{\partial}{\partial x}\left(h_{upper}v_{1,upper}^2 + \dfrac{gh_{upper}^2}{2}\right) 
+&\frac{\partial}{\partial t}\left(h_{upper}v_{1,upper}\right)
+&&+ \frac{\partial}{\partial x}\left(h_{upper}v_{1,upper}^2 + \dfrac{gh_{upper}^2}{2}\right)
 &&= -gh_{upper}\frac{\partial}{\partial x}\left(b+h_{lower}\right)\\
-&\frac{\partial}{\partial t}h_{lower}  
-&&+ \frac{\partial}{\partial x}\left(h_{lower}v_{1,lower}\right) 
+&\frac{\partial}{\partial t}h_{lower}
+&&+ \frac{\partial}{\partial x}\left(h_{lower}v_{1,lower}\right)
 &&= 0 \\
-&\frac{\partial}{\partial t}\left(h_{lower}v_{1,lower}\right)  
-&&+ \frac{\partial}{\partial x}\left(h_{lower}v_{1,lower}^2 + \dfrac{gh_{lower}^2}{2}\right) 
+&\frac{\partial}{\partial t}\left(h_{lower}v_{1,lower}\right)
+&&+ \frac{\partial}{\partial x}\left(h_{lower}v_{1,lower}^2 + \dfrac{gh_{lower}^2}{2}\right)
 &&= -gh_{lower}\frac{\partial}{\partial x}\left(b+\dfrac{\rho_{upper}}{\rho_{lower}}h_{upper}\right).
 \end{alignat*}
 ```
-The unknown quantities of the 2LSWE are the water heights of the {lower} layer ``h_{lower}`` and the 
-{upper} layer ``h_{upper}`` with respective velocities ``v_{1,upper}`` and ``v_{1,lower}``. The gravitational constant is 
-denoted by `g`, the layer densitites by ``\rho_{upper}``and ``\rho_{lower}`` and the (possibly) variable 
-bottom topography function ``b(x)``. The conservative variable water height ``h_{lower}`` is measured 
-from the bottom topography ``b`` and ``h_{upper}`` relative to ``h_{lower}``, therefore one also defines the 
+The unknown quantities of the 2LSWE are the water heights of the {lower} layer ``h_{lower}`` and the
+{upper} layer ``h_{upper}`` with respective velocities ``v_{1,upper}`` and ``v_{1,lower}``. The gravitational constant is
+denoted by `g`, the layer densitites by ``\rho_{upper}``and ``\rho_{lower}`` and the (possibly) variable
+bottom topography function ``b(x)``. The conservative variable water height ``h_{lower}`` is measured
+from the bottom topography ``b`` and ``h_{upper}`` relative to ``h_{lower}``, therefore one also defines the
 total water heights as ``H_{upper} = h_{upper} + h_{upper} + b`` and ``H_{lower} = h_{lower} + b``.
 
-The densities must be chosen such that ``\rho_{upper} < \rho_{lower}``, to make sure that the heavier fluid 
+The densities must be chosen such that ``\rho_{upper} < \rho_{lower}``, to make sure that the heavier fluid
 ``\rho_{lower}`` is in the bottom layer and the lighter fluid ``\rho_{upper}`` in the {upper} layer.
 
 The additional quantity ``H_0`` is also available to store a reference value for the total water
@@ -40,13 +40,13 @@ height that is useful to set initial conditions or test the "lake-at-rest" well-
 The bottom topography function ``b(x)`` is set inside the initial condition routine
 for a particular problem setup.
 
-In addition to the unknowns, Trixi currently stores the bottom topography values at the 
-approximation points despite being fixed in time. This is done for convenience of computing the 
-bottom topography gradients on the fly during the approximation as well as computing auxiliary 
+In addition to the unknowns, Trixi currently stores the bottom topography values at the
+approximation points despite being fixed in time. This is done for convenience of computing the
+bottom topography gradients on the fly during the approximation as well as computing auxiliary
 quantities like the total water height ``H`` or the entropy variables.
 This affects the implementation and use of these equations in various ways:
 * The flux values corresponding to the bottom topography must be zero.
-* The bottom topography values must be included when defining initial conditions, boundary 
+* The bottom topography values must be included when defining initial conditions, boundary
   conditions or source terms.
 * [`AnalysisCallback`](@ref) analyzes this variable.
 * Trixi's visualization tools will visualize the bottom topography by default.
@@ -85,7 +85,7 @@ varnames(::typeof(cons2cons), ::ShallowWaterTwoLayerEquations1D) = ("h_upper", "
 # Note, we use the total water height, H_lower = h_upper + h_lower + b, and first layer total height
 # H_upper = h_upper + b as the first primitive variable for easier visualization and setting initial
 # conditions
-varnames(::typeof(cons2prim), ::ShallowWaterTwoLayerEquations1D) = ("H_upper", "v1_upper", 
+varnames(::typeof(cons2prim), ::ShallowWaterTwoLayerEquations1D) = ("H_upper", "v1_upper",
                                                                     "H_lower", "v1_lower", "b")
 
 
@@ -94,7 +94,7 @@ varnames(::typeof(cons2prim), ::ShallowWaterTwoLayerEquations1D) = ("H_upper", "
     initial_condition_convergence_test(x, t, equations::ShallowWaterTwoLayerEquations1D)
 
 A smooth initial condition used for convergence tests in combination with
-[`source_terms_convergence_test`](@ref) (and 
+[`source_terms_convergence_test`](@ref) (and
 [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
 function initial_condition_convergence_test(x, t, equations::ShallowWaterTwoLayerEquations1D)
@@ -114,9 +114,9 @@ end
 """
     source_terms_convergence_test(u, x, t, equations::ShallowWaterTwoLayerEquations1D)
 
-Source terms used for convergence tests in combination with 
-[`initial_condition_convergence_test`](@ref) 
-(and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) 
+Source terms used for convergence tests in combination with
+[`initial_condition_convergence_test`](@ref)
+(and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref)
 in non-periodic domains).
 """
 @inline function source_terms_convergence_test(u, x, t,
@@ -151,8 +151,8 @@ the internal value.
 
 For details see Section 9.2.5 of the book:
 - Eleuterio F. Toro (2001)
-  Shock-Capturing Methods for Free-Surface Shallow Flows  
-  1st edition  
+  Shock-Capturing Methods for Free-Surface Shallow Flows
+  1st edition
   ISBN 0471987662
 """
 @inline function boundary_condition_slip_wall(u_inner, orientation_or_normal, direction,
@@ -204,7 +204,7 @@ end
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the bottom topography [`ShallowWaterTwoLayerEquations2D`](@ref) and an
-additional term that couples the momentum of both layers. This is a slightly modified version 
+additional term that couples the momentum of both layers. This is a slightly modified version
 to account for the additional source term compared to the standard SWE described in the paper.
 
 Further details are available in the paper:
@@ -223,7 +223,7 @@ Further details are available in the paper:
 
   z = zero(eltype(u_ll))
 
-  # Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x, 
+  # Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x,
   #                                        0, g*h_lower*(b+r*h_upper)_x, 0)
   f = SVector(z,
               equations.gravity * h_upper_ll * (b_rr + h_lower_rr),
@@ -240,9 +240,9 @@ end
 
 !!! warning "Experimental code"
     This numerical flux is experimental and may change in any future release.
-                                    
-Non-symmetric two-point surface flux discretizing the nonconservative (source) term that contains 
-the gradients of the bottom topography and an additional term that couples the momentum of both 
+
+Non-symmetric two-point surface flux discretizing the nonconservative (source) term that contains
+the gradients of the bottom topography and an additional term that couples the momentum of both
 layers [`ShallowWaterTwoLayerEquations2D`](@ref).
 
 Further details are available in the paper:
@@ -272,7 +272,7 @@ formulation.
 
   z = zero(eltype(u_ll))
 
-  # Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x, 
+  # Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x,
   #                                        0, g*h_lower*(b+r*h_upper)_x, 0)
   f = SVector(
     z,
@@ -289,13 +289,13 @@ end
     flux_fjordholm_etal(u_ll, u_rr, orientation,
                         equations::ShallowWaterTwoLayerEquations1D)
 
-Total energy conservative (mathematical entropy for shallow water equations). When the bottom 
-topography is nonzero this should only be used as a surface flux otherwise the scheme will not be 
+Total energy conservative (mathematical entropy for shallow water equations). When the bottom
+topography is nonzero this should only be used as a surface flux otherwise the scheme will not be
 well-balanced. For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
 
 Details are available in Eq. (4.1) in the paper:
 - Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
-  Well-balanced and energy stable schemes for the shallow water equations with discontinuous 
+  Well-balanced and energy stable schemes for the shallow water equations with discontinuous
   topography [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 and the application to two layers is shown in the paper:
 - Ulrik Skre Fjordholm (2012)
@@ -335,11 +335,11 @@ end
 """
     flux_wintermeyer_etal(u_ll, u_rr, orientation,
                           equations::ShallowWaterTwoLayerEquations1D)
-                      
+
 Total energy conservative (mathematical entropy for two-layer shallow water equations) split form.
 When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
 The `surface_flux` should still use, e.g., [`flux_fjordholm_etal`](@ref). To obtain the flux for the
-two-layer shallow water equations the flux that is described in the paper for the normal shallow 
+two-layer shallow water equations the flux that is described in the paper for the normal shallow
 water equations is used within each layer.
 
 Further details are available in Theorem 1 of the paper:
@@ -379,8 +379,8 @@ end
     flux_es_fjordholm_etal(u_ll, u_rr, orientation,
                            equations::ShallowWaterTwoLayerEquations1D)
 
-Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy 
-conservative flux_fjordholm_etal and adds a Lax-Friedrichs type dissipation dependent on the jump 
+Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy
+conservative flux_fjordholm_etal and adds a Lax-Friedrichs type dissipation dependent on the jump
 of entropy variables.
 
 Further details are available in the paper:
@@ -448,10 +448,10 @@ end
 
 
 # Calculate approximation for maximum wave speed for local Lax-Friedrichs-type dissipation as the
-# maximum velocity magnitude plus the maximum speed of sound. This function uses approximate 
-# eigenvalues using the speed of the barotropic mode as there is no simple way to calculate them 
+# maximum velocity magnitude plus the maximum speed of sound. This function uses approximate
+# eigenvalues using the speed of the barotropic mode as there is no simple way to calculate them
 # analytically.
-# 
+#
 # A good overview of the derivation is given in:
 # -  Jonas Nycander, Andrew McC. Hogg, Leela M. Frankcombe (2008)
 #    Open boundary conditions for nonlinear channel Flows
@@ -477,7 +477,7 @@ end
 end
 
 
-# Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom 
+# Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom
 # topography
 @inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
     orientation_or_normal_direction, equations::ShallowWaterTwoLayerEquations1D)
@@ -490,7 +490,7 @@ end
 # Absolute speed of the barotropic mode
 @inline function max_abs_speeds(u, equations::ShallowWaterTwoLayerEquations1D)
   h_upper, h_v1_upper, h_lower, h_v2_lower, _ = u
-  
+
   # Calculate averaged velocity of both layers
   v_m = (h_v1_upper + h_v2_lower) / (h_upper + h_lower)
   c = sqrt(equations.gravity * (h_upper + h_lower))
@@ -521,7 +521,7 @@ end
 
 
 # Convert conservative variables to entropy variables
-# Note, only the first four are the entropy variables, the fifth entry still just carries the 
+# Note, only the first four are the entropy variables, the fifth entry still just carries the
 # bottom topography values for convenience
 @inline function cons2entropy(u, equations::ShallowWaterTwoLayerEquations1D)
   h_upper, _, h_lower, _, b = u
@@ -558,7 +558,7 @@ end
 
 # Calculate total energy for a conservative state `cons`
 @inline function energy_total(cons, equations::ShallowWaterTwoLayerEquations1D)
-  h_upper, h_lower, h_v1_upper, h_v2_lower, b = cons
+  h_upper, h_v1_upper, h_lower, h_v2_lower, b = cons
   # Set new variables for better readability
   g = equations.gravity
   rho_upper = equations.rho_upper
