@@ -17,15 +17,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_shallowwater_well_balanced.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
-      l2   = [1.2427984842961743, 1.0332499675061871e-14, 1.2427984842961741],
-      linf = [1.619041478244762, 1.266865149831811e-14, 1.6190414782447629],
+      l2   = [0.10416666834254829, 1.4352935256803184e-14, 0.10416666834254838],
+      linf = [1.9999999999999996, 3.248036646353028e-14, 2.0],
       tspan = (0.0, 0.25))
   end
 
   @trixi_testset "elixir_shallowwater_well_balanced.jl with FluxHydrostaticReconstruction" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
-      l2   = [1.2427984842961743, 1.2663646513352053e-14, 1.2427984842961741],
-      linf = [1.619041478244762, 2.4566658711604395e-14, 1.6190414782447629],
+      l2   = [0.10416666834254835, 1.1891029971551825e-14, 0.10416666834254838],
+      linf = [2.0000000000000018, 2.4019608337954543e-14, 2.0],
       surface_flux=(FluxHydrostaticReconstruction(flux_lax_friedrichs, hydrostatic_reconstruction_audusse_etal), flux_nonconservative_audusse_etal),
       tspan = (0.0, 0.25))
   end
@@ -66,7 +66,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
       tspan = (0.0, 0.25))
   end
 
-  @trixi_testset "elixir_shallowwater_well_nonperiodic.jl with wall boundary" begin
+  @trixi_testset "elixir_shallowwater_well_balanced_nonperiodic.jl with wall boundary" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced_nonperiodic.jl"),
       l2   = [1.7259643614361866e-8, 3.5519018243195145e-16, 1.7259643530442137e-8],
       linf = [3.844551010878661e-8, 9.846474508971374e-16, 3.844551077492042e-8],
