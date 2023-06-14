@@ -212,7 +212,7 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
               # when filling the `neighbor_ids` array.
               # mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[2] + 1
               # mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[1] + 1
-              mortars.neighbor_ids[:, mortar_id] = reverse(neighbor_ielements) + 1
+              mortars.neighbor_ids[1:end-1, mortar_id] = reverse(neighbor_ielements) .+ 1
             end
 
             init_mortar_node_indices!(mortars, faces, orientation, mortar_id)
