@@ -266,6 +266,11 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh2D)
   # Reset interface count
   count = 0
 
+  # Avoid scalar indexing by working on a temporary cpu copy
+  tmp_interfaces_neighbor_ids = fill(typemin(Int), size(interfaces.neighbor_ids))
+  tmp_interfaces_orientations = fill(typemin(Int), size(interfaces.orientations))
+
+
   # Iterate over all elements to find neighbors and to connect via interfaces
   for element in eachelement(elements)
     # Get cell id
@@ -296,13 +301,16 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh2D)
 
       # Create interface between elements (1 -> "left" of interface, 2 -> "right" of interface)
       count += 1
-      interfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
-      interfaces.neighbor_ids[1, count] = element
+      tmp_interfaces_neighbor_ids[2, count] = c2e[neighbor_cell_id]
+      tmp_interfaces_neighbor_ids[1, count] = element
 
       # Set orientation (x -> 1, y -> 2)
-      interfaces.orientations[count] = div(direction, 2)
+      tmp_interfaces_orientations[count] = div(direction, 2)
     end
   end
+
+  KernelAbstractions.copyto!(get_backend(interfaces.neighbor_ids), interfaces.neighbor_ids, tmp_interfaces_neighbor_ids)
+  KernelAbstractions.copyto!(get_backend(interfaces.orientations), interfaces.orientations, tmp_interfaces_orientations)
 
   @assert count == ninterfaces(interfaces) ("Actual interface count ($count) does not match " *
                                             "expectations $(ninterfaces(interfaces))")
