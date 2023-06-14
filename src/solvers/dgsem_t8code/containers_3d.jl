@@ -12,10 +12,11 @@ function calc_node_coordinates!(node_coordinates,
   # places and the additional information passed to the compiler makes them faster
   # than native `Array`s.
   tmp1    = StrideArray(undef, real(mesh),
-                        StaticInt(2), static_length(nodes), static_length(mesh.nodes))
+                        StaticInt(3), static_length(nodes), static_length(mesh.nodes), static_length(mesh.nodes))
   matrix1 = StrideArray(undef, real(mesh),
                         static_length(nodes), static_length(mesh.nodes))
   matrix2 = similar(matrix1)
+  matrix3 = similar(matrix1)
   baryweights_in = barycentric_weights(mesh.nodes)
 
   num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
@@ -33,7 +34,7 @@ function calc_node_coordinates!(node_coordinates,
 
       element_length = t8_hex_len(element_level) / t8_hex_root_len
 
-      element_coords = Array{Float64}(undef, 3)
+      element_coords = Vector{Cdouble}(undef, 3)
       t8_element_vertex_reference_coords(eclass_scheme, element, 0, pointer(element_coords))
 
       nodes_out_x = 2 * (element_length * 1/2 * (nodes .+ 1) .+ element_coords[1]) .- 1
@@ -46,7 +47,7 @@ function calc_node_coordinates!(node_coordinates,
 
       multiply_dimensionwise!(
         view(node_coordinates, :, :, :, :, current_index += 1),
-        matrix1, matrix2,
+        matrix1, matrix2, matrix3,
         view(mesh.tree_node_coordinates, :, :, :, :, itree+1),
         tmp1
       )
