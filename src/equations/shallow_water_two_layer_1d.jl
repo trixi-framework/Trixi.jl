@@ -197,7 +197,7 @@ end
 
 """
     flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
-                                          equations::ShallowWaterTwoLayerEquations1D)
+                                     equations::ShallowWaterTwoLayerEquations1D)
 
 !!! warning "Experimental code"
     This numerical flux is experimental and may change in any future release.
@@ -211,29 +211,29 @@ conservation and well-balancedness in both the volume and surface when combined 
 [`flux_wintermeyer_etal`](@ref). 
 """
 @inline function flux_nonconservative_ersing_etal(u_ll, u_rr,
-  orientation::Integer,
-  equations::ShallowWaterTwoLayerEquations1D)
-# Pull the necessary left and right state information
-h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
-h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
-b_rr = u_rr[5]
-b_ll = u_ll[5]
+                                                  orientation::Integer,
+                                                  equations::ShallowWaterTwoLayerEquations1D)
+  # Pull the necessary left and right state information
+  h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
+  h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
+  b_rr = u_rr[5]
+  b_ll = u_ll[5]
 
-# Calculate jumps
-h_upper_jump =  (h_upper_rr - h_upper_ll)
-h_lower_jump =  (h_lower_rr - h_lower_ll)
-b_jump       =  (b_rr       - b_ll)
+  # Calculate jumps
+  h_upper_jump =  (h_upper_rr - h_upper_ll)
+  h_lower_jump =  (h_lower_rr - h_lower_ll)
+  b_jump       =  (b_rr       - b_ll)
 
-z = zero(eltype(u_ll))
+  z = zero(eltype(u_ll))
 
-# Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x, 
-#                                        0, g*h_lower*(b+r*h_upper)_x, 0)
-f = SVector(z,
-equations.gravity * h_upper_ll * (b_jump + h_lower_jump),
-z,
-equations.gravity * h_lower_ll * (b_jump + equations.r * h_upper_jump),
-z)
-return f
+  # Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x, 
+  #                                        0, g*h_lower*(b+r*h_upper)_x, 0)
+  f = SVector(z,
+              equations.gravity * h_upper_ll * (b_jump + h_lower_jump),
+              z,
+              equations.gravity * h_lower_ll * (b_jump + equations.r * h_upper_jump),
+              z)
+  return f
 end
 
 
@@ -282,18 +282,18 @@ end
 
 """
     flux_es_ersing_etal(u_ll, u_rr, orientation_or_normal_direction,
-                           equations::ShallowWaterTwoLayerEquations1D)
+                        equations::ShallowWaterTwoLayerEquations1D)
 Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy conservative 
 [`flux_wintermeyer_etal`](@ref) and adds a Lax-Friedrichs type dissipation dependent on the jump of 
 entropy variables. 
 """
 @inline function flux_es_ersing_etal(u_ll, u_rr,
-                                        orientation::Integer,
-                                        equations::ShallowWaterTwoLayerEquations1D)
+                                     orientation::Integer,
+                                     equations::ShallowWaterTwoLayerEquations1D)
   # Compute entropy conservative flux but without the bottom topography
   f_ec = flux_wintermeyer_etal(u_ll, u_rr,
-                              orientation,
-                              equations)
+                               orientation,
+                               equations)
 
   # Get maximum signal velocity
   λ = max_abs_speed_naive(u_ll, u_rr, orientation, equations)
