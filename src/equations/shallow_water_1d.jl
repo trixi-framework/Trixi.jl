@@ -26,7 +26,7 @@ is useful to set initial conditions or test the "lake-at-rest" well-balancedness
 
 Also, there are two thresholds which prevent numerical problems as well as instabilities. Both of them do not
 have to be passed, as default values are defined within the struct. The first one, `threshold_limiter`, is
-used in [`PositivityPreservingLimiterShallowWater`](@ref) on the water height, as a (small) shift on the initial 
+used in [`PositivityPreservingLimiterShallowWater`](@ref) on the water height, as a (small) shift on the initial
 condition and cutoff before the next time step. The second one, `threshold_wet`, is applied on the water height to
 define when the flow is "wet" before calculating the numerical flux.
 
@@ -448,7 +448,7 @@ end
 
 A particular type of hydrostatic reconstruction on the water height to guarantee well-balancedness
 for a general bottom topography [`ShallowWaterEquations1D`](@ref). The reconstructed solution states
-`u_ll_star` and `u_rr_star` variables are used to evaluate the surface numerical flux at the interface.
+`u_ll_star` and `u_rr_star` variables are then used to evaluate the surface numerical flux at the interface.
 Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).
 
 Further details on this hydrostatic reconstruction and its motivation can be found in

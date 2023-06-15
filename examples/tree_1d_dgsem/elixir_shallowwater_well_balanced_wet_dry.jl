@@ -9,13 +9,13 @@ using Printf: @printf, @sprintf
 equations = ShallowWaterEquations1D(gravity_constant=9.812)
 
 """
-initial_condition_complex_bottom_well_balanced(x, t, equations:: ShallowWaterEquations1D)
+    initial_condition_complex_bottom_well_balanced(x, t, equations:: ShallowWaterEquations1D)
 
 Initial condition with a complex (discontinuous) bottom topography to test the well-balanced
 property for the [`hydrostatic_reconstruction_chen_noelle`](@ref) including dry areas within the
 domain. The errors from the analysis callback are not important but the error for this
-lake at rest test case `∑|H0-(h+b)|` should be around machine roundoff.
-The initial condition was found in the section 5.2 of the paper:
+lake-at-rest test case `∑|H0-(h+b)|` should be around machine roundoff.
+The initial condition is taken from Section 5.2 of the paper:
 - Guoxian Chen and Sebastian Noelle (2017)
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
