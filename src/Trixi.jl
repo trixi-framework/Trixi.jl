@@ -225,7 +225,7 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback
 
-export load_mesh, load_time, load_timestep
+export load_mesh, load_time, load_timestep, load_dt
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax,
