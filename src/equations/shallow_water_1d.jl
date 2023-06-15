@@ -309,7 +309,7 @@ end
 
 """
     flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
-                                          equations::ShallowWaterEquations1D)
+                                     equations::ShallowWaterEquations1D)
 
 !!! warning "Experimental code"
     This numerical flux is experimental and may change in any future release.
@@ -322,7 +322,7 @@ conservation and well-balancedness in both the volume and surface when combined 
 [`flux_wintermeyer_etal`](@ref).
 """
 @inline function flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
-                                                       equations::ShallowWaterEquations1D)
+                                                  equations::ShallowWaterEquations1D)
   # Pull the necessary left and right state information
   h_ll = waterheight(u_ll, equations)
   b_rr = u_rr[3]

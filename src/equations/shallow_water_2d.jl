@@ -544,7 +544,7 @@ conservation and well-balancedness in both the volume and surface when combined 
 [`flux_wintermeyer_etal`](@ref).
 """
 @inline function flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
-                                                       equations::ShallowWaterEquations2D)
+                                                  equations::ShallowWaterEquations2D)
   # Pull the necessary left and right state information
   h_ll = waterheight(u_ll, equations)
   b_rr = u_rr[4]
@@ -564,9 +564,9 @@ conservation and well-balancedness in both the volume and surface when combined 
 end
 
 @inline function flux_nonconservative_ersing_etal(u_ll, u_rr,
-                                                       normal_direction_ll::AbstractVector,
-                                                       normal_direction_average::AbstractVector,
-                                                       equations::ShallowWaterEquations2D)
+                                                  normal_direction_ll::AbstractVector,
+                                                  normal_direction_average::AbstractVector,
+                                                  equations::ShallowWaterEquations2D)
   # Pull the necessary left and right state information
   h_ll = waterheight(u_ll, equations)
   b_rr = u_rr[4]
