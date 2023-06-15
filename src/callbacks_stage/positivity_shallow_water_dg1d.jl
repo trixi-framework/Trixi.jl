@@ -44,8 +44,8 @@ function limiter_shallow_water!(u, threshold::Real, variable,
 
       # Set them both to zero to apply linear combination correctly
       if h_node <= threshold
-        h_v_node = 0
-        h_v_mean = 0
+        h_v_node = zero(eltype(u))
+        h_v_mean = zero(eltype(u))
       end
 
       u_node = SVector(h_node, h_v_node, b_node)
@@ -71,7 +71,7 @@ function limiter_shallow_water!(u, threshold::Real, variable,
 
       if h <= threshold
         h = threshold
-        hv = 0
+        hv = zero(eltype(u))
       end
 
       u_node = SVector(h, hv, b)
