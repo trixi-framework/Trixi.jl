@@ -55,16 +55,14 @@ function limiter_shallow_water!(u, threshold::Real, variable,
       # because the velocity is set to zero and this value is passed.
       # Otherwise, the velocity is averaged, as well.
       # Note that the auxiliary bottom topography variable `b` is never limited.
-      set_node_vars!(u, theta * u_node + (1-theta) * u_mean,
+      set_node_vars!(u, theta * u_node + (1 - theta) * u_mean,
                      equations, dg, i, element)
     end
-  end
 
-  # An extra "safety" check is done over all the degrees of
-  # freedom after the limiting in order to avoid dry nodes.
-  # If the value_mean < threshold before applying limiter, there
-  # could still be dry nodes afterwards due to logic of limiter.
-  @threaded for element in eachelement(dg, cache)
+    # An extra "safety" check is done over all the degrees of
+    # freedom after the limiting in order to avoid dry nodes.
+    # If the value_mean < threshold before applying limiter, there
+    # could still be dry nodes afterwards due to logic of limiter.
 
     for i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, element)
