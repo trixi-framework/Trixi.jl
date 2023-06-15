@@ -522,11 +522,11 @@ end
 
 """
     flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
-                                          equations::ShallowWaterEquations2D)
+                                     equations::ShallowWaterEquations2D)
     flux_nonconservative_ersing_etal(u_ll, u_rr,
-                                          normal_direction_ll     ::AbstractVector,
-                                          normal_direction_average::AbstractVector,
-                                          equations::ShallowWaterEquations2D)
+                                     normal_direction_ll     ::AbstractVector,
+                                     normal_direction_average::AbstractVector,
+                                     equations::ShallowWaterEquations2D)
 
 !!! warning "Experimental code"
     This numerical flux is experimental and may change in any future release.
