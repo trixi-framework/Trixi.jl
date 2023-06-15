@@ -53,20 +53,29 @@ References for the SWE are many but a good introduction is available in Chapter 
 struct ShallowWaterEquations1D{RealT<:Real} <: AbstractShallowWaterEquations{1, 3}
   gravity::RealT # gravitational constant
   H0::RealT      # constant "lake-at-rest" total water height
-  threshold_limiter::RealT  # Threshold to use in PositivityPreservingLimiterShallowWater on water height,
-                            # as a (small) shift on the initial condition and cutoff before the
-                            # next time step.
-  threshold_wet::RealT      # Threshold to be applied on water height to define when the flow is "wet"
-                            # before calculating the numerical flux.
+  threshold_limiter::RealT # Threshold to use in `PositivityPreservingLimiterShallowWater` on water height,
+                           # as a (small) shift on the initial condition and cutoff before the
+                           # next time step.
+                           # Default in double precision is 500*eps() ≈ 1e-13.
+  threshold_wet::RealT     # Threshold to be applied on water height to define when the flow is "wet"
+                           # before calculating the numerical flux.
+                           # Default in double precision is 5*eps() ≈ 1e-15.
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
 # well-balancedness test cases.
-# Strict default values for thresholds that performed great in several numerical experiments
-function ShallowWaterEquations1D(; gravity_constant, H0=0.0, 
-                                 threshold_limiter=1e-13, threshold_wet=1e-15)
+# Strict default values for thresholds that performed well in many numerical experiments
+function ShallowWaterEquations1D(; gravity_constant, H0=zero(gravity_constant),
+                                    threshold_limiter=nothing, threshold_wet=nothing)
+  T = promote_type(typeof(gravity_constant), typeof(H0))
+  if threshold_limiter === nothing
+    threshold_limiter = 500 * eps(T)
+  end
+  if threshold_wet === nothing
+    threshold_wet = 5 * eps(T)
+  end
   ShallowWaterEquations1D(gravity_constant, H0, threshold_limiter, threshold_wet)
 end
 
@@ -504,7 +513,9 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   # the hydrostatic reconstruction is applied and before the numerical flux is calculated
   # to avoid numerical problem with arbitrary small values. Interfaces with a water height
   # lower or equal to the threshold can be declared as dry.
-  # The default value is set to 1e-15 and can be changed within the constructor call in an elixir.
+  # The default value for `threshold_wet` is ≈ 5*eps(), or 1e-15 in double precision, is set
+   # in the `ShallowWaterEquations1D` struct. This threshold value can be changed in the constructor
+   # call of this eqaution struct in an elixir.
   threshold = equations.threshold_wet
 
   if (h_ll_star <= threshold)
