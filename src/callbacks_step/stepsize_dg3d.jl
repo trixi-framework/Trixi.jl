@@ -44,7 +44,7 @@ function max_dt(u, t, mesh::TreeMesh{3},
 end
 
 
-function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                 constant_speed::False, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
@@ -79,7 +79,7 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
 end
 
 
-function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                 constant_speed::True, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection

@@ -11,6 +11,8 @@ mutable struct T8codeMesh{NDIMS, RealT<:Real, IsParallel, NDIMSP2, NNODES} <: Ab
   forest                :: Ptr{t8_forest} # cpointer to forest
   is_parallel           :: IsParallel
 
+  unsaved_changes       ::Bool
+
   # This specifies the geometry interpolation for each tree.
   tree_node_coordinates :: Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
 
@@ -175,7 +177,7 @@ function T8codeMesh(trees_per_dimension; polydeg,
         tree_node_coordinates[:, i, j, itree] .= mapping_(cell_x_offset + dx[1] * nodes[i]/2,
                                                           cell_y_offset + dx[2] * nodes[j]/2)
       end
-    else
+    elseif NDIMS == 3
       cell_x_offset = (verts[1,1] - 0.5*(trees_per_dimension[1]-1)) * dx[1]
       cell_y_offset = (verts[2,1] - 0.5*(trees_per_dimension[2]-1)) * dx[2]
       cell_z_offset = (verts[3,1] - 0.5*(trees_per_dimension[3]-1)) * dx[3]
@@ -185,6 +187,8 @@ function T8codeMesh(trees_per_dimension; polydeg,
                                                              cell_y_offset + dx[2] * nodes[j]/2,
                                                              cell_z_offset + dx[3] * nodes[k]/2)
       end
+    else
+      throw(ArgumentError("NDIMS should be 2 or 3."))
     end
 
     if !periodicity[1]
@@ -246,10 +250,11 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
 
   nodes_in = [-1.0, 1.0]
   matrix = polynomial_interpolation_matrix(nodes_in, nodes)
-  data_in = Array{RealT, 3}(undef, 2, 2, 2)
-  tmp1 = zeros(RealT, 2, length(nodes), length(nodes_in))
 
   if NDIMS == 2
+    data_in = Array{RealT, 3}(undef, 2, 2, 2)
+    tmp1 = zeros(RealT, 2, length(nodes), length(nodes_in))
+
     for itree in 0:num_local_trees-1
       veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
       verts = unsafe_wrap(Array,veptr,(3,1 << NDIMS))
@@ -278,24 +283,13 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
         tmp1
       )
     end
-    
-  else
+  elseif NDIMS == 3
+    data_in = Array{RealT, 4}(undef, 3, 2, 2, 2)
+    tmp1 = zeros(RealT, 3, length(nodes), length(nodes_in), length(nodes_in))
 
     for itree in 0:num_local_trees-1
       veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
       verts = unsafe_wrap(Array,veptr,(3,1 << NDIMS))
-
-      # TODO: Check for negative volumes. Probably not necessary since this is
-      # done within t8code.
-      # u = verts[:,2] - verts[:,1]
-      # v = verts[:,3] - verts[:,1]
-      # w = [0.0,0.0,1.0]
-
-      # vol = dot(cross(u,v),w)
-
-      # if vol < 0.0
-      #   @warn "Discovered negative volumes in `cmesh`: vol = $vol"
-      # end
 
       # Tree vertices are stored in z-order.
       @views data_in[:, 1, 1, 1] .= verts[1:3,1]
@@ -311,12 +305,13 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
       # Interpolate corner coordinates to specified nodes.
       multiply_dimensionwise!(
         view(tree_node_coordinates, :, :, :, :, itree+1),
-        matrix, matrix,
+        matrix, matrix, matrix,
         data_in,
         tmp1
       )
-
     end
+  else
+    throw(ArgumentError("NDIMS should be 2 or 3."))
   end
 
   map_node_coordinates!(tree_node_coordinates, mapping)

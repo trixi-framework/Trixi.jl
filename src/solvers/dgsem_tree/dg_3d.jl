@@ -36,13 +36,13 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                       equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
   NamedTuple()
 end
 
 
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}}, equations,
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
   element_ids_dg   = Int[]
   element_ids_dgfv = Int[]
@@ -72,7 +72,7 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
 end
 
 
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}}, equations,
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG, uEltype)
 
   A4dp1_x = Array{uEltype, 4}
@@ -98,7 +98,7 @@ end
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
   # TODO: Taal compare performance of different types
   A3d = Array{uEltype, 3}
   fstar_upper_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
@@ -121,7 +121,7 @@ end
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
-              mesh::Union{TreeMesh{3}, P4estMesh{3}}, equations,
+              mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}}, equations,
               initial_condition, boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
   # Reset du
@@ -178,7 +178,7 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -224,7 +224,7 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -327,7 +327,7 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
@@ -385,7 +385,7 @@ end
 
 
 @inline function fv_kernel!(du, u,
-                            mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+                            mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                             nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
   @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded = cache

@@ -45,7 +45,7 @@ end
 
 
 @inline function weak_form_kernel!(du, u,
-                                   element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                   element, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                                    nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
@@ -93,7 +93,7 @@ end
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
 @inline function flux_differencing_kernel!(du, u,
-                                           element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                           element, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                                            nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
@@ -160,7 +160,7 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u,
-                                           element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                           element, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                                            nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
@@ -234,7 +234,7 @@ end
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                              mesh::Union{StructuredMesh{3}, P4estMesh{3}}, nonconservative_terms::False,
+                              mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}}, nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
   @unpack contravariant_vectors = cache.elements
   @unpack weights, derivative_matrix = dg.basis
@@ -318,7 +318,7 @@ end
 
 # # Calculate the finite volume fluxes inside curvilinear elements (**with non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                              mesh::Union{StructuredMesh{3}, P4estMesh{3}}, nonconservative_terms::True,
+                              mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}}, nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
   @unpack contravariant_vectors = cache.elements
   @unpack weights, derivative_matrix = dg.basis
@@ -689,7 +689,7 @@ end
 
 
 function apply_jacobian!(du,
-                         mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                         mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
