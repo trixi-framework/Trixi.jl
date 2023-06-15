@@ -673,54 +673,52 @@ formulation.
   g    = equations.gravity
   drho = rho_upper - rho_lower
 
+  # Compute entropy Jacobian coefficients
+  h11 = -rho_lower/(g*rho_upper*drho)
+  h12 = -rho_lower*u_avg[2]/(g*rho_upper*u_avg[1]*drho)
+  h13 = -rho_lower*u_avg[3]/(g*rho_upper*u_avg[1]*drho)
+  h14 = 1.0/(g*drho)
+  h15 = u_avg[5]/(g*u_avg[4]*drho)
+  h16 = u_avg[6]/(g*u_avg[4]*drho)
+  h21 = -rho_lower*u_avg[2]/(g*rho_upper*u_avg[1]*drho)
+  h22 = ((g*rho_upper*u_avg[1]^3 - g*rho_lower*u_avg[1]^3 + -rho_lower*u_avg[2]^2)/(g*rho_upper*u_avg[1]^2*drho))
+  h23 = -rho_lower*u_avg[2]*u_avg[3]/(g*rho_upper*u_avg[1]^2*drho)
+  h24 = u_avg[2]/(g*u_avg[1]*drho)
+  h25 = u_avg[2]*u_avg[5]/(g*u_avg[1]*u_avg[4]*drho)
+  h26 = u_avg[2]*u_avg[6]/(g*u_avg[1]*u_avg[4]*drho)
+  h31 = -rho_lower*u_avg[3]/(g*rho_upper*u_avg[1]*drho)
+  h32 = -rho_lower*u_avg[2]*u_avg[3]/(g*rho_upper*u_avg[1]^2*drho)
+  h33 = ((g*rho_upper*u_avg[1]^3 - g*rho_lower*u_avg[1]^3 + -rho_lower*u_avg[3]^2)/(g*rho_upper*u_avg[1]^2*drho))
+  h34 = u_avg[3]/(g*u_avg[1]*drho)
+  h35 = u_avg[3]*u_avg[5]/(g*u_avg[1]*u_avg[4]*drho)
+  h36 = u_avg[3]*u_avg[6]/(g*u_avg[1]*u_avg[4]*drho)
+  h41 = 1.0/(g*drho)
+  h42 = u_avg[2]/(g*u_avg[1]*drho)
+  h43 = u_avg[3]/(g*u_avg[1]*drho)
+  h44 = -1.0/(g*drho)
+  h45 = -u_avg[5]/(g*u_avg[4]*drho)
+  h46 = -u_avg[6]/(g*u_avg[4]*drho)
+  h51 = u_avg[5]/(g*u_avg[4]*drho)
+  h52 = u_avg[2]*u_avg[5]/(g*u_avg[1]*u_avg[4]*drho)
+  h53 = u_avg[3]*u_avg[5]/(g*u_avg[1]*u_avg[4]*drho)
+  h54 = -u_avg[5]/(g*u_avg[4]*drho)
+  h55 = ((g*rho_upper*u_avg[4]^3 - g*rho_lower*u_avg[4]^3 + -rho_lower*u_avg[5]^2)/(g*rho_lower*u_avg[4]^2*drho))
+  h56 = -u_avg[5]*u_avg[6]/(g*u_avg[4]^2*drho)
+  h61 = u_avg[6]/(g*u_avg[4]*drho)
+  h62 = u_avg[2]*u_avg[6]/(g*u_avg[1]*u_avg[4]*drho)
+  h63 = u_avg[3]*u_avg[6]/(g*u_avg[1]*u_avg[4]*drho)
+  h64 = -u_avg[6]/(g*u_avg[4]*drho)
+  h65 = -u_avg[5]*u_avg[6]/(g*u_avg[4]^2*drho)
+  h66 = ((g*rho_upper*u_avg[4]^3 - g*rho_lower*u_avg[4]^3 + -rho_lower*u_avg[6]^2)/(g*rho_lower*u_avg[4]^2*drho))
+
   # Entropy Jacobian matrix
-  H = @SMatrix [
-    [-rho_lower/(g*rho_upper*drho);;
-     -rho_lower*u_avg[2]/(g*rho_upper*u_avg[1]*drho);;
-     -rho_lower*u_avg[3]/(g*rho_upper*u_avg[1]*drho);;
-     1.0/(g*drho);;
-     u_avg[5]/(g*u_avg[4]*drho);;
-     u_avg[6]/(g*u_avg[4]*drho);;
-     0];
-    [-rho_lower*u_avg[2]/(g*rho_upper*u_avg[1]*drho);;
-     (g*rho_upper*u_avg[1]^3 - g*rho_lower*u_avg[1]^3 +
-         -rho_lower*u_avg[2]^2)/(g*rho_upper*u_avg[1]^2*drho);;
-     -rho_lower*u_avg[2]*u_avg[3]/(g*rho_upper*u_avg[1]^2*drho);;
-     u_avg[2]/(g*u_avg[1]*drho);;
-     u_avg[2]*u_avg[5]/(g*u_avg[1]*u_avg[4]*drho);;
-     u_avg[2]*u_avg[6]/(g*u_avg[1]*u_avg[4]*drho);;
-     0];
-    [-rho_lower*u_avg[3]/(g*rho_upper*u_avg[1]*drho);;
-     -rho_lower*u_avg[2]*u_avg[3]/(g*rho_upper*u_avg[1]^2*drho);;
-     (g*rho_upper*u_avg[1]^3 - g*rho_lower*u_avg[1]^3 +
-         -rho_lower*u_avg[3]^2)/(g*rho_upper*u_avg[1]^2*drho);;
-     u_avg[3]/(g*u_avg[1]*drho);;
-     u_avg[3]*u_avg[5]/(g*u_avg[1]*u_avg[4]*drho);;
-     u_avg[3]*u_avg[6]/(g*u_avg[1]*u_avg[4]*drho);;
-     0];
-    [1.0/(g*drho);;
-     u_avg[2]/(g*u_avg[1]*drho);;
-     u_avg[3]/(g*u_avg[1]*drho);;
-     -1.0/(g*drho);;
-     -u_avg[5]/(g*u_avg[4]*drho);;
-     -u_avg[6]/(g*u_avg[4]*drho);;
-     0];
-    [u_avg[5]/(g*u_avg[4]*drho);;
-     u_avg[2]*u_avg[5]/(g*u_avg[1]*u_avg[4]*drho);;
-     u_avg[3]*u_avg[5]/(g*u_avg[1]*u_avg[4]*drho);;
-     -u_avg[5]/(g*u_avg[4]*drho);;
-     (g*rho_upper*u_avg[4]^3 - g*rho_lower*u_avg[4]^3 +
-         -rho_lower*u_avg[5]^2)/(g*rho_lower*u_avg[4]^2*drho);;
-     -u_avg[5]*u_avg[6]/(g*u_avg[4]^2*drho);;
-     0];
-    [u_avg[6]/(g*u_avg[4]*drho);;
-     u_avg[2]*u_avg[6]/(g*u_avg[1]*u_avg[4]*drho);;
-     u_avg[3]*u_avg[6]/(g*u_avg[1]*u_avg[4]*drho);;
-     -u_avg[6]/(g*u_avg[4]*drho);;
-     -u_avg[5]*u_avg[6]/(g*u_avg[4]^2*drho);;
-     (g*rho_upper*u_avg[4]^3 - g*rho_lower*u_avg[4]^3 +
-     -rho_lower*u_avg[6]^2)/(g*rho_lower*u_avg[4]^2*drho);;0];
-    [0;;0;;0;;0;;0;;0;;0]]
+  H = @SMatrix [[h11;; h12;; h13;; h14;; h15;; h16;; 0];
+                [h21;; h22;; h23;; h24;; h25;; h26;; 0];
+                [h31;; h32;; h33;; h34;; h35;; h36;; 0];
+                [h41;; h42;; h43;; h44;; h45;; h46;; 0];
+                [h51;; h52;; h53;; h54;; h55;; h56;; 0];
+                [h61;; h62;; h63;; h64;; h65;; h66;; 0];
+                [0;; 0;; 0;; 0;; 0;; 0;; 0]]
 
   # Add dissipation to entropy conservative flux to obtain entropy stable flux
   f_es = f_ec - 0.5 * λ * H * (q_rr - q_ll)

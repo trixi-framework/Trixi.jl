@@ -414,30 +414,32 @@ formulation.
   g    = equations.gravity
   drho = rho_upper - rho_lower
 
+  # Compute entropy Jacobian coefficients
+  h11 = -rho_lower/(g*rho_upper*drho)
+  h12 = -rho_lower*u_avg[2]/(g*rho_upper*u_avg[1]*drho)
+  h13 = 1.0/(g*drho)
+  h14 = u_avg[4]/(g*u_avg[3]*drho)
+  h21 = -rho_lower*u_avg[2]/(g*rho_upper*u_avg[1]*drho)
+  h22 = ((g*rho_upper*u_avg[1]^3 - g*rho_lower*u_avg[1]^3 +
+          -rho_lower*u_avg[2]^2)/(g*rho_upper*u_avg[1]^2*drho))
+  h23 = u_avg[2]/(g*u_avg[1]*drho)
+  h24 = u_avg[2]*u_avg[4]/(g*u_avg[1]*u_avg[3]*drho)
+  h31 = 1.0/(g*drho)
+  h32 = u_avg[2]/(g*u_avg[1]*drho)
+  h33 = -1.0/(g*drho)
+  h34 = -u_avg[4]/(g*u_avg[3]*drho)
+  h41 = u_avg[4]/(g*u_avg[3]*drho)
+  h42 = u_avg[2]*u_avg[4]/(g*u_avg[1]*u_avg[3]*drho)
+  h43 = -u_avg[4]/(g*u_avg[3]*drho)
+  h44 = ((g*rho_upper*u_avg[3]^3 - g*rho_lower*u_avg[3]^3 +
+          -rho_lower*u_avg[4]^2)/(g*rho_lower*u_avg[3]^2*drho))
+
   # Entropy Jacobian matrix
   H = @SMatrix [
-    [-rho_lower/(g*rho_upper*drho);;
-     -rho_lower*u_avg[2]/(g*rho_upper*u_avg[1]*drho);;
-     1.0/(g*drho);;
-     u_avg[4]/(g*u_avg[3]*drho);;
-     0];
-    [-rho_lower*u_avg[2]/(g*rho_upper*u_avg[1]*drho);;
-     (g*rho_upper*u_avg[1]^3 - g*rho_lower*u_avg[1]^3 +
-         -rho_lower*u_avg[2]^2)/(g*rho_upper*u_avg[1]^2*drho);;
-     u_avg[2]/(g*u_avg[1]*drho);;
-     u_avg[2]*u_avg[4]/(g*u_avg[1]*u_avg[3]*drho);;
-     0];
-    [1.0/(g*drho);;
-     u_avg[2]/(g*u_avg[1]*drho);;
-     -1.0/(g*drho);;
-     -u_avg[4]/(g*u_avg[3]*drho);;
-     0];
-    [u_avg[4]/(g*u_avg[3]*drho);;
-     u_avg[2]*u_avg[4]/(g*u_avg[1]*u_avg[3]*drho);;
-     -u_avg[4]/(g*u_avg[3]*drho);;
-     (g*rho_upper*u_avg[3]^3 - g*rho_lower*u_avg[3]^3 +
-         -rho_lower*u_avg[4]^2)/(g*rho_lower*u_avg[3]^2*drho);;
-     0];
+    [h11;; h12;; h13;; h14;; 0];
+    [h21;; h22;; h23;; h24;; 0];
+    [h31;; h32;; h33;; h34;; 0];
+    [h41;; h42;; h43;; h44;; 0];
     [0;;0;;0;;0;;0]]
 
   # Add dissipation to entropy conservative flux to obtain entropy stable flux
