@@ -136,7 +136,7 @@ end
 """
     load_timestep(restart_file::AbstractString)
 
-Load the time step saved in a `restart_file`.
+Load the time step number (`iter` in OrdinaryDiffEq.jl) saved in a `restart_file`.
 """
 function load_timestep(restart_file::AbstractString)
   h5open(restart_file, "r") do file
