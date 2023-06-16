@@ -342,33 +342,7 @@ function init_surfaces_iter_face_inner(info,
                    sides_pw[2].is.full.is_ghost[] == true
                     face_has_ghost_side = true
                 else
-                    # Hanging nodes => mortar or MPI mortar
-                    # First, we check which side is hanging, i.e., on which side we have the refined cells.
-                    # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
-                    # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
-                    if sides[1].is_hanging == true
-                        @assert sides[2].is_hanging == false
-                        if any(sides[1].is.hanging.is_ghost .== true) ||
-                           sides[2].is.full.is_ghost == true
-                            face_has_ghost_side = true
-                        else
-                            face_has_ghost_side = false
-                        end
-                    else # sides[2].is_hanging == true
-                        @assert sides[1].is_hanging == false
-                        if sides[1].is.full.is_ghost == true ||
-                           any(sides[2].is.hanging.is_ghost .== true)
-                            face_has_ghost_side = true
-                        else
-                            face_has_ghost_side = false
-                        end
-                    end
-                    # Initialize mortar or MPI mortar
-                    if face_has_ghost_side && mpi_mortars !== nothing
-                        init_mpi_mortars_iter_face_inner(info, sides, user_data)
-                    elseif !face_has_ghost_side && mortars !== nothing
-                        init_mortars_iter_face_inner(info, sides, user_data)
-                    end
+                    face_has_ghost_side = false
                 end
             else # sides_pw[2].is_hanging[] == true
                 @assert sides_pw[1].is_hanging[] == false
@@ -554,38 +528,7 @@ function count_surfaces_iter_face_parallel(info, user_data)
                    any(sides_pw[2].is.hanging.is_ghost[] .== true)
                     face_has_ghost_side = true
                 else
-                    # Hanging nodes => mortar or MPI mortar
-                    # First, we check which side is hanging, i.e., on which side we have the refined cells.
-                    # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
-                    # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
-                    if sides[1].is_hanging == true
-                        @assert sides[2].is_hanging == false
-                        if any(sides[1].is.hanging.is_ghost .== true) ||
-                           sides[2].is.full.is_ghost == true
-                            face_has_ghost_side = true
-                        else
-                            face_has_ghost_side = false
-                        end
-                    else # sides[2].is_hanging == true
-                        @assert sides[1].is_hanging == false
-                        if sides[1].is.full.is_ghost == true ||
-                           any(sides[2].is.hanging.is_ghost .== true)
-                            face_has_ghost_side = true
-                        else
-                            face_has_ghost_side = false
-                        end
-                    end
-                    if face_has_ghost_side
-                        # Unpack user_data = [mpi_mortar_count] and increment mpi_mortar_count
-                        ptr = Ptr{Int}(user_data)
-                        id = unsafe_load(ptr, 5)
-                        unsafe_store!(ptr, id + 1, 5)
-                    else
-                        # Unpack user_data = [mortar_count] and increment mortar_count
-                        ptr = Ptr{Int}(user_data)
-                        id = unsafe_load(ptr, 2)
-                        unsafe_store!(ptr, id + 1, 2)
-                    end
+                    face_has_ghost_side = false
                 end
             end
             if face_has_ghost_side
