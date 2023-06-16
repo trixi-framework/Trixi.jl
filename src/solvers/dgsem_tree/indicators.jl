@@ -3,24 +3,26 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 abstract type AbstractIndicator end
 
-function create_cache(typ::Type{IndicatorType}, semi) where {IndicatorType<:AbstractIndicator}
-  create_cache(typ, mesh_equations_solver_cache(semi)...)
+function create_cache(typ::Type{IndicatorType},
+                      semi) where {IndicatorType <: AbstractIndicator}
+    create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
 
-function get_element_variables!(element_variables, indicator::AbstractIndicator, ::VolumeIntegralShockCapturingHG)
-  element_variables[:indicator_shock_capturing] = indicator.cache.alpha
-  return nothing
+function get_element_variables!(element_variables, indicator::AbstractIndicator,
+                                ::VolumeIntegralShockCapturingHG)
+    element_variables[:indicator_shock_capturing] = indicator.cache.alpha
+    return nothing
 end
 
-function get_element_variables!(element_variables, indicator::AbstractIndicator, ::VolumeIntegralSubcellLimiting)
-  element_variables[:smooth_indicator_elementwise] = indicator.IndicatorHG.cache.alpha
-  return nothing
+function get_element_variables!(element_variables, indicator::AbstractIndicator,
+                                ::VolumeIntegralSubcellLimiting)
+    element_variables[:smooth_indicator_elementwise] = indicator.IndicatorHG.cache.alpha
+    return nothing
 end
-
 
 """
     IndicatorHennemannGassner(equations::AbstractEquations, basis;
@@ -45,101 +47,103 @@ See also [`VolumeIntegralShockCapturingHG`](@ref).
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-struct IndicatorHennemannGassner{RealT<:Real, Variable, Cache} <: AbstractIndicator
-  alpha_max::RealT
-  alpha_min::RealT
-  alpha_smooth::Bool
-  variable::Variable
-  cache::Cache
+struct IndicatorHennemannGassner{RealT <: Real, Variable, Cache} <: AbstractIndicator
+    alpha_max::RealT
+    alpha_min::RealT
+    alpha_smooth::Bool
+    variable::Variable
+    cache::Cache
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorHennemannGassner(equations::AbstractEquations, basis;
-                                   alpha_max=0.5,
-                                   alpha_min=0.001,
-                                   alpha_smooth=true,
+                                   alpha_max = 0.5,
+                                   alpha_min = 0.001,
+                                   alpha_smooth = true,
                                    variable)
-  alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorHennemannGassner, equations, basis)
-  IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
-    alpha_max, alpha_min, alpha_smooth, variable, cache)
+    alpha_max, alpha_min = promote(alpha_max, alpha_min)
+    cache = create_cache(IndicatorHennemannGassner, equations, basis)
+    IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(alpha_max,
+                                                                                  alpha_min,
+                                                                                  alpha_smooth,
+                                                                                  variable,
+                                                                                  cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
 function IndicatorHennemannGassner(semi::AbstractSemidiscretization;
-                                   alpha_max=0.5,
-                                   alpha_min=0.001,
-                                   alpha_smooth=true,
+                                   alpha_max = 0.5,
+                                   alpha_min = 0.001,
+                                   alpha_smooth = true,
                                    variable)
-  alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorHennemannGassner, semi)
-  IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
-    alpha_max, alpha_min, alpha_smooth, variable, cache)
+    alpha_max, alpha_min = promote(alpha_max, alpha_min)
+    cache = create_cache(IndicatorHennemannGassner, semi)
+    IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(alpha_max,
+                                                                                  alpha_min,
+                                                                                  alpha_smooth,
+                                                                                  variable,
+                                                                                  cache)
 end
 
-
 function Base.show(io::IO, indicator::IndicatorHennemannGassner)
-  @nospecialize indicator # reduce precompilation time
+    @nospecialize indicator # reduce precompilation time
 
-  print(io, "IndicatorHennemannGassner(")
-  print(io, indicator.variable)
-  print(io, ", alpha_max=", indicator.alpha_max)
-  print(io, ", alpha_min=", indicator.alpha_min)
-  print(io, ", alpha_smooth=", indicator.alpha_smooth)
-  print(io, ")")
+    print(io, "IndicatorHennemannGassner(")
+    print(io, indicator.variable)
+    print(io, ", alpha_max=", indicator.alpha_max)
+    print(io, ", alpha_min=", indicator.alpha_min)
+    print(io, ", alpha_smooth=", indicator.alpha_smooth)
+    print(io, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGassner)
-  @nospecialize indicator # reduce precompilation time
+    @nospecialize indicator # reduce precompilation time
 
-  if get(io, :compact, false)
-    show(io, indicator)
-  else
-    setup = [
-             "indicator variable" => indicator.variable,
-             "max. α" => indicator.alpha_max,
-             "min. α" => indicator.alpha_min,
-             "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
-            ]
-    summary_box(io, "IndicatorHennemannGassner", setup)
-  end
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "indicator variable" => indicator.variable,
+            "max. α" => indicator.alpha_max,
+            "min. α" => indicator.alpha_min,
+            "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
+        ]
+        summary_box(io, "IndicatorHennemannGassner", setup)
+    end
 end
-
 
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM, cache;
                                                    kwargs...)
-  @unpack alpha_smooth = indicator_hg
-  @unpack alpha, alpha_tmp = indicator_hg.cache
-  # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
-  #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
-  #       or just `resize!` whenever we call the relevant methods as we do now?
-  resize!(alpha, nelements(dg, cache))
-  if alpha_smooth
-    resize!(alpha_tmp, nelements(dg, cache))
-  end
+    @unpack alpha_smooth = indicator_hg
+    @unpack alpha, alpha_tmp = indicator_hg.cache
+    # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
+    #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
+    #       or just `resize!` whenever we call the relevant methods as we do now?
+    resize!(alpha, nelements(dg, cache))
+    if alpha_smooth
+        resize!(alpha_tmp, nelements(dg, cache))
+    end
 
-  # magic parameters
-  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-  parameter_s = log((1 - 0.0001) / 0.0001)
+    # magic parameters
+    threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
+    parameter_s = log((1 - 0.0001) / 0.0001)
 
-  @threaded for element in eachelement(dg, cache)
-    # This is dispatched by mesh dimension.
-    # Use this function barrier and unpack inside to avoid passing closures to
-    # Polyester.jl with `@batch` (`@threaded`).
-    # Otherwise, `@threaded` does not work here with Julia ARM on macOS.
-    # See https://github.com/JuliaSIMD/Polyester.jl/issues/88.
-    calc_indicator_hennemann_gassner!(
-      indicator_hg, threshold, parameter_s, u,
-      element, mesh, equations, dg, cache)
-  end
+    @threaded for element in eachelement(dg, cache)
+        # This is dispatched by mesh dimension.
+        # Use this function barrier and unpack inside to avoid passing closures to
+        # Polyester.jl with `@batch` (`@threaded`).
+        # Otherwise, `@threaded` does not work here with Julia ARM on macOS.
+        # See https://github.com/JuliaSIMD/Polyester.jl/issues/88.
+        calc_indicator_hennemann_gassner!(indicator_hg, threshold, parameter_s, u,
+                                          element, mesh, equations, dg, cache)
+    end
 
-  if alpha_smooth
-    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
-  end
+    if alpha_smooth
+        apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
+    end
 
-  return alpha
+    return alpha
 end
-
 
 """
     IndicatorLöhner (equivalent to IndicatorLoehner)
@@ -163,57 +167,59 @@ and `basis` if this indicator should be used for shock capturing.
   [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
 - http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
 """
-struct IndicatorLöhner{RealT<:Real, Variable, Cache} <: AbstractIndicator
-  f_wave::RealT # TODO: Taal documentation
-  variable::Variable
-  cache::Cache
+struct IndicatorLöhner{RealT <: Real, Variable, Cache} <: AbstractIndicator
+    f_wave::RealT # TODO: Taal documentation
+    variable::Variable
+    cache::Cache
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorLöhner(equations::AbstractEquations, basis;
-                         f_wave=0.2, variable)
-  cache = create_cache(IndicatorLöhner, equations, basis)
-  IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
+                         f_wave = 0.2, variable)
+    cache = create_cache(IndicatorLöhner, equations, basis)
+    IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable,
+                                                                     cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
 function IndicatorLöhner(semi::AbstractSemidiscretization;
-                         f_wave=0.2, variable)
-  cache = create_cache(IndicatorLöhner, semi)
-  IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
+                         f_wave = 0.2, variable)
+    cache = create_cache(IndicatorLöhner, semi)
+    IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable,
+                                                                     cache)
 end
 
-
 function Base.show(io::IO, indicator::IndicatorLöhner)
-  @nospecialize indicator # reduce precompilation time
+    @nospecialize indicator # reduce precompilation time
 
-  print(io, "IndicatorLöhner(")
-  print(io, "f_wave=", indicator.f_wave, ", variable=", indicator.variable, ")")
+    print(io, "IndicatorLöhner(")
+    print(io, "f_wave=", indicator.f_wave, ", variable=", indicator.variable, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
-  @nospecialize indicator # reduce precompilation time
+    @nospecialize indicator # reduce precompilation time
 
-  if get(io, :compact, false)
-    show(io, indicator)
-  else
-    setup = [
-             "indicator variable" => indicator.variable,
-             "f_wave" => indicator.f_wave,
-            ]
-    summary_box(io, "IndicatorLöhner", setup)
-  end
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "indicator variable" => indicator.variable,
+            "f_wave" => indicator.f_wave,
+        ]
+        summary_box(io, "IndicatorLöhner", setup)
+    end
 end
 
 const IndicatorLoehner = IndicatorLöhner
 
 # dirty Löhner estimate, direction by direction, assuming constant nodes
-@inline function local_löhner_estimate(um::Real, u0::Real, up::Real, löhner::IndicatorLöhner)
-  num = abs(up - 2 * u0 + um)
-  den = abs(up - u0) + abs(u0-um) + löhner.f_wave * (abs(up) + 2 * abs(u0) + abs(um))
-  return num / den
+@inline function local_löhner_estimate(um::Real, u0::Real, up::Real,
+                                       löhner::IndicatorLöhner)
+    num = abs(up - 2 * u0 + um)
+    den = abs(up - u0) + abs(u0 - um) +
+          löhner.f_wave * (abs(up) + 2 * abs(u0) + abs(um))
+    return num / den
 end
-
 
 """
     IndicatorIDP(equations::AbstractEquations, basis;
@@ -258,123 +264,158 @@ indicator values <= `threshold_smoothness_indicator`.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorIDP{RealT<:Real, LimitingVariablesNonlinear, Cache, Indicator} <: AbstractIndicator
-  state_tvd::Bool
-  variables_states::Vector{Int}                   # Impose state limiting
-  positivity::Bool
-  variables_cons::Vector{Int}                     # Impose positivity for conservative variables
-  variables_nonlinear::LimitingVariablesNonlinear # Impose positivity of nonlinear variables
-  spec_entropy::Bool
-  math_entropy::Bool
-  bar_states::Bool
-  cache::Cache
-  positivity_correction_factor::RealT
-  max_iterations_newton::Int
-  newton_tolerances::Tuple{RealT, RealT}          # Relative and absolute tolerances for Newton's method
-  gamma_constant_newton::RealT                    # Constant for the subcell limiting of convex (nonlinear) constraints
-  smoothness_indicator::Bool
-  threshold_smoothness_indicator::RealT
-  IndicatorHG::Indicator
+struct IndicatorIDP{RealT <: Real, LimitingVariablesCons, LimitingVariablesNonlinear,
+                    Cache, Indicator} <: AbstractIndicator
+    state_tvd::Bool
+    variables_states::Vector{Int}                   # Impose state limiting
+    positivity::Bool
+    variables_cons::Vector{Int}                     # Impose positivity for conservative variables
+    variables_nonlinear::LimitingVariablesNonlinear # Positivity of nonlinear variables
+    spec_entropy::Bool
+    math_entropy::Bool
+    bar_states::Bool
+    cache::Cache
+    positivity_correction_factor::RealT
+    max_iterations_newton::Int
+    newton_tolerances::Tuple{RealT, RealT}          # Relative and absolute tolerances for Newton's method
+    gamma_constant_newton::RealT                    # Constant for the subcell limiting of convex (nonlinear) constraints
+    smoothness_indicator::Bool
+    threshold_smoothness_indicator::RealT
+    IndicatorHG::Indicator
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorIDP(equations::AbstractEquations, basis;
-                      state_tvd=false,
-                      variables_states=[],
-                      positivity=false,
-                      variables_cons=[],
-                      variables_nonlinear=(),
-                      spec_entropy=false,
-                      math_entropy=false,
-                      bar_states=true,
-                      positivity_correction_factor=0.1, max_iterations_newton=10,
-                      newton_tolerances=(1.0e-12, 1.0e-14), gamma_constant_newton=2*ndims(equations),
-                      smoothness_indicator=false, threshold_smoothness_indicator=0.1,
-                      variable_smoothness_indicator=density_pressure)
-  if math_entropy && spec_entropy
-    error("Only one of the two can be selected: math_entropy/spec_entropy")
-  end
-
-  number_bounds = state_tvd * 2 * length(variables_states) + positivity * length(variables_nonlinear) +
-                  spec_entropy + math_entropy
-  if positivity
-    for index in variables_cons
-      if !(state_tvd && index in variables_states)
-        number_bounds += 1
-      end
+                      state_tvd = false,
+                      variables_states = [],
+                      positivity = false,
+                      variables_cons = [],
+                      variables_nonlinear = (),
+                      spec_entropy = false,
+                      math_entropy = false,
+                      bar_states = true,
+                      positivity_correction_factor = 0.1, max_iterations_newton = 10,
+                      newton_tolerances = (1.0e-12, 1.0e-14),
+                      gamma_constant_newton = 2 * ndims(equations),
+                      smoothness_indicator = false,
+                      threshold_smoothness_indicator = 0.1,
+                      variable_smoothness_indicator = density_pressure)
+    if math_entropy && spec_entropy
+        error("Only one of the two can be selected: math_entropy/spec_entropy")
     end
-  end
 
-  cache = create_cache(IndicatorIDP, equations, basis, number_bounds, bar_states)
+    number_bounds = state_tvd * 2 * length(variables_states) +
+                    positivity * length(variables_nonlinear) + spec_entropy +
+                    math_entropy
 
-  if smoothness_indicator
-    IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_max=1.0, alpha_smooth=false,
-                                            variable=variable_smoothness_indicator)
-  else
-    IndicatorHG = nothing
-  end
-  IndicatorIDP{typeof(positivity_correction_factor), typeof(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(
-    state_tvd, variables_states, positivity, variables_cons, variables_nonlinear, spec_entropy, math_entropy,
-    bar_states, cache, positivity_correction_factor, max_iterations_newton, newton_tolerances, gamma_constant_newton, smoothness_indicator, threshold_smoothness_indicator, IndicatorHG)
+    if positivity
+        for index in variables_cons
+            if !(state_tvd && index in variables_states)
+                number_bounds += 1
+            end
+        end
+    end
+
+    cache = create_cache(IndicatorIDP, equations, basis, number_bounds, bar_states)
+
+    if smoothness_indicator
+        IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_max = 1.0,
+                                                alpha_smooth = false,
+                                                variable = variable_smoothness_indicator)
+    else
+        IndicatorHG = nothing
+    end
+    IndicatorIDP{typeof(positivity_correction_factor), typeof(variables_cons),
+                 typeof(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(state_tvd,
+                                                                                  variables_states,
+                                                                                  positivity,
+                                                                                  variables_cons,
+                                                                                  variables_nonlinear,
+                                                                                  spec_entropy,
+                                                                                  math_entropy,
+                                                                                  bar_states,
+                                                                                  cache,
+                                                                                  positivity_correction_factor,
+                                                                                  max_iterations_newton,
+                                                                                  newton_tolerances,
+                                                                                  gamma_constant_newton,
+                                                                                  smoothness_indicator,
+                                                                                  threshold_smoothness_indicator,
+                                                                                  IndicatorHG)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
-  @nospecialize indicator # reduce precompilation time
-  @unpack state_tvd, positivity, spec_entropy, math_entropy = indicator
+    @nospecialize indicator # reduce precompilation time
+    @unpack state_tvd, positivity, spec_entropy, math_entropy = indicator
 
-  print(io, "IndicatorIDP(")
-  if !(state_tvd || positivity || spec_entropy || math_entropy)
-    print(io, "No limiter selected => pure DG method")
-  else
-    print(io, "limiter=(")
-    state_tvd    && print(io, "states, ")
-    positivity   && print(io, "positivity, ")
-    spec_entropy && print(io, "specific entropy, ")
-    math_entropy && print(io, "mathematical entropy, ")
-    print(io, "), ")
-  end
-  indicator.smoothness_indicator && print(io, ", Smoothness indicator: ", indicator.IndicatorHG,
-    " with threshold ", indicator.threshold_smoothness_indicator, "), ")
-  print(io, "Local bounds with $(indicator.bar_states ? "Bar States" : "FV solution")")
-  print(io, ")")
+    print(io, "IndicatorIDP(")
+    if !(state_tvd || positivity || spec_entropy || math_entropy)
+        print(io, "No limiter selected => pure DG method")
+    else
+        print(io, "limiter=(")
+        state_tvd && print(io, "states, ")
+        positivity && print(io, "positivity, ")
+        spec_entropy && print(io, "specific entropy, ")
+        math_entropy && print(io, "mathematical entropy, ")
+        print(io, "), ")
+    end
+    indicator.smoothness_indicator &&
+        print(io, ", Smoothness indicator: ", indicator.IndicatorHG,
+              " with threshold ", indicator.threshold_smoothness_indicator, "), ")
+    print(io,
+          "Local bounds with $(indicator.bar_states ? "Bar States" : "FV solution")")
+    print(io, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
-  @nospecialize indicator # reduce precompilation time
-  @unpack state_tvd, positivity, spec_entropy, math_entropy = indicator
+    @nospecialize indicator # reduce precompilation time
+    @unpack state_tvd, positivity, spec_entropy, math_entropy = indicator
 
-  if get(io, :compact, false)
-    show(io, indicator)
-  else
-    if !(state_tvd || positivity || spec_entropy || math_entropy)
-      setup = ["limiter" => "No limiter selected => pure DG method"]
+    if get(io, :compact, false)
+        show(io, indicator)
     else
-      setup = ["limiter" => ""]
-      if state_tvd
-        setup = [setup..., "" => "state limiting for conservative variables $(indicator.variables_states)"]
-      end
-      if positivity
-        string = "positivity with conservative variables $(indicator.variables_cons) and $(indicator.variables_nonlinear)"
-        setup = [setup..., "" => string]
-        setup = [setup..., "" => " "^11 * "and positivity correction factor $(indicator.positivity_correction_factor)"]
-      end
-      spec_entropy && (setup = [setup..., "" => "specific entropy"])
-      math_entropy && (setup = [setup..., "" => "mathematical entropy"])
-      setup = [setup..., "Local bounds" => (indicator.bar_states ? "Bar States" : "FV solution")]
-      if indicator.smoothness_indicator
-        setup = [setup..., "Smoothness indicator" => "$(indicator.IndicatorHG) using threshold $(indicator.threshold_smoothness_indicator)"]
-      end
+        if !(state_tvd || positivity || spec_entropy || math_entropy)
+            setup = ["limiter" => "No limiter selected => pure DG method"]
+        else
+            setup = ["limiter" => ""]
+            if state_tvd
+                setup = [
+                    setup...,
+                    "" => "state limiting for conservative variables $(indicator.variables_states)",
+                ]
+            end
+            if positivity
+                string = "positivity with conservative variables $(indicator.variables_cons) and $(indicator.variables_nonlinear)"
+                setup = [setup..., "" => string]
+                setup = [
+                    setup...,
+                    "" => " "^11 *
+                          "and positivity correction factor $(indicator.positivity_correction_factor)",
+                ]
+            end
+            spec_entropy && (setup = [setup..., "" => "specific entropy"])
+            math_entropy && (setup = [setup..., "" => "mathematical entropy"])
+            setup = [
+                setup...,
+                "Local bounds" => (indicator.bar_states ? "Bar States" : "FV solution"),
+            ]
+            if indicator.smoothness_indicator
+                setup = [
+                    setup...,
+                    "Smoothness indicator" => "$(indicator.IndicatorHG) using threshold $(indicator.threshold_smoothness_indicator)",
+                ]
+            end
+            summary_box(io, "IndicatorIDP", setup)
+        end
     end
-    summary_box(io, "IndicatorIDP", setup)
-  end
 end
 
-function get_node_variables!(node_variables, indicator::IndicatorIDP, ::VolumeIntegralSubcellLimiting, equations)
-  node_variables[:indicator_shock_capturing] = indicator.cache.container_shock_capturing.alpha
-  # TODO: alpha is not filled before the first timestep.
-  return nothing
+function get_node_variables!(node_variables, indicator::IndicatorIDP,
+                             ::VolumeIntegralSubcellLimiting, equations)
+    node_variables[:indicator_shock_capturing] = indicator.cache.container_shock_capturing.alpha
+    # TODO: alpha is not filled before the first timestep.
+    return nothing
 end
-
 
 """
     IndicatorMCL(equations::AbstractEquations, basis;
@@ -420,146 +461,167 @@ indicator values <= `threshold_smoothness_indicator`.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorMCL{RealT<:Real, Cache, Indicator} <: AbstractIndicator
-  cache::Cache
-  DensityLimiter::Bool        # Impose local maximum/minimum for cons(1) based on bar states
-  DensityAlphaForAll::Bool    # Use the cons(1) blending coefficient for all quantities
-  SequentialLimiter::Bool     # Impose local maximum/minimum for variables phi:=cons(i)/cons(1) i 2:nvariables based on bar states
-  ConservativeLimiter::Bool   # Impose local maximum/minimum for conservative variables 2:nvariables based on bar states
-  PressurePositivityLimiterKuzmin::Bool       # Impose positivity for pressure â la Kuzmin
-  PressurePositivityLimiterKuzminExact::Bool  # Only for PressurePositivityLimiterKuzmin=true: Use the exact calculation of alpha
-  DensityPositivityLimiter::Bool              # Impose positivity for cons(1)
-  DensityPositivityCorrectionFactor::RealT    # Correction Factor for DensityPositivityLimiter in [0,1)
-  SemiDiscEntropyLimiter::Bool                # synchronized semidiscrete entropy fix
-  smoothness_indicator::Bool                  # activates smoothness indicator: IndicatorHennemannGassner
-  threshold_smoothness_indicator::RealT       # threshold for smoothness indicator
-  IndicatorHG::Indicator
-  Plotting::Bool
+struct IndicatorMCL{RealT <: Real, Cache, Indicator} <: AbstractIndicator
+    cache::Cache
+    DensityLimiter::Bool        # Impose local maximum/minimum for cons(1) based on bar states
+    DensityAlphaForAll::Bool    # Use the cons(1) blending coefficient for all quantities
+    SequentialLimiter::Bool     # Impose local maximum/minimum for variables phi:=cons(i)/cons(1) i 2:nvariables based on bar states
+    ConservativeLimiter::Bool   # Impose local maximum/minimum for conservative variables 2:nvariables based on bar states
+    PressurePositivityLimiterKuzmin::Bool       # Impose positivity for pressure â la Kuzmin
+    PressurePositivityLimiterKuzminExact::Bool  # Only for PressurePositivityLimiterKuzmin=true: Use the exact calculation of alpha
+    DensityPositivityLimiter::Bool              # Impose positivity for cons(1)
+    DensityPositivityCorrectionFactor::RealT    # Correction Factor for DensityPositivityLimiter in [0,1)
+    SemiDiscEntropyLimiter::Bool                # synchronized semidiscrete entropy fix
+    smoothness_indicator::Bool                  # activates smoothness indicator: IndicatorHennemannGassner
+    threshold_smoothness_indicator::RealT       # threshold for smoothness indicator
+    IndicatorHG::Indicator
+    Plotting::Bool
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorMCL(equations::AbstractEquations, basis;
-                      DensityLimiter=true,
-                      DensityAlphaForAll=false,
-                      SequentialLimiter=true,
-                      ConservativeLimiter=false,
-                      PressurePositivityLimiterKuzmin=false,
-                      PressurePositivityLimiterKuzminExact=true,
-                      DensityPositivityLimiter=false,
-                      DensityPositivityCorrectionFactor=0.0,
-                      SemiDiscEntropyLimiter=false,
-                      smoothness_indicator=false, threshold_smoothness_indicator=0.1,
-                      variable_smoothness_indicator=density_pressure,
-                      Plotting=true)
-  if SequentialLimiter && ConservativeLimiter
-    error("Only one of the two can be selected: SequentialLimiter/ConservativeLimiter")
-  end
-  cache = create_cache(IndicatorMCL, equations, basis, PressurePositivityLimiterKuzmin)
-  if smoothness_indicator
-    IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_smooth=false,
-                                            variable=variable_smoothness_indicator)
-  else
-    IndicatorHG = nothing
-  end
-  IndicatorMCL{typeof(threshold_smoothness_indicator), typeof(cache), typeof(IndicatorHG)}(cache,
-    DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
-    PressurePositivityLimiterKuzmin, PressurePositivityLimiterKuzminExact,
-    DensityPositivityLimiter, DensityPositivityCorrectionFactor, SemiDiscEntropyLimiter,
-    smoothness_indicator, threshold_smoothness_indicator, IndicatorHG, Plotting)
+                      DensityLimiter = true,
+                      DensityAlphaForAll = false,
+                      SequentialLimiter = true,
+                      ConservativeLimiter = false,
+                      PressurePositivityLimiterKuzmin = false,
+                      PressurePositivityLimiterKuzminExact = true,
+                      DensityPositivityLimiter = false,
+                      DensityPositivityCorrectionFactor = 0.0,
+                      SemiDiscEntropyLimiter = false,
+                      smoothness_indicator = false,
+                      threshold_smoothness_indicator = 0.1,
+                      variable_smoothness_indicator = density_pressure,
+                      Plotting = true)
+    if SequentialLimiter && ConservativeLimiter
+        error("Only one of the two can be selected: SequentialLimiter/ConservativeLimiter")
+    end
+    cache = create_cache(IndicatorMCL, equations, basis,
+                         PressurePositivityLimiterKuzmin)
+    if smoothness_indicator
+        IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_smooth = false,
+                                                variable = variable_smoothness_indicator)
+    else
+        IndicatorHG = nothing
+    end
+    IndicatorMCL{typeof(threshold_smoothness_indicator), typeof(cache),
+                 typeof(IndicatorHG)}(cache,
+                                      DensityLimiter, DensityAlphaForAll,
+                                      SequentialLimiter, ConservativeLimiter,
+                                      PressurePositivityLimiterKuzmin,
+                                      PressurePositivityLimiterKuzminExact,
+                                      DensityPositivityLimiter,
+                                      DensityPositivityCorrectionFactor,
+                                      SemiDiscEntropyLimiter,
+                                      smoothness_indicator,
+                                      threshold_smoothness_indicator, IndicatorHG,
+                                      Plotting)
 end
 
 function Base.show(io::IO, indicator::IndicatorMCL)
-  @nospecialize indicator # reduce precompilation time
+    @nospecialize indicator # reduce precompilation time
 
-  print(io, "IndicatorMCL(")
-  indicator.DensityLimiter && print(io, "; dens")
-  indicator.DensityAlphaForAll && print(io, "; dens alpha ∀")
-  indicator.SequentialLimiter && print(io, "; seq")
-  indicator.ConservativeLimiter && print(io, "; cons")
-  if indicator.PressurePositivityLimiterKuzmin
-    print(io, "; $(indicator.PressurePositivityLimiterKuzminExact ? "pres (Kuzmin ex)" : "pres (Kuzmin)")")
-  end
-  indicator.DensityPositivityLimiter && print(io, "; dens pos")
-  if indicator.DensityPositivityCorrectionFactor != 0
-    print(io, " with correction factor $(indicator.DensityPositivityCorrectionFactor)")
-  end
-  indicator.SemiDiscEntropyLimiter && print(io, "; semid. entropy")
-  indicator.smoothness_indicator && print(io, "; Smoothness indicator: ", indicator.IndicatorHG,
-    " with threshold ", indicator.threshold_smoothness_indicator)
-  print(io, ")")
+    print(io, "IndicatorMCL(")
+    indicator.DensityLimiter && print(io, "; dens")
+    indicator.DensityAlphaForAll && print(io, "; dens alpha ∀")
+    indicator.SequentialLimiter && print(io, "; seq")
+    indicator.ConservativeLimiter && print(io, "; cons")
+    if indicator.PressurePositivityLimiterKuzmin
+        print(io,
+              "; $(indicator.PressurePositivityLimiterKuzminExact ? "pres (Kuzmin ex)" : "pres (Kuzmin)")")
+    end
+    indicator.DensityPositivityLimiter && print(io, "; dens pos")
+    if indicator.DensityPositivityCorrectionFactor != 0
+        print(io,
+              " with correction factor $(indicator.DensityPositivityCorrectionFactor)")
+    end
+    indicator.SemiDiscEntropyLimiter && print(io, "; semid. entropy")
+    indicator.smoothness_indicator &&
+        print(io, "; Smoothness indicator: ", indicator.IndicatorHG,
+              " with threshold ", indicator.threshold_smoothness_indicator)
+    print(io, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMCL)
-  @nospecialize indicator # reduce precompilation time
-  @unpack DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
-          PressurePositivityLimiterKuzminExact, DensityPositivityLimiter, SemiDiscEntropyLimiter = indicator
+    @nospecialize indicator # reduce precompilation time
+    @unpack DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
+    PressurePositivityLimiterKuzminExact, DensityPositivityLimiter, SemiDiscEntropyLimiter = indicator
 
-  if get(io, :compact, false)
-    show(io, indicator)
-  else
-    setup = ["limiter" => ""]
-    DensityLimiter && (setup = [setup..., "" => "DensityLimiter"])
-    DensityAlphaForAll && (setup = [setup..., "" => "DensityAlphaForAll"])
-    SequentialLimiter && (setup = [setup..., "" => "SequentialLimiter"])
-    ConservativeLimiter && (setup = [setup..., "" => "ConservativeLimiter"])
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = ["limiter" => ""]
+        DensityLimiter && (setup = [setup..., "" => "DensityLimiter"])
+        DensityAlphaForAll && (setup = [setup..., "" => "DensityAlphaForAll"])
+        SequentialLimiter && (setup = [setup..., "" => "SequentialLimiter"])
+        ConservativeLimiter && (setup = [setup..., "" => "ConservativeLimiter"])
+        if indicator.PressurePositivityLimiterKuzmin
+            setup = [
+                setup...,
+                "" => "PressurePositivityLimiterKuzmin $(PressurePositivityLimiterKuzminExact ? "(exact)" : "")",
+            ]
+        end
+        if DensityPositivityLimiter
+            if indicator.DensityPositivityCorrectionFactor != 0.0
+                setup = [
+                    setup...,
+                    "" => "DensityPositivityLimiter with correction factor $(indicator.DensityPositivityCorrectionFactor)",
+                ]
+            else
+                setup = [setup..., "" => "DensityPositivityLimiter"]
+            end
+        end
+        SemiDiscEntropyLimiter && (setup = [setup..., "" => "SemiDiscEntropyLimiter"])
+        if indicator.smoothness_indicator
+            setup = [
+                setup...,
+                "Smoothness indicator" => "$(indicator.IndicatorHG) using threshold $(indicator.threshold_smoothness_indicator)",
+            ]
+        end
+        summary_box(io, "IndicatorMCL", setup)
+    end
+end
+
+function get_node_variables!(node_variables, indicator::IndicatorMCL,
+                             ::VolumeIntegralSubcellLimiting, equations)
+    if !indicator.Plotting
+        return nothing
+    end
+    @unpack alpha = indicator.cache.container_shock_capturing
+    variables = varnames(cons2cons, equations)
+    for v in eachvariable(equations)
+        s = Symbol("alpha_", variables[v])
+        node_variables[s] = alpha[v, ntuple(_ -> :, size(alpha, 2) + 1)...]
+    end
+
     if indicator.PressurePositivityLimiterKuzmin
-      setup = [setup..., "" => "PressurePositivityLimiterKuzmin $(PressurePositivityLimiterKuzminExact ? "(exact)" : "")"]
+        @unpack alpha_pressure = indicator.cache.container_shock_capturing
+        node_variables[:alpha_pressure] = alpha_pressure
     end
-    if DensityPositivityLimiter
-      if indicator.DensityPositivityCorrectionFactor != 0.0
-        setup = [setup..., "" => "DensityPositivityLimiter with correction factor $(indicator.DensityPositivityCorrectionFactor)"]
-      else
-        setup = [setup..., "" => "DensityPositivityLimiter"]
-      end
-    end
-    SemiDiscEntropyLimiter && (setup = [setup..., "" => "SemiDiscEntropyLimiter"])
-    if indicator.smoothness_indicator
-      setup = [setup..., "Smoothness indicator" => "$(indicator.IndicatorHG) using threshold $(indicator.threshold_smoothness_indicator)"]
-    end
-    summary_box(io, "IndicatorMCL", setup)
-  end
-end
 
-function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIntegralSubcellLimiting, equations)
-  if !indicator.Plotting
+    if indicator.SemiDiscEntropyLimiter
+        @unpack alpha_entropy = indicator.cache.container_shock_capturing
+        node_variables[:alpha_entropy] = alpha_entropy
+    end
+
+    for v in eachvariable(equations)
+        @unpack alpha_mean = indicator.cache.container_shock_capturing
+        s = Symbol("alpha_mean_", variables[v])
+        node_variables[s] = copy(alpha_mean[v, ntuple(_ -> :, size(alpha, 2) + 1)...])
+    end
+
+    if indicator.PressurePositivityLimiterKuzmin
+        @unpack alpha_mean_pressure = indicator.cache.container_shock_capturing
+        node_variables[:alpha_mean_pressure] = alpha_mean_pressure
+    end
+
+    if indicator.SemiDiscEntropyLimiter
+        @unpack alpha_mean_entropy = indicator.cache.container_shock_capturing
+        node_variables[:alpha_mean_entropy] = alpha_mean_entropy
+    end
+
     return nothing
-  end
-  @unpack alpha = indicator.cache.container_shock_capturing
-  variables = varnames(cons2cons, equations)
-  for v in eachvariable(equations)
-    s = Symbol("alpha_", variables[v])
-    node_variables[s] = alpha[v, ntuple(_ -> :, size(alpha, 2) + 1)...]
-  end
-
-  if indicator.PressurePositivityLimiterKuzmin
-    @unpack alpha_pressure = indicator.cache.container_shock_capturing
-    node_variables[:alpha_pressure] = alpha_pressure
-  end
-
-  if indicator.SemiDiscEntropyLimiter
-    @unpack alpha_entropy = indicator.cache.container_shock_capturing
-    node_variables[:alpha_entropy] = alpha_entropy
-  end
-
-  for v in eachvariable(equations)
-    @unpack alpha_mean = indicator.cache.container_shock_capturing
-    s = Symbol("alpha_mean_", variables[v])
-    node_variables[s] = copy(alpha_mean[v, ntuple(_ -> :, size(alpha, 2) + 1)...])
-  end
-
-  if indicator.PressurePositivityLimiterKuzmin
-    @unpack alpha_mean_pressure = indicator.cache.container_shock_capturing
-    node_variables[:alpha_mean_pressure] = alpha_mean_pressure
-  end
-
-  if indicator.SemiDiscEntropyLimiter
-    @unpack alpha_mean_entropy = indicator.cache.container_shock_capturing
-    node_variables[:alpha_mean_entropy] = alpha_mean_entropy
-  end
-
-  return nothing
 end
-
 
 """
     IndicatorMax(equations::AbstractEquations, basis; variable)
@@ -569,44 +631,43 @@ A simple indicator returning the maximum of `variable` in an element.
 When constructed to be used for AMR, pass the `semi`. Pass the `equations`,
 and `basis` if this indicator should be used for shock capturing.
 """
-struct IndicatorMax{Variable, Cache<:NamedTuple} <: AbstractIndicator
-  variable::Variable
-  cache::Cache
+struct IndicatorMax{Variable, Cache <: NamedTuple} <: AbstractIndicator
+    variable::Variable
+    cache::Cache
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorMax(equations::AbstractEquations, basis;
                       variable)
-  cache = create_cache(IndicatorMax, equations, basis)
-  IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
+    cache = create_cache(IndicatorMax, equations, basis)
+    IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
 function IndicatorMax(semi::AbstractSemidiscretization;
                       variable)
-  cache = create_cache(IndicatorMax, semi)
-  return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
+    cache = create_cache(IndicatorMax, semi)
+    return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
 
-
 function Base.show(io::IO, indicator::IndicatorMax)
-  @nospecialize indicator # reduce precompilation time
+    @nospecialize indicator # reduce precompilation time
 
-  print(io, "IndicatorMax(")
-  print(io, "variable=", indicator.variable, ")")
+    print(io, "IndicatorMax(")
+    print(io, "variable=", indicator.variable, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
-  @nospecialize indicator # reduce precompilation time
+    @nospecialize indicator # reduce precompilation time
 
-  if get(io, :compact, false)
-    show(io, indicator)
-  else
-    setup = [
-             "indicator variable" => indicator.variable,
-            ]
-    summary_box(io, "IndicatorMax", setup)
-  end
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "indicator variable" => indicator.variable,
+        ]
+        summary_box(io, "IndicatorMax", setup)
+    end
 end
 
 """
@@ -642,126 +703,131 @@ If `alpha_continuous == false`, the blending factor is set to `alpha = 0` for go
     This is an experimental feature and may change in future releases.
 
 """
-struct IndicatorNeuralNetwork{IndicatorType, RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
-  indicator_type::IndicatorType
-  alpha_max::RealT
-  alpha_min::RealT
-  alpha_smooth::Bool
-  alpha_continuous::Bool
-  alpha_amr::Bool
-  variable::Variable
-  network::Chain
-  cache::Cache
+struct IndicatorNeuralNetwork{IndicatorType, RealT <: Real, Variable, Chain, Cache} <:
+       AbstractIndicator
+    indicator_type::IndicatorType
+    alpha_max::RealT
+    alpha_min::RealT
+    alpha_smooth::Bool
+    alpha_continuous::Bool
+    alpha_amr::Bool
+    variable::Variable
+    network::Chain
+    cache::Cache
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorNeuralNetwork(equations::AbstractEquations, basis;
                                 indicator_type,
-                                alpha_max=0.5,
-                                alpha_min=0.001,
-                                alpha_smooth=true,
-                                alpha_continuous=true,
-                                alpha_amr=false,
+                                alpha_max = 0.5,
+                                alpha_min = 0.001,
+                                alpha_smooth = true,
+                                alpha_continuous = true,
+                                alpha_amr = false,
                                 variable,
                                 network)
-  alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  IndicatorType = typeof(indicator_type)
-  cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, equations, basis)
-  IndicatorNeuralNetwork{IndicatorType, typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
-      indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable,
-      network, cache)
+    alpha_max, alpha_min = promote(alpha_max, alpha_min)
+    IndicatorType = typeof(indicator_type)
+    cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, equations, basis)
+    IndicatorNeuralNetwork{IndicatorType, typeof(alpha_max), typeof(variable),
+                           typeof(network), typeof(cache)}(indicator_type, alpha_max,
+                                                           alpha_min, alpha_smooth,
+                                                           alpha_continuous, alpha_amr,
+                                                           variable,
+                                                           network, cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
 function IndicatorNeuralNetwork(semi::AbstractSemidiscretization;
                                 indicator_type,
-                                alpha_max=0.5,
-                                alpha_min=0.001,
-                                alpha_smooth=true,
-                                alpha_continuous=true,
-                                alpha_amr=true,
+                                alpha_max = 0.5,
+                                alpha_min = 0.001,
+                                alpha_smooth = true,
+                                alpha_continuous = true,
+                                alpha_amr = true,
                                 variable,
                                 network)
-  alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  IndicatorType = typeof(indicator_type)
-  cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, semi)
-  IndicatorNeuralNetwork{IndicatorType, typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
-      indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable,
-      network, cache)
+    alpha_max, alpha_min = promote(alpha_max, alpha_min)
+    IndicatorType = typeof(indicator_type)
+    cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, semi)
+    IndicatorNeuralNetwork{IndicatorType, typeof(alpha_max), typeof(variable),
+                           typeof(network), typeof(cache)}(indicator_type, alpha_max,
+                                                           alpha_min, alpha_smooth,
+                                                           alpha_continuous, alpha_amr,
+                                                           variable,
+                                                           network, cache)
 end
 
-
 function Base.show(io::IO, indicator::IndicatorNeuralNetwork)
-  @nospecialize indicator # reduce precompilation time
+    @nospecialize indicator # reduce precompilation time
 
-  print(io, "IndicatorNeuralNetwork(")
-  print(io, indicator.indicator_type)
-  print(io, ", alpha_max=", indicator.alpha_max)
-  print(io, ", alpha_min=", indicator.alpha_min)
-  print(io, ", alpha_smooth=", indicator.alpha_smooth)
-  print(io, ", alpha_continuous=", indicator.alpha_continuous)
-  print(io, indicator.variable)
-  print(io, ")")
+    print(io, "IndicatorNeuralNetwork(")
+    print(io, indicator.indicator_type)
+    print(io, ", alpha_max=", indicator.alpha_max)
+    print(io, ", alpha_min=", indicator.alpha_min)
+    print(io, ", alpha_smooth=", indicator.alpha_smooth)
+    print(io, ", alpha_continuous=", indicator.alpha_continuous)
+    print(io, indicator.variable)
+    print(io, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorNeuralNetwork)
-  @nospecialize indicator # reduce precompilation time
+    @nospecialize indicator # reduce precompilation time
 
-  if get(io, :compact, false)
-    show(io, indicator)
-  else
-    setup = [
-             "indicator type" => indicator.indicator_type,
-             "max. α" => indicator.alpha_max,
-             "min. α" => indicator.alpha_min,
-             "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
-             "continuous α" => (indicator.alpha_continuous ? "yes" : "no"),
-             "indicator variable" => indicator.variable,
-            ]
-    summary_box(io, "IndicatorNeuralNetwork", setup)
-  end
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "indicator type" => indicator.indicator_type,
+            "max. α" => indicator.alpha_max,
+            "min. α" => indicator.alpha_min,
+            "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
+            "continuous α" => (indicator.alpha_continuous ? "yes" : "no"),
+            "indicator variable" => indicator.variable,
+        ]
+        summary_box(io, "IndicatorNeuralNetwork", setup)
+    end
 end
-
 
 # Convert probability for troubled cell to indicator value for shockcapturing/AMR
-@inline function probability_to_indicator(probability_troubled_cell, alpha_continuous, alpha_amr,
+@inline function probability_to_indicator(probability_troubled_cell, alpha_continuous,
+                                          alpha_amr,
                                           alpha_min, alpha_max)
-  # Initialize indicator to zero
-  alpha_element = zero(probability_troubled_cell)
+    # Initialize indicator to zero
+    alpha_element = zero(probability_troubled_cell)
 
-  if alpha_continuous && !alpha_amr
-    # Set good cells to 0 and troubled cells to continuous value of the network prediction
-    if probability_troubled_cell > 0.5
-      alpha_element = probability_troubled_cell
-    else
-      alpha_element = zero(probability_troubled_cell)
+    if alpha_continuous && !alpha_amr
+        # Set good cells to 0 and troubled cells to continuous value of the network prediction
+        if probability_troubled_cell > 0.5
+            alpha_element = probability_troubled_cell
+        else
+            alpha_element = zero(probability_troubled_cell)
+        end
+
+        # Take care of the case close to pure FV
+        if alpha_element > 1 - alpha_min
+            alpha_element = one(alpha_element)
+        end
+
+        # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
+        alpha_element *= alpha_max
+    elseif !alpha_continuous && !alpha_amr
+        # Set good cells to 0 and troubled cells to 1
+        if probability_troubled_cell > 0.5
+            alpha_element = alpha_max
+        else
+            alpha_element = zero(alpha_max)
+        end
+    elseif alpha_amr
+        # The entire continuous output of the neural network is used for AMR
+        alpha_element = probability_troubled_cell
+
+        # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
+        alpha_element *= alpha_max
     end
 
-    # Take care of the case close to pure FV
-    if alpha_element > 1 - alpha_min
-      alpha_element = one(alpha_element)
-    end
-
-    # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
-    alpha_element *= alpha_max
-  elseif !alpha_continuous && !alpha_amr
-    # Set good cells to 0 and troubled cells to 1
-    if probability_troubled_cell > 0.5
-      alpha_element = alpha_max
-    else
-      alpha_element = zero(alpha_max)
-    end
-  elseif alpha_amr
-    # The entire continuous output of the neural network is used for AMR
-    alpha_element  = probability_troubled_cell
-
-    # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
-    alpha_element *= alpha_max
-  end
-
-  return alpha_element
+    return alpha_element
 end
-
 
 """
     NeuralNetworkPerssonPeraire
@@ -798,5 +864,4 @@ Indicator type for creating an `IndicatorNeuralNetwork` indicator.
 See also: [`IndicatorNeuralNetwork`](@ref)
 """
 struct NeuralNetworkCNN end
-
 end # @muladd
