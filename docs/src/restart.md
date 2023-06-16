@@ -1,4 +1,4 @@
-d# [Restart Simulation](@id restart)
+# [Restart Simulation](@id restart)
 
 You can continue running an already finished simulation by first
 preparing the simulation for the restart and then performing the restart.
