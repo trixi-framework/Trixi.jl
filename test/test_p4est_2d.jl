@@ -136,6 +136,13 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.1))
   end
 
+  @trixi_testset "elixir_shallowwater_source_terms.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
+      l2   = [9.168126407325352e-5, 0.0009795410115453788, 0.002546408320320785, 3.941189812642317e-6],
+      linf = [0.0009903782521019089, 0.0059752684687262025, 0.010941106525454103, 1.2129488214718265e-5],
+      tspan = (0.0, 0.1))
+  end
+
   @trixi_testset "elixir_mhd_alfven_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
       l2   = [1.0513414461545583e-5, 1.0517900957166411e-6, 1.0517900957304043e-6, 1.511816606372376e-6,

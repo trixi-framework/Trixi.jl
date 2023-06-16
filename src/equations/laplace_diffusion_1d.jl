@@ -5,20 +5,23 @@
 with diffusivity ``\kappa`` applied to each solution component defined by `equations`.
 """
 struct LaplaceDiffusion1D{E, N, T} <: AbstractLaplaceDiffusion{1, N}
-  diffusivity::T
-  equations_hyperbolic::E
+    diffusivity::T
+    equations_hyperbolic::E
 end
 
-LaplaceDiffusion1D(diffusivity, equations_hyperbolic) =
-  LaplaceDiffusion1D{typeof(equations_hyperbolic), nvariables(equations_hyperbolic), typeof(diffusivity)}(diffusivity, equations_hyperbolic)
+function LaplaceDiffusion1D(diffusivity, equations_hyperbolic)
+    LaplaceDiffusion1D{typeof(equations_hyperbolic), nvariables(equations_hyperbolic),
+                       typeof(diffusivity)}(diffusivity, equations_hyperbolic)
+end
 
-varnames(variable_mapping, equations_parabolic::LaplaceDiffusion1D) =
-  varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
+function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion1D)
+    varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
+end
 
 function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDiffusion1D)
-  dudx = gradients
-  # orientation == 1
-  return equations_parabolic.diffusivity * dudx
+    dudx = gradients
+    # orientation == 1
+    return equations_parabolic.diffusivity * dudx
 end
 
 
@@ -46,4 +49,5 @@ end
                                                                 x, t, operator_type::Gradient,
                                                                 equations_parabolic::AbstractLaplaceDiffusion)
   return flux_inner
+
 end
