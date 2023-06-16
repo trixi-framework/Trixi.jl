@@ -9,7 +9,6 @@ struct GradientVariablesConservative end
 struct GradientVariablesPrimitive end
 struct GradientVariablesEntropy end
 
-
 # Linear scalar diffusion for use in linear scalar advection-diffusion problems
 abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
               AbstractEquationsParabolic{NDIMS, NVARS} end
