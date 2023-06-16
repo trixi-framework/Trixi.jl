@@ -98,7 +98,8 @@ function analyze_convergence(errors, iterations, semi::AbstractSemidiscretizatio
 end
 
 # This method is called with the collected error values to actually compute and print the EOC
-function analyze_convergence(errors, iterations, variablenames::Union{Tuple,AbstractArray})
+function analyze_convergence(errors, iterations,
+                             variablenames::Union{Tuple, AbstractArray})
     nvariables = length(variablenames)
 
     # Reshape errors to get a matrix where the i-th row represents the i-th iteration

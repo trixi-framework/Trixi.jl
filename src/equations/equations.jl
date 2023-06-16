@@ -202,7 +202,6 @@ struct BoundaryConditionNeumann{B}
     boundary_normal_flux_function::B
 end
 
-
 # set sensible default values that may be overwritten by specific equations
 """
     have_nonconservative_terms(equations)

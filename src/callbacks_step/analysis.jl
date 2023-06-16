@@ -134,25 +134,18 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                      initialize = initialize!)
 end
 
+# This method gets called from OrdinaryDiffEq's `solve(...)`
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
                      integrator) where {Condition, Affect! <: AnalysisCallback}
-    semi = integrator.p
-    initial_state_integrals = integrate(u_ode, semi)
-    _, equations, _, _ = mesh_equations_solver_cache(semi)
-
-# This method gets called from OrdinaryDiffEq's `solve(...)`
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t,
-                     integrator) where {Condition, Affect!<:AnalysisCallback}
     semi = integrator.p
     du_ode = first(get_tmp_cache(integrator))
     initialize!(cb, u_ode, du_ode, t, integrator, semi)
 end
 
-
 # This is the actual initialization method
 # Note: we have this indirection to allow initializing a callback from the AnalysisCallbackCoupled
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, du_ode, t,
-                     integrator, semi) where {Condition, Affect!<:AnalysisCallback}
+function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
+                     integrator, semi) where {Condition, Affect! <: AnalysisCallback}
     initial_state_integrals = integrate(u_ode, semi)
     _, equations, _, _ = mesh_equations_solver_cache(semi)
 
@@ -170,32 +163,32 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, du_ode, t,
             @printf(io, "  %-14s", "dt")
             if :l2_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, "   %-14s", "l2_" * v)
+                    @printf(io, "   %-14s", "l2_"*v)
                 end
             end
             if :linf_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, "   %-14s", "linf_" * v)
+                    @printf(io, "   %-14s", "linf_"*v)
                 end
             end
             if :conservation_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, "   %-14s", "cons_" * v)
+                    @printf(io, "   %-14s", "cons_"*v)
                 end
             end
             if :residual in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, "   %-14s", "res_" * v)
+                    @printf(io, "   %-14s", "res_"*v)
                 end
             end
             if :l2_error_primitive in analysis_errors
                 for v in varnames(cons2prim, equations)
-                    @printf(io, "   %-14s", "l2_" * v)
+                    @printf(io, "   %-14s", "l2_"*v)
                 end
             end
             if :linf_error_primitive in analysis_errors
                 for v in varnames(cons2prim, equations)
-                    @printf(io, "   %-14s", "linf_" * v)
+                    @printf(io, "   %-14s", "linf_"*v)
                 end
             end
 
@@ -226,121 +219,114 @@ end
 
 # This method gets called from OrdinaryDiffEq's `solve(...)`
 function (analysis_callback::AnalysisCallback)(integrator)
-  semi = integrator.p
-  du_ode = first(get_tmp_cache(integrator))
-  u_ode = integrator.u
-  analysis_callback(u_ode, du_ode, integrator, semi)
+    semi = integrator.p
+    du_ode = first(get_tmp_cache(integrator))
+    u_ode = integrator.u
+    analysis_callback(u_ode, du_ode, integrator, semi)
 end
 
 # This method gets called internally as the main entry point to the AnalysiCallback
 # TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
 function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  @unpack dt, t = integrator
-  iter = integrator.stats.naccept
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    @unpack dt, t = integrator
+    iter = integrator.stats.naccept
 
-  # Record performance measurements and compute performance index (PID)
-  runtime_since_last_analysis = 1.0e-9 * (time_ns() - analysis_callback.start_time_last_analysis)
-  # PID is an MPI-aware measure of how much time per global degree of freedom (i.e., over all ranks)
-  # and per `rhs!` evaluation is required. MPI-aware means that it essentially adds up the time
-  # spent on each MPI rank. Thus, in an ideally parallelized program, the PID should be constant
-  # independent of the number of MPI ranks used, since, e.g., using 4x the number of ranks should
-  # divide the runtime on each rank by 4. See also the Trixi.jl docs ("Performance" section) for
-  # more information.
-  ncalls_rhs_since_last_analysis = (ncalls(semi.performance_counter)
-                                    - analysis_callback.ncalls_rhs_last_analysis)
-  performance_index = runtime_since_last_analysis * mpi_nranks() / (ndofsglobal(mesh, solver, cache)
-                                                                    * ncalls_rhs_since_last_analysis)
+    # Record performance measurements and compute performance index (PID)
+    runtime_since_last_analysis = 1.0e-9 * (time_ns() -
+                                   analysis_callback.start_time_last_analysis)
+    # PID is an MPI-aware measure of how much time per global degree of freedom (i.e., over all ranks)
+    # and per `rhs!` evaluation is required. MPI-aware means that it essentially adds up the time
+    # spent on each MPI rank. Thus, in an ideally parallelized program, the PID should be constant
+    # independent of the number of MPI ranks used, since, e.g., using 4x the number of ranks should
+    # divide the runtime on each rank by 4. See also the Trixi.jl docs ("Performance" section) for
+    # more information.
+    ncalls_rhs_since_last_analysis = (ncalls(semi.performance_counter)
+                                      -
+                                      analysis_callback.ncalls_rhs_last_analysis)
+    performance_index = runtime_since_last_analysis * mpi_nranks() /
+                        (ndofsglobal(mesh, solver, cache)
+                         *
+                         ncalls_rhs_since_last_analysis)
 
-  # Compute the total runtime since the analysis callback has been initialized, in seconds
-  runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
+    # Compute the total runtime since the analysis callback has been initialized, in seconds
+    runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
 
-  # Compute the relative runtime as time spent in `rhs!` divided by the number of calls to `rhs!`
-  # and the number of local degrees of freedom
-  # OBS! This computation must happen *after* the PID computation above, since `take!(...)`
-  #      will reset the number of calls to `rhs!`
-  runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
+    # Compute the relative runtime as time spent in `rhs!` divided by the number of calls to `rhs!`
+    # and the number of local degrees of freedom
+    # OBS! This computation must happen *after* the PID computation above, since `take!(...)`
+    #      will reset the number of calls to `rhs!`
+    runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
 
-  # Compute the total time spent in garbage collection since the analysis callback has been
-  # initialized, in seconds
-  # Note: `Base.gc_time_ns()` is not part of the public Julia API but has been available at least
-  #        since Julia 1.6. Should this function be removed without replacement in a future Julia
-  #        release, just delete this analysis quantity from the callback.
-  # Source: https://github.com/JuliaLang/julia/blob/b540315cb4bd91e6f3a3e4ab8129a58556947628/base/timing.jl#L83-L84
-  gc_time_absolute = 1.0e-9 * (Base.gc_time_ns() - analysis_callback.start_gc_time)
+    # Compute the total time spent in garbage collection since the analysis callback has been
+    # initialized, in seconds
+    # Note: `Base.gc_time_ns()` is not part of the public Julia API but has been available at least
+    #        since Julia 1.6. Should this function be removed without replacement in a future Julia
+    #        release, just delete this analysis quantity from the callback.
+    # Source: https://github.com/JuliaLang/julia/blob/b540315cb4bd91e6f3a3e4ab8129a58556947628/base/timing.jl#L83-L84
+    gc_time_absolute = 1.0e-9 * (Base.gc_time_ns() - analysis_callback.start_gc_time)
 
-  # Compute the percentage of total time that was spent in garbage collection
-  gc_time_percentage = gc_time_absolute / runtime_absolute
+    # Compute the percentage of total time that was spent in garbage collection
+    gc_time_percentage = gc_time_absolute / runtime_absolute
 
-  # Obtain the current memory usage of the Julia garbage collector, in MiB, i.e., the total size of
-  # objects in memory that have been allocated by the JIT compiler or the user code.
-  # Note: `Base.gc_live_bytes()` is not part of the public Julia API but has been available at least
-  #        since Julia 1.6. Should this function be removed without replacement in a future Julia
-  #        release, just delete this analysis quantity from the callback.
-  # Source: https://github.com/JuliaLang/julia/blob/b540315cb4bd91e6f3a3e4ab8129a58556947628/base/timing.jl#L86-L97
-  memory_use = Base.gc_live_bytes() / 2^20 # bytes -> MiB
+    # Obtain the current memory usage of the Julia garbage collector, in MiB, i.e., the total size of
+    # objects in memory that have been allocated by the JIT compiler or the user code.
+    # Note: `Base.gc_live_bytes()` is not part of the public Julia API but has been available at least
+    #        since Julia 1.6. Should this function be removed without replacement in a future Julia
+    #        release, just delete this analysis quantity from the callback.
+    # Source: https://github.com/JuliaLang/julia/blob/b540315cb4bd91e6f3a3e4ab8129a58556947628/base/timing.jl#L86-L97
+    memory_use = Base.gc_live_bytes() / 2^20 # bytes -> MiB
 
-  @trixi_timeit timer() "analyze solution" begin
-    # General information
-    mpi_println()
-    mpi_println("─"^100)
-    # TODO: Taal refactor, polydeg is specific to DGSEM
-    mpi_println(" Simulation running '", get_name(equations), "' with ", summary(solver))
-    mpi_println("─"^100)
-    mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
-                "               " *
-                " run time:       " * @sprintf("%10.8e s", runtime_absolute))
-    mpi_println(" Δt:             " * @sprintf("%10.8e", dt) *
-                "               " *
-                " └── GC time:    " * @sprintf("%10.8e s (%5.3f%%)", gc_time_absolute, gc_time_percentage))
-    mpi_println(" sim. time:      " * @sprintf("%10.8e", t) *
-                "               " *
-                " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
-    mpi_println("                 " * "              " *
-                "               " *
-                " PID:            " * @sprintf("%10.8e s", performance_index))
-    mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)) *
-                "               " *
-                " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
-    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)))
+    @trixi_timeit timer() "analyze solution" begin
+        # General information
+        mpi_println()
+        mpi_println("─"^100)
+        mpi_println(" Simulation running '", get_name(equations), "' with ",
+                    summary(solver))
+        mpi_println("─"^100)
+        mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
+                    "               " *
+                    " run time:       " * @sprintf("%10.8e s", runtime_absolute))
+        mpi_println(" Δt:             " * @sprintf("%10.8e", dt) *
+                    "               " *
+                    " └── GC time:    " *
+                    @sprintf("%10.8e s (%5.3f%%)", gc_time_absolute, gc_time_percentage))
+        mpi_println(" sim. time:      " * @sprintf("%10.8e", t) *
+                    "               " *
+                    " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
+        mpi_println("                 " * "              " *
+                    "               " *
+                    " PID:            " * @sprintf("%10.8e s", performance_index))
+        mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)) *
+                    "               " *
+                    " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
+        mpi_println(" #elements:      " *
+                    @sprintf("% 14d", nelements(mesh, solver, cache)))
 
-    # Level information (only show for AMR)
-    print_amr_information(integrator.opts.callback, mesh, solver, cache)
-    mpi_println()
+        # Level information (only show for AMR)
+        print_amr_information(integrator.opts.callback, mesh, solver, cache)
+        mpi_println()
 
-    # Open file for appending and store time step and time information
-    if mpi_isroot() && analysis_callback.save_analysis
-      io = open(joinpath(analysis_callback.output_directory, analysis_callback.analysis_filename), "a")
-      @printf(io, "% 9d", iter)
-      @printf(io, "  %10.8e", t)
-      @printf(io, "  %10.8e", dt)
-    else
-      io = devnull
-    end
-
-    # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
-    # `integrator.f` is usually just a call to `rhs!`
-    # However, we want to allow users to modify the ODE RHS outside of Trixi.jl
-    # and allow us to pass a combined ODE RHS to OrdinaryDiffEq, e.g., for
-    # hyperbolic-parabolic systems.
-    @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
-    u  = wrap_array(u_ode,  mesh, equations, solver, cache)
-    du = wrap_array(du_ode, mesh, equations, solver, cache)
-    l2_error, linf_error = analysis_callback(io, du, u, u_ode, t, semi)
-
-    mpi_println("─"^100)
-    mpi_println()
+        # Open file for appending and store time step and time information
+        if mpi_isroot() && analysis_callback.save_analysis
+            io = open(joinpath(analysis_callback.output_directory,
+                               analysis_callback.analysis_filename), "a")
+            @printf(io, "% 9d", iter)
+            @printf(io, "  %10.8e", t)
+            @printf(io, "  %10.8e", dt)
+        else
+            io = devnull
+        end
 
         # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
-        du_ode = first(get_tmp_cache(integrator))
         # `integrator.f` is usually just a call to `rhs!`
         # However, we want to allow users to modify the ODE RHS outside of Trixi.jl
         # and allow us to pass a combined ODE RHS to OrdinaryDiffEq, e.g., for
         # hyperbolic-parabolic systems.
-        @notimeit timer() integrator.f(du_ode, integrator.u, semi, t)
-        u = wrap_array(integrator.u, mesh, equations, solver, cache)
+        @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
+        u = wrap_array(u_ode, mesh, equations, solver, cache)
         du = wrap_array(du_ode, mesh, equations, solver, cache)
-        l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
+        l2_error, linf_error = analysis_callback(io, du, u, u_ode, t, semi)
 
         mpi_println("─"^100)
         mpi_println()

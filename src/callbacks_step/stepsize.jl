@@ -59,37 +59,36 @@ end
 
 # This method is called as callback during the time integration.
 @inline function (stepsize_callback::StepsizeCallback)(integrator)
-  # TODO: Taal decide, shall we set the time step even if the integrator is adaptive?
-  if !integrator.opts.adaptive
-    t = integrator.t
-    u_ode = integrator.u
-    semi = integrator.p
-    @unpack cfl_number = stepsize_callback
+    # TODO: Taal decide, shall we set the time step even if the integrator is adaptive?
+    if !integrator.opts.adaptive
+        t = integrator.t
+        u_ode = integrator.u
+        semi = integrator.p
+        @unpack cfl_number = stepsize_callback
 
-    # Dispatch based on semidiscretization
-    dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_number, semi)
+        # Dispatch based on semidiscretization
+        dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_number,
+                                                               semi)
 
-    set_proposed_dt!(integrator, dt)
-    integrator.opts.dtmax = dt
-    integrator.dtcache = dt
-  end
+        set_proposed_dt!(integrator, dt)
+        integrator.opts.dtmax = dt
+        integrator.dtcache = dt
+    end
 
-  # avoid re-evaluating possible FSAL stages
-  u_modified!(integrator, false)
-  return nothing
+    # avoid re-evaluating possible FSAL stages
+    u_modified!(integrator, false)
+    return nothing
 end
-
 
 # General case for a single semidiscretization
 function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  u = wrap_array(u_ode, mesh, equations, solver, cache)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  dt = cfl_number * max_dt(u, t, mesh,
-                           have_constant_speed(equations), equations,
-                           solver, cache)
+    dt = cfl_number * max_dt(u, t, mesh,
+                have_constant_speed(equations), equations,
+                solver, cache)
 end
-
 
 # Time integration methods from the DiffEq ecosystem without adaptive time stepping on their own
 # such as `CarpenterKennedy2N54` require passing `dt=...` in `solve(ode, ...)`. Since we don't have

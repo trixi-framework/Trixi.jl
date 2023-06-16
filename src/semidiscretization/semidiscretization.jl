@@ -71,13 +71,13 @@ Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan)
-  u0_ode = compute_coefficients(first(tspan), semi)
-  # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
-  #       mpi_isparallel() && MPI.Barrier(mpi_comm())
-  #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-  iip = true # is-inplace, i.e., we modify a vector when calling rhs!
-  specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
-  return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
+    u0_ode = compute_coefficients(first(tspan), semi)
+    # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
+    #       mpi_isparallel() && MPI.Barrier(mpi_comm())
+    #       See https://github.com/trixi-framework/Trixi.jl/issues/328
+    iip = true # is-inplace, i.e., we modify a vector when calling rhs!
+    specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
+    return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
 end
 
 """
@@ -87,14 +87,15 @@ Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 The initial condition etc. is taken from the `restart_file`.
 """
-function semidiscretize(semi::AbstractSemidiscretization, tspan, restart_file::AbstractString)
-  u0_ode = load_restart_file(semi, restart_file)
-  # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
-  #       mpi_isparallel() && MPI.Barrier(mpi_comm())
-  #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-  iip = true # is-inplace, i.e., we modify a vector when calling rhs!
-  specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
-  return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
+function semidiscretize(semi::AbstractSemidiscretization, tspan,
+                        restart_file::AbstractString)
+    u0_ode = load_restart_file(semi, restart_file)
+    # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
+    #       mpi_isparallel() && MPI.Barrier(mpi_comm())
+    #       See https://github.com/trixi-framework/Trixi.jl/issues/328
+    iip = true # is-inplace, i.e., we modify a vector when calling rhs!
+    specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
+    return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
 end
 
 """

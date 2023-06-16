@@ -138,10 +138,10 @@ function initialize_save_cb!(cb, u, t, integrator)
 end
 
 function initialize_save_cb!(solution_callback::SaveSolutionCallback, u, t, integrator)
-  mpi_isroot() && mkpath(solution_callback.output_directory)
+    mpi_isroot() && mkpath(solution_callback.output_directory)
 
-  semi = integrator.p
-  @trixi_timeit timer() "I/O" save_mesh(semi, solution_callback.output_directory)
+    semi = integrator.p
+    @trixi_timeit timer() "I/O" save_mesh(semi, solution_callback.output_directory)
 
     if solution_callback.save_initial_solution
         solution_callback(integrator)
@@ -151,13 +151,13 @@ function initialize_save_cb!(solution_callback::SaveSolutionCallback, u, t, inte
 end
 
 # Save mesh for a general semidiscretization (default)
-function save_mesh(semi::AbstractSemidiscretization, output_directory, timestep=0)
-  mesh, _, _, _ = mesh_equations_solver_cache(semi)
+function save_mesh(semi::AbstractSemidiscretization, output_directory, timestep = 0)
+    mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
-  if mesh.unsaved_changes
-    mesh.current_filename = save_mesh_file(mesh, output_directory)
-    mesh.unsaved_changes = false
-  end
+    if mesh.unsaved_changes
+        mesh.current_filename = save_mesh_file(mesh, output_directory)
+        mesh.unsaved_changes = false
+    end
 end
 
 # this method is called to determine whether the callback should be activated
@@ -176,52 +176,60 @@ end
 
 # this method is called when the callback is activated
 function (solution_callback::SaveSolutionCallback)(integrator)
-  u_ode = integrator.u
-  semi = integrator.p
-  iter = integrator.stats.naccept
+    u_ode = integrator.u
+    semi = integrator.p
+    iter = integrator.stats.naccept
 
-  @trixi_timeit timer() "I/O" begin
-    # Call high-level functions that dispatch on semidiscretization type
-    @trixi_timeit timer() "save mesh" save_mesh(semi, solution_callback.output_directory, iter)
-    save_solution_file(semi, u_ode, solution_callback, integrator)
-  end
+    @trixi_timeit timer() "I/O" begin
+        # Call high-level functions that dispatch on semidiscretization type
+        @trixi_timeit timer() "save mesh" save_mesh(semi,
+                                                    solution_callback.output_directory,
+                                                    iter)
+        save_solution_file(semi, u_ode, solution_callback, integrator)
+    end
 
     # avoid re-evaluating possible FSAL stages
     u_modified!(integrator, false)
     return nothing
 end
 
-@inline function save_solution_file(semi::AbstractSemidiscretization, u_ode, solution_callback,
-                                    integrator; system="")
-  @unpack t, dt = integrator
-  iter = integrator.stats.naccept
+@inline function save_solution_file(semi::AbstractSemidiscretization, u_ode,
+                                    solution_callback,
+                                    integrator; system = "")
+    @unpack t, dt = integrator
+    iter = integrator.stats.naccept
 
-  element_variables = Dict{Symbol, Any}()
-  @trixi_timeit timer() "get element variables" begin
-    get_element_variables!(element_variables, u_ode, semi)
-    callbacks = integrator.opts.callback
-    if callbacks isa CallbackSet
-      for cb in callbacks.continuous_callbacks
-        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=iter)
-      end
-      for cb in callbacks.discrete_callbacks
-        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=iter)
-      end
+    element_variables = Dict{Symbol, Any}()
+    @trixi_timeit timer() "get element variables" begin
+        get_element_variables!(element_variables, u_ode, semi)
+        callbacks = integrator.opts.callback
+        if callbacks isa CallbackSet
+            for cb in callbacks.continuous_callbacks
+                get_element_variables!(element_variables, u_ode, semi, cb;
+                                       t = integrator.t, iter = iter)
+            end
+            for cb in callbacks.discrete_callbacks
+                get_element_variables!(element_variables, u_ode, semi, cb;
+                                       t = integrator.t, iter = iter)
+            end
+        end
     end
-  end
 
-  @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi,
-                                                           solution_callback, element_variables,
-                                                           system=system)
+    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi,
+                                                             solution_callback,
+                                                             element_variables,
+                                                             system = system)
 end
 
 @inline function save_solution_file(u_ode, t, dt, iter,
                                     semi::AbstractSemidiscretization, solution_callback,
-                                    element_variables=Dict{Symbol,Any}(); system="")
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  u = wrap_array_native(u_ode, mesh, equations, solver, cache)
-  save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback,
-                     element_variables; system=system)
+                                    element_variables = Dict{Symbol, Any}();
+                                    system = "")
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    u = wrap_array_native(u_ode, mesh, equations, solver, cache)
+    save_solution_file(u, t, dt, iter, mesh, equations, solver, cache,
+                       solution_callback,
+                       element_variables; system = system)
 end
 
 # TODO: Taal refactor, move save_mesh_file?

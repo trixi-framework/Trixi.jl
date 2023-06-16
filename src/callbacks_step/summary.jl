@@ -140,29 +140,29 @@ end
 # Print information about the current simulation setup
 # Note: This is called *after* all initialization is done, but *before* the first time step
 function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
-  mpi_isroot() || return nothing
+    mpi_isroot() || return nothing
 
-  print_startup_message()
+    print_startup_message()
 
-  io = stdout
-  io_context = IOContext(io,
-                         :compact => false,
-                         :key_width => 30,
-                         :total_width => 100,
-                         :indentation_level => 0)
+    io = stdout
+    io_context = IOContext(io,
+                           :compact => false,
+                           :key_width => 30,
+                           :total_width => 100,
+                           :indentation_level => 0)
 
-  semi = integrator.p
-  print_summary_semidiscretization(io_context, semi)
+    semi = integrator.p
+    print_summary_semidiscretization(io_context, semi)
 
-  callbacks = integrator.opts.callback
-  if callbacks isa CallbackSet
-    for cb in callbacks.continuous_callbacks
-      show(io_context, MIME"text/plain"(), cb)
-      println(io, "\n")
-    end
-    for cb in callbacks.discrete_callbacks
-      # Do not show ourselves
-      cb.affect! === summary_callback && continue
+    callbacks = integrator.opts.callback
+    if callbacks isa CallbackSet
+        for cb in callbacks.continuous_callbacks
+            show(io_context, MIME"text/plain"(), cb)
+            println(io, "\n")
+        end
+        for cb in callbacks.discrete_callbacks
+            # Do not show ourselves
+            cb.affect! === summary_callback && continue
 
             show(io_context, MIME"text/plain"(), cb)
             println(io, "\n")
@@ -201,15 +201,15 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
 end
 
 function print_summary_semidiscretization(io::IO, semi::AbstractSemidiscretization)
-  show(io, MIME"text/plain"(), semi)
-  println(io, "\n")
-  mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
-  show(io, MIME"text/plain"(), mesh)
-  println(io, "\n")
-  show(io, MIME"text/plain"(), equations)
-  println(io, "\n")
-  show(io, MIME"text/plain"(), solver)
-  println(io, "\n")
+    show(io, MIME"text/plain"(), semi)
+    println(io, "\n")
+    mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
+    show(io, MIME"text/plain"(), mesh)
+    println(io, "\n")
+    show(io, MIME"text/plain"(), equations)
+    println(io, "\n")
+    show(io, MIME"text/plain"(), solver)
+    println(io, "\n")
 end
 
 function (cb::DiscreteCallback{Condition, Affect!})(io::IO = stdout) where {Condition,
