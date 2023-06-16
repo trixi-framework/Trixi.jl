@@ -227,7 +227,9 @@ function estimate_dt(mesh::DGMultiMesh, dg::DGMulti)
 end
 
 dt_polydeg_scaling(dg::DGMulti) = inv(dg.basis.N + 1)
-dt_polydeg_scaling(dg::DGMulti{3, <:Wedge, <: TensorProductWedge}) = inv(maximum(dg.basis.N) + 1)
+function dt_polydeg_scaling(dg::DGMulti{3, <:Wedge, <:TensorProductWedge})
+    inv(maximum(dg.basis.N) + 1)
+end
 
 # for the stepsize callback
 function max_dt(u, t, mesh::DGMultiMesh,
@@ -253,7 +255,6 @@ function max_dt(u, t, mesh::DGMultiMesh,
     return 2 * dt_min * dt_polydeg_scaling(dg)
 end
 
-
 function max_dt(u, t, mesh::DGMultiMesh,
                 constant_speed::True, equations, dg::DGMulti{NDIMS},
                 cache) where {NDIMS}
@@ -275,7 +276,6 @@ function max_dt(u, t, mesh::DGMultiMesh,
     # the number of 1D nodes for `DGSEM` solvers.
     return 2 * dt_min * dt_polydeg_scaling(dg)
 end
-
 
 # interpolates from solution coefficients to face quadrature points
 # We pass the `surface_integral` argument solely for dispatch
