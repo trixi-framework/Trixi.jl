@@ -38,43 +38,46 @@ end
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
                                 nodes::AbstractVector)
-  # We use `StrideArray`s here since these buffers are used in performance-critical
-  # places and the additional information passed to the compiler makes them faster
-  # than native `Array`s.
-  tmp1    = StrideArray(undef, real(mesh),
-                        StaticInt(2), static_length(nodes), static_length(mesh.nodes))
-  matrix1 = StrideArray(undef, real(mesh),
-                        static_length(nodes), static_length(mesh.nodes))
-  matrix2 = similar(matrix1)
-  baryweights_in = barycentric_weights(mesh.nodes)
+    # We use `StrideArray`s here since these buffers are used in performance-critical
+    # places and the additional information passed to the compiler makes them faster
+    # than native `Array`s.
+    tmp1 = StrideArray(undef, real(mesh),
+                       StaticInt(2), static_length(nodes), static_length(mesh.nodes))
+    matrix1 = StrideArray(undef, real(mesh),
+                          static_length(nodes), static_length(mesh.nodes))
+    matrix2 = similar(matrix1)
+    baryweights_in = barycentric_weights(mesh.nodes)
 
-  # Macros from `p4est`
-  p4est_root_len = 1 << P4EST_MAXLEVEL
-  p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
+    # Macros from `p4est`
+    p4est_root_len = 1 << P4EST_MAXLEVEL
+    p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
 
-  trees = unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
+    trees = unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
 
-  for tree in eachindex(trees)
-    offset = trees[tree].quadrants_offset
-    quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree].quadrants)
+    for tree in eachindex(trees)
+        offset = trees[tree].quadrants_offset
+        quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree].quadrants)
 
-    for i in eachindex(quadrants)
-      element = offset + i
-      quad = quadrants[i]
+        for i in eachindex(quadrants)
+            element = offset + i
+            quad = quadrants[i]
 
-      quad_length = p4est_quadrant_len(quad.level) / p4est_root_len
+            quad_length = p4est_quadrant_len(quad.level) / p4est_root_len
 
-      nodes_out_x = 2 * (quad_length * 1/2 * (nodes .+ 1) .+ quad.x / p4est_root_len) .- 1
-      nodes_out_y = 2 * (quad_length * 1/2 * (nodes .+ 1) .+ quad.y / p4est_root_len) .- 1
-      polynomial_interpolation_matrix!(matrix1, mesh.nodes, nodes_out_x, baryweights_in)
-      polynomial_interpolation_matrix!(matrix2, mesh.nodes, nodes_out_y, baryweights_in)
+            nodes_out_x = 2 * (quad_length * 1 / 2 * (nodes .+ 1) .+
+                           quad.x / p4est_root_len) .- 1
+            nodes_out_y = 2 * (quad_length * 1 / 2 * (nodes .+ 1) .+
+                           quad.y / p4est_root_len) .- 1
+            polynomial_interpolation_matrix!(matrix1, mesh.nodes, nodes_out_x,
+                                             baryweights_in)
+            polynomial_interpolation_matrix!(matrix2, mesh.nodes, nodes_out_y,
+                                             baryweights_in)
 
-      multiply_dimensionwise!(
-        view(node_coordinates, :, :, :, element),
-        matrix1, matrix2,
-        view(mesh.tree_node_coordinates, :, :, :, tree),
-        tmp1
-      )
+            multiply_dimensionwise!(view(node_coordinates, :, :, :, element),
+                                    matrix1, matrix2,
+                                    view(mesh.tree_node_coordinates, :, :, :, tree),
+                                    tmp1)
+        end
     end
 
     return node_coordinates

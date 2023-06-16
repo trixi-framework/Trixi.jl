@@ -8,29 +8,36 @@
 # Redistribute data for load balancing after partitioning the mesh
 function rebalance_solver!(u_ode::AbstractVector, mesh::ParallelP4estMesh, equations,
                            dg::DGSEM, cache, old_global_first_quadrant)
-  # mpi ranks are 0-based, this array uses 1-based indices
-  global_first_quadrant = unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
-  if global_first_quadrant[mpi_rank()+1] == old_global_first_quadrant[mpi_rank()+1] &&
-     global_first_quadrant[mpi_rank()+2] == old_global_first_quadrant[mpi_rank()+2]
-    # Global ids of first and last local quadrants are the same for newly partitioned mesh so the
-    # solver does not need to be rebalanced on this rank.
-    # Container init uses all-to-all communication -> reinitialize even if there is nothing to do
-    # locally (there are other MPI ranks that need to be rebalanced if this function is called)
-    reinitialize_containers!(mesh, equations, dg, cache)
-    return
-  end
-  # Retain current solution data
-  old_n_elements = nelements(dg, cache)
-  old_u_ode = copy(u_ode)
-  GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
-    # Use `wrap_array_native` instead of `wrap_array` since MPI might not interact
-    # nicely with non-base array types
-    old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
+    # mpi ranks are 0-based, this array uses 1-based indices
+    global_first_quadrant = unsafe_wrap(Array, mesh.p4est.global_first_quadrant,
+                                        mpi_nranks() + 1)
+    if global_first_quadrant[mpi_rank() + 1] ==
+       old_global_first_quadrant[mpi_rank() + 1] &&
+       global_first_quadrant[mpi_rank() + 2] ==
+       old_global_first_quadrant[mpi_rank() + 2]
+        # Global ids of first and last local quadrants are the same for newly partitioned mesh so the
+        # solver does not need to be rebalanced on this rank.
+        # Container init uses all-to-all communication -> reinitialize even if there is nothing to do
+        # locally (there are other MPI ranks that need to be rebalanced if this function is called)
+        reinitialize_containers!(mesh, equations, dg, cache)
+        return
+    end
+    # Retain current solution data
+    old_n_elements = nelements(dg, cache)
+    old_u_ode = copy(u_ode)
+    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+        # Use `wrap_array_native` instead of `wrap_array` since MPI might not interact
+        # nicely with non-base array types
+        old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
 
-    @trixi_timeit timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
+        @trixi_timeit timer() "reinitialize data structures" reinitialize_containers!(mesh,
+                                                                                      equations,
+                                                                                      dg,
+                                                                                      cache)
 
-    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-    u = wrap_array_native(u_ode, mesh, equations, dg, cache)
+        resize!(u_ode,
+                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+        u = wrap_array_native(u_ode, mesh, equations, dg, cache)
 
         @trixi_timeit timer() "reinitialize data structures" begin
             reinitialize_containers!(mesh, equations, dg, cache)

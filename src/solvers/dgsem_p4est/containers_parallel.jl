@@ -303,57 +303,77 @@ function cfunction(::typeof(init_surfaces_iter_face_parallel), ::Val{3})
 end
 
 # Function barrier for type stability, overload for parallel P4estMesh
-function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIterFaceUserData)
-  @unpack interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars = user_data
-  # This function is called during `init_surfaces!`, more precisely it is called for each face
-  # while p4est iterates over the forest. Since `init_surfaces!` can be used to initialize all
-  # surfaces at once or any subset of them, some of the unpacked values above may be `nothing` if
-  # they're not supposed to be initialized during this call. That is why we need additional
-  # `!== nothing` checks below before initializing individual faces.
-  info_pw = PointerWrapper(info)
-  if info_pw.sides.elem_count[] == 2
-    # Two neighboring elements => Interface or mortar
+function init_surfaces_iter_face_inner(info,
+                                       user_data::ParallelInitSurfacesIterFaceUserData)
+    @unpack interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars = user_data
+    # This function is called during `init_surfaces!`, more precisely it is called for each face
+    # while p4est iterates over the forest. Since `init_surfaces!` can be used to initialize all
+    # surfaces at once or any subset of them, some of the unpacked values above may be `nothing` if
+    # they're not supposed to be initialized during this call. That is why we need additional
+    # `!== nothing` checks below before initializing individual faces.
+    info_pw = PointerWrapper(info)
+    if info_pw.sides.elem_count[] == 2
+        # Two neighboring elements => Interface or mortar
 
-    # Extract surface data
-    sides_pw = (load_pointerwrapper_side(info_pw, 1), load_pointerwrapper_side(info_pw, 2))
+        # Extract surface data
+        sides_pw = (load_pointerwrapper_side(info_pw, 1),
+                    load_pointerwrapper_side(info_pw, 2))
 
-    if sides_pw[1].is_hanging[] == false && sides_pw[2].is_hanging[] == false
-      # No hanging nodes => normal interface or MPI interface
-      if sides_pw[1].is.full.is_ghost[] == true || sides_pw[2].is.full.is_ghost[] == true # remote side => MPI interface
-        if mpi_interfaces !== nothing
-          init_mpi_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
-        end
-      else
-        if interfaces !== nothing
-          init_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
-        end
-      end
-    else
-      # Hanging nodes => mortar or MPI mortar
-      # First, we check which side is hanging, i.e., on which side we have the refined cells.
-      # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
-      # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
-      if sides_pw[1].is_hanging[] == true
-        @assert sides_pw[2].is_hanging[] == false
-        if any(sides_pw[1].is.hanging.is_ghost[] .== true) || sides_pw[2].is.full.is_ghost[] == true
-          face_has_ghost_side = true
+        if sides_pw[1].is_hanging[] == false && sides_pw[2].is_hanging[] == false
+            # No hanging nodes => normal interface or MPI interface
+            if sides_pw[1].is.full.is_ghost[] == true ||
+               sides_pw[2].is.full.is_ghost[] == true # remote side => MPI interface
+                if mpi_interfaces !== nothing
+                    init_mpi_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
+                end
+            else
+                if interfaces !== nothing
+                    init_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
+                end
+            end
         else
             # Hanging nodes => mortar or MPI mortar
             # First, we check which side is hanging, i.e., on which side we have the refined cells.
             # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
             # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
-            if sides[1].is_hanging == true
-                @assert sides[2].is_hanging == false
-                if any(sides[1].is.hanging.is_ghost .== true) ||
-                   sides[2].is.full.is_ghost == true
+            if sides_pw[1].is_hanging[] == true
+                @assert sides_pw[2].is_hanging[] == false
+                if any(sides_pw[1].is.hanging.is_ghost[] .== true) ||
+                   sides_pw[2].is.full.is_ghost[] == true
                     face_has_ghost_side = true
                 else
-                    face_has_ghost_side = false
+                    # Hanging nodes => mortar or MPI mortar
+                    # First, we check which side is hanging, i.e., on which side we have the refined cells.
+                    # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
+                    # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
+                    if sides[1].is_hanging == true
+                        @assert sides[2].is_hanging == false
+                        if any(sides[1].is.hanging.is_ghost .== true) ||
+                           sides[2].is.full.is_ghost == true
+                            face_has_ghost_side = true
+                        else
+                            face_has_ghost_side = false
+                        end
+                    else # sides[2].is_hanging == true
+                        @assert sides[1].is_hanging == false
+                        if sides[1].is.full.is_ghost == true ||
+                           any(sides[2].is.hanging.is_ghost .== true)
+                            face_has_ghost_side = true
+                        else
+                            face_has_ghost_side = false
+                        end
+                    end
+                    # Initialize mortar or MPI mortar
+                    if face_has_ghost_side && mpi_mortars !== nothing
+                        init_mpi_mortars_iter_face_inner(info, sides, user_data)
+                    elseif !face_has_ghost_side && mortars !== nothing
+                        init_mortars_iter_face_inner(info, sides, user_data)
+                    end
                 end
-            else # sides[2].is_hanging == true
-                @assert sides[1].is_hanging == false
-                if sides[1].is.full.is_ghost == true ||
-                   any(sides[2].is.hanging.is_ghost .== true)
+            else # sides_pw[2].is_hanging[] == true
+                @assert sides_pw[1].is_hanging[] == false
+                if sides_pw[1].is.full.is_ghost[] == true ||
+                   any(sides_pw[2].is.hanging.is_ghost[] .== true)
                     face_has_ghost_side = true
                 else
                     face_has_ghost_side = false
@@ -361,32 +381,17 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
             end
             # Initialize mortar or MPI mortar
             if face_has_ghost_side && mpi_mortars !== nothing
-                init_mpi_mortars_iter_face_inner(info, sides, user_data)
+                init_mpi_mortars_iter_face_inner(info_pw, sides_pw, user_data)
             elseif !face_has_ghost_side && mortars !== nothing
-                init_mortars_iter_face_inner(info, sides, user_data)
+                init_mortars_iter_face_inner(info_pw, sides_pw, user_data)
             end
         end
-      else # sides_pw[2].is_hanging[] == true
-        @assert sides_pw[1].is_hanging[] == false
-        if sides_pw[1].is.full.is_ghost[] == true || any(sides_pw[2].is.hanging.is_ghost[] .== true)
-          face_has_ghost_side = true
-        else
-          face_has_ghost_side = false
+    elseif info_pw.sides.elem_count[] == 1
+        # One neighboring elements => boundary
+        if boundaries !== nothing
+            init_boundaries_iter_face_inner(info_pw, user_data)
         end
-      end
-      # Initialize mortar or MPI mortar
-      if face_has_ghost_side && mpi_mortars !== nothing
-        init_mpi_mortars_iter_face_inner(info_pw, sides_pw, user_data)
-      elseif !face_has_ghost_side && mortars !== nothing
-        init_mortars_iter_face_inner(info_pw, sides_pw, user_data)
-      end
     end
-  elseif info_pw.sides.elem_count[] == 1
-    # One neighboring elements => boundary
-    if boundaries !== nothing
-      init_boundaries_iter_face_inner(info_pw, user_data)
-    end
-  end
 
     return nothing
 end
@@ -406,43 +411,35 @@ end
 
 # Initialization of MPI interfaces after the function barrier
 function init_mpi_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
-  @unpack mpi_interfaces, mpi_interface_id, mesh = user_data
-  user_data.mpi_interface_id += 1
+    @unpack mpi_interfaces, mpi_interface_id, mesh = user_data
+    user_data.mpi_interface_id += 1
 
-  if sides_pw[1].is.full.is_ghost[] == true
-    local_side = 2
-  elseif sides_pw[2].is.full.is_ghost[] == true
-    local_side = 1
-  else
-    error("should not happen")
-  end
+    if sides_pw[1].is.full.is_ghost[] == true
+        local_side = 2
+    elseif sides_pw[2].is.full.is_ghost[] == true
+        local_side = 1
+    else
+        error("should not happen")
+    end
 
-  # Get local tree, one-based indexing
-  tree_pw = load_pointerwrapper_tree(mesh.p4est, sides_pw[local_side].treeid[] + 1)
-  # Quadrant numbering offset of the local quadrant at this interface
-  offset = tree_pw.quadrants_offset[]
-  tree_quad_id = sides_pw[local_side].is.full.quadid[] # quadid in the local tree
-  # ID of the local neighboring quad, cumulative over local trees
-  local_quad_id = offset + tree_quad_id
+    # Get local tree, one-based indexing
+    tree_pw = load_pointerwrapper_tree(mesh.p4est, sides_pw[local_side].treeid[] + 1)
+    # Quadrant numbering offset of the local quadrant at this interface
+    offset = tree_pw.quadrants_offset[]
+    tree_quad_id = sides_pw[local_side].is.full.quadid[] # quadid in the local tree
+    # ID of the local neighboring quad, cumulative over local trees
+    local_quad_id = offset + tree_quad_id
 
-  # p4est uses zero-based indexing, convert to one-based indexing
-  mpi_interfaces.local_neighbor_ids[mpi_interface_id] = local_quad_id + 1
-  mpi_interfaces.local_sides[mpi_interface_id] = local_side
+    # p4est uses zero-based indexing, convert to one-based indexing
+    mpi_interfaces.local_neighbor_ids[mpi_interface_id] = local_quad_id + 1
+    mpi_interfaces.local_sides[mpi_interface_id] = local_side
 
-  # Face at which the interface lies
-  faces = (sides_pw[1].face[], sides_pw[2].face[])
-
-  # Save mpi_interfaces.node_indices dimension specific in containers_[23]d_parallel.jl
-  init_mpi_interface_node_indices!(mpi_interfaces, faces, local_side,
-                                   info_pw.orientation[],
-                                   mpi_interface_id)
-
-  return nothing
-end
+    # Face at which the interface lies
+    faces = (sides_pw[1].face[], sides_pw[2].face[])
 
     # Save mpi_interfaces.node_indices dimension specific in containers_[23]d_parallel.jl
     init_mpi_interface_node_indices!(mpi_interfaces, faces, local_side,
-                                     unsafe_load(info).orientation,
+                                     info_pw.orientation[],
                                      mpi_interface_id)
 
     return nothing
@@ -450,69 +447,60 @@ end
 
 # Initialization of MPI mortars after the function barrier
 function init_mpi_mortars_iter_face_inner(info_pw, sides_pw, user_data)
-  @unpack mpi_mortars, mpi_mortar_id, mesh = user_data
-  user_data.mpi_mortar_id += 1
+    @unpack mpi_mortars, mpi_mortar_id, mesh = user_data
+    user_data.mpi_mortar_id += 1
 
-  # Get Tuple of adjacent trees, one-based indexing
-  trees_pw = (load_pointerwrapper_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
-              load_pointerwrapper_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
-  # Quadrant numbering offsets of the quadrants at this mortar
-  offsets = SVector(trees_pw[1].quadrants_offset[],
-                    trees_pw[2].quadrants_offset[])
+    # Get Tuple of adjacent trees, one-based indexing
+    trees_pw = (load_pointerwrapper_tree(mesh.p4est, sides_pw[1].treeid[] + 1),
+                load_pointerwrapper_tree(mesh.p4est, sides_pw[2].treeid[] + 1))
+    # Quadrant numbering offsets of the quadrants at this mortar
+    offsets = SVector(trees_pw[1].quadrants_offset[],
+                      trees_pw[2].quadrants_offset[])
 
-  if sides_pw[1].is_hanging[] == true
-    hanging_side = 1
-    full_side = 2
-  else # sides_pw[2].is_hanging[] == true
-    hanging_side = 2
-    full_side = 1
-  end
-  # Just be sure before accessing is.full or is.hanging later
-  @assert sides_pw[full_side].is_hanging[] == false
-  @assert sides_pw[hanging_side].is_hanging[] == true
+    if sides_pw[1].is_hanging[] == true
+        hanging_side = 1
+        full_side = 2
+    else # sides_pw[2].is_hanging[] == true
+        hanging_side = 2
+        full_side = 1
+    end
+    # Just be sure before accessing is.full or is.hanging later
+    @assert sides_pw[full_side].is_hanging[] == false
+    @assert sides_pw[hanging_side].is_hanging[] == true
 
-  # Find small quads that are locally available
-  local_small_quad_positions = findall(sides_pw[hanging_side].is.hanging.is_ghost[] .== false)
+    # Find small quads that are locally available
+    local_small_quad_positions = findall(sides_pw[hanging_side].is.hanging.is_ghost[] .==
+                                         false)
 
-  # Get id of local small quadrants within their tree
-  # Indexing CBinding.Caccessor via a Vector does not work here -> use map instead
-  tree_small_quad_ids = map(p->sides_pw[hanging_side].is.hanging.quadid[][p], local_small_quad_positions)
-  local_small_quad_ids = offsets[hanging_side] .+ tree_small_quad_ids # ids cumulative over local trees
+    # Get id of local small quadrants within their tree
+    # Indexing CBinding.Caccessor via a Vector does not work here -> use map instead
+    tree_small_quad_ids = map(p -> sides_pw[hanging_side].is.hanging.quadid[][p],
+                              local_small_quad_positions)
+    local_small_quad_ids = offsets[hanging_side] .+ tree_small_quad_ids # ids cumulative over local trees
 
-  # Determine if large quadrant is available and if yes, determine its id
-  if sides_pw[full_side].is.full.is_ghost[] == false
-    local_large_quad_id = offsets[full_side] + sides_pw[full_side].is.full.quadid[]
-  else
-    local_large_quad_id = -1 # large quad is ghost
-  end
+    # Determine if large quadrant is available and if yes, determine its id
+    if sides_pw[full_side].is.full.is_ghost[] == false
+        local_large_quad_id = offsets[full_side] + sides_pw[full_side].is.full.quadid[]
+    else
+        local_large_quad_id = -1 # large quad is ghost
+    end
 
-  # Write data to mortar container, convert to 1-based indexing
-  # Start with small elements
-  local_neighbor_ids = local_small_quad_ids .+ 1
-  local_neighbor_positions = local_small_quad_positions
-  # Add large element information if it is locally available
-  if local_large_quad_id > -1
-    push!(local_neighbor_ids, local_large_quad_id + 1) # convert to 1-based index
-    push!(local_neighbor_positions, 2^(ndims(mesh)-1) + 1)
-  end
-
-  mpi_mortars.local_neighbor_ids[mpi_mortar_id] = local_neighbor_ids
-  mpi_mortars.local_neighbor_positions[mpi_mortar_id] = local_neighbor_positions
-
-  # init_mortar_node_indices! expects side 1 to contain small elements
-  faces = (sides_pw[hanging_side].face[], sides_pw[full_side].face[])
-  init_mortar_node_indices!(mpi_mortars, faces, info_pw.orientation[], mpi_mortar_id)
-
-  return nothing
-end
+    # Write data to mortar container, convert to 1-based indexing
+    # Start with small elements
+    local_neighbor_ids = local_small_quad_ids .+ 1
+    local_neighbor_positions = local_small_quad_positions
+    # Add large element information if it is locally available
+    if local_large_quad_id > -1
+        push!(local_neighbor_ids, local_large_quad_id + 1) # convert to 1-based index
+        push!(local_neighbor_positions, 2^(ndims(mesh) - 1) + 1)
+    end
 
     mpi_mortars.local_neighbor_ids[mpi_mortar_id] = local_neighbor_ids
     mpi_mortars.local_neighbor_positions[mpi_mortar_id] = local_neighbor_positions
 
     # init_mortar_node_indices! expects side 1 to contain small elements
-    faces = (sides[hanging_side].face, sides[full_side].face)
-    init_mortar_node_indices!(mpi_mortars, faces, unsafe_load(info).orientation,
-                              mpi_mortar_id)
+    faces = (sides_pw[hanging_side].face[], sides_pw[full_side].face[])
+    init_mortar_node_indices!(mpi_mortars, faces, info_pw.orientation[], mpi_mortar_id)
 
     return nothing
 end
@@ -525,99 +513,103 @@ end
 # - (MPI) mortars at subdomain boundaries
 # and collect the numbers in `user_data` in this order.
 function count_surfaces_iter_face_parallel(info, user_data)
-  info_pw = PointerWrapper(info)
-  if info_pw.sides.elem_count[] == 2
-    # Two neighboring elements => Interface or mortar
+    info_pw = PointerWrapper(info)
+    if info_pw.sides.elem_count[] == 2
+        # Two neighboring elements => Interface or mortar
 
-    # Extract surface data
-    sides_pw = (load_pointerwrapper_side(info_pw, 1), load_pointerwrapper_side(info_pw, 2))
+        # Extract surface data
+        sides_pw = (load_pointerwrapper_side(info_pw, 1),
+                    load_pointerwrapper_side(info_pw, 2))
 
-    if sides_pw[1].is_hanging[] == false && sides_pw[2].is_hanging[] == false
-      # No hanging nodes => normal interface or MPI interface
-      if sides_pw[1].is.full.is_ghost[] == true || sides_pw[2].is.full.is_ghost[] == true # remote side => MPI interface
-        # Unpack user_data = [mpi_interface_count] and increment mpi_interface_count
-        pw = PointerWrapper(Int, user_data)
-        id = pw[4]
-        pw[4] = id + 1
-      else
-        # Unpack user_data = [interface_count] and increment interface_count
-        pw = PointerWrapper(Int, user_data)
-        id = pw[1]
-        pw[1] = id + 1
-      end
-    else
-      # Hanging nodes => mortar or MPI mortar
-      # First, we check which side is hanging, i.e., on which side we have the refined cells.
-      # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
-      # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
-      if sides_pw[1].is_hanging[] == true
-        @assert sides_pw[2].is_hanging[] == false
-        if any(sides_pw[1].is.hanging.is_ghost[] .== true) || sides_pw[2].is.full.is_ghost[] == true
-          face_has_ghost_side = true
-        else
-          face_has_ghost_side = false
-        end
-      else # sides_pw[2].is_hanging[] == true
-        @assert sides_pw[1].is_hanging[] == false
-        if sides_pw[1].is.full.is_ghost[] == true || any(sides_pw[2].is.hanging.is_ghost[] .== true)
-          face_has_ghost_side = true
+        if sides_pw[1].is_hanging[] == false && sides_pw[2].is_hanging[] == false
+            # No hanging nodes => normal interface or MPI interface
+            if sides_pw[1].is.full.is_ghost[] == true ||
+               sides_pw[2].is.full.is_ghost[] == true # remote side => MPI interface
+                # Unpack user_data = [mpi_interface_count] and increment mpi_interface_count
+                pw = PointerWrapper(Int, user_data)
+                id = pw[4]
+                pw[4] = id + 1
+            else
+                # Unpack user_data = [interface_count] and increment interface_count
+                pw = PointerWrapper(Int, user_data)
+                id = pw[1]
+                pw[1] = id + 1
+            end
         else
             # Hanging nodes => mortar or MPI mortar
             # First, we check which side is hanging, i.e., on which side we have the refined cells.
             # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
             # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
-            if sides[1].is_hanging == true
-                @assert sides[2].is_hanging == false
-                if any(sides[1].is.hanging.is_ghost .== true) ||
-                   sides[2].is.full.is_ghost == true
+            if sides_pw[1].is_hanging[] == true
+                @assert sides_pw[2].is_hanging[] == false
+                if any(sides_pw[1].is.hanging.is_ghost[] .== true) ||
+                   sides_pw[2].is.full.is_ghost[] == true
                     face_has_ghost_side = true
                 else
                     face_has_ghost_side = false
                 end
-            else # sides[2].is_hanging == true
-                @assert sides[1].is_hanging == false
-                if sides[1].is.full.is_ghost == true ||
-                   any(sides[2].is.hanging.is_ghost .== true)
+            else # sides_pw[2].is_hanging[] == true
+                @assert sides_pw[1].is_hanging[] == false
+                if sides_pw[1].is.full.is_ghost[] == true ||
+                   any(sides_pw[2].is.hanging.is_ghost[] .== true)
                     face_has_ghost_side = true
                 else
-                    face_has_ghost_side = false
+                    # Hanging nodes => mortar or MPI mortar
+                    # First, we check which side is hanging, i.e., on which side we have the refined cells.
+                    # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
+                    # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
+                    if sides[1].is_hanging == true
+                        @assert sides[2].is_hanging == false
+                        if any(sides[1].is.hanging.is_ghost .== true) ||
+                           sides[2].is.full.is_ghost == true
+                            face_has_ghost_side = true
+                        else
+                            face_has_ghost_side = false
+                        end
+                    else # sides[2].is_hanging == true
+                        @assert sides[1].is_hanging == false
+                        if sides[1].is.full.is_ghost == true ||
+                           any(sides[2].is.hanging.is_ghost .== true)
+                            face_has_ghost_side = true
+                        else
+                            face_has_ghost_side = false
+                        end
+                    end
+                    if face_has_ghost_side
+                        # Unpack user_data = [mpi_mortar_count] and increment mpi_mortar_count
+                        ptr = Ptr{Int}(user_data)
+                        id = unsafe_load(ptr, 5)
+                        unsafe_store!(ptr, id + 1, 5)
+                    else
+                        # Unpack user_data = [mortar_count] and increment mortar_count
+                        ptr = Ptr{Int}(user_data)
+                        id = unsafe_load(ptr, 2)
+                        unsafe_store!(ptr, id + 1, 2)
+                    end
                 end
             end
             if face_has_ghost_side
                 # Unpack user_data = [mpi_mortar_count] and increment mpi_mortar_count
-                ptr = Ptr{Int}(user_data)
-                id = unsafe_load(ptr, 5)
-                unsafe_store!(ptr, id + 1, 5)
+                pw = PointerWrapper(Int, user_data)
+                id = pw[5]
+                pw[5] = id + 1
             else
                 # Unpack user_data = [mortar_count] and increment mortar_count
-                ptr = Ptr{Int}(user_data)
-                id = unsafe_load(ptr, 2)
-                unsafe_store!(ptr, id + 1, 2)
+                pw = PointerWrapper(Int, user_data)
+                id = pw[2]
+                pw[2] = id + 1
             end
         end
-      end
-      if face_has_ghost_side
-        # Unpack user_data = [mpi_mortar_count] and increment mpi_mortar_count
+    elseif info_pw.sides.elem_count[] == 1
+        # One neighboring elements => boundary
+
+        # Unpack user_data = [boundary_count] and increment boundary_count
         pw = PointerWrapper(Int, user_data)
-        id = pw[5]
-        pw[5] = id + 1
-      else
-        # Unpack user_data = [mortar_count] and increment mortar_count
-        pw = PointerWrapper(Int, user_data)
-        id = pw[2]
-        pw[2] = id + 1
-      end
+        id = pw[3]
+        pw[3] = id + 1
     end
-  elseif info_pw.sides.elem_count[] == 1
-    # One neighboring elements => boundary
 
-    # Unpack user_data = [boundary_count] and increment boundary_count
-    pw = PointerWrapper(Int, user_data)
-    id = pw[3]
-    pw[3] = id + 1
-  end
-
-  return nothing
+    return nothing
 end
 
 # 2D

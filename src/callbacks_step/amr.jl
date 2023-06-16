@@ -348,26 +348,26 @@ end
 
 # Copy controller values to quad user data storage, will be called below
 function copy_to_quad_iter_volume(info, user_data)
-  info_pw = PointerWrapper(info)
+    info_pw = PointerWrapper(info)
 
-  # Load tree from global trees array, one-based indexing
-  tree_pw = load_pointerwrapper_tree(info_pw.p4est, info_pw.treeid[] + 1)
-  # Quadrant numbering offset of this quadrant
-  offset = tree_pw.quadrants_offset[]
-  # Global quad ID
-  quad_id = offset + info_pw.quadid[]
+    # Load tree from global trees array, one-based indexing
+    tree_pw = load_pointerwrapper_tree(info_pw.p4est, info_pw.treeid[] + 1)
+    # Quadrant numbering offset of this quadrant
+    offset = tree_pw.quadrants_offset[]
+    # Global quad ID
+    quad_id = offset + info_pw.quadid[]
 
-  # Access user_data = lambda
-  user_data_pw = PointerWrapper(Int, user_data)
-  # Load controller_value = lambda[quad_id + 1]
-  controller_value = user_data_pw[quad_id + 1]
+    # Access user_data = lambda
+    user_data_pw = PointerWrapper(Int, user_data)
+    # Load controller_value = lambda[quad_id + 1]
+    controller_value = user_data_pw[quad_id + 1]
 
-  # Access quadrant's user data ([global quad ID, controller_value])
-  quad_data_pw = PointerWrapper(Int, info_pw.quad.p.user_data[])
-  # Save controller value to quadrant's user data.
-  quad_data_pw[2] = controller_value
+    # Access quadrant's user data ([global quad ID, controller_value])
+    quad_data_pw = PointerWrapper(Int, info_pw.quad.p.user_data[])
+    # Save controller value to quadrant's user data.
+    quad_data_pw[2] = controller_value
 
-  return nothing
+    return nothing
 end
 
 # 2D
@@ -421,29 +421,24 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         # If there is nothing to refine, create empty array for later use
         refined_original_cells = Int[]
     end
-  else
-    # If there is nothing to coarsen, create empty array for later use
-    coarsened_original_cells = Int[]
-  end
 
-  # Store whether there were any cells coarsened or refined and perform load balancing
-  has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
-  # Check if mesh changed on other processes
-  if mpi_isparallel()
-    has_changed = MPI.Allreduce!(Ref(has_changed), |, mpi_comm())[]
-  end
+    @trixi_timeit timer() "coarsen" if !only_refine
+        # Coarsen mesh
+        coarsened_original_cells = @trixi_timeit timer() "mesh" coarsen!(mesh)
 
-  if has_changed # TODO: Taal decide, where shall we set this?
-    # don't set it to has_changed since there can be changes from earlier calls
-    mesh.unsaved_changes = true
-
-    if mpi_isparallel() && amr_callback.dynamic_load_balancing
-      @trixi_timeit timer() "dynamic load balancing" begin
-        global_first_quadrant = unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
-        old_global_first_quadrant = copy(global_first_quadrant)
-        partition!(mesh)
-        rebalance_solver!(u_ode, mesh, equations, dg, cache, old_global_first_quadrant)
-      end
+        # coarsen solver
+        @trixi_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg,
+                                                cache,
+                                                coarsened_original_cells)
+        for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
+            @trixi_timeit timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh,
+                                                            p_equations,
+                                                            p_dg, p_cache,
+                                                            coarsened_original_cells)
+        end
+    else
+        # If there is nothing to coarsen, create empty array for later use
+        coarsened_original_cells = Int[]
     end
 
     # Store whether there were any cells coarsened or refined and perform load balancing
@@ -604,24 +599,24 @@ function current_element_levels(mesh::TreeMesh, solver, cache)
 end
 
 function extract_levels_iter_volume(info, user_data)
-  info_pw = PointerWrapper(info)
+    info_pw = PointerWrapper(info)
 
-  # Load tree from global trees array, one-based indexing
-  tree_pw = load_pointerwrapper_tree(info_pw.p4est, info_pw.treeid[] + 1)
-  # Quadrant numbering offset of this quadrant
-  offset = tree_pw.quadrants_offset[]
-  # Global quad ID
-  quad_id = offset + info_pw.quadid[]
-  # Julia element ID
-  element_id = quad_id + 1
+    # Load tree from global trees array, one-based indexing
+    tree_pw = load_pointerwrapper_tree(info_pw.p4est, info_pw.treeid[] + 1)
+    # Quadrant numbering offset of this quadrant
+    offset = tree_pw.quadrants_offset[]
+    # Global quad ID
+    quad_id = offset + info_pw.quadid[]
+    # Julia element ID
+    element_id = quad_id + 1
 
-  current_level = info_pw.quad.level[]
+    current_level = info_pw.quad.level[]
 
-  # Unpack user_data = current_levels and save current element level
-  pw = PointerWrapper(Int, user_data)
-  pw[element_id] = current_level
+    # Unpack user_data = current_levels and save current element level
+    pw = PointerWrapper(Int, user_data)
+    pw[element_id] = current_level
 
-  return nothing
+    return nothing
 end
 
 # 2D
