@@ -537,7 +537,8 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
     end
 
     function recv_data(type,src, tag)
-        recv,_=MPI.recv(src,tag,mpi_comm())
+        status=MPI.Status
+        recv,_=MPI.recv(mpi_comm(),status;source=src,tag=tag)
         length=recv[9]
         c=type(length)
         c.parent_ids[1:length]=recv[1]
@@ -557,7 +558,8 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
     end
   
     function recv_inplace!(t,src, tag)
-        recv,_=MPI.recv(src,tag,mpi_comm())
+        status=MPI.Status
+        recv,_=MPI.recv(mpi_comm(),status;source=src,tag=tag)
         length=recv[9]
         t.parent_ids[1:length]=recv[1]
         t.child_ids[:,1:length]=recv[2]
