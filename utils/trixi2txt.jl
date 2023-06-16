@@ -267,9 +267,9 @@ function read_datafile(filename::String)
         node_variables = Dict{String, Union{Vector{Float64}, Vector{Int}}}()
         index = 1
         while haskey(file, "node_variables_$index")
-          varname = read(attributes(file["node_variables_$index"])["name"])
-          node_variables[varname] = read(file["node_variables_$index"])
-          index +=1
+            varname = read(attributes(file["node_variables_$index"])["name"])
+            node_variables[varname] = read(file["node_variables_$index"])
+            index += 1
         end
 
         return labels, data, n_elements, n_nodes, element_variables, node_variables, time
