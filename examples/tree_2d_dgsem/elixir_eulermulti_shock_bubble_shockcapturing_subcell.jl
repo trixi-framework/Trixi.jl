@@ -88,7 +88,11 @@ density2(u, equations::CompressibleEulerMulticomponentEquations2D) = u[2+3]
 
 indicator_sc = IndicatorIDP(equations, basis;
                             positivity=true,
-                            variables_cons=(density1, density2))
+                            variables_cons=(density1, density2),
+                            variables_nonlinear=(), positivity_correction_factor=0.1,
+                            density_tvd=false,
+                            spec_entropy=false,
+                            bar_states=false)
 
 volume_integral=VolumeIntegralSubcellLimiting(indicator_sc; volume_flux_dg=volume_flux,
                                                             volume_flux_fv=surface_flux)
@@ -135,7 +139,7 @@ callbacks           = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (APosterioriLimiter(),)
+stage_callbacks = (APosterioriLimiter(), BoundsCheckCallback(save_errors=false))
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks);
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

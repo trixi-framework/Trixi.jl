@@ -1334,9 +1334,7 @@ mutable struct ContainerShockCapturingIndicatorIDP2D{uEltype <: Real}
 end
 
 function ContainerShockCapturingIndicatorIDP2D{uEltype}(capacity::Integer, n_nodes,
-                                                        number_bounds) where {
-                                                                              uEltype <:
-                                                                              Real}
+                                                        length) where {uEltype <: Real}
     nan_uEltype = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -1347,9 +1345,9 @@ function ContainerShockCapturingIndicatorIDP2D{uEltype}(capacity::Integer, n_nod
     _alpha2 = fill(nan_uEltype, n_nodes * (n_nodes + 1) * capacity)
     alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes + 1, capacity))
 
-    _variable_bounds = Vector{Vector{uEltype}}(undef, number_bounds)
-    variable_bounds = Vector{Array{uEltype, 3}}(undef, number_bounds)
-    for i in 1:number_bounds
+    _variable_bounds = Vector{Vector{uEltype}}(undef, length)
+    variable_bounds = Vector{Array{uEltype, 3}}(undef, length)
+    for i in 1:length
         _variable_bounds[i] = fill(nan_uEltype, n_nodes * n_nodes * capacity)
         variable_bounds[i] = unsafe_wrap(Array, pointer(_variable_bounds[i]),
                                          (n_nodes, n_nodes, capacity))
