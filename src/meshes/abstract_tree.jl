@@ -505,6 +505,11 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
         return Int[]
     end
 
+    criterium=(length(cell_ids)>sqrt(t.length))
+    if mpi_isparallel() && criterium
+         cell_ids = cell_ids[t.mpi_ranks[cell_ids].==mpi_rank()]
+    end
+
     # Reset original cell ids such that each cell knows its current id
     reset_original_cell_ids!(t)
 
@@ -521,6 +526,53 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
                 cell_ids[id] = cell_id - count
             end
         end
+    end
+
+    function send_data(t, n_coarsened, dest, tag)
+        send_buf=[t.parent_ids[1:t.length],t.child_ids[:,1:t.length],t.neighbor_ids[:,1:t.length],
+                  t.levels[1:t.length],t.coordinates[:,1:t.length],t.original_cell_ids[1:t.length],
+                  t.mpi_ranks[1:t.length],t.capacity,t.length,t.dummy,t.center_level_0,t.length_level_0,
+                  t.periodicity,n_coarsened]
+        MPI.send(send_buf,dest,tag,mpi_comm())
+    end
+
+    function recv_data(type,src, tag)
+        recv,_=MPI.recv(src,tag,mpi_comm())
+        length=recv[9]
+        c=type(length)
+        c.parent_ids[1:length]=recv[1]
+        c.child_ids[:,1:length]=recv[2]
+        c.neighbor_ids[:,1:length]=recv[3]
+        c.levels[1:length]=recv[4]
+        c.coordinates[:,1:length]=recv[5]
+        c.original_cell_ids[1:length]=recv[6]
+        c.mpi_ranks[1:length]=recv[7]
+        c.capacity=recv[8]
+        c.length=recv[9]
+        c.dummy=recv[10]
+        c.center_level_0=recv[11]
+        c.length_level_0=recv[12]
+        c.periodicity=recv[13]
+        return c,recv[14]
+    end
+  
+    function recv_inplace!(t,src, tag)
+        recv,_=MPI.recv(src,tag,mpi_comm())
+        length=recv[9]
+        t.parent_ids[1:length]=recv[1]
+        t.child_ids[:,1:length]=recv[2]
+        t.neighbor_ids[:,1:length]=recv[3]
+        t.levels[1:length]=recv[4]
+        t.coordinates[:,1:length]=recv[5]
+        t.original_cell_ids[1:length]=recv[6]
+        t.mpi_ranks[1:length]=recv[7]
+        t.capacity=recv[8]
+        t.length=recv[9]
+        t.dummy=recv[10]
+        t.center_level_0=recv[11]
+        t.length_level_0=recv[12]
+        t.periodicity=recv[13]
+        return recv[14]
     end
 
     # Iterate backwards over cells to coarsen
@@ -599,6 +651,101 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
 
         # Keep track of number of coarsened cells
         n_coarsened += 1
+    end
+
+    if mpi_isparallel() && criterium
+        if mpi_rank()==0
+
+            recv_buf = Vector{typeof(t)}(undef, mpi_nranks())      
+            recv_buf[1]=t
+
+            recv_size = [n_coarsened for i in 1:mpi_nranks()]
+            @trixi_timeit timer() "MPI" for i in 1:(mpi_nranks()-1)
+            recv_buf[i+1],recv_size[i+1]=recv_data(typeof(t),i, i)
+            end
+
+            n_coarsened = sum(recv_size)
+            iterators=[1 for i in 1:mpi_nranks()]
+            rank=0
+            i=1
+            t.length-=4*sum(recv_size[2:mpi_nranks()])
+            used = [false for i in 1:mpi_nranks()]
+            while true
+                if (i>t.length) || (rank>=mpi_nranks()) 
+                    break
+                end 
+                if rank>=0
+                    if recv_buf[rank+1].mpi_ranks[iterators[rank+1]]==rank
+                        used[rank+1]=true
+                        parent_id = recv_buf[rank+1].parent_ids[iterators[rank+1]]
+                        parent_mpi_rank=0
+                        if parent_id!=0
+                            parent_original_id=recv_buf[rank+1].original_cell_ids[parent_id]
+                            parent_mpi_rank=recv_buf[rank+1].mpi_ranks[parent_id]
+                            if parent_mpi_rank!=rank
+                                parent_id=findfirst(abs.(recv_buf[parent_mpi_rank+1].original_cell_ids[1:recv_buf[parent_mpi_rank+1].length]).==abs(parent_original_id))
+                            end
+                        end
+                        offset=(parent_mpi_rank>0) ? 4*sum(recv_size[1:parent_mpi_rank]) : 0
+                        t.parent_ids[i]=parent_id - offset
+                        if !is_leaf(recv_buf[rank+1], iterators[rank+1])
+                            for (dir, id) in enumerate(recv_buf[rank+1].child_ids[:,iterators[rank+1]])
+                                if id==0
+                                    t.child_ids[:,i].=0
+                                    break
+                                end
+                                child_mpi_rank=recv_buf[rank+1].mpi_ranks[id]
+                                child_original_id=recv_buf[rank+1].original_cell_ids[id]
+                                offset=(child_mpi_rank>0) ? 4*sum(recv_size[1:child_mpi_rank]) : 0
+                                if child_mpi_rank!=rank
+                                    id=findfirst(abs.(recv_buf[child_mpi_rank+1].original_cell_ids[1:recv_buf[child_mpi_rank+1].length]).==abs(child_original_id))
+                                    id=(!isa(id, Int)) ? offset : id
+                                end
+                                t.child_ids[dir,i]=id-offset
+                            end
+                        else
+                            t.child_ids[:,i]=recv_buf[rank+1].child_ids[:,iterators[rank+1]]
+                        end
+                        for (dir, id) in enumerate(recv_buf[rank+1].neighbor_ids[:,iterators[rank+1]])
+                            offset=0
+                            if has_neighbor(recv_buf[rank+1], iterators[rank+1], dir)
+                                neighbor_mpi_rank=recv_buf[rank+1].mpi_ranks[id]
+                                neighbor_original_id=recv_buf[rank+1].original_cell_ids[id]
+                                offset=(neighbor_mpi_rank>0) ? 4*sum(recv_size[1:neighbor_mpi_rank]) : 0
+                                if neighbor_mpi_rank!=rank
+                                    id=findfirst(abs.(recv_buf[neighbor_mpi_rank+1].original_cell_ids[1:recv_buf[neighbor_mpi_rank+1].length]).==abs(neighbor_original_id))
+                                    id=(!isa(id, Int)) ? offset : id
+                                end
+                            end
+                            t.neighbor_ids[dir,i]=id-offset
+                        end
+                        t.levels[i]=recv_buf[rank+1].levels[iterators[rank+1]]
+                        t.coordinates[:,i]=recv_buf[rank+1].coordinates[:,iterators[rank+1]]
+                        t.original_cell_ids[i]=recv_buf[rank+1].original_cell_ids[iterators[rank+1]]
+                        t.mpi_ranks[i]=recv_buf[rank+1].mpi_ranks[iterators[rank+1]]
+                        i+=1
+                        iterators[rank+1] += 1
+                    else
+                        iterators[rank+1] += 1
+                        rank = used[rank+1] ? rank+1 : rank
+                    end
+                else
+                  iterators.+=1
+                  i+=1
+                end
+            end
+            @trixi_timeit timer() "MPI" for i in 1:(mpi_nranks()-1)
+                send_data(t, n_coarsened, i, i)
+            end
+        else 
+            @trixi_timeit timer() "MPI" begin
+                send_data(t, n_coarsened, 0, mpi_rank())
+            end
+            @trixi_timeit timer() "MPI" begin
+                n_coarsened=recv_inplace!(t,0, mpi_rank())
+            end
+        end 
+        invalidate!(t, t.length+1,t.capacity)
     end
 
     # Determine list of *original* cell ids that were coarsened to
