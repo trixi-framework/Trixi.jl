@@ -3,11 +3,9 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 include("positivity_zhang_shu.jl")
 include("a_posteriori_limiter.jl")
 include("bounds_check.jl")
-
-
 end # @muladd
