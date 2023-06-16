@@ -25,7 +25,7 @@ the LDG solver is equivalent to [`ViscousFormulationBassiRebay1`](@ref) with an 
   [DOI: 10.1137/S0036142997316712](https://doi.org/10.1137/S0036142997316712)
 """
 struct ViscousFormulationLocalDG{P}
-  penalty_parameter::P
+    penalty_parameter::P
 end
 
 default_parabolic_solver() = ViscousFormulationBassiRebay1()
