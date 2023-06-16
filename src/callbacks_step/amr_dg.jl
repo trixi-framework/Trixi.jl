@@ -39,14 +39,6 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::ParallelP4estMesh, equat
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
         u = wrap_array_native(u_ode, mesh, equations, dg, cache)
 
-        @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
-        end
-
-        resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-        u = wrap_array_native(u_ode, mesh, equations, dg, cache)
-
         @trixi_timeit timer() "exchange data" begin
             # Collect MPI requests for MPI_Waitall
             requests = Vector{MPI.Request}()
@@ -90,6 +82,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::ParallelP4estMesh, equat
                     push!(requests, request)
                 end
             end
+
             # Wait for all non-blocking MPI send/receive operations to finish
             MPI.Waitall(requests, MPI.Status)
         end
