@@ -3,36 +3,35 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 # Initialize data structures in element container
 function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasis)
-  @unpack node_coordinates, jacobian_matrix,
-          contravariant_vectors, inverse_jacobian = elements
+    @unpack node_coordinates, jacobian_matrix,
+    contravariant_vectors, inverse_jacobian = elements
 
-  calc_node_coordinates!(node_coordinates, mesh, basis)
+    calc_node_coordinates!(node_coordinates, mesh, basis)
 
-  for element in 1:ncells(mesh)
-    calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
+    for element in 1:ncells(mesh)
+        calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
 
-    calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix)
+        calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix)
 
-    calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix)
-  end
+        calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix)
+    end
 
-  return nothing
+    return nothing
 end
-
 
 # Interpolate tree_node_coordinates to each quadrant at the nodes of the specified basis
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
                                 basis::LobattoLegendreBasis)
-  # Hanging nodes will cause holes in the mesh if its polydeg is higher
-  # than the polydeg of the solver.
-  @assert length(basis.nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
+    # Hanging nodes will cause holes in the mesh if its polydeg is higher
+    # than the polydeg of the solver.
+    @assert length(basis.nodes)>=length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
 
-  calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
+    calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
 end
 
 # Interpolate tree_node_coordinates to each quadrant at the specified nodes
@@ -77,100 +76,94 @@ function calc_node_coordinates!(node_coordinates,
         tmp1
       )
     end
-  end
 
-  return node_coordinates
+    return node_coordinates
 end
-
 
 # Initialize node_indices of interface container
 @inline function init_interface_node_indices!(interfaces::P4estInterfaceContainer{2},
                                               faces, orientation, interface_id)
-  # Iterate over primary and secondary element
-  for side in 1:2
-    # Align interface in positive coordinate direction of primary element.
-    # For orientation == 1, the secondary element needs to be indexed backwards
-    # relative to the interface.
-    if side == 1 || orientation == 0
-      # Forward indexing
-      i = :i_forward
-    else
-      # Backward indexing
-      i = :i_backward
+    # Iterate over primary and secondary element
+    for side in 1:2
+        # Align interface in positive coordinate direction of primary element.
+        # For orientation == 1, the secondary element needs to be indexed backwards
+        # relative to the interface.
+        if side == 1 || orientation == 0
+            # Forward indexing
+            i = :i_forward
+        else
+            # Backward indexing
+            i = :i_backward
+        end
+
+        if faces[side] == 0
+            # Index face in negative x-direction
+            interfaces.node_indices[side, interface_id] = (:begin, i)
+        elseif faces[side] == 1
+            # Index face in positive x-direction
+            interfaces.node_indices[side, interface_id] = (:end, i)
+        elseif faces[side] == 2
+            # Index face in negative y-direction
+            interfaces.node_indices[side, interface_id] = (i, :begin)
+        else # faces[side] == 3
+            # Index face in positive y-direction
+            interfaces.node_indices[side, interface_id] = (i, :end)
+        end
     end
 
-    if faces[side] == 0
-      # Index face in negative x-direction
-      interfaces.node_indices[side, interface_id] = (:begin, i)
-    elseif faces[side] == 1
-      # Index face in positive x-direction
-      interfaces.node_indices[side, interface_id] = (:end, i)
-    elseif faces[side] == 2
-      # Index face in negative y-direction
-      interfaces.node_indices[side, interface_id] = (i, :begin)
-    else # faces[side] == 3
-      # Index face in positive y-direction
-      interfaces.node_indices[side, interface_id] = (i, :end)
-    end
-  end
-
-  return interfaces
+    return interfaces
 end
-
 
 # Initialize node_indices of boundary container
 @inline function init_boundary_node_indices!(boundaries::P4estBoundaryContainer{2},
                                              face, boundary_id)
-  if face == 0
-    # Index face in negative x-direction
-    boundaries.node_indices[boundary_id] = (:begin, :i_forward)
-  elseif face == 1
-    # Index face in positive x-direction
-    boundaries.node_indices[boundary_id] = (:end, :i_forward)
-  elseif face == 2
-    # Index face in negative y-direction
-    boundaries.node_indices[boundary_id] = (:i_forward, :begin)
-  else # face == 3
-    # Index face in positive y-direction
-    boundaries.node_indices[boundary_id] = (:i_forward, :end)
-  end
+    if face == 0
+        # Index face in negative x-direction
+        boundaries.node_indices[boundary_id] = (:begin, :i_forward)
+    elseif face == 1
+        # Index face in positive x-direction
+        boundaries.node_indices[boundary_id] = (:end, :i_forward)
+    elseif face == 2
+        # Index face in negative y-direction
+        boundaries.node_indices[boundary_id] = (:i_forward, :begin)
+    else # face == 3
+        # Index face in positive y-direction
+        boundaries.node_indices[boundary_id] = (:i_forward, :end)
+    end
 
-  return boundaries
+    return boundaries
 end
-
 
 # Initialize node_indices of mortar container
 # faces[1] is expected to be the face of the small side.
 @inline function init_mortar_node_indices!(mortars, faces, orientation, mortar_id)
-  for side in 1:2
-    # Align mortar in positive coordinate direction of small side.
-    # For orientation == 1, the large side needs to be indexed backwards
-    # relative to the mortar.
-    if side == 1 || orientation == 0
-      # Forward indexing for small side or orientation == 0
-      i = :i_forward
-    else
-      # Backward indexing for large side with reversed orientation
-      i = :i_backward
+    for side in 1:2
+        # Align mortar in positive coordinate direction of small side.
+        # For orientation == 1, the large side needs to be indexed backwards
+        # relative to the mortar.
+        if side == 1 || orientation == 0
+            # Forward indexing for small side or orientation == 0
+            i = :i_forward
+        else
+            # Backward indexing for large side with reversed orientation
+            i = :i_backward
+        end
+
+        if faces[side] == 0
+            # Index face in negative x-direction
+            mortars.node_indices[side, mortar_id] = (:begin, i)
+        elseif faces[side] == 1
+            # Index face in positive x-direction
+            mortars.node_indices[side, mortar_id] = (:end, i)
+        elseif faces[side] == 2
+            # Index face in negative y-direction
+            mortars.node_indices[side, mortar_id] = (i, :begin)
+        else # faces[side] == 3
+            # Index face in positive y-direction
+            mortars.node_indices[side, mortar_id] = (i, :end)
+        end
     end
 
-    if faces[side] == 0
-      # Index face in negative x-direction
-      mortars.node_indices[side, mortar_id] = (:begin, i)
-    elseif faces[side] == 1
-      # Index face in positive x-direction
-      mortars.node_indices[side, mortar_id] = (:end, i)
-    elseif faces[side] == 2
-      # Index face in negative y-direction
-      mortars.node_indices[side, mortar_id] = (i, :begin)
-    else # faces[side] == 3
-      # Index face in positive y-direction
-      mortars.node_indices[side, mortar_id] = (i, :end)
-    end
-  end
-
-  return mortars
+    return mortars
 end
-
-
 end # @muladd

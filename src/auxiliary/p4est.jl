@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 """
     init_p4est()
@@ -13,15 +13,15 @@ This function will check if `p4est` is already initialized
 and if yes, do nothing, thus it is safe to call it multiple times.
 """
 function init_p4est()
-  p4est_package_id = P4est.package_id()
-  if p4est_package_id >= 0
+    p4est_package_id = P4est.package_id()
+    if p4est_package_id >= 0
+        return nothing
+    end
+
+    # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
+    p4est_init(C_NULL, SC_LP_ERROR)
+
     return nothing
-  end
-
-  # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
-  p4est_init(C_NULL, SC_LP_ERROR)
-
-  return nothing
 end
 
 # for convenience to either pass a Ptr or a PointerWrapper
@@ -34,19 +34,6 @@ const P8estConnectvitytPtrOrPW = Union{Ptr{p8est_connectivity_t}, PointerWrapper
 const P4estGhostPtrOrPW = Union{Ptr{p4est_ghost_t}, PointerWrapper{p4est_ghost_t}}
 const P8estGhostPtrOrPW = Union{Ptr{p8est_ghost_t}, PointerWrapper{p8est_ghost_t}}
 
-# Convert sc_array of type T to Julia array
-function unsafe_wrap_sc(::Type{T}, sc_array::Ptr{sc_array}) where T
-  sc_array_obj = unsafe_load(sc_array)
-  return unsafe_wrap_sc(T, sc_array_obj)
-end
-
-function unsafe_wrap_sc(::Type{T}, sc_array_obj::sc_array) where T
-  elem_count = sc_array_obj.elem_count
-  array = sc_array_obj.array
-
-  return unsafe_wrap(Array, Ptr{T}(array), elem_count)
-end
-
 function unsafe_wrap_sc(::Type{T}, sc_array_pw::PointerWrapper{sc_array}) where T
   elem_count = sc_array_pw.elem_count[]
   array = sc_array_pw.array
@@ -54,12 +41,10 @@ function unsafe_wrap_sc(::Type{T}, sc_array_pw::PointerWrapper{sc_array}) where 
   return unsafe_wrap(Array, Ptr{T}(pointer(array)), elem_count)
 end
 
-
 # Load the ith element (1-indexed) of an sc array of type T as PointerWrapper
 function load_pointerwrapper_sc(::Type{T}, sc_array::PointerWrapper{sc_array}, i::Integer=1) where T
   return PointerWrapper(T, pointer(sc_array.array) + (i - 1) * sizeof(T))
 end
-
 
 # Create new `p4est` from a p4est_connectivity
 # 2D
@@ -81,7 +66,6 @@ function new_p4est(connectivity::P8estConnectvitytPtrOrPW, initial_refinement_le
   p8est_new_ext(comm, connectivity, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
 end
 
-
 # Save `p4est` data to file
 # 2D
 function save_p4est!(file, p4est::P4estPtrOrPW)
@@ -95,29 +79,26 @@ function save_p4est!(file, p8est::P8estPtrOrPW)
   p8est_save(file, p8est, false)
 end
 
-
 # Load `p4est` from file
 # 2D
 function load_p4est(file, ::Val{2})
-  conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
-  comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi.jl's MPI communicator if p4est supports MPI
-  p4est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
+    conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
+    comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi.jl's MPI communicator if p4est supports MPI
+    p4est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
 end
 
 # 3D
 function load_p4est(file, ::Val{3})
-  conn_vec = Vector{Ptr{p8est_connectivity_t}}(undef, 1)
-  comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi.jl's MPI communicator if p4est supports MPI
-  p8est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
+    conn_vec = Vector{Ptr{p8est_connectivity_t}}(undef, 1)
+    comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi.jl's MPI communicator if p4est supports MPI
+    p8est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
 end
-
 
 # Read `p4est` connectivity from Abaqus mesh file (.inp)
 # 2D
 read_inp_p4est(meshfile, ::Val{2}) = p4est_connectivity_read_inp(meshfile)
 # 3D
 read_inp_p4est(meshfile, ::Val{3}) = p8est_connectivity_read_inp(meshfile)
-
 
 # Refine `p4est` if refine_fn_c returns 1
 # 2D
@@ -131,7 +112,6 @@ refine_p4est!(p8est::P8estPtrOrPW, recursive, refine_fn_c, init_fn_c) = p8est_re
 coarsen_p4est!(p4est::P4estPtrOrPW, recursive, coarsen_fn_c, init_fn_c) = p4est_coarsen(p4est, recursive, coarsen_fn_c, init_fn_c)
 # 3D
 coarsen_p4est!(p8est::P8estPtrOrPW, recursive, coarsen_fn_c, init_fn_c) = p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
-
 
 # Create new ghost layer from p4est, only connections via faces are relevant
 # 2D
@@ -172,7 +152,6 @@ end
 ghost_destroy_p4est(ghost_layer::P4estGhostPtrOrPW) = p4est_ghost_destroy(ghost_layer)
 # 3D
 ghost_destroy_p4est(ghost_layer::P8estGhostPtrOrPW) = p8est_ghost_destroy(ghost_layer)
-
 
 # Let `p4est` iterate over each cell volume and cell face.
 # Call iter_volume_c for each cell and iter_face_c for each face.
@@ -223,7 +202,6 @@ function iterate_p4est(p8est::P8estPtrOrPW, user_data; ghost_layer=C_NULL,
   return nothing
 end
 
-
 # Load i-th element of the sc_array info.sides of the type p[48]est_iter_face_side_t
 # 2D version
 function load_pointerwrapper_side(info::PointerWrapper{p4est_iter_face_info_t}, i::Integer=1)
@@ -235,7 +213,6 @@ function load_pointerwrapper_side(info::PointerWrapper{p8est_iter_face_info_t}, 
   return load_pointerwrapper_sc(p8est_iter_face_side_t, info.sides, i)
 end
 
-
 # Load i-th element of the sc_array p4est.trees of the type p[48]est_tree_t
 # 2D version
 function load_pointerwrapper_tree(p4est::PointerWrapper{p4est_t}, i::Integer=1)
@@ -246,6 +223,4 @@ end
 function load_pointerwrapper_tree(p8est::PointerWrapper{p8est_t}, i::Integer=1)
   return load_pointerwrapper_sc(p8est_tree_t, p8est.trees, i)
 end
-
-
 end # @muladd
