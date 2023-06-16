@@ -1,3 +1,4 @@
+#! format: off
 using Trixi
 
 trixi_include(default_example())
