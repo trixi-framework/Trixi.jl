@@ -1,1 +1,594 @@
-To restart a simulation ...
+# [Restart Simulation](@id restart)
+
+You can continue running an aready finsihed simulation by first
+preparing the imulation for the restart and then performing the restart.
+Here we suppose that in the first run your siulation stops at time 1.0
+and then you want it to run further to time 2.0.
+
+## [Prepare the simulation for a restart](@id restart_preparation)
+In you original elixir you need to specify to write out restart files.
+Those will later be read for the restart of your simulation.
+This is done almost the same way as writing the snapshots using the
+SaveSolutionCallback callback.
+For the restart files it is called SaveRestartCallback:
+
+save_restart = SaveRestartCallback(interval=100,
+                                   save_final_restart=true)
+
+Make this part of your CallbackSet.
+
+An example is examples/examples/structured_2d_dgsem/elixir_advection_extended.jl.
+
+
+## [Perform the simulation restart](@id restart_perform)
+Since all of the information about the simulation can be obtained from the
+last snapshot, the restart can be done with relatively few lines
+in an extra elixir file.
+However, some might prefer to keep everything in one elixir and
+conditionals like [if restart] with a boolean variable restart that is user defined.
+
+First we need to define from which file we want to restart, e.g.
+restart_file = "restart_000021.h5"
+
+Then we load the mesh file:
+restart_filename = joinpath("out", restart_file)
+mesh = load_mesh(restart_filename)
+
+This is then needed for the semidiscretization:
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
+We then define a new time span for the simulation that takes as starting
+time the one form the snapshot:
+tspan = (load_time(restart_filename), 2.0)
+
+We now also take the last dt, so that our solver does not need to first find
+one to fullfil the CFL condition:
+dt = load_dt(restart_filename)
+
+The ODE that we will pass to the solver is now:
+ode = semidiscretize(semi, tspan, restart_filename)
+
+You should now define a SaveSolution callback similar to the original simulation,
+but with save_initial_solution=false, otherwise our initial snapshot will be overwritten.
+If you are using one file you can reuse your SaveSolution callback, but need to set
+save_solution.condition.save_initial_solution = false
+
+Before we compute the solution using OrdinaryDiffEq we need to set the integrator, e.g.:
+integrator = init(ode, CarpenterKennedy2N54(williamson_condition=false),
+                 dt=dt, save_everystep=false, callback=callbacks);
+integrator.iter = load_timestep(restart_filename)
+integrator.stats.naccept = integrator.iter
+
+Now we can compute the solution:
+sol = solve!(integrator)
+
+An example is in examples/structured_2d_dgsem.
+
+
+
+## [Plots.jl [experimental]](@id Plots.jl)
+By far the easiest and most convenient plotting approach is to use the powerful
+[Plots.jl](https://github.com/JuliaPlots/Plots.jl) package to directly visualize
+Trixi.jl's results from the REPL.
+In the following, you will find more information on a number of topics for how
+to use Plots.jl together with Trixi.jl:
+1. [Getting started](@ref getting-started-plots-jl)
+2. [Customizing plot results via a PlotData2D object](@ref)
+3. [Plotting a 3D solution as a 2D plot](@ref)
+4. [Creating a 1D plot](@ref)
+5. [Plotting a 2D or 3D solutions as a 1D plot](@ref)
+6. [Visualizing results during a simulation](@ref)
+
+!!! note
+    Plotting via Plots.jl is still considered an experimental feature and might
+    change in any future releases.
+
+### [Getting started](@id getting-started-plots-jl)
+
+After running a simulation with Trixi.jl in the REPL, load the Plots package with
+```julia
+julia> using Plots
+```
+To visualize the solution, execute
+```julia
+julia> plot(sol)
+```
+Here we assume that `sol` holds the return value of the `solve(...)` method
+(with type `SciMLBase.ODESolution`), which is the default variable name when
+you use one of the example elixirs. This will generate a grid layout with one
+subplot for each solution variable, convenient for getting an overview of
+the current solution:
+
+![plot-sol](https://user-images.githubusercontent.com/72009492/130951021-677824f1-ba86-4291-8ff3-6fe2b910a2c9.PNG)
+
+You can save the resulting file as a PNG image file by calling `savefig(...)`
+with an output file name that ends in `.png`, e.g.,
+```julia
+julia> savefig("solution-overview.png")
+```
+
+In Trixi.jl, two plot types are available: 2D heatmap plots and 1D line plots.
+If you use `plot(sol)`, Trixi.jl will automatically choose the plot type that fits the dimensions
+of the `sol` input: 2D/3D data will be visualized as a heatmap, 1D data as a line plot.
+For more fine-grained control over what to plot, you can create such an object
+yourself, which can either be a [`PlotData2D`](@ref) or a [`PlotData1D`](@ref) object.
+For further details on both of these see below:
+
+
+### Customizing plot results via a PlotData2D object
+ For more fine-grained control over what to plot, first create a
+[`PlotData2D`](@ref) object by executing
+```julia
+julia> pd = PlotData2D(sol)
+julia> pd = PlotData2D(u, semi)
+```
+where `u` is an array containing the solution and `semi` is the semidiscretization.
+For example, if
+`PlotData2D(sol.u[2], semi)` is specified, this will create a `PlotData2D`
+instance from the 2nd saved time-step. If `PlotData2D(sol(0.5), semi)` is
+specified, it will construct a `PlotData2D` instance using OrdinaryDiffEq.jl's
+interpolation to evaluate the solution at time `t=0.5`.
+
+This takes the results generated by Trixi.jl and stores them in a data format that
+can be understood by the Plots package, and `pd` holds all data relevant for
+plotting `sol`. You can pass variable names as strings to `pd` using a
+dictionary-like syntax, e.g.,
+```julia
+julia> plot(pd["rho"])
+```
+This will create a single 2D heatmap plot of the variable `rho`:
+
+![plot-rho](https://user-images.githubusercontent.com/72009492/130951033-e3852c55-918c-4e74-98df-ef2353115b00.PNG)
+
+The default plot type and style can be overridden by passing any additional
+arguments that are understood by the Plots package. For example, to change the
+color scheme and add names to the axes, modify the previous command to
+```julia
+julia> plot(pd["rho"], seriescolor = :heat, xguide="x", yguide="y")
+```
+to yield
+
+![plot-rho-modified](https://user-images.githubusercontent.com/3637659/102724842-d8c20b80-4312-11eb-87db-b3ab22e74568.png)
+
+For more details on the various format options for `plot`, please consult the
+[Plots documentation](https://docs.juliaplots.org/latest/).
+
+In addition, you can plot the mesh lines on top of the solution variables by calling
+the `getmesh(...)` function on the `PlotData2D` object
+```julia
+julia> plot!(getmesh(pd)) # here we use `plot!` with an `!` to add to the previous plot
+```
+which modifies the previous plot to
+
+![plot-rho-modified-mesh](https://user-images.githubusercontent.com/3637659/102724856-e1b2dd00-4312-11eb-83ae-e470c32f9008.png)
+
+By default, `PlotData2D` will convert the conserved variables to primitive
+variables, but this can be changed by passing an appropriate conversion function in
+the `solution_variables` keyword argument, similar to the behavior of the
+[`SaveSolutionCallback`](@ref):
+```julia
+julia> pd = PlotData2D(sol; solution_variables=cons2cons) # Plot conservative variables
+```
+There are several other keyword arguments that influence how the solution data
+is processed for visualization with the Plots package. A detailed explanation
+can be found in the docstring of the [`PlotData2D`](@ref) constructor.
+
+Another way to change the appearance of a plot is to convert the solution to a
+uniformly refined mesh before plotting. This can be helpful, e.g., when
+trying different settings for a simulation with adaptive mesh refinement,
+where one would like to ignore the mesh changes when comparing solutions. This
+is achieved with [`adapt_to_mesh_level`](@ref), which uses the mesh adaptation
+routines to adapt the solution to a uniform grid. For example, the AMR solution
+from above could be preprocessed with
+```julia
+julia> pd = PlotData2D(adapt_to_mesh_level(sol, 4)...)
+```
+When plotted together with the mesh, this will yield the following visualization:
+
+![plot-rho-uniform-mesh](https://user-images.githubusercontent.com/72009492/130951039-f2f91760-539a-4e96-ac39-4053e934040b.PNG)
+
+## Plotting a user-defined scalar field
+
+To plot a scalar quantity, one can call `plot(ScalarPlotData2D(u, semi))`, where
+`u` is an array of nodal values of the scalar field to plot. The layout of `u` should
+match the layout of the `x` and `y` nodal coordinates of the respective solver. For
+example, after running
+`trixi_include(joinpath("examples", "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))`,
+the following can be used to plot the function `f(x, y) = x * y`:
+```julia
+x = view(semi.cache.elements.node_coordinates, 1, :, :, :)
+y = view(semi.cache.elements.node_coordinates, 2, :, :, :)
+plot(ScalarPlotData2D(x .* y, semi))
+```
+This produces the following plot:
+
+![scalar-plotting-example](https://user-images.githubusercontent.com/1156048/132762371-da141802-34e8-4035-a88d-4d60e66c9f19.png)
+
+This routine can be used to visualize scalar quantities which depend on the solution,
+such as the norm of a velocity vector or two-dimensional vorticity. For example, we
+can visualize vorticity for a compressible version of the
+[Brown-Minion vortex problem](https://doi.org/10.1006/jcph.1995.1205):
+
+```jldoctest brown_minion_vortex
+julia> using Trixi, Plots
+
+julia> redirect_stdout(devnull) do
+         # runs the elixir without any output from callbacks etc.
+         trixi_include(@__MODULE__,
+           joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_brown_minion_vortex.jl"))
+       end
+[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.
+
+julia> function compute_vorticity(velocity, mesh, equations::CompressibleEulerEquations2D,
+                                  dg::DGMulti, cache)
+         rd = dg.basis
+         md = mesh.md
+         @unpack Dr, Ds = rd
+         @unpack rxJ, sxJ, ryJ, syJ, J = md
+         v1, v2 = velocity
+         dv1dy = ryJ .* (Dr * v1) + syJ .* (Ds * v1)
+         dv2dx = rxJ .* (Dr * v2) + sxJ .* (Ds * v2)
+         return dv2dx - dv1dy
+       end;
+
+julia> compute_vorticity(velocity, semi) =
+         compute_vorticity(velocity, Trixi.mesh_equations_solver_cache(semi)...);
+
+julia> function get_velocity(sol)
+         rho, rhou, rhov, E = StructArrays.components(sol.u[end])
+         v1 = rhou ./ rho
+         v2 = rhov ./ rho
+         return v1, v2
+       end;
+
+julia> vorticity = compute_vorticity(get_velocity(sol), semi);
+
+julia> plot(ScalarPlotData2D(vorticity, semi;
+            variable_name = "Vorticity at t = $(sol.prob.tspan[end])"))
+Plot{Plots.GRBackend() n=1}
+```
+
+This produces the following plot of vorticity.
+
+![vorticity-example](https://user-images.githubusercontent.com/1156048/132884563-f371dd63-29c5-4856-a9c5-b1867fb1b1f6.png)
+
+Since the mesh is fairly coarse, we observe numerical artifacts due to the low resolution.
+These errors vanish under mesh refinement; for example, doubling the mesh resolution by running
+```julia
+julia> trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"), cells_per_dimension = 32)
+```
+yields the following plot of vorticity:
+
+![vorticity-example-refined](https://user-images.githubusercontent.com/1156048/132885068-c2e37c97-c71a-489d-9a64-4f08db86552a.png)
+
+!!! note
+    When visualizing a scalar field, the plotted solution is reinterpolated using a
+    high order polynomial approximation. Thus, small discrepancies may be observed when
+    the underlying data is highly non-smooth or under-resolved.
+
+`ScalarPlotData2D` objects can also be used with Makie through `iplot`. For example, the
+following code plots two surfaces:
+```jldoctest iplot_with_ScalarPlotData2D
+julia> using Trixi, CairoMakie
+
+julia> redirect_stdout(devnull) do
+         # runs the elixir without any output from callbacks etc.
+         trixi_include(@__MODULE__,
+           joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
+       end
+[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.
+
+julia> x = view(semi.cache.elements.node_coordinates, 1, :, :, :); # extracts the node x coordinates
+
+julia> y = view(semi.cache.elements.node_coordinates, 2, :, :, :); # extracts the node y coordinates
+
+julia> fig_ax_plt = iplot(ScalarPlotData2D((@. 1 - .25*(x^2 + y^2)), semi), plot_mesh=true, colormap=:viridis);
+
+julia> fig_ax_plt2 = iplot!(fig_ax_plt, ScalarPlotData2D((@. .125*(x+y)), semi), plot_mesh=true, colormap=:blues)
+FigureAxisPlot()
+```
+This creates the following plot:
+
+![ScalarPlotData2D_example](https://user-images.githubusercontent.com/1156048/133856590-a9f0be02-8200-483b-af96-eab4a69bf2c7.png)
+
+### Plotting a 3D solution as a 2D plot
+It is possible to plot 2D slices from 3D simulation data using the [`TreeMesh`](@ref)
+with the same commands as above:
+```julia
+julia> plot(sol) # `sol` is from a 3D simulation
+```
+By default, plotting `sol` or creating a [`PlotData2D`](@ref) object from
+a 3D simulation will create a 2D slice of the solution in the `xy`-plane. You can
+customize this behavior by explicitly creating a `PlotData2D` object and passing
+appropriate keyword arguments:
+* `slice` specifies the plane which is being sliced and can be `:xy`, `:xz`,
+  or `:yz` (default: `:xy`)
+* `point` specifies a three-dimensional point. The sliced plane is then created
+  such that it lies on the point (default: `(0.0, 0.0, 0.0)`).
+All other attributes for [`PlotData2D`](@ref) objects apply here as well.
+
+For example, to plot the velocity field orthogonal to the yz-plane at different
+x-axis locations, you can execute
+```julia
+julia> trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_euler_taylor_green_vortex.jl"), tspan=(0.0, 1.0))
+[...]
+
+julia> plots = []
+Any[]
+
+julia> for x in range(0, stop=pi/2, length=6)
+         pd = PlotData2D(sol, slice=:yz, point=(x, 0.0, 0.0))
+         push!(plots, plot(pd["v1"], clims=(-1,1), title="x = "*string(round(x, digits=2))))
+       end
+
+julia> plot(plots..., layout=(2, 3), size=(750,350))
+```
+which results in a 2x3 grid of slices of the `yz`-plane:
+
+![plot-v1-0.0-to-0.5pi](https://user-images.githubusercontent.com/72009492/130953841-58df57b2-aa96-4130-9b70-30151856f68f.PNG)
+
+
+### Creating a 1D plot
+When plotting a 1D solution with
+```julia
+julia> plot(sol) # `sol` is from a 1D simulation
+```
+Trixi.jl automatically creates a [`PlotData1D`](@ref) object and visualizes it as a
+line plot:
+![1d-plot](https://user-images.githubusercontent.com/3637659/119086020-1e3f4d80-ba05-11eb-873e-1b586a81e7fe.png)
+
+To customize your 1D plot, you can create a `PlotData1D` object manually as follows:
+```julia
+julia> pd = PlotData1D(sol)
+julia> pd = PlotData1D(u, semi)
+```
+The behavior is analogous to the [`PlotData2D`](@ref) behavior.
+
+In a very similar fashion to [`PlotData2D`](@ref), you can customize your plot:
+* `plot(pd)` creates the same plot as in `plot(sol)`.
+* `plot(pd["rho", "p"])` only plots specific variables. In this case `rho` and `p`.
+* `plot!(getmesh(pd))` adds mesh lines after creating a plot.
+* Any attributes from [Plots](https://docs.juliaplots.org/latest/) can be used, e.g., `plot(pd, yguide=:temperature)`.
+* `pd = PlotData1D(adapt_to_mesh_level(sol, 4)...)` adapts the mesh before plotting
+  (in this example to a mesh with refinement level 4).
+
+You can also customize the [`PlotData1D`](@ref) object itself by passing attributes
+to the [`PlotData1D`](@ref) constructor:
+* `solution_variables` specifies the variables to be plotted.
+* `nvisnodes` sets the amount of nodes per element which the solution then is interpolated on.
+
+
+### Plotting a 2D or 3D solutions as a 1D plot
+It is possible to extract a straight, axis-parallel line from a 2D or 3D solution and
+visualize it as a 1D plot. This is done by creating a [`PlotData1D`](@ref) object with a
+2D/3D solution `sol` as input:
+```julia
+julia> pd = PlotData1D(sol)
+```
+The plot is then created with:
+```julia
+julia> plot(pd)
+```
+
+By default the `x`-axis is extracted, which can be changed with following attributes:
+* `slice` specifies the axis which is being extracted and can be `:x`, `:y` or `:z`
+  (`:z` is only for 3D input and default is `:x`)
+* `point` specifies a two or three dimensional point. The sliced axis is then
+  created in such a way, that it lies on the point.
+  (default: `(0.0, 0.0)` or `(0.0, 0.0, 0.0)`)
+
+All other attributes for [`PlotData1D`](@ref) objects apply here as well.
+
+In the following, is an example for a 2D simulation of the linear scalar advection equation.
+First, we have the regular 2D heatmap plot:
+
+![2d-plot-for-slice](https://user-images.githubusercontent.com/72009492/116614302-0f033d80-a93a-11eb-91a1-e44de41e0795.PNG)
+
+From this, we can extract a line plot parallel to the `y`-axis going through the
+point `(1.0, 0.0)` with the following commands:
+```julia
+julia> pd = PlotData1D(sol, slice=:y, point=(1.0, 0.0))
+julia> plot(pd)
+```
+![1d-plot-for-slice](https://user-images.githubusercontent.com/72009492/116614340-1b879600-a93a-11eb-9a80-f46311da16b1.PNG)
+
+This convenient method of slicing is limited to axis-parallel slices, but for 2D/3D solutions it is also
+possible to create a plot along any curve you want. To do so, you first need to
+create a list of 2D/3D points that define your curve. Then you can
+create a [`PlotData1D`](@ref) with the keyword argument `curve` set to your list.
+
+Let's give an example of this with the basic advection equation from above by creating
+a plot along the circle marked in green:
+
+![2d-plot-along-cirlce](https://user-images.githubusercontent.com/72009492/130951042-e1849447-8e55-4798-9361-c8badb9f3a49.png)
+
+We can write a function like this, that outputs a list of points on a circle:
+```julia
+function circle(radius, center, n_points)
+    coordinates = zeros(2, n_points)
+    for i in 1:n_points
+        coordinates[:,i] = radius*[cospi(2*i/n_points), sinpi(2*i/n_points)] .+ center
+    end
+    return coordinates
+end
+```
+
+Then create and plot a [`PlotData1D`](@ref) object along a circle with radius one, center at `(1,1)`, and 100 points:
+```julia
+pd = PlotData1D(sol, curve=circle(1.0, (1.0, 1.0), 100))
+plot(pd)
+```
+This gives you the following plot:
+![1d-plot-along-circle](https://user-images.githubusercontent.com/72009492/118874948-c3660300-b8eb-11eb-8e5e-8ce50e21336e.PNG)
+
+Creating a plot like this has its downsides. For one, it is unclear what to put on the abscissa
+of the plot. By default, the arc length of the given curve is used.
+Also, with this way of plotting you lose the ability to use a mesh plot from `getmesh`.
+
+### Visualizing results during a simulation
+To visualize solutions while a simulation is still running (also known as *in-situ visualization*),
+you can use the [`VisualizationCallback`](@ref). It is created as a regular
+callback and accepts upon creation a number of keyword arguments that allow,
+e.g., to control the visualization interval, to specify the variables
+to plot, or to customize the plotting style.
+
+During the simulation, the visualization callback creates and displays
+visualizations of the current solution in regular intervals. This can be useful
+to, e.g., monitor the validity of a long-running simulation or for illustrative
+purposes. An example for how to create a `VisualizationCallback` can be found in
+[examples/tree_2d_dgsem/elixir\_advection\_amr\_visualization.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_amr_visualization.jl):
+```julia
+[...]
+
+# Enable in-situ visualization with a new plot generated every 20 time steps
+# and additional plotting options passed as keyword arguments
+visualization = VisualizationCallback(interval=20; clims=(0,1))
+
+[...]
+```
+
+The resulting output of the referenced elixir can be seen in the embedded video
+below:
+```@raw html
+  <!--
+  Video creation details
+  * Set up terminal size and position appropriately
+  * Record video as MP4 with SimpleScreenRecorder (https://en.wikipedia.org/wiki/SimpleScreenRecorder)
+  * Upload to YouTube
+  * Obtain responsive code by inserting link on https://embedresponsively.com
+  -->
+  <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/UZtrqeDY1Fs' frameborder='0' allowfullscreen></iframe></div>
+```
+
+
+## Trixi2Vtk
+Trixi2Vtk converts Trixi.jl's `.h5` output files to VTK files, which can be read
+by [ParaView](https://www.paraview.org), [VisIt](https://visit.llnl.gov),
+and other visualization tools. It
+automatically interpolates solution data from the original quadrature node
+locations to equidistant *visualization nodes* at a higher resolution, to make
+up for the loss of accuracy from going from a high-order polynomial
+representation to a piecewise constant representation in VTK.
+
+In the Julia REPL, first load the package Trixi2Vtk
+```julia
+julia> using Trixi2Vtk
+```
+To process an HDF5 file generated by Trixi.jl, execute
+```julia
+julia> trixi2vtk(joinpath("out", "solution_000000.h5"), output_directory="out")
+```
+This will create two unstructured VTK files in the `out` subdirectory that can
+be opened with ParaView or VisIt: `solution_000000.vtu` contains the
+discontinuous Galerkin solution data while `solution_000000_celldata.vtu` holds
+any cell-based values such as the current AMR indicator or the cell refinement
+level.
+
+!["solution_000000_scalar_mesh"](https://github.com/trixi-framework/Trixi2Vtk.jl/raw/main/docs/src/assets/solution_000000_scalar_mesh.png)
+
+This allows you to generate VTK files for solution, restart and mesh files. By
+default, Trixi2Vtk generates `.vtu` (unstructured VTK) files for both
+cell/element data (e.g., cell ids, element ids) and node data (e.g., solution
+variables). This format visualizes each cell with the same number of nodes,
+independent of its size.  Alternatively, you can provide `format=:vti` as a
+keyword argument to `trixi2vtk`, which causes Trixi2Vtk to generate
+`.vti` (image data VTK) files for the solution files, while still using `.vtu`
+files for cell-/element-based data. In `.vti` files, a uniform resolution is
+used throughout the entire domain, resulting in different number of
+visualization nodes for each element.  This can be advantageous to create
+publication-quality images, but increases the file size.
+
+If you want to convert multiple solution/restart files at once, you can just supply
+multiple input files as the positional arguments to `trixi2vtk`, e.g.,
+```julia
+julia> trixi2vtk("out/solution_000000.h5", "out/solution_000040.h5")
+```
+You may also use file globbing to select a range of files based on filename patterns, e.g.,
+```julia
+julia> trixi2vtk("out/solution_*.h5")
+```
+to convert all solution files in the `out/` directory or
+```julia
+julia> trixi2vtk("out/restart_00[0-9]000.h5")
+```
+to convert every one-thousandth restart file (`out/restart_000000.h5`,
+`out/restart_001000.h5` etc.).
+
+When multiple solution/restart files are provided, Trixi2Vtk will also generate a
+`.pvd` file, which allows ParaView to read all `.vtu`/`.vti` files at once and which
+uses the `time` attribute in solution/restart files to inform ParaView about the
+solution time. A comprehensive list of all possible arguments for
+`trixi2vtk` can be found in the [Trixi2Vtk.jl API](@ref).
+
+Further information regarding the development of Trixi2Vtk can be found in the
+[development section](@ref trixi2vtk-dev).
+
+
+## [Makie.jl [experimental]](@id Makie.jl)
+
+In addition to [Plots.jl](@ref Plots.jl) support, Trixi.jl includes visualization utilities through
+[Makie.jl](https://github.com/JuliaPlots/Makie.jl/). Trixi.jl provides Makie-based visualization options
+both for heatmap-type plots (similar to the [Plots.jl](@ref Plots.jl) recipes) as well as for
+interactive surface plots. Support is currently limited to the [`UnstructuredMesh2D`](@ref) type.
+
+!!! note
+    Plotting via Makie.jl is still considered an experimental feature and might
+    change in any future releases.
+
+A Makie plot can be created as follows: after running a simulation with Trixi.jl in the REPL, load a
+Makie backend (for example, [GLMakie](https://github.com/JuliaPlots/GLMakie.jl/) or
+[CairoMakie](https://github.com/JuliaPlots/CairoMakie.jl)).
+```julia
+julia> using GLMakie
+```
+
+To visualize the solution and mesh with a heatmap-type plot, simply run
+```julia
+julia> plot(sol)
+```
+!!! note
+    Both Makie.jl and Plots.jl export `plot`, so if you load both libraries, you will have to
+    specify which `plot` function to call via `Plots.plot` or `Makie.plot`.
+
+As with Plots.jl recipes, one can view individual solution components by creating a `PlotData2D`
+object and indexing into it with the desired variable name
+```julia
+julia> pd = PlotData2D(sol)
+julia> plot(pd["rho"])
+```
+Unlike the Plots.jl recipe, mesh plotting is controlled using the keyword argument
+`plot_mesh = false`, e.g.,
+```julia
+julia> plot(sol; plot_mesh=false)
+```
+The plot command also returns figure and axis handles, which can be used to edit plot titles or
+labels:
+```julia
+julia> fig, axes = plot(sol)
+julia> axes[1,1].title = "New title for subplot (1,1)"
+```
+
+Trixi.jl also supports interactive surface plots using `iplot`.
+After executing
+```julia
+julia> trixi_include(joinpath("examples", "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
+```
+we can run
+```julia
+julia> iplot(sol)
+```
+This will open up an interactive visualization window:
+
+![makie-example](https://user-images.githubusercontent.com/1156048/131613261-dccd1c73-1c06-4770-afe5-d625d3426dfd.png)
+
+The plot can be rotated (click and hold), zoomed in and out (scroll up and down), and panned
+(hold right click and drag). Two toggle buttons control whether mesh lines are visible on top
+of and below the solution.
+
+Both `plot` and `iplot` use `colormap = :inferno` by default.
+[A different colormap](https://docs.juliaplots.org/latest/generated/colorschemes/) can be selected
+by providing an appropriate keyword argument. For example, `plot(sol, colormap=:blues)` and
+`iplot(sol, colormap=:blues)` produce the following figures:
+
+![makie-plot-example](https://user-images.githubusercontent.com/1156048/132954265-e7d395a8-f894-4056-841b-87711b7ba012.png)
+![makie-iplot-example](https://user-images.githubusercontent.com/1156048/131613266-8a86a074-62fb-49d6-bf6b-8df94d2a9b65.png)
