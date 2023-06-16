@@ -48,7 +48,7 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 # ```math
 # \frac{dx}{2} u_t^{Q_l} + u_\xi^{Q_l} = 0 \text{, for }t\in\mathbb{R}^+,\; \xi\in[-1, 1]
 # ```
-# $u_t^{Q_l}$ and $u_\xi^{Q_l}$ denote the time and spatial derivatives of the solution on the element $Q_l$.
+# Here, $u_t^{Q_l}$ and $u_\xi^{Q_l}$ denote the time and spatial derivatives of the solution on the element $Q_l$.
 
 
 # ### ii. Polynomial approach

@@ -27,6 +27,12 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
       linf = [3.235356127918171e-5],
       coverage_override = (maxiters=6,))
   end
+
+  @trixi_testset "elixir_advection_finite_volume.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_finite_volume.jl"),
+      l2   = [0.011662300515980219],
+      linf = [0.01647256923710194])
+  end
 end
 
 end # module

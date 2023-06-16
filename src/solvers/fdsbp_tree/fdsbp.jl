@@ -6,7 +6,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 """
     FDSBP(D_SBP; surface_integral, volume_integral)
@@ -25,12 +25,12 @@ The other arguments have the same meaning as in [`DG`](@ref) or [`DGSEM`](@ref).
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
 """
-const FDSBP = DG{Basis} where {Basis<:AbstractDerivativeOperator}
+const FDSBP = DG{Basis} where {Basis <: AbstractDerivativeOperator}
 
 function FDSBP(D_SBP::AbstractDerivativeOperator; surface_integral, volume_integral)
-  return DG(D_SBP, nothing #= mortar =#, surface_integral, volume_integral)
+    # `nothing` is passed as `mortar`
+    return DG(D_SBP, nothing, surface_integral, volume_integral)
 end
-
 
 # General interface methods for SummationByPartsOperators.jl and Trixi.jl
 nnodes(D::AbstractDerivativeOperator) = size(D, 1)
@@ -42,7 +42,6 @@ get_nodes(D::AbstractDerivativeOperator) = grid(D)
 polydeg(D::AbstractDerivativeOperator) = size(D, 1) - 1
 polydeg(fdsbp::FDSBP) = polydeg(fdsbp.basis)
 
-
 # TODO: FD. No mortars supported at the moment
 init_mortars(cell_ids, mesh, elements, mortar::Nothing) = nothing
 create_cache(mesh, equations, mortar::Nothing, uEltype) = NamedTuple()
@@ -50,25 +49,21 @@ nmortars(mortar::Nothing) = 0
 
 function prolong2mortars!(cache, u, mesh, equations, mortar::Nothing,
                           surface_integral, dg::DG)
-  @assert isempty(eachmortar(dg, cache))
+    @assert isempty(eachmortar(dg, cache))
 end
 
 function calc_mortar_flux!(surface_flux_values, mesh,
                            nonconservative_terms, equations,
                            mortar::Nothing,
                            surface_integral, dg::DG, cache)
-  @assert isempty(eachmortar(dg, cache))
+    @assert isempty(eachmortar(dg, cache))
 end
-
 
 # We do not use a specialized setup to analyze solutions
 SolutionAnalyzer(D::AbstractDerivativeOperator) = D
-
 
 # dimension-specific implementations
 include("fdsbp_1d.jl")
 include("fdsbp_2d.jl")
 include("fdsbp_3d.jl")
-
-
 end # @muladd
