@@ -11,12 +11,12 @@ struct GradientVariablesEntropy end
 
 # Linear scalar diffusion for use in linear scalar advection-diffusion problems
 abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
-              AbstractEquationsParabolic{NDIMS, NVARS} end
+              AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative} end
 include("laplace_diffusion_1d.jl")
 include("laplace_diffusion_2d.jl")
 
 # Compressible Navier-Stokes equations
-abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS} <:
-              AbstractEquationsParabolic{NDIMS, NVARS} end
+abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS, GradientVariables} <:
+              AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} end
 include("compressible_navier_stokes_2d.jl")
 include("compressible_navier_stokes_3d.jl")
