@@ -392,11 +392,11 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
     connectivity_pw = PointerWrapper(connectivity)
 
     # These need to be of the type Int for unsafe_wrap below to work
-    n_trees::Int = connectivity_obj.num_trees
-    n_vertices::Int = connectivity_obj.num_vertices
+    n_trees::Int = connectivity_pw.num_trees[]
+    n_vertices::Int = connectivity_pw.num_vertices[]
 
     # Extract a copy of the element vertices to compute the tree node coordinates
-    vertices = unsafe_wrap(Array, connectivity_obj.vertices, (3, n_vertices))
+    vertices = unsafe_wrap(Array, connectivity_pw.vertices[], (3, n_vertices))
 
     # Readin all the information from the mesh file into a string array
     file_lines = readlines(open(meshfile))
