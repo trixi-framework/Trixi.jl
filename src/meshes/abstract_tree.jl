@@ -505,7 +505,7 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
         return Int[]
     end
 
-    criterium=(length(cell_ids)>sqrt(t.length))
+    criterium=true # (length(cell_ids)>sqrt(t.length))
     if mpi_isparallel() && criterium
          cell_ids = cell_ids[t.mpi_ranks[cell_ids].==mpi_rank()]
     end
