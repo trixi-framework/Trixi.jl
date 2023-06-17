@@ -26,3 +26,8 @@ coverage_report/
 .vscode/
 
 .DS_Store
+
+run
+run/*
+
+LocalPreferences.toml

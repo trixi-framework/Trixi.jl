@@ -5,10 +5,9 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "structured_2d_dgsem")
+EXAMPLES_DIR = pkgdir(Trixi, "examples", "structured_2d_dgsem")
 
-# Start with a clean environment: remove Trixi output directory if it exists
+# Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
@@ -18,6 +17,19 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [8.311947673061856e-6],
       linf = [6.627000273229378e-5])
+  end
+
+  @trixi_testset "elixir_advection_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),    
+      l2   = [7.816742843181738e-6, 7.816742843196112e-6],
+      linf = [6.314906965543265e-5, 6.314906965410039e-5],
+      coverage_override = (maxiters=10^5,))
+
+    @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
+      errors = analysis_callback(sol)
+      @test errors.l2   ≈ [7.816742843181738e-6, 7.816742843196112e-6] rtol=1.0e-4
+      @test errors.linf ≈ [6.314906965543265e-5, 6.314906965410039e-5] rtol=1.0e-4
+    end
   end
 
   @trixi_testset "elixir_advection_extended.jl" begin
@@ -269,7 +281,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 end
 
-# Clean up afterwards: delete Trixi output directory
+# Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn rm(outdir, recursive=true)
 
 end # module

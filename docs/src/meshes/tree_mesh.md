@@ -1,8 +1,8 @@
 # Tree mesh
 
 The [`TreeMesh`](@ref) is a Cartesian, $h$-non-conforming mesh type
-used in many parts of Trixi. Often, the support for this mesh type is
-developed best since it was the first mesh type in Trixi,
+used in many parts of Trixi.jl. Often, the support for this mesh type is
+developed best since it was the first mesh type in Trixi.jl,
 and it is available in one, two, and three space dimensions.
 
 It is limited to hypercube domains but supports AMR via the [`AMRCallback`](@ref).

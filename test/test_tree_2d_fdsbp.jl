@@ -5,8 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_fdsbp")
+EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_fdsbp")
 
 @testset "Linear scalar advection" begin
   @trixi_testset "elixir_advection_extended.jl" begin
@@ -14,6 +13,15 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [2.898644263922225e-6],
       linf = [8.491517930142578e-6],
       rtol = 1.0e-7) # These results change a little bit and depend on the CI system
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+      t = sol.t[end]
+      u_ode = sol.u[end]
+      du_ode = similar(u_ode)
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
   end
 end
 
@@ -23,6 +31,15 @@ end
       l2   = [1.7088389997042244e-6, 1.7437997855125774e-6, 1.7437997855350776e-6, 5.457223460127621e-6],
       linf = [9.796504903736292e-6, 9.614745892783105e-6, 9.614745892783105e-6, 4.026107182575345e-5],
       tspan = (0.0, 0.1))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+      t = sol.t[end]
+      u_ode = sol.u[end]
+      du_ode = similar(u_ode)
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
   end
 
   @trixi_testset "elixir_euler_convergence.jl with Lax-Friedrichs splitting" begin

@@ -20,7 +20,7 @@
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
-having an extensible design with a fast implementation, Trixi is
+having an extensible design with a fast implementation, Trixi.jl is
 focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
@@ -35,7 +35,7 @@ installation and postprocessing procedures. Its features include:
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
-  * Finite difference summation by parts (SBP) methods
+  * [Finite difference summation by parts (SBP) methods](https://github.com/ranocha/SummationByPartsOperators.jl)
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
@@ -63,12 +63,12 @@ installation and postprocessing procedures. Its features include:
 
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
-operating system](https://julialang.org/downloads/platform/). Trixi works
-with Julia v1.8.
+operating system](https://julialang.org/downloads/platform/). Trixi.jl works
+with Julia v1.8 and newer. We recommend using the latest stable release of Julia.
 
 ### For users
-Trixi and its related tools are registered Julia packages. Hence, you
-can install Trixi, the visualization tool
+Trixi.jl and its related tools are registered Julia packages. Hence, you
+can install Trixi.jl, the visualization tool
 [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
@@ -81,13 +81,13 @@ julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
 You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
 The package [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
-provides time integration schemes used by Trixi, while
+provides time integration schemes used by Trixi.jl, while
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl) can be used to directly
-visualize Trixi's results from the REPL.
+visualize Trixi.jl's results from the REPL.
 
-*Note on package versions:* If some of the examples for how to use Trixi do not
-work, verify that you are using a recent Trixi release by comparing the
-installed Trixi version from
+*Note on package versions:* If some of the examples for how to use Trixi.jl do not
+work, verify that you are using a recent Trixi.jl release by comparing the
+installed Trixi.jl version from
 ```julia
 julia> using Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
 ```
@@ -95,24 +95,24 @@ to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/lat
 If the installed version does not match the current release, please check the
 *Troubleshooting* section in the [documentation](#documentation).
 
-The commands above can also be used to update Trixi. A brief list of notable
-changes to Trixi is available in [`NEWS.md`](NEWS.md).
+The commands above can also be used to update Trixi.jl. A brief list of notable
+changes to Trixi.jl is available in [`NEWS.md`](NEWS.md).
 
 ### For developers
-If you plan on editing Trixi itself, you can download Trixi locally and use the
+If you plan on editing Trixi.jl itself, you can download Trixi.jl locally and use the
 code from the cloned directory:
 ```bash
 git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
 mkdir run
 cd run
-julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi clone
-julia -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])' # Install additional packages
+julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi.jl clone
+julia --project=. -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])' # Install additional packages
 ```
 Note that the postprocessing tools Trixi2Vtk.jl and Plots.jl are optional and
 can be omitted.
 
-If you installed Trixi this way, you always have to start Julia with the `--project`
+If you installed Trixi.jl this way, you always have to start Julia with the `--project`
 flag set to your `run` directory, e.g.,
 ```bash
 julia --project=.
@@ -122,7 +122,7 @@ Further details can be found in the [documentation](#documentation).
 
 
 ## Usage
-In the Julia REPL, first load the package Trixi
+In the Julia REPL, first load the package Trixi.jl
 ```julia
 julia> using Trixi
 ```
@@ -145,10 +145,10 @@ This will open a new window with a 2D visualization of the final solution:
 </p>
 
 The method `trixi_include(...)` expects a single string argument with the path to a
-Trixi elixir, i.e., a text file containing Julia code necessary to set up and run a
-simulation. To quickly see Trixi in action, `default_example()`
+Trixi.jl elixir, i.e., a text file containing Julia code necessary to set up and run a
+simulation. To quickly see Trixi.jl in action, `default_example()`
 returns the path to an example elixir with a short, two-dimensional
-problem setup. A list of all example elixirs packaged with Trixi can be
+problem setup. A list of all example elixirs packaged with Trixi.jl can be
 obtained by running `get_examples()`. Alternatively, you can also browse the
 [`examples/`](examples/) subdirectory.
 If you want to modify one of the elixirs to set up your own simulation,
@@ -164,7 +164,7 @@ instance, in the example above the first execution of `trixi_include` takes abou
 
 ### Showcase of advanced features
 The presentation [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://youtu.be/_N4ozHr-t9E),
-originally given as part of JuliaCon 2022, outlines how to use Trixi for an adaptive simulation
+originally given as part of JuliaCon 2022, outlines how to use Trixi.jl for an adaptive simulation
 of the compressible Euler equations in two spatial dimensions on a complex domain. More details
 as well as code to run the simulation presented can be found at the
 [reproducibility repository](https://github.com/trixi-framework/talk-2022-juliacon_toolchain)
@@ -172,15 +172,15 @@ for the presentation.
 
 ## Documentation
 Additional documentation is available that contains more information on how to
-modify/extend Trixi's implementation, how to visualize output files etc. It
+modify/extend Trixi.jl's implementation, how to visualize output files etc. It
 also includes a section on our preferred development workflow and some tips for
 using Git. The latest documentation can be accessed either
 [online](https://trixi-framework.github.io/Trixi.jl/stable) or under [`docs/src`](docs/src).
 
 
 ## Referencing
-If you use Trixi in your own research or write a paper using results obtained
-with the help of Trixi, please cite the following articles:
+If you use Trixi.jl in your own research or write a paper using results obtained
+with the help of Trixi.jl, please cite the following articles:
 ```bibtex
 @article{ranocha2022adaptive,
   title={Adaptive numerical simulations with {T}rixi.jl:
@@ -216,7 +216,7 @@ with the help of Trixi, please cite the following articles:
 }
 ```
 
-In addition, you can also refer to Trixi directly as
+In addition, you can also refer to Trixi.jl directly as
 ```bibtex
 @misc{schlottkelakemper2020trixi,
   title={{T}rixi.jl: {A}daptive high-order numerical simulations
@@ -232,19 +232,19 @@ In addition, you can also refer to Trixi directly as
 
 
 ## Authors
-Trixi was initiated by [Michael
+Trixi.jl was initiated by [Michael
 Schlottke-Lakemper](https://lakemper.eu)
-(RWTH Aachen University, Germany) and
+(RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (University of Hamburg, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
-they are the principal developers of Trixi.
+they are the principal developers of Trixi.jl.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
 
 
 ## License and contributing
-Trixi is licensed under the MIT license (see [LICENSE.md](LICENSE.md)). Since Trixi is
+Trixi.jl is licensed under the MIT license (see [LICENSE.md](LICENSE.md)). Since Trixi.jl is
 an open-source project, we are very happy to accept contributions from the
 community. Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
 Note that we strive to be a friendly, inclusive open-source community and ask all members
@@ -256,20 +256,7 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 ## Acknowledgments
 <p align="center">
-  <!-- BMBF -->
-  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231436391-b28a76a4-f027-40f9-bd28-14e3a2f3e16a.png" height="140"/>
-
-  <!-- DFG -->
-  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231429826-31fd7e78-19b4-4bac-8d4c-d292c6570d93.jpg" height="120"/>
-
-  <!-- SRC -->
-  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231433851-97dd9d3e-4f66-4a8c-a4ee-aca262a2e505.png" height="80"/>
-
-  <!-- ERC -->
-  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231434670-64b3644f-9860-4139-a54d-13b538711e1b.jpg" height="140"/>
-
-  <!-- NSF -->
-  <img align="middle" src="https://user-images.githubusercontent.com/3637659/231508947-e3d119c8-bafb-472c-b6fb-18eda2009a55.jpg" height="100"/>
+  <img align="middle" src="https://user-images.githubusercontent.com/3637659/233821022-84910be7-8649-4999-a0ff-22d5e20f0b90.jpg" width=auto/>
 </p>
 
 This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)

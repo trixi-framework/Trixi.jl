@@ -5,15 +5,38 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3d_fdsbp")
+EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_fdsbp")
 
 @testset "Compressible Euler" begin
+  @trixi_testset "elixir_advection_extended.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+      l2   = [0.005355755365412444],
+      linf = [0.01856044696350767])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+      t = sol.t[end]
+      u_ode = sol.u[end]
+      du_ode = similar(u_ode)
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+  end
+
   @trixi_testset "elixir_euler_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
       l2   = [2.247522803543667e-5, 2.2499169224681058e-5, 2.24991692246826e-5, 2.2499169224684707e-5, 5.814121361417382e-5],
       linf = [9.579357410749445e-5, 9.544871933409027e-5, 9.54487193367548e-5, 9.544871933453436e-5, 0.0004192294529472562],
       tspan = (0.0, 0.2))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+      t = sol.t[end]
+      u_ode = sol.u[end]
+      du_ode = similar(u_ode)
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
   end
 
   @trixi_testset "elixir_euler_convergence.jl with VolumeIntegralStrongForm" begin

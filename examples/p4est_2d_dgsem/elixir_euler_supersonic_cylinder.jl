@@ -3,7 +3,7 @@
 # Boundary conditions are supersonic Mach 3 inflow at the left portion of the domain
 # and supersonic outflow at the right portion of the domain. The top and bottom of the
 # channel as well as the cylinder are treated as Euler slip wall boundaries.
-# This flow results in strong shock refletions / interactions as well as Kelvin-Helmholtz
+# This flow results in strong shock reflections / interactions as well as Kelvin-Helmholtz
 # instabilities at later times as two Mach stems form above and below the cylinder.
 #
 # For complete details on the problem setup see Section 5.7 of the paper:
@@ -133,6 +133,6 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-7, 1.0e-6)
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43(stage_limiter!),
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, SSPRK43(stage_limiter!);
+            ode_default_options()..., callback=callbacks);
 summary_callback() # print the timer summary
