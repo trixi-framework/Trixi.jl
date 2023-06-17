@@ -94,10 +94,8 @@ end
             (A * log(y + 2.0) * exp(-A * (y - 1.0)) +
              (1.0 - exp(-A * (y - 1.0))) / (y + 2.0)) * cos(pi_t)
     v1_yy = (sin(pi_x) *
-             (2.0 * A * exp(-A * (y - 1.0)) / (y + 2.0)
-              -
-              A * A * log(y + 2.0) * exp(-A * (y - 1.0))
-              -
+             (2.0 * A * exp(-A * (y - 1.0)) / (y + 2.0) -
+              A * A * log(y + 2.0) * exp(-A * (y - 1.0)) -
               (1.0 - exp(-A * (y - 1.0))) / ((y + 2.0) * (y + 2.0))) * cos(pi_t))
     v2 = v1
     v2_t = v1_t
@@ -133,85 +131,53 @@ end
            + 2.0 * rho * v1 * v1_x
            + rho_y * v1 * v2
            + rho * v1_y * v2
-           + rho * v1 * v2_y
+           + rho * v1 * v2_y -
            # stress tensor from x-direction
-           -
-           4.0 / 3.0 * v1_xx * mu_
-           +
-           2.0 / 3.0 * v2_xy * mu_
-           -
-           v1_yy * mu_
-           -
+           4.0 / 3.0 * v1_xx * mu_ +
+           2.0 / 3.0 * v2_xy * mu_ -
+           v1_yy * mu_ -
            v2_xy * mu_)
     # y-momentum equation
     du3 = (rho_t * v2 + rho * v2_t + p_y + rho_x * v1 * v2
            + rho * v1_x * v2
            + rho * v1 * v2_x
            + rho_y * v2^2
-           + 2.0 * rho * v2 * v2_y
+           + 2.0 * rho * v2 * v2_y -
            # stress tensor from y-direction
-           -
-           v1_xy * mu_
-           -
-           v2_xx * mu_
-           -
-           4.0 / 3.0 * v2_yy * mu_
-           +
+           v1_xy * mu_ -
+           v2_xx * mu_ -
+           4.0 / 3.0 * v2_yy * mu_ +
            2.0 / 3.0 * v1_xy * mu_)
     # total energy equation
     du4 = (E_t + v1_x * (E + p) + v1 * (E_x + p_x)
-           + v2_y * (E + p) + v2 * (E_y + p_y)
+           + v2_y * (E + p) + v2 * (E_y + p_y) -
            # stress tensor and temperature gradient terms from x-direction
-           -
-           4.0 / 3.0 * v1_xx * v1 * mu_
-           +
-           2.0 / 3.0 * v2_xy * v1 * mu_
-           -
-           4.0 / 3.0 * v1_x * v1_x * mu_
-           +
-           2.0 / 3.0 * v2_y * v1_x * mu_
-           -
-           v1_xy * v2 * mu_
-           -
-           v2_xx * v2 * mu_
-           -
-           v1_y * v2_x * mu_
-           -
-           v2_x * v2_x * mu_
-           -
+           4.0 / 3.0 * v1_xx * v1 * mu_ +
+           2.0 / 3.0 * v2_xy * v1 * mu_ -
+           4.0 / 3.0 * v1_x * v1_x * mu_ +
+           2.0 / 3.0 * v2_y * v1_x * mu_ -
+           v1_xy * v2 * mu_ -
+           v2_xx * v2 * mu_ -
+           v1_y * v2_x * mu_ -
+           v2_x * v2_x * mu_ -
            T_const * inv_rho_cubed *
-           (p_xx * rho * rho
-            -
-            2.0 * p_x * rho * rho_x
-            +
-            2.0 * p * rho_x * rho_x
-            -
-            p * rho * rho_xx) * mu_
+           (p_xx * rho * rho -
+            2.0 * p_x * rho * rho_x +
+            2.0 * p * rho_x * rho_x -
+            p * rho * rho_xx) * mu_ -
            # stress tensor and temperature gradient terms from y-direction
-           -
-           v1_yy * v1 * mu_
-           -
-           v2_xy * v1 * mu_
-           -
-           v1_y * v1_y * mu_
-           -
-           v2_x * v1_y * mu_
-           -
-           4.0 / 3.0 * v2_yy * v2 * mu_
-           +
-           2.0 / 3.0 * v1_xy * v2 * mu_
-           -
-           4.0 / 3.0 * v2_y * v2_y * mu_
-           +
-           2.0 / 3.0 * v1_x * v2_y * mu_
-           -
+           v1_yy * v1 * mu_ -
+           v2_xy * v1 * mu_ -
+           v1_y * v1_y * mu_ -
+           v2_x * v1_y * mu_ -
+           4.0 / 3.0 * v2_yy * v2 * mu_ +
+           2.0 / 3.0 * v1_xy * v2 * mu_ -
+           4.0 / 3.0 * v2_y * v2_y * mu_ +
+           2.0 / 3.0 * v1_x * v2_y * mu_ -
            T_const * inv_rho_cubed *
-           (p_yy * rho * rho
-            -
-            2.0 * p_y * rho * rho_y
-            +
-            2.0 * p * rho_y * rho_y
-            -
+           (p_yy * rho * rho -
+            2.0 * p_y * rho * rho_y +
+            2.0 * p * rho_y * rho_y -
             p * rho * rho_yy) * mu_)
 
     return SVector(du1, du2, du3, du4)
