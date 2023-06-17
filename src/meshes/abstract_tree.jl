@@ -506,6 +506,7 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
     end
 
     criterium=true # (length(cell_ids)>sqrt(t.length))
+    old_cell_ids=deepcopy(cell_ids)
     if mpi_isparallel() && criterium
          cell_ids = cell_ids[t.mpi_ranks[cell_ids].==mpi_rank()]
     end
@@ -515,6 +516,7 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
 
     # To maximize the number of cells that may be coarsened, start with the cells at the highest level
     sorted_by_level = sort(cell_ids, by = i -> t.levels[i])
+    old_sorted_by_level = sort(old_cell_ids, by = i -> t.levels[i])
 
     # Keep track of number of cells that were actually coarsened
     n_coarsened = 0
@@ -577,31 +579,7 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
         return recv[14]
     end
 
-    # Iterate backwards over cells to coarsen
-    while true
-        # Retrieve next cell or quit
-        if length(sorted_by_level) > 0
-            coarse_cell_id = pop!(sorted_by_level)
-        else
-            break
-        end
-
-        # Ensure that cell has children (violation is an error)
-        if !has_children(t, coarse_cell_id)
-            error("cell is leaf and cannot be coarsened to: $coarse_cell_id")
-        end
-
-        # Ensure that all child cells are leaf cells (violation is an error)
-        for child in 1:n_children_per_cell(t)
-            if has_child(t, coarse_cell_id, child)
-                if !is_leaf(t, t.child_ids[child, coarse_cell_id])
-                    error("cell $coarse_cell_id has child cell at position $child that is not a leaf cell")
-                end
-            end
-        end
-
-        # Check if coarse cell has refined neighbors that would prevent coarsening
-        skip = false
+    function check_childs_neighbor(t,coarse_cell_id,k,criterium)
         # Iterate over all children (which are to be removed)
         for child in 1:n_children_per_cell(t)
             # Continue if child does not exist
@@ -628,12 +606,46 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
                 if !has_children(t, neighbor_id)
                     continue
                 end
-
+                a=[]
                 # If neighbor is not a sibling, is existing, and has children, do not coarsen
-                skip = true
-                break
+                if mpi_isparallel() && any(k.==neighbor_id) && criterium
+                    append!(a,check_childs_neighbor(t,neighbor_id,k,criterium))
+                end
+                if any(a) || length(a)==0
+                    return true
+                end
             end
         end
+        return false
+    end
+    # Iterate backwards over cells to coarsen
+    while true
+        # Retrieve next cell or quit
+        if length(sorted_by_level) > 0
+            coarse_cell_id = pop!(sorted_by_level)
+            deleteat!(old_sorted_by_level, findfirst(old_sorted_by_level.==coarse_cell_id))
+        else
+            break
+        end
+        
+        # Ensure that cell has children (violation is an error)
+        if !has_children(t, coarse_cell_id)
+            error("cell is leaf and cannot be coarsened to: $coarse_cell_id")
+        end
+
+        # Ensure that all child cells are leaf cells (violation is an error)
+        for child in 1:n_children_per_cell(t)
+            if has_child(t, coarse_cell_id, child)
+                if !is_leaf(t, t.child_ids[child, coarse_cell_id])
+                    error("cell $coarse_cell_id has child cell at position $child that is not a leaf cell")
+                end
+            end
+        end
+
+        # Check if coarse cell has refined neighbors that would prevent coarsening
+        skip = check_childs_neighbor(t,coarse_cell_id,old_sorted_by_level,criterium)
+
+
         # Skip if a neighboring cell prevents coarsening
         if skip
             continue
@@ -650,6 +662,7 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
 
         # Take into account shifts in tree that alters cell ids
         adjust_cell_ids!(sorted_by_level, coarse_cell_id, count)
+        adjust_cell_ids!(old_sorted_by_level, coarse_cell_id, count)
 
         # Keep track of number of coarsened cells
         n_coarsened += 1
@@ -748,6 +761,13 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
             end
         end 
         invalidate!(t, t.length+1,t.capacity)
+    end
+
+    if mpi_rank()==0 && false
+        println("data:")
+        println(t.parent_ids[1:t.length])
+        println(t.child_ids[:,1:t.length])
+        println(t.neighbor_ids[:,1:t.length])
     end
 
     # Determine list of *original* cell ids that were coarsened to
