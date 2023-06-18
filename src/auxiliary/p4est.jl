@@ -54,7 +54,8 @@ end
 
 # Create new `p4est` from a p4est_connectivity
 # 2D
-function new_p4est(connectivity::PointerOrWrapper{p4est_connectivity_t}, initial_refinement_level)
+function new_p4est(connectivity::PointerOrWrapper{p4est_connectivity_t},
+                   initial_refinement_level)
     comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi.jl's MPI communicator if p4est supports MPI
     p4est_new_ext(comm,
                   connectivity,
@@ -67,7 +68,8 @@ function new_p4est(connectivity::PointerOrWrapper{p4est_connectivity_t}, initial
 end
 
 # 3D
-function new_p4est(connectivity::PointerOrWrapper{p8est_connectivity_t}, initial_refinement_level)
+function new_p4est(connectivity::PointerOrWrapper{p8est_connectivity_t},
+                   initial_refinement_level)
     comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi.jl's MPI communicator if p4est supports MPI
     p8est_new_ext(comm, connectivity, 0, initial_refinement_level, true,
                   2 * sizeof(Int), C_NULL, C_NULL)
@@ -109,27 +111,33 @@ read_inp_p4est(meshfile, ::Val{3}) = p8est_connectivity_read_inp(meshfile)
 
 # Refine `p4est` if refine_fn_c returns 1
 # 2D
-function refine_p4est!(p4est::PointerOrWrapper{p4est_t}, recursive, refine_fn_c, init_fn_c)
+function refine_p4est!(p4est::PointerOrWrapper{p4est_t}, recursive, refine_fn_c,
+                       init_fn_c)
     p4est_refine(p4est, recursive, refine_fn_c, init_fn_c)
 end
 # 3D
-function refine_p4est!(p8est::PointerOrWrapper{p8est_t}, recursive, refine_fn_c, init_fn_c)
+function refine_p4est!(p8est::PointerOrWrapper{p8est_t}, recursive, refine_fn_c,
+                       init_fn_c)
     p8est_refine(p8est, recursive, refine_fn_c, init_fn_c)
 end
 
 # Refine `p4est` if coarsen_fn_c returns 1
 # 2D
-function coarsen_p4est!(p4est::PointerOrWrapper{p4est_t}, recursive, coarsen_fn_c, init_fn_c)
+function coarsen_p4est!(p4est::PointerOrWrapper{p4est_t}, recursive, coarsen_fn_c,
+                        init_fn_c)
     p4est_coarsen(p4est, recursive, coarsen_fn_c, init_fn_c)
 end
 # 3D
-function coarsen_p4est!(p8est::PointerOrWrapper{p8est_t}, recursive, coarsen_fn_c, init_fn_c)
+function coarsen_p4est!(p8est::PointerOrWrapper{p8est_t}, recursive, coarsen_fn_c,
+                        init_fn_c)
     p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
 end
 
 # Create new ghost layer from p4est, only connections via faces are relevant
 # 2D
-ghost_new_p4est(p4est::PointerOrWrapper{p4est_t}) = p4est_ghost_new(p4est, P4est.P4EST_CONNECT_FACE)
+function ghost_new_p4est(p4est::PointerOrWrapper{p4est_t})
+    p4est_ghost_new(p4est, P4est.P4EST_CONNECT_FACE)
+end
 # 3D
 # In 3D it is not sufficient to use `P8EST_CONNECT_FACE`. Consider the neighbor elements of a mortar
 # in 3D. We have to determine which MPI ranks are involved in this mortar.
@@ -149,28 +157,37 @@ ghost_new_p4est(p4est::PointerOrWrapper{p4est_t}) = p4est_ghost_new(p4est, P4est
 # `P8EST_CONNECT_FACE`. But if it is not in the ghost layer, it will not be available in
 # `iterate_p4est` and thus we cannot determine its MPI rank
 # (see https://github.com/cburstedde/p4est/blob/439bc9aae849555256ddfe4b03d1f9fe8d18ff0e/src/p8est_iterate.h#L66-L72).
-ghost_new_p4est(p8est::PointerOrWrapper{p8est_t}) = p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FULL)
+function ghost_new_p4est(p8est::PointerOrWrapper{p8est_t})
+    p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FULL)
+end
 
 # Check if ghost layer is valid
 # 2D
-function ghost_is_valid_p4est(p4est::PointerOrWrapper{p4est_t}, ghost_layer::Ptr{p4est_ghost_t})
+function ghost_is_valid_p4est(p4est::PointerOrWrapper{p4est_t},
+                              ghost_layer::Ptr{p4est_ghost_t})
     return p4est_ghost_is_valid(p4est, ghost_layer)
 end
 # 3D
-function ghost_is_valid_p4est(p4est::PointerOrWrapper{p8est_t}, ghost_layer::Ptr{p8est_ghost_t})
+function ghost_is_valid_p4est(p4est::PointerOrWrapper{p8est_t},
+                              ghost_layer::Ptr{p8est_ghost_t})
     return p8est_ghost_is_valid(p4est, ghost_layer)
 end
 
 # Destroy ghost layer
 # 2D
-ghost_destroy_p4est(ghost_layer::PointerOrWrapper{p4est_ghost_t}) = p4est_ghost_destroy(ghost_layer)
+function ghost_destroy_p4est(ghost_layer::PointerOrWrapper{p4est_ghost_t})
+    p4est_ghost_destroy(ghost_layer)
+end
 # 3D
-ghost_destroy_p4est(ghost_layer::PointerOrWrapper{p8est_ghost_t}) = p8est_ghost_destroy(ghost_layer)
+function ghost_destroy_p4est(ghost_layer::PointerOrWrapper{p8est_ghost_t})
+    p8est_ghost_destroy(ghost_layer)
+end
 
 # Let `p4est` iterate over each cell volume and cell face.
 # Call iter_volume_c for each cell and iter_face_c for each face.
 # 2D
-function iterate_p4est(p4est::PointerOrWrapper{p4est_t}, user_data; ghost_layer = C_NULL,
+function iterate_p4est(p4est::PointerOrWrapper{p4est_t}, user_data;
+                       ghost_layer = C_NULL,
                        iter_volume_c = C_NULL, iter_face_c = C_NULL)
     if user_data === C_NULL
         user_data_ptr = user_data
@@ -193,7 +210,8 @@ function iterate_p4est(p4est::PointerOrWrapper{p4est_t}, user_data; ghost_layer 
 end
 
 # 3D
-function iterate_p4est(p8est::PointerOrWrapper{p8est_t}, user_data; ghost_layer = C_NULL,
+function iterate_p4est(p8est::PointerOrWrapper{p8est_t}, user_data;
+                       ghost_layer = C_NULL,
                        iter_volume_c = C_NULL, iter_face_c = C_NULL)
     if user_data === C_NULL
         user_data_ptr = user_data
