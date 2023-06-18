@@ -37,8 +37,8 @@ const P4estGhostPtrOrPW = Union{Ptr{p4est_ghost_t}, PointerWrapper{p4est_ghost_t
 const P8estGhostPtrOrPW = Union{Ptr{p8est_ghost_t}, PointerWrapper{p8est_ghost_t}}
 
 # Convert sc_array of type T to Julia array
-function unsafe_wrap_sc(::Type{T}, sc_array::Ptr{sc_array}) where {T}
-    sc_array_obj = unsafe_load(sc_array)
+function unsafe_wrap_sc(::Type{T}, sc_array_ptr::Ptr{sc_array}) where {T}
+    sc_array_obj = unsafe_load(sc_array_ptr)
     return unsafe_wrap_sc(T, sc_array_obj)
 end
 
