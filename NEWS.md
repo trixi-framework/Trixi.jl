@@ -9,6 +9,7 @@ for human readability.
 #### Added
 
 - Experimental support for 3D parabolic diffusion terms has been added.
+- Capability to set truly discontinuous initial conditions in 1D.
 
 #### Changed
 
