@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 include("tree_mesh.jl")
 include("structured_mesh.jl")
@@ -15,6 +15,4 @@ include("p4est_mesh.jl")
 include("t8code_mesh.jl")
 include("mesh_io.jl")
 include("dgmulti_meshes.jl")
-
-
 end # @muladd
