@@ -313,5 +313,4 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
   return surface_index1, surface_index2
 end
 
-
 end # @muladd

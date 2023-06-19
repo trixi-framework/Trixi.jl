@@ -51,8 +51,8 @@ mkdir(outdir)
 
   @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_unstructured_curved.jl"),
-      l2   = [1.6236411810065552e-5],
-      linf = [0.0010554006923731395],
+      l2   = [2.0556575425846923e-5],
+      linf = [0.00105682693484822],
       tspan = (0.0, 1.0),
       coverage_override = (maxiters=6, initial_refinement_level=0, base_level=0, med_level=1, max_level=2))
   end
@@ -62,6 +62,13 @@ mkdir(outdir)
   #     l2   = [0.002006918015656413],
   #     linf = [0.027655117058380085])
   # end
+
+  @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
+      l2   = [4.070355207909268e-5, 4.4993257426833716e-5, 5.10588457841744e-5, 5.102840924036687e-5, 0.00019986264001630542],
+      linf = [0.0016987332417202072, 0.003622956808262634, 0.002029576258317789, 0.0024206977281964193, 0.008526972236273522],
+      tspan = (0.0, 0.01))
+  end
 
 end
 

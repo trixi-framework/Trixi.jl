@@ -1,4 +1,3 @@
-
 using Downloads: download
 using OrdinaryDiffEq
 using Trixi
@@ -52,37 +51,76 @@ mesh_file = joinpath(@__DIR__, "cube_unstructured_1.inp")
 isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/d45c8ac1e248618885fa7cc31a50ab40/raw/37fba24890ab37cfa49c39eae98b44faf4502882/cube_unstructured_1.inp",
                               mesh_file)
 
+# INP mesh files are only support by p4est. Hence, we
+# create a p4est connecvity object first from which
+# we can create a t8code mesh.
+conn = Trixi.read_inp_p4est(mesh_file,Val(3))
+
 # Mesh polydeg of 2 (half the solver polydeg) to ensure FSP (see above).
-mesh = P4estMesh{3}(mesh_file, polydeg=2,
+mesh = T8codeMesh{3}(conn, polydeg=2,
                     mapping=mapping,
                     initial_refinement_level=0)
 
-# Refine bottom left quadrant of each tree to level 2
-function refine_fn(p8est, which_tree, quadrant)
-  quadrant_obj = unsafe_load(quadrant)
-  if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 && quadrant_obj.level < 2
+# Note: This is actually a `p8est_quadrant_t` which is much bigger than the
+# following struct. But we only need the first four fields for our purpose.
+struct t8_dhex_t
+  x :: Int32
+  y :: Int32
+  z :: Int32
+  level :: Int8
+  # [...] # See `p8est.h` in `p4est` for more info.
+end
+
+function adapt_callback(forest,
+                        forest_from,
+                        which_tree,
+                        lelement_id,
+                        ts,
+                        is_family, 
+                        num_elements,
+                        elements_ptr) :: Cint
+
+  vertex = Vector{Cdouble}(undef,3)
+  elements = unsafe_wrap(Array, elements_ptr, num_elements)
+  Trixi.t8_element_vertex_reference_coords(ts, elements[1], 0, pointer(vertex))
+
+  el = unsafe_load(Ptr{t8_dhex_t}(elements[1]))
+
+  if el.x == 0 && el.y == 0 && el.z == 0 && el.level < 2
     # return true (refine)
-    return Cint(1)
+    return 1
   else
     # return false (don't refine)
-    return Cint(0)
+    return 0
   end
 end
 
-# Refine recursively until each bottom left quadrant of a tree has level 2
-# The mesh will be rebalanced before the simulation starts
-refine_fn_c = @cfunction(refine_fn, Cint, (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p8est_quadrant_t}))
-Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
+@assert(Trixi.t8_forest_is_committed(mesh.forest) != 0);
+
+# Init new forest.
+new_forest_ref = Ref{Trixi.t8_forest_t}()
+Trixi.t8_forest_init(new_forest_ref);
+new_forest = new_forest_ref[]
+
+let set_from = C_NULL, recursive = 1, set_for_coarsening = 0, no_repartition = 0, do_ghost = 1
+  Trixi.t8_forest_set_user_data(new_forest, C_NULL)
+  Trixi.t8_forest_set_adapt(new_forest, mesh.forest, @Trixi.t8_adapt_callback(adapt_callback), recursive)
+  Trixi.t8_forest_set_balance(new_forest, set_from, no_repartition)
+  Trixi.t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
+  Trixi.t8_forest_set_ghost(new_forest, do_ghost, Trixi.T8_GHOST_FACES);
+  Trixi.t8_forest_commit(new_forest)
+end
+
+mesh.forest = new_forest
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms_convergence_test,
                                     boundary_conditions=boundary_conditions)
 
-
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.1)
+tspan = (0.0, 0.045)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -92,18 +130,18 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=100,
-                                     save_initial_solution=true,
-                                     save_final_solution=true,
-                                     solution_variables=cons2prim)
+# Not supported yet.
+# save_solution = SaveSolutionCallback(interval=100,
+#                                      save_initial_solution=true,
+#                                      save_final_solution=true,
+#                                      solution_variables=cons2prim)
 
 stepsize_callback = StepsizeCallback(cfl=0.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
-                        stepsize_callback)
-
+                        # save_solution,
+                        stepsize_callback);
 
 ###############################################################################
 # run the simulation
@@ -112,22 +150,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
-
-
-
-
-data = [sol.u[2]]
-
-dataname = ["test"]
-filename = "final.vtu"
-write_data = true
-
-num_cells = Trixi.ncells(mesh)
-
-coords = reshape(semi.cache.elements.node_coordinates,size(semi.cache.elements.node_coordinates,1),prod(size(semi.cache.elements.node_coordinates)[2:end]))
-
-rd = Trixi.StartUpDG.RefElemData(Trixi.StartUpDG.Hex(), 4)
-
-Trixi.StartUpDG.MeshData_to_vtk(rd, num_cells, coords, data, dataname, filename, write_data);
-
-
