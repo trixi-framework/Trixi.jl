@@ -80,16 +80,15 @@
         counter += 1
     end
     if positivity
-        for variable in indicator.variables_cons
-            if variable == Trixi.density && density_tvd
+        for index in indicator.variables_cons
+            if index == 1 && density_tvd
                 continue
             end
             deviation_min = zero(eltype(u))
             for element in eachelement(solver, cache), j in eachnode(solver),
                 i in eachnode(solver)
 
-                var = variable(get_node_vars(u, equations, solver, i, j, element),
-                               equations)
+                var = u[index, i, j, element]
                 deviation_min = max(deviation_min,
                                     variable_bounds[counter][i, j, element] - var)
             end

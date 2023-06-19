@@ -85,11 +85,12 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
             print(f, ", mathEntr_max")
         end
         if positivity
-            for variable in indicator.variables_cons
-                if variable == Trixi.density && density_tvd
+            variables = varnames(cons2cons, semi.equations)
+            for index in indicator.variables_cons
+                if index == 1 && density_tvd
                     continue
                 end
-                print(f, ", $(variable)_min")
+                print(f, ", $(variables[index])_min")
             end
             for variable in indicator.variables_nonlinear
                 print(f, ", $(variable)_min")
@@ -155,11 +156,12 @@ end
         counter += 1
     end
     if positivity
-        for variable in indicator.variables_cons
-            if variable == Trixi.density && density_tvd
+        variables = varnames(cons2cons, semi.equations)
+        for index in indicator.variables_cons
+            if index == 1 && density_tvd
                 continue
             end
-            println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
+            println("$(variables[index]):\n- positivity: ", idp_bounds_delta[counter])
             counter += 1
         end
         for variable in indicator.variables_nonlinear
