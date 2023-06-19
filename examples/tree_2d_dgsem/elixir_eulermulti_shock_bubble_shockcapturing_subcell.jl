@@ -83,12 +83,9 @@ surface_flux        = flux_lax_friedrichs
 volume_flux         = flux_ranocha
 basis               = LobattoLegendreBasis(3)
 
-density1(u, equations::CompressibleEulerMulticomponentEquations2D) = u[1+3]
-density2(u, equations::CompressibleEulerMulticomponentEquations2D) = u[2+3]
-
 indicator_sc = IndicatorIDP(equations, basis;
                             positivity=true,
-                            variables_cons=(density1, density2))
+                            variables_cons=[(i+3 for i in eachcomponent(equations))...])
 
 volume_integral=VolumeIntegralSubcellLimiting(indicator_sc; volume_flux_dg=volume_flux,
                                                             volume_flux_fv=surface_flux)

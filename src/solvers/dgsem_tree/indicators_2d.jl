@@ -252,7 +252,7 @@ end
     @threaded for element in eachelement(dg, semi.cache)
         inverse_jacobian = cache.elements.inverse_jacobian[element]
         for j in eachnode(dg), i in eachnode(dg)
-            var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
+            var = u[variable, i, j, element]
             if var < 0
                 error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
             end
@@ -270,19 +270,13 @@ end
             # Calculate Pm
             # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
             val_flux1_local = inverse_weights[i] *
-                              variable(get_node_vars(antidiffusive_flux1, equations, dg,
-                                                     i, j, element), equations)
+                              antidiffusive_flux1[variable, i, j, element]
             val_flux1_local_ip1 = -inverse_weights[i] *
-                                  variable(get_node_vars(antidiffusive_flux1, equations,
-                                                         dg, i + 1, j, element),
-                                           equations)
+                                  antidiffusive_flux1[variable, i + 1, j, element]
             val_flux2_local = inverse_weights[j] *
-                              variable(get_node_vars(antidiffusive_flux2, equations, dg,
-                                                     i, j, element), equations)
+                              antidiffusive_flux2[variable, i, j, element]
             val_flux2_local_jp1 = -inverse_weights[j] *
-                                  variable(get_node_vars(antidiffusive_flux2, equations,
-                                                         dg, i, j + 1, element),
-                                           equations)
+                                  antidiffusive_flux2[variable, i, j + 1, element]
 
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
