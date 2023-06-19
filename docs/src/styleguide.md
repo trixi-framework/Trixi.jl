@@ -66,7 +66,7 @@ utils/trixi-format.jl
 You can get more information about using the convenience script by running it with the
 `--help`/`-h` flag.
 
-### Checking formatting before commiting
+### Checking formatting before committing
 It can be convenient to check the formatting of source code automatically before each commit. 
 We use git-hooks for it and provide a `pre-commit` script in the `utils` folder. The script uses
 [JuliaFormatter.jl](https://github.com/domluna/JuliaFormatter.jl) just like formatting script that 
