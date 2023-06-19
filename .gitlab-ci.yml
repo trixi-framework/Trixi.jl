@@ -1,52 +1,21 @@
 stages:
-    - precompile
-    - test
+    test
 
-
-default:
-    tags: [ "downscope" ]
-
-.julia-job:
-    variables:
-        SLURM_PARAM_ACCOUNT: "-A thes1464"
-        SLURM_PARAM_TASKS: "-n 1"
-        SLURM_PARAM_CPUS: "--cpus-per-task=24"
-        SLURM_PARAM_TIME: "-t 01:00:00"
-    before_script:
-        - source /work/co693196/MA/julia.sh
-
-precompile-job:
-    extends: .julia-job
-    stage: precompile
-    script:
-        - mkdir run
-        - cd run
-        - julia --project="." -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))'
-
-.test-job:
-    extends: .julia-job
+.trigger-template:
     stage: test
-    before_script:
-        - source /work/co693196/MA/julia.sh
-        - mkdir run
-        - cd run
-        - julia --project="." -e 'using Pkg; Pkg.add(name="OrdinaryDiffEq", version="6.52.0"); Pkg.add(name="KernelAbstractions", version="0.9.4"); Pkg.develop(PackageSpec(path=".."));'
+    trigger:
+        include: /.test-ci.yml
+        strategy: depend
+        forward: 
+            yaml_variables: true
 
-cpu-test-job:
-    extends: .test-job
-    script:
-        - julia --project="." --threads=24 -e 'using Trixi; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=false)'
+julia-1.8-test:
+    extends: .trigger-template
+    allow_failure: true
+    variables:
+        JULIA_EXEC: "julia-1.8"
 
-cpu-offload-test-job:
-    extends: .test-job
-    script:
-        - julia --project="." --threads=24 -e 'using Trixi; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=true)'
-
-gpu-offload-test-job:
-    extends: .test-job
-    variables:        
-        SLURM_PARAM_GPUS: "--gres=gpu:volta:1"
-        SLURM_PARAM_PARTITION: "--partition=c18g"
-    script:
-        - julia --project="." --threads=24 -e 'using Pkg; Pkg.add(name="CUDA", version="4.3.2")'
-        - julia --project="." --threads=24 -e 'using Trixi, CUDA; using CUDA.CUDAKernels; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=true, backend=CUDABackend())'
+julia-1.9-test:
+    extends: .trigger-template
+    variables:
+        JULIA_EXEC: "julia-1.9"
