@@ -1,5 +1,5 @@
 stages:
-    test
+    - test
 
 .trigger-template:
     stage: test
