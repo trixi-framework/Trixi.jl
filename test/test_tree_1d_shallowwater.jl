@@ -15,6 +15,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
       tspan = (0.0, 0.25))
   end
 
+  @trixi_testset "elixir_shallowwater_ec.jl with initial_condition_weak_blast_wave" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_ec.jl"),
+      l2   = [0.39464782107209717, 2.03880864210846, 4.1623084150546725e-10],
+      linf = [0.778905801278281, 3.2409883402608273, 7.419800190922032e-10],
+      initial_condition=initial_condition_weak_blast_wave,
+      tspan = (0.0, 0.25))
+  end
+
   @trixi_testset "elixir_shallowwater_well_balanced.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
       l2   = [0.10416666834254829, 1.4352935256803184e-14, 0.10416666834254838],
@@ -59,7 +67,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
       tspan = (0.0, 0.025))
   end
 
-  @trixi_testset "elixir_shallowwater_well_balanced_nonperiodic.jl with dirichlet boundary" begin
+  @trixi_testset "elixir_shallowwater_well_balanced_nonperiodic.jl with Dirichlet boundary" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced_nonperiodic.jl"),
       l2   = [1.725964362045055e-8, 5.0427180314307505e-16, 1.7259643530442137e-8],
       linf = [3.844551077492042e-8, 3.469453422316143e-15, 3.844551077492042e-8],
