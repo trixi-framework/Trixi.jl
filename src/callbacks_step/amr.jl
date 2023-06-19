@@ -348,24 +348,24 @@ end
 
 # Copy controller values to quad user data storage, will be called below
 function copy_to_quad_iter_volume(info, user_data)
-    info_obj = unsafe_load(info)
+    info_pw = PointerWrapper(info)
 
     # Load tree from global trees array, one-based indexing
-    tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
+    tree_pw = load_pointerwrapper_tree(info_pw.p4est, info_pw.treeid[] + 1)
     # Quadrant numbering offset of this quadrant
-    offset = tree.quadrants_offset
+    offset = tree_pw.quadrants_offset[]
     # Global quad ID
-    quad_id = offset + info_obj.quadid
+    quad_id = offset + info_pw.quadid[]
 
     # Access user_data = lambda
-    user_data_ptr = Ptr{Int}(user_data)
+    user_data_pw = PointerWrapper(Int, user_data)
     # Load controller_value = lambda[quad_id + 1]
-    controller_value = unsafe_load(user_data_ptr, quad_id + 1)
+    controller_value = user_data_pw[quad_id + 1]
 
     # Access quadrant's user data ([global quad ID, controller_value])
-    quad_data_ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
+    quad_data_pw = PointerWrapper(Int, info_pw.quad.p.user_data[])
     # Save controller value to quadrant's user data.
-    unsafe_store!(quad_data_ptr, controller_value, 2)
+    quad_data_pw[2] = controller_value
 
     return nothing
 end
@@ -599,22 +599,22 @@ function current_element_levels(mesh::TreeMesh, solver, cache)
 end
 
 function extract_levels_iter_volume(info, user_data)
-    info_obj = unsafe_load(info)
+    info_pw = PointerWrapper(info)
 
     # Load tree from global trees array, one-based indexing
-    tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
+    tree_pw = load_pointerwrapper_tree(info_pw.p4est, info_pw.treeid[] + 1)
     # Quadrant numbering offset of this quadrant
-    offset = tree.quadrants_offset
+    offset = tree_pw.quadrants_offset[]
     # Global quad ID
-    quad_id = offset + info_obj.quadid
+    quad_id = offset + info_pw.quadid[]
     # Julia element ID
     element_id = quad_id + 1
 
-    current_level = unsafe_load(info_obj.quad.level)
+    current_level = info_pw.quad.level[]
 
     # Unpack user_data = current_levels and save current element level
-    ptr = Ptr{Int}(user_data)
-    unsafe_store!(ptr, current_level, element_id)
+    pw = PointerWrapper(Int, user_data)
+    pw[element_id] = current_level
 
     return nothing
 end
