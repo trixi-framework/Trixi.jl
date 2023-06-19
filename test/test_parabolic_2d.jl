@@ -218,9 +218,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "P4estMesh2D: elixir_navierstokes_convergence.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_convergence.jl"),
-      initial_refinement_level = 2, tspan=(0.0, 0.5),
-      l2 = [4.2852610204634015e-6, 2.0679143814141558e-5, 1.4336134288439704e-5, 7.800744943199459e-6], 
-      linf = [3.570853695711307e-5, 0.00034481633921521794, 8.593188464759635e-5, 0.00010656913331352769]
+      initial_refinement_level = 1, tspan=(0.0, 0.2), 
+      l2 = [0.0003811978985836709, 0.0005874314969169538, 0.0009142898787923481, 0.0011613918899727263], 
+      linf = [0.0021633623982135752, 0.009484348274135372, 0.004231572066492217, 0.011661660275365193]
     )
   end
 
