@@ -22,8 +22,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_euler_density_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
-      l2   = [0.0011482554820185795, 0.00011482554830363504, 5.741277417754598e-6],
-      linf = [0.004090978306820037, 0.00040909783134346345, 2.0454891732413216e-5])
+      l2   = [0.0011482554820217855, 0.00011482554830323462, 5.741277429325267e-6],
+      linf = [0.004090978306812376, 0.0004090978313582294, 2.045489210189544e-5])
   end
 
   @trixi_testset "elixir_euler_density_wave.jl with initial_condition_constant" begin
@@ -41,14 +41,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-      l2   = [0.11915540925414216, 0.15489191247295198, 0.44543052524765375],
-      linf = [0.2751485868543495, 0.2712764982000735, 0.9951407418216425])
+      l2   = [0.11821957357197649, 0.15330089521538678, 0.4417674632047301],
+      linf = [0.24280567569982958, 0.29130548795961936, 0.8847009003152442])
   end
 
   @trixi_testset "elixir_euler_ec.jl with flux_kennedy_gruber" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-      l2   = [0.07905582221868049, 0.10180958900546237, 0.29596551476711125],
-      linf = [0.23515297345769826, 0.2958208108392532, 0.8694224308790321],
+      l2   = [0.07803455838661963, 0.10032577312032283, 0.29228156303827935],
+      linf = [0.2549869853794955, 0.3376472164661263, 0.9650477546553962],
       maxiters = 10,
       surface_flux = flux_kennedy_gruber,
       volume_flux = flux_kennedy_gruber)
@@ -56,8 +56,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_euler_ec.jl with flux_shima_etal" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-      l2   = [0.07909267609417114, 0.1018246500951966, 0.2959649187481973],
-      linf = [0.23631829743146504, 0.2977756307879202, 0.8642794698697331],
+      l2   = [0.07800654460172655, 0.10030365573277883, 0.2921481199111959],
+      linf = [0.25408579350400395, 0.3388657679031271, 0.9776486386921928],
       maxiters = 10,
       surface_flux = flux_shima_etal,
       volume_flux = flux_shima_etal)
@@ -65,8 +65,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_euler_ec.jl with flux_chandrashekar" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-      l2   = [0.07905306555214126, 0.10181180378499956, 0.2959171937479504],
-      linf = [0.24057642004451651, 0.29691454643616433, 0.886425723870524],
+      l2   = [0.07801923089205756, 0.10039557434912669, 0.2922210399923278],
+      linf = [0.2576521982607225, 0.3409717926625057, 0.9772961936567048],
       maxiters = 10,
       surface_flux = flux_chandrashekar,
       volume_flux = flux_chandrashekar)
@@ -74,8 +74,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_euler_ec.jl with flux_hll" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-      l2   = [0.07959780803600519, 0.10342491934977621, 0.2978851659149904],
-      linf = [0.19228754121840885, 0.2524152253292552, 0.725604944702432],
+      l2   = [0.07852272782240548, 0.10209790867523805, 0.293873048809011],
+      linf = [0.19244768908604093, 0.2515941686151897, 0.7258000837553769],
       maxiters = 10,
       surface_flux = flux_hll,
       volume_flux = flux_ranocha)
@@ -83,8 +83,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_euler_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
-      l2   = [0.11665968950973675, 0.15105507394693413, 0.43503082674771115],
-      linf = [0.1867400345208743, 0.24621854448555328, 0.703826406555577])
+      l2   = [0.11606096465319675, 0.15028768943458806, 0.4328230323046703],
+      linf = [0.18031710091067965, 0.2351582421501841, 0.6776805692092567])
   end
 
   @trixi_testset "elixir_euler_sedov_blast_wave.jl" begin
@@ -96,8 +96,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_euler_sedov_blast_wave_pure_fv.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_pure_fv.jl"),
-      l2   = [1.075075094036344, 0.06766902169711514, 0.9221426570128292],
-      linf = [3.3941512671408542, 0.16862631133303882, 2.6572394126490315],
+      l2   = [1.0735456065491455, 0.07131078703089379, 0.9205739468590453],
+      linf = [3.4296365168219216, 0.17635583964559245, 2.6574584326179505],
       # Let this test run longer to cover some lines in flux_hllc
       coverage_override = (maxiters=10^5, tspan=(0.0, 0.1)))
   end
@@ -129,22 +129,22 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_euler_blast_wave.jl" begin
   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
-      l2   = [0.21651329948737183, 0.28091709900008616, 0.5580778880050432],
-      linf = [1.513525457073142, 1.5328754303137992, 2.0467706106669556],
+      l2   = [0.21934822867340323, 0.28131919126002686, 0.554361702716662],
+      linf = [1.5180897390290355, 1.3967085956620369, 2.0663825294019595],
       maxiters = 30)
   end
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl"),
-        l2   = [2.13605618e-01, 2.79953055e-01, 5.54424459e-01],
-        linf = [1.55151701e+00, 1.55696782e+00, 2.05525953e+00],
+        l2   = [0.21814833203212694, 0.2818328665444332, 0.5528379124720818],
+        linf = [1.5548653877320868, 1.4474018998129738, 2.071919577393772],
         maxiters = 30)
   end
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl"),
-        l2   = [2.18148857e-01, 2.83182959e-01, 5.59096194e-01],
-        linf = [1.62706876e+00, 1.61680275e+00, 2.05876517e+00],
+        l2   = [0.22054468879127423, 0.2828269190680846, 0.5542369885642424],
+        linf = [1.5623359741479623, 1.4290121654488288, 2.1040405133123072],
         maxiters = 30)
   end
 end
