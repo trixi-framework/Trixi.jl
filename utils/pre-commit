@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copy this file into .git/hooks/pre-commit to execute before each commit. 
 # It checks and corrects the format for each file.
@@ -11,7 +11,7 @@ then
 	against=HEAD
 else
 	# Initial commit: diff against an empty tree object
-        against=280fc57fade28e35046c3e884e587ffef05d3867
+    against=280fc57fade28e35046c3e884e587ffef05d3867
 fi
 
 # Redirect output to stderr.
