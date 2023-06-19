@@ -1,10 +1,10 @@
 #!/bin/sh
 
-# Copy this file into .git/hooks/pre-commit to execute befor each commit. 
+# Copy this file into .git/hooks/pre-commit to execute before each commit. 
 # It checks and corrects the format for each file.
 # If incorrect formatting is found you can add the correction via git add -p
 
-echo "Checking format befor commiting"
+echo "Checking format before committing"
 
 if git ref-parse --verify HEAD >/dev/null 2>&1
 then

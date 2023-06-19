@@ -17,26 +17,25 @@ function main()
         return nothing
     end
 
-
     file_list = ARGS
     if isempty(ARGS)
         exit(0)
     end
-    non_formatted_files=Vector{String}()
+    non_formatted_files = Vector{String}()
     for file in file_list
-        println("Checking file "*file)  
-    	if !format_file(file) 
+        println("Checking file " * file)
+        if !format_file(file)
             push!(non_formatted_files, file)
         end
     end
     if isempty(non_formatted_files)
-    	exit(0)
+        exit(0)
     else
-    	@error "Some files have not been formatted! Formatting has been applied, run 'git add -p' to update changes."
-    	for file in non_formatted_files
-    		println(file)
-    	end
-    	exit(1)
+        @error "Some files have not been formatted! Formatting has been applied, run 'git add -p' to update changes."
+        for file in non_formatted_files
+            println(file)
+        end
+        exit(1)
     end
 end
 
