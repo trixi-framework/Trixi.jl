@@ -454,7 +454,7 @@ end
 
 # Calculate total energy for a conservative state `cons`
 @inline function energy_total(cons, equations::ShallowWaterTwoLayerEquations1D)
-  h_upper, h_lower, h_v1_upper, h_v2_lower, b = cons
+  h_upper, h_v1_upper, h_lower, h_v2_lower, b = cons
   # Set new variables for better readability
   g = equations.gravity
   rho_upper = equations.rho_upper
