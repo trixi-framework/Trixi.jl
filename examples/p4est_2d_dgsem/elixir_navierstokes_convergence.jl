@@ -18,17 +18,11 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
 
-# Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
-                periodicity=(true, true),
-                n_cells_max=30_000) # set maximum capacity of tree data structure
-
 trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
                  polydeg=3, initial_refinement_level=2,
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max,
-                 periodicity=true)
+                 periodicity=(true, false))
 
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion2D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion2D`)
@@ -181,16 +175,12 @@ heat_bc_top_bottom = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_top_bottom, heat_bc_top_bottom)
 
 # define inviscid boundary conditions
-boundary_conditions = (; x_neg = boundary_condition_periodic,
-                         x_pos = boundary_condition_periodic,
-                         y_neg = boundary_condition_slip_wall,
-                         y_pos = boundary_condition_slip_wall)
+boundary_conditions = Dict(:y_neg => boundary_condition_slip_wall,
+                           :y_pos => boundary_condition_slip_wall)
 
 # define viscous boundary conditions
-boundary_conditions_parabolic = (; x_neg = boundary_condition_periodic,
-                                   x_pos = boundary_condition_periodic,
-                                   y_neg = boundary_condition_top_bottom,
-                                   y_pos = boundary_condition_top_bottom)
+boundary_conditions_parabolic = Dict(:y_neg => boundary_condition_top_bottom,
+                                     :y_pos => boundary_condition_top_bottom)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, solver;
                                              boundary_conditions=(boundary_conditions, boundary_conditions_parabolic),
