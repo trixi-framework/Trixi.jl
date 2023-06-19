@@ -37,4 +37,4 @@ do
 	fi
 done
 
-julia utils/trixi-format_file.jl "${files[@]}"
+julia utils/trixi-format-file.jl "${files[@]}"
