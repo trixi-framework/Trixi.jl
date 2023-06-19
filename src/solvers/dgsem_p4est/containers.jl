@@ -164,15 +164,9 @@ function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
 end
 
 # Create interface container and initialize interface data.
-<<<<<<< HEAD
 function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
   NDIMS = ndims(elements)
   uEltype = eltype(elements)
-=======
-function init_interfaces(mesh::P4estMesh, equations, basis, elements)
-    NDIMS = ndims(elements)
-    uEltype = eltype(elements)
->>>>>>> main
 
     # Initialize container
     n_interfaces = count_required_surfaces(mesh).interfaces
@@ -245,15 +239,9 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
 end
 
 # Create interface container and initialize interface data in `elements`.
-<<<<<<< HEAD
 function init_boundaries(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
   NDIMS = ndims(elements)
   uEltype = eltype(elements)
-=======
-function init_boundaries(mesh::P4estMesh, equations, basis, elements)
-    NDIMS = ndims(elements)
-    uEltype = eltype(elements)
->>>>>>> main
 
     # Initialize container
     n_boundaries = count_required_surfaces(mesh).boundaries
@@ -382,33 +370,7 @@ function Base.resize!(mortars::P4estMortarContainer, capacity)
 end
 
 # Create mortar container and initialize mortar data.
-<<<<<<< HEAD
 function init_mortars(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
-  NDIMS = ndims(elements)
-  uEltype = eltype(elements)
-
-  # Initialize container
-  n_mortars = count_required_surfaces(mesh).mortars
-
-  _u = Vector{uEltype}(undef,
-    2 * nvariables(equations) * 2^(NDIMS-1) * nnodes(basis)^(NDIMS-1) * n_mortars)
-  u = unsafe_wrap(Array, pointer(_u),
-    (2, nvariables(equations), 2^(NDIMS-1), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_mortars))
-
-  _neighbor_ids = Vector{Int}(undef, (2^(NDIMS-1) + 1) * n_mortars)
-  neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2^(NDIMS-1) + 1, n_mortars))
-
-  _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mortars)
-  node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mortars))
-
-  mortars = P4estMortarContainer{NDIMS, uEltype, NDIMS+1, NDIMS+3}(u, neighbor_ids, node_indices,
-                                                                   _u, _neighbor_ids, _node_indices)
-
-  if n_mortars > 0
-    init_mortars!(mortars, mesh)
-  end
-=======
-function init_mortars(mesh::P4estMesh, equations, basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
@@ -439,7 +401,6 @@ function init_mortars(mesh::P4estMesh, equations, basis, elements)
     if n_mortars > 0
         init_mortars!(mortars, mesh)
     end
->>>>>>> main
 
     return mortars
 end

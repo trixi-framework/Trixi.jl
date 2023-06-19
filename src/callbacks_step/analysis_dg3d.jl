@@ -35,12 +35,7 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{3},
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2)
 end
 
-<<<<<<< HEAD
-
 function create_cache_analysis(analyzer, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-=======
-function create_cache_analysis(analyzer, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
->>>>>>> feature-t8code
                                equations, dg::DG, cache,
                                RealT, uEltype)
 
@@ -223,22 +218,12 @@ function integrate_via_indices(func::Func, u,
 end
 
 function integrate(func::Func, u,
-<<<<<<< HEAD
                    mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                    equations, dg::DG, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, j, k, element)
     return func(u_local, equations)
   end
-=======
-                   mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
-                   equations, dg::DG, cache; normalize = true) where {Func}
-    integrate_via_indices(u, mesh, equations, dg, cache;
-                          normalize = normalize) do u, i, j, k, element, equations, dg
-        u_local = get_node_vars(u, equations, dg, i, j, k, element)
-        return func(u_local, equations)
-    end
->>>>>>> feature-t8code
 end
 
 function integrate(func::Func, u,
@@ -291,12 +276,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-<<<<<<< HEAD
                  mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}}, equations::IdealGlmMhdEquations3D,
-=======
-                 mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                 equations::IdealGlmMhdEquations3D,
->>>>>>> feature-t8code
                  dg::DGSEM, cache)
     @unpack contravariant_vectors = cache.elements
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
@@ -351,12 +331,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-<<<<<<< HEAD
                  mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}}, equations::IdealGlmMhdEquations3D,
-=======
-                 mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                 equations::IdealGlmMhdEquations3D,
->>>>>>> feature-t8code
                  dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
     @unpack contravariant_vectors = cache.elements

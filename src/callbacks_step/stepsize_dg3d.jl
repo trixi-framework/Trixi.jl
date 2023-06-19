@@ -82,12 +82,7 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-<<<<<<< HEAD
-
 function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-=======
-function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
->>>>>>> feature-t8code
                 constant_speed::True, equations, dg::DG, cache)
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection

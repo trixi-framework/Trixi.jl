@@ -309,7 +309,6 @@ function create_cache(::Type{ControllerThreeLevel},
     controller_value = Vector{Int}(undef, nelements(dg, cache))
     return (; controller_value)
 end
-<<<<<<< HEAD
 
 # Coarsen and refine elements in the DG solver based on a difference list.
 function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations, dg::DGSEM, cache, difference)
@@ -383,6 +382,4 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations, 
   return nothing
 end
 
-=======
->>>>>>> feature-t8code
 end # @muladd
