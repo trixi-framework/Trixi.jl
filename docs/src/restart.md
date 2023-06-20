@@ -1,6 +1,6 @@
 # [Restart Simulation](@id restart)
 
-You can continue running an already finsihed simulation by first
+You can continue running an already finished simulation by first
 preparing the simulation for the restart and then performing the restart.
 Here we suppose that in the first run your simulation stops at time 1.0
 and then you want it to run further to time 2.0.
@@ -50,7 +50,7 @@ tspan = (load_time(restart_filename), 2.0)
 ```
 
 We now also take the last ```dt```, so that our solver does not need to first find
-one to fullfill the CFL condition:
+one to fulfill the CFL condition:
 ```julia
 dt = load_dt(restart_filename)
 ```
