@@ -17,7 +17,8 @@ save_restart = SaveRestartCallback(interval=100,
 ```
 Make this part of your `CallbackSet`.
 
-An example is ```examples/examples/structured_2d_dgsem/elixir_advection_extended.jl```.
+An example is
+[```examples/examples/structured_2d_dgsem/elixir_advection_extended.jl```](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_restart.jl).
 
 
 ## [Perform the simulation restart](@id restart_perform)
@@ -60,7 +61,8 @@ The ODE that we will pass to the solver is now:
 ode = semidiscretize(semi, tspan, restart_filename)
 ```
 
-You should now define a ```SaveSolution``` callback similar to the original simulation,
+You should now define a ```SaveSolution``` callback similar to the
+[original simulation](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_extended.jl),
 but with ```save_initial_solution=false```, otherwise our initial snapshot will be overwritten.
 If you are using one file for the original simulation and the restart
 you can reuse your ```SaveSolution``` callback, but need to set
@@ -84,4 +86,4 @@ Now we can compute the solution:
 sol = solve!(integrator)
 ```
 
-An example is in ```examples/structured_2d_dgsem/elixir_advection_restart.jl```.
+An example is in `[``examples/structured_2d_dgsem/elixir_advection_restart.jl```](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_restart.jl).
