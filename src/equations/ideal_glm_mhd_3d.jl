@@ -671,7 +671,7 @@ end
 end
 
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, 
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::IdealGlmMhdEquations3D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
@@ -700,7 +700,7 @@ end
     return λ_min, λ_max
 end
 
-@inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, 
+@inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::IdealGlmMhdEquations3D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
@@ -714,16 +714,12 @@ end
     v2_rr = rho_v2_rr / rho_rr
     v3_rr = rho_v3_rr / rho_rr
 
-    v_normal_ll = (
-        v1_ll * normal_direction[1] +
-        v2_ll * normal_direction[2] +
-        v3_ll * normal_direction[3]
-    )
-    v_normal_rr = (
-        v1_rr * normal_direction[1] +
-        v2_rr * normal_direction[2] +
-        v3_rr * normal_direction[3]
-    )
+    v_normal_ll = (v1_ll * normal_direction[1] +
+                   v2_ll * normal_direction[2] +
+                   v3_ll * normal_direction[3])
+    v_normal_rr = (v1_rr * normal_direction[1] +
+                   v2_rr * normal_direction[2] +
+                   v3_rr * normal_direction[3])
 
     # Estimate the min/max eigenvalues in the normal direction
     λ_min = v_normal_ll - calc_fast_wavespeed(u_ll, normal_direction, equations)
@@ -738,7 +734,7 @@ end
 Implements the classic 2-wave HLL solver, see the [original paper](https://epubs.siam.org/doi/abs/10.1137/1025002)
 or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
 """
-@inline function min_max_speed(u_ll, u_rr, orientation::Integer, 
+@inline function min_max_speed(u_ll, u_rr, orientation::Integer,
                                equations::IdealGlmMhdEquations3D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
@@ -776,7 +772,7 @@ or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-
     return λ_min, λ_max
 end
 
-@inline function min_max_speed(u_ll, u_rr, normal_direction::AbstractVector, 
+@inline function min_max_speed(u_ll, u_rr, normal_direction::AbstractVector,
                                equations::IdealGlmMhdEquations3D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
@@ -790,16 +786,12 @@ end
     v2_rr = rho_v2_rr / rho_rr
     v3_rr = rho_v3_rr / rho_rr
 
-    v_normal_ll = (
-        v1_ll * normal_direction[1] +
-        v2_ll * normal_direction[2] +
-        v3_ll * normal_direction[3]
-    )
-    v_normal_rr = (
-        v1_rr * normal_direction[1] +
-        v2_rr * normal_direction[2] +
-        v3_rr * normal_direction[3]
-    )
+    v_normal_ll = (v1_ll * normal_direction[1] +
+                   v2_ll * normal_direction[2] +
+                   v3_ll * normal_direction[3])
+    v_normal_rr = (v1_rr * normal_direction[1] +
+                   v2_rr * normal_direction[2] +
+                   v3_rr * normal_direction[3])
 
     c_f_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
     c_f_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
@@ -810,7 +802,6 @@ end
 
     return λ_min, λ_max
 end
-
 
 """
     min_max_speed_einfeldt(u_ll, u_rr, orientation_or_normal_direction, equations::IdealGlmMhdEquations3D)
@@ -831,7 +822,7 @@ This is the generalization to MHD from the works
   originally developed for the compressible Euler equations.
   A compact representation can be found in [this lecture notes, eq. (9.28)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
   """
-@inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer, 
+@inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
                                         equations::IdealGlmMhdEquations3D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
@@ -869,7 +860,7 @@ This is the generalization to MHD from the works
     return λ_min, λ_max
 end
 
-@inline function min_max_speed_einfeldt(u_ll, u_rr, normal_direction::AbstractVector, 
+@inline function min_max_speed_einfeldt(u_ll, u_rr, normal_direction::AbstractVector,
                                         equations::IdealGlmMhdEquations3D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
@@ -883,16 +874,12 @@ end
     v2_rr = rho_v2_rr / rho_rr
     v3_rr = rho_v3_rr / rho_rr
 
-    v_normal_ll = (
-        v1_ll * normal_direction[1] +
-        v2_ll * normal_direction[2] +
-        v3_ll * normal_direction[3]
-    )
-    v_normal_rr = (
-        v1_rr * normal_direction[1] +
-        v2_rr * normal_direction[2] +
-        v3_rr * normal_direction[3]
-    )
+    v_normal_ll = (v1_ll * normal_direction[1] +
+                   v2_ll * normal_direction[2] +
+                   v3_ll * normal_direction[3])
+    v_normal_rr = (v1_rr * normal_direction[1] +
+                   v2_rr * normal_direction[2] +
+                   v3_rr * normal_direction[3])
 
     c_f_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
     c_f_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
