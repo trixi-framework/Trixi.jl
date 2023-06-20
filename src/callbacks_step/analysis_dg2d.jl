@@ -107,12 +107,8 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 function calc_error_norms(func, u, t, analyzer,
-<<<<<<< HEAD
-                          mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}}, equations,
-=======
                           mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                      P4estMesh{2}}, equations,
->>>>>>> main
+                                      P4estMesh{2}, T8codeMesh{2}}, equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack node_coordinates, inverse_jacobian = cache.elements
@@ -179,24 +175,8 @@ function integrate_via_indices(func::Func, u,
 end
 
 function integrate_via_indices(func::Func, u,
-<<<<<<< HEAD
-                               mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}}, equations,
-                               dg::DGSEM, cache, args...; normalize=true) where {Func}
-  @unpack weights = dg.basis
-
-  # Initialize integral with zeros of the right shape
-  integral = zero(func(u, 1, 1, 1, equations, dg, args...))
-  total_volume = zero(real(mesh))
-
-  # Use quadrature to numerically integrate over entire domain
-  for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
-      integral += volume_jacobian * weights[i] * weights[j] * func(u, i, j, element, equations, dg, args...)
-      total_volume += volume_jacobian * weights[i] * weights[j]
-=======
                                mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}}, equations,
+                                           P4estMesh{2}, T8codeMesh{2}}, equations,
                                dg::DGSEM, cache, args...; normalize = true) where {Func}
     @unpack weights = dg.basis
 
@@ -212,7 +192,6 @@ function integrate_via_indices(func::Func, u,
                         func(u, i, j, element, equations, dg, args...)
             total_volume += volume_jacobian * weights[i] * weights[j]
         end
->>>>>>> main
     end
 
     # Normalize with total volume
@@ -224,32 +203,19 @@ function integrate_via_indices(func::Func, u,
 end
 
 function integrate(func::Func, u,
-<<<<<<< HEAD
-                   mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
-                   equations, dg::DG, cache; normalize=true) where {Func}
-  integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, element, equations, dg
-    u_local = get_node_vars(u, equations, dg, i, j, element)
-    return func(u_local, equations)
-  end
-=======
                    mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                               P4estMesh{2}},
+                               P4estMesh{2}, T8codeMesh{2}},
                    equations, dg::DG, cache; normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, element, equations, dg
         u_local = get_node_vars(u, equations, dg, i, j, element)
         return func(u_local, equations)
     end
->>>>>>> main
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-<<<<<<< HEAD
-                 mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
-=======
                  mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                             P4estMesh{2}},
->>>>>>> main
+                             P4estMesh{2}, T8codeMesh{2}},
                  equations, dg::DG, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
@@ -293,11 +259,8 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-<<<<<<< HEAD
-                 mesh::Union{StructuredMesh{2},UnstructuredMesh2D,P4estMesh{2}, T8codeMesh{2}},
-=======
-                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
->>>>>>> main
+                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
+                             T8codeMesh{2}},
                  equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
     @unpack contravariant_vectors = cache.elements
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
@@ -364,11 +327,8 @@ function analyze(::Val{:linf_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-<<<<<<< HEAD
-                 mesh::Union{StructuredMesh{2},UnstructuredMesh2D,P4estMesh{2}, T8codeMesh{2}},
-=======
-                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
->>>>>>> main
+                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
+                             T8codeMesh{2}},
                  equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
     @unpack contravariant_vectors = cache.elements
