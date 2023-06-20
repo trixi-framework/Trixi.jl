@@ -725,7 +725,7 @@ end
     end
 end
 
-# Calculate minimum and maximum wave speeds for HLL-type fluxes
+# Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::ShallowWaterEquations2D)
     h_ll = waterheight(u_ll, equations)
@@ -761,6 +761,57 @@ end
 
     return λ_min, λ_max
 end
+
+"""
+    min_max_speed(u_ll, u_rr, orientation::Integer,
+                  equations::ShallowWaterEquations2D)
+
+Implements the classic 2-wave HLL solver, see the [original paper](https://epubs.siam.org/doi/abs/10.1137/1025002)
+or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
+"""
+@inline function min_max_speed(u_ll, u_rr, orientation::Integer,
+                               equations::ShallowWaterEquations2D)
+    h_ll = waterheight(u_ll, equations)
+    v1_ll, v2_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v1_rr, v2_rr = velocity(u_rr, equations)
+
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
+
+    if orientation == 1 # x-direction
+        λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
+        λ_max = max(v1_ll + c_ll, v1_rr + c_rr)
+    else # y-direction
+        λ_min = min(v2_ll - c_ll, v2_rr - c_rr)
+        λ_max = max(v2_ll + c_ll, v2_rr + c_rr)
+    end
+
+    return λ_min, λ_max
+end
+
+@inline function min_max_speed(u_ll, u_rr, normal_direction::AbstractVector,
+                               equations::ShallowWaterEquations2D)
+    h_ll = waterheight(u_ll, equations)
+    v1_ll, v2_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v1_rr, v2_rr = velocity(u_rr, equations)
+
+    norm_ = norm(normal_direction)
+    c_ll = sqrt(equations.gravity * h_ll) * norm_
+    c_rr = sqrt(equations.gravity * h_rr) * norm_
+
+    v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    # The v_normals are already scaled by the norm
+    λ_min = min(v_normal_ll - c_ll, v_normal_rr - c_rr)
+    λ_max = max(v_normal_ll + c_ll, v_normal_rr + c_rr)
+
+    return λ_min, λ_max
+end
+
+# TODO: min_max_speed_einfeldt (Requires Roe matrix)
 
 @inline function max_abs_speeds(u, equations::ShallowWaterEquations2D)
     h = waterheight(u, equations)

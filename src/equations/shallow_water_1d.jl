@@ -460,8 +460,8 @@ end
     end
 end
 
-# Calculate minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
+# Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, 
                                      equations::ShallowWaterEquations1D)
     h_ll = waterheight(u_ll, equations)
     v_ll = velocity(u_ll, equations)
@@ -473,6 +473,32 @@ end
 
     return λ_min, λ_max
 end
+
+
+"""
+    min_max_speed(u_ll, u_rr, orientation::Integer,
+                  equations::ShallowWaterEquations1D)
+
+Implements the classic 2-wave HLL solver, see the [original paper](https://epubs.siam.org/doi/abs/10.1137/1025002)
+or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
+"""
+@inline function min_max_speed(u_ll, u_rr, orientation::Integer, 
+                               equations::ShallowWaterEquations1D)
+    h_ll = waterheight(u_ll, equations)
+    v_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v_rr = velocity(u_rr, equations)
+
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
+
+    λ_min = min(v_ll - c_ll, v_rr - c_rr)
+    λ_max = max(v_rr + c_rr, v_rr + c_rr)
+
+    return λ_min, λ_max
+end
+
+# TODO: min_max_speed_einfeldt (Requires Roe matrix)
 
 @inline function max_abs_speeds(u, equations::ShallowWaterEquations1D)
     h = waterheight(u, equations)

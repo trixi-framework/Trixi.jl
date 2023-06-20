@@ -628,7 +628,7 @@ end
     return SVector(f1m, f2m, f3m)
 end
 
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# Calculate estimates for maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations1D)
@@ -648,7 +648,7 @@ end
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
-# Calculate minimum and maximum wave speeds for HLL-type fluxes
+# Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations1D)
     rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
@@ -659,6 +659,26 @@ end
 
     return λ_min, λ_max
 end
+
+"""
+    min_max_speed(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
+
+Implements the classic 2-wave HLL solver, see the [original paper](https://epubs.siam.org/doi/abs/10.1137/1025002)
+or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
+"""
+@inline function min_max_speed(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
+    rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
+
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
+    λ_max = max(v1_ll + c_ll, v1_rr + c_rr)
+
+    return λ_min, λ_max
+end
+
 
 """
     flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)

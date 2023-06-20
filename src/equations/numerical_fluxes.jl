@@ -219,6 +219,7 @@ struct FluxHLL{MinMaxSpeed}
     min_max_speed::MinMaxSpeed
 end
 
+# TODO: Change to min_max_speed (Not naive version!)
 FluxHLL() = FluxHLL(min_max_speed_naive)
 
 """

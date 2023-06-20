@@ -277,16 +277,70 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
+
+# Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations1D)
+    rho_ll, rho_v1_ll, _ = u_ll
+    rho_rr, rho_v1_rr, _ = u_rr
+
+    # Calculate primitive variables
+    v1_ll = rho_v1_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+
+    λ_min = v1_ll - calc_fast_wavespeed(u_ll, orientation, equations)
+    λ_max = v1_rr + calc_fast_wavespeed(u_rr, orientation, equations)
+
+    return λ_min, λ_max
+end
+
+
 """
-    min_max_speed_naive(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations1D)
+    min_max_speed(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations1D)
+
+Implements the classic 2-wave HLL solver, see the [original paper](https://epubs.siam.org/doi/abs/10.1137/1025002)
+or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
+"""
+@inline function min_max_speed(u_ll, u_rr, orientation::Integer, 
+                               equations::IdealGlmMhdEquations1D)
+    rho_ll, rho_v1_ll, _ = u_ll
+    rho_rr, rho_v1_rr, _ = u_rr
+
+    # Calculate primitive variables
+    v1_ll = rho_v1_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+
+    # Approximate the left-most and right-most eigenvalues in the Riemann fan
+    c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+    c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+
+    λ_min = min(v1_ll - c_f_ll, v1_rr - c_f_rr)
+    λ_max = max(v1_ll + c_f_ll, v1_rr + c_f_rr)
+
+    return λ_min, λ_max
+end
+
+
+"""
+    min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations1D)
 
 Calculate minimum and maximum wave speeds for HLL-type fluxes as in
 - Li (2005)
   An HLLC Riemann solver for magneto-hydrodynamics
-  [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
+  [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020).
+
+This is the generalization to MHD from the works
+- Bernd Einfeldt (1988)
+  On Godunov-type methods for gas dynamics.
+  [DOI: 10.1137/0725021](https://doi.org/10.1137/0725021)
+- Bernd Einfeldt, Claus-Dieter Munz, Philip L. Roe and Björn Sjögreen (1991)
+  On Godunov-type methods near low densities.
+  [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
+
+originally developed for the compressible Euler equations.
+A compact representation can be found in [this lecture notes, eq. (9.28)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
 """
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
-                                     equations::IdealGlmMhdEquations1D)
+@inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer, 
+                                        equations::IdealGlmMhdEquations1D)
     rho_ll, rho_v1_ll, _ = u_ll
     rho_rr, rho_v1_rr, _ = u_rr
 
