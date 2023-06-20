@@ -141,13 +141,17 @@ end
 
 
 # Container data structure (structure-of-arrays style) for DG interfaces
-mutable struct InterfaceContainer2D{uEltype<:Real} <: AbstractContainer
-  u::DenseArray{uEltype, 4}        # [leftright, variables, i, interfaces]
-  neighbor_ids::DenseArray{Int, 2} # [leftright, interfaces]
-  orientations::DenseArray{Int, 1}   # [interfaces]
+mutable struct InterfaceContainer2D{uEltype<:Real, uArray<:DenseArray{uEltype, 4},
+                                                   neighborArray<:DenseArray{Int,2},
+                                                   orientationsArray<:DenseArray{Int, 1},
+                                                   _uArray<:DenseArray{uEltype, 1},
+                                                   _neighborArray<:DenseArray{Int, 1}} <: AbstractContainer
+  u::uArray        # [leftright, variables, i, interfaces]
+  neighbor_ids::neighborArray # [leftright, interfaces]
+  orientations::orientationsArray   # [interfaces]
   # internal `resize!`able storage
-  _u::DenseArray{uEltype, 1}
-  _neighbor_ids::DenseArray{Int, 1}
+  _u::_uArray
+  _neighbor_ids::_neighborArray
 end
 
 nvariables(interfaces::InterfaceContainer2D) = size(interfaces.u, 2)
@@ -177,21 +181,20 @@ end
 function InterfaceContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes, backend::Backend) where {uEltype<:Real}
   nan = convert(uEltype, NaN)
 
-  uArrType = get_array_type_of_backend(backend, uEltype, 4)
-  neighborArrType = get_array_type_of_backend(backend, Int, 2)
+  arrType = get_array_type(backend)
 
   # Initialize fields with defaults
   _u = allocate(backend, uEltype, 2 * n_variables * n_nodes * capacity)
-  u = unsafe_wrap(uArrType, pointer(_u),
+  u = unsafe_wrap(arrType, pointer(_u),
                   (2, n_variables, n_nodes, capacity))
 
   _neighbor_ids = fill!(allocate(backend, Int, 2 * capacity), typemin(Int))
-  neighbor_ids = unsafe_wrap(neighborArrType, pointer(_neighbor_ids),
+  neighbor_ids = unsafe_wrap(arrType, pointer(_neighbor_ids),
                              (2, capacity))
 
   orientations = fill!(allocate(backend, Int, capacity), typemin(Int))
 
-  return InterfaceContainer2D{uEltype}(
+  return InterfaceContainer2D{uEltype, arrType{uEltype, 4}, arrType{Int, 2}, arrType{Int, 1}, arrType{uEltype, 1}, arrType{Int, 1}}(
     u, neighbor_ids, orientations,
     _u, _neighbor_ids)
 end
