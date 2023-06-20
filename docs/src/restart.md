@@ -68,7 +68,9 @@ you can reuse your ```SaveSolution``` callback, but need to set
 save_solution.condition.save_initial_solution = false
 ```
 
-Before we compute the solution using ```OrdinaryDiffEq``` we need to set the integrator
+Before we compute the solution using 
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
+we need to set the integrator
 and its time step number, e.g.:
 ```julia
 integrator = init(ode, CarpenterKennedy2N54(williamson_condition=false),
