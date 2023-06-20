@@ -9,7 +9,7 @@ and then you want it to run further to time 2.0.
 In you original elixir you need to specify to write out restart files.
 Those will later be read for the restart of your simulation.
 This is done almost the same way as writing the snapshots using the
-```SaveSolutionCallback``` callback.
+[`SaveSolutionCallback`](@ref) callback.
 For the restart files it is called ```SaveRestartCallback```:
 ```julia
 save_restart = SaveRestartCallback(interval=100,
