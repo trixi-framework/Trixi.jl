@@ -332,4 +332,8 @@ function get_array_type_of_backend(backend::Backend, uEltype::DataType, ndims::I
   return typeof(tmp)
 end
 
+function get_array_type(backend::CPU)
+  return Array
+end
+
 end # @muladd

@@ -43,6 +43,20 @@ Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
 TriplotBase = "981d1d27-644d-49a2-9326-4793e63143c3"
 TriplotRecipes = "808ab39a-a642-4abf-81ff-4cb34ebbffa3"
 
+[weakdeps]
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+oneAPI = "8f75cd03-7ff8-4ecb-9b8f-daf728133b1b"
+Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
+AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+
+[extensions]
+TrixiMakieExt = "Makie"
+TrixiCUDAExt = "CUDA"
+TrixiAMDGPUExt = "AMDGPU"
+TrixiOneAPIExt = "oneAPI"
+TrixiMetalExt = "Metal"
+
 [compat]
 CodeTracking = "1.0.5"
 ConstructionBase = "1.3"
@@ -81,11 +95,9 @@ TriplotBase = "0.1"
 TriplotRecipes = "0.1"
 julia = "1.8"
 
-[extensions]
-TrixiMakieExt = "Makie"
-
 [extras]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
-
-[weakdeps]
-Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+oneAPI = "8f75cd03-7ff8-4ecb-9b8f-daf728133b1b"
+Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
+AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
