@@ -154,32 +154,6 @@ end
   return SVector(w1, w2, w3)
 end
 
-# TODO: Do we need this? (SC)
-# @inline function entropy2cons(w, equations::PolytropicEulerEquations2D)
-#   # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
-#   # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
-#   @unpack gamma, kappa = equations
-
-#   # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
-#   # instead of `-rho * s / (gamma - 1)`
-#   V1, V2, V3, V5 = w .* (gamma-1)
-
-#   # s = specific entropy, eq. (53)
-#   s = gamma - V1 + (V2^2 + V3^2)/(2*V5)
-
-#   # eq. (52)
-#   rho_iota = ((gamma-1) / (-V5)^gamma)^(equations.inv_gamma_minus_one)*exp(-s * equations.inv_gamma_minus_one)
-
-#   # eq. (51)
-#   rho      = -rho_iota * V5
-#   rho_v1   =  rho_iota * V2
-#   rho_v2   =  rho_iota * V3
-#   rho_e    =  rho_iota * (1-(V2^2 + V3^2)/(2*V5))
-#   return SVector(rho, rho_v1, rho_v2, rho_e)
-# end
-
-
-
 
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::PolytropicEulerEquations2D)
