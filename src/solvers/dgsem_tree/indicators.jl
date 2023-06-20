@@ -217,9 +217,9 @@ end
 
 """
     IndicatorIDP(equations::AbstractEquations, basis;
-                 positivity=false,
-                 variables_cons=[],
-                 positivity_correction_factor=0.1)
+                 positivity = false,
+                 variables_cons = [],
+                 positivity_correction_factor = 0.1)
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
@@ -242,7 +242,7 @@ The bounds are calculated using the low-order FV solution. The positivity limite
 """
 struct IndicatorIDP{RealT <: Real, Cache} <: AbstractIndicator
     positivity::Bool
-    variables_cons::Vector{Int}                     # Impose positivity for conservative variables
+    variables_cons::Vector{Int}                     # Positivity for conservative variables
     cache::Cache
     positivity_correction_factor::RealT
 end
@@ -293,8 +293,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
                 setup = [setup..., "" => string]
                 setup = [
                     setup...,
-                    "" => " "^11 *
-                          "and positivity correction factor $(indicator.positivity_correction_factor)",
+                    "" => "   positivity correction factor = $(indicator.positivity_correction_factor)",
                 ]
             end
         end
