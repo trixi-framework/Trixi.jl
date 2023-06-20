@@ -70,6 +70,27 @@ mkdir(outdir)
       tspan = (0.0, 0.01))
   end
 
+  @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+      l2   = [0.0015106060984283647, 0.0014733349038567685, 0.00147333490385685, 0.001473334903856929, 0.0028149479453087093],
+      linf = [0.008070806335238156, 0.009007245083113125, 0.009007245083121784, 0.009007245083102688, 0.01562861968368434],
+      tspan = (0.0, 1.0))
+  end
+
+  @trixi_testset "elixir_euler_free_stream.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
+      l2   = [5.162664597942288e-15, 1.941857343642486e-14, 2.0232366394187278e-14, 2.3381518645408552e-14, 7.083114561232324e-14],
+      linf = [7.269740365245525e-13, 3.289868377720495e-12, 4.440087186807773e-12, 3.8686831516088205e-12, 9.412914891981927e-12],
+      tspan = (0.0, 0.03))
+  end
+
+  @trixi_testset "elixir_euler_free_stream_extruded.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_extruded.jl"),
+      l2   = [8.444868392439035e-16, 4.889826056731442e-15, 2.2921260987087585e-15, 4.268460455702414e-15, 1.1356712092620279e-14],
+      linf = [7.749356711883593e-14, 2.8792246364872653e-13, 1.1121659149182506e-13, 3.3228975127030935e-13, 9.592326932761353e-13],
+      tspan=(0.0, 0.1))
+  end
+
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
