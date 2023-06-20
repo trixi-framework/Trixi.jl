@@ -15,7 +15,7 @@ For the restart files it is called [`SaveRestartCallback`](@ref):
 save_restart = SaveRestartCallback(interval=100,
                                    save_final_restart=true)
 ```
-Make this part of your ```CallbackSet```.
+Make this part of your `CallbackSet`.
 
 An example is ```examples/examples/structured_2d_dgsem/elixir_advection_extended.jl```.
 
