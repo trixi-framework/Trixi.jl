@@ -64,14 +64,11 @@ end
         t = integrator.t
         u_ode = integrator.u
         semi = integrator.p
-        mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
         @unpack cfl_number = stepsize_callback
-        u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-        dt = @trixi_timeit timer() "calculate dt" begin
-            cfl_number * max_dt(u, t, mesh, have_constant_speed(equations), equations,
-                   semi, solver, cache, solver.volume_integral)
-        end
+        # Dispatch based on semidiscretization
+        dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_number,
+                                                               semi)
 
         set_proposed_dt!(integrator, dt)
         integrator.opts.dtmax = dt
@@ -83,19 +80,30 @@ end
     return nothing
 end
 
-function max_dt(u, t, mesh, constant_speed, equations, semi, dg, cache,
+# General case for a single semidiscretization
+function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+    dt = cfl_number * max_dt(u, t, mesh,
+                have_constant_speed(equations), equations,
+                semi, solver, cache, solver.volume_integral)
+end
+
+function max_dt(u, t, mesh, constant_speed, equations, semi, solver, cache,
                 volume_integral::AbstractVolumeIntegral)
-    max_dt(u, t, mesh, constant_speed, equations, dg, cache)
+    max_dt(u, t, mesh, constant_speed, equations, solver, cache)
 end
 
 @inline function max_dt(u, t, mesh,
-                        constant_speed, equations, semi, dg, cache,
+                        constant_speed, equations, semi, solver, cache,
                         volume_integral::VolumeIntegralSubcellLimiting)
     @unpack indicator = volume_integral
     if indicator isa IndicatorIDP && !indicator.bar_states
-        return max_dt(u, t, mesh, constant_speed, equations, dg, cache)
+        return max_dt(u, t, mesh, constant_speed, equations, solver, cache)
     else
-        return max_dt(u, t, mesh, constant_speed, equations, semi, dg, cache, indicator)
+        return max_dt(u, t, mesh, constant_speed, equations, semi, solver, cache,
+                      indicator)
     end
 end
 
