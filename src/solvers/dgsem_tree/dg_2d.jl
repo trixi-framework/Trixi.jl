@@ -36,12 +36,15 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
-                      equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
-  NamedTuple()
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
+                                  P4estMesh{2}, T8codeMesh{2}},
+                      equations, volume_integral::VolumeIntegralFluxDifferencing,
+                      dg::DG, uEltype)
+    NamedTuple()
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}}, equations,
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
+                                  P4estMesh{2}, T8codeMesh{2}}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
     element_ids_dg = Int[]
     element_ids_dgfv = Int[]
@@ -66,9 +69,10 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
             fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded)
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}}, equations,
-                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG, uEltype)
-
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
+                                  P4estMesh{2}, T8codeMesh{2}}, equations,
+                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
+                      uEltype)
     A3dp1_x = Array{uEltype, 3}
     A3dp1_y = Array{uEltype, 3}
 
@@ -87,7 +91,8 @@ end
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
+                                  P4estMesh{2}, T8codeMesh{2}},
                       equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2,
@@ -174,7 +179,9 @@ function rhs!(du, u, t,
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                           UnstructuredMesh2D, P4estMesh{2},
+                                           T8codeMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -219,7 +226,9 @@ end
 # mapping terms, stored in `cache.elements.contravariant_vectors`, is peeled apart
 # from the evaluation of the physical fluxes in each Cartesian direction
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                           UnstructuredMesh2D, P4estMesh{2},
+                                           T8codeMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -314,7 +323,9 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                           UnstructuredMesh2D, P4estMesh{2},
+                                           T8codeMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
@@ -372,7 +383,9 @@ function calc_volume_integral!(du, u,
 end
 
 @inline function fv_kernel!(du, u,
-                            mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                            mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                        UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}
+                                        },
                             nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache

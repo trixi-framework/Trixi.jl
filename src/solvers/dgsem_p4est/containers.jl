@@ -81,8 +81,10 @@ function Base.resize!(elements::P4estElementContainer, capacity)
 end
 
 # Create element container and initialize element data
-function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, RealT}}, equations,
-                       basis, ::Type{uEltype}) where {NDIMS, RealT<:Real, uEltype<:Real}
+function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, RealT}},
+                       equations,
+                       basis,
+                       ::Type{uEltype}) where {NDIMS, RealT <: Real, uEltype <: Real}
     nelements = ncells(mesh)
 
     _node_coordinates = Vector{RealT}(undef, NDIMS * nnodes(basis)^NDIMS * nelements)
@@ -165,8 +167,8 @@ end
 
 # Create interface container and initialize interface data.
 function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
-  NDIMS = ndims(elements)
-  uEltype = eltype(elements)
+    NDIMS = ndims(elements)
+    uEltype = eltype(elements)
 
     # Initialize container
     n_interfaces = count_required_surfaces(mesh).interfaces
@@ -240,8 +242,8 @@ end
 
 # Create interface container and initialize interface data in `elements`.
 function init_boundaries(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
-  NDIMS = ndims(elements)
-  uEltype = eltype(elements)
+    NDIMS = ndims(elements)
+    uEltype = eltype(elements)
 
     # Initialize container
     n_boundaries = count_required_surfaces(mesh).boundaries

@@ -6,9 +6,10 @@
 #! format: noindent
 
 # Initialize data structures in element container
-function init_elements!(elements, mesh::Union{P4estMesh{2}, T8codeMesh{2}}, basis::LobattoLegendreBasis)
-  @unpack node_coordinates, jacobian_matrix,
-          contravariant_vectors, inverse_jacobian = elements
+function init_elements!(elements, mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                        basis::LobattoLegendreBasis)
+    @unpack node_coordinates, jacobian_matrix,
+    contravariant_vectors, inverse_jacobian = elements
 
     calc_node_coordinates!(node_coordinates, mesh, basis)
 

@@ -36,13 +36,15 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                  T8codeMesh{3}},
                       equations, volume_integral::VolumeIntegralFluxDifferencing,
                       dg::DG, uEltype)
     NamedTuple()
 end
 
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                  T8codeMesh{3}},
                       equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
     element_ids_dg = Int[]
@@ -79,9 +81,10 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, 
             fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded)
 end
 
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}}, equations,
-                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG, uEltype)
-
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                  T8codeMesh{3}}, equations,
+                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
+                      uEltype)
     A4dp1_x = Array{uEltype, 4}
     A4dp1_y = Array{uEltype, 4}
     A4dp1_z = Array{uEltype, 4}
@@ -111,7 +114,8 @@ end
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                  T8codeMesh{3}},
                       equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal compare performance of different types
     A3d = Array{uEltype, 3}
@@ -208,7 +212,8 @@ function rhs!(du, u, t,
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -255,7 +260,8 @@ end
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -368,7 +374,8 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
@@ -426,7 +433,8 @@ function calc_volume_integral!(du, u,
 end
 
 @inline function fv_kernel!(du, u,
-                            mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                            mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                        T8codeMesh{3}},
                             nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded = cache

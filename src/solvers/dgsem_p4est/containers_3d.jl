@@ -6,9 +6,10 @@
 #! format: noindent
 
 # Initialize data structures in element container
-function init_elements!(elements, mesh::Union{P4estMesh{3}, T8codeMesh{3}}, basis::LobattoLegendreBasis)
-  @unpack node_coordinates, jacobian_matrix,
-          contravariant_vectors, inverse_jacobian = elements
+function init_elements!(elements, mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                        basis::LobattoLegendreBasis)
+    @unpack node_coordinates, jacobian_matrix,
+    contravariant_vectors, inverse_jacobian = elements
 
     calc_node_coordinates!(node_coordinates, mesh, basis)
 
@@ -326,5 +327,4 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
 
     return surface_index1, surface_index2
 end
-
 end # @muladd

@@ -7,17 +7,21 @@
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
-  # TODO: Taal compare performance of different types
-  fstar_threaded = [Array{uEltype, 4}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2), 4)
-                    for _ in 1:Threads.nthreads()]
+function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
+                      mortar_l2::LobattoLegendreMortarL2, uEltype)
+    # TODO: Taal compare performance of different types
+    fstar_threaded = [Array{uEltype, 4}(undef, nvariables(equations), nnodes(mortar_l2),
+                                        nnodes(mortar_l2), 4)
+                      for _ in 1:Threads.nthreads()]
 
-  fstar_tmp_threaded = [Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
-                         for _ in 1:Threads.nthreads()]
-  u_threaded          = [Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
-                         for _ in 1:Threads.nthreads()]
+    fstar_tmp_threaded = [Array{uEltype, 3}(undef, nvariables(equations),
+                                            nnodes(mortar_l2), nnodes(mortar_l2))
+                          for _ in 1:Threads.nthreads()]
+    u_threaded = [Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2),
+                                    nnodes(mortar_l2))
+                  for _ in 1:Threads.nthreads()]
 
-  (; fstar_threaded, fstar_tmp_threaded, u_threaded)
+    (; fstar_threaded, fstar_tmp_threaded, u_threaded)
 end
 
 #     index_to_start_step_3d(index::Symbol, index_range)
@@ -634,7 +638,8 @@ end
 end
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
-                                            mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
+                                            mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                            equations,
                                             mortar_l2::LobattoLegendreMortarL2,
                                             dg::DGSEM, cache, mortar, fstar, u_buffer,
                                             fstar_tmp)

@@ -7,266 +7,274 @@ is already initialized and if yes, do nothing, thus it is safe to call it
 multiple times.
 """
 function init_t8code()
-  t8code_package_id = t8_get_package_id()
-  if t8code_package_id >= 0
+    t8code_package_id = t8_get_package_id()
+    if t8code_package_id >= 0
+        return nothing
+    end
+
+    # Initialize the sc library, has to happen before we initialize t8code.
+    T8code.Libt8.sc_init(mpi_comm(), 1, 1, C_NULL, T8code.Libt8.SC_LP_ERROR)
+
+    # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
+    T8code.Libt8.p4est_init(C_NULL, SC_LP_ERROR)
+    # Initialize t8code with log level ERROR to prevent a lot of output in AMR simulations.
+    t8_init(T8code.Libt8.SC_LP_ERROR)
+
     return nothing
-  end
-
-  # Initialize the sc library, has to happen before we initialize t8code.
-  T8code.Libt8.sc_init(mpi_comm(), 1, 1, C_NULL, T8code.Libt8.SC_LP_ERROR)
-
-  # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
-  T8code.Libt8.p4est_init(C_NULL, SC_LP_ERROR)
-  # Initialize t8code with log level ERROR to prevent a lot of output in AMR simulations.
-  t8_init(T8code.Libt8.SC_LP_ERROR)
-
-  return nothing
 end
 
 function trixi_t8_unref_forest(forest)
-  t8_forest_unref(Ref(forest))
+    t8_forest_unref(Ref(forest))
 end
 
 function t8_free(ptr)
-  T8code.Libt8.sc_free(t8_get_package_id(), ptr)
+    T8code.Libt8.sc_free(t8_get_package_id(), ptr)
 end
 
 function trixi_t8_count_interfaces(forest)
-  # Check that forest is a committed, that is valid and usable, forest.
-  @assert t8_forest_is_committed(forest) != 0
+    # Check that forest is a committed, that is valid and usable, forest.
+    @assert t8_forest_is_committed(forest) != 0
 
-  # Get the number of local elements of forest.
-  num_local_elements = t8_forest_get_local_num_elements(forest)
-  # Get the number of ghost elements of forest.
-  num_ghost_elements = t8_forest_get_num_ghosts(forest)
-  # Get the number of trees that have elements of this process.
-  num_local_trees = t8_forest_get_num_local_trees(forest)
+    # Get the number of local elements of forest.
+    num_local_elements = t8_forest_get_local_num_elements(forest)
+    # Get the number of ghost elements of forest.
+    num_ghost_elements = t8_forest_get_num_ghosts(forest)
+    # Get the number of trees that have elements of this process.
+    num_local_trees = t8_forest_get_num_local_trees(forest)
 
-  current_index = t8_locidx_t(0)
+    current_index = t8_locidx_t(0)
 
-  local_num_conform = 0
-  local_num_mortars = 0
-  local_num_boundary = 0
+    local_num_conform = 0
+    local_num_mortars = 0
+    local_num_boundary = 0
 
-  for itree = 0:num_local_trees-1
-    tree_class = t8_forest_get_tree_class(forest, itree)
-    eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
+    for itree in 0:(num_local_trees - 1)
+        tree_class = t8_forest_get_tree_class(forest, itree)
+        eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
 
-    # Get the number of elements of this tree.
-    num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
+        # Get the number of elements of this tree.
+        num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
 
-    for ielement = 0:num_elements_in_tree-1
-      element = t8_forest_get_element_in_tree(forest, itree, ielement)
+        for ielement in 0:(num_elements_in_tree - 1)
+            element = t8_forest_get_element_in_tree(forest, itree, ielement)
 
-      level = t8_element_level(eclass_scheme, element)
+            level = t8_element_level(eclass_scheme, element)
 
-      num_faces = t8_element_num_faces(eclass_scheme, element)
+            num_faces = t8_element_num_faces(eclass_scheme, element)
 
-      for iface = 0:num_faces-1
-        pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
-        pneighbor_leafs_ref = Ref{Ptr{Ptr{t8_element}}}()
-        pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
+            for iface in 0:(num_faces - 1)
+                pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
+                pneighbor_leafs_ref = Ref{Ptr{Ptr{t8_element}}}()
+                pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
 
-        dual_faces_ref = Ref{Ptr{Cint}}()
-        num_neighbors_ref = Ref{Cint}()
+                dual_faces_ref = Ref{Ptr{Cint}}()
+                num_neighbors_ref = Ref{Cint}()
 
-        forest_is_balanced = Cint(1)
+                forest_is_balanced = Cint(1)
 
-        t8_forest_leaf_face_neighbors(forest, itree, element,
-          pneighbor_leafs_ref, iface, dual_faces_ref, num_neighbors_ref,
-          pelement_indices_ref, pneigh_scheme_ref, forest_is_balanced)
+                t8_forest_leaf_face_neighbors(forest, itree, element,
+                                              pneighbor_leafs_ref, iface, dual_faces_ref,
+                                              num_neighbors_ref,
+                                              pelement_indices_ref, pneigh_scheme_ref,
+                                              forest_is_balanced)
 
-        num_neighbors      = num_neighbors_ref[]
-        neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[], num_neighbors)
-        neighbor_leafs     = unsafe_wrap(Array, pneighbor_leafs_ref[], num_neighbors)
-        neighbor_scheme    = pneigh_scheme_ref[]
+                num_neighbors = num_neighbors_ref[]
+                neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[],
+                                                 num_neighbors)
+                neighbor_leafs = unsafe_wrap(Array, pneighbor_leafs_ref[], num_neighbors)
+                neighbor_scheme = pneigh_scheme_ref[]
 
-        if num_neighbors > 0
-          neighbor_level = t8_element_level(neighbor_scheme, neighbor_leafs[1])
+                if num_neighbors > 0
+                    neighbor_level = t8_element_level(neighbor_scheme, neighbor_leafs[1])
 
-          # Conforming interface: The second condition ensures we only visit the interface once.
-          if level == neighbor_level && current_index <= neighbor_ielements[1]
-            local_num_conform += 1
-          elseif level < neighbor_level 
-            local_num_mortars += 1
-          end
+                    # Conforming interface: The second condition ensures we only visit the interface once.
+                    if level == neighbor_level && current_index <= neighbor_ielements[1]
+                        local_num_conform += 1
+                    elseif level < neighbor_level
+                        local_num_mortars += 1
+                    end
 
-        else
+                else
+                    local_num_boundary += 1
+                end
 
-          local_num_boundary += 1
-        end
-       
-        t8_free(dual_faces_ref[])
-        t8_free(pneighbor_leafs_ref[])
-        t8_free(pelement_indices_ref[])
+                t8_free(dual_faces_ref[])
+                t8_free(pneighbor_leafs_ref[])
+                t8_free(pelement_indices_ref[])
+            end # for
 
-      end # for
-
-      current_index += 1
+            current_index += 1
+        end # for
     end # for
-  end # for
 
-  return (interfaces = local_num_conform,
-          mortars    = local_num_mortars,
-          boundaries = local_num_boundary)
+    return (interfaces = local_num_conform,
+            mortars = local_num_mortars,
+            boundaries = local_num_boundary)
 end
 
-function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundaries, boundary_names)
-  # Check that forest is a committed, that is valid and usable, forest.
-  @assert t8_forest_is_committed(forest) != 0
+function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundaries,
+                                 boundary_names)
+    # Check that forest is a committed, that is valid and usable, forest.
+    @assert t8_forest_is_committed(forest) != 0
 
-  # Get the number of local elements of forest.
-  num_local_elements = t8_forest_get_local_num_elements(forest)
-  # Get the number of ghost elements of forest.
-  num_ghost_elements = t8_forest_get_num_ghosts(forest)
-  # Get the number of trees that have elements of this process.
-  num_local_trees = t8_forest_get_num_local_trees(forest)
+    # Get the number of local elements of forest.
+    num_local_elements = t8_forest_get_local_num_elements(forest)
+    # Get the number of ghost elements of forest.
+    num_ghost_elements = t8_forest_get_num_ghosts(forest)
+    # Get the number of trees that have elements of this process.
+    num_local_trees = t8_forest_get_num_local_trees(forest)
 
-  current_index = t8_locidx_t(0)
+    current_index = t8_locidx_t(0)
 
-  local_num_conform = 0
-  local_num_mortars = 0
-  local_num_boundary = 0
+    local_num_conform = 0
+    local_num_mortars = 0
+    local_num_boundary = 0
 
-  for itree = 0:num_local_trees-1
-    tree_class = t8_forest_get_tree_class(forest, itree)
-    eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
+    for itree in 0:(num_local_trees - 1)
+        tree_class = t8_forest_get_tree_class(forest, itree)
+        eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
 
-    # Get the number of elements of this tree.
-    num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
+        # Get the number of elements of this tree.
+        num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
 
-    for ielement = 0:num_elements_in_tree-1
-      element = t8_forest_get_element_in_tree(forest, itree, ielement)
+        for ielement in 0:(num_elements_in_tree - 1)
+            element = t8_forest_get_element_in_tree(forest, itree, ielement)
 
-      level = t8_element_level(eclass_scheme, element)
+            level = t8_element_level(eclass_scheme, element)
 
-      num_faces = t8_element_num_faces(eclass_scheme,element)
+            num_faces = t8_element_num_faces(eclass_scheme, element)
 
-      for iface = 0:num_faces-1
+            for iface in 0:(num_faces - 1)
 
-        # Compute the `orientation` of the touching faces.
-        if t8_element_is_root_boundary(eclass_scheme, element, iface) == 1
-          cmesh = t8_forest_get_cmesh(forest)
-          itree_in_cmesh = t8_forest_ltreeid_to_cmesh_ltreeid(forest, itree)
-          iface_in_tree = t8_element_tree_face(eclass_scheme, element, iface)
-          orientation_ref = Ref{Cint}()
+                # Compute the `orientation` of the touching faces.
+                if t8_element_is_root_boundary(eclass_scheme, element, iface) == 1
+                    cmesh = t8_forest_get_cmesh(forest)
+                    itree_in_cmesh = t8_forest_ltreeid_to_cmesh_ltreeid(forest, itree)
+                    iface_in_tree = t8_element_tree_face(eclass_scheme, element, iface)
+                    orientation_ref = Ref{Cint}()
 
-          t8_cmesh_get_face_neighbor(cmesh, itree_in_cmesh, iface_in_tree, C_NULL, orientation_ref)
-          orientation = orientation_ref[]
-        else
-          orientation = zero(Cint)
-        end
+                    t8_cmesh_get_face_neighbor(cmesh, itree_in_cmesh, iface_in_tree, C_NULL,
+                                               orientation_ref)
+                    orientation = orientation_ref[]
+                else
+                    orientation = zero(Cint)
+                end
 
-        pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
-        pneighbor_leafs_ref = Ref{Ptr{Ptr{t8_element}}}()
-        pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
+                pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
+                pneighbor_leafs_ref = Ref{Ptr{Ptr{t8_element}}}()
+                pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
 
-        dual_faces_ref = Ref{Ptr{Cint}}()
-        num_neighbors_ref = Ref{Cint}()
+                dual_faces_ref = Ref{Ptr{Cint}}()
+                num_neighbors_ref = Ref{Cint}()
 
-        forest_is_balanced = Cint(1)
+                forest_is_balanced = Cint(1)
 
-        t8_forest_leaf_face_neighbors(forest,itree,element,
-          pneighbor_leafs_ref, iface, dual_faces_ref, num_neighbors_ref,
-          pelement_indices_ref, pneigh_scheme_ref, forest_is_balanced)
+                t8_forest_leaf_face_neighbors(forest, itree, element,
+                                              pneighbor_leafs_ref, iface, dual_faces_ref,
+                                              num_neighbors_ref,
+                                              pelement_indices_ref, pneigh_scheme_ref,
+                                              forest_is_balanced)
 
-        num_neighbors      = num_neighbors_ref[]
-        dual_faces         = unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
-        neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[], num_neighbors)
-        neighbor_leafs     = unsafe_wrap(Array, pneighbor_leafs_ref[], num_neighbors)
-        neighbor_scheme    = pneigh_scheme_ref[]
+                num_neighbors = num_neighbors_ref[]
+                dual_faces = unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
+                neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[],
+                                                 num_neighbors)
+                neighbor_leafs = unsafe_wrap(Array, pneighbor_leafs_ref[], num_neighbors)
+                neighbor_scheme = pneigh_scheme_ref[]
 
-        if num_neighbors > 0
-          neighbor_level = t8_element_level(neighbor_scheme, neighbor_leafs[1])
+                if num_neighbors > 0
+                    neighbor_level = t8_element_level(neighbor_scheme, neighbor_leafs[1])
 
-          # Conforming interface: The second condition ensures we only visit the interface once.
-          if level == neighbor_level && current_index <= neighbor_ielements[1]
-            local_num_conform += 1
+                    # Conforming interface: The second condition ensures we only visit the interface once.
+                    if level == neighbor_level && current_index <= neighbor_ielements[1]
+                        local_num_conform += 1
 
-            faces = (iface, dual_faces[1])
-            interface_id = local_num_conform
+                        faces = (iface, dual_faces[1])
+                        interface_id = local_num_conform
 
-            # Write data to interfaces container.
-            interfaces.neighbor_ids[1, interface_id] = current_index + 1
-            interfaces.neighbor_ids[2, interface_id] = neighbor_ielements[1] + 1
+                        # Write data to interfaces container.
+                        interfaces.neighbor_ids[1, interface_id] = current_index + 1
+                        interfaces.neighbor_ids[2, interface_id] = neighbor_ielements[1] + 1
 
-            # Save interfaces.node_indices dimension specific in containers_3d.jl.
-            init_interface_node_indices!(interfaces, faces, orientation, interface_id)
+                        # Save interfaces.node_indices dimension specific in containers_3d.jl.
+                        init_interface_node_indices!(interfaces, faces, orientation,
+                                                     interface_id)
 
-          # Non-conforming interface.
-          elseif level < neighbor_level 
-            local_num_mortars += 1
+                        # Non-conforming interface.
+                    elseif level < neighbor_level
+                        local_num_mortars += 1
 
-            faces = (dual_faces[1],iface)
+                        faces = (dual_faces[1], iface)
 
-            mortar_id = local_num_mortars
+                        mortar_id = local_num_mortars
 
-            # Last entry is the large element.
-            mortars.neighbor_ids[end, mortar_id] = current_index + 1
+                        # Last entry is the large element.
+                        mortars.neighbor_ids[end, mortar_id] = current_index + 1
 
-            # Fill in the `mortars.neighbor_ids` array and reorder if necessary.
-            trixi_t8_init_mortar_neighbor_ids!(mortars, faces[2], faces[1], orientation, neighbor_ielements, mortar_id)
-             
-            # Fill in the `mortars.node_indices` array.
-            init_mortar_node_indices!(mortars, faces, orientation, mortar_id)
+                        # Fill in the `mortars.neighbor_ids` array and reorder if necessary.
+                        trixi_t8_init_mortar_neighbor_ids!(mortars, faces[2], faces[1],
+                                                           orientation, neighbor_ielements,
+                                                           mortar_id)
 
-          # else: "level > neighbor_level" is skipped since we visit the mortar interface only once.
-          end
+                        # Fill in the `mortars.node_indices` array.
+                        init_mortar_node_indices!(mortars, faces, orientation, mortar_id)
 
-        # Domain boundary.
-        else
-          local_num_boundary += 1
-          boundary_id = local_num_boundary
+                        # else: "level > neighbor_level" is skipped since we visit the mortar interface only once.
+                    end
 
-          boundaries.neighbor_ids[boundary_id] = current_index + 1
+                    # Domain boundary.
+                else
+                    local_num_boundary += 1
+                    boundary_id = local_num_boundary
 
-          init_boundary_node_indices!(boundaries, iface, boundary_id)
+                    boundaries.neighbor_ids[boundary_id] = current_index + 1
 
-          # One-based indexing.
-          boundaries.name[boundary_id] = boundary_names[iface + 1, itree + 1]
-        end
-     
-        t8_free(dual_faces_ref[])
-        t8_free(pneighbor_leafs_ref[])
-        t8_free(pelement_indices_ref[])
+                    init_boundary_node_indices!(boundaries, iface, boundary_id)
 
-      end # for iface = ...
+                    # One-based indexing.
+                    boundaries.name[boundary_id] = boundary_names[iface + 1, itree + 1]
+                end
 
-      current_index += 1
+                t8_free(dual_faces_ref[])
+                t8_free(pneighbor_leafs_ref[])
+                t8_free(pelement_indices_ref[])
+            end # for iface = ...
+
+            current_index += 1
+        end # for
     end # for
-  end # for
 
-  return (interfaces = local_num_conform,
-          mortars    = local_num_mortars,
-          boundaries = local_num_boundary)
+    return (interfaces = local_num_conform,
+            mortars = local_num_mortars,
+            boundaries = local_num_boundary)
 end
 
 function trixi_t8_get_local_element_levels(forest)
-  # Check that forest is a committed, that is valid and usable, forest.
-  @assert t8_forest_is_committed(forest) != 0
+    # Check that forest is a committed, that is valid and usable, forest.
+    @assert t8_forest_is_committed(forest) != 0
 
-  levels = Vector{Int}(undef, t8_forest_get_local_num_elements(forest))
+    levels = Vector{Int}(undef, t8_forest_get_local_num_elements(forest))
 
-  # Get the number of trees that have elements of this process.
-  num_local_trees = t8_forest_get_num_local_trees(forest)
+    # Get the number of trees that have elements of this process.
+    num_local_trees = t8_forest_get_num_local_trees(forest)
 
-  current_index = 0
+    current_index = 0
 
-  for itree = 0:num_local_trees-1
-    tree_class = t8_forest_get_tree_class(forest, itree)
-    eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
+    for itree in 0:(num_local_trees - 1)
+        tree_class = t8_forest_get_tree_class(forest, itree)
+        eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
 
-    # Get the number of elements of this tree.
-    num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
+        # Get the number of elements of this tree.
+        num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
 
-    for ielement = 0:num_elements_in_tree-1
-      element = t8_forest_get_element_in_tree(forest, itree, ielement)
-      current_index += 1
-      levels[current_index] = t8_element_level(eclass_scheme, element)
+        for ielement in 0:(num_elements_in_tree - 1)
+            element = t8_forest_get_element_in_tree(forest, itree, ielement)
+            current_index += 1
+            levels[current_index] = t8_element_level(eclass_scheme, element)
+        end # for
     end # for
-  end # for
 
-  return levels
+    return levels
 end
 
 # Callback function prototype to decide for refining and coarsening.
@@ -293,103 +301,102 @@ function adapt_callback(forest,
                         which_tree,
                         lelement_id,
                         ts,
-                        is_family, 
+                        is_family,
                         num_elements,
-                        elements) :: Cint
+                        elements)::Cint
+    num_levels = t8_forest_get_local_num_elements(forest_from)
 
-  num_levels = t8_forest_get_local_num_elements(forest_from)
+    indicator_ptr = Ptr{Int}(t8_forest_get_user_data(forest))
+    indicators = unsafe_wrap(Array, indicator_ptr, num_levels)
 
-  indicator_ptr = Ptr{Int}(t8_forest_get_user_data(forest))
-  indicators = unsafe_wrap(Array,indicator_ptr,num_levels)
+    offset = t8_forest_get_tree_element_offset(forest_from, which_tree)
 
-  offset = t8_forest_get_tree_element_offset(forest_from, which_tree)
+    # Only allow coarsening for complete families.
+    if indicators[offset + lelement_id + 1] < 0 && is_family == 0
+        return Cint(0)
+    end
 
-  # Only allow coarsening for complete families.
-  if indicators[offset + lelement_id + 1] < 0 && is_family == 0
-    return Cint(0)
-  end
-
-  return Cint(indicators[offset + lelement_id + 1])
+    return Cint(indicators[offset + lelement_id + 1])
 end
 
 function trixi_t8_adapt_new(old_forest, indicators)
-  # Check that forest is a committed, that is valid and usable, forest.
-  @assert t8_forest_is_committed(old_forest) != 0
+    # Check that forest is a committed, that is valid and usable, forest.
+    @assert t8_forest_is_committed(old_forest) != 0
 
-  # Init new forest.
-  new_forest_ref = Ref{t8_forest_t}()
-  t8_forest_init(new_forest_ref)
-  new_forest = new_forest_ref[]
+    # Init new forest.
+    new_forest_ref = Ref{t8_forest_t}()
+    t8_forest_init(new_forest_ref)
+    new_forest = new_forest_ref[]
 
-  let set_from = C_NULL, recursive = 0, set_for_coarsening = 0, no_repartition = 0, do_ghost = 1
-    t8_forest_set_user_data(new_forest, pointer(indicators))
-    t8_forest_set_adapt(new_forest, old_forest, @t8_adapt_callback(adapt_callback), recursive)
-    t8_forest_set_balance(new_forest, set_from, no_repartition)
-    t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
-    t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES) # Note: MPI support not available yet so it is a dummy call.
-    t8_forest_commit(new_forest)
-  end
+    let set_from = C_NULL, recursive = 0, set_for_coarsening = 0, no_repartition = 0,
+        do_ghost = 1
 
-  return new_forest
+        t8_forest_set_user_data(new_forest, pointer(indicators))
+        t8_forest_set_adapt(new_forest, old_forest, @t8_adapt_callback(adapt_callback),
+                            recursive)
+        t8_forest_set_balance(new_forest, set_from, no_repartition)
+        t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
+        t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES) # Note: MPI support not available yet so it is a dummy call.
+        t8_forest_commit(new_forest)
+    end
+
+    return new_forest
 end
 
 function trixi_t8_get_difference(old_levels, new_levels, num_children)
+    old_nelems = length(old_levels)
+    new_nelems = length(new_levels)
 
-  old_nelems = length(old_levels)
-  new_nelems = length(new_levels)
+    changes = Vector{Int}(undef, old_nelems)
 
-  changes = Vector{Int}(undef, old_nelems)
+    # Local element indices.
+    old_index = 1
+    new_index = 1
 
-  # Local element indices.
-  old_index = 1
-  new_index = 1
+    while old_index <= old_nelems && new_index <= new_nelems
+        if old_levels[old_index] < new_levels[new_index]
+            # Refined.
 
-  while old_index <= old_nelems && new_index <= new_nelems
+            changes[old_index] = 1
 
-    if old_levels[old_index] < new_levels[new_index] 
-      # Refined.
-    
-      changes[old_index] = 1
+            old_index += 1
+            new_index += num_children
 
-      old_index += 1
-      new_index += num_children
+        elseif old_levels[old_index] > new_levels[new_index]
+            # Coarsend.
 
-    elseif old_levels[old_index] > new_levels[new_index] 
-      # Coarsend.
+            for child_index in old_index:(old_index + num_children - 1)
+                changes[child_index] = -1
+            end
 
-      for child_index = old_index:old_index+num_children-1
-        changes[child_index] = -1
-      end
+            old_index += num_children
+            new_index += 1
 
-      old_index += num_children
-      new_index += 1
+        else
+            # No changes.
 
-    else
-      # No changes.
-      
-      changes[old_index] = 0
+            changes[old_index] = 0
 
-      old_index += 1
-      new_index += 1
+            old_index += 1
+            new_index += 1
+        end
     end
-  end
 
-  return changes
+    return changes
 end
 
 # Coarsen or refine marked cells and rebalance forest. Return a difference between
 # old and new mesh.
 function trixi_t8_adapt!(mesh, indicators)
+    old_levels = trixi_t8_get_local_element_levels(mesh.forest)
 
-  old_levels = trixi_t8_get_local_element_levels(mesh.forest)
+    forest_cached = trixi_t8_adapt_new(mesh.forest, indicators)
 
-  forest_cached = trixi_t8_adapt_new(mesh.forest, indicators)
+    new_levels = trixi_t8_get_local_element_levels(forest_cached)
 
-  new_levels = trixi_t8_get_local_element_levels(forest_cached)
+    differences = trixi_t8_get_difference(old_levels, new_levels, 2^ndims(mesh))
 
-  differences = trixi_t8_get_difference(old_levels, new_levels, 2^ndims(mesh))
+    mesh.forest = forest_cached
 
-  mesh.forest = forest_cached
-
-  return differences
+    return differences
 end
