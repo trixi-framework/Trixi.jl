@@ -20,7 +20,7 @@ providing examples with sensible default values for users.
 
 Before replacing assignments in `elixir`, the keyword argument `maxiters` is inserted
 into calls to `solve` and `Trixi.solve` with it's default value used in the SciML ecosystem
-for ODEs, see the "Miscellaneous" section of the 
+for ODEs, see the "Miscellaneous" section of the
 [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
 
 # Examples

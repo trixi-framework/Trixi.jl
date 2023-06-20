@@ -225,7 +225,7 @@ end
     IndicatorIDP(equations::AbstractEquations, basis;
                  density_tvd=false,
                  positivity=false,
-                 variables_cons=(),
+                 variables_cons=[],
                  variables_nonlinear=(),
                  spec_entropy=false,
                  math_entropy=false,
@@ -267,7 +267,7 @@ struct IndicatorIDP{RealT <: Real, LimitingVariablesCons, LimitingVariablesNonli
                     Cache, Indicator} <: AbstractIndicator
     density_tvd::Bool
     positivity::Bool
-    variables_cons::LimitingVariablesCons           # Positivity of conservative variables
+    variables_cons::Vector{Int}                     # Impose positivity for conservative variables
     variables_nonlinear::LimitingVariablesNonlinear # Positivity of nonlinear variables
     spec_entropy::Bool
     math_entropy::Bool
@@ -286,7 +286,7 @@ end
 function IndicatorIDP(equations::AbstractEquations, basis;
                       density_tvd = false,
                       positivity = false,
-                      variables_cons = (),
+                      variables_cons = [],
                       variables_nonlinear = (),
                       spec_entropy = false,
                       math_entropy = false,
@@ -301,12 +301,14 @@ function IndicatorIDP(equations::AbstractEquations, basis;
         error("Only one of the two can be selected: math_entropy/spec_entropy")
     end
 
-    number_bounds = positivity *
-                    (length(variables_cons) + length(variables_nonlinear)) +
+    number_bounds = 2 * density_tvd + positivity * length(variables_nonlinear) +
                     spec_entropy + math_entropy
-    if equations isa AbstractCompressibleEulerEquations
-        if density_tvd
-            number_bounds += 2 - positivity * (Trixi.density in variables_cons)
+
+    if positivity
+        for index in variables_cons
+            if !(density_tvd && index == 1)
+                number_bounds += 1
+            end
         end
     end
 
@@ -373,11 +375,11 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
             setup = ["limiter" => ""]
             density_tvd && (setup = [setup..., "" => "density"])
             if positivity
-                string = "positivity with variables $(tuple(indicator.variables_cons..., indicator.variables_nonlinear...))"
+                string = "positivity with conservative variables $(indicator.variables_cons) and $(indicator.variables_nonlinear)"
                 setup = [setup..., "" => string]
                 setup = [
                     setup...,
-                    "" => " "^14 *
+                    "" => " "^11 *
                           "and positivity correction factor $(indicator.positivity_correction_factor)",
                 ]
             end
