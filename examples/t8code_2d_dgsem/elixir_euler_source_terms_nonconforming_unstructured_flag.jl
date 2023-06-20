@@ -70,7 +70,7 @@ function adapt_callback(forest,
     end
 end
 
-Trixi.@T8_ASSERT(Trixi.t8_forest_is_committed(mesh.forest)!=0);
+@assert(Trixi.t8_forest_is_committed(mesh.forest)!=0);
 
 # Init new forest.
 new_forest_ref = Ref{Trixi.t8_forest_t}()
@@ -106,7 +106,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-# Not implemeted yet.
+# Not implemented yet.
 # save_restart = SaveRestartCallback(interval=100,
 #                                    save_final_restart=true)
 #
