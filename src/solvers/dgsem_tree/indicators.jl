@@ -223,18 +223,21 @@ end
 
 """
     IndicatorIDP(equations::AbstractEquations, basis;
-                 state_tvd=false,
-                 variables_states=[],
-                 positivity=false,
-                 variables_cons=[],
-                 variables_nonlinear=(),
-                 spec_entropy=false,
-                 math_entropy=false,
-                 bar_states=true,
-                 positivity_correction_factor=0.1, max_iterations_newton=10,
-                 newton_tolerances=(1.0e-12, 1.0e-14), gamma_constant_newton=2*ndims(equations),
-                 smoothness_indicator=false, threshold_smoothness_indicator=0.1,
-                 variable_smoothness_indicator=density_pressure)
+                 state_tvd = false,
+                 variables_states = [],
+                 positivity = false,
+                 variables_cons = [],
+                 variables_nonlinear = (),
+                 spec_entropy = false,
+                 math_entropy = false,
+                 bar_states = true,
+                 positivity_correction_factor = 0.1,
+                 max_iterations_newton = 10,
+                 newton_tolerances = (1.0e-12, 1.0e-14),
+                 gamma_constant_newton = 2 * ndims(equations),
+                 smoothness_indicator = false,
+                 threshold_smoothness_indicator = 0.1,
+                 variable_smoothness_indicator = density_pressure)
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
@@ -264,13 +267,13 @@ indicator values <= `threshold_smoothness_indicator`.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorIDP{RealT <: Real, LimitingVariablesCons, LimitingVariablesNonlinear,
+struct IndicatorIDP{RealT <: Real, LimitingVariablesNonlinear,
                     Cache, Indicator} <: AbstractIndicator
     state_tvd::Bool
     variables_states::Vector{Int}                   # Impose state limiting
     positivity::Bool
-    variables_cons::Vector{Int}                     # Impose positivity for conservative variables
-    variables_nonlinear::LimitingVariablesNonlinear # Positivity of nonlinear variables
+    variables_cons::Vector{Int}                     # Positivity for conservative variables
+    variables_nonlinear::LimitingVariablesNonlinear # Positivity for nonlinear variables
     spec_entropy::Bool
     math_entropy::Bool
     bar_states::Bool
@@ -325,23 +328,23 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     else
         IndicatorHG = nothing
     end
-    IndicatorIDP{typeof(positivity_correction_factor), typeof(variables_cons),
-                 typeof(variables_nonlinear), typeof(cache), typeof(IndicatorHG)}(state_tvd,
-                                                                                  variables_states,
-                                                                                  positivity,
-                                                                                  variables_cons,
-                                                                                  variables_nonlinear,
-                                                                                  spec_entropy,
-                                                                                  math_entropy,
-                                                                                  bar_states,
-                                                                                  cache,
-                                                                                  positivity_correction_factor,
-                                                                                  max_iterations_newton,
-                                                                                  newton_tolerances,
-                                                                                  gamma_constant_newton,
-                                                                                  smoothness_indicator,
-                                                                                  threshold_smoothness_indicator,
-                                                                                  IndicatorHG)
+    IndicatorIDP{typeof(positivity_correction_factor), typeof(variables_nonlinear),
+                 typeof(cache), typeof(IndicatorHG)}(state_tvd,
+                                                     variables_states,
+                                                     positivity,
+                                                     variables_cons,
+                                                     variables_nonlinear,
+                                                     spec_entropy,
+                                                     math_entropy,
+                                                     bar_states,
+                                                     cache,
+                                                     positivity_correction_factor,
+                                                     max_iterations_newton,
+                                                     newton_tolerances,
+                                                     gamma_constant_newton,
+                                                     smoothness_indicator,
+                                                     threshold_smoothness_indicator,
+                                                     IndicatorHG)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
@@ -381,20 +384,23 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
             if state_tvd
                 setup = [
                     setup...,
-                    "" => "state limiting for conservative variables $(indicator.variables_states)",
+                    "" => "local maximum/minimum bounds for conservative variables $(indicator.variables_states)",
                 ]
             end
             if positivity
-                string = "positivity with conservative variables $(indicator.variables_cons) and $(indicator.variables_nonlinear)"
+                string = "positivity for conservative variables $(indicator.variables_cons) and $(indicator.variables_nonlinear)"
                 setup = [setup..., "" => string]
                 setup = [
                     setup...,
-                    "" => " "^11 *
-                          "and positivity correction factor $(indicator.positivity_correction_factor)",
+                    "" => "   positivity correction factor = $(indicator.positivity_correction_factor)",
                 ]
             end
-            spec_entropy && (setup = [setup..., "" => "specific entropy"])
-            math_entropy && (setup = [setup..., "" => "mathematical entropy"])
+            if spec_entropy
+                setup = [setup..., "" => "local minimum bound for specific entropy"]
+            end
+            if math_entropy
+                setup = [setup..., "" => "local maximum bound for mathematical entropy"]
+            end
             setup = [
                 setup...,
                 "Local bounds" => (indicator.bar_states ? "Bar States" : "FV solution"),
@@ -419,18 +425,19 @@ end
 
 """
     IndicatorMCL(equations::AbstractEquations, basis;
-                 DensityLimiter=true,
-                 DensityAlphaForAll=false,
-                 SequentialLimiter=true,
-                 ConservativeLimiter=false,
-                 PressurePositivityLimiterKuzmin=false,
-                 PressurePositivityLimiterKuzminExact=true,
-                 DensityPositivityLimiter=false,
-                 DensityPositivityCorrectionFactor=0.0,
-                 SemiDiscEntropyLimiter=false,
-                 smoothness_indicator=false, threshold_smoothness_indicator=0.1,
-                 variable_smoothness_indicator=density_pressure,
-                 Plotting=true)
+                 DensityLimiter = true,
+                 DensityAlphaForAll = false,
+                 SequentialLimiter = true,
+                 ConservativeLimiter = false,
+                 PressurePositivityLimiterKuzmin = false,
+                 PressurePositivityLimiterKuzminExact = true,
+                 DensityPositivityLimiter = false,
+                 DensityPositivityCorrectionFactor = 0.0,
+                 SemiDiscEntropyLimiter = false,
+                 smoothness_indicator = false,
+                 threshold_smoothness_indicator = 0.1,
+                 variable_smoothness_indicator = density_pressure,
+                 Plotting = true)
 
 Subcell monolithic convex limiting (MCL) used with [`VolumeIntegralSubcellLimiting`](@ref) including:
 - local two-sided limiting for `cons(1)` (`DensityLimiter`)
