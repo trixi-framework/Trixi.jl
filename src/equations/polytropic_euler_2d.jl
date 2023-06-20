@@ -58,7 +58,7 @@ varnames(::typeof(cons2prim), ::PolytropicEulerEquations2D) = ("rho", "v1", "v2"
 @inline function flux(u, normal_direction::AbstractVector, equations::PolytropicEulerEquations2D)
   rho_e = last(u)
   rho, v1, v2 = cons2prim(u, equations)
-  p = equations.kappa*rho^equations.gamma
+  p = pressure(u, equations)
 
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
   rho_v_normal = rho * v_normal
