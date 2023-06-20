@@ -74,7 +74,7 @@ we need to set the integrator
 and its time step number, e.g.:
 ```julia
 integrator = init(ode, CarpenterKennedy2N54(williamson_condition=false),
-                 dt=dt, save_everystep=false, callback=callbacks);
+                  dt=dt, save_everystep=false, callback=callbacks);
 integrator.iter = load_timestep(restart_filename)
 integrator.stats.naccept = integrator.iter
 ```
