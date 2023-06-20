@@ -579,6 +579,75 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
         return recv[14]
     end
 
+    function send_data_new(t, n_coarsened, dest, tag)
+        MPI.Send([n_coarsened],dest,tag,mpi_comm())
+        MPI.Send([t.length],dest,tag,mpi_comm())
+        send_buf=[t.parent_ids[1:t.length],t.child_ids[:,1:t.length],t.neighbor_ids[:,1:t.length],
+                  t.levels[1:t.length],t.coordinates[:,1:t.length],t.original_cell_ids[1:t.length],
+                  t.mpi_ranks[1:t.length]]
+        for i in send_buf
+            MPI.Send(i,dest,tag,mpi_comm())
+        end
+    end
+
+    function recv_data_new(type,src, tag)
+        local length=[0]
+        local n_coarsened=[0]
+        MPI.Recv!(n_coarsened,src,tag,mpi_comm())
+        n_coarsened=n_coarsened[1]
+        MPI.Recv!(length,src,tag,mpi_comm())
+        length=length[1]
+        local t=type(length)
+        t.length=length
+        local recv_buf=[t.parent_ids,t.child_ids,t.neighbor_ids,t.levels,t.coordinates,t.original_cell_ids,t.mpi_ranks]
+        for i in 1:7
+            MPI.Recv!(recv_buf[i],src,tag,mpi_comm())
+        end
+        return t, n_coarsened
+    end
+  
+    function recv_inplace_new!(t,src, tag)
+        local length=[0]
+        local n_coarsened=[0]
+        MPI.Recv!(n_coarsened,src,tag,mpi_comm())
+        n_coarsened=n_coarsened[1]
+        MPI.Recv!(length,src,tag,mpi_comm())
+        t.length=length[1]
+        local recv_buf=[t.parent_ids,t.child_ids,t.neighbor_ids,t.levels,t.coordinates,t.original_cell_ids,t.mpi_ranks]
+        for i in 1:7
+            MPI.Recv!(recv_buf[i],src,tag,mpi_comm())
+        end
+        return n_coarsened
+    end
+
+    function recv_data_nonblocking(type)
+        local recv_buf = Vector{type}(undef, mpi_nranks())
+        local recv_size = [n_coarsened for i in 1:mpi_nranks()]
+        local len_coars=[[0,0] for _ in 1:mpi_nranks()]
+        local recv=Vector
+        local requests=Vector{MPI.Request}(undef,8*(mpi_nranks()-1))
+        @trixi_timeit timer() "MPI" for i in 1:(mpi_nranks()-1)
+            recv_buf[i+1],recv_size[i+1]=recv_data_new(typeof(t),i, i)
+            requests[8*(i-1)+1]=MPI.Irecv!(len_coars[i+1],src,tag,mpi_comm())
+            for j in 1:7
+                requests[8*(i-1)+1]=MPI.Irecv!(recv_buf[i],src,tag,mpi_comm())
+            end
+        end
+        local length=[0]
+        local n_coarsened=[0]
+        MPI.Recv!(n_coarsened,src,tag,mpi_comm())
+        n_coarsened=n_coarsened[1]
+        MPI.Recv!(length,src,tag,mpi_comm())
+        length=length[1]
+        local t=type(length)
+        t.length=length
+        local recv_buf=[t.parent_ids,t.child_ids,t.neighbor_ids,t.levels,t.coordinates,t.original_cell_ids,t.mpi_ranks]
+        for i in 1:7
+            MPI.Recv!(recv_buf[i],src,tag,mpi_comm())
+        end
+        return t, n_coarsened
+    end
+
     function check_childs_neighbor(t,coarse_cell_id,k,criterium)
         # Iterate over all children (which are to be removed)
         for child in 1:n_children_per_cell(t)
@@ -675,8 +744,10 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
             recv_buf[1]=t
 
             recv_size = [n_coarsened for i in 1:mpi_nranks()]
+            # @trixi_timeit timer() "MPI" recv_buf, recv_size=recv_data_nonblocking(typeof(t))      
+            # recv_buf[1]=t
             @trixi_timeit timer() "MPI" for i in 1:(mpi_nranks()-1)
-            recv_buf[i+1],recv_size[i+1]=recv_data(typeof(t),i, i)
+                recv_buf[i+1],recv_size[i+1]=recv_data_new(typeof(t),i, i)
             end
 
             n_coarsened = sum(recv_size)
@@ -750,14 +821,14 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
                 end
             end
             @trixi_timeit timer() "MPI" for i in 1:(mpi_nranks()-1)
-                send_data(t, n_coarsened, i, i)
+                send_data_new(t, n_coarsened, i, i)
             end
         else 
             @trixi_timeit timer() "MPI" begin
-                send_data(t, n_coarsened, 0, mpi_rank())
+                send_data_new(t, n_coarsened, 0, mpi_rank())
             end
             @trixi_timeit timer() "MPI" begin
-                n_coarsened=recv_inplace!(t,0, mpi_rank())
+                n_coarsened=recv_inplace_new!(t,0, mpi_rank())
             end
         end 
         invalidate!(t, t.length+1,t.capacity)
