@@ -271,8 +271,8 @@ export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
 function __init__()
     init_mpi()
 
-  init_p4est()
-  init_t8code()
+    init_p4est()
+    init_t8code()
 
     register_error_hints()
 

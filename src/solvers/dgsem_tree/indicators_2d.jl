@@ -44,7 +44,7 @@ end
     modal = modal_threaded[Threads.threadid()]
     modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
 
-   # Calculate indicator variables at Gauss-Lobatto nodes
+    # Calculate indicator variables at Gauss-Lobatto nodes
     for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
         indicator[i, j] = indicator_hg.variable(u_local, equations)
@@ -98,7 +98,8 @@ end
 end
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, alpha, alpha_tmp, dg,
+function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, alpha,
+                          alpha_tmp, dg,
                           cache)
     # Copy alpha values such that smoothing is indpedenent of the element access order
     alpha_tmp .= alpha
