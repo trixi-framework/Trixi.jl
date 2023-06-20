@@ -143,7 +143,7 @@ end
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v_square = v1^2 + v2^2
-  p = equations.kappa * rho^equations.gamma
+  p = pressure(u, equations)
   s = rho/2*v_square + rho*equations.kappa*rho^(equations.gamma-1)/(equations.gamma-1)
   rho_p = rho / p
 
