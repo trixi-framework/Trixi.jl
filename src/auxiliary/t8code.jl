@@ -93,7 +93,6 @@ function trixi_t8_count_interfaces(forest)
                     elseif level < neighbor_level
                         local_num_mortars += 1
                     end
-
                 else
                     local_num_boundary += 1
                 end
@@ -199,7 +198,6 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
                         # Save interfaces.node_indices dimension specific in containers_3d.jl.
                         init_interface_node_indices!(interfaces, faces, orientation,
                                                      interface_id)
-
                         # Non-conforming interface.
                     elseif level < neighbor_level
                         local_num_mortars += 1

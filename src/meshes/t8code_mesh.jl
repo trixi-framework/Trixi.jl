@@ -294,6 +294,7 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
                                     data_in,
                                     tmp1)
         end
+
     elseif NDIMS == 3
         data_in = Array{RealT, 4}(undef, 3, 2, 2, 2)
         tmp1 = zeros(RealT, 3, length(nodes), length(nodes_in), length(nodes_in))
@@ -409,7 +410,6 @@ mesh from a Gmsh mesh file (`.msh`).
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 """
 function T8codeMesh{NDIMS}(meshfile::String; kwargs...) where {NDIMS}
-
     # Prevent `t8code` from crashing Julia if the file doesn't exist.
     @assert isfile(meshfile)
 
