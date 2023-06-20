@@ -8,7 +8,7 @@
 @doc raw"""
     PolytropicEulerEquations2D(gamma, kappa)
 
-The compressible Euler equations
+The polytropic Euler equations
 ```math
 \partial t
 \begin{pmatrix}
