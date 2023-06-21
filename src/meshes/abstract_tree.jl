@@ -593,15 +593,16 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
     function recv_data_new(type,src, tag)
         local length=[0]
         local n_coarsened=[0]
-        MPI.Recv!(n_coarsened,src,tag,mpi_comm())
+        status=MPI.Status
+        MPI.Recv!(n_coarsened,mpi_comm(),status;source=src,tag=tag)
         n_coarsened=n_coarsened[1]
-        MPI.Recv!(length,src,tag,mpi_comm())
+        MPI.Recv!(length,mpi_comm(),status;source=src,tag=tag)
         length=length[1]
         local t=type(length)
         t.length=length
         local recv_buf=[t.parent_ids,t.child_ids,t.neighbor_ids,t.levels,t.coordinates,t.original_cell_ids,t.mpi_ranks]
         for i in 1:7
-            MPI.Recv!(recv_buf[i],src,tag,mpi_comm())
+            MPI.Recv!(recv_buf[i],mpi_comm(),status;source=src,tag=tag)
         end
         return t, n_coarsened
     end
@@ -609,13 +610,14 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
     function recv_inplace_new!(t,src, tag)
         local length=[0]
         local n_coarsened=[0]
-        MPI.Recv!(n_coarsened,src,tag,mpi_comm())
+        status=MPI.Status
+        MPI.Recv!(n_coarsened,mpi_comm(),status;source=src,tag=tag)
         n_coarsened=n_coarsened[1]
-        MPI.Recv!(length,src,tag,mpi_comm())
+        MPI.Recv!(length,mpi_comm(),status;source=src,tag=tag)
         t.length=length[1]
         local recv_buf=[t.parent_ids,t.child_ids,t.neighbor_ids,t.levels,t.coordinates,t.original_cell_ids,t.mpi_ranks]
         for i in 1:7
-            MPI.Recv!(recv_buf[i],src,tag,mpi_comm())
+            MPI.Recv!(recv_buf[i],mpi_comm(),status;source=src,tag=tag)
         end
         return n_coarsened
     end
