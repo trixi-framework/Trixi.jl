@@ -629,6 +629,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
     end
 
+    equations = IdealGlmMhdEquations1D(1.4)
+    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2),]
+
+    for u in u_values
+      @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
+    end
+
     equations = IdealGlmMhdEquations2D(1.4, 5.0 #= c_h =#)
     normal_directions = [SVector(1.0, 0.0),
                           SVector(0.0, 1.0),
@@ -696,6 +704,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     u = SVector(1, 0.5, 0.5, 0.0)
     for normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
+    end
+
+    equations = IdealGlmMhdEquations1D(1.4)
+    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2),]
+
+    for u in u_values
+      @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
     end
 
     equations = IdealGlmMhdEquations2D(1.4, 5.0 #= c_h =#)
