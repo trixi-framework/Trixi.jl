@@ -28,10 +28,10 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_shallowwater_twolayer_dam_break.jl with flux_lax_friedrichs" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_twolayer_dam_break.jl"),
-    l2    = [0.35490300089633237, 1.6715035180645277, 0.6960151891515254,
-             0.9351487046099882, 0.7938172946965545],
-    linf  = [0.6417505887480972, 1.9743522856822249, 1.1357745874830805,
-             1.2361800390346178, 1.1],
+    l2   = [0.1000774903431289, 0.5670692949571057, 0.08764242501014498,
+            0.45412307886094555, 0.013638618139749523],
+    linf = [0.586718937495144, 2.1215606128311584, 0.5185911311186155,
+            1.820382495072612, 0.5],
     surface_flux = (flux_lax_friedrichs, flux_nonconservative_ersing_etal),
     tspan = (0.0, 0.25))
   end
