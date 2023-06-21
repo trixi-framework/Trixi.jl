@@ -55,7 +55,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.0018957692481057034, 0.016943229710439864, 0.01755623297390675, 6.274146767717414e-5],
       linf = [0.015156105797771602, 0.07964811135780492, 0.0839787097210376, 0.0001819675955490041],
-      tspan = (0.0, 0.025), surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal))
+      tspan = (0.0, 0.025), surface_flux=(FluxHLL(min_max_speed_naive), flux_nonconservative_fjordholm_etal))
   end
 end
 

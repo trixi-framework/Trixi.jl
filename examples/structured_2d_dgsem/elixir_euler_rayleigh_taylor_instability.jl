@@ -61,7 +61,7 @@ end
 
 # numerical parameters
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg=3, surface_flux=flux_hll,
+solver = DGSEM(polydeg=3, surface_flux=FluxHLL(min_max_speed_naive),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 # The domain is [0, 0.25] x [0, 1]

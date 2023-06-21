@@ -36,7 +36,7 @@ boundary_conditions = Dict( :Bottom => boundary_condition_uniform_flow,
 ###############################################################################
 # Get the DG approximation space
 
-solver = DGSEM(polydeg=4, surface_flux=flux_hll)
+solver = DGSEM(polydeg=4, surface_flux=FluxHLL(min_max_speed_naive))
 
 ###############################################################################
 # Get the curved quad mesh from a file

@@ -219,14 +219,13 @@ struct FluxHLL{MinMaxSpeed}
     min_max_speed::MinMaxSpeed
 end
 
-# TODO: Change to min_max_speed (Not naive version!)
-FluxHLL() = FluxHLL(min_max_speed_naive)
+FluxHLL() = FluxHLL(min_max_speed)
 
 """
     min_max_speed_naive(u_ll, u_rr, orientation::Integer,   equations)
     min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations)
 
-Simple and fast estimate of the minimal and maximal wave speed of the Riemann problem with
+Simple and fast estimate(!) of the minimal and maximal wave speed of the Riemann problem with
 left and right states `u_ll, u_rr`, usually based only on the local wave speeds associated to
 `u_ll` and `u_rr`.
 - Amiram Harten, Peter D. Lax, Bram van Leer (1983)
@@ -234,6 +233,36 @@ left and right states `u_ll, u_rr`, usually based only on the local wave speeds 
   [DOI: 10.1137/1025002](https://doi.org/10.1137/1025002)
 """
 function min_max_speed_naive end
+
+"""
+    min_max_speed(u_ll, u_rr, orientation::Integer,   equations)
+    min_max_speed(u_ll, u_rr, normal_direction::AbstractVector, equations)
+
+Simple and fast bounds of the minimal and maximal wave speed of the Riemann problem with
+left and right states `u_ll, u_rr`, usually based only on the local wave speeds associated to
+`u_ll` and `u_rr`.
+- Amiram Harten, Peter D. Lax, Bram van Leer (1983)
+  On Upstream Differencing and Godunov-Type Schemes for Hyperbolic Conservation Laws
+  [DOI: 10.1137/1025002](https://doi.org/10.1137/1025002)
+"""
+function min_max_speed end
+
+"""
+    min_max_speed(u_ll, u_rr, orientation::Integer,   equations)
+    min_max_speed(u_ll, u_rr, normal_direction::AbstractVector, equations)
+
+More advanced mininmal and maximal wave speed computation based on
+- Bernd Einfeldt (1988)
+  On Godunov-type methods for gas dynamics.
+  [DOI: 10.1137/0725021](https://doi.org/10.1137/0725021)
+- Bernd Einfeldt, Claus-Dieter Munz, Philip L. Roe and Björn Sjögreen (1991)
+  On Godunov-type methods near low densities.
+  [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
+
+originally developed for the compressible Euler equations.
+A compact representation can be found in [this lecture notes, eq. (9.28)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
+"""
+function min_max_speed_einfeldt end
 
 @inline function (numflux::FluxHLL)(u_ll, u_rr, orientation_or_normal_direction,
                                     equations)

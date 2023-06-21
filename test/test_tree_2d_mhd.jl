@@ -45,7 +45,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
       l2   = [0.10806619664693064, 0.20199136742199922, 0.22984589847526207, 0.0, 0.29950152196422647, 0.15688413207147794, 0.24293641543490646, 0.0, 0.003246181006326598],
       linf = [0.560316034595759, 0.5095520363866776, 0.6536748458764621, 0.0, 0.9627447086204038, 0.3981375420906146, 0.673472146198816, 0.0, 0.04879208429337193],
-      tspan = (0.0, 0.06), surface_flux = (flux_hll, flux_nonconservative_powell))
+      tspan = (0.0, 0.06), surface_flux = (FluxHLL(min_max_speed_naive), flux_nonconservative_powell))
   end
 
   @trixi_testset "elixir_mhd_alfven_wave.jl one step with initial_condition_constant" begin

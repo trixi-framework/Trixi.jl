@@ -382,7 +382,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @timed_testset "HLL flux with vanishing wave speed estimates (#502)" begin
     equations = CompressibleEulerEquations1D(1.4)
     u = SVector(1.0, 0.0, 0.0)
-    @test !any(isnan, FluxHLL()(u, u, 1, equations))
+    @test !any(isnan, FluxHLL(min_max_speed_naive)(u, u, 1, equations))
   end
 
   @timed_testset "DG L2 mortar container debug output" begin
@@ -586,6 +586,75 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
   end
 
+  @timed_testset "Consistency check for HLL flux" begin
+    # Test HLL flux with min_max_speed_einfeldt
+    flux_hll = FluxHLL(min_max_speed)
+
+    # Set up equations and dummy conservative variables state
+    equations = CompressibleEulerEquations1D(1.4)
+    u = SVector(1.1, 2.34, 5.5)
+
+    orientations = [1]
+    for orientation in orientations
+      @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
+    equations = CompressibleEulerEquations2D(1.4)
+    u = SVector(1.1, -0.5, 2.34, 5.5)
+
+    orientations = [1, 2]
+    for orientation in orientations
+      @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
+    equations = CompressibleEulerEquations3D(1.4)
+    u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
+
+    orientations = [1, 2, 3]
+    for orientation in orientations
+      @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
+    equations = ShallowWaterEquations1D(gravity_constant=9.81)
+    u = SVector(1, 0.5, 0.0)
+    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
+
+    equations = ShallowWaterEquations2D(gravity_constant=9.81)
+    normal_directions = [SVector(1.0, 0.0),
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
+    u = SVector(1, 0.5, 0.5, 0.0)
+    for normal_direction in normal_directions
+      @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
+    end
+
+    equations = IdealGlmMhdEquations2D(1.4, 5.0 #= c_h =#)
+    normal_directions = [SVector(1.0, 0.0),
+                          SVector(0.0, 1.0),
+                          SVector(0.5, -0.5),
+                          SVector(-1.2, 0.3)]
+    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
+
+    for u in u_values, normal_direction in normal_directions
+      @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
+    end
+
+    equations = IdealGlmMhdEquations3D(1.4, 5.0 #= c_h =#)
+    normal_directions = [SVector(1.0, 0.0, 0.0),
+                        SVector(0.0, 1.0, 0.0),
+                        SVector(0.0, 0.0, 1.0),
+                        SVector(0.5, -0.5, 0.2),
+                        SVector(-1.2, 0.3, 1.4)]
+    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
+
+    for u in u_values, normal_direction in normal_directions
+      @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
+    end                  
+  end
+
   @timed_testset "Consistency check for HLLE flux" begin
     # Set up equations and dummy conservative variables state
     equations = CompressibleEulerEquations1D(1.4)
@@ -611,6 +680,48 @@ isdir(outdir) && rm(outdir, recursive=true)
     for orientation in orientations
       @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
+
+    # Test HLL flux with min_max_speed_einfeldt
+    flux_hll = FluxHLL(min_max_speed_einfeldt)
+
+    equations = ShallowWaterEquations1D(gravity_constant=9.81)
+    u = SVector(1, 0.5, 0.0)
+    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
+
+    equations = ShallowWaterEquations2D(gravity_constant=9.81)
+    normal_directions = [SVector(1.0, 0.0),
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
+    u = SVector(1, 0.5, 0.5, 0.0)
+    for normal_direction in normal_directions
+      @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
+    end
+
+    equations = IdealGlmMhdEquations2D(1.4, 5.0 #= c_h =#)
+    normal_directions = [SVector(1.0, 0.0),
+                          SVector(0.0, 1.0),
+                          SVector(0.5, -0.5),
+                          SVector(-1.2, 0.3)]
+    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
+
+    for u in u_values, normal_direction in normal_directions
+      @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
+    end
+
+    equations = IdealGlmMhdEquations3D(1.4, 5.0 #= c_h =#)
+    normal_directions = [SVector(1.0, 0.0, 0.0),
+                        SVector(0.0, 1.0, 0.0),
+                        SVector(0.0, 0.0, 1.0),
+                        SVector(0.5, -0.5, 0.2),
+                        SVector(-1.2, 0.3, 1.4)]
+    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
+
+    for u in u_values, normal_direction in normal_directions
+      @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
+    end                  
   end
 
   @timed_testset "Consistency check for Godunov flux" begin

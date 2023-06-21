@@ -11,7 +11,7 @@ equations = IdealGlmMhdEquations2D(gamma)
 initial_condition = initial_condition_convergence_test
 
 volume_flux = (flux_central, flux_nonconservative_powell)
-solver = DGSEM(polydeg=7, surface_flux=(flux_hll, flux_nonconservative_powell),
+solver = DGSEM(polydeg=7, surface_flux=(FluxHLL(min_max_speed_einfeldt), flux_nonconservative_powell),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)

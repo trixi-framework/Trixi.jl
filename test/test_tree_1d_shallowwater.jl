@@ -49,7 +49,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.0022758146627220154, 0.015864082886204556, 4.436491725585346e-5],
       linf = [0.008457195427364006, 0.057201667446161064, 9.098379777405796e-5],
-      tspan = (0.0, 0.025), surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal))
+      tspan = (0.0, 0.025), surface_flux=(FluxHLL(min_max_speed_naive), flux_nonconservative_fjordholm_etal))
   end
 
   @trixi_testset "elixir_shallowwater_source_terms_dirichlet.jl" begin
@@ -63,7 +63,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms_dirichlet.jl"),
       l2   = [0.0022956052733432287, 0.015540053559855601, 4.43649172558535e-5],
       linf = [0.008460440313118323, 0.05720939349382359, 9.098379777405796e-5],
-      surface_flux=(FluxHydrostaticReconstruction(flux_hll, hydrostatic_reconstruction_audusse_etal), flux_nonconservative_audusse_etal),
+      surface_flux=(FluxHydrostaticReconstruction(FluxHLL(min_max_speed_naive), hydrostatic_reconstruction_audusse_etal), flux_nonconservative_audusse_etal),
       tspan = (0.0, 0.025))
   end
 
