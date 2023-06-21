@@ -748,8 +748,15 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
             recv_size = [n_coarsened for i in 1:mpi_nranks()]
             # @trixi_timeit timer() "MPI" recv_buf, recv_size=recv_data_nonblocking(typeof(t))      
             # recv_buf[1]=t
-            @trixi_timeit timer() "MPI" for i in 1:(mpi_nranks()-1)
-                recv_buf[i+1],recv_size[i+1]=recv_data_new(typeof(t),i, i)
+            recieved=0
+            while (recieved+1)<mpi_nranks()
+                for i in 1:(mpi_nranks()-1)
+                    j,_=MPI.Iprobe(i,i,mpi_comm())
+                    if j
+                        @trixi_timeit timer() "MPI" recv_buf[i+1],recv_size[i+1]=recv_data_new(typeof(t),i, i)
+                        recieved+=1
+                    end
+                end
             end
 
             n_coarsened = sum(recv_size)
