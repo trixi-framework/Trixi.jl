@@ -235,9 +235,9 @@ conservation and well-balancedness in both the volume and surface when combined 
     b_ll = u_ll[5]
 
     # Calculate jumps
-    h_upper_jump =  (h_upper_rr - h_upper_ll)
-    h_lower_jump =  (h_lower_rr - h_lower_ll)
-    b_jump       =  (b_rr       - b_ll)
+    h_upper_jump = (h_upper_rr - h_upper_ll)
+    h_lower_jump = (h_lower_rr - h_lower_ll)
+    b_jump = (b_rr - b_ll)
 
     z = zero(eltype(u_ll))
 
@@ -250,7 +250,6 @@ conservation and well-balancedness in both the volume and surface when combined 
                 z)
     return f
 end
-
 
 """
     flux_wintermeyer_etal(u_ll, u_rr, orientation,
@@ -434,11 +433,11 @@ end
     h_upper, _, h_lower, _, b = u
     v1_upper, v1_lower = velocity(u, equations)
 
-    w1 = equations.rho_upper * (equations.gravity * (h_upper + h_lower + b) 
-                                - 0.5 * v1_upper^2)
+    w1 = (equations.rho_upper *
+          (equations.gravity * (h_upper + h_lower + b) - 0.5 * v1_upper^2))
     w2 = equations.rho_upper * v1_upper
-    w3 = equations.rho_lower * (equations.gravity * (equations.r * h_upper + h_lower + b) 
-                                - 0.5 * v1_lower^2)
+    w3 = (equations.rho_lower *
+          (equations.gravity * (equations.r * h_upper + h_lower + b) - 0.5 * v1_lower^2))
     w4 = equations.rho_lower * v1_lower
     return SVector(w1, w2, w3, w4, b)
 end
@@ -481,7 +480,7 @@ end
 @inline function energy_kinetic(u, equations::ShallowWaterTwoLayerEquations1D)
     h_upper, h_v1_upper, h_lower, h_v2_lower, _ = u
     return (0.5 * equations.rho_upper * h_v1_upper^2 / h_upper +
-           0.5 * equations.rho_lower * h_v2_lower^2 / h_lower)
+            0.5 * equations.rho_lower * h_v2_lower^2 / h_lower)
 end
 
 # Calculate potential energy for a conservative state `cons`

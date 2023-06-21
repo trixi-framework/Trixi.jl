@@ -323,22 +323,21 @@ conservation and well-balancedness in both the volume and surface when combined 
 """
 @inline function flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
                                                   equations::ShallowWaterEquations1D)
-  # Pull the necessary left and right state information
-  h_ll = waterheight(u_ll, equations)
-  b_rr = u_rr[3]
-  b_ll = u_ll[3]
+    # Pull the necessary left and right state information
+    h_ll = waterheight(u_ll, equations)
+    b_rr = u_rr[3]
+    b_ll = u_ll[3]
 
-  # Calculate jump
-  b_jump = b_rr - b_ll
+    # Calculate jump
+    b_jump = b_rr - b_ll
 
-  z = zero(eltype(u_ll))
+    z = zero(eltype(u_ll))
 
-  # Bottom gradient nonconservative term: (0, g h b_x, 0)
-  f = SVector(z, equations.gravity * h_ll * b_jump, z)
+    # Bottom gradient nonconservative term: (0, g h b_x, 0)
+    f = SVector(z, equations.gravity * h_ll * b_jump, z)
 
-  return f
+    return f
 end
-
 
 """
     flux_fjordholm_etal(u_ll, u_rr, orientation,

@@ -341,9 +341,9 @@ conservation and well-balancedness in both the volume and surface when combined 
     b_ll = u_ll[7]
 
     # Calculate jumps
-    h_upper_jump =  (h_upper_rr - h_upper_ll)
-    h_lower_jump =  (h_lower_rr - h_lower_ll)
-    b_jump       =  (b_rr       - b_ll)
+    h_upper_jump = (h_upper_rr - h_upper_ll)
+    h_lower_jump = (h_lower_rr - h_lower_ll)
+    b_jump = (b_rr - b_ll)
 
     z = zero(eltype(u_ll))
 
@@ -354,13 +354,15 @@ conservation and well-balancedness in both the volume and surface when combined 
         f = SVector(z,
                     equations.gravity * h_upper_ll * (b_jump + h_lower_jump),
                     z, z,
-                    equations.gravity * h_lower_ll * (b_jump + equations.r * h_upper_jump),
+                    equations.gravity * h_lower_ll *
+                    (b_jump + equations.r * h_upper_jump),
                     z, z)
     else # orientation == 2
         f = SVector(z, z,
                     equations.gravity * h_upper_ll * (b_jump + h_lower_jump),
                     z, z,
-                    equations.gravity * h_lower_ll * (b_jump + equations.r * h_upper_jump),
+                    equations.gravity * h_lower_ll *
+                    (b_jump + equations.r * h_upper_jump),
                     z)
     end
 
@@ -376,27 +378,26 @@ end
     h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
     b_rr = u_rr[7]
     b_ll = u_ll[7]
-  
+
     # Calculate jumps
-    h_upper_jump =  (h_upper_rr - h_upper_ll)
-    h_lower_jump =  (h_lower_rr - h_lower_ll)
-    b_jump       =  (b_rr       - b_ll)
+    h_upper_jump = (h_upper_rr - h_upper_ll)
+    h_lower_jump = (h_lower_rr - h_lower_ll)
+    b_jump = (b_rr - b_ll)
 
     # Note this routine only uses the `normal_direction_average` and the average of the
     # bottom topography to get a quadratic split form DG gradient on curved elements
     return SVector(zero(eltype(u_ll)),
-                   normal_direction_average[1] * equations.gravity * h_upper_ll * 
+                   normal_direction_average[1] * equations.gravity * h_upper_ll *
                    (b_jump + h_lower_jump),
-                   normal_direction_average[2] * equations.gravity * h_upper_ll * 
+                   normal_direction_average[2] * equations.gravity * h_upper_ll *
                    (b_jump + h_lower_jump),
                    zero(eltype(u_ll)),
-                   normal_direction_average[1] * equations.gravity * h_lower_ll * 
+                   normal_direction_average[1] * equations.gravity * h_lower_ll *
                    (b_jump + equations.r * h_upper_jump),
-                   normal_direction_average[2] * equations.gravity * h_lower_ll * 
+                   normal_direction_average[2] * equations.gravity * h_lower_ll *
                    (b_jump + equations.r * h_upper_jump),
                    zero(eltype(u_ll)))
 end
-
 
 """
     flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
@@ -417,50 +418,51 @@ It should be noted that the equations are ordered differently and the
 designation of the upper and lower layer has been changed which leads to a slightly different
 formulation.
 """
-@inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr, 
+@inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
                                                      orientation::Integer,
                                                      equations::ShallowWaterTwoLayerEquations2D)
-  # Pull the necessary left and right state information
-  h_upper_ll, h_v1_upper_ll, h_v2_upper_ll, h_lower_ll, h_v1_lower_ll, h_v2_lower_ll, b_ll = u_ll
-  h_upper_rr, h_v1_upper_rr, h_v2_upper_rr, h_lower_rr, h_v1_lower_rr, h_v2_lower_rr, b_rr = u_rr
+    # Pull the necessary left and right state information
+    h_upper_ll, h_v1_upper_ll, h_v2_upper_ll, h_lower_ll, h_v1_lower_ll, h_v2_lower_ll, b_ll = u_ll
+    h_upper_rr, h_v1_upper_rr, h_v2_upper_rr, h_lower_rr, h_v1_lower_rr, h_v2_lower_rr, b_rr = u_rr
 
-  # Create average and jump values
-  h_upper_average = 0.5 * (h_upper_ll + h_upper_rr)
-  h_lower_average = 0.5 * (h_lower_ll + h_lower_rr)
-  h_upper_jump    = h_upper_rr - h_upper_ll
-  h_lower_jump    = h_lower_rr - h_lower_ll
-  b_jump     = b_rr  - b_ll
+    # Create average and jump values
+    h_upper_average = 0.5 * (h_upper_ll + h_upper_rr)
+    h_lower_average = 0.5 * (h_lower_ll + h_lower_rr)
+    h_upper_jump = h_upper_rr - h_upper_ll
+    h_lower_jump = h_lower_rr - h_lower_ll
+    b_jump = b_rr - b_ll
 
-  # Assign variables for constants for better readability
-  g = equations.gravity
+    # Assign variables for constants for better readability
+    g = equations.gravity
 
-  # Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x, g*h_upper*(b+h_lower)_y, 0,
-  #                                        g*h_lower*(b+r*h_upper)_x, g*h_lower*(b+r*h_upper)_x, 0)
+    # Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x, g*h_upper*(b+h_lower)_y, 0,
+    #                                        g*h_lower*(b+r*h_upper)_x, g*h_lower*(b+r*h_upper)_x, 0)
 
-  # Includes two parts:
-  #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
-  #        cross-averaging across a discontinuous bottom topography
-  #   (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
-  z = zero(eltype(u_ll))
-  if orientation == 1 
-    f = SVector(
-      z,
-      g * h_upper_ll * (b_ll +   h_lower_ll) + g * h_upper_average * (b_jump +   h_lower_jump),
-      z,z,
-      g * h_lower_ll * (b_ll + equations.r * h_upper_ll) + g * h_lower_average * (b_jump +
-          equations.r * h_upper_jump),
-      z,z)
-  else # orientation == 2
-    f = SVector(
-      z,z,
-      g * h_upper_ll * (b_ll +   h_lower_ll) + g * h_upper_average * (b_jump +   h_lower_jump),
-      z,z,
-      g * h_lower_ll * (b_ll + equations.r * h_upper_ll) + g * h_lower_average * (b_jump + 
-          equations.r * h_upper_jump),
-      z)
-  end
+    # Includes two parts:
+    #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
+    #        cross-averaging across a discontinuous bottom topography
+    #   (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
+    z = zero(eltype(u_ll))
+    if orientation == 1
+        f = SVector(z,
+                    g * h_upper_ll * (b_ll + h_lower_ll) +
+                    g * h_upper_average * (b_jump + h_lower_jump),
+                    z, z,
+                    g * h_lower_ll * (b_ll + equations.r * h_upper_ll) +
+                    g * h_lower_average * (b_jump +
+                                           equations.r * h_upper_jump),
+                    z, z)
+    else # orientation == 2
+        f = SVector(z, z,
+                    g * h_upper_ll * (b_ll + h_lower_ll) +
+                    g * h_upper_average * (b_jump + h_lower_jump),
+                    z, z,
+                    g * h_lower_ll * (b_ll + equations.r * h_upper_ll) +
+                    g * h_lower_average * (b_jump +
+                                           equations.r * h_upper_jump),
+                    z)
+    end
 end
-
 
 """
     flux_wintermeyer_etal(u_ll, u_rr, orientation,
@@ -713,7 +715,6 @@ end
     return max(abs(v_m_ll), abs(v_m_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
 
-
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography
 @inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
                                                               orientation_or_normal_direction,
@@ -776,12 +777,12 @@ end
     rho_lower = equations.rho_lower
     v1_upper, v2_upper, v1_lower, v2_lower = velocity(u, equations)
 
-    w1 = rho_upper * (equations.gravity * (h_upper + h_lower + b) +
-                      -0.5 * (v1_upper^2 + v2_upper^2))
+    w1 = (rho_upper * (equations.gravity * (h_upper + h_lower + b) +
+           -0.5 * (v1_upper^2 + v2_upper^2)))
     w2 = rho_upper * v1_upper
     w3 = rho_upper * v2_upper
-    w4 = rho_lower * (equations.gravity * (equations.r * h_upper + h_lower + b) +
-                      -0.5 * (v1_lower^2 + v2_lower^2))
+    w4 = (rho_lower * (equations.gravity * (equations.r * h_upper + h_lower + b) +
+           -0.5 * (v1_lower^2 + v2_lower^2)))
     w5 = rho_lower * v1_lower
     w6 = rho_lower * v2_lower
     return SVector(w1, w2, w3, w4, w5, w6, b)

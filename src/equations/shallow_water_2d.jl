@@ -545,10 +545,10 @@ conservation and well-balancedness in both the volume and surface when combined 
     h_ll = waterheight(u_ll, equations)
     b_rr = u_rr[4]
     b_ll = u_ll[4]
-  
+
     # Calculate jump
     b_jump = b_rr - b_ll
-  
+
     z = zero(eltype(u_ll))
     # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
     if orientation == 1
@@ -556,7 +556,7 @@ conservation and well-balancedness in both the volume and surface when combined 
     else # orientation == 2
         f = SVector(z, z, equations.gravity * h_ll * b_jump, z)
     end
-return f
+    return f
 end
 
 @inline function flux_nonconservative_ersing_etal(u_ll, u_rr,
@@ -577,7 +577,6 @@ end
                    normal_direction_average[2] * equations.gravity * h_ll * b_jump,
                    zero(eltype(u_ll)))
 end
-
 
 """
     flux_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction,
