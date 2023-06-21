@@ -607,7 +607,7 @@ end
     calc_wavespeed_roe(u_ll, u_rr, direction::Integer,
                        equations::ShallowWaterEquations1D)
 
-Calculate Roe-averaged velocity `v_roe` and wavespeed `c_roe = \sqrt{g h_roe}`
+Calculate Roe-averaged velocity `v_roe` and wavespeed `c_roe = sqrt{g h_roe}`
 """
 @inline function calc_wavespeed_roe(u_ll, u_rr, direction::Integer,
                                     equations::ShallowWaterEquations1D)
