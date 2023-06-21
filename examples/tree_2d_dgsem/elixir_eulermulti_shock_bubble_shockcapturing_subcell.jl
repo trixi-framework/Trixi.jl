@@ -84,9 +84,9 @@ volume_flux         = flux_ranocha
 basis               = LobattoLegendreBasis(3)
 
 indicator_sc = IndicatorIDP(equations, basis;
-                            positivity=true,
-                            variables_cons=[(i+3 for i in eachcomponent(equations))...],
-                            variables_nonlinear=(), positivity_correction_factor=0.1,
+                            positivity_variables_cons=[(i+3 for i in eachcomponent(equations))...],
+                            positivity_variables_nonlinear=(),
+                            positivity_correction_factor=0.1,
                             density_tvd=false,
                             spec_entropy=false,
                             bar_states=false)

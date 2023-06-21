@@ -80,7 +80,7 @@
         counter += 1
     end
     if positivity
-        for index in indicator.variables_cons
+        for index in indicator.positivity_variables_cons
             if index == 1 && density_tvd
                 continue
             end
@@ -101,7 +101,7 @@
             end
             counter += 1
         end
-        for variable in indicator.variables_nonlinear
+        for variable in indicator.positivity_variables_nonlinear
             deviation_min = zero(eltype(u))
             for element in eachelement(solver, cache), j in eachnode(solver),
                 i in eachnode(solver)

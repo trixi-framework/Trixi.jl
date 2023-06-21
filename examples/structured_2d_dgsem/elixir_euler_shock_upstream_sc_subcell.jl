@@ -38,7 +38,6 @@ basis = LobattoLegendreBasis(polydeg)
 
 indicator_sc = IndicatorIDP(equations, basis;
                             density_tvd=true,
-                            positivity=false,
                             spec_entropy=true,
                             max_iterations_newton=100,
                             bar_states=true)

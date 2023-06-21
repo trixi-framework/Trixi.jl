@@ -224,13 +224,12 @@ end
 """
     IndicatorIDP(equations::AbstractEquations, basis;
                  density_tvd = false,
-                 positivity = false,
-                 variables_cons = [],
-                 variables_nonlinear = (),
+                 positivity_variables_cons = [],
+                 positivity_variables_nonlinear = (),
+                 positivity_correction_factor = 0.1,
                  spec_entropy = false,
                  math_entropy = false,
                  bar_states = true,
-                 positivity_correction_factor = 0.1,
                  max_iterations_newton = 10,
                  newton_tolerances = (1.0e-12, 1.0e-14),
                  gamma_constant_newton = 2 * ndims(equations),
@@ -241,7 +240,7 @@ end
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
 - two-sided Zalesak-type limiting for density (`density_tvd`)
-- positivity limiting for conservative and non-linear variables (`positivity`)
+- positivity limiting for conservative (`positivity_variables_cons`) and non-linear variables (`positivity_variables_nonlinear`)
 - one-sided limiting for specific and mathematical entropy (`spec_entropy`, `math_entropy`)
 
 The bounds can be calculated using the `bar_states` or the low-order FV solution. The positivity
@@ -270,8 +269,8 @@ struct IndicatorIDP{RealT <: Real, LimitingVariablesNonlinear,
                     Cache, Indicator} <: AbstractIndicator
     density_tvd::Bool
     positivity::Bool
-    variables_cons::Vector{Int}                     # Positivity for conservative variables
-    variables_nonlinear::LimitingVariablesNonlinear # Positivity for nonlinear variables
+    positivity_variables_cons::Vector{Int}                     # Positivity for conservative variables
+    positivity_variables_nonlinear::LimitingVariablesNonlinear # Positivity for nonlinear variables
     spec_entropy::Bool
     math_entropy::Bool
     bar_states::Bool
@@ -288,30 +287,30 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorIDP(equations::AbstractEquations, basis;
                       density_tvd = false,
-                      positivity = false,
-                      variables_cons = [],
-                      variables_nonlinear = (),
+                      positivity_variables_cons = [],
+                      positivity_variables_nonlinear = (),
+                      positivity_correction_factor = 0.1,
                       spec_entropy = false,
                       math_entropy = false,
                       bar_states = true,
-                      positivity_correction_factor = 0.1, max_iterations_newton = 10,
+                      max_iterations_newton = 10,
                       newton_tolerances = (1.0e-12, 1.0e-14),
                       gamma_constant_newton = 2 * ndims(equations),
                       smoothness_indicator = false,
                       threshold_smoothness_indicator = 0.1,
                       variable_smoothness_indicator = density_pressure)
+    positivity = (length(positivity_variables_cons) +
+                  length(positivity_variables_nonlinear) > 0)
     if math_entropy && spec_entropy
         error("Only one of the two can be selected: math_entropy/spec_entropy")
     end
 
-    number_bounds = 2 * density_tvd + positivity * length(variables_nonlinear) +
+    number_bounds = 2 * density_tvd + length(positivity_variables_nonlinear) +
                     spec_entropy + math_entropy
 
-    if positivity
-        for index in variables_cons
-            if !(density_tvd && index == 1)
-                number_bounds += 1
-            end
+    for index in positivity_variables_cons
+        if !(density_tvd && index == 1)
+            number_bounds += 1
         end
     end
 
@@ -324,11 +323,12 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     else
         IndicatorHG = nothing
     end
-    IndicatorIDP{typeof(positivity_correction_factor), typeof(variables_nonlinear),
+    IndicatorIDP{typeof(positivity_correction_factor),
+                 typeof(positivity_variables_nonlinear),
                  typeof(cache), typeof(IndicatorHG)}(density_tvd,
                                                      positivity,
-                                                     variables_cons,
-                                                     variables_nonlinear,
+                                                     positivity_variables_cons,
+                                                     positivity_variables_nonlinear,
                                                      spec_entropy,
                                                      math_entropy,
                                                      bar_states,
@@ -380,7 +380,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
                 setup = [setup..., "" => "local maximum/minimum bounds for density"]
             end
             if positivity
-                string = "positivity for conservative variables $(indicator.variables_cons) and $(indicator.variables_nonlinear)"
+                string = "positivity for conservative variables $(indicator.positivity_variables_cons) and $(indicator.positivity_variables_nonlinear)"
                 setup = [setup..., "" => string]
                 setup = [
                     setup...,

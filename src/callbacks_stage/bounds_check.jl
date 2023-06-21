@@ -86,13 +86,13 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
         end
         if positivity
             variables = varnames(cons2cons, semi.equations)
-            for index in indicator.variables_cons
+            for index in indicator.positivity_variables_cons
                 if index == 1 && density_tvd
                     continue
                 end
                 print(f, ", $(variables[index])_min")
             end
-            for variable in indicator.variables_nonlinear
+            for variable in indicator.positivity_variables_nonlinear
                 print(f, ", $(variable)_min")
             end
         end
@@ -157,14 +157,14 @@ end
     end
     if positivity
         variables = varnames(cons2cons, semi.equations)
-        for index in indicator.variables_cons
+        for index in indicator.positivity_variables_cons
             if index == 1 && density_tvd
                 continue
             end
             println("$(variables[index]):\n- positivity: ", idp_bounds_delta[counter])
             counter += 1
         end
-        for variable in indicator.variables_nonlinear
+        for variable in indicator.positivity_variables_nonlinear
             println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
             counter += 1
         end

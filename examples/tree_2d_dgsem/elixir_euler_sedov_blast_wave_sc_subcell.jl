@@ -43,7 +43,6 @@ volume_flux  = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorIDP(equations, basis;
                             density_tvd=true,
-                            positivity=false,
                             spec_entropy=true,
                             smoothness_indicator=false,
                             bar_states=true)
