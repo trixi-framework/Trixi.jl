@@ -217,13 +217,12 @@ end
 
 """
     IndicatorIDP(equations::AbstractEquations, basis;
-                 positivity = false,
-                 variables_cons = [],
+                 positivity_variables_cons = [],
                  positivity_correction_factor = 0.1)
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
-- positivity limiting for conservative variables (`positivity`)
+- positivity limiting for conservative variables (`positivity_variables_cons`)
 
 The bounds are calculated using the low-order FV solution. The positivity limiter uses
 `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
@@ -242,24 +241,24 @@ The bounds are calculated using the low-order FV solution. The positivity limite
 """
 struct IndicatorIDP{RealT <: Real, Cache} <: AbstractIndicator
     positivity::Bool
-    variables_cons::Vector{Int}                     # Positivity for conservative variables
-    cache::Cache
+    positivity_variables_cons::Vector{Int}                     # Positivity for conservative variables
     positivity_correction_factor::RealT
+    cache::Cache
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorIDP(equations::AbstractEquations, basis;
-                      positivity = false,
-                      variables_cons = [],
+                      positivity_variables_cons = [],
                       positivity_correction_factor = 0.1)
-    number_bounds = positivity * length(variables_cons)
+    positivity = (length(positivity_variables_cons) > 0)
+    number_bounds = length(positivity_variables_cons)
 
     cache = create_cache(IndicatorIDP, equations, basis, number_bounds)
 
     IndicatorIDP{typeof(positivity_correction_factor), typeof(cache)}(positivity,
-                                                                      variables_cons,
-                                                                      cache,
-                                                                      positivity_correction_factor)
+                                                                      positivity_variables_cons,
+                                                                      positivity_correction_factor,
+                                                                      cache)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
@@ -289,7 +288,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
         else
             setup = ["limiter" => ""]
             if positivity
-                string = "positivity with conservative variables $(indicator.variables_cons)"
+                string = "positivity with conservative variables $(indicator.positivity_variables_cons)"
                 setup = [setup..., "" => string]
                 setup = [
                     setup...,

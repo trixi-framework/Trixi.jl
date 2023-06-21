@@ -84,8 +84,7 @@ volume_flux         = flux_ranocha
 basis               = LobattoLegendreBasis(3)
 
 indicator_sc = IndicatorIDP(equations, basis;
-                            positivity=true,
-                            variables_cons=[(i+3 for i in eachcomponent(equations))...])
+                            positivity_variables_cons=[(i+3 for i in eachcomponent(equations))...])
 
 volume_integral=VolumeIntegralSubcellLimiting(indicator_sc; volume_flux_dg=volume_flux,
                                                             volume_flux_fv=surface_flux)

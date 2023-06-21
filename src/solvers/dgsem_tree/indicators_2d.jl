@@ -232,7 +232,7 @@ end
 
 @inline function idp_positivity!(alpha, indicator, u, dt, semi)
     # Conservative variables
-    for (index, variable) in enumerate(indicator.variables_cons)
+    for (index, variable) in enumerate(indicator.positivity_variables_cons)
         idp_positivity!(alpha, indicator, u, dt, semi, variable, index)
     end
 

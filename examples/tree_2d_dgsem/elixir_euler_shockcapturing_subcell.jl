@@ -39,7 +39,8 @@ surface_flux = flux_lax_friedrichs
 volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorIDP(equations, basis;
-                            positivity=true, variables_cons=[1], positivity_correction_factor=0.5)
+                            positivity_variables_cons=[1],
+                            positivity_correction_factor=0.5)
 volume_integral = VolumeIntegralSubcellLimiting(indicator_sc;
                                                 volume_flux_dg=volume_flux,
                                                 volume_flux_fv=surface_flux)
