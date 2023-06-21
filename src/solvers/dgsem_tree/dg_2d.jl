@@ -20,7 +20,7 @@ function create_cache(mesh::TreeMesh{2}, equations,
 
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements, backend)
 
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
+    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, backend)
 
     mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
@@ -214,19 +214,19 @@ function rhs_gpu!(du, u, t,
     have_nonconservative_terms(equations), equations,
     dg.surface_integral, dg, cache)
 
+    # Prolong solution to boundaries
+    @trixi_timeit timer() "prolong2boundaries gpu" prolong2boundaries_gpu!(
+    cache, dev_u, mesh, equations, dg.surface_integral, dg)
+
+    # Calculate boundary fluxes
+    @trixi_timeit timer() "boundary flux gpu" calc_boundary_flux!(
+    cache, t, boundary_conditions, mesh, equations, dg.surface_integral, dg)
+
     if !(backend isa CPU)
         KernelAbstractions.copyto!(backend, du, dev_du)
     else
         Base.copyto!(du, dev_du)
     end
-
-    # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(
-    cache, u, mesh, equations, dg.surface_integral, dg)
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg.surface_integral, dg)
 
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" prolong2mortars!(
@@ -701,17 +701,17 @@ function prolong2interfaces_gpu!(cache, u,
         right_element = interfaces_neighbor_ids[2, interface]
 
         if orientations[interface] == 1
-        # interface in x-direction
-        for j in 1:num_nodes, v in eachvariable(equations)
-            interfaces_u[1, v, j, interface] = u[v, num_nodes, j, left_element]
-            interfaces_u[2, v, j, interface] = u[v,         1, j, right_element]
-        end
+            # interface in x-direction
+            for j in 1:num_nodes, v in eachvariable(equations)
+                interfaces_u[1, v, j, interface] = u[v, num_nodes, j, left_element]
+                interfaces_u[2, v, j, interface] = u[v,         1, j, right_element]
+            end
         else # if orientations[interface] == 2
-        # interface in y-direction
-        for i in 1:num_nodes, v in eachvariable(equations)
-            interfaces_u[1, v, i, interface] = u[v, i, num_nodes, left_element]
-            interfaces_u[2, v, i, interface] = u[v, i,         1, right_element]
-        end
+            # interface in y-direction
+            for i in 1:num_nodes, v in eachvariable(equations)
+                interfaces_u[1, v, i, interface] = u[v, i, num_nodes, left_element]
+                interfaces_u[2, v, i, interface] = u[v, i,         1, right_element]
+            end
         end
     end
 
@@ -772,61 +772,61 @@ function calc_interface_flux_gpu!(surface_flux_values,
                               nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
 
-  @kernel function internal_calc_interface_flux!(surface_flux_values, surface_flux, u, neighbor_ids, orientations, equations, num_nodes)
+    @kernel function internal_calc_interface_flux!(surface_flux_values, surface_flux, u, neighbor_ids, orientations, equations, num_nodes)
 
-    interface = @index(Global)
+        interface = @index(Global)
 
-    # Get neighboring elements
-    left_id  = neighbor_ids[1, interface]
-    right_id = neighbor_ids[2, interface]
+        # Get neighboring elements
+        left_id  = neighbor_ids[1, interface]
+        right_id = neighbor_ids[2, interface]
 
-    # Determine interface direction with respect to elements:
-    # orientation = 1: left -> 2, right -> 1
-    # orientation = 2: left -> 4, right -> 3
-    left_direction  = 2 * orientations[interface]
-    right_direction = 2 * orientations[interface] - 1
+        # Determine interface direction with respect to elements:
+        # orientation = 1: left -> 2, right -> 1
+        # orientation = 2: left -> 4, right -> 3
+        left_direction  = 2 * orientations[interface]
+        right_direction = 2 * orientations[interface] - 1
 
-    for i in 1:num_nodes
-      # Call pointwise Riemann solver
-      u_ll = SVector(ntuple(@inline(v -> u[1, v, i, interface]), Val(nvariables(equations))))
-      u_rr = SVector(ntuple(@inline(v -> u[2, v, i, interface]), Val(nvariables(equations))))
-      flux = surface_flux(u_ll, u_rr, orientations[interface], equations)
+        for i in 1:num_nodes
+            # Call pointwise Riemann solver
+            u_ll = SVector(ntuple(@inline(v -> u[1, v, i, interface]), Val(nvariables(equations))))
+            u_rr = SVector(ntuple(@inline(v -> u[2, v, i, interface]), Val(nvariables(equations))))
+            flux = surface_flux(u_ll, u_rr, orientations[interface], equations)
 
-      # Copy flux to left and right element storage
-      for v in eachvariable(equations)
-        surface_flux_values[v, i, left_direction,  left_id]  = flux[v]
-        surface_flux_values[v, i, right_direction, right_id] = flux[v]
-      end
+            # Copy flux to left and right element storage
+            for v in eachvariable(equations)
+                surface_flux_values[v, i, left_direction,  left_id]  = flux[v]
+                surface_flux_values[v, i, right_direction, right_id] = flux[v]
+            end
+        end
     end
-  end
 
-  @unpack surface_flux  = surface_integral
-  @unpack u, neighbor_ids, orientations = cache.interfaces
+    @unpack surface_flux  = surface_integral
+    @unpack u, neighbor_ids, orientations = cache.interfaces
 
-  backend = get_backend(u)
+    backend = get_backend(u)
 
-  dev_surface_flux_values = KernelAbstractions.allocate(backend, eltype(surface_flux_values), size(surface_flux_values))
-  if !(backend isa CPU)
-    KernelAbstractions.copyto!(backend, dev_surface_flux_values, surface_flux_values)
-  else
-    Base.copyto!(dev_surface_flux_values, surface_flux_values)
-  end
+    dev_surface_flux_values = KernelAbstractions.allocate(backend, eltype(surface_flux_values), size(surface_flux_values))
+    if !(backend isa CPU)
+        KernelAbstractions.copyto!(backend, dev_surface_flux_values, surface_flux_values)
+    else
+        Base.copyto!(dev_surface_flux_values, surface_flux_values)
+    end
 
-  kernel! = internal_calc_interface_flux!(backend)
-  num_nodes = nnodes(dg)
-  num_interfaces = ninterfaces(cache.interfaces)
+    kernel! = internal_calc_interface_flux!(backend)
+    num_nodes = nnodes(dg)
+    num_interfaces = ninterfaces(cache.interfaces)
 
-  kernel!(dev_surface_flux_values, surface_flux, u, neighbor_ids, orientations, equations, num_nodes, ndrange=num_interfaces)
-  # Ensure that device is finished
-  KernelAbstractions.synchronize(backend)
+    kernel!(dev_surface_flux_values, surface_flux, u, neighbor_ids, orientations, equations, num_nodes, ndrange=num_interfaces)
+    # Ensure that device is finished
+    KernelAbstractions.synchronize(backend)
 
-  if !(backend isa CPU)
-    KernelAbstractions.copyto!(backend, surface_flux_values, dev_surface_flux_values)
-  else
-    Base.copyto!(surface_flux_values, dev_surface_flux_values)
-  end
+    if !(backend isa CPU)
+        KernelAbstractions.copyto!(backend, surface_flux_values, dev_surface_flux_values)
+    else
+        Base.copyto!(surface_flux_values, dev_surface_flux_values)
+    end
 
-  return nothing
+    return nothing
 end
 
 @muladd begin
@@ -916,7 +916,56 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
+function prolong2boundaries_gpu!(cache, u,
+                             mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
+    @kernel function internal_prolong2boundaries_gpu!(u, boundaries_u, boundaries_orientations, boundaries_neighbor_sides, boundaries_neighbor_ids, equations, num_nodes)
+        boundary = @index(Global)
+        element = boundaries_neighbor_ids[boundary]
+
+        if boundaries_orientations[boundary] == 1
+            # boundary in x-direction
+            if boundaries_neighbor_sides[boundary] == 1
+                # element in -x direction of boundary
+                for l in 1:num_nodes, v in eachvariable(equations)
+                    boundaries_u[1, v, l, boundary] = u[v, num_nodes, l, element]
+                end
+            else # Element in +x direction of boundary
+                for l in 1:num_nodes, v in eachvariable(equations)
+                    boundaries_u[2, v, l, boundary] = u[v, 1, l, element]
+                end
+            end
+        else # if orientations[boundary] == 2
+            # boundary in y-direction
+            if boundaries_neighbor_sides[boundary] == 1
+                # element in -y direction of boundary
+                for l in 1:num_nodes, v in eachvariable(equations)
+                    boundaries_u[1, v, l, boundary] = u[v, l, num_nodes, element]
+                end
+            else
+                # element in +y direction of boundary
+                for l in 1:num_nodes, v in eachvariable(equations)
+                    boundaries_u[2, v, l, boundary] = u[v, l, 1, element]
+                end
+            end
+        end
+    end
+
+    @unpack boundaries = cache
+    backend = get_backend(u)
+
+    kernel! = internal_prolong2boundaries_gpu!(backend)
+    num_nodes = nnodes(dg)
+    num_boundaries = nboundaries(boundaries)
+
+    kernel!(u, boundaries.u, boundaries.orientations, boundaries.neighbor_sides, boundaries.neighbor_ids, equations, num_nodes, ndrange=num_boundaries)
+    # Ensure that device is finished
+    KernelAbstractions.synchronize(backend)
+
+    return nothing
+end
+
 # TODO: Taal dimension agnostic
+# Trivial, therefore no GPU port needed
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))

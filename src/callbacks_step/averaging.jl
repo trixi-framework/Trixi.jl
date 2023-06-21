@@ -90,7 +90,7 @@ function (averaging_callback::AveragingCallback)(integrator)
 
     u_ode = integrator.u
     u_prev_ode = integrator.uprev
-    semi = integrator.p
+    @unpack semi = integrator.p
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     u_prev = wrap_array(u_prev_ode, mesh, equations, solver, cache)

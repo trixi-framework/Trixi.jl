@@ -318,15 +318,19 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh2D)
 end
 
 # Container data structure (structure-of-arrays style) for DG boundaries
-mutable struct BoundaryContainer2D{RealT <: Real, uEltype <: Real} <: AbstractContainer
-    u::Array{uEltype, 4}              # [leftright, variables, i, boundaries]
-    neighbor_ids::Vector{Int}         # [boundaries]
-    orientations::Vector{Int}         # [boundaries]
-    neighbor_sides::Vector{Int}       # [boundaries]
+mutable struct BoundaryContainer2D{RealT <: Real, uEltype <: Real, uArray<:DenseArray{uEltype, 4},
+                                                                   neighborIdsArray<:DenseArray{Int, 1},
+                                                                   orientationsArray<:DenseArray{Int, 1},
+                                                                   neighborSidesArray<:DenseArray{Int, 1},
+                                                                   _uArray<:DenseArray{uEltype, 1}} <: AbstractContainer
+    u::uArray              # [leftright, variables, i, boundaries]
+    neighbor_ids::neighborIdsArray         # [boundaries]
+    orientations::orientationsArray         # [boundaries]
+    neighbor_sides::neighborSidesArray       # [boundaries]
     node_coordinates::Array{RealT, 3} # [orientation, i, elements]
     n_boundaries_per_direction::SVector{4, Int} # [direction]
     # internal `resize!`able storage
-    _u::Vector{uEltype}
+    _u::_uArray
     _node_coordinates::Vector{RealT}
 end
 
@@ -359,21 +363,23 @@ function Base.resize!(boundaries::BoundaryContainer2D, capacity)
 end
 
 function BoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
-                                             n_nodes) where {RealT <: Real,
-                                                             uEltype <: Real}
+                                             n_nodes, backend::Backend) where {RealT <: Real,
+                                                                               uEltype <: Real}
     nan_RealT = convert(RealT, NaN)
     nan_uEltype = convert(uEltype, NaN)
 
+    arrType = get_array_type(backend)
+
     # Initialize fields with defaults
-    _u = fill(nan_uEltype, 2 * n_variables * n_nodes * capacity)
-    u = unsafe_wrap(Array, pointer(_u),
+    _u = allocate(backend, uEltype, 2 * n_variables * n_nodes * capacity)
+    u = unsafe_wrap(arrType, pointer(_u),
                     (2, n_variables, n_nodes, capacity))
 
-    neighbor_ids = fill(typemin(Int), capacity)
+    neighbor_ids = fill!(allocate(backend, Int, capacity), typemin(Int))
 
-    orientations = fill(typemin(Int), capacity)
+    orientations = fill!(allocate(backend, Int, capacity), typemin(Int))
 
-    neighbor_sides = fill(typemin(Int), capacity)
+    neighbor_sides = fill!(allocate(backend, Int, capacity), typemin(Int))
 
     _node_coordinates = fill(nan_RealT, 2 * n_nodes * capacity)
     node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
@@ -381,7 +387,7 @@ function BoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
 
     n_boundaries_per_direction = SVector(0, 0, 0, 0)
 
-    return BoundaryContainer2D{RealT, uEltype}(u, neighbor_ids, orientations,
+    return BoundaryContainer2D{RealT, uEltype, arrType{uEltype, 4}, arrType{Int, 1}, arrType{Int, 1}, arrType{Int, 1}, arrType{uEltype, 1}}(u, neighbor_ids, orientations,
                                                neighbor_sides,
                                                node_coordinates,
                                                n_boundaries_per_direction,
@@ -393,12 +399,12 @@ end
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh2D,
-                         elements::ElementContainer2D)
+                         elements::ElementContainer2D, backend::Backend)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
     boundaries = BoundaryContainer2D{real(elements), eltype(elements)}(n_boundaries,
                                                                        nvariables(elements),
-                                                                       nnodes(elements))
+                                                                       nnodes(elements), backend)
 
     # Connect elements with boundaries
     init_boundaries!(boundaries, elements, mesh)
