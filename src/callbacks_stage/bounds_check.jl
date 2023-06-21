@@ -70,15 +70,15 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
         return nothing
     end
 
-    @unpack state_tvd, positivity, spec_entropy, math_entropy = indicator
+    @unpack local_minmax, positivity, spec_entropy, math_entropy = indicator
     @unpack output_directory = callback
     variables = varnames(cons2cons, semi.equations)
 
     mkpath(output_directory)
     open("$output_directory/deviations.txt", "a") do f
         print(f, "# iter, simu_time")
-        if state_tvd
-            for index in indicator.variables_states
+        if local_minmax
+            for index in indicator.local_minmax_variables_cons
                 print(f, ", $(variables[index])_min, $(variables[index])_max")
             end
         end
@@ -89,13 +89,13 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
             print(f, ", mathEntr_max")
         end
         if positivity
-            for index in indicator.variables_cons
-                if state_tvd && index in indicator.variables_states
+            for index in indicator.positivity_variables_cons
+                if index in indicator.local_minmax_variables_cons
                     continue
                 end
                 print(f, ", $(variables[index])_min")
             end
-            for variable in indicator.variables_nonlinear
+            for variable in indicator.positivity_variables_nonlinear
                 print(f, ", $(variable)_min")
             end
         end
@@ -138,7 +138,7 @@ end
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    indicator::IndicatorIDP)
-    @unpack state_tvd, positivity, spec_entropy, math_entropy = indicator
+    @unpack local_minmax, positivity, spec_entropy, math_entropy = indicator
     @unpack idp_bounds_delta = indicator.cache
     variables = varnames(cons2cons, semi.equations)
 
@@ -146,8 +146,8 @@ end
     println("Maximum deviation from bounds:")
     println("─"^100)
     counter = 1
-    if state_tvd
-        for index in indicator.variables_states
+    if local_minmax
+        for index in indicator.local_minmax_variables_cons
             println("$(variables[index]):")
             println("-lower bound: ", idp_bounds_delta[counter])
             println("-upper bound: ", idp_bounds_delta[counter + 1])
@@ -163,14 +163,14 @@ end
         counter += 1
     end
     if positivity
-        for index in indicator.variables_cons
-            if state_tvd && (index in indicator.variables_states)
+        for index in indicator.positivity_variables_cons
+            if index in indicator.local_minmax_variables_cons
                 continue
             end
             println("$(variables[index]):\n- positivity: ", idp_bounds_delta[counter])
             counter += 1
         end
-        for variable in indicator.variables_nonlinear
+        for variable in indicator.positivity_variables_nonlinear
             println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
             counter += 1
         end

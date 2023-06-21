@@ -44,7 +44,7 @@ basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example
 indicator_sc = IndicatorIDP(equations, basis;
-                            state_tvd=true, variables_states=[1],
+                            local_minmax_variables_cons=[1],
                             spec_entropy=true,
                             bar_states=true,
                             max_iterations_newton=25)

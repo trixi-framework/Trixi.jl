@@ -1069,8 +1069,8 @@ end
 
     counter = 1
     # state variables
-    if indicator.state_tvd
-        for index in indicator.variables_states
+    if indicator.local_minmax
+        for index in indicator.local_minmax_variables_cons
             var_min = variable_bounds[counter]
             var_max = variable_bounds[counter + 1]
             @threaded for element in eachelement(dg, cache)

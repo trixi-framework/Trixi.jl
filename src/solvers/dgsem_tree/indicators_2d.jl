@@ -220,9 +220,11 @@ function (indicator::IndicatorIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, 
         elements = eachelement(dg, semi.cache)
     end
 
-    if indicator.state_tvd
-        @trixi_timeit timer() "state_tvd" idp_state_tvd!(alpha, indicator, u, t, dt,
-                                                         semi, elements)
+    if indicator.local_minmax
+        @trixi_timeit timer() "local min/max limiting" idp_local_minmax!(alpha,
+                                                                         indicator, u,
+                                                                         t, dt,
+                                                                         semi, elements)
     end
     if indicator.positivity
         @trixi_timeit timer() "positivity" idp_positivity!(alpha, indicator, u, dt,
@@ -498,18 +500,17 @@ end
     return nothing
 end
 
-@inline function idp_state_tvd!(alpha, indicator, u, t, dt, semi, elements)
-    for (index, variable) in enumerate(indicator.variables_states)
-        idp_state_tvd!(alpha, indicator, u, t, dt, semi, elements, variable, index)
+@inline function idp_local_minmax!(alpha, indicator, u, t, dt, semi, elements)
+    for (index, variable) in enumerate(indicator.local_minmax_variables_cons)
+        idp_local_minmax!(alpha, indicator, u, t, dt, semi, elements, variable, index)
     end
 
     return nothing
 end
 
-@inline function idp_state_tvd!(alpha, indicator, u, t, dt, semi, elements, variable,
-                                index)
+@inline function idp_local_minmax!(alpha, indicator, u, t, dt, semi, elements, variable,
+                                   index)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack boundary_conditions = semi
     @unpack variable_bounds = indicator.cache.container_shock_capturing
 
     var_min = variable_bounds[2 * (index - 1) + 1]
@@ -578,11 +579,9 @@ end
 
 @inline function idp_spec_entropy!(alpha, indicator, u, t, dt, semi, elements)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack boundary_conditions = semi
-    @unpack state_tvd, positivity = indicator
     @unpack variable_bounds = indicator.cache.container_shock_capturing
 
-    s_min = variable_bounds[state_tvd * 2 * length(indicator.variables_states) + 1]
+    s_min = variable_bounds[2 * length(indicator.local_minmax_variables_cons) + 1]
     if !indicator.bar_states
         calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u, t, semi)
     end
@@ -611,11 +610,10 @@ end
 
 @inline function idp_math_entropy!(alpha, indicator, u, t, dt, semi, elements)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack boundary_conditions = semi
-    @unpack state_tvd, positivity, spec_entropy = indicator
+    @unpack spec_entropy = indicator
     @unpack variable_bounds = indicator.cache.container_shock_capturing
 
-    s_max = variable_bounds[state_tvd * 2 * length(indicator.variables_states) + spec_entropy + 1]
+    s_max = variable_bounds[2 * length(indicator.local_minmax_variables_cons) + spec_entropy + 1]
     if !indicator.bar_states
         calc_bounds_1sided!(s_max, max, typemin, entropy_math, u, t, semi)
     end
@@ -643,15 +641,13 @@ function mathEntropy_initialCheck(bound, goal, newton_abstol)
 end
 
 @inline function idp_positivity!(alpha, indicator, u, dt, semi, elements)
-    @unpack state_tvd, spec_entropy, math_entropy, variables_states, variables_cons = indicator
-
     # Conservative variables
-    for (index, variable) in enumerate(variables_cons)
+    for (index, variable) in enumerate(indicator.positivity_variables_cons)
         idp_positivity!(alpha, indicator, u, dt, semi, elements, variable, index)
     end
 
     # Nonlinear variables
-    for (index, variable) in enumerate(indicator.variables_nonlinear)
+    for (index, variable) in enumerate(indicator.positivity_variables_nonlinear)
         idp_positivity_newton!(alpha, indicator, u, dt, semi, elements, variable, index)
     end
 
@@ -663,23 +659,23 @@ end
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
     @unpack inverse_weights = dg.basis
-    @unpack state_tvd, spec_entropy, math_entropy, positivity_correction_factor = indicator
+    @unpack local_minmax, spec_entropy, math_entropy, positivity_correction_factor = indicator
 
     @unpack variable_bounds = indicator.cache.container_shock_capturing
 
-    counter = state_tvd * 2 * length(indicator.variables_states) + spec_entropy +
+    counter = 2 * length(indicator.local_minmax_variables_cons) + spec_entropy +
               math_entropy
-    if state_tvd
-        if variable in indicator.variables_states
-            for (index_, variable_) in enumerate(indicator.variables_states)
+    if local_minmax
+        if variable in indicator.local_minmax_variables_cons
+            for (index_, variable_) in enumerate(indicator.local_minmax_variables_cons)
                 if variable == variable_
                     var_min = variable_bounds[2 * (index_ - 1) + 1]
                     break
                 end
             end
         else
-            for variable_ in indicator.variables_cons[1:index]
-                if !(variable_ in indicator.variable_states)
+            for variable_ in indicator.positivity_variables_cons[1:index]
+                if !(variable_ in indicator.local_minmax_variables_cons)
                     counter += 1
                 end
             end
@@ -704,7 +700,7 @@ end
             end
 
             # Compute bound
-            if indicator.state_tvd
+            if indicator.local_minmax
                 var_min[i, j, element] = max(var_min[i, j, element],
                                              positivity_correction_factor * var)
             else
@@ -748,13 +744,13 @@ end
 @inline function idp_positivity_newton!(alpha, indicator, u, dt, semi, elements,
                                         variable, index)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack state_tvd, spec_entropy, math_entropy, positivity_correction_factor, variables_cons, variables_nonlinear = indicator
+    @unpack spec_entropy, math_entropy, positivity_correction_factor, positivity_variables_cons = indicator
     @unpack variable_bounds = indicator.cache.container_shock_capturing
 
-    index_ = state_tvd * 2 * length(indicator.variables_states) + spec_entropy +
+    index_ = 2 * length(indicator.local_minmax_variables_cons) + spec_entropy +
              math_entropy + index
-    for variable_ in indicator.variables_cons
-        if !(state_tvd && variable_ in indicator.variables_states)
+    for variable_ in indicator.positivity_variables_cons
+        if !(variable_ in indicator.local_minmax_variables_cons)
             index_ += 1
         end
     end

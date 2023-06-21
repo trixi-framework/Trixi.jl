@@ -84,12 +84,11 @@ volume_flux         = flux_ranocha
 basis               = LobattoLegendreBasis(3)
 
 indicator_sc = IndicatorIDP(equations, basis;
-                            positivity=false,
-                            variables_cons=[(i+3 for i in eachcomponent(equations))...],
-                            variables_nonlinear=(), positivity_correction_factor=0.1,
-                            state_tvd=true, variables_states=[(i+3 for i in eachcomponent(equations))...],
+                            positivity_variables_cons=[(i+3 for i in eachcomponent(equations))...],
+                            positivity_variables_nonlinear=(),
+                            positivity_correction_factor=0.1,
                             spec_entropy=false,
-                            bar_states=true)
+                            bar_states=false)
 
 volume_integral=VolumeIntegralSubcellLimiting(indicator_sc; volume_flux_dg=volume_flux,
                                                             volume_flux_fv=surface_flux)
@@ -119,7 +118,7 @@ analysis_callback   = AnalysisCallback(semi, interval=analysis_interval,
 
 alive_callback      = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution       = SaveSolutionCallback(interval=600,
+save_solution       = SaveSolutionCallback(interval=300,
                                            save_initial_solution=true,
                                            save_final_solution=true,
                                            solution_variables=cons2prim)

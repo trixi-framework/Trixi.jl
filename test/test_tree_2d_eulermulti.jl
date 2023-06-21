@@ -19,16 +19,16 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       tspan = (0.0, 0.001))
   end
 
-  @trixi_testset "elixir_eulermulti_shock_bubble_shockcapturing_subcell.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble_shockcapturing_subcell.jl"),
+  @trixi_testset "elixir_eulermulti_shock_bubble_shockcapturing_subcell_positivity.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble_shockcapturing_subcell_positivity.jl"),
       l2   = [81.52845664909304, 2.5455678559421346, 63229.190712645846, 0.19929478404550321, 0.011068604228443425],
       linf = [249.21708417382013, 40.33299887640794, 174205.0118831558, 0.6881458768113586, 0.11274401158173972],
       initial_refinement_level = 3,
       tspan = (0.0, 0.001))
   end
 
-  @trixi_testset "elixir_eulermulti_shock_bubble_sc_subcell_state.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble_sc_subcell_state.jl"),
+  @trixi_testset "elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl"),
       l2   = [76.59096367977872, 1.9879932386864356, 59851.34515039375, 0.18710988181124935, 0.010631432251136084],
       linf = [212.71245739310544, 27.399221359958894, 158389.9681231281, 0.6524718882809865, 0.10630137919864985],
       initial_refinement_level = 3,

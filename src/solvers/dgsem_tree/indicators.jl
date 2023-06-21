@@ -223,15 +223,13 @@ end
 
 """
     IndicatorIDP(equations::AbstractEquations, basis;
-                 state_tvd = false,
-                 variables_states = [],
-                 positivity = false,
-                 variables_cons = [],
-                 variables_nonlinear = (),
+                 local_minmax_variables_cons = [],
+                 positivity_variables_cons = [],
+                 positivity_variables_nonlinear = (),
+                 positivity_correction_factor = 0.1,
                  spec_entropy = false,
                  math_entropy = false,
                  bar_states = true,
-                 positivity_correction_factor = 0.1,
                  max_iterations_newton = 10,
                  newton_tolerances = (1.0e-12, 1.0e-14),
                  gamma_constant_newton = 2 * ndims(equations),
@@ -241,8 +239,8 @@ end
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
-- two-sided Zalesak-type limiting for conservative variables (`state_tvd`)
-- positivity limiting for conservative and non-linear variables (`positivity`)
+- maximum/minimum Zalesak-type limiting for conservative variables (`local_minmax_variables_cons`)
+- positivity limiting for conservative (`positivity_variables_cons`) and non-linear variables (`positivity_variables_nonlinear`)
 - one-sided limiting for specific and mathematical entropy (`spec_entropy`, `math_entropy`)
 
 The bounds can be calculated using the `bar_states` or the low-order FV solution. The positivity
@@ -269,16 +267,16 @@ indicator values <= `threshold_smoothness_indicator`.
 """
 struct IndicatorIDP{RealT <: Real, LimitingVariablesNonlinear,
                     Cache, Indicator} <: AbstractIndicator
-    state_tvd::Bool
-    variables_states::Vector{Int}                   # Impose state limiting
+    local_minmax::Bool
+    local_minmax_variables_cons::Vector{Int}                   # Local mininum/maximum principles for conservative variables
     positivity::Bool
-    variables_cons::Vector{Int}                     # Positivity for conservative variables
-    variables_nonlinear::LimitingVariablesNonlinear # Positivity for nonlinear variables
+    positivity_variables_cons::Vector{Int}                     # Positivity for conservative variables
+    positivity_variables_nonlinear::LimitingVariablesNonlinear # Positivity for nonlinear variables
+    positivity_correction_factor::RealT
     spec_entropy::Bool
     math_entropy::Bool
     bar_states::Bool
     cache::Cache
-    positivity_correction_factor::RealT
     max_iterations_newton::Int
     newton_tolerances::Tuple{RealT, RealT}          # Relative and absolute tolerances for Newton's method
     gamma_constant_newton::RealT                    # Constant for the subcell limiting of convex (nonlinear) constraints
@@ -289,33 +287,33 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorIDP(equations::AbstractEquations, basis;
-                      state_tvd = false,
-                      variables_states = [],
-                      positivity = false,
-                      variables_cons = [],
-                      variables_nonlinear = (),
+                      local_minmax_variables_cons = [],
+                      positivity_variables_cons = [],
+                      positivity_variables_nonlinear = (),
+                      positivity_correction_factor = 0.1,
                       spec_entropy = false,
                       math_entropy = false,
                       bar_states = true,
-                      positivity_correction_factor = 0.1, max_iterations_newton = 10,
+                      max_iterations_newton = 10,
                       newton_tolerances = (1.0e-12, 1.0e-14),
                       gamma_constant_newton = 2 * ndims(equations),
                       smoothness_indicator = false,
                       threshold_smoothness_indicator = 0.1,
                       variable_smoothness_indicator = density_pressure)
+    local_minmax = (length(local_minmax_variables_cons) > 0)
+    positivity = (length(positivity_variables_cons) +
+                  length(positivity_variables_nonlinear) > 0)
     if math_entropy && spec_entropy
         error("Only one of the two can be selected: math_entropy/spec_entropy")
     end
 
-    number_bounds = state_tvd * 2 * length(variables_states) +
-                    positivity * length(variables_nonlinear) + spec_entropy +
-                    math_entropy
+    number_bounds = 2 * length(local_minmax_variables_cons) +
+                    length(positivity_variables_nonlinear) +
+                    spec_entropy + math_entropy
 
-    if positivity
-        for index in variables_cons
-            if !(state_tvd && index in variables_states)
-                number_bounds += 1
-            end
+    for index in positivity_variables_cons
+        if !(index in local_minmax_variables_cons)
+            number_bounds += 1
         end
     end
 
@@ -328,17 +326,18 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     else
         IndicatorHG = nothing
     end
-    IndicatorIDP{typeof(positivity_correction_factor), typeof(variables_nonlinear),
-                 typeof(cache), typeof(IndicatorHG)}(state_tvd,
-                                                     variables_states,
+    IndicatorIDP{typeof(positivity_correction_factor),
+                 typeof(positivity_variables_nonlinear),
+                 typeof(cache), typeof(IndicatorHG)}(local_minmax,
+                                                     local_minmax_variables_cons,
                                                      positivity,
-                                                     variables_cons,
-                                                     variables_nonlinear,
+                                                     positivity_variables_cons,
+                                                     positivity_variables_nonlinear,
+                                                     positivity_correction_factor,
                                                      spec_entropy,
                                                      math_entropy,
                                                      bar_states,
                                                      cache,
-                                                     positivity_correction_factor,
                                                      max_iterations_newton,
                                                      newton_tolerances,
                                                      gamma_constant_newton,
@@ -349,14 +348,14 @@ end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
     @nospecialize indicator # reduce precompilation time
-    @unpack state_tvd, positivity, spec_entropy, math_entropy = indicator
+    @unpack local_minmax, positivity, spec_entropy, math_entropy = indicator
 
     print(io, "IndicatorIDP(")
-    if !(state_tvd || positivity || spec_entropy || math_entropy)
+    if !(local_minmax || positivity || spec_entropy || math_entropy)
         print(io, "No limiter selected => pure DG method")
     else
         print(io, "limiter=(")
-        state_tvd && print(io, "states, ")
+        local_minmax && print(io, "min/max limiting, ")
         positivity && print(io, "positivity, ")
         spec_entropy && print(io, "specific entropy, ")
         math_entropy && print(io, "mathematical entropy, ")
@@ -372,23 +371,23 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
     @nospecialize indicator # reduce precompilation time
-    @unpack state_tvd, positivity, spec_entropy, math_entropy = indicator
+    @unpack local_minmax, positivity, spec_entropy, math_entropy = indicator
 
     if get(io, :compact, false)
         show(io, indicator)
     else
-        if !(state_tvd || positivity || spec_entropy || math_entropy)
+        if !(local_minmax || positivity || spec_entropy || math_entropy)
             setup = ["limiter" => "No limiter selected => pure DG method"]
         else
             setup = ["limiter" => ""]
-            if state_tvd
+            if local_minmax
                 setup = [
                     setup...,
-                    "" => "local maximum/minimum bounds for conservative variables $(indicator.variables_states)",
+                    "" => "local maximum/minimum bounds for conservative variables $(indicator.local_minmax_variables_cons)",
                 ]
             end
             if positivity
-                string = "positivity for conservative variables $(indicator.variables_cons) and $(indicator.variables_nonlinear)"
+                string = "positivity for conservative variables $(indicator.positivity_variables_cons) and $(indicator.positivity_variables_nonlinear)"
                 setup = [setup..., "" => string]
                 setup = [
                     setup...,

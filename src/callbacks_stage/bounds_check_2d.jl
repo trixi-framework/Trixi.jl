@@ -8,7 +8,7 @@
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
                               indicator::IndicatorIDP,
                               time, iter, output_directory, save_errors, interval)
-    @unpack state_tvd, positivity, spec_entropy, math_entropy = solver.volume_integral.indicator
+    @unpack local_minmax, positivity, spec_entropy, math_entropy = solver.volume_integral.indicator
     @unpack variable_bounds = indicator.cache.container_shock_capturing
     @unpack idp_bounds_delta = indicator.cache
 
@@ -19,8 +19,8 @@
             print(f, iter, ", ", time)
         end
     end
-    if state_tvd
-        for index in indicator.variables_states
+    if local_minmax
+        for index in indicator.local_minmax_variables_cons
             deviation_min = zero(eltype(u))
             deviation_max = zero(eltype(u))
             for element in eachelement(solver, cache), j in eachnode(solver),
@@ -85,8 +85,8 @@
         counter += 1
     end
     if positivity
-        for index in indicator.variables_cons
-            if state_tvd && (index in indicator.variables_states)
+        for index in indicator.positivity_variables_cons
+            if (index in indicator.local_minmax_variables_cons)
                 continue
             end
             deviation_min = zero(eltype(u))
@@ -106,7 +106,7 @@
                 counter += 1
             end
         end
-        for variable in indicator.variables_nonlinear
+        for variable in indicator.positivity_variables_nonlinear
             deviation_min = zero(eltype(u))
             for element in eachelement(solver, cache), j in eachnode(solver),
                 i in eachnode(solver)
