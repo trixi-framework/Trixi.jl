@@ -402,6 +402,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
+    indicator_idp = IndicatorIDP(true, [1], 0.1, "cache")
+    @test_nowarn show(stdout, indicator_idp)
+
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache=nothing))
     @test_nowarn show(stdout, indicator_loehner)
 
