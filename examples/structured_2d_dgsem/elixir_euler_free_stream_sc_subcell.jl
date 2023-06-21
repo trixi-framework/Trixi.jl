@@ -17,10 +17,11 @@ indicator_sc = IndicatorIDP(equations, basis;
                             density_tvd=false,
                             positivity_variables_cons=[1],
                             positivity_variables_nonlinear=(pressure,),
+                            positivity_correction_factor=0.1,
                             spec_entropy=false,
                             smoothness_indicator=false,
                             bar_states=true,
-                            positivity_correction_factor=0.1, max_iterations_newton=10,
+                            max_iterations_newton=10,
                             newton_tolerances=(1.0e-12, 1.0e-14))
 
 volume_integral = VolumeIntegralSubcellLimiting(indicator_sc;

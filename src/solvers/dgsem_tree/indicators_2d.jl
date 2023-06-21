@@ -263,7 +263,7 @@ end
         var_max[:, :, element] .= typemin(eltype(var_max))
         # Calculate indicator variables at Gauss-Lobatto nodes
         for j in eachnode(dg), i in eachnode(dg)
-            var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
+            var = u[variable, i, j, element]
             var_min[i, j, element] = min(var_min[i, j, element], var)
             var_max[i, j, element] = max(var_max[i, j, element], var)
 
@@ -309,10 +309,8 @@ end
                 index_left = reverse(index_left)
                 index_right = reverse(index_right)
             end
-            var_left = variable(get_node_vars(u, equations, dg, index_left..., left),
-                                equations)
-            var_right = variable(get_node_vars(u, equations, dg, index_right..., right),
-                                 equations)
+            var_left = u[variable, index_left..., left]
+            var_right = u[variable, index_right..., right]
 
             var_min[index_right..., right] = min(var_min[index_right..., right],
                                                  var_left)
@@ -347,7 +345,7 @@ end
                                                boundary_conditions[boundary_index],
                                                orientation, boundary_index,
                                                equations, dg, index..., element)
-            var_outer = variable(u_outer, equations)
+            var_outer = u_outer[variable]
 
             var_min[index..., element] = min(var_min[index..., element], var_outer)
             var_max[index..., element] = max(var_max[index..., element], var_outer)
@@ -505,7 +503,7 @@ end
     rho_min = variable_bounds[1]
     rho_max = variable_bounds[2]
     if !indicator.bar_states
-        calc_bounds_2sided!(rho_min, rho_max, density, u, t, semi)
+        calc_bounds_2sided!(rho_min, rho_max, 1, u, t, semi)
     end
 
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux

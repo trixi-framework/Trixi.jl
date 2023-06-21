@@ -239,7 +239,7 @@ end
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
-- two-sided Zalesak-type limiting for density (`density_tvd`)
+- maximum/minimum Zalesak-type limiting for density (`density_tvd`)
 - positivity limiting for conservative (`positivity_variables_cons`) and non-linear variables (`positivity_variables_nonlinear`)
 - one-sided limiting for specific and mathematical entropy (`spec_entropy`, `math_entropy`)
 
@@ -271,11 +271,11 @@ struct IndicatorIDP{RealT <: Real, LimitingVariablesNonlinear,
     positivity::Bool
     positivity_variables_cons::Vector{Int}                     # Positivity for conservative variables
     positivity_variables_nonlinear::LimitingVariablesNonlinear # Positivity for nonlinear variables
+    positivity_correction_factor::RealT
     spec_entropy::Bool
     math_entropy::Bool
     bar_states::Bool
     cache::Cache
-    positivity_correction_factor::RealT
     max_iterations_newton::Int
     newton_tolerances::Tuple{RealT, RealT}          # Relative and absolute tolerances for Newton's method
     gamma_constant_newton::RealT                    # Constant for the subcell limiting of convex (nonlinear) constraints
@@ -329,11 +329,11 @@ function IndicatorIDP(equations::AbstractEquations, basis;
                                                      positivity,
                                                      positivity_variables_cons,
                                                      positivity_variables_nonlinear,
+                                                     positivity_correction_factor,
                                                      spec_entropy,
                                                      math_entropy,
                                                      bar_states,
                                                      cache,
-                                                     positivity_correction_factor,
                                                      max_iterations_newton,
                                                      newton_tolerances,
                                                      gamma_constant_newton,

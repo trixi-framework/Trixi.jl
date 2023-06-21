@@ -41,10 +41,8 @@ function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
 
         if left != 0
             for j in eachnode(dg)
-                var_left = variable(get_node_vars(u, equations, dg, nnodes(dg), j,
-                                                  left), equations)
-                var_element = variable(get_node_vars(u, equations, dg, 1, j, element),
-                                       equations)
+                var_left = u[variable, nnodes(dg), j, left]
+                var_element = u[variable, 1, j, element]
 
                 var_min[1, j, element] = min(var_min[1, j, element], var_left)
                 var_max[1, j, element] = max(var_max[1, j, element], var_left)
@@ -57,10 +55,8 @@ function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
         end
         if lower != 0
             for i in eachnode(dg)
-                var_lower = variable(get_node_vars(u, equations, dg, i, nnodes(dg),
-                                                   lower), equations)
-                var_element = variable(get_node_vars(u, equations, dg, i, 1, element),
-                                       equations)
+                var_lower = u[variable, i, nnodes(dg), lower]
+                var_element = u[variable, i, 1, element]
 
                 var_min[i, 1, element] = min(var_min[i, 1, element], var_lower)
                 var_max[i, 1, element] = max(var_max[i, 1, element], var_lower)
@@ -88,7 +84,7 @@ function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
                 u_outer = get_boundary_outer_state(u_inner, cache, t,
                                                    boundary_conditions[1], Ja1, 1,
                                                    equations, dg, 1, j, element)
-                var_outer = variable(u_outer, equations)
+                var_outer = u_outer[variable]
 
                 var_min[1, j, element] = min(var_min[1, j, element], var_outer)
                 var_max[1, j, element] = max(var_max[1, j, element], var_outer)
@@ -105,7 +101,7 @@ function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
                                                    boundary_conditions[2], Ja1, 2,
                                                    equations, dg, nnodes(dg), j,
                                                    element)
-                var_outer = variable(u_outer, equations)
+                var_outer = u_outer[variable]
 
                 var_min[nnodes(dg), j, element] = min(var_min[nnodes(dg), j, element],
                                                       var_outer)
@@ -124,7 +120,7 @@ function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
                 u_outer = get_boundary_outer_state(u_inner, cache, t,
                                                    boundary_conditions[3], Ja2, 3,
                                                    equations, dg, i, 1, element)
-                var_outer = variable(u_outer, equations)
+                var_outer = u_outer[variable]
 
                 var_min[i, 1, element] = min(var_min[i, 1, element], var_outer)
                 var_max[i, 1, element] = max(var_max[i, 1, element], var_outer)
@@ -141,7 +137,7 @@ function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
                                                    boundary_conditions[4], Ja2, 4,
                                                    equations, dg, i, nnodes(dg),
                                                    element)
-                var_outer = variable(u_outer, equations)
+                var_outer = u_outer[variable]
 
                 var_min[i, nnodes(dg), element] = min(var_min[i, nnodes(dg), element],
                                                       var_outer)
