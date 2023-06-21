@@ -18,7 +18,7 @@ save_restart = SaveRestartCallback(interval=100,
 Make this part of your `CallbackSet`.
 
 An example is
-[```examples/examples/structured_2d_dgsem/elixir_advection_extended.jl```](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_restart.jl).
+[```examples/examples/structured_2d_dgsem/elixir_advection_extended.jl```](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_extended.jl).
 
 
 ## [Perform the simulation restart](@id restart_perform)
