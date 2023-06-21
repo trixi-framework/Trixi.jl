@@ -61,7 +61,7 @@ The ODE that we will pass to the solver is now:
 ode = semidiscretize(semi, tspan, restart_filename)
 ```
 
-You should now define a ```SaveSolution``` callback similar to the
+You should now define a [`SaveSolutionCallback`](@ref) similar to the
 [original simulation](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_extended.jl),
 but with ```save_initial_solution=false```, otherwise our initial snapshot will be overwritten.
 If you are using one file for the original simulation and the restart
