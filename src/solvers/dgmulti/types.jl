@@ -180,9 +180,9 @@ GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffi
 # other potential mesh types to add later: Polynomial{polydeg_geo}?
 
 """
-  DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV;
-              is_on_boundary=nothing,
-              periodicity=ntuple(_->false, NDIMS)) where {NDIMS}
+    DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV;
+                is_on_boundary=nothing,
+                periodicity=ntuple(_->false, NDIMS)) where {NDIMS}
 
 - `dg::DGMulti` contains information associated with to the reference element (e.g., quadrature,
   basis evaluation, differentiation, etc).
