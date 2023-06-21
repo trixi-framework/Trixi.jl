@@ -497,7 +497,38 @@ or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-
     return λ_min, λ_max
 end
 
-# TODO: min_max_speed_einfeldt (Requires Roe matrix)
+"""
+    min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer, 
+                           equations::ShallowWaterEquations1D)
+
+This is the generalization to SWE from the works
+- Bernd Einfeldt (1988)
+  On Godunov-type methods for gas dynamics.
+  [DOI: 10.1137/0725021](https://doi.org/10.1137/0725021)
+- Bernd Einfeldt, Claus-Dieter Munz, Philip L. Roe and Björn Sjögreen (1991)
+  On Godunov-type methods near low densities.
+  [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
+
+originally developed for the compressible Euler equations.
+A compact representation can be found in [this lecture notes, eq. (9.28)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
+"""
+@inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
+                                        equations::ShallowWaterEquations1D)
+    h_ll = waterheight(u_ll, equations)
+    v_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v_rr = velocity(u_rr, equations)
+
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
+
+    v_roe, c_roe = calc_wavespeed_roe(u_ll, u_rr, orientation, equations)
+
+    λ_min = min(v_ll - c_ll, v_roe - c_roe)
+    λ_max = max(v_rr + c_rr, v_roe + c_roe)
+
+    return λ_min, λ_max
+end
 
 @inline function max_abs_speeds(u, equations::ShallowWaterEquations1D)
     h = waterheight(u, equations)
@@ -571,6 +602,30 @@ end
 @inline function waterheight_pressure(u, equations::ShallowWaterEquations1D)
     return waterheight(u, equations) * pressure(u, equations)
 end
+
+"""
+    calc_wavespeed_roe(u_ll, u_rr, direction::Integer,
+                       equations::ShallowWaterEquations1D)
+
+Calculate Roe-averaged velocity `v_roe` and wavespeed `c_roe = \sqrt{g h_roe}`
+"""
+@inline function calc_wavespeed_roe(u_ll, u_rr, direction::Integer,
+                                    equations::ShallowWaterEquations1D)
+    h_ll = waterheight(u_ll, equations)
+    v_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v_rr = velocity(u_rr, equations)
+
+    h_roe = 0.5 * (h_ll + h_rr)
+    c_roe = sqrt(equations.gravity * h_roe)
+
+    h_ll_sqrt = sqrt(h_ll)
+    h_rr_sqrt = sqrt(h_rr)
+    
+    v_roe = (h_ll_sqrt * v_ll + h_rr_sqrt * v_rr)/(h_ll_sqrt + h_rr_sqrt)
+
+    return v_roe, c_roe
+end                                    
 
 # Entropy function for the shallow water equations is the total energy
 @inline function entropy(cons, equations::ShallowWaterEquations1D)
