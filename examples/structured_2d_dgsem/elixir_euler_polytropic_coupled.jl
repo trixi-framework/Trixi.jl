@@ -6,7 +6,7 @@ using Trixi
 # Couple polytropic Euler systems.
 #
 # In a rectangular domain we solve two different sets of equations for the
-# left and the right half. Those are the isotropic equations (left)
+# left and the right half. Those are the isothermal equations (left)
 # and polytropic equations (right).
 # The coupling hapens on two interfaces. One is located at the center of the
 # domain such that the right half is coupled through its left boundary
@@ -15,12 +15,12 @@ using Trixi
 # domain is coupled to the left boundary of the left domain.
 # The vertical boundaries are simply periodic.
 # As test case we send a linear wave through the domain and observe a change
-# in the dispersion relation when the wave enters the isotropic domain.
+# in the dispersion relation when the wave enters the isothermal domain.
 
 ###############################################################################
 # define the initial conditions
 
-function initial_condition_wave_isotropic(x, t, equations::PolytropicEulerEquations2D)
+function initial_condition_wave_isothermal(x, t, equations::PolytropicEulerEquations2D)
     gamma = 1.001
     kappa = 1.0
 
@@ -83,7 +83,7 @@ mesh2 = StructuredMesh(cells_per_dimension,
 
 # A semidiscretization collects data structures and functions for the spatial discretization.
 semi1 = SemidiscretizationHyperbolic(mesh1, equations1,
-                                     initial_condition_wave_isotropic, solver,
+                                     initial_condition_wave_thermal, solver,
                                      boundary_conditions = (x_neg = BoundaryConditionCoupled(2,
                                                                                              (:end,
                                                                                               :i_forward),
