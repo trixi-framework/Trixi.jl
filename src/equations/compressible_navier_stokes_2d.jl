@@ -387,8 +387,6 @@ end
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], normal_energy_flux)
 end
 
-
-
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Isothermal})(flux_inner,
                                                                                        u_inner,
@@ -494,26 +492,26 @@ end
 
 # Diriclet Boundary Condition for P4est
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
-                                                                        u_inner,
-                                                                        normal::AbstractVector,
-                                                                        x, t,
-                                                                        operator_type::Gradient,
-                                                                        equations::CompressibleNavierStokesDiffusion2D{
-                                                                                                                        GradientVariablesPrimitive
-                                                                                                                        })
-   # We have to convert to primitive variables here since the "boundary_value_function" returns conservative variables
-   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+                                                                  u_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Gradient,
+                                                                  equations::CompressibleNavierStokesDiffusion2D{
+                                                                                                                 GradientVariablesPrimitive
+                                                                                                                 })
+    # We have to convert to primitive variables here since the "boundary_value_function" returns conservative variables
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
-   return cons2prim(u_boundary,equations)
+    return cons2prim(u_boundary, equations)
 end
 
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
-                                                                                      u_inner,
-                                                                                      normal::AbstractVector,
-                                                                                      x, t,
-                                                                                      operator_type::Divergence,
-                                                                                      equations::CompressibleNavierStokesDiffusion2D{
-                                                                                                                                     GradientVariablesPrimitive
-                                                                                                                                     })
+                                                                  u_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Divergence,
+                                                                  equations::CompressibleNavierStokesDiffusion2D{
+                                                                                                                 GradientVariablesPrimitive
+                                                                                                                 })
     return flux_inner
 end
