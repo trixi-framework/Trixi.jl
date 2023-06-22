@@ -17,7 +17,8 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorIDP(equations, basis;
                             local_minmax_variables_cons=[1],
-                            smoothness_indicator=false)
+                            spec_entropy=true,
+                            bar_states=false)
 volume_integral = VolumeIntegralSubcellLimiting(indicator_sc;
                                                 volume_flux_dg=volume_flux,
                                                 volume_flux_fv=surface_flux)
@@ -54,7 +55,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.9)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
