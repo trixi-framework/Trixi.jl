@@ -13,9 +13,9 @@ to manage trees and mesh refinement.
 """
 mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
-    p4est::P # Either Ptr{p4est_t} or Ptr{p8est_t}
-    is_parallel::IsParallel
-    ghost::Ghost # Either Ptr{p4est_ghost_t} or Ptr{p8est_ghost_t}
+    p4est       :: P # Either PointerWrapper{p4est_t} or PointerWrapper{p8est_t}
+    is_parallel :: IsParallel
+    ghost       :: Ghost # Either PointerWrapper{p4est_ghost_t} or PointerWrapper{p8est_ghost_t}
     # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).
     # This specifies the geometry interpolation for each tree.
     tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
@@ -43,18 +43,21 @@ mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NN
             is_parallel = False()
         end
 
+        p4est_pw = PointerWrapper(p4est)
+
         ghost = ghost_new_p4est(p4est)
+        ghost_pw = PointerWrapper(ghost)
 
         mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(is_parallel),
-                   typeof(p4est), typeof(ghost), NDIMS + 2, length(nodes)}(p4est,
-                                                                           is_parallel,
-                                                                           ghost,
-                                                                           tree_node_coordinates,
-                                                                           nodes,
-                                                                           boundary_names,
-                                                                           current_filename,
-                                                                           unsaved_changes,
-                                                                           p4est_partition_allow_for_coarsening)
+                   typeof(p4est_pw), typeof(ghost_pw), NDIMS + 2, length(nodes)}(p4est_pw,
+                                                                                 is_parallel,
+                                                                                 ghost_pw,
+                                                                                 tree_node_coordinates,
+                                                                                 nodes,
+                                                                                 boundary_names,
+                                                                                 current_filename,
+                                                                                 unsaved_changes,
+                                                                                 p4est_partition_allow_for_coarsening)
 
         # Destroy `p4est` structs when the mesh is garbage collected
         finalizer(destroy_mesh, mesh)
@@ -70,14 +73,14 @@ const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:True}
 @inline mpi_parallel(mesh::ParallelP4estMesh) = True()
 
 function destroy_mesh(mesh::P4estMesh{2})
-    connectivity = unsafe_load(mesh.p4est).connectivity
+    connectivity = mesh.p4est.connectivity
     p4est_ghost_destroy(mesh.ghost)
     p4est_destroy(mesh.p4est)
     p4est_connectivity_destroy(connectivity)
 end
 
 function destroy_mesh(mesh::P4estMesh{3})
-    connectivity = unsafe_load(mesh.p4est).connectivity
+    connectivity = mesh.p4est.connectivity
     p8est_ghost_destroy(mesh.ghost)
     p8est_destroy(mesh.p4est)
     p8est_connectivity_destroy(connectivity)
@@ -87,11 +90,10 @@ end
 @inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
 @inline function ntrees(mesh::P4estMesh)
-    trees = unsafe_load(mesh.p4est).trees
-    return unsafe_load(trees).elem_count
+    return mesh.p4est.trees.elem_count[]
 end
 # returns Int32 by default which causes a weird method error when creating the cache
-@inline ncells(mesh::P4estMesh) = Int(unsafe_load(mesh.p4est).local_num_quadrants)
+@inline ncells(mesh::P4estMesh) = Int(mesh.p4est.local_num_quadrants[])
 
 function Base.show(io::IO, mesh::P4estMesh)
     print(io, "P4estMesh{", ndims(mesh), ", ", real(mesh), "}")
@@ -387,14 +389,14 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
                                          n_dimensions, RealT)
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
-    connectivity_obj = unsafe_load(connectivity)
+    connectivity_pw = PointerWrapper(connectivity)
 
     # These need to be of the type Int for unsafe_wrap below to work
-    n_trees::Int = connectivity_obj.num_trees
-    n_vertices::Int = connectivity_obj.num_vertices
+    n_trees::Int = connectivity_pw.num_trees[]
+    n_vertices::Int = connectivity_pw.num_vertices[]
 
     # Extract a copy of the element vertices to compute the tree node coordinates
-    vertices = unsafe_wrap(Array, connectivity_obj.vertices, (3, n_vertices))
+    vertices = unsafe_wrap(Array, connectivity_pw.vertices, (3, n_vertices))
 
     # Readin all the information from the mesh file into a string array
     file_lines = readlines(open(meshfile))
@@ -445,14 +447,14 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
                                          initial_refinement_level, n_dimensions, RealT)
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
-    connectivity_obj = unsafe_load(connectivity)
+    connectivity_pw = PointerWrapper(connectivity)
 
     # These need to be of the type Int for unsafe_wrap below to work
-    n_trees::Int = connectivity_obj.num_trees
-    n_vertices::Int = connectivity_obj.num_vertices
+    n_trees::Int = connectivity_pw.num_trees[]
+    n_vertices::Int = connectivity_pw.num_vertices[]
 
-    vertices = unsafe_wrap(Array, connectivity_obj.vertices, (3, n_vertices))
-    tree_to_vertex = unsafe_wrap(Array, connectivity_obj.tree_to_vertex,
+    vertices = unsafe_wrap(Array, connectivity_pw.vertices, (3, n_vertices))
+    tree_to_vertex = unsafe_wrap(Array, connectivity_pw.tree_to_vertex,
                                  (2^n_dimensions, n_trees))
 
     basis = LobattoLegendreBasis(RealT, polydeg)
@@ -1511,17 +1513,18 @@ end
 
 function update_ghost_layer!(mesh::P4estMesh)
     ghost_destroy_p4est(mesh.ghost)
-    mesh.ghost = ghost_new_p4est(mesh.p4est)
+    mesh.ghost = PointerWrapper(ghost_new_p4est(mesh.p4est))
 end
 
 function init_fn(p4est, which_tree, quadrant)
     # Unpack quadrant's user data ([global quad ID, controller_value])
-    ptr = Ptr{Int}(unsafe_load(quadrant.p.user_data))
+    # Use `unsafe_load` here since `quadrant.p.user_data isa Ptr{Ptr{Nothing}}`
+    # and we only need the first (only!) entry
+    pw = PointerWrapper(Int, unsafe_load(quadrant.p.user_data))
 
     # Initialize quad ID as -1 and controller_value as 0 (don't refine or coarsen)
-    unsafe_store!(ptr, -1, 1)
-    unsafe_store!(ptr, 0, 2)
-
+    pw[1] = -1
+    pw[2] = 0
     return nothing
 end
 
@@ -1539,8 +1542,10 @@ end
 function refine_fn(p4est, which_tree, quadrant)
     # Controller value has been copied to the quadrant's user data storage before.
     # Unpack quadrant's user data ([global quad ID, controller_value]).
-    ptr = Ptr{Int}(unsafe_load(quadrant.p.user_data))
-    controller_value = unsafe_load(ptr, 2)
+    # Use `unsafe_load` here since `quadrant.p.user_data isa Ptr{Ptr{Nothing}}`
+    # and we only need the first (only!) entry
+    pw = PointerWrapper(Int, unsafe_load(quadrant.p.user_data))
+    controller_value = pw[2]
 
     if controller_value > 0
         # return true (refine)
@@ -1586,9 +1591,9 @@ function coarsen_fn(p4est, which_tree, quadrants_ptr)
 
     # Controller value has been copied to the quadrant's user data storage before.
     # Load controller value from quadrant's user data ([global quad ID, controller_value]).
-    function controller_value(i)
-        unsafe_load(Ptr{Int}(unsafe_load(quadrants[i].p.user_data)), 2)
-    end
+    # Use `unsafe_load` here since `quadrant.p.user_data isa Ptr{Ptr{Nothing}}`
+    # and we only need the first (only!) entry
+    controller_value(i) = PointerWrapper(Int, unsafe_load(quadrants[i].p.user_data))[2]
 
     # `p4est` calls this function for each 2^ndims quads that could be coarsened to a single one.
     # Only coarsen if all these 2^ndims quads have been marked for coarsening.
@@ -1671,20 +1676,19 @@ end
 
 # Copy global quad ID to quad's user data storage, will be called below
 function save_original_id_iter_volume(info, user_data)
-    info_obj = unsafe_load(info)
+    info_pw = PointerWrapper(info)
 
     # Load tree from global trees array, one-based indexing
-    tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
+    tree_pw = load_pointerwrapper_tree(info_pw.p4est, info_pw.treeid[] + 1)
     # Quadrant numbering offset of this quadrant
-    offset = tree.quadrants_offset
+    offset = tree_pw.quadrants_offset[]
     # Global quad ID
-    quad_id = offset + info_obj.quadid
+    quad_id = offset + info_pw.quadid[]
 
     # Unpack quadrant's user data ([global quad ID, controller_value])
-    ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
+    pw = PointerWrapper(Int, info_pw.quad.p.user_data[])
     # Save global quad ID
-    unsafe_store!(ptr, quad_id, 1)
-
+    pw[1] = quad_id
     return nothing
 end
 
@@ -1708,24 +1712,23 @@ end
 
 # Extract information about which cells have been changed
 function collect_changed_iter_volume(info, user_data)
-    info_obj = unsafe_load(info)
+    info_pw = PointerWrapper(info)
 
     # The original element ID has been saved to user_data before.
     # Load original quad ID from quad's user data ([global quad ID, controller_value]).
-    quad_data_ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
-    original_id = unsafe_load(quad_data_ptr, 1)
+    quad_data_pw = PointerWrapper(Int, info_pw.quad.p.user_data[])
+    original_id = quad_data_pw[1]
 
     # original_id of cells that have been newly created is -1
     if original_id >= 0
         # Unpack user_data = original_cells
-        user_data_ptr = Ptr{Int}(user_data)
+        user_data_pw = PointerWrapper(Int, user_data)
 
         # If quad has an original_id, it existed before refinement/coarsening,
         # and therefore wasn't changed.
         # Mark original_id as "not changed during refinement/coarsening" in original_cells
-        unsafe_store!(user_data_ptr, 0, original_id + 1)
+        user_data_pw[original_id + 1] = 0
     end
-
     return nothing
 end
 
@@ -1756,29 +1759,27 @@ end
 
 # Extract newly created cells
 function collect_new_iter_volume(info, user_data)
-    info_obj = unsafe_load(info)
+    info_pw = PointerWrapper(info)
 
     # The original element ID has been saved to user_data before.
     # Unpack quadrant's user data ([global quad ID, controller_value]).
-    quad_data_ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
-    original_id = unsafe_load(quad_data_ptr, 1)
+    original_id = PointerWrapper(Int, info_pw.quad.p.user_data[])[1]
 
     # original_id of cells that have been newly created is -1
     if original_id < 0
         # Load tree from global trees array, one-based indexing
-        tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
+        tree_pw = load_pointerwrapper_tree(info_pw.p4est, info_pw.treeid[] + 1)
         # Quadrant numbering offset of this quadrant
-        offset = tree.quadrants_offset
+        offset = tree_pw.quadrants_offset[]
         # Global quad ID
-        quad_id = offset + info_obj.quadid
+        quad_id = offset + info_pw.quadid[]
 
         # Unpack user_data = original_cells
-        user_data_ptr = Ptr{Int}(user_data)
+        user_data_pw = PointerWrapper(Int, user_data)
 
         # Mark cell as "newly created during refinement/coarsening/balancing"
-        unsafe_store!(user_data_ptr, 1, quad_id + 1)
+        user_data_pw[quad_id + 1] = 1
     end
-
     return nothing
 end
 

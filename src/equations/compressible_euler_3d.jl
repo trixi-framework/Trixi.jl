@@ -36,7 +36,7 @@ The compressible Euler equations
 ```
 for an ideal gas with ratio of specific heats `gamma`
 in three space dimensions.
-Here, ``\rho`` is the density, ``v_1``,`v_2`, `v_3` the velocities, ``e`` the specific total energy **rather than** specific internal energy, and
+Here, ``\rho`` is the density, ``v_1``, ``v_2``, ``v_3`` the velocities, ``e`` the specific total energy **rather than** specific internal energy, and
 ```math
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2+v_3^2) \right)
 ```
