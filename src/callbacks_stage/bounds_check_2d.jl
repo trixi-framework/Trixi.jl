@@ -8,7 +8,7 @@
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
                               indicator::IndicatorIDP,
                               time, iter, output_directory, save_errors, interval)
-    @unpack density_tvd, positivity, spec_entropy, math_entropy = solver.volume_integral.indicator
+    @unpack local_minmax, positivity, spec_entropy, math_entropy = solver.volume_integral.indicator
     @unpack variable_bounds = indicator.cache.container_shock_capturing
     @unpack idp_bounds_delta = indicator.cache
 
@@ -19,27 +19,32 @@
             print(f, iter, ", ", time)
         end
     end
-    if density_tvd
-        deviation_min = zero(eltype(u))
-        deviation_max = zero(eltype(u))
-        for element in eachelement(solver, cache), j in eachnode(solver),
-            i in eachnode(solver)
+    if local_minmax
+        for index in indicator.local_minmax_variables_cons
+            deviation_min = zero(eltype(u))
+            deviation_max = zero(eltype(u))
+            for element in eachelement(solver, cache), j in eachnode(solver),
+                i in eachnode(solver)
 
-            deviation_min = max(deviation_min,
-                                variable_bounds[1][i, j, element] - u[1, i, j, element])
-            deviation_max = max(deviation_max,
-                                u[1, i, j, element] - variable_bounds[2][i, j, element])
-        end
-        idp_bounds_delta[1] = max(idp_bounds_delta[1], deviation_min)
-        idp_bounds_delta[2] = max(idp_bounds_delta[2], deviation_max)
-        if save_errors_
-            deviation_min_ = deviation_min
-            deviation_max_ = deviation_max
-            open("$output_directory/deviations.txt", "a") do f
-                print(f, ", ", deviation_min_, ", ", deviation_max_)
+                deviation_min = max(deviation_min,
+                                    variable_bounds[counter][i, j, element] -
+                                    u[index, i, j, element])
+                deviation_max = max(deviation_max,
+                                    u[index, i, j, element] -
+                                    variable_bounds[counter + 1][i, j, element])
             end
+            idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
+            idp_bounds_delta[counter + 1] = max(idp_bounds_delta[counter + 1],
+                                                deviation_max)
+            if save_errors_
+                deviation_min_ = deviation_min
+                deviation_max_ = deviation_max
+                open("$output_directory/deviations.txt", "a") do f
+                    print(f, ", ", deviation_min_, ", ", deviation_max_)
+                end
+            end
+            counter += 2
         end
-        counter += 2
     end
     if spec_entropy
         deviation_min = zero(eltype(u))
@@ -81,7 +86,7 @@
     end
     if positivity
         for index in indicator.positivity_variables_cons
-            if index == 1 && density_tvd
+            if (index in indicator.local_minmax_variables_cons)
                 continue
             end
             deviation_min = zero(eltype(u))
@@ -98,8 +103,8 @@
                 open("$output_directory/deviations.txt", "a") do f
                     print(f, ", ", deviation_min_)
                 end
+                counter += 1
             end
-            counter += 1
         end
         for variable in indicator.positivity_variables_nonlinear
             deviation_min = zero(eltype(u))

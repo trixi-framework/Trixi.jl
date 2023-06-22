@@ -14,7 +14,6 @@ volume_flux  = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorIDP(equations, basis;
-                            density_tvd=false,
                             positivity_variables_cons=[1],
                             positivity_variables_nonlinear=(pressure,),
                             positivity_correction_factor=0.1,

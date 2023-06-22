@@ -1068,42 +1068,44 @@ end
     @unpack bar_states1, bar_states2 = indicator.cache.container_bar_states
 
     counter = 1
-    # Density
-    if indicator.density_tvd
-        rho_min = variable_bounds[1]
-        rho_max = variable_bounds[2]
-        @threaded for element in eachelement(dg, cache)
-            rho_min[:, :, element] .= typemax(eltype(rho_min))
-            rho_max[:, :, element] .= typemin(eltype(rho_max))
-            for j in eachnode(dg), i in eachnode(dg)
-                rho_min[i, j, element] = min(rho_min[i, j, element],
-                                             u[1, i, j, element])
-                rho_max[i, j, element] = max(rho_max[i, j, element],
-                                             u[1, i, j, element])
-                # TODO: Add source term!
-                # - xi direction
-                rho_min[i, j, element] = min(rho_min[i, j, element],
-                                             bar_states1[1, i, j, element])
-                rho_max[i, j, element] = max(rho_max[i, j, element],
-                                             bar_states1[1, i, j, element])
-                # + xi direction
-                rho_min[i, j, element] = min(rho_min[i, j, element],
-                                             bar_states1[1, i + 1, j, element])
-                rho_max[i, j, element] = max(rho_max[i, j, element],
-                                             bar_states1[1, i + 1, j, element])
-                # - eta direction
-                rho_min[i, j, element] = min(rho_min[i, j, element],
-                                             bar_states2[1, i, j, element])
-                rho_max[i, j, element] = max(rho_max[i, j, element],
-                                             bar_states2[1, i, j, element])
-                # + eta direction
-                rho_min[i, j, element] = min(rho_min[i, j, element],
-                                             bar_states2[1, i, j + 1, element])
-                rho_max[i, j, element] = max(rho_max[i, j, element],
-                                             bar_states2[1, i, j + 1, element])
+    # state variables
+    if indicator.local_minmax
+        for index in indicator.local_minmax_variables_cons
+            var_min = variable_bounds[counter]
+            var_max = variable_bounds[counter + 1]
+            @threaded for element in eachelement(dg, cache)
+                var_min[:, :, element] .= typemax(eltype(var_min))
+                var_max[:, :, element] .= typemin(eltype(var_max))
+                for j in eachnode(dg), i in eachnode(dg)
+                    var_min[i, j, element] = min(var_min[i, j, element],
+                                                 u[index, i, j, element])
+                    var_max[i, j, element] = max(var_max[i, j, element],
+                                                 u[index, i, j, element])
+                    # TODO: Add source term!
+                    # - xi direction
+                    var_min[i, j, element] = min(var_min[i, j, element],
+                                                 bar_states1[index, i, j, element])
+                    var_max[i, j, element] = max(var_max[i, j, element],
+                                                 bar_states1[index, i, j, element])
+                    # + xi direction
+                    var_min[i, j, element] = min(var_min[i, j, element],
+                                                 bar_states1[index, i + 1, j, element])
+                    var_max[i, j, element] = max(var_max[i, j, element],
+                                                 bar_states1[index, i + 1, j, element])
+                    # - eta direction
+                    var_min[i, j, element] = min(var_min[i, j, element],
+                                                 bar_states2[index, i, j, element])
+                    var_max[i, j, element] = max(var_max[i, j, element],
+                                                 bar_states2[index, i, j, element])
+                    # + eta direction
+                    var_min[i, j, element] = min(var_min[i, j, element],
+                                                 bar_states2[index, i, j + 1, element])
+                    var_max[i, j, element] = max(var_max[i, j, element],
+                                                 bar_states2[index, i, j + 1, element])
+                end
             end
+            counter += 2
         end
-        counter += 2
     end
     # Specific Entropy
     if indicator.spec_entropy
