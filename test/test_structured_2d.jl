@@ -184,10 +184,9 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @trixi_testset "elixir_euler_source_terms_sc_subcell.jl" begin
-    # Somehow the test fails because of replacing docs. Keeping it here for orientation.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_sc_subcell.jl"),
-      l2   = [0.008160130912696845, 0.00865825700844846, 0.009351906012699371, 0.027757016247441632],
-      linf = [0.027225637159330685, 0.040734035628746224, 0.038194094936598866, 0.0808065518907406],
+      l2   = [0.008160130056105786, 0.008658251740761163, 0.009351904344378272, 0.027757009375556807],
+      linf = [0.027225634762642947, 0.040734047009665986, 0.03819407519909657, 0.08080651960614205],
       tspan = (0.0, 0.5))
   end
 
