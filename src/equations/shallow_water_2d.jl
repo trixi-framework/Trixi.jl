@@ -954,7 +954,7 @@ Calculate Roe-averaged velocity `v_roe` and wavespeed `c_roe = sqrt{g h_roe}` de
 See for instance [this slides](https://faculty.washington.edu/rjl/classes/am574w2011/slides/am574lecture20nup3.pdf), 
 slides 8 and 9.
 """
-@inline function calc_wavespeed_roe(u_ll, u_rr, direction::Integer,
+@inline function calc_wavespeed_roe(u_ll, u_rr, orientation::Integer,
                                     equations::ShallowWaterEquations2D)
     h_ll = waterheight(u_ll, equations)
     v1_ll, v2_ll = velocity(u_ll, equations)

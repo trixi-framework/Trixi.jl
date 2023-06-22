@@ -615,6 +615,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
+    equations = LinearizedEulerEquations2D(SVector(1.0, 1.0), 1.0, 1.0)
+    u = SVector(1.1, -0.5, 2.34, 5.5)
+
+    orientations = [1, 2]
+    for orientation in orientations
+      @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
     equations = ShallowWaterEquations1D(gravity_constant=9.81)
     u = SVector(1, 0.5, 0.0)
     @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
@@ -642,8 +650,14 @@ isdir(outdir) && rm(outdir, recursive=true)
                           SVector(0.0, 1.0),
                           SVector(0.5, -0.5),
                           SVector(-1.2, 0.3)]
+    orientations = [1, 2]                      
+
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
                 SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
+
+    for u in u_values, orientation in orientations
+      @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
 
     for u in u_values, normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
@@ -655,8 +669,14 @@ isdir(outdir) && rm(outdir, recursive=true)
                         SVector(0.0, 0.0, 1.0),
                         SVector(0.5, -0.5, 0.2),
                         SVector(-1.2, 0.3, 1.4)]
+    orientations = [1, 2, 3]
+
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
                 SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
+
+    for u in u_values, orientation in orientations
+      @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
 
     for u in u_values, normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
@@ -701,7 +721,14 @@ isdir(outdir) && rm(outdir, recursive=true)
                          SVector(0.0, 1.0),
                          SVector(0.5, -0.5),
                          SVector(-1.2, 0.3)]
+    orientations = [1, 2]                           
+
     u = SVector(1, 0.5, 0.5, 0.0)
+
+    for orientation in orientations
+      @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
     for normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
     end
@@ -719,8 +746,14 @@ isdir(outdir) && rm(outdir, recursive=true)
                           SVector(0.0, 1.0),
                           SVector(0.5, -0.5),
                           SVector(-1.2, 0.3)]
+    orientations = [1, 2]  
+
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
                 SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
+
+    for u in u_values, orientation in orientations
+      @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
 
     for u in u_values, normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
@@ -732,8 +765,14 @@ isdir(outdir) && rm(outdir, recursive=true)
                         SVector(0.0, 0.0, 1.0),
                         SVector(0.5, -0.5, 0.2),
                         SVector(-1.2, 0.3, 1.4)]
+    orientations = [1, 2, 3]                        
+
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
                 SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
+
+    for u in u_values, orientation in orientations
+      @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
 
     for u in u_values, normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
