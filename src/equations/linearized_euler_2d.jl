@@ -177,8 +177,8 @@ end
 
     norm_ = norm(normal_direction)
 
-    v_normal =
-        v_mean_global[1] * normal_direction[1] + v_mean_global[2] * normal_direction[2]
+    v_normal = v_mean_global[1] * normal_direction[1] +
+               v_mean_global[2] * normal_direction[2]
 
     # The v_normals are already scaled by the norm
     λ_min = v_normal - c_mean_global * norm_
