@@ -621,11 +621,11 @@ Calculate Roe-averaged velocity `v_roe` and wavespeed `c_roe = sqrt{g h_roe}`
 
     h_ll_sqrt = sqrt(h_ll)
     h_rr_sqrt = sqrt(h_rr)
-
-    v_roe = (h_ll_sqrt * v_ll + h_rr_sqrt * v_rr) / (h_ll_sqrt + h_rr_sqrt)
+    
+    v_roe = (h_ll_sqrt * v_ll + h_rr_sqrt * v_rr)/(h_ll_sqrt + h_rr_sqrt)
 
     return v_roe, c_roe
-end
+end                                    
 
 # Entropy function for the shallow water equations is the total energy
 @inline function entropy(cons, equations::ShallowWaterEquations1D)

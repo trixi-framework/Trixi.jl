@@ -966,15 +966,15 @@ slides 8 and 9.
 
     h_ll_sqrt = sqrt(h_ll)
     h_rr_sqrt = sqrt(h_rr)
-
+    
     if orientation == 1 # x-direction
-        v_roe = (h_ll_sqrt * v1_ll + h_rr_sqrt * v1_rr) / (h_ll_sqrt + h_rr_sqrt)
+        v_roe = (h_ll_sqrt * v1_ll + h_rr_sqrt * v1_rr)/(h_ll_sqrt + h_rr_sqrt)
     else # y-direction
-        v_roe = (h_ll_sqrt * v2_ll + h_rr_sqrt * v2_rr) / (h_ll_sqrt + h_rr_sqrt)
+        v_roe = (h_ll_sqrt * v2_ll + h_rr_sqrt * v2_rr)/(h_ll_sqrt + h_rr_sqrt)
     end
 
     return v_roe, c_roe
-end
+end 
 
 @inline function calc_wavespeed_roe(u_ll, u_rr, normal_direction::AbstractVector,
                                     equations::ShallowWaterEquations2D)
@@ -990,14 +990,14 @@ end
 
     h_ll_sqrt = sqrt(h_ll)
     h_rr_sqrt = sqrt(h_rr)
-
-    v1_roe = (h_ll_sqrt * v1_ll + h_rr_sqrt * v1_rr) / (h_ll_sqrt + h_rr_sqrt)
-    v2_roe = (h_ll_sqrt * v2_ll + h_rr_sqrt * v2_rr) / (h_ll_sqrt + h_rr_sqrt)
+    
+    v1_roe = (h_ll_sqrt * v1_ll + h_rr_sqrt * v1_rr)/(h_ll_sqrt + h_rr_sqrt)
+    v2_roe = (h_ll_sqrt * v2_ll + h_rr_sqrt * v2_rr)/(h_ll_sqrt + h_rr_sqrt)
 
     v_roe = (v1_roe * normal_direction[1] + v2_roe * normal_direction[2])
 
     return v_roe, c_roe
-end
+end 
 
 # Entropy function for the shallow water equations is the total energy
 @inline function entropy(cons, equations::ShallowWaterEquations2D)
