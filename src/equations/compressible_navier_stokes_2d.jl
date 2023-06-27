@@ -493,27 +493,27 @@ end
 # Dirichlet Boundary Condition for P4est mesh
 
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
-                                                                        u_inner,
-                                                                        normal::AbstractVector,
-                                                                        x, t,
-                                                                        operator_type::Gradient,
-                                                                        equations::CompressibleNavierStokesDiffusion2D{
-                                                                                                                        GradientVariablesPrimitive
-                                                                                                                        })
+                                                                  u_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Gradient,
+                                                                  equations::CompressibleNavierStokesDiffusion2D{
+                                                                                                                 GradientVariablesPrimitive
+                                                                                                                 })
     # BCs are usually specified as conservative variables so we convert it to primitive variables
     #  because the derivative are calculated with respect to primitive variables
     u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
-    return cons2prim(u_boundary,equations)
+    return cons2prim(u_boundary, equations)
 end
 
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
-                                                                            u_inner,
-                                                                            normal::AbstractVector,
-                                                                            x, t,
-                                                                            operator_type::Divergence,
-                                                                            equations::CompressibleNavierStokesDiffusion2D{
-                                                                                                                            GradientVariablesPrimitive
-                                                                                                                            })
+                                                                  u_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Divergence,
+                                                                  equations::CompressibleNavierStokesDiffusion2D{
+                                                                                                                 GradientVariablesPrimitive
+                                                                                                                 })
     return flux_inner
 end
