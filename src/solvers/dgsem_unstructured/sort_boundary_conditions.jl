@@ -67,6 +67,7 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     else
         for key in keys(boundary_dictionary)
             if !(key in unique_names)
+                @show unique_names
                 error("Key $(repr(key)) is not a valid boundary name")
             end
         end
