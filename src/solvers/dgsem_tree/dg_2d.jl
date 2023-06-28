@@ -232,15 +232,15 @@ function rhs_gpu!(du, u, t,
     have_nonconservative_terms(equations), equations,
     dg.mortar, dg.surface_integral, dg, cache)
 
+    # Calculate surface integrals
+    @trixi_timeit timer() "surface integral" calc_surface_integral_gpu!(
+    dev_du, dev_u, mesh, equations, dg.surface_integral, dg, cache)
+
     if !(backend isa CPU)
         KernelAbstractions.copyto!(backend, du, dev_du)
     else
         Base.copyto!(du, dev_du)
     end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" calc_surface_integral!(
-    du, u, mesh, equations, dg.surface_integral, dg, cache)
 
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" apply_jacobian!(
@@ -1533,6 +1533,69 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2
 
     return nothing
 end
+
+end #@muladd
+
+function calc_surface_integral_gpu!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                                equations, surface_integral::SurfaceIntegralWeakForm,
+                                dg::DG, cache)
+    @kernel function internal_calc_surface_integral_gpu!(du, boundary_interpolation, surface_flux_values, num_nodes)
+        element = @index(Global)
+
+        # Note that all fluxes have been computed with outward-pointing normal vectors.
+        # Access the factors only once before beginning the loop to increase performance.
+        # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+        # into FMAs (see comment at the top of the file).
+        factor_1 = boundary_interpolation[1, 1]
+        factor_2 = boundary_interpolation[num_nodes, 2]
+
+        for l in 1:num_nodes
+            for v in eachvariable(equations)
+                # surface at -x
+                du[v, 1, l, element] = (du[v, 1, l, element] -
+                                        surface_flux_values[v, l, 1, element] *
+                                        factor_1)
+
+                # surface at +x
+                du[v, num_nodes, l, element] = (du[v, num_nodes, l, element] +
+                                                 surface_flux_values[v, l, 2, element] *
+                                                 factor_2)
+
+                # surface at -y
+                du[v, l, 1, element] = (du[v, l, 1, element] -
+                                        surface_flux_values[v, l, 3, element] *
+                                        factor_1)
+
+                # surface at +y
+                du[v, l, num_nodes, element] = (du[v, l, num_nodes, element] +
+                                                 surface_flux_values[v, l, 4, element] *
+                                                 factor_2)
+            end
+        end
+    end
+
+    @unpack boundary_interpolation = dg.basis
+    @unpack surface_flux_values = cache.elements
+    backend = get_backend(u)
+
+    kernel! = internal_calc_surface_integral_gpu!(backend)
+    num_nodes = nnodes(dg)
+    num_elements = nelements(cache.elements)
+
+    dev_boundary_interpolation = allocate(backend, eltype(boundary_interpolation), size(boundary_interpolation))
+    dev_surface_flux_values = allocate(backend, eltype(surface_flux_values), size(surface_flux_values))
+
+    KernelAbstractions.copyto!(backend, dev_boundary_interpolation, boundary_interpolation)
+    KernelAbstractions.copyto!(backend, dev_surface_flux_values, surface_flux_values)
+
+    kernel!(du, dev_boundary_interpolation, dev_surface_flux_values, num_nodes, ndrange=num_elements)
+    # Ensure that device is finished
+    KernelAbstractions.synchronize(backend)
+
+    return nothing
+end
+
+@muladd begin
 
 function apply_jacobian!(du, mesh::TreeMesh{2},
                          equations, dg::DG, cache)
