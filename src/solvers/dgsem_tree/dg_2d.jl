@@ -226,17 +226,17 @@ function rhs_gpu!(du, u, t,
     @trixi_timeit timer() "prolong2mortars gpu" prolong2mortars_gpu!(
     cache, dev_u, mesh, equations, dg.mortar, dg.surface_integral, dg)
 
+    # Calculate mortar fluxes
+    @trixi_timeit timer() "mortar flux" calc_mortar_flux_gpu!(
+    cache.elements.surface_flux_values, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg.mortar, dg.surface_integral, dg, cache)
+
     if !(backend isa CPU)
         KernelAbstractions.copyto!(backend, du, dev_du)
     else
         Base.copyto!(du, dev_du)
     end
-
-    # Calculate mortar fluxes
-    @trixi_timeit timer() "mortar flux" calc_mortar_flux!(
-    cache.elements.surface_flux_values, mesh,
-    have_nonconservative_terms(equations), equations,
-    dg.mortar, dg.surface_integral, dg, cache)
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" calc_surface_integral!(
@@ -1318,6 +1318,16 @@ function calc_mortar_flux!(surface_flux_values,
                                    mortar, fstar_upper, fstar_lower)
     end
 
+    return nothing
+end
+
+function calc_mortar_flux_gpu!(surface_flux_values,
+                           mesh::TreeMesh{2},
+                           nonconservative_terms::False, equations,
+                           mortar_l2::LobattoLegendreMortarL2,
+                           surface_integral, dg::DG, cache)
+
+    # skip for now since empty anyway
     return nothing
 end
 
