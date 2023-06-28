@@ -178,9 +178,9 @@ function source_terms_standard(u, x, t, equations::IdealMhdMultiIonEquations1D)
     v2_diff = v2_plus - v2
     v3_diff = v3_plus - v3
     r_rho = charge_to_mass[k] * rho
-    s2 = r_rho * (v2_diff * B3 - v3_diff - B2)
-    s3 = r_rho * (v3_diff * B1 - v1_diff - B3)
-    s4 = r_rho * (v1_diff * B2 - v2_diff - B1)
+    s2 = r_rho * (v2_diff * B3 - v3_diff * B2)
+    s3 = r_rho * (v3_diff * B1 - v1_diff * B3)
+    s4 = r_rho * (v1_diff * B2 - v2_diff * B1)
     s5 = v1 * s2 + v2 * s3 + v3 * s4
 
     set_component!(s, k, 0, s2, s3, s4, s5, equations)
