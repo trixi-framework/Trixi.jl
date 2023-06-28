@@ -529,17 +529,22 @@ end
 #           |    |
 # lower = 1 |    |
 #           |    |
-mutable struct L2MortarContainer2D{uEltype <: Real} <: AbstractContainer
-    u_upper::Array{uEltype, 4}  # [leftright, variables, i, mortars]
-    u_lower::Array{uEltype, 4}  # [leftright, variables, i, mortars]
-    neighbor_ids::Array{Int, 2} # [position, mortars]
+mutable struct L2MortarContainer2D{uEltype <: Real, uArray<:DenseArray{uEltype, 4},
+                                                    neighborArray<:DenseArray{Int, 2},
+                                                    largeSidesArray<:DenseArray{Int, 1},
+                                                    orientationsArray<:DenseArray{Int, 1},
+                                                    _uArray<:DenseArray{uEltype, 1},
+                                                    _neighborArray<:DenseArray{Int, 1}} <: AbstractContainer
+    u_upper::uArray  # [leftright, variables, i, mortars]
+    u_lower::uArray  # [leftright, variables, i, mortars]
+    neighbor_ids::neighborArray # [position, mortars]
     # Large sides: left -> 1, right -> 2
-    large_sides::Vector{Int}  # [mortars]
-    orientations::Vector{Int} # [mortars]
+    large_sides::largeSidesArray  # [mortars]
+    orientations::orientationsArray # [mortars]
     # internal `resize!`able storage
-    _u_upper::Vector{uEltype}
-    _u_lower::Vector{uEltype}
-    _neighbor_ids::Vector{Int}
+    _u_upper::_uArray
+    _u_lower::_uArray
+    _neighbor_ids::_neighborArray
 end
 
 nvariables(mortars::L2MortarContainer2D) = size(mortars.u_upper, 2)
@@ -573,27 +578,34 @@ function Base.resize!(mortars::L2MortarContainer2D, capacity)
 end
 
 function L2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
-                                      n_nodes) where {uEltype <: Real}
+                                      n_nodes, backend::Backend) where {uEltype <: Real}
     nan = convert(uEltype, NaN)
 
+    arrType = get_array_type(backend)
+
     # Initialize fields with defaults
-    _u_upper = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u_upper = unsafe_wrap(Array, pointer(_u_upper),
-                          (2, n_variables, n_nodes, capacity))
+    _u_upper = allocate(backend, uEltype, 2 * n_variables * n_nodes * capacity)
+    _u_lower = allocate(backend, uEltype, 2 * n_variables * n_nodes * capacity)
+    _neighbor_ids = fill!(allocate(backend, Int, 3 * capacity), typemin(Int))
 
-    _u_lower = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u_lower = unsafe_wrap(Array, pointer(_u_lower),
-                          (2, n_variables, n_nodes, capacity))
-
-    _neighbor_ids = fill(typemin(Int), 3 * capacity)
-    neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
+    if (capacity > 0)
+        u_upper = unsafe_wrap(arrType, pointer(_u_upper),
+                            (2, n_variables, n_nodes, capacity))
+        u_lower = unsafe_wrap(arrType, pointer(_u_lower),
+                            (2, n_variables, n_nodes, capacity))
+        neighbor_ids = unsafe_wrap(arrType, pointer(_neighbor_ids),
                                (3, capacity))
+    else
+        u_upper = allocate(backend, uEltype, 2, n_variables, n_nodes, capacity)
+        u_lower = allocate(backend, uEltype, 2, n_variables, n_nodes, capacity)
+        neighbor_ids = fill!(allocate(backend, Int, 3, capacity), typemin(Int))
+    end
 
-    large_sides = fill(typemin(Int), capacity)
+    large_sides = fill!(allocate(backend, Int, capacity), typemin(Int))
 
-    orientations = fill(typemin(Int), capacity)
+    orientations = fill!(allocate(backend, Int, capacity), typemin(Int))
 
-    return L2MortarContainer2D{uEltype}(u_upper, u_lower, neighbor_ids, large_sides,
+    return L2MortarContainer2D{uEltype, arrType{uEltype, 4},arrType{Int, 2},arrType{Int, 1}, arrType{Int, 1}, arrType{uEltype, 1}, arrType{Int, 1}}(u_upper, u_lower, neighbor_ids, large_sides,
                                         orientations,
                                         _u_upper, _u_lower, _neighbor_ids)
 end
@@ -621,11 +633,11 @@ end
 # Create mortar container and initialize mortar data in `elements`.
 function init_mortars(cell_ids, mesh::TreeMesh2D,
                       elements::ElementContainer2D,
-                      ::LobattoLegendreMortarL2)
+                      ::LobattoLegendreMortarL2, backend::Backend)
     # Initialize containers
     n_mortars = count_required_mortars(mesh, cell_ids)
     mortars = L2MortarContainer2D{eltype(elements)}(n_mortars, nvariables(elements),
-                                                    nnodes(elements))
+                                                    nnodes(elements), backend)
 
     # Connect elements with mortars
     init_mortars!(mortars, elements, mesh)

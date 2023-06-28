@@ -417,10 +417,10 @@ function _precompile_manual_()
         #@assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
         #                              TreeMesh{2, Trixi.SerialTree{2}},
         #                              Trixi.ElementContainer2D{RealT, uEltype}})
-        @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
-                                      TreeMesh{2, Trixi.SerialTree{2}},
-                                      Trixi.ElementContainer2D{RealT, uEltype}, mortar_type
-                                      })
+        #@assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
+        #                              TreeMesh{2, Trixi.SerialTree{2}},
+        #                              Trixi.ElementContainer2D{RealT, uEltype}, mortar_type
+        #                              })
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
                                       TreeMesh{2, Trixi.SerialTree{2}}, String})
 
@@ -431,10 +431,10 @@ function _precompile_manual_()
         #@assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
         #                              TreeMesh{2, Trixi.ParallelTree{2}},
         #                              Trixi.ElementContainer2D{RealT, uEltype}})
-        @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
-                                      TreeMesh{2, Trixi.ParallelTree{2}},
-                                      Trixi.ElementContainer2D{RealT, uEltype}, mortar_type
-                                      })
+        #@assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
+        #                              TreeMesh{2, Trixi.ParallelTree{2}},
+        #                              Trixi.ElementContainer2D{RealT, uEltype}, mortar_type
+        #                              })
         @assert Base.precompile(Tuple{typeof(Trixi.init_mpi_interfaces), Array{Int, 1},
                                       TreeMesh{2, Trixi.ParallelTree{2}},
                                       Trixi.ElementContainer2D{RealT, uEltype}})

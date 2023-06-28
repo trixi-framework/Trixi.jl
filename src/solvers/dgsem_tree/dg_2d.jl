@@ -22,7 +22,7 @@ function create_cache(mesh::TreeMesh{2}, equations,
 
     boundaries = init_boundaries(leaf_cell_ids, mesh, elements, backend)
 
-    mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
+    mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar, backend)
 
     cache = (; elements, interfaces, boundaries, mortars)
 
@@ -222,15 +222,15 @@ function rhs_gpu!(du, u, t,
     @trixi_timeit timer() "boundary flux gpu" calc_boundary_flux!(
     cache, t, boundary_conditions, mesh, equations, dg.surface_integral, dg)
 
+    # Prolong solution to mortars
+    @trixi_timeit timer() "prolong2mortars gpu" prolong2mortars_gpu!(
+    cache, dev_u, mesh, equations, dg.mortar, dg.surface_integral, dg)
+
     if !(backend isa CPU)
         KernelAbstractions.copyto!(backend, du, dev_du)
     else
         Base.copyto!(du, dev_du)
     end
-
-    # Prolong solution to mortars
-    @trixi_timeit timer() "prolong2mortars" prolong2mortars!(
-    cache, u, mesh, equations, dg.mortar, dg.surface_integral, dg)
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" calc_mortar_flux!(
@@ -310,22 +310,22 @@ end #@muladd
 
         flux1 = flux(u_node, 1, equations)
         for ii in 1:num_nodes
-        #multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i], flux1, equations, dg, ii, j, element)
-        #factor = alpha * derivative_dhat[ii, i]
-        factor = derivative_dhat[ii, i]
-        for v in eachvariable(equations)
-            du[v, ii, j, element] = du[v, ii, j, element] + factor * flux1[v]
-        end
+            #multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i], flux1, equations, dg, ii, j, element)
+            #factor = alpha * derivative_dhat[ii, i]
+            factor = derivative_dhat[ii, i]
+            for v in eachvariable(equations)
+                du[v, ii, j, element] = du[v, ii, j, element] + factor * flux1[v]
+            end
         end
 
         flux2 = flux(u_node, 2, equations)
         for jj in 1:num_nodes
-        #multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j], flux2, equations, dg, i, jj, element)
-        #factor = alpha * derivative_dhat[jj, j]
-        factor = derivative_dhat[jj, j]
-        for v in eachvariable(equations)
-            du[v, i, jj, element] = du[v, i, jj, element] + factor * flux2[v]
-        end
+            #multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j], flux2, equations, dg, i, jj, element)
+            #factor = alpha * derivative_dhat[jj, j]
+            factor = derivative_dhat[jj, j]
+            for v in eachvariable(equations)
+                du[v, i, jj, element] = du[v, i, jj, element] + factor * flux2[v]
+            end
         end
     end
 end
@@ -1167,6 +1167,109 @@ function prolong2mortars!(cache, u,
     return nothing
 end
 
+function prolong2mortars_gpu!(cache, u,
+                          mesh::TreeMesh{2}, equations,
+                          mortar_l2::LobattoLegendreMortarL2, surface_integral,
+                          dg::DGSEM)
+    @kernel function internal_prolong2motars_gpu!(u, mortars_u_upper, mortars_u_lower, mortars_neighbor_ids, mortars_large_sides, mortars_orientations, mortar_l2, equations, num_nodes)
+        motar = @index(Global)
+        large_element = mortars_neighbor_ids[3, mortar]
+        upper_element = mortars_neighbor_ids[2, mortar]
+        lower_element = mortars_neighbor_ids[1, mortar]
+
+        # Copy solution small to small
+        if mortars_large_sides[mortar] == 1 # -> small elements on right side
+            if mortars_orientations[mortar] == 1
+                # L2 mortars in x-direction
+                for l in 1:num_nodes
+                    for v in eachvariable(equations)
+                        mortars_u_upper[2, v, l, mortar] = u[v, 1, l,
+                                                                   upper_element]
+                        mortars_u_lower[2, v, l, mortar] = u[v, 1, l,
+                                                                   lower_element]
+                    end
+                end
+            else
+                # L2 mortars in y-direction
+                for l in 1:num_nodes
+                    for v in eachvariable(equations)
+                        mortars_u_upper[2, v, l, mortar] = u[v, l, 1,
+                                                                   upper_element]
+                        mortars_u_lower[2, v, l, mortar] = u[v, l, 1,
+                                                                   lower_element]
+                    end
+                end
+            end
+        else # large_sides[mortar] == 2 -> small elements on left side
+            if mortars_orientations[mortar] == 1
+                # L2 mortars in x-direction
+                for l in 1:num_nodes
+                    for v in eachvariable(equations)
+                        mortars_upper[1, v, l, mortar] = u[v, num_nodes, l,
+                                                                   upper_element]
+                        mortars_u_lower[1, v, l, mortar] = u[v, num_nodes, l,
+                                                                   lower_element]
+                    end
+                end
+            else
+                # L2 mortars in y-direction
+                for l in 1:num_nodes
+                    for v in eachvariable(equations)
+                        mortars_u_upper[1, v, l, mortar] = u[v, l, num_nodes,
+                                                                   upper_element]
+                        mortars_u_lower[1, v, l, mortar] = u[v, l, num_nodes,
+                                                                   lower_element]
+                    end
+                end
+            end
+        end
+
+        # Interpolate large element face data to small interface locations
+        if mortars_large_sides[mortar] == 1 # -> large element on left side
+            leftright = 1
+            if mortars_orientations[mortar] == 1
+                # L2 mortars in x-direction
+                u_large = view(u, :, num_nodes, :, large_element)
+                element_solutions_to_mortars_gpu!(mortars_u_upper, mortars_u_lower, mortar_l2, leftright,
+                                              mortar, u_large)
+            else
+                # L2 mortars in y-direction
+                u_large = view(u, :, :, num_nodes, large_element)
+                element_solutions_to_mortars_gpu!(mortars_u_upper, mortars_u_lower, mortar_l2, leftright,
+                                              mortar, u_large)
+            end
+        else # large_sides[mortar] == 2 -> large element on right side
+            leftright = 2
+            if mortars_orientations[mortar] == 1
+                # L2 mortars in x-direction
+                u_large = view(u, :, 1, :, large_element)
+                element_solutions_to_mortars_gpu!(mortars_u_upper, mortars_u_lower, mortar_l2, leftright,
+                                              mortar, u_large)
+            else
+                # L2 mortars in y-direction
+                u_large = view(u, :, :, 1, large_element)
+                element_solutions_to_mortars_gpu!(mortars_u_upper, mortars_u_lower, mortar_l2, leftright,
+                                              mortar, u_large)
+            end
+        end
+    end
+
+    @unpack mortars = cache
+    backend = get_backend(u)
+
+    kernel! = internal_prolong2motars_gpu!(backend)
+    num_nodes = nnodes(dg)
+    num_mortars = nmortars(mortars)
+
+    if (num_mortars > 0)
+        kernel!(u, mortars.u_upper, mortars.u_lower, mortars.neighbor_ids, mortars.large_sides, mortars.orientations, mortar_l2, equations, num_nodes, ndrange=num_mortars)
+        # Ensure that device is finished
+        KernelAbstractions.synchronize(backend)
+    end
+
+    return nothing
+end
+
 @inline function element_solutions_to_mortars!(mortars,
                                                mortar_l2::LobattoLegendreMortarL2,
                                                leftright, mortar,
@@ -1174,6 +1277,17 @@ end
     multiply_dimensionwise!(view(mortars.u_upper, leftright, :, :, mortar),
                             mortar_l2.forward_upper, u_large)
     multiply_dimensionwise!(view(mortars.u_lower, leftright, :, :, mortar),
+                            mortar_l2.forward_lower, u_large)
+    return nothing
+end
+
+@inline function element_solutions_to_mortars_gpu!(mortars_u_upper, mortars_u_lower,
+                                               mortar_l2::LobattoLegendreMortarL2,
+                                               leftright, mortar,
+                                               u_large::AbstractArray{<:Any, 2})
+    multiply_dimensionwise!(view(mortars_u_upper, leftright, :, :, mortar),
+                            mortar_l2.forward_upper, u_large)
+    multiply_dimensionwise!(view(mortars_u_lower, leftright, :, :, mortar),
                             mortar_l2.forward_lower, u_large)
     return nothing
 end
