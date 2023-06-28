@@ -515,5 +515,6 @@ end
                                                                   equations::CompressibleNavierStokesDiffusion2D{
                                                                                                                  GradientVariablesPrimitive
                                                                                                                  })
+    # for Dirichlet boundary conditions, we do not impose any conditions on the viscous fluxes
     return flux_inner
 end
