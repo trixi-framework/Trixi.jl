@@ -371,9 +371,14 @@ function BoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
     arrType = get_array_type(backend)
 
     # Initialize fields with defaults
+    # Allocating Arrays with zero elements in CUDA.jl results in failure of unsafe_wrap
     _u = allocate(backend, uEltype, 2 * n_variables * n_nodes * capacity)
-    u = unsafe_wrap(arrType, pointer(_u),
-                    (2, n_variables, n_nodes, capacity))
+    if (length(_u) > 0)
+        u = unsafe_wrap(arrType, pointer(_u),
+                        (2, n_variables, n_nodes, capacity))
+    else
+        u = allocate(backend, uEltype, (2, n_variables, n_nodes, capacity))
+    end
 
     neighbor_ids = fill!(allocate(backend, Int, capacity), typemin(Int))
 
@@ -384,7 +389,6 @@ function BoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
     _node_coordinates = fill(nan_RealT, 2 * n_nodes * capacity)
     node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
                                    (2, n_nodes, capacity))
-
     n_boundaries_per_direction = SVector(0, 0, 0, 0)
 
     return BoundaryContainer2D{RealT, uEltype, arrType{uEltype, 4}, arrType{Int, 1}, arrType{Int, 1}, arrType{Int, 1}, arrType{uEltype, 1}}(u, neighbor_ids, orientations,
