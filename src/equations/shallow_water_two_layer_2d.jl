@@ -405,7 +405,6 @@ end
                    zero(eltype(u_ll)))
 end
 
-
 """
     flux_wintermeyer_etal(u_ll, u_rr, orientation,
                           equations::ShallowWaterTwoLayerEquations2D)
