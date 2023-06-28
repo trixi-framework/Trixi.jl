@@ -500,8 +500,8 @@ end
                                                                   equations::CompressibleNavierStokesDiffusion2D{
                                                                                                                  GradientVariablesPrimitive
                                                                                                                  })
-    # BCs are usually specified as conservative variables so we convert it to primitive variables
-    #  because the derivative are calculated with respect to primitive variables
+    # BCs are usually specified as conservative variables so we convert them to primitive variables
+    #  because the gradients are assumed to be with respect to the primitive variables
     u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
     return cons2prim(u_boundary, equations)
