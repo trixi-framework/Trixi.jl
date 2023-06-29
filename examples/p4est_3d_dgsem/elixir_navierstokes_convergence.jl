@@ -225,30 +225,16 @@ heat_bc_top_bottom = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_top_bottom, heat_bc_top_bottom)
 
 # define inviscid boundary conditions
-# boundary_conditions = Dict(
-#                          :y_neg => boundary_condition_slip_wall,
-#                          :y_pos => boundary_condition_slip_wall
-#                          )
-
-boundary_conditions = Dict( :x_neg => boundary_condition_periodic,
-                         :x_pos => boundary_condition_periodic,
+boundary_conditions = Dict(
                          :y_neg => boundary_condition_slip_wall,
-                         :y_pos => boundary_condition_slip_wall,
-                         :z_neg => boundary_condition_periodic,
-                         :z_pos => boundary_condition_periodic)
+                         :y_pos => boundary_condition_slip_wall
+                         )
 
 # define viscous boundary conditions
-# boundary_conditions_parabolic = Dict(
-#                                    :y_neg => boundary_condition_top_bottom,
-#                                    :y_pos => boundary_condition_top_bottom
-#                                    )
-
-boundary_conditions_parabolic = Dict( :x_neg => boundary_condition_periodic,
-                                   :x_pos => boundary_condition_periodic,
+boundary_conditions_parabolic = Dict(
                                    :y_neg => boundary_condition_top_bottom,
-                                   :y_pos => boundary_condition_top_bottom,
-                                   :z_neg => boundary_condition_periodic,
-                                   :z_pos => boundary_condition_periodic)
+                                   :y_pos => boundary_condition_top_bottom
+                                   )
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, solver;
                                              boundary_conditions=(boundary_conditions, boundary_conditions_parabolic),
@@ -258,7 +244,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
-tspan = (0.0, 1.0)
+tspan = (0.0, 0.2)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

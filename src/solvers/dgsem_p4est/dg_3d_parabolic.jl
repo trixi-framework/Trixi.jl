@@ -70,11 +70,11 @@ function calc_gradient!(gradients, u_transformed, t,
             # now that the reference coordinate gradients are computed, transform them node-by-node to physical gradients
             # using the contravariant vectors
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-                Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j,k,
+                Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k,
                                                       element)
-                Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j,k,
+                Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k,
                                                       element)
-                Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j,k,
+                Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k,
                                                       element)
 
                 gradients_reference_1 = get_node_vars(gradients_x, equations_parabolic, dg,
@@ -107,7 +107,7 @@ function calc_gradient!(gradients, u_transformed, t,
             end
         end
     end
-
+    # @show norm(gradients_y)
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache_parabolic, u_transformed, mesh,
@@ -171,7 +171,7 @@ function calc_gradient!(gradients, u_transformed, t,
                         # surface at -y
                         normal_direction = get_normal_direction(3, contravariant_vectors,
                                                                     l, m, 1, element)
-                        gradients[dim][v, l, m, 1, element] = (gradients[dim][v, l, m, 1, element] +
+                        gradients[dim][v, l, 1 ,m, element] = (gradients[dim][v, l, 1, m, element] +
                                                         surface_flux_values[v, l, m, 3, element] *
                                                         factor_1 * normal_direction[dim])
 
@@ -536,15 +536,8 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
     return nothing
 end
 
-function calc_boundary_flux_gradients!(cache, t,
-                                       boundary_condition::Union{BoundaryConditionPeriodic,
-                                                                 BoundaryConditionDoNothing
-                                                                 },
-                                       mesh::P4estMesh, equations, surface_integral, dg::DG)
-    @assert isempty(eachboundary(dg, cache))
-end
-
-# Function barrier for type stability
+# # Function barrier for type stability
+# !!! TODO: Figure out why this cannot removed eventhough it exists in the dg_2d_parabolic.jl file
 function calc_boundary_flux_gradients!(cache, t, boundary_conditions, mesh::P4estMesh,
                                        equations, surface_integral, dg::DG)
     (; boundary_condition_types, boundary_indices) = boundary_conditions

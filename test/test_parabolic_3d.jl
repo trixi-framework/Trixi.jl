@@ -86,6 +86,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "P4estMesh3D: elixir_navierstokes_convergence.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem", "elixir_navierstokes_convergence.jl"),
+      initial_refinement_level = 2, tspan=(0.0, 0.1),
+      l2 = [0.00026599105554982194, 0.000461877794472316, 0.0005424899076052261, 0.0004618777944723191, 0.0015846392581126832], 
+      linf = [0.0025241668929956163, 0.006308461681816373, 0.004334939663169113, 0.006308461681804009, 0.03176343480493493]
+    )
+  end
+
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
