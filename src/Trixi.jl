@@ -54,6 +54,7 @@ using Octavian: Octavian, matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
+using T8code
 using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
@@ -219,6 +220,8 @@ export DG,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
+
+export FVMuscl
 
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
