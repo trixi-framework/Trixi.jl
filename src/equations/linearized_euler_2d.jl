@@ -53,7 +53,7 @@ end
 
 function LinearizedEulerEquations2D(; v_mean_global::NTuple{2, <:Real},
                                     c_mean_global::Real, rho_mean_global::Real)
-    return LinearizedEulerEquations2D(SVector(v_mean_global), c_mean_global,
+    return LinearizedEulerEquations2D(v_mean_global, c_mean_global,
                                       rho_mean_global)
 end
 
