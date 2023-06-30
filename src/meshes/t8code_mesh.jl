@@ -64,15 +64,15 @@ function output_data_to_vtu(mesh, semi, prefix)
 
     # Copy the elment's volumes from our data array to the output array.
     for ielem = 1:n_elements
-      u[ielem] = semi.initial_condition(element_data[ielem].midpoint, 0.0, semi.equations)
+        u[ielem] = semi.initial_condition(element_data[ielem].midpoint, 0.0, semi.equations)
     end
 
     vtk_data = [
-      t8_vtk_data_field_t(
-        T8_VTK_SCALAR,
-        NTuple{8192, Cchar}(rpad("scalar\0", 8192, ' ')),
-        pointer(u),
-      ),
+        t8_vtk_data_field_t(
+            T8_VTK_SCALAR,
+            NTuple{8192, Cchar}(rpad("scalar\0", 8192, ' ')),
+            pointer(u),
+        ),
     ]
 
     # The number of user defined data fields to write.
@@ -87,5 +87,5 @@ function output_data_to_vtu(mesh, semi, prefix)
     t8_forest_write_vtk_ext(mesh.forest, prefix, write_treeid, write_mpirank,
                              write_level, write_element_id, write_ghosts,
                              0, 0, num_data, pointer(vtk_data))
-  end
+end
 end # @muladd

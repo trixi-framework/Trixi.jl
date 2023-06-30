@@ -361,6 +361,13 @@ forest = build_forest(comm, n_dims, refinement_level)
 max_number_faces = 4
 
 number_trees = t8_forest_get_num_local_trees(forest)
+println("rank $(MPI.Comm_rank(comm)): #trees $number_trees, #elements $(t8_forest_get_global_num_elements(forest))")
+
+number_elements_global = t8_forest_get_global_num_elements(forest)
+if MPI.Comm_rank(comm) == 0
+    println("#global elements $number_elements_global")
+end
+
 mesh = T8codeMesh{n_dims}(forest, max_number_faces)
 
 # t8_forest_unref(Ref(forest))
@@ -390,7 +397,9 @@ initial_condition = initial_condition_test
 solver = FVMuscl()
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
-println("rank ", MPI.Comm_rank(comm), ": ", semi)
+if MPI.Comm_rank(comm) == 0
+    println("rank ", MPI.Comm_rank(comm), ": ")#, semi)
+end
 
 # Output the data to vtu files.
 # The prefix for our output files.
