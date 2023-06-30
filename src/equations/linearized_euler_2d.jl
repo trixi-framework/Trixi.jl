@@ -126,6 +126,24 @@ end
     return SVector(f1, f2, f3, f4)
 end
 
+# Calculate 1D flux for a single point
+@inline function flux(u, normal_direction::AbstractVector,
+                      equations::LinearizedEulerEquations2D)
+    @unpack v_mean_global, c_mean_global, rho_mean_global = equations
+    rho_prime, v1_prime, v2_prime, p_prime = u
+
+    v_mean_normal = v_mean_global[1] * normal_direction[1] +
+                    v_mean_global[2] * normal_direction[2]
+    v_prime_normal = v1_prime * normal_direction[1] + v2_prime * normal_direction[2]
+
+    f1 = v_mean_normal * rho_prime + rho_mean_global * v_prime_normal
+    f2 = v_mean_normal * v1_prime + normal_direction[1] * p_prime / rho_mean_global
+    f3 = v_mean_normal * v2_prime + normal_direction[2] * p_prime / rho_mean_global
+    f4 = v_mean_normal * p_prime + c_mean_global^2 * rho_mean_global * v_prime_normal
+
+    return SVector(f1, f2, f3, f4)
+end
+
 @inline have_constant_speed(::LinearizedEulerEquations2D) = True()
 
 @inline function max_abs_speeds(equations::LinearizedEulerEquations2D)
@@ -143,6 +161,13 @@ end
     end
 end
 
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::LinearizedEulerEquations2D)
+    @unpack v_mean_global, c_mean_global = equations
+    v_mean_normal = normal_direction[1] * v_mean_global[1] +
+                    normal_direction[2] * v_mean_global[2]
+    return abs(v_mean_normal) + c_mean_global * norm(normal_direction)
+end
 # Convert conservative variables to primitive
 @inline cons2prim(u, equations::LinearizedEulerEquations2D) = u
 @inline cons2entropy(u, ::LinearizedEulerEquations2D) = u
