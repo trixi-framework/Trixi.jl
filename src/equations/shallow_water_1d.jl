@@ -583,5 +583,4 @@ end
     #
     return abs(equations.H0 - (h + b))
 end
-
 end # @muladd

@@ -256,7 +256,6 @@ end
 
 Base.show(io::IO, numflux::FluxHLL) = print(io, "FluxHLL(", numflux.min_max_speed, ")")
 
-
 """
     flux_hll
 

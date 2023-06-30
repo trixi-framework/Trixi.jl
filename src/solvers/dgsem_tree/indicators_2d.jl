@@ -31,9 +31,12 @@ end
 # Modified indicator for ShallowWaterEquations2D to apply full FV method on cells
 # containing some "dry" LGL nodes. That is, if an element is partially "wet" then it becomes a
 # full FV element.
-function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{<:Any,4},
-                                                               mesh, equations::ShallowWaterEquations2D,
-                                                               dg::DGSEM, cache; kwargs...)
+function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{<:Any, 4
+                                                                                },
+                                                               mesh,
+                                                               equations::ShallowWaterEquations2D,
+                                                               dg::DGSEM, cache;
+                                                               kwargs...)
     @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
     @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_hg.cache
     # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
@@ -46,7 +49,7 @@ function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{
 
     # magic parameters
     threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-    parameter_s = log((1 - 0.0001)/0.0001)
+    parameter_s = log((1 - 0.0001) / 0.0001)
 
     # If the water height `h` at one LGL node is lower than `threshold_wet`
     # the indicator sets the element-wise blending factor alpha[element] = 1
@@ -65,8 +68,8 @@ function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{
     threshold_wet = 1e-4
 
     @threaded for element in eachelement(dg, cache)
-        indicator  = indicator_threaded[Threads.threadid()]
-        modal      = modal_threaded[Threads.threadid()]
+        indicator = indicator_threaded[Threads.threadid()]
+        modal = modal_threaded[Threads.threadid()]
         modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
 
         # (Re-)set dummy variable for alpha_dry
@@ -85,7 +88,7 @@ function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{
         end
 
         # Convert to modal representation
-        multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, 
+        multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre,
                                        indicator, modal_tmp1)
 
         # Calculate total energies for all modes, without highest, without two highest
@@ -94,11 +97,11 @@ function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{
             total_energy += modal[i, j]^2
         end
         total_energy_clip1 = zero(eltype(modal))
-        for j in 1:(nnodes(dg)-1), i in 1:(nnodes(dg)-1)
+        for j in 1:(nnodes(dg) - 1), i in 1:(nnodes(dg) - 1)
             total_energy_clip1 += modal[i, j]^2
         end
         total_energy_clip2 = zero(eltype(modal))
-        for j in 1:(nnodes(dg)-2), i in 1:(nnodes(dg)-2)
+        for j in 1:(nnodes(dg) - 2), i in 1:(nnodes(dg) - 2)
             total_energy_clip2 += modal[i, j]^2
         end
 

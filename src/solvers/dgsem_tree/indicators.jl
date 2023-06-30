@@ -92,6 +92,14 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGassner)
     @nospecialize indicator # reduce precompilation time
+    setup = [
+        "indicator variable" => indicator.variable,
+        "max. α" => indicator.alpha_max,
+        "min. α" => indicator.alpha_min,
+        "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
+    ]
+    summary_box(io, "IndicatorHennemannGassner", setup)
+end
 
 """
     IndicatorHennemannGassnerShallowWater(equations::AbstractEquations, basis;
@@ -100,7 +108,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
                                           alpha_smooth=true,
                                           variable)
 
-Modified version of the [`IndicatorHennemannGassner`](@ref) 
+Modified version of the [`IndicatorHennemannGassner`](@ref)
 indicator used for shock-capturing for shallow water equations. After
 the element-wise values for the blending factors are computed an additional check
 is made to see if the element is partially wet. In this case, partially wet elements
@@ -115,7 +123,8 @@ See also [`VolumeIntegralShockCapturingHG`](@ref).
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-struct IndicatorHennemannGassnerShallowWater{RealT<:Real, Variable, Cache} <: AbstractIndicator
+struct IndicatorHennemannGassnerShallowWater{RealT <: Real, Variable, Cache} <:
+       AbstractIndicator
     alpha_max::RealT
     alpha_min::RealT
     alpha_smooth::Bool
@@ -126,15 +135,17 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 # of the shallow water equations
 # It modifies the shock-capturing indicator to use full FV method in dry cells
-function IndicatorHennemannGassnerShallowWater(equations::AbstractShallowWaterEquations, basis;
-                                               alpha_max=0.5,
-                                               alpha_min=0.001,
-                                               alpha_smooth=true,
+function IndicatorHennemannGassnerShallowWater(equations::AbstractShallowWaterEquations,
+                                               basis;
+                                               alpha_max = 0.5,
+                                               alpha_min = 0.001,
+                                               alpha_smooth = true,
                                                variable)
     alpha_max, alpha_min = promote(alpha_max, alpha_min)
     cache = create_cache(IndicatorHennemannGassner, equations, basis)
-    IndicatorHennemannGassnerShallowWater{typeof(alpha_max), typeof(variable), typeof(cache)}(
-      alpha_max, alpha_min, alpha_smooth, variable, cache)
+    IndicatorHennemannGassnerShallowWater{typeof(alpha_max), typeof(variable),
+                                          typeof(cache)}(alpha_max, alpha_min,
+                                                         alpha_smooth, variable, cache)
 end
 
 function Base.show(io::IO, indicator::IndicatorHennemannGassnerShallowWater)
@@ -148,18 +159,19 @@ function Base.show(io::IO, indicator::IndicatorHennemannGassnerShallowWater)
     print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGassnerShallowWater)
+function Base.show(io::IO, ::MIME"text/plain",
+                   indicator::IndicatorHennemannGassnerShallowWater)
     @nospecialize indicator # reduce precompilation time
 
     if get(io, :compact, false)
         show(io, indicator)
     else
         setup = [
-                 "indicator variable" => indicator.variable,
-                 "max. α" => indicator.alpha_max,
-                 "min. α" => indicator.alpha_min,
-                 "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
-                ]
+            "indicator variable" => indicator.variable,
+            "max. α" => indicator.alpha_max,
+            "min. α" => indicator.alpha_min,
+            "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
+        ]
         summary_box(io, "IndicatorHennemannGassnerShallowWater", setup)
     end
 end

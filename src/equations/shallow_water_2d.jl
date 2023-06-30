@@ -5,7 +5,6 @@
 @muladd begin
 #! format: noindent
 
-
 @doc raw"""
     ShallowWaterEquations2D(gravity, H0, threshold_limiter, threshold_wet)
 
@@ -54,16 +53,16 @@ References for the SWE are many but a good introduction is available in Chapter 
   Finite Volume Methods for Hyperbolic Problems
   [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
-struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 4}
+struct ShallowWaterEquations2D{RealT <: Real} <: AbstractShallowWaterEquations{2, 4}
     gravity::RealT # gravitational constant
     H0::RealT      # constant "lake-at-rest" total water height
     threshold_limiter::RealT # Threshold to use in `PositivityPreservingLimiterShallowWater` on water height,
-                             # as a (small) shift on the initial condition and cutoff before the
-                             # next time step.
-                             # Default is 500*eps() which in double precision is ≈1e-13.
+    # as a (small) shift on the initial condition and cutoff before the
+    # next time step.
+    # Default is 500*eps() which in double precision is ≈1e-13.
     threshold_wet::RealT     # Threshold to be applied on water height to define when the flow is "wet"
-                             # before calculating the numerical flux.
-                             # Default is 5*eps() which in double precision is ≈1e-15.
+    # before calculating the numerical flux.
+    # Default is 5*eps() which in double precision is ≈1e-15.
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
@@ -71,8 +70,8 @@ end
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
 # well-balancedness test cases.
 # Strict default values for thresholds that performed well in many numerical experiments
-function ShallowWaterEquations2D(; gravity_constant, H0=zero(gravity_constant),
-                                   threshold_limiter=nothing, threshold_wet=nothing)
+function ShallowWaterEquations2D(; gravity_constant, H0 = zero(gravity_constant),
+                                 threshold_limiter = nothing, threshold_wet = nothing)
     T = promote_type(typeof(gravity_constant), typeof(H0))
     if threshold_limiter === nothing
         threshold_limiter = 500 * eps(T)
@@ -469,7 +468,8 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
-@inline function hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, equations::ShallowWaterEquations2D)
+@inline function hydrostatic_reconstruction_chen_noelle(u_ll, u_rr,
+                                                        equations::ShallowWaterEquations2D)
     # Unpack left and right water heights and bottom topographies
     h_ll, _, _, b_ll = u_ll
     h_rr, _, _, b_rr = u_rr
@@ -481,11 +481,11 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
     H_ll = b_ll + h_ll
     H_rr = b_rr + h_rr
 
-    b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
+    b_star = min(max(b_ll, b_rr), min(H_ll, H_rr))
 
     # Compute the reconstructed water heights
-    h_ll_star = min( H_ll - b_star, h_ll )
-    h_rr_star = min( H_rr - b_star, h_rr )
+    h_ll_star = min(H_ll - b_star, h_ll)
+    h_rr_star = min(H_rr - b_star, h_rr)
 
     # Set the water height to be at least the value stored in the variable threshold after
     # the hydrostatic reconstruction is applied and before the numerical flux is calculated
@@ -509,8 +509,8 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
     end
 
     # Create the conservative variables using the reconstruted water heights
-    u_ll_star = SVector( h_ll_star, h_ll_star * v1_ll, h_ll_star * v2_ll, b_ll )
-    u_rr_star = SVector( h_rr_star, h_rr_star * v1_rr, h_rr_star * v2_rr, b_rr )
+    u_ll_star = SVector(h_ll_star, h_ll_star * v1_ll, h_ll_star * v2_ll, b_ll)
+    u_rr_star = SVector(h_rr_star, h_rr_star * v1_rr, h_rr_star * v2_rr, b_rr)
 
     return u_ll_star, u_rr_star
 end
@@ -630,7 +630,7 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
     H_ll = h_ll + b_ll
     H_rr = h_rr + b_rr
 
-    b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
+    b_star = min(max(b_ll, b_rr), min(H_ll, H_rr))
 
     # Create the hydrostatic reconstruction for the left solution state
     u_ll_star, _ = hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, equations)
@@ -668,7 +668,7 @@ end
     H_ll = h_ll + b_ll
     H_rr = h_rr + b_rr
 
-    b_star = min( max( b_ll, b_rr ), min( H_ll, H_rr ) )
+    b_star = min(max(b_ll, b_rr), min(H_ll, H_rr))
 
     # Create the hydrostatic reconstruction for the left solution state
     u_ll_star, _ = hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, equations)
@@ -686,8 +686,10 @@ end
     #   (ii) True surface part that uses `normal_direction_ll`, `h_ll` and `h_ll_star`
     #        to handle discontinuous bathymetry
 
-    f2 -= normal_direction_ll[1] * equations.gravity * (h_ll_star + h_ll) * (b_ll - b_star)
-    f3 -= normal_direction_ll[2] * equations.gravity * (h_ll_star + h_ll) * (b_ll - b_star)
+    f2 -= normal_direction_ll[1] * equations.gravity * (h_ll_star + h_ll) *
+          (b_ll - b_star)
+    f3 -= normal_direction_ll[2] * equations.gravity * (h_ll_star + h_ll) *
+          (b_ll - b_star)
 
     # First and last equations do not have a nonconservative flux
     f1 = f4 = zero(eltype(u_ll))
@@ -970,11 +972,11 @@ the reference below. The definition of the wave speeds are given in Equation (2.
     a_rr = sqrt(equations.gravity * h_rr)
 
     if orientation == 1 # x-direction
-        λ_min = min( v1_ll - a_ll, v1_rr - a_rr, zero(eltype(u_ll)) )
-        λ_max = max( v1_ll + a_ll, v1_rr + a_rr, zero(eltype(u_ll)) )
+        λ_min = min(v1_ll - a_ll, v1_rr - a_rr, zero(eltype(u_ll)))
+        λ_max = max(v1_ll + a_ll, v1_rr + a_rr, zero(eltype(u_ll)))
     else # y-direction
-        λ_min = min( v2_ll - a_ll, v2_rr - a_rr, zero(eltype(u_ll)) )
-        λ_max = max( v2_ll + a_ll, v2_rr + a_rr, zero(eltype(u_ll)) )
+        λ_min = min(v2_ll - a_ll, v2_rr - a_rr, zero(eltype(u_ll)))
+        λ_max = max(v2_ll + a_ll, v2_rr + a_rr, zero(eltype(u_ll)))
     end
     return λ_min, λ_max
 end
@@ -994,8 +996,8 @@ end
     a_ll = sqrt(equations.gravity * h_ll) * norm_
     a_rr = sqrt(equations.gravity * h_rr) * norm_
 
-    λ_min = min( v_normal_ll - a_ll, v_normal_rr - a_rr, zero(eltype(u_ll)) )
-    λ_max = max( v_normal_ll + a_ll, v_normal_rr + a_rr, zero(eltype(u_ll)) )
+    λ_min = min(v_normal_ll - a_ll, v_normal_rr - a_rr, zero(eltype(u_ll)))
+    λ_max = max(v_normal_ll + a_ll, v_normal_rr + a_rr, zero(eltype(u_ll)))
 
     return λ_min, λ_max
 end
@@ -1110,9 +1112,8 @@ end
     # water height `H0` accounts for the possibility that the bottom topography
     # can emerge out of the water as well as for the threshold offset to avoid
     # division by a "hard" zero water heights as well.
-    H0_wet_dry = max( equations.H0 , b + equations.threshold_limiter )
+    H0_wet_dry = max(equations.H0, b + equations.threshold_limiter)
 
     return abs(H0_wet_dry - (h + b))
 end
-
 end # @muladd
