@@ -628,6 +628,15 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg:
         for i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
                                      element)
+            # Changing the node positions passed to the initial condition by the minimum
+            # amount possible with the current type of floating point numbers allows setting
+            # discontinuous initial data in a simple way. In particular, a check like `if x < x_jump`
+            # works if the jump location `x_jump` is at the position of an interface.
+            if i == 1
+                x_node = SVector(nextfloat(x_node[1]))
+            elseif i == nnodes(dg)
+                x_node = SVector(prevfloat(x_node[1]))
+            end
             u_node = func(x_node, t, equations)
             set_node_vars!(u, u_node, equations, dg, i, element)
         end
