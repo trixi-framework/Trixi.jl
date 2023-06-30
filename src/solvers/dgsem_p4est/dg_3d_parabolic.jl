@@ -112,7 +112,7 @@ function calc_gradient!(gradients, u_transformed, t,
             end
         end
     end
-    # @show norm(gradients_y)
+
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache_parabolic, u_transformed, mesh,
