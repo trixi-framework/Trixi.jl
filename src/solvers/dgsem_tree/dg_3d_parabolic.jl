@@ -326,7 +326,7 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
 end
 
 function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed,
-                              mesh::Union{P4estMesh{3}, TreeMesh{3}},
+                              mesh::Union{TreeMesh{3}, P4estMesh{3}},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache, cache_parabolic)
     gradients_x, gradients_y, gradients_z = gradients
