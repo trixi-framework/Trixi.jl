@@ -240,15 +240,15 @@ function rhs_gpu!(du, u, t,
     @trixi_timeit timer() "Jacobian gpu" apply_jacobian_gpu!(
     dev_du, mesh, equations, dg, cache)
 
+    # Calculate source terms
+    @trixi_timeit timer() "source terms gpu" calc_sources_gpu!(
+    dev_du, dev_u, t, source_terms, equations, dg, cache)
+
     if !(backend isa CPU)
         KernelAbstractions.copyto!(backend, du, dev_du)
     else
         Base.copyto!(du, dev_du)
     end
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms" calc_sources!(
-    du, u, t, source_terms, equations, dg, cache)
 
     return nothing
 end
@@ -1649,6 +1649,11 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_sources!(du, u, t, source_terms::Nothing,
+                       equations::AbstractEquations{2}, dg::DG, cache)
+    return nothing
+end
+
+function calc_sources_gpu!(du, u, t, source_terms::Nothing,
                        equations::AbstractEquations{2}, dg::DG, cache)
     return nothing
 end
