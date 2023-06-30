@@ -44,8 +44,8 @@ specific heat capacity at constant volume of component ``i``.
 In case of more than one component, the specific heat ratios `gammas` and the gas constants
 `gas_constants` should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
 
-The remaining variables like the specific heats at constant volume 'cv' or the specific heats at
-constant pressure 'cp' are then calculated considering a calorically perfect gas.
+The remaining variables like the specific heats at constant volume `cv` or the specific heats at
+constant pressure `cp` are then calculated considering a calorically perfect gas.
 """
 struct CompressibleEulerMulticomponentEquations1D{NVARS, NCOMP, RealT <: Real} <:
        AbstractCompressibleEulerMulticomponentEquations{1, NVARS, NCOMP}
@@ -247,8 +247,8 @@ end
 
 Entropy conserving two-point flux by
 - Ayoub Gouasmi, Karthik Duraisamy (2020)
-  "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations""
-  arXiv:1904.00972v3 [math.NA] 4 Feb 2020
+  "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations"
+  [arXiv:1904.00972v3](https://arxiv.org/abs/1904.00972) [math.NA] 4 Feb 2020
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer,
                                     equations::CompressibleEulerMulticomponentEquations1D)

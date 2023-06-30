@@ -73,8 +73,8 @@ where
 w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = -\frac{\rho}{p}
 ```
 
-#!!! warning "Experimental code"
-#    This code is experimental and may be changed or removed in any future release.
+!!! warning "Experimental code"
+    This code is experimental and may be changed or removed in any future release.
 """
 struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real,
                                            E <: AbstractCompressibleEulerEquations{2}} <:
@@ -94,8 +94,8 @@ struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real,
 end
 
 """
-#!!! warning "Experimental code"
-#    This code is experimental and may be changed or removed in any future release.
+!!! warning "Experimental code"
+    This code is experimental and may be changed or removed in any future release.
 
 `GradientVariablesPrimitive` and `GradientVariablesEntropy` are gradient variable type parameters
 for `CompressibleNavierStokesDiffusion2D`. By default, the gradient variables are set to be
