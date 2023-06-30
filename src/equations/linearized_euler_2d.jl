@@ -168,6 +168,180 @@ end
                     normal_direction[2] * v_mean_global[2]
     return abs(v_mean_normal) + c_mean_global * norm(normal_direction)
 end
+
+@inline function flux_upwind(u_ll, u_rr, orientation::Integer,
+                             equations::LinearizedEulerEquations2D)
+    @unpack v_mean_global, rho_mean_global, c_mean_global = equations
+    v1_mean = v_mean_global[1]
+    v2_mean = v_mean_global[2]
+
+    rho_prime_ll, v1_prime_ll, v2_prime_ll, p_prime_ll = u_ll
+    rho_prime_rr, v1_prime_rr, v2_prime_rr, p_prime_rr = u_rr
+
+    if orientation == 1
+        # Eigenvalues of the flux matrix
+        lambda1 = v1_mean
+        lambda2 = v1_mean - c_mean_global
+        lambda3 = v1_mean + c_mean_global
+
+        lambda1_p = positive_part(lambda1)
+        lambda2_p = positive_part(lambda2)
+        lambda3_p = positive_part(lambda3)
+        lambda2p3_half_p = 0.5 * (lambda2_p + lambda3_p)
+        lambda3m2_half_p = 0.5 * (lambda3_p - lambda2_p)
+
+        lambda1_m = negative_part(lambda1)
+        lambda2_m = negative_part(lambda2)
+        lambda3_m = negative_part(lambda3)
+        lambda2p3_half_m = 0.5 * (lambda2_m + lambda3_m)
+        lambda3m2_half_m = 0.5 * (lambda3_m - lambda2_m)
+
+        f1p = lambda1_p * rho_prime_ll +
+              lambda3m2_half_p / c_mean_global * rho_mean_global * v1_prime_ll +
+              (lambda2p3_half_p - lambda1_p) / c_mean_global^2 * p_prime_ll
+        f2p = lambda2p3_half_p * v1_prime_ll +
+              lambda3m2_half_p / c_mean_global * p_prime_ll / rho_mean_global
+        f3p = lambda1_p * v2_prime_ll
+        f4p = lambda3m2_half_p * c_mean_global * rho_mean_global * v1_prime_ll +
+              lambda2p3_half_p * p_prime_ll
+
+        f1m = lambda1_m * rho_prime_rr +
+              lambda3m2_half_m / c_mean_global * rho_mean_global * v1_prime_rr +
+              (lambda2p3_half_m - lambda1_m) / c_mean_global^2 * p_prime_rr
+        f2m = lambda2p3_half_m * v1_prime_rr +
+              lambda3m2_half_m / c_mean_global * p_prime_rr / rho_mean_global
+        f3m = lambda1_m * v2_prime_rr
+        f4m = lambda3m2_half_m * c_mean_global * rho_mean_global * v1_prime_rr +
+              lambda2p3_half_m * p_prime_rr
+
+        f1 = f1p + f1m
+        f2 = f2p + f2m
+        f3 = f3p + f3m
+        f4 = f4p + f4m
+    else # orientation == 2
+        # Eigenvalues of the flux matrix
+        lambda1 = v2_mean
+        lambda2 = v2_mean - c_mean_global
+        lambda3 = v2_mean + c_mean_global
+
+        lambda1_p = positive_part(lambda1)
+        lambda2_p = positive_part(lambda2)
+        lambda3_p = positive_part(lambda3)
+        lambda2p3_half_p = 0.5 * (lambda2_p + lambda3_p)
+        lambda3m2_half_p = 0.5 * (lambda3_p - lambda2_p)
+
+        lambda1_m = negative_part(lambda1)
+        lambda2_m = negative_part(lambda2)
+        lambda3_m = negative_part(lambda3)
+        lambda2p3_half_m = 0.5 * (lambda2_m + lambda3_m)
+        lambda3m2_half_m = 0.5 * (lambda3_m - lambda2_m)
+
+        f1p = lambda1_p * rho_prime_ll +
+              lambda3m2_half_p / c_mean_global * rho_mean_global * v2_prime_ll +
+              (lambda2p3_half_p - lambda1_p) / c_mean_global^2 * p_prime_ll
+        f2p = lambda1_p * v1_prime_ll
+        f3p = lambda2p3_half_p * v2_prime_ll +
+              lambda3m2_half_p / c_mean_global * p_prime_ll / rho_mean_global
+        f4p = lambda3m2_half_p * c_mean_global * rho_mean_global * v2_prime_ll +
+              lambda2p3_half_p * p_prime_ll
+
+        f1m = lambda1_m * rho_prime_rr +
+              lambda3m2_half_m / c_mean_global * rho_mean_global * v2_prime_rr +
+              (lambda2p3_half_m - lambda1_m) / c_mean_global^2 * p_prime_rr
+        f2m = lambda1_m * v1_prime_rr
+        f3m = lambda2p3_half_m * v2_prime_rr +
+              lambda3m2_half_m / c_mean_global * p_prime_rr / rho_mean_global
+        f4m = lambda3m2_half_m * c_mean_global * rho_mean_global * v2_prime_rr +
+              lambda2p3_half_m * p_prime_rr
+
+        f1 = f1p + f1m
+        f2 = f2p + f2m
+        f3 = f3p + f3m
+        f4 = f4p + f4m
+    end
+
+    return SVector(f1, f2, f3, f4)
+end
+
+@inline function flux_upwind(u_ll, u_rr, normal_direction::AbstractVector,
+                             equations::LinearizedEulerEquations2D)
+    @unpack v_mean_global, rho_mean_global, c_mean_global = equations
+    v_mean_normal = v_mean_global[1] * normal_direction[1] +
+                    v_mean_global[2] * normal_direction[2]
+    norm_ = norm(normal_direction)
+
+    rho_prime_ll, v1_prime_ll, v2_prime_ll, p_prime_ll = u_ll
+    rho_prime_rr, v1_prime_rr, v2_prime_rr, p_prime_rr = u_rr
+
+    v_prime_normal_ll = v1_prime_ll * normal_direction[1] +
+                        v2_prime_ll * normal_direction[2]
+    v_prime_normal_rr = v1_prime_rr * normal_direction[1] +
+                        v2_prime_rr * normal_direction[2]
+    c_mean_scaled = c_mean_global * norm_
+
+    # Eigenvalues of the flux matrix
+    lambda1 = v_mean_normal
+    lambda2 = v_mean_normal - c_mean_scaled
+    lambda3 = v_mean_normal + c_mean_scaled
+
+    lambda1_p = positive_part(lambda1)
+    lambda2_p = positive_part(lambda2)
+    lambda3_p = positive_part(lambda3)
+    lambda2p3_half_p = 0.5 * (lambda2_p + lambda3_p)
+    lambda3m2_half_p = 0.5 * (lambda3_p - lambda2_p)
+
+    lambda1_m = negative_part(lambda1)
+    lambda2_m = negative_part(lambda2)
+    lambda3_m = negative_part(lambda3)
+    lambda2p3_half_m = 0.5 * (lambda2_m + lambda3_m)
+    lambda3m2_half_m = 0.5 * (lambda3_m - lambda2_m)
+
+    f1p = lambda1_p * rho_prime_ll +
+          lambda3m2_half_p / c_mean_scaled * rho_mean_global * v_prime_normal_ll +
+          (lambda2p3_half_p - lambda1_p) / c_mean_global^2 * p_prime_ll
+    f2p = ((lambda1_p * normal_direction[2]^2 +
+            lambda2p3_half_p * normal_direction[1]^2) * v1_prime_ll +
+           (lambda2p3_half_p - lambda1_p) * prod(normal_direction) * v2_prime_ll) /
+          norm_^2 +
+          lambda3m2_half_p / c_mean_scaled * normal_direction[1] * p_prime_ll /
+          rho_mean_global
+    f3p = ((lambda1_p * normal_direction[1]^2 +
+            lambda2p3_half_p * normal_direction[2]^2) * v2_prime_ll +
+           (lambda2p3_half_p - lambda1_p) * prod(normal_direction) * v1_prime_ll) /
+          norm_^2 +
+          lambda3m2_half_p / c_mean_scaled * normal_direction[2] * p_prime_ll /
+          rho_mean_global
+    f4p = lambda3m2_half_p / norm_ * c_mean_global * rho_mean_global *
+          v_prime_normal_ll +
+          lambda2p3_half_p * p_prime_ll
+
+    f1m = lambda1_m * rho_prime_rr +
+          lambda3m2_half_m / c_mean_scaled * rho_mean_global * v_prime_normal_rr +
+          (lambda2p3_half_m - lambda1_m) / c_mean_global^2 * p_prime_rr
+    f2m = ((lambda1_m * normal_direction[2]^2 +
+            lambda2p3_half_m * normal_direction[1]^2) * v1_prime_rr +
+           (lambda2p3_half_m - lambda1_m) * prod(normal_direction) * v2_prime_rr) /
+          norm_^2 +
+          lambda3m2_half_m / c_mean_scaled * normal_direction[1] * p_prime_rr /
+          rho_mean_global
+    f3m = ((lambda1_m * normal_direction[1]^2 +
+            lambda2p3_half_m * normal_direction[2]^2) * v2_prime_rr +
+           (lambda2p3_half_m - lambda1_m) * prod(normal_direction) * v1_prime_rr) /
+          norm_^2 +
+          lambda3m2_half_m / c_mean_scaled * normal_direction[2] * p_prime_rr /
+          rho_mean_global
+    f4m = lambda3m2_half_m / norm_ * c_mean_global * rho_mean_global *
+          v_prime_normal_rr +
+          lambda2p3_half_m * p_prime_rr
+
+    f1 = f1p + f1m
+    f2 = f2p + f2m
+    f3 = f3p + f3m
+    f4 = f4p + f4m
+
+    return SVector(f1, f2, f3, f4)
+end
+
 # Convert conservative variables to primitive
 @inline cons2prim(u, equations::LinearizedEulerEquations2D) = u
 @inline cons2entropy(u, ::LinearizedEulerEquations2D) = u
