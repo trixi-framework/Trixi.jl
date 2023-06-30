@@ -105,7 +105,7 @@ end
 # Transform solution variables prior to taking the gradient
 # (e.g., conservative to primitive variables). Defaults to doing nothing.
 # TODO: can we avoid copying data?
-function transform_variables!(u_transformed, u, mesh::Union{P4estMesh{3}, TreeMesh{3}},
+function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{3}, P4estMesh{3}}},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, parabolic_scheme, cache, cache_parabolic)
     @threaded for element in eachelement(dg, cache)
