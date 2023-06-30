@@ -227,24 +227,24 @@ function rhs_gpu!(du, u, t,
     cache, dev_u, mesh, equations, dg.mortar, dg.surface_integral, dg)
 
     # Calculate mortar fluxes
-    @trixi_timeit timer() "mortar flux" calc_mortar_flux_gpu!(
+    @trixi_timeit timer() "mortar flux gpu" calc_mortar_flux_gpu!(
     cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
     dg.mortar, dg.surface_integral, dg, cache)
 
     # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" calc_surface_integral_gpu!(
+    @trixi_timeit timer() "surface integral gpu" calc_surface_integral_gpu!(
     dev_du, dev_u, mesh, equations, dg.surface_integral, dg, cache)
+
+    # Apply Jacobian from mapping to reference element
+    @trixi_timeit timer() "Jacobian gpu" apply_jacobian_gpu!(
+    dev_du, mesh, equations, dg, cache)
 
     if !(backend isa CPU)
         KernelAbstractions.copyto!(backend, du, dev_du)
     else
         Base.copyto!(du, dev_du)
     end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(
-    du, mesh, equations, dg, cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" calc_sources!(
@@ -1611,6 +1611,41 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
 
     return nothing
 end
+
+end # @muladd 
+
+function apply_jacobian_gpu!(du, mesh::TreeMesh{2},
+                         equations, dg::DG, cache)
+    @kernel function internal_apply_jacobian_gpu!(du, inverse_jacobian, equations, num_nodes)
+        element = @index(Global)
+        factor = -inverse_jacobian[element]
+
+        for j in 1:num_nodes, i in 1:num_nodes
+            for v in eachvariable(equations)
+                du[v, i, j, element] *= factor
+            end
+        end
+    end
+
+    @unpack inverse_jacobian = cache.elements
+    backend = get_backend(du)
+
+    kernel! = internal_apply_jacobian_gpu!(backend)
+
+    dev_inverse_jacobian = allocate(backend, eltype(inverse_jacobian), size(inverse_jacobian))
+    KernelAbstractions.copyto!(backend, dev_inverse_jacobian, inverse_jacobian)
+
+    num_nodes = nnodes(dg)
+    num_elements = nelements(cache.elements)
+
+    kernel!(du, dev_inverse_jacobian, equations, num_nodes, ndrange=num_elements)
+
+    KernelAbstractions.synchronize(backend)
+
+    return nothing
+end
+
+@muladd begin
 
 # TODO: Taal dimension agnostic
 function calc_sources!(du, u, t, source_terms::Nothing,
