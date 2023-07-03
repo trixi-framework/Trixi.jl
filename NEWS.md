@@ -9,7 +9,7 @@ for human readability.
 #### Added
 
 - Experimental support for 3D parabolic diffusion terms has been added.
-- Implementation of compressible Euler equations in 2D
+- Implementation of the polytropic Euler equations in 2D
 
 #### Changed
 
