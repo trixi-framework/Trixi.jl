@@ -36,8 +36,7 @@
     the pressure, which we replaced using this relation.
 
     """
-    struct PolytropicEulerEquations2D{RealT <: Real, RealT <: Real} <:
-           AbstractPolytropicEulerEquations{2, 3}
+    struct PolytropicEulerEquations2D{RealT <: Real} <: AbstractPolytropicEulerEquations{2, 3}
         gamma::RealT               # ratio of specific heats
         kappa::RealT               # fluid scaling factor
 
