@@ -49,11 +49,6 @@ end
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-function Trixi.wrap_array(u_ode::AbstractVector, mesh::Trixi.AbstractMesh, equations,
-                          dg::DGSEM, cache)
-    Trixi.wrap_array_native(u_ode, mesh, equations, dg, cache)
-end
-
 # Define the equations involved.
 gamma1 = 1.001
 kappa1 = 1.0
