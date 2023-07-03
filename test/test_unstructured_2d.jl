@@ -130,7 +130,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.0011197139793938152, 0.015430259691310781, 0.017081031802719724, 5.089218476758271e-6],
       linf = [0.014300809338967824, 0.12783372461225184, 0.17625472321992852, 2.6407324614341476e-5],
-      surface_flux=(FluxHydrostaticReconstruction(FluxHLL(min_max_speed_naive), hydrostatic_reconstruction_audusse_etal), flux_nonconservative_audusse_etal),
+      surface_flux=(FluxHydrostaticReconstruction(flux_hll, hydrostatic_reconstruction_audusse_etal), flux_nonconservative_audusse_etal),
       tspan = (0.0, 0.025))
   end
 

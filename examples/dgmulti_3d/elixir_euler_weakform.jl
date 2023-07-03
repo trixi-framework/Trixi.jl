@@ -2,7 +2,7 @@
 using Trixi, OrdinaryDiffEq
 
 dg = DGMulti(polydeg = 3, element_type = Tet(),
-             surface_integral = SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
+             surface_integral = SurfaceIntegralWeakForm(flux_hll),
              volume_integral = VolumeIntegralWeakForm())
 
 equations = CompressibleEulerEquations3D(1.4)

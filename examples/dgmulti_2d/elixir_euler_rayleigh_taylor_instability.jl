@@ -61,7 +61,7 @@ end
 
 # numerical parameters
 dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial(),
-             surface_integral = SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
+             surface_integral = SurfaceIntegralWeakForm(flux_hll),
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 num_elements = 16

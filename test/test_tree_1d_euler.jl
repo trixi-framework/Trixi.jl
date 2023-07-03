@@ -77,7 +77,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
       l2   = [0.07852272782240548, 0.10209790867523805, 0.293873048809011],
       linf = [0.19244768908604093, 0.2515941686151897, 0.7258000837553769],
       maxiters = 10,
-      surface_flux = FluxHLL(min_max_speed_naive),
+      surface_flux = flux_hll,
       volume_flux = flux_ranocha)
   end
 

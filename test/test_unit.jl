@@ -382,7 +382,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @timed_testset "HLL flux with vanishing wave speed estimates (#502)" begin
     equations = CompressibleEulerEquations1D(1.4)
     u = SVector(1.0, 0.0, 0.0)
-    @test !any(isnan, FluxHLL(min_max_speed_naive)(u, u, 1, equations))
+    @test !any(isnan, flux_hll(u, u, 1, equations))
   end
 
   @timed_testset "DG L2 mortar container debug output" begin

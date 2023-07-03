@@ -68,7 +68,7 @@ boundary_conditions = Dict(
   :outside => boundary_condition
 )
 
-surface_flux = FluxHLL(min_max_speed_naive)
+surface_flux = flux_hll
 # Note that a free stream is not preserved if N < 2 * N_geo, where N is the
 # polydeg of the solver and N_geo is the polydeg of the mesh.
 # However, the FSP error is negligible in this example.

@@ -219,10 +219,10 @@ struct FluxHLL{MinMaxSpeed}
     min_max_speed::MinMaxSpeed
 end
 
-FluxHLL() = FluxHLL(min_max_speed)
+FluxHLL() = FluxHLL(min_max_speed_naive)
 
 """
-    min_max_speed_naive(u_ll, u_rr, orientation::Integer,   equations)
+    min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations)
     min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations)
 
 Simple and fast estimate(!) of the minimal and maximal wave speed of the Riemann problem with
