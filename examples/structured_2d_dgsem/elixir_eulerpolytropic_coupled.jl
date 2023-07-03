@@ -109,9 +109,6 @@ ode = semidiscretize(semi, (0.0, 3.0))
 # and resets the timers
 summary_callback = SummaryCallback()
 
-resid_tol = 5.0e-12
-steady_state_callback = SteadyStateCallback(abstol = resid_tol, reltol = 0.0)
-
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback1 = AnalysisCallback(semi1, interval = 100)
 analysis_callback2 = AnalysisCallback(semi2, interval = 100)
