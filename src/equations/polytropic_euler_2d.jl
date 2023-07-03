@@ -42,7 +42,7 @@
 
         function PolytropicEulerEquations2D(gamma, kappa)
             gamma_, kappa_ = promote(gamma, kappa)
-            new{typeof(gamma), typeof(kappa)}(gamma_, kappa_)
+            new{typeof(gamma_)}(gamma_, kappa_)
         end
     end
 
