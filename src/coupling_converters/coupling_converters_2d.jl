@@ -17,7 +17,7 @@ c(x) = {c_0, for x \ge x_0 \times s
 Here, `s` is the sign of the step function, x_0 the save_position
 of the step and c_0 the amplitude.
 """
-function coupling_converter_heaviside_2d(x_0, c_0, s)
+function coupling_converter_heaviside_2d(x_0, c_0, s, equations::LinearScalarAdvectionEquation2D)
     return (x, u) -> c_0 * (s*sign(x[2] - x_0) + 1.0)/2.0 * u
 end
 
@@ -30,7 +30,7 @@ The coupling is given as a linear function.
 c(x) = x * u(x)
 ```
 """
-function coupling_converter_linear_2d()
+function coupling_converter_linear_2d(equations::LinearScalarAdvectionEquation2D)
     return (x, u) -> x[2]*u
 end
 
