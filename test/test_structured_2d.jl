@@ -218,8 +218,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.3))
   end
 
-  @trixi_testset "elixir_euler_polytropic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_polytropic.jl"),
+  @trixi_testset "elixir_eulerpolytropic_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_wave.jl"),
       l2   = [0.004995041733939986, 0.004997681632536576, 9.723735592127134e-17],
       linf = [0.009993486548832253, 0.010048540255715076, 6.86525156020157e-16])
   end
