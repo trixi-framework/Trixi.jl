@@ -55,7 +55,6 @@
     # Note, this directional vector is not normalized
     @inline function flux(u, normal_direction::AbstractVector,
                           equations::PolytropicEulerEquations2D)
-        rho_e = last(u)
         rho, v1, v2 = cons2prim(u, equations)
         p = pressure(u, equations)
 
