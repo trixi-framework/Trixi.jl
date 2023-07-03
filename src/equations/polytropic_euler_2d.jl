@@ -41,7 +41,8 @@
         kappa::RealT               # fluid scaling factor
 
         function PolytropicEulerEquations2D(gamma, kappa)
-            new{typeof(gamma), typeof(kappa)}(gamma, kappa)
+            gamma_, kappa_ = promote(gamma, kappa)
+            new{typeof(gamma), typeof(kappa)}(gamma_, kappa_)
         end
     end
 
