@@ -107,10 +107,10 @@
 
         norm_ = norm(normal_direction)
         # The v_normals are already scaled by the norm
-        λ_min = v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) * norm_
-        λ_max = v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) * norm_
+        lambda_min = v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) * norm_
+        lambda_max = v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) * norm_
 
-        return λ_min, λ_max
+        return lambda_min, lambda_max
     end
 
     @inline function max_abs_speeds(u, equations::PolytropicEulerEquations2D)
