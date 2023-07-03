@@ -40,7 +40,6 @@
            AbstractPolytropicEulerEquations{2, 3}
         gamma::RealT               # ratio of specific heats
         kappa::RealT               # fluid scaling factor
-        inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
 
         function PolytropicEulerEquations2D(gamma, kappa)
             new{typeof(gamma), typeof(kappa)}(gamma, kappa)
