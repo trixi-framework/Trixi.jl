@@ -1,10 +1,10 @@
 using OrdinaryDiffEq
 using Trixi
-using Trixi2Vtk
-
 
 ###############################################################################
-# Coupled semidiscretization of two linear advection systems, which are connected periodically
+# Coupled semidiscretization of two linear advection systems using converter functions such that
+# the upper half of the domain is coupled periodically, while the lower half is not coupled
+# and any incoming wave is completely absorbed.
 #
 # In this elixir, we have a square domain that is divided into a left half and a right half. On each
 # half of the domain, a completely independent SemidiscretizationHyperbolic is created for the
@@ -50,15 +50,19 @@ cells_per_dimension1 = cells_per_dimension
 mesh1 = StructuredMesh(cells_per_dimension1, coordinates_min1, coordinates_max1)
 
 coupling_function1 = coupling_converter_heaviside_2d(-0.5, 1.0, 1.0, equations)
+# The user can define their own coupling functions.
 # coupling_function1 = (x, u) -> (sign(x[2] - 0.0)*0.1 + 1.0)/1.1 * u
+
+boundary_conditions_x_neg1 = BoundaryConditionCoupled(2, (:end, :i_forward), Float64, coupling_function1)
+boundary_conditions_x_pos1 = BoundaryConditionCoupled(2, (:begin, :i_forward), Float64, coupling_function1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test, solver,
                                      boundary_conditions=(
                                        # Connect left boundary with right boundary of right mesh
-                                       x_neg=BoundaryConditionCoupled(2, (:end, :i_forward), Float64, coupling_function1),
+                                       x_neg=boundary_conditions_x_neg1,
                                        # Connect right boundary with left boundary of right mesh
-                                       x_pos=BoundaryConditionCoupled(2, (:begin, :i_forward),  Float64, coupling_function1),
+                                       x_pos=boundary_conditions_x_pos1,
                                        y_neg=boundary_condition_periodic,
                                        y_pos=boundary_condition_periodic))
 
@@ -74,12 +78,15 @@ mesh2 = StructuredMesh(cells_per_dimension2, coordinates_min2, coordinates_max2)
 coupling_function2 = coupling_converter_heaviside_2d(-0.5, 1.0, 1.0, equations)
 # coupling_function2 = (x, u) -> (sign(x[2] - 0.0)*0.1 + 1.0)/1.1 * u
 
+boundary_conditions_x_neg2 = BoundaryConditionCoupled(1, (:end, :i_forward), Float64, coupling_function2)
+boundary_conditions_x_pos2 = BoundaryConditionCoupled(1, (:begin, :i_forward), Float64, coupling_function2)
+
 semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test, solver,
                                      boundary_conditions=(
                                        # Connect left boundary with right boundary of left mesh
-                                       x_neg=BoundaryConditionCoupled(1, (:end, :i_forward), Float64, coupling_function2),
+                                       x_neg=boundary_conditions_x_neg2,
                                        # Connect right boundary with left boundary of left mesh
-                                       x_pos=BoundaryConditionCoupled(1, (:begin, :i_forward),  Float64, coupling_function2),
+                                       x_pos=boundary_conditions_x_pos2,
                                        y_neg=boundary_condition_periodic,
                                        y_pos=boundary_condition_periodic))
 
@@ -123,5 +130,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 # Print the timer summary
 summary_callback()
 
-# Convert the snapshot to vtk data.
-trixi2vtk("out/solution_*.h5")
