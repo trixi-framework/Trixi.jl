@@ -100,9 +100,9 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [0.0001547509861140407, 0.015637861347119624, 0.015637861347119687, 0.022024699158522523, 0.009711013505930812], 
       linf = [0.0006696415247340326, 0.03442565722527785, 0.03442565722577423, 0.06295407168705314, 0.032857472756916195]
     )
-
+  end
+  
 end
-
 # Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive=true)
 
