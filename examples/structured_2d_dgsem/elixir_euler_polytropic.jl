@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the polytropic Euler equations
 
-gamma = 1.001   # Isotropic simulation. gamma = 1.0 would lead to a singularity.
+gamma = 1.001   # Quasi-isotropic simulation. gamma = 1.0 would lead to a singularity.
 # gamma = 2.0   # Adiabatic monatomic gas in 2d.
 kappa = 1.0     # Scaling factor for the pressure.
 equations = PolytropicEulerEquations2D(gamma, kappa)
