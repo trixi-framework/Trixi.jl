@@ -24,9 +24,9 @@ function initial_condition_wave(x, t, equations::PolytropicEulerEquations2D)
 end
 initial_condition = initial_condition_wave
 
-volume_flux = flux_ranocha
-solver = DGSEM(polydeg=2, surface_flux=flux_hll,
-               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+#volume_flux = flux_ranocha
+solver = DGSEM(polydeg=2, surface_flux=flux_hll)#,
+#               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-2.0, -1.0)
 coordinates_max = ( 2.0,  1.0)
