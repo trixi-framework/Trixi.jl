@@ -81,30 +81,23 @@ mesh2 = StructuredMesh(cells_per_dimension,
                        coordinates_min2,
                        coordinates_max2)
 
+boundary_conditions_x_neg1 = BoundaryConditionCoupled(2, (:end, :i_forward), Float64)
+boundary_conditions_x_pos1 = BoundaryConditionCoupled(2, (:begin, :i_forward), Float64)
+boundary_conditions_x_neg2 = BoundaryConditionCoupled(1, (:end, :i_forward), Float64)
+boundary_conditions_x_pos2 = BoundaryConditionCoupled(1, (:begin, :i_forward), Float64)
+
 # A semidiscretization collects data structures and functions for the spatial discretization.
 semi1 = SemidiscretizationHyperbolic(mesh1, equations1,
                                      initial_condition_wave_thermal, solver,
-                                     boundary_conditions = (x_neg = BoundaryConditionCoupled(2,
-                                                                                             (:end,
-                                                                                              :i_forward),
-                                                                                             Float64),
-                                                            x_pos = BoundaryConditionCoupled(2,
-                                                                                             (:begin,
-                                                                                              :i_forward),
-                                                                                             Float64),
+                                     boundary_conditions = (x_neg = boundary_conditions_x_neg1,
+                                                            x_pos = boundary_conditions_x_pos1,
                                                             y_neg = boundary_condition_periodic,
                                                             y_pos = boundary_condition_periodic))
 
 semi2 = SemidiscretizationHyperbolic(mesh2, equations2,
                                      initial_condition_wave_polytropic, solver,
-                                     boundary_conditions = (x_neg = BoundaryConditionCoupled(1,
-                                                                                             (:end,
-                                                                                              :i_forward),
-                                                                                             Float64),
-                                                            x_pos = BoundaryConditionCoupled(1,
-                                                                                             (:begin,
-                                                                                              :i_forward),
-                                                                                             Float64),
+                                     boundary_conditions = (x_neg = boundary_conditions_x_neg2
+                                                            x_pos = boundary_conditions_x_pos2
                                                             y_neg = boundary_condition_periodic,
                                                             y_pos = boundary_condition_periodic))
 
