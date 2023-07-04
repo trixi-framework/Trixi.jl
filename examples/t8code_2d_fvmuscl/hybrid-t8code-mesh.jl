@@ -43,19 +43,19 @@ using T8code.Libt8: SC_LP_PRODUCTION
 #   scalar            :: Cdouble
 # end
 
-# function pretty_print(data :: data_per_element_t)
+function pretty_print(data)
 
-#   println("level              = ", data.level)
-#   println("volume             = ", data.volume)
-#   println("midpoint           = ", data.midpoint)
-#   println("dx                 = ", data.dx)
-#   println("num_faces          = ", data.num_faces)
-#   println("face_areas         = ", data.face_areas)
-#   println("face_normals       = ", data.face_normals)
-#   println("face_connectivity  = ", data.face_connectivity)
-#   println("scalar             = ", data.scalar)
+  println("level              = ", data.level)
+  println("volume             = ", data.volume)
+  println("midpoint           = ", data.midpoint)
+  println("dx                 = ", data.dx)
+  println("num_faces          = ", data.num_faces)
+  println("face_areas         = ", data.face_areas)
+  println("face_normals       = ", data.face_normals)
+  println("face_connectivity  = ", data.face_connectivity)
+  # println("scalar             = ", data.scalar)
 
-# end
+end
 
 # Directly ported from: `src/t8_cmesh/t8_cmesh_examples.c: t8_cmesh_new_periodic_hybrid`.
 function cmesh_new_periodic_hybrid(comm, n_dims) :: t8_cmesh_t
@@ -361,7 +361,7 @@ forest = build_forest(comm, n_dims, refinement_level)
 max_number_faces = 4
 
 number_trees = t8_forest_get_num_local_trees(forest)
-println("rank $(MPI.Comm_rank(comm)): #trees $number_trees, #elements $(t8_forest_get_global_num_elements(forest))")
+println("rank $(MPI.Comm_rank(comm)): #trees $number_trees, #elements $(t8_forest_get_local_num_elements(forest)), #ghost_elements $(t8_forest_get_num_ghosts(forest))")
 
 number_elements_global = t8_forest_get_global_num_elements(forest)
 if MPI.Comm_rank(comm) == 0
@@ -371,12 +371,6 @@ end
 mesh = T8codeMesh{n_dims}(forest, max_number_faces)
 
 # t8_forest_unref(Ref(forest))
-
-# if MPI.Comm_rank(comm) == 0
-#   println("")
-#   pretty_print(element_data[42])
-#   println("")
-# end
 
 ####################################################
 
@@ -398,7 +392,8 @@ solver = FVMuscl()
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 if MPI.Comm_rank(comm) == 0
-    println("rank ", MPI.Comm_rank(comm), ": ")#, semi)
+    @info "" semi
+    pretty_print(semi.cache.elements.element_data[42])
 end
 
 # Output the data to vtu files.

@@ -9,38 +9,46 @@
 mutable struct T8codeElementData{NDIMS, MAX_NUM_FACES, NDIMS_MAX_NUM_FACES, T8_LOCIDX_T}
     level             :: Cint
     volume            :: Cdouble
-    midpoint          :: Vector{Cdouble} # Tuple scheint mit pointer nicht zu funktionieren? Ändern?
+    midpoint          :: NTuple{NDIMS, Cdouble}
     dx                :: Cdouble # Characteristic length (for CFL condition).
 
     num_faces         :: Cint
-    face_areas        :: Vector{Cdouble}
-    face_normals      :: Array{Cdouble}
-    face_connectivity :: Vector{T8_LOCIDX_T} # ids of the face neighbors
+    face_areas        :: NTuple{MAX_NUM_FACES, Cdouble}
+    face_normals      :: NTuple{NDIMS_MAX_NUM_FACES, Cdouble}
+    face_connectivity :: NTuple{MAX_NUM_FACES, T8_LOCIDX_T} # ids of the face neighbors
+
+    function T8codeElementData(max_num_faces, level, volume, midpoint, dx, num_faces, face_areas,
+                               face_normals, face_connectivity)
+        n_dims = length(midpoint)
+        new{n_dims, max_num_faces, n_dims * max_num_faces,
+            eltype(face_connectivity)}(level, volume, midpoint, dx, num_faces, face_areas,
+                                       face_normals, face_connectivity)
+    end
 end
 
-function T8codeElementData(mesh, RealT, uEltype, t8_locidx_t)
-    n_dims = ndims(mesh)
-    @unpack max_number_faces = mesh
+# function T8codeElementData(mesh, RealT, uEltype, t8_locidx_t)
+#     n_dims = ndims(mesh)
+#     @unpack max_number_faces = mesh
 
-    level = typemin(Cint)
-    volume = typemin(Cdouble)
-    dx = typemin(Cdouble)
-    num_faces = typemin(Cint)
+#     level = typemin(Cint)
+#     volume = typemin(Cdouble)
+#     dx = typemin(Cdouble)
+#     num_faces = typemin(Cint)
 
-    midpoint = Vector{Cdouble}(undef, n_dims)
+#     midpoint = Vector{Cdouble}(undef, n_dims)
 
-    face_areas = Vector{Cdouble}(undef, max_number_faces)
-    face_normals = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
-    face_connectivity = Vector{t8_locidx_t}(undef, max_number_faces)
+#     face_areas = Vector{Cdouble}(undef, max_number_faces)
+#     face_normals = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
+#     face_connectivity = Vector{t8_locidx_t}(undef, max_number_faces)
 
-    T8codeElementData{n_dims, max_number_faces,
-                      3 * max_number_faces,
-                      t8_locidx_t}(level, volume,
-                                   midpoint, #= Ich kann hier kein Tuple nutzen, da sonst pointer(midpoint) nichts funktioniert.=#dx,
-                                   num_faces, face_areas, # kein Tuple möglich wegen setindex! (?)
-                                   face_normals[1:3,:], face_connectivity, # kein Tuple möglich bei .= -1, und getindex()
-                                   )
-end
+#     T8codeElementData{n_dims, max_number_faces,
+#                       3 * max_number_faces,
+#                       t8_locidx_t}(level, volume,
+#                                    Tuple(midpoint), #= Ich kann hier kein Tuple nutzen, da sonst pointer(midpoint) nichts funktioniert.=#dx,
+#                                    num_faces, face_areas, # kein Tuple möglich wegen setindex! (?)
+#                                    face_normals[1:3,:], face_connectivity, # kein Tuple möglich bei .= -1, und getindex()
+#                                    )
+# end
 
 @inline Base.ndims(::T8codeElementData{NDIMS}) where {NDIMS} = NDIMS
 
@@ -48,22 +56,26 @@ end
 # Container data structure (structure-of-arrays style) for DG elements
 mutable struct T8codeElementContainer{ElementData} <: AbstractContainer
     element_data::Vector{ElementData} # [element_idx]
-end
 
-function T8codeElementContainer(mesh, NDIMS, RealT, uEltype, T8_LOCIDX_T)
-    # Get the number of local and ghost elements of forest.
-    num_local_elements = t8_forest_get_local_num_elements(mesh.forest)
-    num_ghost_elements = t8_forest_get_num_ghosts(mesh.forest)
-    n_elements = num_local_elements + num_ghost_elements
-
-    data = T8codeElementData(mesh, RealT, uEltype, T8_LOCIDX_T)
-    element_data = Vector{typeof(data)}(undef, n_elements)
-    for i in 1:n_elements
-        element_data[i] = data
+    function T8codeElementContainer(element_data)
+        new{eltype(element_data)}(element_data)
     end
-
-    T8codeElementContainer{typeof(data)}(element_data)
 end
+
+# function T8codeElementContainer(mesh, NDIMS, RealT, uEltype, T8_LOCIDX_T)
+#     # Get the number of local and ghost elements of forest.
+#     num_local_elements = t8_forest_get_local_num_elements(mesh.forest)
+#     num_ghost_elements = t8_forest_get_num_ghosts(mesh.forest)
+#     n_elements = num_local_elements + num_ghost_elements
+
+#     # data = T8codeElementData(mesh, RealT, uEltype, T8_LOCIDX_T)
+#     element_data = Vector{T8codeElementData}(undef, n_elements)
+#     # for i in 1:n_elements
+#     #     element_data[i] = data
+#     # end
+
+#     T8codeElementContainer{T8codeElementData}(element_data)
+# end
 
 Base.eltype(elements::T8codeElementContainer) = eltype(elements.element_data[1].volume)
 
@@ -78,24 +90,40 @@ end
 
 function init_elements(mesh::T8codeMesh{NDIMS}, RealT, uEltype) where NDIMS
     # Initialize container
-    T8_LOCIDX_T = Int # TODO
-    elements = T8codeElementContainer(mesh, NDIMS, RealT, uEltype, T8_LOCIDX_T)
-
-    init_elements!(elements, mesh)
+    element_data = init_element_data(mesh)
 
     # Exchange the neighboring data at MPI process boundaries.
-    exchange_ghost_data(mesh, elements)
+    exchange_ghost_data(mesh, element_data)
 
-    return elements
+    elements = T8codeElementContainer(element_data)
 end
 
-function init_elements!(elements::T8codeElementContainer, mesh)
+function init_element_data(mesh)
     @unpack forest = mesh
+    # @unpack element_data = elements
     # Check that the forest is a committed.
     @assert(t8_forest_is_committed(forest) == 1)
+    n_dims = ndims(mesh)
+    @unpack max_number_faces = mesh
+
+    # Get the number of local elements of forest.
+    num_local_elements = t8_forest_get_local_num_elements(forest)
+    # Get the number of ghost elements of forest.
+    num_ghost_elements = t8_forest_get_num_ghosts(forest)
+
+    # Build an array of our data that is as long as the number of elements plus
+    # the number of ghosts.
+    element_data = Array{T8codeElementData}(undef, num_local_elements + num_ghost_elements)
 
     # Get the number of trees that have elements of this process.
     num_local_trees = t8_forest_get_num_local_trees(forest)
+
+    midpoint = Vector{Cdouble}(undef,n_dims)
+
+    face_areas = Vector{Cdouble}(undef,max_number_faces)
+    face_normals = Matrix{Cdouble}(undef,3,max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
+    face_connectivity = Vector{t8_locidx_t}(undef,max_number_faces)
+
     # Loop over all local trees in the forest.
     current_index = 0
     for itree = 0:num_local_trees-1
@@ -110,8 +138,6 @@ function init_elements!(elements::T8codeElementContainer, mesh)
             current_index += 1 # Note: Julia has 1-based indexing, while C/C++ starts with 0.
 
             element = t8_forest_get_element_in_tree(forest, itree, ielement)
-            @unpack level, volume, midpoint, dx, num_faces, face_areas, face_normals, face_connectivity = elements.element_data[current_index]
-
 
             level = t8_element_level(eclass_scheme, element)
             volume = t8_forest_element_volume(forest, itree, element)
@@ -160,10 +186,21 @@ function init_elements!(elements::T8codeElementContainer, mesh)
                 sc_free(t8_get_package_id(), neighids_ref[])
                 # [/ugly API]
             end
+
+            element_data[current_index] = T8codeElementData(max_number_faces,
+                level,
+                volume,
+                Tuple(midpoint),
+                dx,
+                num_faces,
+                Tuple(face_areas),
+                Tuple(@views(face_normals[1:2,:])),
+                Tuple(face_connectivity)
+            )
         end
     end
 
-    return nothing
+    return element_data
 end
 
 
@@ -172,10 +209,10 @@ end
 # t8_forest_ghost_exchange_data. Calling this function will fill all the ghost
 # entries of our element data array with the value on the process that owns the
 # corresponding element.
-function exchange_ghost_data(mesh, elements::T8codeElementContainer)
+function exchange_ghost_data(mesh, element_data::Vector{T8codeElementData})
     # t8_forest_ghost_exchange_data expects an sc_array (of length num_local_elements + num_ghosts).
     # We wrap our data array to an sc_array.
-    sc_array_wrapper = sc_array_new_data(pointer(elements.element_data), sizeof(elements.element_data[1]), length(elements.element_data))
+    sc_array_wrapper = sc_array_new_data(pointer(element_data), sizeof(element_data[1]), length(element_data))
 
     # Carry out the data exchange. The entries with indices > num_local_elements will get overwritten.
     t8_forest_ghost_exchange_data(mesh.forest, sc_array_wrapper)

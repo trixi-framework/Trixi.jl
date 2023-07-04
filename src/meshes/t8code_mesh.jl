@@ -32,6 +32,8 @@ end
 @inline Base.ndims(::T8codeMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
+@inline nelements_global(mesh::T8codeMesh, solver, cache) = t8_forest_get_global_num_elements(mesh.forest)
+
 function Base.show(io::IO, mesh::T8codeMesh)
     print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}")
 end
@@ -54,7 +56,7 @@ function create_cache(mesh::T8codeMesh, equations,
     return cache
 end
 
-function output_data_to_vtu(mesh, semi, prefix)
+function output_data_to_vtu(mesh::T8codeMesh, semi, prefix)
     @unpack element_data = semi.cache.elements
     n_elements = length(element_data)
 
@@ -64,7 +66,9 @@ function output_data_to_vtu(mesh, semi, prefix)
 
     # Copy the elment's volumes from our data array to the output array.
     for ielem = 1:n_elements
-        u[ielem] = semi.initial_condition(element_data[ielem].midpoint, 0.0, semi.equations)
+        @info "" ielem, semi.initial_condition, semi.equations
+        Trixi.pretty_print(element_data[ielem])
+        # u[ielem] = semi.initial_condition(element_data[ielem].midpoint, 0.0, semi.equations)
     end
 
     vtk_data = [

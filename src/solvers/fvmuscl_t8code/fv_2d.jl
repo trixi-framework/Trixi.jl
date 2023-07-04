@@ -14,7 +14,7 @@ struct FVMuscl{Limiter}
 end
 
 @inline Base.real(solver::FVMuscl) = Float64 # TODO
-@inline ndofs(mesh, solver::FVMuscl, cache) = nelements(cache.elements)
+@inline ndofs(mesh, solver::FVMuscl, cache) = nelements_global(mesh, solver, cache)
 
 @inline nelements(mesh, solver::FVMuscl, cache) = nelements(solver, cache)
 @inline nelements(solver::FVMuscl, cache) = nelements(cache.elements)
