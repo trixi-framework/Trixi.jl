@@ -762,15 +762,9 @@ end
     return λ_min, λ_max
 end
 
-"""
-    min_max_speed(u_ll, u_rr, orientation::Integer,
-                  equations::ShallowWaterEquations2D)
-
-Implements the classic 2-wave HLL solver, see the [original paper](https://epubs.siam.org/doi/abs/10.1137/1025002)
-or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
-"""
-@inline function min_max_speed(u_ll, u_rr, orientation::Integer,
-                               equations::ShallowWaterEquations2D)
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterEquations2D)
     h_ll = waterheight(u_ll, equations)
     v1_ll, v2_ll = velocity(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
@@ -790,8 +784,8 @@ or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-
     return λ_min, λ_max
 end
 
-@inline function min_max_speed(u_ll, u_rr, normal_direction::AbstractVector,
-                               equations::ShallowWaterEquations2D)
+@inline function min_max_speed_davis(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::ShallowWaterEquations2D)
     h_ll = waterheight(u_ll, equations)
     v1_ll, v2_ll = velocity(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
@@ -811,21 +805,6 @@ end
     return λ_min, λ_max
 end
 
-"""
-    min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer, 
-                           equations::ShallowWaterEquations2D)
-
-This is the generalization to SWE from the works
-- Bernd Einfeldt (1988)
-  On Godunov-type methods for gas dynamics.
-  [DOI: 10.1137/0725021](https://doi.org/10.1137/0725021)
-- Bernd Einfeldt, Claus-Dieter Munz, Philip L. Roe and Björn Sjögreen (1991)
-  On Godunov-type methods near low densities.
-  [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
-
-originally developed for the compressible Euler equations.
-A compact representation can be found in [this lecture notes, eq. (9.28)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
-"""
 @inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
                                         equations::ShallowWaterEquations2D)
     h_ll = waterheight(u_ll, equations)

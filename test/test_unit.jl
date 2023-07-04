@@ -682,8 +682,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     end                  
   end
 
-  @timed_testset "Consistency check for HLL flux" begin
-    flux_hll = FluxHLL(min_max_speed)
+  @timed_testset "Consistency check for HLL flux with Davis wave speed estimates" begin
+    flux_hll = FluxHLL(min_max_speed_davis)
 
     # Set up equations and dummy conservative variables state
     equations = CompressibleEulerEquations1D(1.4)

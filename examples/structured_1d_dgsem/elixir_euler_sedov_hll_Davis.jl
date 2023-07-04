@@ -35,7 +35,7 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
 end
 
 initial_condition = initial_condition_sedov_blast_wave
-surface_flux = flux_hll
+surface_flux = FluxHLL(min_max_speed_davis)
 volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
 shock_indicator_variable = density_pressure

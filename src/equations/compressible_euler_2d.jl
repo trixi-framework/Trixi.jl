@@ -1065,15 +1065,9 @@ end
     return λ_min, λ_max
 end
 
-"""
-    min_max_speed(u_ll, u_rr, orientation::Integer,
-                    equations::CompressibleEulerEquations2D)
-
-Implements the classic 2-wave HLL solver, see the [original paper](https://epubs.siam.org/doi/abs/10.1137/1025002)
-or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
-"""
-@inline function min_max_speed(u_ll, u_rr, orientation::Integer,
-                               equations::CompressibleEulerEquations2D)
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
+                                     equations::CompressibleEulerEquations2D)
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
@@ -1091,8 +1085,9 @@ or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-
     return λ_min, λ_max
 end
 
-@inline function min_max_speed(u_ll, u_rr, normal_direction::AbstractVector,
-                               equations::CompressibleEulerEquations2D)
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::CompressibleEulerEquations2D)
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 

@@ -146,23 +146,17 @@ end
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::LinearizedEulerEquations2D)
-    min_max_speed(u_ll, u_rr, orientation, equations)
+    min_max_speed_davis(u_ll, u_rr, orientation, equations)
 end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::LinearizedEulerEquations2D)
-    min_max_speed(u_ll, u_rr, normal_direction, equations)
+    min_max_speed_davis(u_ll, u_rr, normal_direction, equations)
 end
 
-"""
-    min_max_speed(u_ll, u_rr, orientation::Integer,
-                  equations::LinearizedEulerEquations2D)
-
-Implements the classic 2-wave HLL solver, see the [original paper](https://epubs.siam.org/doi/abs/10.1137/1025002)
-or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
-"""
-@inline function min_max_speed(u_ll, u_rr, orientation::Integer,
-                               equations::LinearizedEulerEquations2D)
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
+                                     equations::LinearizedEulerEquations2D)
     @unpack v_mean_global, c_mean_global = equations
 
     λ_min = v_mean_global[orientation] - c_mean_global
@@ -171,8 +165,8 @@ or this [lecture notes, Eq. (9.27)](https://metaphor.ethz.ch/x/2019/hs/401-4671-
     return λ_min, λ_max
 end
 
-@inline function min_max_speed(u_ll, u_rr, normal_direction::AbstractVector,
-                               equations::LinearizedEulerEquations2D)
+@inline function min_max_speed_davis(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::LinearizedEulerEquations2D)
     @unpack v_mean_global, c_mean_global = equations
 
     norm_ = norm(normal_direction)
