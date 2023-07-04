@@ -209,7 +209,8 @@ export boundary_condition_do_nothing,
        BoundaryConditionNavierStokesWall, NoSlip, Adiabatic, Isothermal,
        BoundaryConditionCoupled
 
-export coupling_converter_heaviside_2d
+export coupling_converter_identity,
+       coupling_converter_heaviside_2d, coupling_converter_linear_2d
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export source_terms_harmonic

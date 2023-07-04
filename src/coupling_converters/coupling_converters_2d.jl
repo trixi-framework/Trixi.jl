@@ -5,7 +5,6 @@
 @muladd begin
 #! format: noindent
 
-
 @doc raw"""
     Coupling converter function for a system of two LinearScalarAdvectionEquation2D.
 
