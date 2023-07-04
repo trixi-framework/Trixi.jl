@@ -48,13 +48,15 @@ cells_per_dimension1 = cells_per_dimension
 
 mesh1 = StructuredMesh(cells_per_dimension1, coordinates_min1, coordinates_max1)
 
-# A semidiscretization collects data structures and functions for the spatial discretization
+boundary_conditions_x_neg1 = BoundaryConditionCoupled(2, (:end, :i_forward), Float64, coupling_converter_identity(equations))
+boundary_conditions_x_pos1 = BoundaryConditionCoupled(2, (:begin, :i_forward), Float64, coupling_converter_identity(equations))
+
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test, solver,
                                      boundary_conditions=(
                                        # Connect left boundary with right boundary of right mesh
-                                       x_neg=BoundaryConditionCoupled(2, (:end, :i_forward), Float64),
+                                       x_neg=boundary_conditions_x_neg1,
                                        # Connect right boundary with left boundary of right mesh
-                                       x_pos=BoundaryConditionCoupled(2, (:begin, :i_forward),  Float64),
+                                       x_pos=boundary_conditions_x_pos1,
                                        y_neg=boundary_condition_periodic,
                                        y_pos=boundary_condition_periodic))
 
@@ -67,12 +69,15 @@ cells_per_dimension2 = cells_per_dimension
 
 mesh2 = StructuredMesh(cells_per_dimension2, coordinates_min2, coordinates_max2)
 
+boundary_conditions_x_neg2 = BoundaryConditionCoupled(1, (:end, :i_forward), Float64, coupling_converter_identity(equations))
+boundary_conditions_x_pos2 = BoundaryConditionCoupled(1, (:begin, :i_forward), Float64, coupling_converter_identity(equations))
+
 semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test, solver,
                                      boundary_conditions=(
                                        # Connect left boundary with right boundary of left mesh
-                                       x_neg=BoundaryConditionCoupled(1, (:end, :i_forward), Float64),
+                                       x_neg=boundary_conditions_x_neg2,
                                        # Connect right boundary with left boundary of left mesh
-                                       x_pos=BoundaryConditionCoupled(1, (:begin, :i_forward),  Float64),
+                                       x_pos=boundary_conditions_x_pos2,
                                        y_neg=boundary_condition_periodic,
                                        y_pos=boundary_condition_periodic))
 
