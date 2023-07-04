@@ -68,6 +68,50 @@
         return SVector(f1, f2, f3)
     end
 
+
+    """
+    flux_winters_etal(u_ll, u_rr, normal_direction,
+                      equations::PolytropicEulerEquations2D)
+
+    Entropy conserving two-point flux for isothermal or polytropic gases.
+    Requires a special weighted Stolarsky mean for the evaluation of the density
+    denoted here as `stolarsky_mean`. Note, for isothermal gases where `gamma = 1`
+    this `stolarsky_mean` becomes the [`ln_mean`](@ref).
+
+    For details see Section 3.2 of the following reference
+    - Andrew R. Winters, Christof Czernik, Moritz B. Schily & Gregor J. Gassner (2020)
+    Entropy stable numerical approximations for the isothermal and polytropic
+    Euler equations
+    [DOI: 10.1007/s10543-019-00789-w](https://doi.org/10.1007/s10543-019-00789-w)
+    """
+    @inline function flux_winters_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                       equations::PolytropicEulerEquations2D)
+        # Unpack left and right state
+        rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
+        rho_rr, v1_rr, v2_rr = cons2prim(u_rr, equations)
+        p_ll = equations.kappa * rho_ll^equations.gamma
+        p_rr = equations.kappa * rho_rr^equations.gamma
+        v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+        v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+        # Compute the necessary mean values
+        if equations.gamma == 1.0 # isothermal gas
+            rho_mean = ln_mean(rho_ll, rho_rr)
+        else # equations.gamma > 1 # polytropic gas
+            rho_mean = stolarsky_mean(rho_ll, rho_rr, equations.gamma)
+        end
+        v1_avg = 0.5 * (v1_ll + v1_rr)
+        v2_avg = 0.5 * (v2_ll + v2_rr)
+        p_avg = 0.5 * (p_ll + p_rr)
+
+        # Calculate fluxes depending on normal_direction
+        f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
+        f2 = f1 * v1_avg + p_avg * normal_direction[1]
+        f3 = f1 * v2_avg + p_avg * normal_direction[2]
+
+        return SVector(f1, f2, f3)
+    end
+
     @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                          equations::PolytropicEulerEquations2D)
         rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
@@ -111,13 +155,16 @@
         v2 = rho_v2 / rho
         v_square = v1^2 + v2^2
         p = pressure(u, equations)
-        s = rho / 2 * v_square +
-            rho * equations.kappa * rho^(equations.gamma - 1) / (equations.gamma - 1)
-        rho_p = rho / p
+        # Form of the internal energy depends on gas type
+        if equations.gamma == 1.0 # isothermal gas
+            internal_energy = equations.kappa * log(rho)
+        else # equations.gamma > 1 # polytropic gas
+            internal_energy = equations.kappa * rho^equations.gamma / (equations.gamma - 1.0)
+        end
 
-        w1 = (equations.gamma - s) * (equations.gamma - 1) - 0.5 * rho_p * v_square
-        w2 = rho_p * v1
-        w3 = rho_p * v2
+        w1 = internal_energy + p / rho - 0.5 * v_square
+        w2 = v1
+        w3 = v2
 
         return SVector(w1, w2, w3)
     end
