@@ -100,15 +100,12 @@ function calc_gradient!(gradients, u_transformed, t,
                                   Ja23 * gradients_reference_2 +
                                   Ja33 * gradients_reference_3
 
-                set_node_vars!(gradients_x, gradient_x_node, equations_parabolic, dg, i, j,
-                               k,
-                               element)
-                set_node_vars!(gradients_y, gradient_y_node, equations_parabolic, dg, i, j,
-                               k,
-                               element)
-                set_node_vars!(gradients_z, gradient_z_node, equations_parabolic, dg, i, j,
-                               k,
-                               element)
+                set_node_vars!(gradients_x, gradient_x_node, equations_parabolic, dg,
+                               i, j, k, element)
+                set_node_vars!(gradients_y, gradient_y_node, equations_parabolic, dg,
+                               i, j, k, element)
+                set_node_vars!(gradients_z, gradient_z_node, equations_parabolic, dg,
+                               i, j, k, element)
             end
         end
     end
