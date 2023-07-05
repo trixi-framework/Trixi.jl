@@ -193,9 +193,9 @@ end
 function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, number_bounds, bar_states)
     container_subcell_limiter = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
-                                                                            }(0,
-                                                                              nnodes(basis),
-                                                                              number_bounds)
+                                                                   }(0,
+                                                                     nnodes(basis),
+                                                                     number_bounds)
 
     cache = (;)
     if bar_states
@@ -210,7 +210,8 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
     return (; cache..., container_subcell_limiter, idp_bounds_delta)
 end
 
-function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t, dt;
+function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
+                                      dt;
                                       kwargs...)
     @unpack alpha = limiter.cache.container_subcell_limiter
     alpha .= zero(eltype(alpha))
@@ -852,7 +853,7 @@ end
     end
 
     # Newton iterations
-    for iter in 1:limiter.max_iterations_newton
+    for iter in 1:(limiter.max_iterations_newton)
         beta_old = beta
 
         # If the state is valid, evaluate d(goal)/d(beta)
@@ -932,9 +933,9 @@ end
 function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, PressurePositivityLimiterKuzmin)
     container_subcell_limiter = Trixi.ContainerSubcellLimiterMCL2D{real(basis)
-                                                                            }(0,
-                                                                              nvariables(equations),
-                                                                              nnodes(basis))
+                                                                   }(0,
+                                                                     nvariables(equations),
+                                                                     nnodes(basis))
     container_bar_states = Trixi.ContainerBarStates{real(basis)}(0,
                                                                  nvariables(equations),
                                                                  nnodes(basis))
