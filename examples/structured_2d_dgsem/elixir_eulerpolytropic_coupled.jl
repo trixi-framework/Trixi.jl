@@ -58,7 +58,7 @@ kappa2 = 1.0
 equations2 = PolytropicEulerEquations2D(gamma2, kappa2)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-volume_flux = flux_ranocha
+volume_flux = flux_winters_etal
 solver = DGSEM(polydeg = 2, surface_flux = flux_hll,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
@@ -83,7 +83,7 @@ boundary_conditions_x_pos2 = BoundaryConditionCoupled(1, (:begin, :i_forward), F
 
 # A semidiscretization collects data structures and functions for the spatial discretization.
 semi1 = SemidiscretizationHyperbolic(mesh1, equations1,
-                                     initial_condition_wave_thermal, solver,
+                                     initial_condition_wave_isothermal, solver,
                                      boundary_conditions = (x_neg = boundary_conditions_x_neg1,
                                                             x_pos = boundary_conditions_x_pos1,
                                                             y_neg = boundary_condition_periodic,
@@ -91,8 +91,8 @@ semi1 = SemidiscretizationHyperbolic(mesh1, equations1,
 
 semi2 = SemidiscretizationHyperbolic(mesh2, equations2,
                                      initial_condition_wave_polytropic, solver,
-                                     boundary_conditions = (x_neg = boundary_conditions_x_neg2
-                                                            x_pos = boundary_conditions_x_pos2
+                                     boundary_conditions = (x_neg = boundary_conditions_x_neg2,
+                                                            x_pos = boundary_conditions_x_pos2,
                                                             y_neg = boundary_condition_periodic,
                                                             y_pos = boundary_condition_periodic))
 
@@ -103,7 +103,7 @@ semi = SemidiscretizationCoupled(semi1, semi2)
 # ODE solvers, callbacks etc.
 
 # Create ODE problem
-ode = semidiscretize(semi, (0.0, 3.0))
+ode = semidiscretize(semi, (0.0, 1.0))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
