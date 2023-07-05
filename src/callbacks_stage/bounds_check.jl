@@ -8,9 +8,9 @@
 """
     BoundsCheckCallback(; output_directory="out", save_errors=false, interval=1)
 
-Bounds checking routine for `IndicatorIDP` and `IndicatorMCL`. Applied as a stage callback for
-SSPRK methods. If `save_errors` is `true`, the resulting deviations are saved in
-`output_directory/deviations.txt` for every `interval` time steps.
+Bounds checking routine for [`SubcellLimiterIDP`](@ref) and [`SubcellLimiterMCL`](@ref). Applied
+as a stage callback for SSPRK methods. If `save_errors` is `true`, the resulting deviations are
+saved in `output_directory/deviations.txt` for every `interval` time steps.
 """
 struct BoundsCheckCallback
     output_directory::String
@@ -51,7 +51,7 @@ end
 function check_bounds(u, mesh, equations, solver, cache,
                       volume_integral::VolumeIntegralSubcellLimiting,
                       t, iter, output_directory, save_errors, interval)
-    check_bounds(u, mesh, equations, solver, cache, volume_integral.indicator, t, iter,
+    check_bounds(u, mesh, equations, solver, cache, volume_integral.limiter, t, iter,
                  output_directory, save_errors, interval)
 end
 
@@ -62,15 +62,15 @@ end
 init_callback(callback, semi, volume_integral::AbstractVolumeIntegral) = nothing
 
 function init_callback(callback, semi, volume_integral::VolumeIntegralSubcellLimiting)
-    init_callback(callback, semi, volume_integral.indicator)
+    init_callback(callback, semi, volume_integral.limiter)
 end
 
-function init_callback(callback::BoundsCheckCallback, semi, indicator::IndicatorIDP)
+function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimiterIDP)
     if !callback.save_errors || (callback.interval == 0)
         return nothing
     end
 
-    @unpack local_minmax, positivity, spec_entropy, math_entropy = indicator
+    @unpack local_minmax, positivity, spec_entropy, math_entropy = limiter
     @unpack output_directory = callback
     variables = varnames(cons2cons, semi.equations)
 
@@ -78,7 +78,7 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
     open("$output_directory/deviations.txt", "a") do f
         print(f, "# iter, simu_time")
         if local_minmax
-            for index in indicator.local_minmax_variables_cons
+            for index in limiter.local_minmax_variables_cons
                 print(f, ", $(variables[index])_min, $(variables[index])_max")
             end
         end
@@ -89,13 +89,13 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
             print(f, ", mathEntr_max")
         end
         if positivity
-            for index in indicator.positivity_variables_cons
-                if index in indicator.local_minmax_variables_cons
+            for index in limiter.positivity_variables_cons
+                if index in limiter.local_minmax_variables_cons
                     continue
                 end
                 print(f, ", $(variables[index])_min")
             end
-            for variable in indicator.positivity_variables_nonlinear
+            for variable in limiter.positivity_variables_nonlinear
                 print(f, ", $(variable)_min")
             end
         end
@@ -105,7 +105,7 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
     return nothing
 end
 
-function init_callback(callback::BoundsCheckCallback, semi, indicator::IndicatorMCL)
+function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimiterMCL)
     if !callback.save_errors || (callback.interval == 0)
         return nothing
     end
@@ -115,7 +115,7 @@ function init_callback(callback::BoundsCheckCallback, semi, indicator::Indicator
     open("$output_directory/deviations.txt", "a") do f
         print(f, "# iter, simu_time",
               join(", $(v)_min, $(v)_max" for v in varnames(cons2cons, semi.equations)))
-        if indicator.PressurePositivityLimiterKuzmin
+        if limiter.PressurePositivityLimiterKuzmin
             print(f, ", pressure_min")
         end
         # No check for entropy limiting rn
@@ -133,13 +133,13 @@ finalize_callback(callback, semi, volume_integral::AbstractVolumeIntegral) = not
 
 function finalize_callback(callback, semi,
                            volume_integral::VolumeIntegralSubcellLimiting)
-    finalize_callback(callback, semi, volume_integral.indicator)
+    finalize_callback(callback, semi, volume_integral.limiter)
 end
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
-                                   indicator::IndicatorIDP)
-    @unpack local_minmax, positivity, spec_entropy, math_entropy = indicator
-    @unpack idp_bounds_delta = indicator.cache
+                                   limiter::SubcellLimiterIDP)
+    @unpack local_minmax, positivity, spec_entropy, math_entropy = limiter
+    @unpack idp_bounds_delta = limiter.cache
     variables = varnames(cons2cons, semi.equations)
 
     println("─"^100)
@@ -147,7 +147,7 @@ end
     println("─"^100)
     counter = 1
     if local_minmax
-        for index in indicator.local_minmax_variables_cons
+        for index in limiter.local_minmax_variables_cons
             println("$(variables[index]):")
             println("-lower bound: ", idp_bounds_delta[counter])
             println("-upper bound: ", idp_bounds_delta[counter + 1])
@@ -163,14 +163,14 @@ end
         counter += 1
     end
     if positivity
-        for index in indicator.positivity_variables_cons
-            if index in indicator.local_minmax_variables_cons
+        for index in limiter.positivity_variables_cons
+            if index in limiter.local_minmax_variables_cons
                 continue
             end
             println("$(variables[index]):\n- positivity: ", idp_bounds_delta[counter])
             counter += 1
         end
-        for variable in indicator.positivity_variables_nonlinear
+        for variable in limiter.positivity_variables_nonlinear
             println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
             counter += 1
         end
@@ -181,8 +181,8 @@ end
 end
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
-                                   indicator::IndicatorMCL)
-    @unpack idp_bounds_delta = indicator.cache
+                                   limiter::SubcellLimiterMCL)
+    @unpack idp_bounds_delta = limiter.cache
 
     println("─"^100)
     println("Maximum deviation from bounds:")
@@ -192,7 +192,7 @@ end
         println(variables[v], ":\n- lower bound: ", idp_bounds_delta[1, v],
                 "\n- upper bound: ", idp_bounds_delta[2, v])
     end
-    if indicator.PressurePositivityLimiterKuzmin
+    if limiter.PressurePositivityLimiterKuzmin
         println("pressure:\n- lower bound: ",
                 idp_bounds_delta[1, nvariables(semi.equations) + 1])
     end

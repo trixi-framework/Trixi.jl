@@ -8,11 +8,12 @@
 """
     LimitingAnalysisCallback(; output_directory="out", interval=1)
 
-Analyze the subcell blending coefficient of IDP limiting (`IndicatorIDP`) and monolithic convex
-limiting (MCL) (`IndicatorMCL`) in the last RK stage of every `interval` time steps. This contains
-a volume-weighted average of the node coefficients. For MCL, the node coefficients are calculated
-using either the minimum or the mean of the adjacent subcell interfaces. The results are saved in
-`alphas.txt` (for IDP limiting), `alpha_min.txt` and `alphas_mean.txt` (for MCL) in `output_directory`.
+Analyze the subcell blending coefficient of IDP limiting ([`SubcellLimiterIDP`](@ref)) and
+monolithic convex limiting (MCL) ([`SubcellLimiterMCL`](@ref)) in the last RK stage of every
+`interval` time steps. This contains a volume-weighted average of the node coefficients. For MCL,
+the node coefficients are calculated using either the minimum or the mean of the adjacent subcell
+interfaces. The results are saved in `alphas.txt` (for IDP limiting), `alpha_min.txt` and
+`alphas_mean.txt` (for MCL) in `output_directory`.
 """
 struct LimitingAnalysisCallback
     output_directory::String
@@ -61,14 +62,14 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t, integra
                                                                             Affect! <:
                                                                             LimitingAnalysisCallback
                                                                             }
-    initialize!(cb, u_ode, t, integrator, volume_integral.indicator,
+    initialize!(cb, u_ode, t, integrator, volume_integral.limiter,
                 cb.affect!.output_directory)
 
     return nothing
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t, integrator,
-                     indicator::IndicatorIDP,
+                     limiter::SubcellLimiterIDP,
                      output_directory) where {Condition,
                                               Affect! <: LimitingAnalysisCallback}
     mkpath(output_directory)
@@ -80,7 +81,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t, integra
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t, integrator,
-                     indicator::IndicatorMCL,
+                     limiter::SubcellLimiterMCL,
                      output_directory) where {Condition,
                                               Affect! <: LimitingAnalysisCallback}
     vars = varnames(cons2cons, integrator.p.equations)
@@ -90,10 +91,10 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t, integra
         open("$output_directory/$file", "a") do f
             print(f, "# iter, simu_time",
                   join(", alpha_min_$v, alpha_avg_$v" for v in vars))
-            if indicator.PressurePositivityLimiterKuzmin
+            if limiter.PressurePositivityLimiterKuzmin
                 print(f, ", alpha_min_pressure, alpha_avg_pressure")
             end
-            if indicator.SemiDiscEntropyLimiter
+            if limiter.SemiDiscEntropyLimiter
                 print(f, ", alpha_min_entropy, alpha_avg_entropy")
             end
             println(f)
@@ -132,19 +133,19 @@ end
                                                                                   equations,
                                                                                   solver,
                                                                                   cache,
-                                                                                  volume_integral.indicator,
+                                                                                  volume_integral.limiter,
                                                                                   t,
                                                                                   iter)
 end
 
 @inline function (limiting_analysis_callback::LimitingAnalysisCallback)(mesh, equations,
                                                                         dg, cache,
-                                                                        indicator::IndicatorIDP,
+                                                                        limiter::SubcellLimiterIDP,
                                                                         time, iter)
     @unpack output_directory = limiting_analysis_callback
-    @unpack alpha = indicator.cache.container_shock_capturing
+    @unpack alpha = limiter.cache.container_subcell_limiter
 
-    alpha_avg = analyze_coefficient_IDP(mesh, equations, dg, cache, indicator)
+    alpha_avg = analyze_coefficient_IDP(mesh, equations, dg, cache, limiter)
 
     open("$output_directory/alphas.txt", "a") do f
         println(f, iter, ", ", time, ", ", maximum(alpha), ", ", alpha_avg)
@@ -153,17 +154,17 @@ end
 
 @inline function (limiting_analysis_callback::LimitingAnalysisCallback)(mesh, equations,
                                                                         dg, cache,
-                                                                        indicator::IndicatorMCL,
+                                                                        limiter::SubcellLimiterMCL,
                                                                         time, iter)
     @unpack output_directory = limiting_analysis_callback
     @unpack weights = dg.basis
     @unpack alpha, alpha_pressure, alpha_entropy,
-    alpha_mean, alpha_mean_pressure, alpha_mean_entropy = indicator.cache.container_shock_capturing
+    alpha_mean, alpha_mean_pressure, alpha_mean_entropy = limiter.cache.container_subcell_limiter
 
     n_vars = nvariables(equations)
 
     alpha_min_avg, alpha_mean_avg = analyze_coefficient_MCL(mesh, equations, dg, cache,
-                                                            indicator)
+                                                            limiter)
 
     open("$output_directory/alphas_min.txt", "a") do f
         print(f, iter, ", ", time)
@@ -171,11 +172,11 @@ end
             print(f, ", ", minimum(view(alpha, v, ntuple(_ -> :, n_vars - 1)...)))
             print(f, ", ", alpha_min_avg[v])
         end
-        if indicator.PressurePositivityLimiterKuzmin
+        if limiter.PressurePositivityLimiterKuzmin
             print(f, ", ", minimum(alpha_pressure), ", ", alpha_min_avg[n_vars + 1])
         end
-        if indicator.SemiDiscEntropyLimiter
-            k = n_vars + indicator.PressurePositivityLimiterKuzmin + 1
+        if limiter.SemiDiscEntropyLimiter
+            k = n_vars + limiter.PressurePositivityLimiterKuzmin + 1
             print(f, ", ", minimum(alpha_entropy), ", ", alpha_min_avg[k])
         end
         println(f)
@@ -186,12 +187,12 @@ end
             print(f, ", ", minimum(view(alpha_mean, v, ntuple(_ -> :, n_vars - 1)...)))
             print(f, ", ", alpha_mean_avg[v])
         end
-        if indicator.PressurePositivityLimiterKuzmin
+        if limiter.PressurePositivityLimiterKuzmin
             print(f, ", ", minimum(alpha_mean_pressure), ", ",
                   alpha_mean_avg[n_vars + 1])
         end
-        if indicator.SemiDiscEntropyLimiter
-            k = n_vars + indicator.PressurePositivityLimiterKuzmin + 1
+        if limiter.SemiDiscEntropyLimiter
+            k = n_vars + limiter.PressurePositivityLimiterKuzmin + 1
             print(f, ", ", minimum(alpha_mean_entropy), ", ", alpha_mean_avg[k])
         end
         println(f)

@@ -98,12 +98,12 @@ end
 @inline function max_dt(u, t, mesh,
                         constant_speed, equations, semi, solver, cache,
                         volume_integral::VolumeIntegralSubcellLimiting)
-    @unpack indicator = volume_integral
-    if indicator isa IndicatorIDP && !indicator.bar_states
+    @unpack limiter = volume_integral
+    if limiter isa SubcellLimiterIDP && !limiter.bar_states
         return max_dt(u, t, mesh, constant_speed, equations, solver, cache)
     else
         return max_dt(u, t, mesh, constant_speed, equations, semi, solver, cache,
-                      indicator)
+                      limiter)
     end
 end
 

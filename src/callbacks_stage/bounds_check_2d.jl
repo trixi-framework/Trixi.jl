@@ -6,11 +6,11 @@
 #! format: noindent
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
-                              indicator::IndicatorIDP,
+                              limiter::SubcellLimiterIDP,
                               time, iter, output_directory, save_errors, interval)
-    @unpack local_minmax, positivity, spec_entropy, math_entropy = solver.volume_integral.indicator
-    @unpack variable_bounds = indicator.cache.container_shock_capturing
-    @unpack idp_bounds_delta = indicator.cache
+    @unpack local_minmax, positivity, spec_entropy, math_entropy = solver.volume_integral.limiter
+    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+    @unpack idp_bounds_delta = limiter.cache
 
     save_errors_ = save_errors && (iter % interval == 0)
     counter = 1
@@ -20,7 +20,7 @@
         end
     end
     if local_minmax
-        for index in indicator.local_minmax_variables_cons
+        for index in limiter.local_minmax_variables_cons
             deviation_min = zero(eltype(u))
             deviation_max = zero(eltype(u))
             for element in eachelement(solver, cache), j in eachnode(solver),
@@ -85,8 +85,8 @@
         counter += 1
     end
     if positivity
-        for index in indicator.positivity_variables_cons
-            if (index in indicator.local_minmax_variables_cons)
+        for index in limiter.positivity_variables_cons
+            if index in limiter.local_minmax_variables_cons
                 continue
             end
             deviation_min = zero(eltype(u))
@@ -106,7 +106,7 @@
                 counter += 1
             end
         end
-        for variable in indicator.positivity_variables_nonlinear
+        for variable in limiter.positivity_variables_nonlinear
             deviation_min = zero(eltype(u))
             for element in eachelement(solver, cache), j in eachnode(solver),
                 i in eachnode(solver)
@@ -136,19 +136,19 @@
 end
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
-                              indicator::IndicatorMCL,
+                              limiter::SubcellLimiterMCL,
                               time, iter, output_directory, save_errors, interval)
-    @unpack var_min, var_max = indicator.cache.container_shock_capturing
-    @unpack bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.container_bar_states
-    @unpack idp_bounds_delta = solver.volume_integral.indicator.cache
+    @unpack var_min, var_max = limiter.cache.container_subcell_limiter
+    @unpack bar_states1, bar_states2, lambda1, lambda2 = limiter.cache.container_bar_states
+    @unpack idp_bounds_delta = limiter.cache
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
 
     n_vars = nvariables(equations)
 
-    deviation_min = zeros(eltype(u), n_vars + indicator.PressurePositivityLimiterKuzmin)
+    deviation_min = zeros(eltype(u), n_vars + limiter.PressurePositivityLimiterKuzmin)
     deviation_max = zeros(eltype(u), n_vars)
 
-    if indicator.DensityLimiter
+    if limiter.DensityLimiter
         # New solution u^{n+1}
         for element in eachelement(solver, cache)
             for j in eachnode(solver), i in eachnode(solver)
@@ -199,9 +199,9 @@ end
                                        rho_limited - var_max[1, i, j, element])
             end
         end
-    end # indicator.DensityLimiter
+    end # limiter.DensityLimiter
 
-    if indicator.SequentialLimiter
+    if limiter.SequentialLimiter
         # New solution u^{n+1}
         for element in eachelement(solver, cache)
             for j in eachnode(solver), i in eachnode(solver)
@@ -212,7 +212,7 @@ end
                     deviation_max[v] = max(deviation_max[v],
                                            var_limited - var_max[v, i, j, element])
                 end
-                if indicator.PressurePositivityLimiterKuzmin
+                if limiter.PressurePositivityLimiterKuzmin
                     error_pressure = 0.5 *
                                      (u[2, i, j, element]^2 + u[3, i, j, element]^2) -
                                      u[1, i, j, element] * u[4, i, j, element]
@@ -246,11 +246,11 @@ end
                     deviation_max[v] = max(deviation_max[v],
                                            var_limited / rho_limited -
                                            var_max[v, i, j, element])
-                    if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if indicator.PressurePositivityLimiterKuzmin
+                if limiter.PressurePositivityLimiterKuzmin
                     error_pressure -= var_limited * rho_limited
                     deviation_min[n_vars + 1] = max(deviation_min[n_vars + 1],
                                                     error_pressure)
@@ -270,11 +270,11 @@ end
                     deviation_max[v] = max(deviation_max[v],
                                            var_limited / rho_limited -
                                            var_max[v, i, j, element])
-                    if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if indicator.PressurePositivityLimiterKuzmin
+                if limiter.PressurePositivityLimiterKuzmin
                     error_pressure -= var_limited * rho_limited
                     deviation_min[n_vars + 1] = max(deviation_min[n_vars + 1],
                                                     error_pressure)
@@ -294,11 +294,11 @@ end
                     deviation_max[v] = max(deviation_max[v],
                                            var_limited / rho_limited -
                                            var_max[v, i, j, element])
-                    if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if indicator.PressurePositivityLimiterKuzmin
+                if limiter.PressurePositivityLimiterKuzmin
                     error_pressure -= var_limited * rho_limited
                     deviation_min[n_vars + 1] = max(deviation_min[n_vars + 1],
                                                     error_pressure)
@@ -318,11 +318,11 @@ end
                     deviation_max[v] = max(deviation_max[v],
                                            var_limited / rho_limited -
                                            var_max[v, i, j, element])
-                    if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if indicator.PressurePositivityLimiterKuzmin
+                if limiter.PressurePositivityLimiterKuzmin
                     error_pressure -= var_limited * rho_limited
                     deviation_min[n_vars + 1] = max(deviation_min[n_vars + 1],
                                                     error_pressure)
@@ -330,7 +330,7 @@ end
                 end
             end
         end
-    elseif indicator.ConservativeLimiter
+    elseif limiter.ConservativeLimiter
         # New solution u^{n+1}
         for element in eachelement(solver, cache)
             for j in eachnode(solver), i in eachnode(solver)
@@ -342,7 +342,7 @@ end
                                            u[v, i, j, element] -
                                            var_max[v, i, j, element])
                 end
-                if indicator.PressurePositivityLimiterKuzmin
+                if limiter.PressurePositivityLimiterKuzmin
                     error_pressure = 0.5 *
                                      (u[2, i, j, element]^2 + u[3, i, j, element]^2) -
                                      u[1, i, j, element] * u[4, i, j, element]
@@ -374,11 +374,11 @@ end
                                            var_min[v, i, j, element] - var_limited)
                     deviation_max[v] = max(deviation_max[v],
                                            var_limited - var_max[v, i, j, element])
-                    if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if indicator.PressurePositivityLimiterKuzmin
+                if limiter.PressurePositivityLimiterKuzmin
                     error_pressure -= var_limited * rho_limited
                     deviation_min[n_vars + 1] = max(deviation_min[n_vars + 1],
                                                     error_pressure)
@@ -396,11 +396,11 @@ end
                                            var_min[v, i, j, element] - var_limited)
                     deviation_max[v] = max(deviation_max[v],
                                            var_limited - var_max[v, i, j, element])
-                    if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if indicator.PressurePositivityLimiterKuzmin
+                if limiter.PressurePositivityLimiterKuzmin
                     error_pressure -= var_limited * rho_limited
                     deviation_min[n_vars + 1] = max(deviation_min[n_vars + 1],
                                                     error_pressure)
@@ -418,11 +418,11 @@ end
                                            var_min[v, i, j, element] - var_limited)
                     deviation_max[v] = max(deviation_max[v],
                                            var_limited - var_max[v, i, j, element])
-                    if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if indicator.PressurePositivityLimiterKuzmin
+                if limiter.PressurePositivityLimiterKuzmin
                     error_pressure -= var_limited * rho_limited
                     deviation_min[n_vars + 1] = max(deviation_min[n_vars + 1],
                                                     error_pressure)
@@ -440,11 +440,11 @@ end
                                            var_min[v, i, j, element] - var_limited)
                     deviation_max[v] = max(deviation_max[v],
                                            var_limited - var_max[v, i, j, element])
-                    if indicator.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if indicator.PressurePositivityLimiterKuzmin
+                if limiter.PressurePositivityLimiterKuzmin
                     error_pressure -= var_limited * rho_limited
                     deviation_min[n_vars + 1] = max(deviation_min[n_vars + 1],
                                                     error_pressure)
@@ -452,7 +452,7 @@ end
                 end
             end
         end
-    elseif indicator.PressurePositivityLimiterKuzmin
+    elseif limiter.PressurePositivityLimiterKuzmin
         # New solution u^{n+1}
         for element in eachelement(solver, cache)
             for j in eachnode(solver), i in eachnode(solver)
@@ -539,9 +539,9 @@ end
                                                 error_pressure)
             end
         end
-    end # indicator.PressurePositivityLimiterKuzmin
+    end # limiter.PressurePositivityLimiterKuzmin
 
-    if indicator.DensityPositivityLimiter
+    if limiter.DensityPositivityLimiter
         # New solution u^{n+1}
         for element in eachelement(solver, cache)
             for j in eachnode(solver), i in eachnode(solver)
@@ -550,7 +550,7 @@ end
         end
 
         # Limited bar states \bar{u}^{Lim} = \bar{u} + Δf^{Lim} / λ
-        beta = indicator.DensityPositivityCorrectionFactor
+        beta = limiter.DensityPositivityCorrectionFactor
         # Checking the bounds for...
         # - density (rho):
         #   beta * \bar{rho} <= \bar{rho}^{Lim}
@@ -578,13 +578,13 @@ end
                 deviation_min[1] = max(deviation_min[1], -rho_limited)
             end
         end
-    end # indicator.DensityPositivityLimiter
+    end # limiter.DensityPositivityLimiter
 
     for v in eachvariable(equations)
         idp_bounds_delta[1, v] = max(idp_bounds_delta[1, v], deviation_min[v])
         idp_bounds_delta[2, v] = max(idp_bounds_delta[2, v], deviation_max[v])
     end
-    if indicator.PressurePositivityLimiterKuzmin
+    if limiter.PressurePositivityLimiterKuzmin
         idp_bounds_delta[1, n_vars + 1] = max(idp_bounds_delta[1, n_vars + 1],
                                               deviation_min[n_vars + 1])
     end
@@ -597,7 +597,7 @@ end
         for v in eachvariable(equations)
             print(f, ", ", deviation_min[v], ", ", deviation_max[v])
         end
-        if indicator.PressurePositivityLimiterKuzmin
+        if limiter.PressurePositivityLimiterKuzmin
             print(f, ", ", deviation_min[n_vars + 1])
         end
         println(f)

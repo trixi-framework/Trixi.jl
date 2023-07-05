@@ -45,24 +45,24 @@ end
 
 @inline function max_dt(u, t, mesh::Union{TreeMesh, StructuredMesh},
                         constant_speed::False, equations, semi, dg::DG, cache,
-                        indicator::Union{IndicatorIDP, IndicatorMCL})
+                        limiter::Union{SubcellLimiterIDP, SubcellLimiterMCL})
     @unpack inverse_weights = dg.basis
     @trixi_timeit timer() "calc_lambda!" calc_lambdas_bar_states!(u, t, mesh,
                                                                   have_nonconservative_terms(equations),
                                                                   equations,
-                                                                  indicator, dg, cache,
+                                                                  limiter, dg, cache,
                                                                   semi.boundary_conditions;
                                                                   calc_bar_states = false)
-    @unpack lambda1, lambda2 = indicator.cache.container_bar_states
+    @unpack lambda1, lambda2 = limiter.cache.container_bar_states
 
     maxdt = typemax(eltype(u))
-    if indicator.smoothness_indicator
+    if limiter.smoothness_indicator
         @unpack element_ids_dg, element_ids_dgfv = cache
-        alpha_element = @trixi_timeit timer() "element-wise blending factors" indicator.IndicatorHG(u,
-                                                                                                    mesh,
-                                                                                                    equations,
-                                                                                                    dg,
-                                                                                                    cache)
+        alpha_element = @trixi_timeit timer() "element-wise blending factors" limiter.IndicatorHG(u,
+                                                                                                  mesh,
+                                                                                                  equations,
+                                                                                                  dg,
+                                                                                                  cache)
         pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha_element,
                                       dg, cache)
     else
@@ -86,17 +86,17 @@ end
         end
     end
 
-    if indicator.smoothness_indicator && !isempty(element_ids_dg)
+    if limiter.smoothness_indicator && !isempty(element_ids_dg)
         maxdt = min(maxdt,
                     max_dt_RK(u, t, mesh, constant_speed, equations, dg, cache,
-                              indicator, element_ids_dg))
+                              limiter, element_ids_dg))
     end
 
     return maxdt
 end
 
 @inline function max_dt_RK(u, t, mesh::TreeMesh2D, constant_speed, equations, dg::DG,
-                           cache, indicator, element_ids_dg)
+                           cache, limiter, element_ids_dg)
     max_scaled_speed = nextfloat(zero(t))
     for idx_element in eachindex(element_ids_dg)
         element = element_ids_dg[idx_element]
@@ -115,7 +115,7 @@ end
 end
 
 @inline function max_dt_RK(u, t, mesh::StructuredMesh{2}, constant_speed, equations,
-                           dg::DG, cache, indicator, element_ids_dg)
+                           dg::DG, cache, limiter, element_ids_dg)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     max_scaled_speed = nextfloat(zero(t))

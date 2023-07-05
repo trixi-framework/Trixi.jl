@@ -43,16 +43,17 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example
-indicator_sc = IndicatorMCL(equations, basis;
-                            DensityLimiter=true,
-                            DensityAlphaForAll=true,
-                            SequentialLimiter=true,
-                            PressurePositivityLimiterKuzmin=true,
-                            DensityPositivityLimiter=false,
-                            SemiDiscEntropyLimiter=false,
-                            Plotting=true)
-volume_integral=VolumeIntegralSubcellLimiting(indicator_sc; volume_flux_dg=volume_flux,
-                                                            volume_flux_fv=surface_flux)
+limiter_mcl = SubcellLimiterMCL(equations, basis;
+                                DensityLimiter=true,
+                                DensityAlphaForAll=true,
+                                SequentialLimiter=true,
+                                PressurePositivityLimiterKuzmin=true,
+                                DensityPositivityLimiter=false,
+                                SemiDiscEntropyLimiter=false,
+                                Plotting=true)
+volume_integral = VolumeIntegralSubcellLimiting(limiter_mcl;
+                                                volume_flux_dg=volume_flux,
+                                                volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-0.5, -0.5)

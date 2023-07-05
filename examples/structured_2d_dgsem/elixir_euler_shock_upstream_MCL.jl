@@ -36,17 +36,18 @@ volume_flux  = flux_ranocha
 polydeg = 5
 basis = LobattoLegendreBasis(polydeg)
 
-indicator_sc = IndicatorMCL(equations, basis;
-                            DensityLimiter=true,
-                            DensityAlphaForAll=false,
-                            SequentialLimiter=true,
-                            ConservativeLimiter=false,
-                            PressurePositivityLimiterKuzmin=false, PressurePositivityLimiterKuzminExact=false,
-                            DensityPositivityLimiter=false,
-                            SemiDiscEntropyLimiter=false,
-                            Plotting=true)
-volume_integral=VolumeIntegralSubcellLimiting(indicator_sc; volume_flux_dg=volume_flux,
-                                                            volume_flux_fv=surface_flux)
+limiter_mcl = SubcellLimiterMCL(equations, basis;
+                                DensityLimiter=true,
+                                DensityAlphaForAll=false,
+                                SequentialLimiter=true,
+                                ConservativeLimiter=false,
+                                PressurePositivityLimiterKuzmin=false, PressurePositivityLimiterKuzminExact=false,
+                                DensityPositivityLimiter=false,
+                                SemiDiscEntropyLimiter=false,
+                                Plotting=true)
+volume_integral = VolumeIntegralSubcellLimiting(limiter_mcl;
+                                                volume_flux_dg=volume_flux,
+                                                volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 # domain

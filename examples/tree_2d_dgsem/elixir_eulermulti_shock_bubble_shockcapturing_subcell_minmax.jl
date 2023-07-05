@@ -83,13 +83,13 @@ surface_flux        = flux_lax_friedrichs
 volume_flux         = flux_ranocha
 basis               = LobattoLegendreBasis(3)
 
-indicator_sc = IndicatorIDP(equations, basis;
-                            local_minmax_variables_cons=[(i+3 for i in eachcomponent(equations))...],
-                            spec_entropy=false,
-                            bar_states=true)
-
-volume_integral=VolumeIntegralSubcellLimiting(indicator_sc; volume_flux_dg=volume_flux,
-                                                            volume_flux_fv=surface_flux)
+limiter_idp = SubcellLimiterIDP(equations, basis;
+                                local_minmax_variables_cons=[(i+3 for i in eachcomponent(equations))...],
+                                spec_entropy=false,
+                                bar_states=true)
+volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                volume_flux_dg=volume_flux,
+                                                volume_flux_fv=surface_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 

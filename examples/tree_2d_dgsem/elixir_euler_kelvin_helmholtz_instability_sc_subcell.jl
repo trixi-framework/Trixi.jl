@@ -36,13 +36,14 @@ volume_flux  = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
-indicator_sc = IndicatorIDP(equations, basis;
-                            positivity_variables_cons=[1],
-                            positivity_variables_nonlinear=(pressure,),
-                            spec_entropy=false,
-                            bar_states=true)
-volume_integral=VolumeIntegralSubcellLimiting(indicator_sc; volume_flux_dg=volume_flux,
-                                                            volume_flux_fv=surface_flux)
+limiter_idp = SubcellLimiterIDP(equations, basis;
+                                positivity_variables_cons=[1],
+                                positivity_variables_nonlinear=(pressure,),
+                                spec_entropy=false,
+                                bar_states=true)
+volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                volume_flux_dg=volume_flux,
+                                                volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-1.0, -1.0)

@@ -243,14 +243,15 @@ function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_
     # Resize container_antidiffusive_flux
     resize!(semi.cache.container_antidiffusive_flux, new_size)
 
-    # Resize container_shock_capturing
-    resize!(volume_integral.indicator.cache.container_shock_capturing, new_size)
+    # Resize container_subcell_limiter
+    @unpack limiter = volume_integral
+    resize!(limiter.cache.container_subcell_limiter, new_size)
     # Calc subcell normal directions before StepsizeCallback
-    @unpack indicator = volume_integral
-    if indicator isa IndicatorMCL ||
-       (indicator isa IndicatorIDP && indicator.bar_states)
-        resize!(indicator.cache.container_bar_states, new_size)
-        calc_normal_directions!(indicator.cache.container_bar_states,
+
+    if limiter isa SubcellLimiterMCL ||
+       (limiter isa SubcellLimiterIDP && limiter.bar_states)
+        resize!(limiter.cache.container_bar_states, new_size)
+        calc_normal_directions!(limiter.cache.container_bar_states,
                                 mesh_equations_solver_cache(semi)...)
     end
 end

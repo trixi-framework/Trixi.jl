@@ -18,12 +18,6 @@ function get_element_variables!(element_variables, indicator::AbstractIndicator,
     return nothing
 end
 
-function get_element_variables!(element_variables, indicator::AbstractIndicator,
-                                ::VolumeIntegralSubcellLimiting)
-    element_variables[:smooth_indicator_elementwise] = indicator.IndicatorHG.cache.alpha
-    return nothing
-end
-
 """
     IndicatorHennemannGassner(equations::AbstractEquations, basis;
                               alpha_max=0.5,
@@ -221,21 +215,34 @@ const IndicatorLoehner = IndicatorLöhner
     return num / den
 end
 
+abstract type AbstractSubcellLimiter end
+
+function create_cache(typ::Type{LimiterType},
+                      semi) where {LimiterType <: AbstractSubcellLimiter}
+    create_cache(typ, mesh_equations_solver_cache(semi)...)
+end
+
+function get_element_variables!(element_variables, limiter::AbstractSubcellLimiter,
+                                ::VolumeIntegralSubcellLimiting)
+    element_variables[:smooth_indicator_elementwise] = limiter.IndicatorHG.cache.alpha
+    return nothing
+end
+
 """
-    IndicatorIDP(equations::AbstractEquations, basis;
-                 local_minmax_variables_cons = [],
-                 positivity_variables_cons = [],
-                 positivity_variables_nonlinear = (),
-                 positivity_correction_factor = 0.1,
-                 spec_entropy = false,
-                 math_entropy = false,
-                 bar_states = true,
-                 max_iterations_newton = 10,
-                 newton_tolerances = (1.0e-12, 1.0e-14),
-                 gamma_constant_newton = 2 * ndims(equations),
-                 smoothness_indicator = false,
-                 threshold_smoothness_indicator = 0.1,
-                 variable_smoothness_indicator = density_pressure)
+    SubcellLimiterIDP(equations::AbstractEquations, basis;
+                      local_minmax_variables_cons = [],
+                      positivity_variables_cons = [],
+                      positivity_variables_nonlinear = (),
+                      positivity_correction_factor = 0.1,
+                      spec_entropy = false,
+                      math_entropy = false,
+                      bar_states = true,
+                      max_iterations_newton = 10,
+                      newton_tolerances = (1.0e-12, 1.0e-14),
+                      gamma_constant_newton = 2 * ndims(equations),
+                      smoothness_indicator = false,
+                      threshold_smoothness_indicator = 0.1,
+                      variable_smoothness_indicator = density_pressure)
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
@@ -265,8 +272,8 @@ indicator values <= `threshold_smoothness_indicator`.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorIDP{RealT <: Real, LimitingVariablesNonlinear,
-                    Cache, Indicator} <: AbstractIndicator
+struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
+                         Cache, Indicator} <: AbstractSubcellLimiter
     local_minmax::Bool
     local_minmax_variables_cons::Vector{Int}                   # Local mininum/maximum principles for conservative variables
     positivity::Bool
@@ -285,21 +292,21 @@ struct IndicatorIDP{RealT <: Real, LimitingVariablesNonlinear,
     IndicatorHG::Indicator
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorIDP(equations::AbstractEquations, basis;
-                      local_minmax_variables_cons = [],
-                      positivity_variables_cons = [],
-                      positivity_variables_nonlinear = (),
-                      positivity_correction_factor = 0.1,
-                      spec_entropy = false,
-                      math_entropy = false,
-                      bar_states = true,
-                      max_iterations_newton = 10,
-                      newton_tolerances = (1.0e-12, 1.0e-14),
-                      gamma_constant_newton = 2 * ndims(equations),
-                      smoothness_indicator = false,
-                      threshold_smoothness_indicator = 0.1,
-                      variable_smoothness_indicator = density_pressure)
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function SubcellLimiterIDP(equations::AbstractEquations, basis;
+                           local_minmax_variables_cons = [],
+                           positivity_variables_cons = [],
+                           positivity_variables_nonlinear = (),
+                           positivity_correction_factor = 0.1,
+                           spec_entropy = false,
+                           math_entropy = false,
+                           bar_states = true,
+                           max_iterations_newton = 10,
+                           newton_tolerances = (1.0e-12, 1.0e-14),
+                           gamma_constant_newton = 2 * ndims(equations),
+                           smoothness_indicator = false,
+                           threshold_smoothness_indicator = 0.1,
+                           variable_smoothness_indicator = density_pressure)
     local_minmax = (length(local_minmax_variables_cons) > 0)
     positivity = (length(positivity_variables_cons) +
                   length(positivity_variables_nonlinear) > 0)
@@ -317,7 +324,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
         end
     end
 
-    cache = create_cache(IndicatorIDP, equations, basis, number_bounds, bar_states)
+    cache = create_cache(SubcellLimiterIDP, equations, basis, number_bounds, bar_states)
 
     if smoothness_indicator
         IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_max = 1.0,
@@ -326,31 +333,31 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     else
         IndicatorHG = nothing
     end
-    IndicatorIDP{typeof(positivity_correction_factor),
-                 typeof(positivity_variables_nonlinear),
-                 typeof(cache), typeof(IndicatorHG)}(local_minmax,
-                                                     local_minmax_variables_cons,
-                                                     positivity,
-                                                     positivity_variables_cons,
-                                                     positivity_variables_nonlinear,
-                                                     positivity_correction_factor,
-                                                     spec_entropy,
-                                                     math_entropy,
-                                                     bar_states,
-                                                     cache,
-                                                     max_iterations_newton,
-                                                     newton_tolerances,
-                                                     gamma_constant_newton,
-                                                     smoothness_indicator,
-                                                     threshold_smoothness_indicator,
-                                                     IndicatorHG)
+    SubcellLimiterIDP{typeof(positivity_correction_factor),
+                      typeof(positivity_variables_nonlinear),
+                      typeof(cache), typeof(IndicatorHG)}(local_minmax,
+                                                          local_minmax_variables_cons,
+                                                          positivity,
+                                                          positivity_variables_cons,
+                                                          positivity_variables_nonlinear,
+                                                          positivity_correction_factor,
+                                                          spec_entropy,
+                                                          math_entropy,
+                                                          bar_states,
+                                                          cache,
+                                                          max_iterations_newton,
+                                                          newton_tolerances,
+                                                          gamma_constant_newton,
+                                                          smoothness_indicator,
+                                                          threshold_smoothness_indicator,
+                                                          IndicatorHG)
 end
 
-function Base.show(io::IO, indicator::IndicatorIDP)
-    @nospecialize indicator # reduce precompilation time
-    @unpack local_minmax, positivity, spec_entropy, math_entropy = indicator
+function Base.show(io::IO, limiter::SubcellLimiterIDP)
+    @nospecialize limiter # reduce precompilation time
+    @unpack local_minmax, positivity, spec_entropy, math_entropy = limiter
 
-    print(io, "IndicatorIDP(")
+    print(io, "SubcellLimiterIDP(")
     if !(local_minmax || positivity || spec_entropy || math_entropy)
         print(io, "No limiter selected => pure DG method")
     else
@@ -361,20 +368,20 @@ function Base.show(io::IO, indicator::IndicatorIDP)
         math_entropy && print(io, "mathematical entropy, ")
         print(io, "), ")
     end
-    indicator.smoothness_indicator &&
-        print(io, ", Smoothness indicator: ", indicator.IndicatorHG,
-              " with threshold ", indicator.threshold_smoothness_indicator, "), ")
+    limiter.smoothness_indicator &&
+        print(io, ", Smoothness indicator: ", limiter.IndicatorHG,
+              " with threshold ", limiter.threshold_smoothness_indicator, "), ")
     print(io,
-          "Local bounds with $(indicator.bar_states ? "Bar States" : "FV solution")")
+          "Local bounds with $(limiter.bar_states ? "Bar States" : "FV solution")")
     print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
-    @nospecialize indicator # reduce precompilation time
-    @unpack local_minmax, positivity, spec_entropy, math_entropy = indicator
+function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
+    @nospecialize limiter # reduce precompilation time
+    @unpack local_minmax, positivity, spec_entropy, math_entropy = limiter
 
     if get(io, :compact, false)
-        show(io, indicator)
+        show(io, limiter)
     else
         if !(local_minmax || positivity || spec_entropy || math_entropy)
             setup = ["limiter" => "No limiter selected => pure DG method"]
@@ -383,15 +390,15 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
             if local_minmax
                 setup = [
                     setup...,
-                    "" => "local maximum/minimum bounds for conservative variables $(indicator.local_minmax_variables_cons)",
+                    "" => "local maximum/minimum bounds for conservative variables $(limiter.local_minmax_variables_cons)",
                 ]
             end
             if positivity
-                string = "positivity for conservative variables $(indicator.positivity_variables_cons) and $(indicator.positivity_variables_nonlinear)"
+                string = "positivity for conservative variables $(limiter.positivity_variables_cons) and $(limiter.positivity_variables_nonlinear)"
                 setup = [setup..., "" => string]
                 setup = [
                     setup...,
-                    "" => "   positivity correction factor = $(indicator.positivity_correction_factor)",
+                    "" => "   positivity correction factor = $(limiter.positivity_correction_factor)",
                 ]
             end
             if spec_entropy
@@ -402,41 +409,41 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
             end
             setup = [
                 setup...,
-                "Local bounds" => (indicator.bar_states ? "Bar States" : "FV solution"),
+                "Local bounds" => (limiter.bar_states ? "Bar States" : "FV solution"),
             ]
-            if indicator.smoothness_indicator
+            if limiter.smoothness_indicator
                 setup = [
                     setup...,
-                    "Smoothness indicator" => "$(indicator.IndicatorHG) using threshold $(indicator.threshold_smoothness_indicator)",
+                    "Smoothness indicator" => "$(limiter.IndicatorHG) using threshold $(limiter.threshold_smoothness_indicator)",
                 ]
             end
-            summary_box(io, "IndicatorIDP", setup)
+            summary_box(io, "SubcellLimiterIDP", setup)
         end
     end
 end
 
-function get_node_variables!(node_variables, indicator::IndicatorIDP,
+function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
                              ::VolumeIntegralSubcellLimiting, equations)
-    node_variables[:indicator_shock_capturing] = indicator.cache.container_shock_capturing.alpha
+    node_variables[:alpha_limiter] = limiter.cache.container_subcell_limiter.alpha
     # TODO: alpha is not filled before the first timestep.
     return nothing
 end
 
 """
-    IndicatorMCL(equations::AbstractEquations, basis;
-                 DensityLimiter = true,
-                 DensityAlphaForAll = false,
-                 SequentialLimiter = true,
-                 ConservativeLimiter = false,
-                 PressurePositivityLimiterKuzmin = false,
-                 PressurePositivityLimiterKuzminExact = true,
-                 DensityPositivityLimiter = false,
-                 DensityPositivityCorrectionFactor = 0.0,
-                 SemiDiscEntropyLimiter = false,
-                 smoothness_indicator = false,
-                 threshold_smoothness_indicator = 0.1,
-                 variable_smoothness_indicator = density_pressure,
-                 Plotting = true)
+    SubcellLimiterMCL(equations::AbstractEquations, basis;
+                      DensityLimiter = true,
+                      DensityAlphaForAll = false,
+                      SequentialLimiter = true,
+                      ConservativeLimiter = false,
+                      PressurePositivityLimiterKuzmin = false,
+                      PressurePositivityLimiterKuzminExact = true,
+                      DensityPositivityLimiter = false,
+                      DensityPositivityCorrectionFactor = 0.0,
+                      SemiDiscEntropyLimiter = false,
+                      smoothness_indicator = false,
+                      threshold_smoothness_indicator = 0.1,
+                      variable_smoothness_indicator = density_pressure,
+                      Plotting = true)
 
 Subcell monolithic convex limiting (MCL) used with [`VolumeIntegralSubcellLimiting`](@ref) including:
 - local two-sided limiting for `cons(1)` (`DensityLimiter`)
@@ -467,7 +474,7 @@ indicator values <= `threshold_smoothness_indicator`.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorMCL{RealT <: Real, Cache, Indicator} <: AbstractIndicator
+struct SubcellLimiterMCL{RealT <: Real, Cache, Indicator} <: AbstractSubcellLimiter
     cache::Cache
     DensityLimiter::Bool        # Impose local maximum/minimum for cons(1) based on bar states
     DensityAlphaForAll::Bool    # Use the cons(1) blending coefficient for all quantities
@@ -484,25 +491,25 @@ struct IndicatorMCL{RealT <: Real, Cache, Indicator} <: AbstractIndicator
     Plotting::Bool
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorMCL(equations::AbstractEquations, basis;
-                      DensityLimiter = true,
-                      DensityAlphaForAll = false,
-                      SequentialLimiter = true,
-                      ConservativeLimiter = false,
-                      PressurePositivityLimiterKuzmin = false,
-                      PressurePositivityLimiterKuzminExact = true,
-                      DensityPositivityLimiter = false,
-                      DensityPositivityCorrectionFactor = 0.0,
-                      SemiDiscEntropyLimiter = false,
-                      smoothness_indicator = false,
-                      threshold_smoothness_indicator = 0.1,
-                      variable_smoothness_indicator = density_pressure,
-                      Plotting = true)
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function SubcellLimiterMCL(equations::AbstractEquations, basis;
+                           DensityLimiter = true,
+                           DensityAlphaForAll = false,
+                           SequentialLimiter = true,
+                           ConservativeLimiter = false,
+                           PressurePositivityLimiterKuzmin = false,
+                           PressurePositivityLimiterKuzminExact = true,
+                           DensityPositivityLimiter = false,
+                           DensityPositivityCorrectionFactor = 0.0,
+                           SemiDiscEntropyLimiter = false,
+                           smoothness_indicator = false,
+                           threshold_smoothness_indicator = 0.1,
+                           variable_smoothness_indicator = density_pressure,
+                           Plotting = true)
     if SequentialLimiter && ConservativeLimiter
         error("Only one of the two can be selected: SequentialLimiter/ConservativeLimiter")
     end
-    cache = create_cache(IndicatorMCL, equations, basis,
+    cache = create_cache(SubcellLimiterMCL, equations, basis,
                          PressurePositivityLimiterKuzmin)
     if smoothness_indicator
         IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_smooth = false,
@@ -510,119 +517,119 @@ function IndicatorMCL(equations::AbstractEquations, basis;
     else
         IndicatorHG = nothing
     end
-    IndicatorMCL{typeof(threshold_smoothness_indicator), typeof(cache),
-                 typeof(IndicatorHG)}(cache,
-                                      DensityLimiter, DensityAlphaForAll,
-                                      SequentialLimiter, ConservativeLimiter,
-                                      PressurePositivityLimiterKuzmin,
-                                      PressurePositivityLimiterKuzminExact,
-                                      DensityPositivityLimiter,
-                                      DensityPositivityCorrectionFactor,
-                                      SemiDiscEntropyLimiter,
-                                      smoothness_indicator,
-                                      threshold_smoothness_indicator, IndicatorHG,
-                                      Plotting)
+    SubcellLimiterMCL{typeof(threshold_smoothness_indicator), typeof(cache),
+                      typeof(IndicatorHG)}(cache,
+                                          DensityLimiter, DensityAlphaForAll,
+                                          SequentialLimiter, ConservativeLimiter,
+                                          PressurePositivityLimiterKuzmin,
+                                          PressurePositivityLimiterKuzminExact,
+                                          DensityPositivityLimiter,
+                                          DensityPositivityCorrectionFactor,
+                                          SemiDiscEntropyLimiter,
+                                          smoothness_indicator,
+                                          threshold_smoothness_indicator, IndicatorHG,
+                                          Plotting)
 end
 
-function Base.show(io::IO, indicator::IndicatorMCL)
-    @nospecialize indicator # reduce precompilation time
+function Base.show(io::IO, limiter::SubcellLimiterMCL)
+    @nospecialize limiter # reduce precompilation time
 
-    print(io, "IndicatorMCL(")
-    indicator.DensityLimiter && print(io, "; dens")
-    indicator.DensityAlphaForAll && print(io, "; dens alpha ∀")
-    indicator.SequentialLimiter && print(io, "; seq")
-    indicator.ConservativeLimiter && print(io, "; cons")
-    if indicator.PressurePositivityLimiterKuzmin
+    print(io, "SubcellLimiterMCL(")
+    limiter.DensityLimiter && print(io, "; dens")
+    limiter.DensityAlphaForAll && print(io, "; dens alpha ∀")
+    limiter.SequentialLimiter && print(io, "; seq")
+    limiter.ConservativeLimiter && print(io, "; cons")
+    if limiter.PressurePositivityLimiterKuzmin
         print(io,
-              "; $(indicator.PressurePositivityLimiterKuzminExact ? "pres (Kuzmin ex)" : "pres (Kuzmin)")")
+              "; $(limiter.PressurePositivityLimiterKuzminExact ? "pres (Kuzmin ex)" : "pres (Kuzmin)")")
     end
-    indicator.DensityPositivityLimiter && print(io, "; dens pos")
-    if indicator.DensityPositivityCorrectionFactor != 0
+    limiter.DensityPositivityLimiter && print(io, "; dens pos")
+    if limiter.DensityPositivityCorrectionFactor != 0
         print(io,
-              " with correction factor $(indicator.DensityPositivityCorrectionFactor)")
+              " with correction factor $(limiter.DensityPositivityCorrectionFactor)")
     end
-    indicator.SemiDiscEntropyLimiter && print(io, "; semid. entropy")
-    indicator.smoothness_indicator &&
-        print(io, "; Smoothness indicator: ", indicator.IndicatorHG,
-              " with threshold ", indicator.threshold_smoothness_indicator)
+    limiter.SemiDiscEntropyLimiter && print(io, "; semid. entropy")
+    limiter.smoothness_indicator &&
+        print(io, "; Smoothness indicator: ", limiter.IndicatorHG,
+              " with threshold ", limiter.threshold_smoothness_indicator)
     print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMCL)
-    @nospecialize indicator # reduce precompilation time
+function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterMCL)
+    @nospecialize limiter # reduce precompilation time
     @unpack DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
-    PressurePositivityLimiterKuzminExact, DensityPositivityLimiter, SemiDiscEntropyLimiter = indicator
+    PressurePositivityLimiterKuzminExact, DensityPositivityLimiter, SemiDiscEntropyLimiter = limiter
 
     if get(io, :compact, false)
-        show(io, indicator)
+        show(io, limiter)
     else
         setup = ["limiter" => ""]
         DensityLimiter && (setup = [setup..., "" => "DensityLimiter"])
         DensityAlphaForAll && (setup = [setup..., "" => "DensityAlphaForAll"])
         SequentialLimiter && (setup = [setup..., "" => "SequentialLimiter"])
         ConservativeLimiter && (setup = [setup..., "" => "ConservativeLimiter"])
-        if indicator.PressurePositivityLimiterKuzmin
+        if limiter.PressurePositivityLimiterKuzmin
             setup = [
                 setup...,
                 "" => "PressurePositivityLimiterKuzmin $(PressurePositivityLimiterKuzminExact ? "(exact)" : "")",
             ]
         end
         if DensityPositivityLimiter
-            if indicator.DensityPositivityCorrectionFactor != 0.0
+            if limiter.DensityPositivityCorrectionFactor != 0.0
                 setup = [
                     setup...,
-                    "" => "DensityPositivityLimiter with correction factor $(indicator.DensityPositivityCorrectionFactor)",
+                    "" => "DensityPositivityLimiter with correction factor $(limiter.DensityPositivityCorrectionFactor)",
                 ]
             else
                 setup = [setup..., "" => "DensityPositivityLimiter"]
             end
         end
         SemiDiscEntropyLimiter && (setup = [setup..., "" => "SemiDiscEntropyLimiter"])
-        if indicator.smoothness_indicator
+        if limiter.smoothness_indicator
             setup = [
                 setup...,
-                "Smoothness indicator" => "$(indicator.IndicatorHG) using threshold $(indicator.threshold_smoothness_indicator)",
+                "Smoothness indicator" => "$(limiter.IndicatorHG) using threshold $(limiter.threshold_smoothness_indicator)",
             ]
         end
-        summary_box(io, "IndicatorMCL", setup)
+        summary_box(io, "SubcellLimiterMCL", setup)
     end
 end
 
-function get_node_variables!(node_variables, indicator::IndicatorMCL,
+function get_node_variables!(node_variables, limiter::SubcellLimiterMCL,
                              ::VolumeIntegralSubcellLimiting, equations)
-    if !indicator.Plotting
+    if !limiter.Plotting
         return nothing
     end
-    @unpack alpha = indicator.cache.container_shock_capturing
+    @unpack alpha = limiter.cache.container_subcell_limiter
     variables = varnames(cons2cons, equations)
     for v in eachvariable(equations)
         s = Symbol("alpha_", variables[v])
         node_variables[s] = alpha[v, ntuple(_ -> :, size(alpha, 2) + 1)...]
     end
 
-    if indicator.PressurePositivityLimiterKuzmin
-        @unpack alpha_pressure = indicator.cache.container_shock_capturing
+    if limiter.PressurePositivityLimiterKuzmin
+        @unpack alpha_pressure = limiter.cache.container_subcell_limiter
         node_variables[:alpha_pressure] = alpha_pressure
     end
 
-    if indicator.SemiDiscEntropyLimiter
-        @unpack alpha_entropy = indicator.cache.container_shock_capturing
+    if limiter.SemiDiscEntropyLimiter
+        @unpack alpha_entropy = limiter.cache.container_subcell_limiter
         node_variables[:alpha_entropy] = alpha_entropy
     end
 
     for v in eachvariable(equations)
-        @unpack alpha_mean = indicator.cache.container_shock_capturing
+        @unpack alpha_mean = limiter.cache.container_subcell_limiter
         s = Symbol("alpha_mean_", variables[v])
         node_variables[s] = copy(alpha_mean[v, ntuple(_ -> :, size(alpha, 2) + 1)...])
     end
 
-    if indicator.PressurePositivityLimiterKuzmin
-        @unpack alpha_mean_pressure = indicator.cache.container_shock_capturing
+    if limiter.PressurePositivityLimiterKuzmin
+        @unpack alpha_mean_pressure = limiter.cache.container_subcell_limiter
         node_variables[:alpha_mean_pressure] = alpha_mean_pressure
     end
 
-    if indicator.SemiDiscEntropyLimiter
-        @unpack alpha_mean_entropy = indicator.cache.container_shock_capturing
+    if limiter.SemiDiscEntropyLimiter
+        @unpack alpha_mean_entropy = limiter.cache.container_subcell_limiter
         node_variables[:alpha_mean_entropy] = alpha_mean_entropy
     end
 

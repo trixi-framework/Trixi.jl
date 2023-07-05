@@ -189,10 +189,10 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 4},
     return alpha
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquations{2},
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, number_bounds, bar_states)
-    container_shock_capturing = Trixi.ContainerShockCapturingIndicatorIDP2D{real(basis)
+    container_subcell_limiter = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
                                                                             }(0,
                                                                               nnodes(basis),
                                                                               number_bounds)
@@ -207,42 +207,42 @@ function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquation
 
     idp_bounds_delta = zeros(real(basis), number_bounds)
 
-    return (; cache..., container_shock_capturing, idp_bounds_delta)
+    return (; cache..., container_subcell_limiter, idp_bounds_delta)
 end
 
-function (indicator::IndicatorIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t, dt;
-                                   kwargs...)
-    @unpack alpha = indicator.cache.container_shock_capturing
+function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t, dt;
+                                      kwargs...)
+    @unpack alpha = limiter.cache.container_subcell_limiter
     alpha .= zero(eltype(alpha))
-    if indicator.smoothness_indicator
+    if limiter.smoothness_indicator
         elements = semi.cache.element_ids_dgfv
     else
         elements = eachelement(dg, semi.cache)
     end
 
-    if indicator.local_minmax
+    if limiter.local_minmax
         @trixi_timeit timer() "local min/max limiting" idp_local_minmax!(alpha,
-                                                                         indicator, u,
+                                                                         limiter, u,
                                                                          t, dt,
                                                                          semi, elements)
     end
-    if indicator.positivity
-        @trixi_timeit timer() "positivity" idp_positivity!(alpha, indicator, u, dt,
+    if limiter.positivity
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt,
                                                            semi, elements)
     end
-    if indicator.spec_entropy
-        @trixi_timeit timer() "spec_entropy" idp_spec_entropy!(alpha, indicator, u, t,
+    if limiter.spec_entropy
+        @trixi_timeit timer() "spec_entropy" idp_spec_entropy!(alpha, limiter, u, t,
                                                                dt,
                                                                semi, elements)
     end
-    if indicator.math_entropy
-        @trixi_timeit timer() "math_entropy" idp_math_entropy!(alpha, indicator, u, t,
+    if limiter.math_entropy
+        @trixi_timeit timer() "math_entropy" idp_math_entropy!(alpha, limiter, u, t,
                                                                dt,
                                                                semi, elements)
     end
 
     # Calculate alpha1 and alpha2
-    @unpack alpha1, alpha2 = indicator.cache.container_shock_capturing
+    @unpack alpha1, alpha2 = limiter.cache.container_subcell_limiter
     @threaded for element in elements
         for j in eachnode(dg), i in 2:nnodes(dg)
             alpha1[i, j, element] = max(alpha[i - 1, j, element], alpha[i, j, element])
@@ -265,7 +265,7 @@ end
     @threaded for element in eachelement(dg, cache)
         var_min[:, :, element] .= typemax(eltype(var_min))
         var_max[:, :, element] .= typemin(eltype(var_max))
-        # Calculate indicator variables at Gauss-Lobatto nodes
+        # Calculate bounds at Gauss-Lobatto nodes using u
         for j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, element]
             var_min[i, j, element] = min(var_min[i, j, element], var)
@@ -366,7 +366,7 @@ end
     @threaded for element in eachelement(dg, cache)
         var_minmax[:, :, element] .= typeminmax(eltype(var_minmax))
 
-        # Calculate indicator variables at Gauss-Lobatto nodes
+        # Calculate bounds at Gauss-Lobatto nodes using u
         for j in eachnode(dg), i in eachnode(dg)
             var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
             var_minmax[i, j, element] = minmax(var_minmax[i, j, element], var)
@@ -500,22 +500,22 @@ end
     return nothing
 end
 
-@inline function idp_local_minmax!(alpha, indicator, u, t, dt, semi, elements)
-    for (index, variable) in enumerate(indicator.local_minmax_variables_cons)
-        idp_local_minmax!(alpha, indicator, u, t, dt, semi, elements, variable, index)
+@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements)
+    for (index, variable) in enumerate(limiter.local_minmax_variables_cons)
+        idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable, index)
     end
 
     return nothing
 end
 
-@inline function idp_local_minmax!(alpha, indicator, u, t, dt, semi, elements, variable,
+@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable,
                                    index)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack variable_bounds = indicator.cache.container_shock_capturing
+    @unpack variable_bounds = limiter.cache.container_subcell_limiter
 
     var_min = variable_bounds[2 * (index - 1) + 1]
     var_max = variable_bounds[2 * (index - 1) + 2]
-    if !indicator.bar_states
+    if !limiter.bar_states
         calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
     end
 
@@ -577,12 +577,12 @@ end
     return nothing
 end
 
-@inline function idp_spec_entropy!(alpha, indicator, u, t, dt, semi, elements)
+@inline function idp_spec_entropy!(alpha, limiter, u, t, dt, semi, elements)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack variable_bounds = indicator.cache.container_shock_capturing
+    @unpack variable_bounds = limiter.cache.container_subcell_limiter
 
-    s_min = variable_bounds[2 * length(indicator.local_minmax_variables_cons) + 1]
-    if !indicator.bar_states
+    s_min = variable_bounds[2 * length(limiter.local_minmax_variables_cons) + 1]
+    if !limiter.bar_states
         calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u, t, semi)
     end
 
@@ -593,7 +593,7 @@ end
             newton_loops_alpha!(alpha, s_min[i, j, element], u_local, i, j, element,
                                 specEntropy_goal, specEntropy_dGoal_dbeta,
                                 specEntropy_initialCheck, standard_finalCheck,
-                                dt, mesh, equations, dg, cache, indicator)
+                                dt, mesh, equations, dg, cache, limiter)
         end
     end
 
@@ -608,13 +608,13 @@ function specEntropy_initialCheck(bound, goal, newton_abstol)
     goal <= max(newton_abstol, abs(bound) * newton_abstol)
 end
 
-@inline function idp_math_entropy!(alpha, indicator, u, t, dt, semi, elements)
+@inline function idp_math_entropy!(alpha, limiter, u, t, dt, semi, elements)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack spec_entropy = indicator
-    @unpack variable_bounds = indicator.cache.container_shock_capturing
+    @unpack spec_entropy = limiter
+    @unpack variable_bounds = limiter.cache.container_subcell_limiter
 
-    s_max = variable_bounds[2 * length(indicator.local_minmax_variables_cons) + spec_entropy + 1]
-    if !indicator.bar_states
+    s_max = variable_bounds[2 * length(limiter.local_minmax_variables_cons) + spec_entropy + 1]
+    if !limiter.bar_states
         calc_bounds_1sided!(s_max, max, typemin, entropy_math, u, t, semi)
     end
 
@@ -625,7 +625,7 @@ end
             newton_loops_alpha!(alpha, s_max[i, j, element], u_local, i, j, element,
                                 mathEntropy_goal, mathEntropy_dGoal_dbeta,
                                 mathEntropy_initialCheck, standard_finalCheck,
-                                dt, mesh, equations, dg, cache, indicator)
+                                dt, mesh, equations, dg, cache, limiter)
         end
     end
 
@@ -640,42 +640,42 @@ function mathEntropy_initialCheck(bound, goal, newton_abstol)
     goal >= -max(newton_abstol, abs(bound) * newton_abstol)
 end
 
-@inline function idp_positivity!(alpha, indicator, u, dt, semi, elements)
+@inline function idp_positivity!(alpha, limiter, u, dt, semi, elements)
     # Conservative variables
-    for (index, variable) in enumerate(indicator.positivity_variables_cons)
-        idp_positivity!(alpha, indicator, u, dt, semi, elements, variable, index)
+    for (index, variable) in enumerate(limiter.positivity_variables_cons)
+        idp_positivity!(alpha, limiter, u, dt, semi, elements, variable, index)
     end
 
     # Nonlinear variables
-    for (index, variable) in enumerate(indicator.positivity_variables_nonlinear)
-        idp_positivity_newton!(alpha, indicator, u, dt, semi, elements, variable, index)
+    for (index, variable) in enumerate(limiter.positivity_variables_nonlinear)
+        idp_positivity_newton!(alpha, limiter, u, dt, semi, elements, variable, index)
     end
 
     return nothing
 end
 
-@inline function idp_positivity!(alpha, indicator, u, dt, semi, elements, variable,
+@inline function idp_positivity!(alpha, limiter, u, dt, semi, elements, variable,
                                  index)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
     @unpack inverse_weights = dg.basis
-    @unpack local_minmax, spec_entropy, math_entropy, positivity_correction_factor = indicator
+    @unpack local_minmax, spec_entropy, math_entropy, positivity_correction_factor = limiter
 
-    @unpack variable_bounds = indicator.cache.container_shock_capturing
+    @unpack variable_bounds = limiter.cache.container_subcell_limiter
 
-    counter = 2 * length(indicator.local_minmax_variables_cons) + spec_entropy +
+    counter = 2 * length(limiter.local_minmax_variables_cons) + spec_entropy +
               math_entropy
     if local_minmax
-        if variable in indicator.local_minmax_variables_cons
-            for (index_, variable_) in enumerate(indicator.local_minmax_variables_cons)
+        if variable in limiter.local_minmax_variables_cons
+            for (index_, variable_) in enumerate(limiter.local_minmax_variables_cons)
                 if variable == variable_
                     var_min = variable_bounds[2 * (index_ - 1) + 1]
                     break
                 end
             end
         else
-            for variable_ in indicator.positivity_variables_cons[1:index]
-                if !(variable_ in indicator.local_minmax_variables_cons)
+            for variable_ in limiter.positivity_variables_cons[1:index]
+                if !(variable_ in limiter.local_minmax_variables_cons)
                     counter += 1
                 end
             end
@@ -700,7 +700,7 @@ end
             end
 
             # Compute bound
-            if indicator.local_minmax
+            if limiter.local_minmax
                 var_min[i, j, element] = max(var_min[i, j, element],
                                              positivity_correction_factor * var)
             else
@@ -741,16 +741,16 @@ end
     return nothing
 end
 
-@inline function idp_positivity_newton!(alpha, indicator, u, dt, semi, elements,
+@inline function idp_positivity_newton!(alpha, limiter, u, dt, semi, elements,
                                         variable, index)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack spec_entropy, math_entropy, positivity_correction_factor, positivity_variables_cons = indicator
-    @unpack variable_bounds = indicator.cache.container_shock_capturing
+    @unpack spec_entropy, math_entropy, positivity_correction_factor, positivity_variables_cons = limiter
+    @unpack variable_bounds = limiter.cache.container_subcell_limiter
 
-    index_ = 2 * length(indicator.local_minmax_variables_cons) + spec_entropy +
+    index_ = 2 * length(limiter.local_minmax_variables_cons) + spec_entropy +
              math_entropy + index
-    for variable_ in indicator.positivity_variables_cons
-        if !(variable_ in indicator.local_minmax_variables_cons)
+    for variable_ in limiter.positivity_variables_cons
+        if !(variable_ in limiter.local_minmax_variables_cons)
             index_ += 1
         end
     end
@@ -770,7 +770,7 @@ end
             newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j, element,
                                 pressure_goal, pressure_dgoal_dbeta,
                                 pressure_initialCheck, pressure_finalCheck,
-                                dt, mesh, equations, dg, cache, indicator)
+                                dt, mesh, equations, dg, cache, limiter)
         end
     end
 
@@ -788,7 +788,7 @@ end
 
 @inline function newton_loops_alpha!(alpha, bound, u, i, j, element,
                                      goal_fct, dgoal_fct, initialCheck, finalCheck,
-                                     dt, mesh, equations, dg, cache, indicator)
+                                     dt, mesh, equations, dg, cache, limiter)
     @unpack inverse_weights = dg.basis
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
     if mesh isa TreeMesh
@@ -797,14 +797,14 @@ end
         inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
     end
 
-    @unpack gamma_constant_newton = indicator
+    @unpack gamma_constant_newton = limiter
 
     # negative xi direction
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[i] *
                          get_node_vars(antidiffusive_flux1, equations, dg, i, j,
                                        element)
     newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
-                 finalCheck, equations, dt, indicator, antidiffusive_flux)
+                 finalCheck, equations, dt, limiter, antidiffusive_flux)
 
     # positive xi direction
     antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
@@ -812,14 +812,14 @@ end
                          get_node_vars(antidiffusive_flux1, equations, dg, i + 1, j,
                                        element)
     newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
-                 finalCheck, equations, dt, indicator, antidiffusive_flux)
+                 finalCheck, equations, dt, limiter, antidiffusive_flux)
 
     # negative eta direction
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[j] *
                          get_node_vars(antidiffusive_flux2, equations, dg, i, j,
                                        element)
     newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
-                 finalCheck, equations, dt, indicator, antidiffusive_flux)
+                 finalCheck, equations, dt, limiter, antidiffusive_flux)
 
     # positive eta direction
     antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
@@ -827,15 +827,15 @@ end
                          get_node_vars(antidiffusive_flux2, equations, dg, i, j + 1,
                                        element)
     newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
-                 finalCheck, equations, dt, indicator, antidiffusive_flux)
+                 finalCheck, equations, dt, limiter, antidiffusive_flux)
 
     return nothing
 end
 
 @inline function newton_loop!(alpha, bound, u, i, j, element,
                               goal_fct, dgoal_fct, initialCheck, finalCheck,
-                              equations, dt, indicator, antidiffusive_flux)
-    newton_reltol, newton_abstol = indicator.newton_tolerances
+                              equations, dt, limiter, antidiffusive_flux)
+    newton_reltol, newton_abstol = limiter.newton_tolerances
 
     beta = 1 - alpha[i, j, element]
 
@@ -852,7 +852,7 @@ end
     end
 
     # Newton iterations
-    for iter in 1:(indicator.max_iterations_newton)
+    for iter in 1:limiter.max_iterations_newton
         beta_old = beta
 
         # If the state is valid, evaluate d(goal)/d(beta)
@@ -928,10 +928,10 @@ function standard_finalCheck(bound, goal, newton_abstol)
     abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(indicator::Type{IndicatorMCL}, equations::AbstractEquations{2},
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, PressurePositivityLimiterKuzmin)
-    container_shock_capturing = Trixi.ContainerShockCapturingIndicatorMCL2D{real(basis)
+    container_subcell_limiter = Trixi.ContainerSubcellLimiterMCL2D{real(basis)
                                                                             }(0,
                                                                               nvariables(equations),
                                                                               nnodes(basis))
@@ -942,7 +942,7 @@ function create_cache(indicator::Type{IndicatorMCL}, equations::AbstractEquation
     idp_bounds_delta = zeros(real(basis), 2,
                              nvariables(equations) + PressurePositivityLimiterKuzmin)
 
-    return (; container_shock_capturing, container_bar_states, idp_bounds_delta)
+    return (; container_subcell_limiter, container_bar_states, idp_bounds_delta)
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals

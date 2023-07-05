@@ -8,8 +8,8 @@
 @inline function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations, dg, cache)
     @unpack inverse_weights = dg.basis
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
-    @unpack alpha1, alpha2 = dg.volume_integral.indicator.cache.container_shock_capturing
-    if dg.volume_integral.indicator.smoothness_indicator
+    @unpack alpha1, alpha2 = dg.volume_integral.limiter.cache.container_subcell_limiter
+    if dg.volume_integral.limiter.smoothness_indicator
         elements = cache.element_ids_dgfv
     else
         elements = eachelement(dg, cache)
@@ -52,9 +52,9 @@ end
                                          cache)
     @unpack inverse_weights = dg.basis
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
-    @unpack alpha1, alpha2 = dg.volume_integral.indicator.cache.container_shock_capturing
+    @unpack alpha1, alpha2 = dg.volume_integral.limiter.cache.container_subcell_limiter
 
-    if dg.volume_integral.indicator.smoothness_indicator
+    if dg.volume_integral.limiter.smoothness_indicator
         elements = cache.element_ids_dgfv
     else
         elements = eachelement(dg, cache)

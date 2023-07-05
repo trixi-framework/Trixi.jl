@@ -475,16 +475,16 @@ end
 end
 
 @inline function calc_lambdas_bar_states!(u, t, mesh::StructuredMesh,
-                                          nonconservative_terms, equations, indicator,
+                                          nonconservative_terms, equations, limiter,
                                           dg, cache, boundary_conditions;
                                           calc_bar_states = true)
-    if indicator isa IndicatorIDP && !indicator.bar_states
+    if limiter isa SubcellLimiterIDP && !limiter.bar_states
         return nothing
     end
-    @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.container_bar_states
+    @unpack lambda1, lambda2, bar_states1, bar_states2 = limiter.cache.container_bar_states
     @unpack contravariant_vectors = cache.elements
 
-    @unpack normal_direction_xi, normal_direction_eta = indicator.cache.container_bar_states
+    @unpack normal_direction_xi, normal_direction_eta = limiter.cache.container_bar_states
 
     # Calc lambdas and bar states inside elements
     @threaded for element in eachelement(dg, cache)

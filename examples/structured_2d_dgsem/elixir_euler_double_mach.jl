@@ -92,13 +92,14 @@ volume_flux  = flux_ranocha
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 
-indicator_sc = IndicatorIDP(equations, basis;
-                            local_minmax_variables_cons=[1],
-                            spec_entropy=true,
-                            max_iterations_newton=100,
-                            bar_states=true)
-volume_integral=VolumeIntegralSubcellLimiting(indicator_sc; volume_flux_dg=volume_flux,
-                                                            volume_flux_fv=surface_flux)
+limiter_idp = SubcellLimiterIDP(equations, basis;
+                                local_minmax_variables_cons=[1],
+                                spec_entropy=true,
+                                positivity_correction_factor=0.1, max_iterations_newton=100,
+                                bar_states=true)
+volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                volume_flux_dg=volume_flux,
+                                                volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 initial_refinement_level = 6

@@ -43,13 +43,14 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example
-indicator_sc = IndicatorIDP(equations, basis;
-                            local_minmax_variables_cons=[1],
-                            spec_entropy=true,
-                            bar_states=true,
-                            max_iterations_newton=25)
-volume_integral=VolumeIntegralSubcellLimiting(indicator_sc; volume_flux_dg=volume_flux,
-                                                            volume_flux_fv=surface_flux)
+limiter_idp = SubcellLimiterIDP(equations, basis;
+                                local_minmax_variables_cons=[1],
+                                spec_entropy=true,
+                                bar_states=true,
+                                max_iterations_newton=25)
+volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                volume_flux_dg=volume_flux,
+                                                volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-0.5, -0.5)
