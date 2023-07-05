@@ -190,30 +190,32 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 4},
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquations{2},
+function create_cache(indicator::Type{SubcellLimiterIDP},
+                      equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, number_bounds)
-    container_shock_capturing = Trixi.ContainerShockCapturingIndicatorIDP2D{real(basis)
-                                                                            }(0,
-                                                                              nnodes(basis),
-                                                                              number_bounds)
+    container_subcell_limiter = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
+                                                                   }(0,
+                                                                     nnodes(basis),
+                                                                     number_bounds)
 
-    cache = (; container_shock_capturing)
+    cache = (; container_subcell_limiter)
 
     return cache
 end
 
-function (indicator::IndicatorIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t, dt;
-                                   kwargs...)
-    @unpack alpha = indicator.cache.container_shock_capturing
+function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
+                                      dt;
+                                      kwargs...)
+    @unpack alpha = limiter.cache.container_subcell_limiter
     alpha .= zero(eltype(alpha))
 
-    if indicator.positivity
-        @trixi_timeit timer() "positivity" idp_positivity!(alpha, indicator, u, dt,
+    if limiter.positivity
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt,
                                                            semi)
     end
 
     # Calculate alpha1 and alpha2
-    @unpack alpha1, alpha2 = indicator.cache.container_shock_capturing
+    @unpack alpha1, alpha2 = limiter.cache.container_subcell_limiter
     @threaded for element in eachelement(dg, semi.cache)
         for j in eachnode(dg), i in 2:nnodes(dg)
             alpha1[i, j, element] = max(alpha[i - 1, j, element], alpha[i, j, element])
@@ -230,22 +232,22 @@ function (indicator::IndicatorIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, 
     return nothing
 end
 
-@inline function idp_positivity!(alpha, indicator, u, dt, semi)
+@inline function idp_positivity!(alpha, limiter, u, dt, semi)
     # Conservative variables
-    for (index, variable) in enumerate(indicator.positivity_variables_cons)
-        idp_positivity!(alpha, indicator, u, dt, semi, variable, index)
+    for (index, variable) in enumerate(limiter.positivity_variables_cons)
+        idp_positivity!(alpha, limiter, u, dt, semi, variable, index)
     end
 
     return nothing
 end
 
-@inline function idp_positivity!(alpha, indicator, u, dt, semi, variable, index)
+@inline function idp_positivity!(alpha, limiter, u, dt, semi, variable, index)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
     @unpack inverse_weights = dg.basis
-    @unpack positivity_correction_factor = indicator
+    @unpack positivity_correction_factor = limiter
 
-    @unpack variable_bounds = indicator.cache.container_shock_capturing
+    @unpack variable_bounds = limiter.cache.container_subcell_limiter
 
     var_min = variable_bounds[index]
 

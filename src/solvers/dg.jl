@@ -175,27 +175,27 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 """
-    VolumeIntegralSubcellLimiting(indicator;
+    VolumeIntegralSubcellLimiting(limiter;
                                   volume_flux_dg, volume_flux_fv)
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
-with a low-order FV method. Used with indicator [`IndicatorIDP`](@ref).
+with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Indicator} <:
+struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
        AbstractVolumeIntegral
     volume_flux_dg::VolumeFluxDG
     volume_flux_fv::VolumeFluxFV
-    indicator::Indicator
+    limiter::Limiter
 end
 
-function VolumeIntegralSubcellLimiting(indicator; volume_flux_dg,
+function VolumeIntegralSubcellLimiting(limiter; volume_flux_dg,
                                        volume_flux_fv)
     VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
-                                  typeof(indicator)}(volume_flux_dg, volume_flux_fv,
-                                                     indicator)
+                                  typeof(limiter)}(volume_flux_dg, volume_flux_fv,
+                                                   limiter)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain",
@@ -208,8 +208,8 @@ function Base.show(io::IO, mime::MIME"text/plain",
         summary_header(io, "VolumeIntegralSubcellLimiting")
         summary_line(io, "volume flux DG", integral.volume_flux_dg)
         summary_line(io, "volume flux FV", integral.volume_flux_fv)
-        summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
-        show(increment_indent(io), mime, integral.indicator)
+        summary_line(io, "limiter", integral.limiter |> typeof |> nameof)
+        show(increment_indent(io), mime, integral.limiter)
         summary_footer(io)
     end
 end

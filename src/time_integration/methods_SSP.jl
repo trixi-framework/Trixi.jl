@@ -234,7 +234,8 @@ function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_
     # Resize container_antidiffusive_flux
     resize!(semi.cache.container_antidiffusive_flux, new_size)
 
-    # Resize container_shock_capturing
-    resize!(volume_integral.indicator.cache.container_shock_capturing, new_size)
+    # Resize container_subcell_limiter
+    @unpack limiter = volume_integral
+    resize!(limiter.cache.container_subcell_limiter, new_size)
 end
 end # @muladd

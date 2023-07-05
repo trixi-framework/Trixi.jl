@@ -556,12 +556,12 @@ function calc_volume_integral!(du, u,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralSubcellLimiting,
                                dg::DGSEM, cache)
-    @unpack indicator = volume_integral
+    @unpack limiter = volume_integral
 
     @threaded for element in eachelement(dg, cache)
         subcell_limiting_kernel!(du, u, element, mesh,
                                  nonconservative_terms, equations,
-                                 volume_integral, indicator,
+                                 volume_integral, limiter,
                                  dg, cache)
     end
 end
@@ -569,7 +569,7 @@ end
 @inline function subcell_limiting_kernel!(du, u,
                                           element, mesh::TreeMesh{2},
                                           nonconservative_terms::False, equations,
-                                          volume_integral, indicator::IndicatorIDP,
+                                          volume_integral, limiter::SubcellLimiterIDP,
                                           dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
     @unpack volume_flux_dg, volume_flux_fv = volume_integral
@@ -594,7 +594,7 @@ end
 
     # antidiffusive flux
     calcflux_antidiffusive!(fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
-                            nonconservative_terms, equations, indicator, dg, element,
+                            nonconservative_terms, equations, limiter, dg, element,
                             cache)
 
     # Calculate volume integral contribution of low-order FV flux
@@ -689,7 +689,7 @@ end
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar`.
 @inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations,
-                                         indicator::IndicatorIDP, dg, element, cache)
+                                         limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
 
     for j in eachnode(dg), i in 2:nnodes(dg)

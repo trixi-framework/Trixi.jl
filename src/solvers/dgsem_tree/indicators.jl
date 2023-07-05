@@ -215,10 +215,17 @@ const IndicatorLoehner = IndicatorLöhner
     return num / den
 end
 
+abstract type AbstractSubcellLimiter end
+
+function create_cache(typ::Type{LimiterType},
+                      semi) where {LimiterType <: AbstractSubcellLimiter}
+    create_cache(typ, mesh_equations_solver_cache(semi)...)
+end
+
 """
-    IndicatorIDP(equations::AbstractEquations, basis;
-                 positivity_variables_cons = [],
-                 positivity_correction_factor = 0.1)
+    SubcellLimiterIDP(equations::AbstractEquations, basis;
+                      positivity_variables_cons = [],
+                      positivity_correction_factor = 0.1)
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
@@ -239,7 +246,7 @@ The bounds are calculated using the low-order FV solution. The positivity limite
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorIDP{RealT <: Real, Cache} <: AbstractIndicator
+struct SubcellLimiterIDP{RealT <: Real, Cache} <: AbstractSubcellLimiter
     positivity::Bool
     positivity_variables_cons::Vector{Int}                     # Positivity for conservative variables
     positivity_correction_factor::RealT
@@ -247,25 +254,25 @@ struct IndicatorIDP{RealT <: Real, Cache} <: AbstractIndicator
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorIDP(equations::AbstractEquations, basis;
-                      positivity_variables_cons = [],
-                      positivity_correction_factor = 0.1)
+function SubcellLimiterIDP(equations::AbstractEquations, basis;
+                           positivity_variables_cons = [],
+                           positivity_correction_factor = 0.1)
     positivity = (length(positivity_variables_cons) > 0)
     number_bounds = length(positivity_variables_cons)
 
-    cache = create_cache(IndicatorIDP, equations, basis, number_bounds)
+    cache = create_cache(SubcellLimiterIDP, equations, basis, number_bounds)
 
-    IndicatorIDP{typeof(positivity_correction_factor), typeof(cache)}(positivity,
-                                                                      positivity_variables_cons,
-                                                                      positivity_correction_factor,
-                                                                      cache)
+    SubcellLimiterIDP{typeof(positivity_correction_factor), typeof(cache)}(positivity,
+                                                                           positivity_variables_cons,
+                                                                           positivity_correction_factor,
+                                                                           cache)
 end
 
-function Base.show(io::IO, indicator::IndicatorIDP)
-    @nospecialize indicator # reduce precompilation time
-    @unpack positivity = indicator
+function Base.show(io::IO, limiter::SubcellLimiterIDP)
+    @nospecialize limiter # reduce precompilation time
+    @unpack positivity = limiter
 
-    print(io, "IndicatorIDP(")
+    print(io, "SubcellLimiterIDP(")
     if !(positivity)
         print(io, "No limiter selected => pure DG method")
     else
@@ -276,27 +283,27 @@ function Base.show(io::IO, indicator::IndicatorIDP)
     print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorIDP)
-    @nospecialize indicator # reduce precompilation time
-    @unpack positivity = indicator
+function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
+    @nospecialize limiter # reduce precompilation time
+    @unpack positivity = limiter
 
     if get(io, :compact, false)
-        show(io, indicator)
+        show(io, limiter)
     else
         if !(positivity)
             setup = ["limiter" => "No limiter selected => pure DG method"]
         else
             setup = ["limiter" => ""]
             if positivity
-                string = "positivity with conservative variables $(indicator.positivity_variables_cons)"
+                string = "positivity with conservative variables $(limiter.positivity_variables_cons)"
                 setup = [setup..., "" => string]
                 setup = [
                     setup...,
-                    "" => "   positivity correction factor = $(indicator.positivity_correction_factor)",
+                    "" => "   positivity correction factor = $(limiter.positivity_correction_factor)",
                 ]
             end
         end
-        summary_box(io, "IndicatorIDP", setup)
+        summary_box(io, "SubcellLimiterIDP", setup)
     end
 end
 
