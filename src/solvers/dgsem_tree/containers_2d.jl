@@ -6,8 +6,10 @@
 #! format: noindent
 
 # Container data structure (structure-of-arrays style) for DG elements
-mutable struct ElementContainer2D{RealT <: Real, uEltype <: Real, surfaceFluxArray <: DenseArray{uEltype, 4}, _surfaceFluxArray <: DenseArray{uEltype, 1}} <: AbstractContainer
-    inverse_jacobian::Vector{RealT}        # [elements]
+mutable struct ElementContainer2D{RealT <: Real, uEltype <: Real, inverseJacobianArray <: DenseArray{RealT, 1},
+                                                                  surfaceFluxArray <: DenseArray{uEltype, 4},
+                                                                  _surfaceFluxArray <: DenseArray{uEltype, 1}} <: AbstractContainer
+    inverse_jacobian::inverseJacobianArray  # [elements]
     node_coordinates::Array{RealT, 4}      # [orientation, i, j, elements]
     surface_flux_values::surfaceFluxArray  # [variables, i, direction, elements]
     cell_ids::Vector{Int}                  # [elements]
@@ -55,7 +57,7 @@ function ElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
     arrType = get_array_type(backend)
 
     # Initialize fields with defaults
-    inverse_jacobian = fill(nan_RealT, capacity)
+    inverse_jacobian = allocate(backend, RealT, capacity)
 
     _node_coordinates = fill(nan_RealT, 2 * n_nodes * n_nodes * capacity)
     node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
@@ -67,7 +69,7 @@ function ElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
 
     cell_ids = fill(typemin(Int), capacity)
 
-    return ElementContainer2D{RealT, uEltype, arrType{uEltype, 4}, arrType{uEltype, 1}}(inverse_jacobian, node_coordinates,
+    return ElementContainer2D{RealT, uEltype, arrType{RealT, 1}, arrType{uEltype, 4}, arrType{uEltype, 1}}(inverse_jacobian, node_coordinates,
                                               surface_flux_values, cell_ids,
                                               _node_coordinates, _surface_flux_values)
 end

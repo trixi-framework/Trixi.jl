@@ -1606,13 +1606,10 @@ function apply_jacobian_gpu!(du, mesh::TreeMesh{2},
 
     kernel! = internal_apply_jacobian_gpu!(backend)
 
-    dev_inverse_jacobian = allocate(backend, eltype(inverse_jacobian), size(inverse_jacobian))
-    copyto!(backend, dev_inverse_jacobian, inverse_jacobian)
-
     num_nodes = nnodes(dg)
     num_elements = nelements(cache.elements)
 
-    kernel!(du, dev_inverse_jacobian, equations, num_nodes, ndrange=num_elements)
+    kernel!(du, inverse_jacobian, equations, num_nodes, ndrange=num_elements)
 
     synchronize(backend)
 
