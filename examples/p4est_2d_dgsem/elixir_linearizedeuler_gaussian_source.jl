@@ -2,6 +2,10 @@
 using OrdinaryDiffEq
 using Trixi
 
+# Based on the TreeMesh example `elixir_acoustics_gaussian_source.jl`.
+# The acoustic perturbation equations have been replaced with the linearized Euler
+# equations and instead of the cartesian `TreeMesh` a rotated `P4estMesh` is used
+
 # Oscillating Gaussian-shaped source terms
 function source_terms_gauss(u, x, t, equations::LinearizedEulerEquations2D)
   r = 0.1
@@ -22,18 +26,19 @@ initial_condition_zero(x, t, equations::LinearizedEulerEquations2D) = SVector(0.
 ###############################################################################
 # semidiscretization of the linearized Euler equations
 
-equations = LinearizedEulerEquations2D(v_mean_global=(-0.5580127018922194, -0.03349364905389032),
+# Create a domain that is a 30° rotated version of [-3, 3]^2
+c = cospi(2 * 30.0 / 360.0)
+s = sinpi(2 * 30.0 / 360.0)
+rot_mat = Trixi.SMatrix{2, 2}([c -s; s c])
+mapping(xi, eta) = rot_mat * SVector(3.0*xi, 3.0*eta)
+
+equations = LinearizedEulerEquations2D(v_mean_global=Tuple(rot_mat * SVector(-0.5, 0.25)),
                                        c_mean_global=1.02, rho_mean_global=1.01)
 
 initial_condition = initial_condition_zero
 
 # Create DG solver with polynomial degree = 3 and upwind flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_upwind)
-
-# Create a domain that is a 30° rotated version of [-3, 3]^2
-c = 0.8660254037844387; s = 0.5
-rot_mat = Trixi.SMatrix{2, 2}([c -s; s c])
-mapping(xi, eta) = rot_mat * SVector(3.0*xi, 3.0*eta)
 
 # Create a uniformly refined mesh with periodic boundaries
 trees_per_dimension = (4, 4)
