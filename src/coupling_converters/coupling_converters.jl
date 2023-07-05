@@ -29,10 +29,8 @@ function coupling_converter_identity(equations::AbstractEquations)
     return (x, u) -> u
 end
 
-
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
 include("coupling_converters_2d.jl")
-
 end # @muladd
