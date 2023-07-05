@@ -61,9 +61,9 @@ function LobattoLegendreBasis(RealT, polydeg::Integer; backend::Backend=CPU())
     boundary_interpolation = copyto!(backend, allocate(backend, RealT, size(boundary_interpolation_)), convert.(RealT, boundary_interpolation_))
 
     # Usually as fast as `SMatrix` (when using `let` in the volume integral/`@threaded`)
-    derivative_matrix = Matrix{RealT}(derivative_matrix_)
-    derivative_split = Matrix{RealT}(derivative_split_)
-    derivative_split_transpose = Matrix{RealT}(derivative_split_transpose_)
+    derivative_matrix = copyto!(backend, allocate(backend, RealT, size(derivative_matrix_)), derivative_matrix_)
+    derivative_split = copyto!(backend, allocate(backend, RealT, size(derivative_split_)), derivative_split_)
+    derivative_split_transpose = copyto!(backend, allocate(backend, RealT, size(derivative_split_transpose_)), derivative_split_transpose_)
     derivative_dhat = copyto!(backend, allocate(backend, RealT, size(derivative_dhat_)), derivative_dhat_)
 
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
