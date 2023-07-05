@@ -4,12 +4,12 @@ module TrixiCUDAExt
 
 using Trixi
 if isdefined(Base, :get_extension)
-    using CUDA
-    using CUDA.CUDAKernels
+    using CUDA: CuArray
+    using CUDA.CUDAKernels: CUDABackend
 else
   # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-    using ..CUDA
-    using ..CUDA.CUDAKernels
+    using ..CUDA: CuArray
+    using ..CUDA.CUDAKernels: CUDABackend
 end
 
 function Trixi.get_array_type(backend::CUDABackend)

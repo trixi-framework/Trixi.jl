@@ -310,8 +310,8 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh2D)
         end
     end
 
-    KernelAbstractions.copyto!(get_backend(interfaces.neighbor_ids), interfaces.neighbor_ids, tmp_interfaces_neighbor_ids)
-    KernelAbstractions.copyto!(get_backend(interfaces.orientations), interfaces.orientations, tmp_interfaces_orientations)
+    copyto!(get_backend(interfaces.neighbor_ids), interfaces.neighbor_ids, tmp_interfaces_neighbor_ids)
+    copyto!(get_backend(interfaces.orientations), interfaces.orientations, tmp_interfaces_orientations)
 
     @assert count == ninterfaces(interfaces) ("Actual interface count ($count) does not match " *
                                                 "expectations $(ninterfaces(interfaces))")

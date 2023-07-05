@@ -188,15 +188,15 @@ function rhs_gpu!(du, u, t,
     #backend = CPU()
 
     # Offload u to device storage
-    dev_u  = KernelAbstractions.allocate(backend, eltype(u),  size(u))
+    dev_u  = allocate(backend, eltype(u),  size(u))
     if !(backend isa CPU)
-        KernelAbstractions.copyto!(backend, dev_u, u)
+        copyto!(backend, dev_u, u)
     else
         Base.copyto!(dev_u, u)
     end
 
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t gpu" dev_du = KernelAbstractions.zeros(backend, eltype(du), size(du))
+    @trixi_timeit timer() "reset ∂u/∂t gpu" dev_du = fill!(allocate(backend, eltype(du), size(du)), 0)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral gpu" calc_volume_integral_gpu!(
@@ -245,7 +245,7 @@ function rhs_gpu!(du, u, t,
     dev_du, dev_u, t, source_terms, equations, dg, cache)
 
     if !(backend isa CPU)
-        KernelAbstractions.copyto!(backend, du, dev_du)
+        copyto!(backend, du, dev_du)
     else
         Base.copyto!(du, dev_du)
     end
@@ -283,16 +283,16 @@ function calc_volume_integral_gpu!(du, u,
     num_elements = length(eachelement(dg, cache))
     @unpack derivative_dhat = dg.basis
 
-    dev_derivative_dhat = KernelAbstractions.allocate(backend, eltype(derivative_dhat), size(derivative_dhat))
+    dev_derivative_dhat = allocate(backend, eltype(derivative_dhat), size(derivative_dhat))
     if backend != CPU()
-        KernelAbstractions.copyto!(backend, dev_derivative_dhat, derivative_dhat)
+        copyto!(backend, dev_derivative_dhat, derivative_dhat)
     else
         Base.copyto!(dev_derivative_dhat, derivative_dhat)
     end
 
     kernel!(du, u, equations, dev_derivative_dhat, num_nodes, ndrange=num_elements)
     # Ensure that device is finished
-    KernelAbstractions.synchronize(backend)
+    synchronize(backend)
 
     return nothing
 end
@@ -726,7 +726,7 @@ function prolong2interfaces_gpu!(cache, u,
     
     kernel!(u, interfaces.u, interfaces.neighbor_ids, orientations, equations, num_nodes, ndrange=num_interfaces)
     # Ensure that device is finished
-    KernelAbstractions.synchronize(backend)
+    synchronize(backend)
 
     return nothing
 end
@@ -805,9 +805,9 @@ function calc_interface_flux_gpu!(surface_flux_values,
 
     backend = get_backend(u)
 
-    dev_surface_flux_values = KernelAbstractions.allocate(backend, eltype(surface_flux_values), size(surface_flux_values))
+    dev_surface_flux_values = allocate(backend, eltype(surface_flux_values), size(surface_flux_values))
     if !(backend isa CPU)
-        KernelAbstractions.copyto!(backend, dev_surface_flux_values, surface_flux_values)
+        copyto!(backend, dev_surface_flux_values, surface_flux_values)
     else
         Base.copyto!(dev_surface_flux_values, surface_flux_values)
     end
@@ -818,10 +818,10 @@ function calc_interface_flux_gpu!(surface_flux_values,
 
     kernel!(dev_surface_flux_values, surface_flux, u, neighbor_ids, orientations, equations, num_nodes, ndrange=num_interfaces)
     # Ensure that device is finished
-    KernelAbstractions.synchronize(backend)
+    synchronize(backend)
 
     if !(backend isa CPU)
-        KernelAbstractions.copyto!(backend, surface_flux_values, dev_surface_flux_values)
+        copyto!(backend, surface_flux_values, dev_surface_flux_values)
     else
         Base.copyto!(surface_flux_values, dev_surface_flux_values)
     end
@@ -961,7 +961,7 @@ function prolong2boundaries_gpu!(cache, u,
     if (num_boundaries > 0)
         kernel!(u, boundaries.u, boundaries.orientations, boundaries.neighbor_sides, boundaries.neighbor_ids, equations, num_nodes, ndrange=num_boundaries)
         # Ensure that device is finished
-        KernelAbstractions.synchronize(backend)
+        synchronize(backend)
     end
 
     return nothing
@@ -1264,7 +1264,7 @@ function prolong2mortars_gpu!(cache, u,
     if (num_mortars > 0)
         kernel!(u, mortars.u_upper, mortars.u_lower, mortars.neighbor_ids, mortars.large_sides, mortars.orientations, mortar_l2, equations, num_nodes, ndrange=num_mortars)
         # Ensure that device is finished
-        KernelAbstractions.synchronize(backend)
+        synchronize(backend)
     end
 
     return nothing
@@ -1585,12 +1585,12 @@ function calc_surface_integral_gpu!(du, u, mesh::Union{TreeMesh{2}, StructuredMe
     dev_boundary_interpolation = allocate(backend, eltype(boundary_interpolation), size(boundary_interpolation))
     dev_surface_flux_values = allocate(backend, eltype(surface_flux_values), size(surface_flux_values))
 
-    KernelAbstractions.copyto!(backend, dev_boundary_interpolation, boundary_interpolation)
-    KernelAbstractions.copyto!(backend, dev_surface_flux_values, surface_flux_values)
+    copyto!(backend, dev_boundary_interpolation, boundary_interpolation)
+    copyto!(backend, dev_surface_flux_values, surface_flux_values)
 
     kernel!(du, dev_boundary_interpolation, dev_surface_flux_values, num_nodes, ndrange=num_elements)
     # Ensure that device is finished
-    KernelAbstractions.synchronize(backend)
+    synchronize(backend)
 
     return nothing
 end
@@ -1633,14 +1633,14 @@ function apply_jacobian_gpu!(du, mesh::TreeMesh{2},
     kernel! = internal_apply_jacobian_gpu!(backend)
 
     dev_inverse_jacobian = allocate(backend, eltype(inverse_jacobian), size(inverse_jacobian))
-    KernelAbstractions.copyto!(backend, dev_inverse_jacobian, inverse_jacobian)
+    copyto!(backend, dev_inverse_jacobian, inverse_jacobian)
 
     num_nodes = nnodes(dg)
     num_elements = nelements(cache.elements)
 
     kernel!(du, dev_inverse_jacobian, equations, num_nodes, ndrange=num_elements)
 
-    KernelAbstractions.synchronize(backend)
+    synchronize(backend)
 
     return nothing
 end
