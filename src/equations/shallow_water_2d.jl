@@ -56,13 +56,14 @@ References for the SWE are many but a good introduction is available in Chapter 
 struct ShallowWaterEquations2D{RealT <: Real} <: AbstractShallowWaterEquations{2, 4}
     gravity::RealT # gravitational constant
     H0::RealT      # constant "lake-at-rest" total water height
-    threshold_limiter::RealT # Threshold to use in `PositivityPreservingLimiterShallowWater` on water height,
-    # as a (small) shift on the initial condition and cutoff before the
-    # next time step.
+    # `threshold_limiter` used in `PositivityPreservingLimiterShallowWater` on water height,
+    # as a (small) shift on the initial condition and cutoff before the next time step.
     # Default is 500*eps() which in double precision is ≈1e-13.
-    threshold_wet::RealT     # Threshold to be applied on water height to define when the flow is "wet"
+    threshold_limiter::RealT
+    # `threshold_wet` applied on water height to define when the flow is "wet"
     # before calculating the numerical flux.
     # Default is 5*eps() which in double precision is ≈1e-15.
+    threshold_wet::RealT
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the

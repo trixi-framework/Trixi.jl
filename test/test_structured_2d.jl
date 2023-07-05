@@ -20,7 +20,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @trixi_testset "elixir_advection_coupled.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),    
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
       l2   = [7.816742843181738e-6, 7.816742843196112e-6],
       linf = [6.314906965543265e-5, 6.314906965410039e-5],
       coverage_override = (maxiters=10^5,))
@@ -272,8 +272,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_shallowwater_well_balanced_wet_dry.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced_wet_dry.jl"),
-      l2   = [0.019731646454946954, 6.682390396110676e-14, 1.1925157549257398e-14, 0.07715172600379547],
-      linf = [0.5000000000001029, 3.959125826488326e-13, 4.556539260222467e-14, 2.0],
+      l2   = [0.019731646454942086, 1.0694532773278277e-14, 1.1969913383405568e-14, 0.0771517260037954],
+      linf = [0.4999999999998892, 6.067153702623552e-14, 4.4849667259339357e-14, 1.9999999999999993],
       tspan = (0.0, 0.25))
   end
 
