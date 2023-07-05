@@ -279,18 +279,11 @@ function calc_volume_integral_gpu!(du, u,
 
     kernel! = weak_form_kernel_gpu!(backend)
     # Determine gridsize by number of node for each element
-    num_nodes = length(eachnode(dg))
-    num_elements = length(eachelement(dg, cache))
+    num_nodes = nnodes(dg)
+    num_elements = nelements(cache.elements)
     @unpack derivative_dhat = dg.basis
 
-    dev_derivative_dhat = allocate(backend, eltype(derivative_dhat), size(derivative_dhat))
-    if backend != CPU()
-        copyto!(backend, dev_derivative_dhat, derivative_dhat)
-    else
-        Base.copyto!(dev_derivative_dhat, derivative_dhat)
-    end
-
-    kernel!(du, u, equations, dev_derivative_dhat, num_nodes, ndrange=num_elements)
+    kernel!(du, u, equations, derivative_dhat, num_nodes, ndrange=num_elements)
     # Ensure that device is finished
     synchronize(backend)
 

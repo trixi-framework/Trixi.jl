@@ -63,8 +63,9 @@ function DGSEM(; RealT = Float64,
                polydeg::Integer,
                surface_flux = flux_central,
                surface_integral = SurfaceIntegralWeakForm(surface_flux),
-               volume_integral = VolumeIntegralWeakForm())
-    basis = LobattoLegendreBasis(RealT, polydeg)
+               volume_integral = VolumeIntegralWeakForm(),
+               backend::Backend = CPU())
+    basis = LobattoLegendreBasis(RealT, polydeg; backend=backend)
     return DGSEM(basis, surface_integral, volume_integral)
 end
 

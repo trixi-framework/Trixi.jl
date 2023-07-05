@@ -33,7 +33,7 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     # negative adjoint wrt the SBP dot product
 end
 
-function LobattoLegendreBasis(RealT, polydeg::Integer)
+function LobattoLegendreBasis(RealT, polydeg::Integer; backend::Backend=CPU())
     nnodes_ = polydeg + 1
 
     # compute everything using `Float64` by default
@@ -64,7 +64,7 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
     derivative_matrix = Matrix{RealT}(derivative_matrix_)
     derivative_split = Matrix{RealT}(derivative_split_)
     derivative_split_transpose = Matrix{RealT}(derivative_split_transpose_)
-    derivative_dhat = Matrix{RealT}(derivative_dhat_)
+    derivative_dhat = copyto!(backend, allocate(backend, RealT, size(derivative_dhat_)), derivative_dhat_)
 
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
