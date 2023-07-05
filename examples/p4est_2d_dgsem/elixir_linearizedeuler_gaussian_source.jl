@@ -20,7 +20,7 @@ end
 initial_condition_zero(x, t, equations::LinearizedEulerEquations2D) = SVector(0.0, 0.0, 0.0, 0.0)
 
 ###############################################################################
-# semidiscretization of the acoustic perturbation equations
+# semidiscretization of the linearized Euler equations
 
 equations = LinearizedEulerEquations2D(v_mean_global=(-0.5580127018922194, -0.03349364905389032),
                                        c_mean_global=1.02, rho_mean_global=1.01)
