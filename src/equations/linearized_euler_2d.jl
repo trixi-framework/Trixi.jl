@@ -169,8 +169,8 @@ end
     return abs(v_mean_normal) + c_mean_global * norm(normal_direction)
 end
 
-@inline function flux_upwind(u_ll, u_rr, orientation::Integer,
-                             equations::LinearizedEulerEquations2D)
+@inline function flux_godunov(u_ll, u_rr, orientation::Integer,
+                              equations::LinearizedEulerEquations2D)
     @unpack v_mean_global, rho_mean_global, c_mean_global = equations
     v1_mean = v_mean_global[1]
     v2_mean = v_mean_global[2]
@@ -263,8 +263,8 @@ end
     return SVector(f1, f2, f3, f4)
 end
 
-@inline function flux_upwind(u_ll, u_rr, normal_direction::AbstractVector,
-                             equations::LinearizedEulerEquations2D)
+@inline function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
+                              equations::LinearizedEulerEquations2D)
     @unpack v_mean_global, rho_mean_global, c_mean_global = equations
     v_mean_normal = v_mean_global[1] * normal_direction[1] +
                     v_mean_global[2] * normal_direction[2]

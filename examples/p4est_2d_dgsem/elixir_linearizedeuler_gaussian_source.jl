@@ -38,7 +38,7 @@ equations = LinearizedEulerEquations2D(v_mean_global=Tuple(rot_mat * SVector(-0.
 initial_condition = initial_condition_zero
 
 # Create DG solver with polynomial degree = 3 and upwind flux as surface flux
-solver = DGSEM(polydeg=3, surface_flux=flux_upwind)
+solver = DGSEM(polydeg=3, surface_flux=flux_godunov)
 
 # Create a uniformly refined mesh with periodic boundaries
 trees_per_dimension = (4, 4)

@@ -9,7 +9,7 @@ equations = LinearizedEulerEquations2D(v_mean_global=(0.5, 0.0), c_mean_global=1
                                        rho_mean_global=1.0)
 
 # Create DG solver with polynomial degree = 5 and upwind flux as surface flux
-solver = DGSEM(polydeg=5, surface_flux=flux_upwind)
+solver = DGSEM(polydeg=5, surface_flux=flux_godunov)
 
 coordinates_min = (-100.0, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (100.0, 200.0) # maximum coordinates (max(x), max(y))
