@@ -374,7 +374,7 @@ Splitting of the compressible Euler flux of Steger and Warming.
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
-function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -462,7 +462,7 @@ it proved the most robust in practice.
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
-function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -555,7 +555,7 @@ are to handle flows at the low Mach number limit.
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
-function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
