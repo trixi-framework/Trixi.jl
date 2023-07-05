@@ -6,14 +6,14 @@
 #! format: noindent
 
 # Container data structure (structure-of-arrays style) for DG elements
-mutable struct ElementContainer2D{RealT <: Real, uEltype <: Real} <: AbstractContainer
+mutable struct ElementContainer2D{RealT <: Real, uEltype <: Real, surfaceFluxArray <: DenseArray{uEltype, 4}, _surfaceFluxArray <: DenseArray{uEltype, 1}} <: AbstractContainer
     inverse_jacobian::Vector{RealT}        # [elements]
     node_coordinates::Array{RealT, 4}      # [orientation, i, j, elements]
-    surface_flux_values::Array{uEltype, 4} # [variables, i, direction, elements]
+    surface_flux_values::surfaceFluxArray  # [variables, i, direction, elements]
     cell_ids::Vector{Int}                  # [elements]
     # internal `resize!`able storage
     _node_coordinates::Vector{RealT}
-    _surface_flux_values::Vector{uEltype}
+    _surface_flux_values::_surfaceFluxArray
 end
 
 nvariables(elements::ElementContainer2D) = size(elements.surface_flux_values, 1)
@@ -47,10 +47,12 @@ function Base.resize!(elements::ElementContainer2D, capacity)
 end
 
 function ElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
-                                            n_nodes) where {RealT <: Real,
+                                            n_nodes, backend::Backend) where {RealT <: Real,
                                                             uEltype <: Real}
     nan_RealT = convert(RealT, NaN)
     nan_uEltype = convert(uEltype, NaN)
+
+    arrType = get_array_type(backend)
 
     # Initialize fields with defaults
     inverse_jacobian = fill(nan_RealT, capacity)
@@ -59,13 +61,13 @@ function ElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
     node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
                                    (2, n_nodes, n_nodes, capacity))
 
-    _surface_flux_values = fill(nan_uEltype, n_variables * n_nodes * 2 * 2 * capacity)
-    surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
+    _surface_flux_values = allocate(backend, uEltype, n_variables * n_nodes * 2 * 2 * capacity)
+    surface_flux_values = unsafe_wrap(arrType, pointer(_surface_flux_values),
                                       (n_variables, n_nodes, 2 * 2, capacity))
 
     cell_ids = fill(typemin(Int), capacity)
 
-    return ElementContainer2D{RealT, uEltype}(inverse_jacobian, node_coordinates,
+    return ElementContainer2D{RealT, uEltype, arrType{uEltype, 4}, arrType{uEltype, 1}}(inverse_jacobian, node_coordinates,
                                               surface_flux_values, cell_ids,
                                               _node_coordinates, _surface_flux_values)
 end
@@ -87,11 +89,11 @@ In particular, not the elements themselves are returned.
 function init_elements(cell_ids, mesh::TreeMesh2D,
                        equations::AbstractEquations{2},
                        basis, ::Type{RealT},
-                       ::Type{uEltype}) where {RealT <: Real, uEltype <: Real}
+                       ::Type{uEltype}, backend::Backend) where {RealT <: Real, uEltype <: Real}
     # Initialize container
     n_elements = length(cell_ids)
     elements = ElementContainer2D{RealT, uEltype}(n_elements, nvariables(equations),
-                                                  nnodes(basis))
+                                                  nnodes(basis), backend)
 
     init_elements!(elements, cell_ids, mesh, basis)
     return elements

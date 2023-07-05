@@ -16,7 +16,7 @@ function create_cache(mesh::TreeMesh{2}, equations,
     # Get cells for which an element needs to be created (i.e. all leaf cells)
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
-    elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)
+    elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype, backend)
 
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements, backend)
 
@@ -798,26 +798,13 @@ function calc_interface_flux_gpu!(surface_flux_values,
 
     backend = get_backend(u)
 
-    dev_surface_flux_values = allocate(backend, eltype(surface_flux_values), size(surface_flux_values))
-    if !(backend isa CPU)
-        copyto!(backend, dev_surface_flux_values, surface_flux_values)
-    else
-        Base.copyto!(dev_surface_flux_values, surface_flux_values)
-    end
-
     kernel! = internal_calc_interface_flux!(backend)
     num_nodes = nnodes(dg)
     num_interfaces = ninterfaces(cache.interfaces)
 
-    kernel!(dev_surface_flux_values, surface_flux, u, neighbor_ids, orientations, equations, num_nodes, ndrange=num_interfaces)
+    kernel!(surface_flux_values, surface_flux, u, neighbor_ids, orientations, equations, num_nodes, ndrange=num_interfaces)
     # Ensure that device is finished
     synchronize(backend)
-
-    if !(backend isa CPU)
-        copyto!(backend, surface_flux_values, dev_surface_flux_values)
-    else
-        Base.copyto!(surface_flux_values, dev_surface_flux_values)
-    end
 
     return nothing
 end
@@ -1576,12 +1563,10 @@ function calc_surface_integral_gpu!(du, u, mesh::Union{TreeMesh{2}, StructuredMe
     num_elements = nelements(cache.elements)
 
     dev_boundary_interpolation = allocate(backend, eltype(boundary_interpolation), size(boundary_interpolation))
-    dev_surface_flux_values = allocate(backend, eltype(surface_flux_values), size(surface_flux_values))
 
     copyto!(backend, dev_boundary_interpolation, boundary_interpolation)
-    copyto!(backend, dev_surface_flux_values, surface_flux_values)
 
-    kernel!(du, dev_boundary_interpolation, dev_surface_flux_values, num_nodes, ndrange=num_elements)
+    kernel!(du, dev_boundary_interpolation, surface_flux_values, num_nodes, ndrange=num_elements)
     # Ensure that device is finished
     synchronize(backend)
 
