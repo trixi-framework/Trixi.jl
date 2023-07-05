@@ -134,6 +134,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.025))
   end
 
+  @trixi_testset "elixir_shallowwater_source_terms.jl with flux_hll" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
+      l2   = [0.0011197139793938727, 0.015430259691311309, 0.017081031802719554, 5.089218476759981e-6],
+      linf = [0.014300809338967824, 0.12783372461224918, 0.17625472321993918, 2.6407324614341476e-5],
+      surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal),
+      tspan = (0.0, 0.025))
+  end
+
   @trixi_testset "elixir_shallowwater_dirichlet.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_dirichlet.jl"),
       l2   = [1.1577518608940115e-5, 4.867189932537344e-13, 4.647273240470541e-13, 1.1577518608933468e-5],
