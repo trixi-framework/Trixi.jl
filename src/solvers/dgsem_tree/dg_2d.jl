@@ -1562,11 +1562,7 @@ function calc_surface_integral_gpu!(du, u, mesh::Union{TreeMesh{2}, StructuredMe
     num_nodes = nnodes(dg)
     num_elements = nelements(cache.elements)
 
-    dev_boundary_interpolation = allocate(backend, eltype(boundary_interpolation), size(boundary_interpolation))
-
-    copyto!(backend, dev_boundary_interpolation, boundary_interpolation)
-
-    kernel!(du, dev_boundary_interpolation, surface_flux_values, num_nodes, ndrange=num_elements)
+    kernel!(du, boundary_interpolation, surface_flux_values, num_nodes, ndrange=num_elements)
     # Ensure that device is finished
     synchronize(backend)
 
