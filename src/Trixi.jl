@@ -89,6 +89,7 @@ using StartUpDG: RefElemData, MeshData, AbstractElemShape
 
 # For GPU offloading
 using KernelAbstractions: @kernel, @index, Backend, CPU, allocate, copyto!, get_backend, synchronize
+using GPUArrays: @allowscalar
 
 # TODO: include_optimized
 # This should be used everywhere (except to `include("interpolations.jl")`)

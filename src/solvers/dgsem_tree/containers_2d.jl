@@ -114,6 +114,9 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh2D, basis)
     # Store cell ids
     elements.cell_ids .= cell_ids
 
+    # Init inverse jacobian on CPU and copy then to gpu
+    tmp_inverse_jacobian = Array{eltype(elements.inverse_jacobian)}(undef, size(elements.inverse_jacobian))
+
     # Calculate inverse Jacobian and node coordinates
     for element in eachelement(elements)
         # Get cell id
@@ -124,7 +127,7 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh2D, basis)
 
         # Calculate inverse Jacobian
         jacobian = dx / reference_length
-        elements.inverse_jacobian[element] = inv(jacobian)
+        tmp_inverse_jacobian[element] = inv(jacobian)
 
         # Calculate node coordinates
         # Note that the `tree_coordinates` are the midpoints of the cells.
@@ -141,6 +144,8 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh2D, basis)
                                                            (nodes[j] - reference_offset))
         end
     end
+
+    copyto!(get_backend(elements.inverse_jacobian), elements.inverse_jacobian, tmp_inverse_jacobian)
 
     return elements
 end
