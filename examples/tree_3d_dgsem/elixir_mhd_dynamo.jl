@@ -1,4 +1,4 @@
-# A turbulent helically driven dynamo model in resistive compresible MHD.
+# A turbulent helically driven dynamo model in resistive compressible MHD.
 # We start with a weak small-scale magnetic field provided as Gaussian noise.
 # The energy is supplied via a forcing function f_force(x, t), which is delta-correlated in time.
 # For a comparison look into the PC run pencil-code/simon/forced/alpha2_periodic/64_kf_5_a.
