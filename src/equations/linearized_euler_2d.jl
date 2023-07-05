@@ -196,23 +196,23 @@ end
         lambda2p3_half_m = 0.5 * (lambda2_m + lambda3_m)
         lambda3m2_half_m = 0.5 * (lambda3_m - lambda2_m)
 
-        f1p = lambda1_p * rho_prime_ll +
-              lambda3m2_half_p / c_mean_global * rho_mean_global * v1_prime_ll +
-              (lambda2p3_half_p - lambda1_p) / c_mean_global^2 * p_prime_ll
-        f2p = lambda2p3_half_p * v1_prime_ll +
-              lambda3m2_half_p / c_mean_global * p_prime_ll / rho_mean_global
+        f1p = (lambda1_p * rho_prime_ll +
+               lambda3m2_half_p / c_mean_global * rho_mean_global * v1_prime_ll +
+               (lambda2p3_half_p - lambda1_p) / c_mean_global^2 * p_prime_ll)
+        f2p = (lambda2p3_half_p * v1_prime_ll +
+               lambda3m2_half_p / c_mean_global * p_prime_ll / rho_mean_global)
         f3p = lambda1_p * v2_prime_ll
-        f4p = lambda3m2_half_p * c_mean_global * rho_mean_global * v1_prime_ll +
-              lambda2p3_half_p * p_prime_ll
+        f4p = (lambda3m2_half_p * c_mean_global * rho_mean_global * v1_prime_ll +
+               lambda2p3_half_p * p_prime_ll)
 
-        f1m = lambda1_m * rho_prime_rr +
-              lambda3m2_half_m / c_mean_global * rho_mean_global * v1_prime_rr +
-              (lambda2p3_half_m - lambda1_m) / c_mean_global^2 * p_prime_rr
-        f2m = lambda2p3_half_m * v1_prime_rr +
-              lambda3m2_half_m / c_mean_global * p_prime_rr / rho_mean_global
+        f1m = (lambda1_m * rho_prime_rr +
+               lambda3m2_half_m / c_mean_global * rho_mean_global * v1_prime_rr +
+               (lambda2p3_half_m - lambda1_m) / c_mean_global^2 * p_prime_rr)
+        f2m = (lambda2p3_half_m * v1_prime_rr +
+               lambda3m2_half_m / c_mean_global * p_prime_rr / rho_mean_global)
         f3m = lambda1_m * v2_prime_rr
-        f4m = lambda3m2_half_m * c_mean_global * rho_mean_global * v1_prime_rr +
-              lambda2p3_half_m * p_prime_rr
+        f4m = (lambda3m2_half_m * c_mean_global * rho_mean_global * v1_prime_rr +
+               lambda2p3_half_m * p_prime_rr)
 
         f1 = f1p + f1m
         f2 = f2p + f2m
@@ -236,23 +236,23 @@ end
         lambda2p3_half_m = 0.5 * (lambda2_m + lambda3_m)
         lambda3m2_half_m = 0.5 * (lambda3_m - lambda2_m)
 
-        f1p = lambda1_p * rho_prime_ll +
-              lambda3m2_half_p / c_mean_global * rho_mean_global * v2_prime_ll +
-              (lambda2p3_half_p - lambda1_p) / c_mean_global^2 * p_prime_ll
+        f1p = (lambda1_p * rho_prime_ll +
+               lambda3m2_half_p / c_mean_global * rho_mean_global * v2_prime_ll +
+               (lambda2p3_half_p - lambda1_p) / c_mean_global^2 * p_prime_ll)
         f2p = lambda1_p * v1_prime_ll
-        f3p = lambda2p3_half_p * v2_prime_ll +
-              lambda3m2_half_p / c_mean_global * p_prime_ll / rho_mean_global
-        f4p = lambda3m2_half_p * c_mean_global * rho_mean_global * v2_prime_ll +
-              lambda2p3_half_p * p_prime_ll
+        f3p = (lambda2p3_half_p * v2_prime_ll +
+               lambda3m2_half_p / c_mean_global * p_prime_ll / rho_mean_global)
+        f4p = (lambda3m2_half_p * c_mean_global * rho_mean_global * v2_prime_ll +
+               lambda2p3_half_p * p_prime_ll)
 
-        f1m = lambda1_m * rho_prime_rr +
-              lambda3m2_half_m / c_mean_global * rho_mean_global * v2_prime_rr +
-              (lambda2p3_half_m - lambda1_m) / c_mean_global^2 * p_prime_rr
+        f1m = (lambda1_m * rho_prime_rr +
+               lambda3m2_half_m / c_mean_global * rho_mean_global * v2_prime_rr +
+               (lambda2p3_half_m - lambda1_m) / c_mean_global^2 * p_prime_rr)
         f2m = lambda1_m * v1_prime_rr
-        f3m = lambda2p3_half_m * v2_prime_rr +
-              lambda3m2_half_m / c_mean_global * p_prime_rr / rho_mean_global
-        f4m = lambda3m2_half_m * c_mean_global * rho_mean_global * v2_prime_rr +
-              lambda2p3_half_m * p_prime_rr
+        f3m = (lambda2p3_half_m * v2_prime_rr +
+               lambda3m2_half_m / c_mean_global * p_prime_rr / rho_mean_global)
+        f4m = (lambda3m2_half_m * c_mean_global * rho_mean_global * v2_prime_rr +
+               lambda2p3_half_m * p_prime_rr)
 
         f1 = f1p + f1m
         f2 = f2p + f2m
@@ -296,43 +296,41 @@ end
     lambda2p3_half_m = 0.5 * (lambda2_m + lambda3_m)
     lambda3m2_half_m = 0.5 * (lambda3_m - lambda2_m)
 
-    f1p = lambda1_p * rho_prime_ll +
-          lambda3m2_half_p / c_mean_scaled * rho_mean_global * v_prime_normal_ll +
-          (lambda2p3_half_p - lambda1_p) / c_mean_global^2 * p_prime_ll
-    f2p = ((lambda1_p * normal_direction[2]^2 +
-            lambda2p3_half_p * normal_direction[1]^2) * v1_prime_ll +
-           (lambda2p3_half_p - lambda1_p) * prod(normal_direction) * v2_prime_ll) /
-          norm_^2 +
-          lambda3m2_half_p / c_mean_scaled * normal_direction[1] * p_prime_ll /
-          rho_mean_global
-    f3p = ((lambda1_p * normal_direction[1]^2 +
-            lambda2p3_half_p * normal_direction[2]^2) * v2_prime_ll +
-           (lambda2p3_half_p - lambda1_p) * prod(normal_direction) * v1_prime_ll) /
-          norm_^2 +
-          lambda3m2_half_p / c_mean_scaled * normal_direction[2] * p_prime_ll /
-          rho_mean_global
-    f4p = lambda3m2_half_p / norm_ * c_mean_global * rho_mean_global *
-          v_prime_normal_ll +
-          lambda2p3_half_p * p_prime_ll
+    f1p = (lambda1_p * rho_prime_ll +
+           lambda3m2_half_p / c_mean_scaled * rho_mean_global * v_prime_normal_ll +
+           (lambda2p3_half_p - lambda1_p) / c_mean_global^2 * p_prime_ll)
+    f2p = (((lambda1_p * normal_direction[2]^2 +
+             lambda2p3_half_p * normal_direction[1]^2) * v1_prime_ll +
+            (lambda2p3_half_p - lambda1_p) * prod(normal_direction) * v2_prime_ll) /
+           norm_^2 +
+           lambda3m2_half_p / c_mean_scaled * normal_direction[1] * p_prime_ll /
+           rho_mean_global)
+    f3p = (((lambda1_p * normal_direction[1]^2 +
+             lambda2p3_half_p * normal_direction[2]^2) * v2_prime_ll +
+            (lambda2p3_half_p - lambda1_p) * prod(normal_direction) * v1_prime_ll) /
+           norm_^2 +
+           lambda3m2_half_p / c_mean_scaled * normal_direction[2] * p_prime_ll /
+           rho_mean_global)
+    f4p = (lambda3m2_half_p / norm_ * c_mean_global * rho_mean_global *
+           v_prime_normal_ll + lambda2p3_half_p * p_prime_ll)
 
-    f1m = lambda1_m * rho_prime_rr +
-          lambda3m2_half_m / c_mean_scaled * rho_mean_global * v_prime_normal_rr +
-          (lambda2p3_half_m - lambda1_m) / c_mean_global^2 * p_prime_rr
-    f2m = ((lambda1_m * normal_direction[2]^2 +
-            lambda2p3_half_m * normal_direction[1]^2) * v1_prime_rr +
-           (lambda2p3_half_m - lambda1_m) * prod(normal_direction) * v2_prime_rr) /
-          norm_^2 +
-          lambda3m2_half_m / c_mean_scaled * normal_direction[1] * p_prime_rr /
-          rho_mean_global
-    f3m = ((lambda1_m * normal_direction[1]^2 +
-            lambda2p3_half_m * normal_direction[2]^2) * v2_prime_rr +
-           (lambda2p3_half_m - lambda1_m) * prod(normal_direction) * v1_prime_rr) /
-          norm_^2 +
-          lambda3m2_half_m / c_mean_scaled * normal_direction[2] * p_prime_rr /
-          rho_mean_global
-    f4m = lambda3m2_half_m / norm_ * c_mean_global * rho_mean_global *
-          v_prime_normal_rr +
-          lambda2p3_half_m * p_prime_rr
+    f1m = (lambda1_m * rho_prime_rr +
+           lambda3m2_half_m / c_mean_scaled * rho_mean_global * v_prime_normal_rr +
+           (lambda2p3_half_m - lambda1_m) / c_mean_global^2 * p_prime_rr)
+    f2m = (((lambda1_m * normal_direction[2]^2 +
+             lambda2p3_half_m * normal_direction[1]^2) * v1_prime_rr +
+            (lambda2p3_half_m - lambda1_m) * prod(normal_direction) * v2_prime_rr) /
+           norm_^2 +
+           lambda3m2_half_m / c_mean_scaled * normal_direction[1] * p_prime_rr /
+           rho_mean_global)
+    f3m = (((lambda1_m * normal_direction[1]^2 +
+             lambda2p3_half_m * normal_direction[2]^2) * v2_prime_rr +
+            (lambda2p3_half_m - lambda1_m) * prod(normal_direction) * v1_prime_rr) /
+           norm_^2 +
+           lambda3m2_half_m / c_mean_scaled * normal_direction[2] * p_prime_rr /
+           rho_mean_global)
+    f4m = (lambda3m2_half_m / norm_ * c_mean_global * rho_mean_global *
+           v_prime_normal_rr + lambda2p3_half_m * p_prime_rr)
 
     f1 = f1p + f1m
     f2 = f2p + f2m
