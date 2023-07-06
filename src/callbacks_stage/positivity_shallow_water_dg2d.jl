@@ -5,6 +5,8 @@
 @muladd begin
 #! format: noindent
 
+# TODO: TrixiShallowWater: 2D wet/dry limiter should move
+
 function limiter_shallow_water!(u, threshold::Real, variable,
                                 mesh::AbstractMesh{2},
                                 equations::ShallowWaterEquations2D, dg::DGSEM, cache)

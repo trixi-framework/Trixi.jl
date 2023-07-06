@@ -5,6 +5,8 @@
 @muladd begin
 #! format: noindent
 
+# TODO: TrixiShallowWater: generic wet/dry limiter
+
 """
     PositivityPreservingLimiterShallowWater(; variables)
 

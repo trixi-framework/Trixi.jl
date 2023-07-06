@@ -5,6 +5,8 @@ using Printf: @printf, @sprintf
 
 ###############################################################################
 # Semidiscretization of the shallow water equations
+#
+# TODO: TrixiShallowWater: wet/dry example elixir
 
 
 equations = ShallowWaterEquations2D(gravity_constant=9.812)

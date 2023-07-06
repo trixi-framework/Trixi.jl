@@ -4,6 +4,8 @@ using Trixi
 
 ###############################################################################
 # Semidiscretization of the shallow water equations
+#
+# TODO: TrixiShallowWater: wet/dry example elixir
 
 equations = ShallowWaterEquations1D(gravity_constant=9.81)
 

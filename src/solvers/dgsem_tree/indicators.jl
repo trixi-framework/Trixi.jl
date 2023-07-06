@@ -123,6 +123,8 @@ See also [`VolumeIntegralShockCapturingHG`](@ref).
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
+#
+# TODO: TrixiShallowWater: move the new indicator and all associated routines to the new package
 struct IndicatorHennemannGassnerShallowWater{RealT <: Real, Variable, Cache} <:
        AbstractIndicator
     alpha_max::RealT

@@ -263,6 +263,8 @@ See [`FluxHLL`](@ref).
 """
 const flux_hll = FluxHLL()
 
+# TODO: TrixiShallowWater: move the chen_noelle flux structure to the new package
+
 # An empty version of the `min_max_speed_chen_noelle` function is declared here
 # in order to create a dimension agnostic version of `flux_hll_chen_noelle`.
 # The full description of this wave speed estimate can be found in the docstrings

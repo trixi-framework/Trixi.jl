@@ -1,5 +1,7 @@
 module TestExamplesUnstructuredMesh2D
 
+# TODO: TrixiShallowWater: move any wet/dry and two layer tests
+
 using Test
 using Trixi
 

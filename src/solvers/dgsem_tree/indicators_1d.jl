@@ -27,6 +27,8 @@ end
 # Modified indicator for ShallowWaterEquations1D to apply full FV method on cells
 # containing some "dry" LGL nodes. That is, if an element is partially "wet" then it becomes a
 # full FV element.
+#
+# TODO: TrixiShallowWater: move new indicator type
 function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{<:Any, 3
                                                                                 },
                                                                mesh,

@@ -50,6 +50,8 @@ References for the SWE are many but a good introduction is available in Chapter 
   Finite Volume Methods for Hyperbolic Problems
   [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
+# TODO: TrixiShallowWater: where should the `threshold_limiter` and `threshold_wet` live?
+# how to "properly" export these constants across the two packages?
 struct ShallowWaterEquations1D{RealT <: Real} <: AbstractShallowWaterEquations{1, 3}
     gravity::RealT # gravitational constant
     H0::RealT      # constant "lake-at-rest" total water height
@@ -347,6 +349,7 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
+# TODO: TrixiShallowWater: move wet/dry specific routine
 @inline function flux_nonconservative_chen_noelle(u_ll, u_rr,
                                                   orientation::Integer,
                                                   equations::ShallowWaterEquations1D)
@@ -495,6 +498,7 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
+# TODO: TrixiShallowWater: move wet/dry specific routine
 @inline function hydrostatic_reconstruction_chen_noelle(u_ll, u_rr,
                                                         equations::ShallowWaterEquations1D)
     # Unpack left and right water heights and bottom topographies
@@ -617,6 +621,7 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
+# TODO: TrixiShallowWater: move wet/dry specific routine
 @inline function min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer,
                                            equations::ShallowWaterEquations1D)
     # Get the velocity quantities
@@ -736,6 +741,9 @@ end
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
 # be a constant value over time. Note, assumes there is a single reference
 # water height `H0` with which to compare.
+#
+# TODO: TrixiShallowWater: where should `threshold_limiter` live? May need
+# to modify or have different versions of the `lake_at_rest_error` function
 @inline function lake_at_rest_error(u, equations::ShallowWaterEquations1D)
     h, _, b = u
 
