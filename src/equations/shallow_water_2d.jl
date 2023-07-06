@@ -5,8 +5,6 @@
 @muladd begin
 #! format: noindent
 
-# TODO: remove this comment, just a test of push capabilities.
-
 @doc raw"""
     ShallowWaterEquations2D(gravity, H0, threshold_limiter, threshold_wet)
 
