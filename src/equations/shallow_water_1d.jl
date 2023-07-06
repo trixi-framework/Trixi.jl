@@ -520,7 +520,7 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
     # lower or equal to the threshold can be declared as dry.
     # The default value for `threshold_wet` is ≈ 5*eps(), or 1e-15 in double precision, is set
     # in the `ShallowWaterEquations1D` struct. This threshold value can be changed in the constructor
-    # call of this eqaution struct in an elixir.
+    # call of this equation struct in an elixir.
     threshold = equations.threshold_wet
 
     if (h_ll_star <= threshold)
