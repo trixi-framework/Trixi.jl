@@ -6,7 +6,7 @@
 #! format: noindent
 
 """
-    APosterioriLimiter()
+    SubcellLimiterIDPCorrection()
 
 Perform antidiffusive correction stage for the a posteriori IDP limiter [`SubcellLimiterIDP`](@ref)
 called with [`VolumeIntegralSubcellLimiting`](@ref).
@@ -27,21 +27,23 @@ called with [`VolumeIntegralSubcellLimiting`](@ref).
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct APosterioriLimiter end
+struct SubcellLimiterIDPCorrection end
 
-function (limiter!::APosterioriLimiter)(u_ode, integrator::Trixi.SimpleIntegratorSSP,
-                                        stage)
+function (limiter!::SubcellLimiterIDPCorrection)(u_ode,
+                                                 integrator::Trixi.SimpleIntegratorSSP,
+                                                 stage)
     limiter!(u_ode, integrator.p, integrator.t, integrator.dt,
              integrator.p.solver.volume_integral)
 end
 
-function (limiter!::APosterioriLimiter)(u_ode, semi, t, dt,
-                                        volume_integral::VolumeIntegralSubcellLimiting)
+function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
+                                                 volume_integral::VolumeIntegralSubcellLimiting)
     @trixi_timeit timer() "a posteriori limiter" limiter!(u_ode, semi, t, dt,
                                                           volume_integral.limiter)
 end
 
-function (limiter!::APosterioriLimiter)(u_ode, semi, t, dt, limiter::SubcellLimiterIDP)
+function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
+                                                 limiter::SubcellLimiterIDP)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
@@ -58,9 +60,9 @@ function (limiter!::APosterioriLimiter)(u_ode, semi, t, dt, limiter::SubcellLimi
     return nothing
 end
 
-init_callback(limiter!::APosterioriLimiter, semi) = nothing
+init_callback(limiter!::SubcellLimiterIDPCorrection, semi) = nothing
 
-finalize_callback(limiter!::APosterioriLimiter, semi) = nothing
+finalize_callback(limiter!::SubcellLimiterIDPCorrection, semi) = nothing
 
 include("a_posteriori_limiter_2d.jl")
 end # @muladd
