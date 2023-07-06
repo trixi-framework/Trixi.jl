@@ -57,25 +57,12 @@ function CompressibleMhdDiffusion3D(equations::IdealGlmMhdEquations3D;
                                  equations, gradient_variables)
 end
 
-have_nonconservative_terms(::CompressibleMhdDiffusion3D) = Val(true)
-function varnames(::typeof(cons2cons), ::CompressibleMhdDiffusion3D)
-    ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
-end
-function varnames(::typeof(cons2prim), ::CompressibleMhdDiffusion3D)
-    ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi")
-end
-function default_analysis_integrals(::CompressibleMhdDiffusion3D)
-    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
-end
 
 # TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
 # varnames(::typeof(cons2prim)   , ::CompressibleMhdDiffusion3D) = ("v1", "v2", "v3", "T")
 # varnames(::typeof(cons2entropy), ::CompressibleMhdDiffusion3D) = ("w2", "w3", "w4", "w5")
 
-function varnames(variable_mapping, equations_parabolic::CompressibleMhdDiffusion3D)
-    varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
-end
 
 # # we specialize this function to compute gradients of primitive variables instead of
 # # conservative variables.
@@ -184,17 +171,6 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleMhdDiff
     end
 end
 
-# Convert conservative variables to primitive
-@inline function cons2prim(u, equations::CompressibleMhdDiffusion3D)
-    rho, rho_v1, rho_v2, rho_v3, T, B1, B2, B3, psi = u
-
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v3 = rho_v3 / rho
-    T = temperature(u, equations)
-
-    return SVector(rho, v1, v2, v3, T, B1, B2, B3, psi)
-end
 
 # the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
 # For CNS, it is simplest to formulate the viscous terms in primitive variables, so we transform the transformed
@@ -218,55 +194,3 @@ end
     return gradient
 end
 
-@inline function temperature(u, equations::CompressibleMhdDiffusion3D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, _ = u
-
-    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
-    T = p / rho
-    return T
-end
-
-@inline function enstrophy(u, gradients, equations::CompressibleMhdDiffusion3D)
-    # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
-
-    omega = vorticity(u, gradients, equations)
-    return 0.5 * u[1] * (omega[1]^2 + omega[2]^2 + omega[3]^2)
-end
-
-@inline function vorticity(u, gradients, equations::CompressibleMhdDiffusion3D)
-    # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
-    _, dv1dx, dv2dx, dv3dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
-    _, dv1dy, dv2dy, dv3dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
-    _, dv1dz, dv2dz, dv3dz, _ = convert_derivative_to_primitive(u, gradients[3], equations)
-
-    return SVector(dv3dy - dv2dz, dv1dz - dv3dx, dv2dx - dv1dy)
-end
-
-"""
-    initial_condition_convergence_test(x, t, equations::CompressibleMhdDiffusion3D)
-
-An Alfvén wave as smooth initial condition used for convergence tests.
-"""
-function initial_condition_convergence_test(x, t, equations::CompressibleMhdDiffusion3D)
-    p = 1
-    omega = 2 * pi / 2 # may be multiplied by frequency
-    # r: length-variable = length of computational domain
-    r = 2
-    # e: epsilon = 0.2
-    e = 0.02
-    sqr = 1
-    Va = omega
-    phi_alv = omega * (x[1] - t)
-
-    rho = 1.0
-    rho_v1 = 0
-    rho_v2 = e * cos(phi_alv)
-    rho_v3 = 0
-    rho_e = 10.0
-    B1 = 1
-    B2 = -rho_v2 * sqr
-    B3 = 0
-    psi = 0
-
-    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
-end
