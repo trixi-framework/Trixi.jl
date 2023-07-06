@@ -57,12 +57,10 @@ function CompressibleMhdDiffusion3D(equations::IdealGlmMhdEquations3D;
                                  equations, gradient_variables)
 end
 
-
 # TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
 # varnames(::typeof(cons2prim)   , ::CompressibleMhdDiffusion3D) = ("v1", "v2", "v3", "T")
 # varnames(::typeof(cons2entropy), ::CompressibleMhdDiffusion3D) = ("w2", "w3", "w4", "w5")
-
 
 # # we specialize this function to compute gradients of primitive variables instead of
 # # conservative variables.
@@ -171,7 +169,6 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleMhdDiff
     end
 end
 
-
 # the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
 # For CNS, it is simplest to formulate the viscous terms in primitive variables, so we transform the transformed
 # variables into primitive variables.
@@ -193,4 +190,3 @@ end
                                                                               })
     return gradient
 end
-
