@@ -234,6 +234,10 @@ including:
 The bounds are calculated using the low-order FV solution. The positivity limiter uses
 `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
 
+!!! note
+    This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
+    Without the callback, no limiting takes place, leading to a standard flux-differencing DGSEM scheme.
+
 ## References
 
 - Rueda-Ramírez, Pazner, Gassner (2022)
