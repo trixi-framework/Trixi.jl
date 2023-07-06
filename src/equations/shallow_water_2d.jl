@@ -930,7 +930,11 @@ end
                        equations::ShallowWaterEquations2D)
 
 Calculate Roe-averaged velocity `v_roe` and wavespeed `c_roe = sqrt{g h_roe}` depending on direction.
-See for instance [this slides](https://faculty.washington.edu/rjl/classes/am574w2011/slides/am574lecture20nup3.pdf), 
+See for instance equation (62) in 
+- Paul A. Ullrich, Christiane Jablonowski, and Bram van Leer (2010)
+  High-order finite-volume methods for the shallow-water equations on the sphere
+  [DOI: 10.1016/j.jcp.2010.04.044](https://doi.org/10.1016/j.jcp.2010.04.044)
+Or [this slides](https://faculty.washington.edu/rjl/classes/am574w2011/slides/am574lecture20nup3.pdf), 
 slides 8 and 9.
 """
 @inline function calc_wavespeed_roe(u_ll, u_rr, orientation::Integer,

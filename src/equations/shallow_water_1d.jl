@@ -587,6 +587,11 @@ end
                        equations::ShallowWaterEquations1D)
 
 Calculate Roe-averaged velocity `v_roe` and wavespeed `c_roe = sqrt{g h_roe}`
+See for instance equation (62) in 
+- Paul A. Ullrich, Christiane Jablonowski, and Bram van Leer (2010)
+  High-order finite-volume methods for the shallow-water equations on the sphere
+  [DOI: 10.1016/j.jcp.2010.04.044](https://doi.org/10.1016/j.jcp.2010.04.044)
+Or equation (9.17) in [this lecture notes](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
 """
 @inline function calc_wavespeed_roe(u_ll, u_rr, direction::Integer,
                                     equations::ShallowWaterEquations1D)
