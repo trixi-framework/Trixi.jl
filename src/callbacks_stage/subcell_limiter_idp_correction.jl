@@ -64,5 +64,5 @@ init_callback(limiter!::SubcellLimiterIDPCorrection, semi) = nothing
 
 finalize_callback(limiter!::SubcellLimiterIDPCorrection, semi) = nothing
 
-include("a_posteriori_limiter_2d.jl")
+include("subcell_limiter_idp_correction_2d.jl")
 end # @muladd
