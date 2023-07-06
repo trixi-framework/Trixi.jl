@@ -260,6 +260,10 @@ A hard-switch [`IndicatorHennemannGassner`](@ref) can be activated (`smoothness_
 `variable_smoothness_indicator`, which disables subcell blending for element-wise
 indicator values <= `threshold_smoothness_indicator`.
 
+!!! note
+    This limiter and the correction callback [`APosterioriLimiter`](@ref) only work together.
+    Without the callback, no limiting takes place, leading to a standard flux-differencing DGSEM scheme.
+
 ## References
 
 - Rueda-Ramírez, Pazner, Gassner (2022)

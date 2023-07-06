@@ -10,7 +10,7 @@
 abstract type SimpleAlgorithmSSP end
 
 """
-    SimpleSSPRK33(; stage_callbacks=(APosterioriLimiter(), BoundsCheckCallback()))
+    SimpleSSPRK33(; stage_callbacks=())
 
 The third-order SSP Runge-Kutta method of Shu and Osher.
 
@@ -29,9 +29,7 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
     c::SVector{3, Float64}
     stage_callbacks::StageCallbacks
 
-    function SimpleSSPRK33(;
-                           stage_callbacks = (APosterioriLimiter(),
-                                              BoundsCheckCallback()))
+    function SimpleSSPRK33(; stage_callbacks = ())
         a = SVector(0.0, 3 / 4, 1 / 3)
         b = SVector(1.0, 1 / 4, 2 / 3)
         c = SVector(0.0, 1.0, 1 / 2)

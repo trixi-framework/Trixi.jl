@@ -8,11 +8,12 @@
 """
     APosterioriLimiter()
 
-Perform antidiffusive stage for the a posteriori IDP limiter called with
-[`VolumeIntegralSubcellLimiting`](@ref) using [`SubcellLimiterIDP`](@ref).
+Perform antidiffusive correction stage for the a posteriori IDP limiter [`SubcellLimiterIDP`](@ref)
+called with [`VolumeIntegralSubcellLimiting`](@ref).
 
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
+!!! note
+    This callback and the actual limiter [`SubcellLimiterIDP`](@ref) only work together.
+    This is not a replacement but a necessary addition.
 
 ## References
 
@@ -22,6 +23,9 @@ Perform antidiffusive stage for the a posteriori IDP limiter called with
 - Pazner (2020)
   Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
   [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 struct APosterioriLimiter end
 
