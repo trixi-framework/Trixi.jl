@@ -98,8 +98,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_shallowwater_beach.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_beach.jl"),
-      l2   = [0.17978981087947196, 1.237741563904404, 6.289469352788183e-8],
-      linf = [0.8460686638571695, 3.374190220014994, 4.452604152049844e-7],
+      l2   = [0.17979210479598923, 1.2377495706611434, 6.289818963361573e-8],
+      linf = [0.845938394800688, 3.3740800777086575, 4.4541473087633676e-7],
       tspan = (0.0, 0.05))
   end
 

@@ -11,7 +11,7 @@ equations = ShallowWaterEquations1D(gravity_constant=9.812)
     initial_condition_beach(x, t, equations:: ShallowWaterEquations1D)
 Initial condition to simulate a wave running towards a beach and crashing. Difficult test
 including both wetting and drying in the domain using slip wall boundary conditions.
-The water height and speed function used here, are an adaption of the initial condition 
+The water height and speed function used here, are an adaption of the initial condition
 found in section 5.2 of the paper:
   - Andreas Bollermann, Sebastian Noelle, Maria Lukáčová-Medvid’ová (2011)
     Finite volume evolution Galerkin methods for the shallow water equations with dry beds\n
@@ -34,7 +34,7 @@ function initial_condition_beach(x, t, equations:: ShallowWaterEquations1D)
     v = 0.0
   else
     H = f
-    v = sqrt(equations.gravity/D) * H
+    v = sqrt(equations.gravity / D) * H
   end
 
   # It is mandatory to shift the water level at dry areas to make sure the water height h
@@ -69,7 +69,7 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
-              
+
 ###############################################################################
 # Create the TreeMesh for the domain [0, 8]
 
@@ -101,7 +101,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_anal
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=250,
+save_solution = SaveSolutionCallback(dt=0.5,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 

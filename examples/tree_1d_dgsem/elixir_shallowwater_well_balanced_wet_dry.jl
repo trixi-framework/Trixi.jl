@@ -65,7 +65,7 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
-             
+
 ###############################################################################
 # Create the TreeMesh for the domain [0, 1]
 
@@ -85,38 +85,9 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 tspan = (0.0, 25.0)
 ode = semidiscretize(semi, tspan)
 
-
-###############################################################################
-# Workaround to set a discontinuous water and bottom topography for
-# debugging and testing. Essentially, this is a slight augmentation of the
-# `compute_coefficients` where the `x` node value passed here is slightly
-# perturbed to the left / right in order to set a true discontinuity that avoids
-# the doubled value of the LGL nodes at a particular element interface.
-#
-# Note! The errors from the analysis callback are not important but the error
-# for this lake at rest test case `∑|H0-(h+b)|` should be near machine roundoff.
-
-# point to the data we want to augment
-u = Trixi.wrap_array(ode.u0, semi)
-# reset the initial condition
-for element in eachelement(semi.solver, semi.cache)
-  for i in eachnode(semi.solver)
-    x_node = Trixi.get_node_coords(semi.cache.elements.node_coordinates, equations, semi.solver, i, element)
-    # We know that the discontinuity is on an interface. Slightly augment the x value by a factor
-    # of unit roundoff to avoid the repeated value from the LGL nodes at the interface.
-    if i == 1
-      x_node = SVector(nextfloat(x_node[1]))
-    elseif i == nnodes(semi.solver)
-      x_node = SVector(prevfloat(x_node[1]))
-    end
-    u_node = initial_condition_complex_bottom_well_balanced(x_node, first(tspan), equations)
-    Trixi.set_node_vars!(u, u_node, equations, semi.solver, i, element)
-  end
-end
-
 summary_callback = SummaryCallback()
 
-analysis_interval = 1000
+analysis_interval = 5000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=false)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
@@ -125,7 +96,7 @@ save_solution = SaveSolutionCallback(interval=5000,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 
-stepsize_callback = StepsizeCallback(cfl=1.5)                                     
+stepsize_callback = StepsizeCallback(cfl=1.5)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
                         stepsize_callback)
@@ -141,7 +112,7 @@ sol = solve(ode, SSPRK43(stage_limiter!); dt=1.0,
 summary_callback() # print the timer summary
 
 ###############################################################################
-# workaround to compute the well-balancedness error for this partiular problem
+# Workaround to compute the well-balancedness error for this particular problem
 # that has two reference water heights. One for a lake to the left of the
 # discontinuous bottom topography `H0_upper = 2.5` and another for a lake to the
 # right of the discontinuous bottom topography `H0_lower = 1.5`.

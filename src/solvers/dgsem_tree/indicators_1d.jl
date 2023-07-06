@@ -27,15 +27,12 @@ end
 # Modified indicator for ShallowWaterEquations1D to apply full FV method on cells
 # containing some "dry" LGL nodes. That is, if an element is partially "wet" then it becomes a
 # full FV element.
-function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u,
-                                                               mesh::Union{TreeMesh{1},
-                                                                           StructuredMesh{
-                                                                                          1
-                                                                                          }
-                                                                           },
+function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{<:Any, 3
+                                                                                },
+                                                               mesh,
                                                                equations::ShallowWaterEquations1D,
-                                                               dg::DGSEM,
-                                                               cache; kwargs...)
+                                                               dg::DGSEM, cache;
+                                                               kwargs...)
     @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
     @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_hg.cache
     # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
