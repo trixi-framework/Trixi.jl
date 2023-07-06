@@ -6,4 +6,5 @@
 #! format: noindent
 
 include("positivity_zhang_shu.jl")
+include("positivity_shallow_water.jl")
 end # @muladd
