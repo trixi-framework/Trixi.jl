@@ -112,7 +112,7 @@ branch, and the corresponding pull request will be updated automatically.
 Please note that a review has nothing to do with the lack of experience of the
 person developing changes: We try to review all code before it gets added to
 `main`, even from the most experienced developers. This is good practice and
-helps to keep the error rate low while ensuring the the code is developed in a
+helps to keep the error rate low while ensuring that the code is developed in a
 consistent fashion. Furthermore, do not take criticism of your code personally -
 we just try to keep Trixi.jl as accessible and easy to use for everyone.
 
@@ -121,7 +121,7 @@ Once your branch is reviewed and declared ready for merging by the reviewer,
 make sure that all the latest changes have been pushed. Then, one of the
 developers will merge your PR. If you are one of the developers, you can also go
 to the pull request page on GitHub and and click on **Merge pull request**.
-Voilá, you are done! Your branch will have been merged to
+Voilà, you are done! Your branch will have been merged to
 `main` and the source branch will have been deleted in the GitHub repository
 (if you are not working in your own fork).
 

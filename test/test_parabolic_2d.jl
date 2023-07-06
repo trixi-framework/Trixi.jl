@@ -200,6 +200,38 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_curved.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_advection_diffusion_periodic_curved.jl"),
+      trees_per_dimension = (1, 1), initial_refinement_level = 2, tspan=(0.0, 0.5),
+      l2 = [0.012380458938507371], 
+      linf = [0.10860506906472567]
+    )
+  end
+
+  @trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_advection_diffusion_nonperiodic_curved.jl"),
+      trees_per_dimension = (1, 1), initial_refinement_level = 2, tspan=(0.0, 0.5),
+      l2 = [0.04933902988507035], 
+      linf = [0.2550261714590271]
+    )
+  end
+
+  @trixi_testset "P4estMesh2D: elixir_navierstokes_convergence.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_convergence.jl"),
+      initial_refinement_level = 1, tspan=(0.0, 0.2), 
+      l2 = [0.0003811978985836709, 0.0005874314969169538, 0.0009142898787923481, 0.0011613918899727263], 
+      linf = [0.0021633623982135752, 0.009484348274135372, 0.004231572066492217, 0.011661660275365193]
+    )
+  end
+
+  @trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_lid_driven_cavity.jl"),
+      initial_refinement_level = 2, tspan=(0.0, 0.5),
+      l2 = [0.00028716166408816073, 0.08101204560401647, 0.02099595625377768, 0.05008149754143295], 
+      linf = [0.014804500261322406, 0.9513271652357098, 0.7223919625994717, 1.4846907331004786]
+    )
+  end
+
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

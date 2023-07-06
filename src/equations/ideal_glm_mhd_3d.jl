@@ -41,7 +41,7 @@ end
 
 # Set initial conditions at physical location `x` for time `t`
 """
-initial_condition_constant(x, t, equations::IdealGlmMhdEquations3D)
+    initial_condition_constant(x, t, equations::IdealGlmMhdEquations3D)
 
 A constant initial condition to test free-stream preservation.
 """
