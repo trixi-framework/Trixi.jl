@@ -32,7 +32,7 @@ initial_condition = initial_condition_briowu_shock_tube
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
-surface_flux = FluxHLL(min_max_speed_einfeldt)
+surface_flux = FluxHLL(flux_hll)
 volume_flux  = flux_derigs_etal
 basis = LobattoLegendreBasis(4)
 

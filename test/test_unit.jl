@@ -805,7 +805,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     # Test HLL flux with min_max_speed_einfeldt
-    flux_hll = FluxHLL(min_max_speed_einfeldt)
+    flux_hll = FluxHLL(min_max_speed_naive)
 
     equations = ShallowWaterEquations1D(gravity_constant=9.81)
     u = SVector(1, 0.5, 0.0)
