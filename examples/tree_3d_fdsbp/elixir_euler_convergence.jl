@@ -6,7 +6,6 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
-
 equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_convergence_test

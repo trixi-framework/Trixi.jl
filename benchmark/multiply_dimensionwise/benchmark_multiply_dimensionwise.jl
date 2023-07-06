@@ -1,3 +1,7 @@
+# Disable formatting this file since it contains highly unusual formatting for better
+# readability
+#! format: off
+
 import Pkg; Pkg.activate(@__DIR__); Pkg.instantiate()
 
 using BenchmarkTools
