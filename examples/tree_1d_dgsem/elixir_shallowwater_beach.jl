@@ -11,12 +11,14 @@ equations = ShallowWaterEquations1D(gravity_constant=9.812)
     initial_condition_beach(x, t, equations:: ShallowWaterEquations1D)
 Initial condition to simulate a wave running towards a beach and crashing. Difficult test
 including both wetting and drying in the domain using slip wall boundary conditions.
-The water height and speed function used here, are an adaption of the initial condition
+The bottom topography is altered to be differentiable on the domain [0,8] and
+differs from the reference below.
+
+The water height and speed functions used here, are adapted from the initial condition
 found in section 5.2 of the paper:
   - Andreas Bollermann, Sebastian Noelle, Maria Lukáčová-Medvid’ová (2011)
     Finite volume evolution Galerkin methods for the shallow water equations with dry beds\n
     [DOI: 10.4208/cicp.220210.020710a](https://dx.doi.org/10.4208/cicp.220210.020710a)
-The used bottom topography differs from the one out of the paper to be differentiable
 """
 function initial_condition_beach(x, t, equations:: ShallowWaterEquations1D)
   D = 1
@@ -26,8 +28,8 @@ function initial_condition_beach(x, t, equations:: ShallowWaterEquations1D)
 
   f = D + 40 * delta * sech(gamma * (8 * x[1] - x_a))^2
 
-  # steep wall
-  b = 0.01 + 99/409600 * 4^x[1]
+  # steep curved beach
+  b = 0.01 + 99 / 409600 * 4^x[1]
 
   if x[1] >= 6
     H = b

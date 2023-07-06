@@ -14,6 +14,7 @@ Well-known initial condition to test the [`hydrostatic_reconstruction_chen_noell
 wet-dry mechanics. This test has an analytical solution. The initial condition is defined by the
 analytical solution at time t=0. The bottom topography defines a bowl and the water level is given
 by an oscillating lake.
+
 The original test and its analytical solution were first presented in
 - William C. Thacker (1981)
   Some exact solutions to the nonlinear shallow-water wave equations

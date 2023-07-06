@@ -233,7 +233,6 @@ left and right states `u_ll, u_rr`, usually based only on the local wave speeds 
   [DOI: 10.1137/1025002](https://doi.org/10.1137/1025002)
 """
 function min_max_speed_naive end
-function min_max_speed_chen_noelle end
 
 @inline function (numflux::FluxHLL)(u_ll, u_rr, orientation_or_normal_direction,
                                     equations)

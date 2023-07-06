@@ -14,6 +14,7 @@ Well-known initial condition to test the [`hydrostatic_reconstruction_chen_noell
 wet-dry mechanics. This test has analytical solutions. The initial condition is defined by the
 analytical solution at time t=0. The bottom topography defines a bowl and the water level is given
 by an oscillating lake.
+
 The original test and its analytical solution in two dimensions were first presented in
 - William C. Thacker (1981)
   Some exact solutions to the nonlinear shallow-water wave equations
@@ -68,7 +69,7 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
-            
+
 ###############################################################################
 # Create the TreeMesh for the domain [-2, 2]
 
