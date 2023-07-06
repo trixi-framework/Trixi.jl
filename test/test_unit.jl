@@ -1021,7 +1021,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                            SVector(-1.2, 0.3)]
       u_values = [SVector(1.0, 0.5, -0.7, 1.0),
                   SVector(1.5, -0.2, 0.1, 5.0),]
-      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber]
+      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber, FluxHLL(min_max_speed_davis)]
 
       for f_std in fluxes
         f_rot = FluxRotated(f_std)
@@ -1040,7 +1040,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                           SVector(-1.2, 0.3, 1.4)]
       u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
                   SVector(1.5, -0.2, 0.1, 0.2, 5.0),]
-      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber, FluxLMARS(340)]
+      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber, FluxLMARS(340), FluxHLL(min_max_speed_davis)]
 
       for f_std in fluxes
         f_rot = FluxRotated(f_std)
@@ -1058,7 +1058,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                            SVector(-1.2, 0.3)]
       u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
                   SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
-      fluxes = [flux_central, flux_hindenlang_gassner]
+      fluxes = [flux_central, flux_hindenlang_gassner, FluxHLL(min_max_speed_davis)]
 
       for f_std in fluxes
         f_rot = FluxRotated(f_std)
@@ -1077,7 +1077,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                           SVector(-1.2, 0.3, 1.4)]
       u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
                   SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
-      fluxes = [flux_central, flux_hindenlang_gassner]
+      fluxes = [flux_central, flux_hindenlang_gassner, FluxHLL(min_max_speed_davis)]
 
       for f_std in fluxes
         f_rot = FluxRotated(f_std)
