@@ -196,7 +196,7 @@
     function initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
         # manufactured initial condition from Winters (2019) [0.1007/s10543-019-00789-w]
         # domain must be set to [0, 1] x [0, 1]
-        h = 8 + cos(2 * pi * x) * sin(2 * pi * y) * cos(2 * pi * t)
+        h = 8 + cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
     
         return prim2cons(SVector(h, h/2, 3*h/2), equations)
     end
