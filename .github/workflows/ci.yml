@@ -52,8 +52,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.9'
-          # - '~1.9.0-0' # including development versions
+          - '~1.10.0-0'
+          # - '~1.10.0-0' # including development versions
           # - 'nightly'
         os:
           - ubuntu-latest
@@ -83,19 +83,19 @@ jobs:
             os: ubuntu-latest
             arch: x64
             trixi_test: threaded_legacy
-          - version: '1.9'
+          - version: '~1.10.0-0'
             os: macOS-latest
             arch: x64
             trixi_test: mpi
-          - version: '1.9'
+          - version: '~1.10.0-0'
             os: macOS-latest
             arch: x64
             trixi_test: threaded
-          - version: '1.9'
+          - version: '~1.10.0-0'
             os: windows-latest
             arch: x64
             trixi_test: mpi
-          - version: '1.9'
+          - version: '~1.10.0-0'
             os: windows-latest
             arch: x64
             trixi_test: threaded
