@@ -53,9 +53,9 @@ References for the SWE are many but a good introduction is available in Chapter 
   Finite Volume Methods for Hyperbolic Problems
   [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
-# TODO: TrixiShallowWater: where should the `threshold_limiter` and `threshold_wet` live?
-# how to "properly" export these constants across the two packages?
 struct ShallowWaterEquations2D{RealT <: Real} <: AbstractShallowWaterEquations{2, 4}
+    # TODO: TrixiShallowWater: where should the `threshold_limiter` and `threshold_wet` live?
+    # how to "properly" export these constants across the two packages?
     gravity::RealT # gravitational constant
     H0::RealT      # constant "lake-at-rest" total water height
     # `threshold_limiter` used in `PositivityPreservingLimiterShallowWater` on water height,
@@ -456,6 +456,7 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
     return u_ll_star, u_rr_star
 end
 
+# TODO: TrixiShallowWater: move wet/dry specific routine
 """
     hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, orientation::Integer,
                                            equations::ShallowWaterEquations2D)
@@ -471,7 +472,6 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
-# TODO: TrixiShallowWater: move wet/dry specific routine
 @inline function hydrostatic_reconstruction_chen_noelle(u_ll, u_rr,
                                                         equations::ShallowWaterEquations2D)
     # Unpack left and right water heights and bottom topographies
@@ -604,6 +604,7 @@ end
     return SVector(f1, f2, f3, f4)
 end
 
+# TODO: TrixiShallowWater: move wet/dry specific routine
 """
     flux_nonconservative_chen_noelle(u_ll, u_rr,
                                      orientation::Integer,
@@ -625,7 +626,6 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
-# TODO: TrixiShallowWater: move wet/dry specific routine
 @inline function flux_nonconservative_chen_noelle(u_ll, u_rr, orientation::Integer,
                                                   equations::ShallowWaterEquations2D)
     # Pull the water height and bottom topography on the left
@@ -948,6 +948,7 @@ end
     return λ_min, λ_max
 end
 
+# TODO: TrixiShallowWater: move wet/dry specific routine
 """
     min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer,
                               equations::ShallowWaterEquations2D)
@@ -966,7 +967,6 @@ the reference below. The definition of the wave speeds are given in Equation (2.
   A new hydrostatic reconstruction scheme based on subcell reconstructions
   [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
 """
-# TODO: TrixiShallowWater: move wet/dry specific routine
 @inline function min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer,
                                            equations::ShallowWaterEquations2D)
     h_ll = waterheight(u_ll, equations)

@@ -101,6 +101,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
     summary_box(io, "IndicatorHennemannGassner", setup)
 end
 
+# TODO: TrixiShallowWater: move the new indicator and all associated routines to the new package
 """
     IndicatorHennemannGassnerShallowWater(equations::AbstractEquations, basis;
                                           alpha_max=0.5,
@@ -123,8 +124,6 @@ See also [`VolumeIntegralShockCapturingHG`](@ref).
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-#
-# TODO: TrixiShallowWater: move the new indicator and all associated routines to the new package
 struct IndicatorHennemannGassnerShallowWater{RealT <: Real, Variable, Cache} <:
        AbstractIndicator
     alpha_max::RealT
