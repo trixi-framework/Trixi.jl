@@ -1,0 +1,764 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
+                      basis::LobattoLegendreBasis, number_bounds, bar_states)
+    container_subcell_limiter = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
+                                                                   }(0,
+                                                                     nnodes(basis),
+                                                                     number_bounds)
+
+    cache = (;)
+    if bar_states
+        container_bar_states = Trixi.ContainerBarStates{real(basis)}(0,
+                                                                     nvariables(equations),
+                                                                     nnodes(basis))
+        cache = (; cache..., container_bar_states)
+    end
+
+    idp_bounds_delta = zeros(real(basis), number_bounds)
+
+    return (; cache..., container_subcell_limiter, idp_bounds_delta)
+end
+
+function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
+                                      dt;
+                                      kwargs...)
+    @unpack alpha = limiter.cache.container_subcell_limiter
+    alpha .= zero(eltype(alpha))
+    if limiter.smoothness_indicator
+        elements = semi.cache.element_ids_dgfv
+    else
+        elements = eachelement(dg, semi.cache)
+    end
+
+    if limiter.local_minmax
+        @trixi_timeit timer() "local min/max limiting" idp_local_minmax!(alpha,
+                                                                         limiter, u,
+                                                                         t, dt,
+                                                                         semi, elements)
+    end
+    if limiter.positivity
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt,
+                                                           semi, elements)
+    end
+    if limiter.spec_entropy
+        @trixi_timeit timer() "spec_entropy" idp_spec_entropy!(alpha, limiter, u, t,
+                                                               dt,
+                                                               semi, elements)
+    end
+    if limiter.math_entropy
+        @trixi_timeit timer() "math_entropy" idp_math_entropy!(alpha, limiter, u, t,
+                                                               dt,
+                                                               semi, elements)
+    end
+
+    # Calculate alpha1 and alpha2
+    @unpack alpha1, alpha2 = limiter.cache.container_subcell_limiter
+    @threaded for element in elements
+        for j in eachnode(dg), i in 2:nnodes(dg)
+            alpha1[i, j, element] = max(alpha[i - 1, j, element], alpha[i, j, element])
+        end
+        for j in 2:nnodes(dg), i in eachnode(dg)
+            alpha2[i, j, element] = max(alpha[i, j - 1, element], alpha[i, j, element])
+        end
+        alpha1[1, :, element] .= zero(eltype(alpha1))
+        alpha1[nnodes(dg) + 1, :, element] .= zero(eltype(alpha1))
+        alpha2[:, 1, element] .= zero(eltype(alpha2))
+        alpha2[:, nnodes(dg) + 1, element] .= zero(eltype(alpha2))
+    end
+
+    return nothing
+end
+
+@inline function calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    # Calc bounds inside elements
+    @threaded for element in eachelement(dg, cache)
+        var_min[:, :, element] .= typemax(eltype(var_min))
+        var_max[:, :, element] .= typemin(eltype(var_max))
+        # Calculate bounds at Gauss-Lobatto nodes using u
+        for j in eachnode(dg), i in eachnode(dg)
+            var = u[variable, i, j, element]
+            var_min[i, j, element] = min(var_min[i, j, element], var)
+            var_max[i, j, element] = max(var_max[i, j, element], var)
+
+            if i > 1
+                var_min[i - 1, j, element] = min(var_min[i - 1, j, element], var)
+                var_max[i - 1, j, element] = max(var_max[i - 1, j, element], var)
+            end
+            if i < nnodes(dg)
+                var_min[i + 1, j, element] = min(var_min[i + 1, j, element], var)
+                var_max[i + 1, j, element] = max(var_max[i + 1, j, element], var)
+            end
+            if j > 1
+                var_min[i, j - 1, element] = min(var_min[i, j - 1, element], var)
+                var_max[i, j - 1, element] = max(var_max[i, j - 1, element], var)
+            end
+            if j < nnodes(dg)
+                var_min[i, j + 1, element] = min(var_min[i, j + 1, element], var)
+                var_max[i, j + 1, element] = max(var_max[i, j + 1, element], var)
+            end
+        end
+    end
+
+    # Values at element boundary
+    calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi, mesh)
+end
+
+@inline function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
+                                               mesh::TreeMesh2D)
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+    @unpack boundary_conditions = semi
+    # Calc bounds at interfaces and periodic boundaries
+    for interface in eachinterface(dg, cache)
+        # Get neighboring element ids
+        left = cache.interfaces.neighbor_ids[1, interface]
+        right = cache.interfaces.neighbor_ids[2, interface]
+
+        orientation = cache.interfaces.orientations[interface]
+
+        for i in eachnode(dg)
+            index_left = (nnodes(dg), i)
+            index_right = (1, i)
+            if orientation == 2
+                index_left = reverse(index_left)
+                index_right = reverse(index_right)
+            end
+            var_left = u[variable, index_left..., left]
+            var_right = u[variable, index_right..., right]
+
+            var_min[index_right..., right] = min(var_min[index_right..., right],
+                                                 var_left)
+            var_max[index_right..., right] = max(var_max[index_right..., right],
+                                                 var_left)
+
+            var_min[index_left..., left] = min(var_min[index_left..., left], var_right)
+            var_max[index_left..., left] = max(var_max[index_left..., left], var_right)
+        end
+    end
+
+    # Calc bounds at physical boundaries
+    for boundary in eachboundary(dg, cache)
+        element = cache.boundaries.neighbor_ids[boundary]
+        orientation = cache.boundaries.orientations[boundary]
+        neighbor_side = cache.boundaries.neighbor_sides[boundary]
+
+        for i in eachnode(dg)
+            if neighbor_side == 2 # Element is on the right, boundary on the left
+                index = (1, i)
+                boundary_index = 1
+            else # Element is on the left, boundary on the right
+                index = (nnodes(dg), i)
+                boundary_index = 2
+            end
+            if orientation == 2
+                index = reverse(index)
+                boundary_index += 2
+            end
+            u_inner = get_node_vars(u, equations, dg, index..., element)
+            u_outer = get_boundary_outer_state(u_inner, cache, t,
+                                               boundary_conditions[boundary_index],
+                                               orientation, boundary_index,
+                                               equations, dg, index..., element)
+            var_outer = u_outer[variable]
+
+            var_min[index..., element] = min(var_min[index..., element], var_outer)
+            var_max[index..., element] = max(var_max[index..., element], var_outer)
+        end
+    end
+
+    return nothing
+end
+
+@inline function calc_bounds_1sided!(var_minmax, minmax, typeminmax, variable, u, t,
+                                     semi)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    # Calc bounds inside elements
+    @threaded for element in eachelement(dg, cache)
+        var_minmax[:, :, element] .= typeminmax(eltype(var_minmax))
+
+        # Calculate bounds at Gauss-Lobatto nodes using u
+        for j in eachnode(dg), i in eachnode(dg)
+            var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
+            var_minmax[i, j, element] = minmax(var_minmax[i, j, element], var)
+
+            if i > 1
+                var_minmax[i - 1, j, element] = minmax(var_minmax[i - 1, j, element],
+                                                       var)
+            end
+            if i < nnodes(dg)
+                var_minmax[i + 1, j, element] = minmax(var_minmax[i + 1, j, element],
+                                                       var)
+            end
+            if j > 1
+                var_minmax[i, j - 1, element] = minmax(var_minmax[i, j - 1, element],
+                                                       var)
+            end
+            if j < nnodes(dg)
+                var_minmax[i, j + 1, element] = minmax(var_minmax[i, j + 1, element],
+                                                       var)
+            end
+        end
+    end
+
+    # Values at element boundary
+    calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, t, semi, mesh)
+end
+
+@inline function calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, t, semi,
+                                               mesh::TreeMesh2D)
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+    @unpack boundary_conditions = semi
+    # Calc bounds at interfaces and periodic boundaries
+    for interface in eachinterface(dg, cache)
+        # Get neighboring element ids
+        left = cache.interfaces.neighbor_ids[1, interface]
+        right = cache.interfaces.neighbor_ids[2, interface]
+
+        orientation = cache.interfaces.orientations[interface]
+
+        if orientation == 1
+            for j in eachnode(dg)
+                var_left = variable(get_node_vars(u, equations, dg, nnodes(dg), j,
+                                                  left), equations)
+                var_right = variable(get_node_vars(u, equations, dg, 1, j, right),
+                                     equations)
+
+                var_minmax[1, j, right] = minmax(var_minmax[1, j, right], var_left)
+                var_minmax[nnodes(dg), j, left] = minmax(var_minmax[nnodes(dg), j,
+                                                                    left], var_right)
+            end
+        else # orientation == 2
+            for i in eachnode(dg)
+                var_left = variable(get_node_vars(u, equations, dg, i, nnodes(dg),
+                                                  left), equations)
+                var_right = variable(get_node_vars(u, equations, dg, i, 1, right),
+                                     equations)
+
+                var_minmax[i, 1, right] = minmax(var_minmax[i, 1, right], var_left)
+                var_minmax[i, nnodes(dg), left] = minmax(var_minmax[i, nnodes(dg),
+                                                                    left], var_right)
+            end
+        end
+    end
+
+    # Calc bounds at physical boundaries
+    for boundary in eachboundary(dg, cache)
+        element = cache.boundaries.neighbor_ids[boundary]
+        orientation = cache.boundaries.orientations[boundary]
+        neighbor_side = cache.boundaries.neighbor_sides[boundary]
+
+        if orientation == 1
+            if neighbor_side == 2 # Element is on the right, boundary on the left
+                for j in eachnode(dg)
+                    u_inner = get_node_vars(u, equations, dg, 1, j, element)
+                    u_outer = get_boundary_outer_state(u_inner, cache, t,
+                                                       boundary_conditions[1],
+                                                       orientation, 1,
+                                                       equations, dg, 1, j, element)
+                    var_outer = variable(u_outer, equations)
+
+                    var_minmax[1, j, element] = minmax(var_minmax[1, j, element],
+                                                       var_outer)
+                end
+            else # Element is on the left, boundary on the right
+                for j in eachnode(dg)
+                    u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
+                    u_outer = get_boundary_outer_state(u_inner, cache, t,
+                                                       boundary_conditions[2],
+                                                       orientation, 2,
+                                                       equations, dg, nnodes(dg), j,
+                                                       element)
+                    var_outer = variable(u_outer, equations)
+
+                    var_minmax[nnodes(dg), j, element] = minmax(var_minmax[nnodes(dg),
+                                                                           j, element],
+                                                                var_outer)
+                end
+            end
+        else # orientation == 2
+            if neighbor_side == 2 # Element is on the right, boundary on the left
+                for i in eachnode(dg)
+                    u_inner = get_node_vars(u, equations, dg, i, 1, element)
+                    u_outer = get_boundary_outer_state(u_inner, cache, t,
+                                                       boundary_conditions[3],
+                                                       orientation, 3,
+                                                       equations, dg, i, 1, element)
+                    var_outer = variable(u_outer, equations)
+
+                    var_minmax[i, 1, element] = minmax(var_minmax[i, 1, element],
+                                                       var_outer)
+                end
+            else # Element is on the left, boundary on the right
+                for i in eachnode(dg)
+                    u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
+                    u_outer = get_boundary_outer_state(u_inner, cache, t,
+                                                       boundary_conditions[4],
+                                                       orientation, 4,
+                                                       equations, dg, i, nnodes(dg),
+                                                       element)
+                    var_outer = variable(u_outer, equations)
+
+                    var_minmax[i, nnodes(dg), element] = minmax(var_minmax[i,
+                                                                           nnodes(dg),
+                                                                           element],
+                                                                var_outer)
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements)
+    for (index, variable) in enumerate(limiter.local_minmax_variables_cons)
+        idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable, index)
+    end
+
+    return nothing
+end
+
+@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable,
+                                   index)
+    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
+    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+
+    var_min = variable_bounds[2 * (index - 1) + 1]
+    var_max = variable_bounds[2 * (index - 1) + 2]
+    if !limiter.bar_states
+        calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
+    end
+
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+    @unpack inverse_weights = dg.basis
+
+    @threaded for element in elements
+        if mesh isa TreeMesh
+            inverse_jacobian = cache.elements.inverse_jacobian[element]
+        end
+        for j in eachnode(dg), i in eachnode(dg)
+            if mesh isa StructuredMesh
+                inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
+            end
+            var = u[variable, i, j, element]
+            # Real Zalesak type limiter
+            #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
+            #   * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+            #   Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+            #         for each interface, not each node
+
+            Qp = max(0, (var_max[i, j, element] - var) / dt)
+            Qm = min(0, (var_min[i, j, element] - var) / dt)
+
+            # Calculate Pp and Pm
+            # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+            val_flux1_local = inverse_weights[i] *
+                              antidiffusive_flux1[variable, i, j, element]
+            val_flux1_local_ip1 = -inverse_weights[i] *
+                                  antidiffusive_flux1[variable, i + 1, j, element]
+            val_flux2_local = inverse_weights[j] *
+                              antidiffusive_flux2[variable, i, j, element]
+            val_flux2_local_jp1 = -inverse_weights[j] *
+                                  antidiffusive_flux2[variable, i, j + 1, element]
+
+            Pp = max(0, val_flux1_local) + max(0, val_flux1_local_ip1) +
+                 max(0, val_flux2_local) + max(0, val_flux2_local_jp1)
+            Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
+                 min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
+
+            Qp = max(0, (var_max[i, j, element] - var) / dt)
+            Qm = min(0, (var_min[i, j, element] - var) / dt)
+
+            Pp = inverse_jacobian * Pp
+            Pm = inverse_jacobian * Pm
+
+            # Compute blending coefficient avoiding division by zero
+            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+            Qp = abs(Qp) /
+                 (abs(Pp) + eps(typeof(Qp)) * 100 * abs(var_max[i, j, element]))
+            Qm = abs(Qm) /
+                 (abs(Pm) + eps(typeof(Qm)) * 100 * abs(var_max[i, j, element]))
+
+            # Calculate alpha at nodes
+            alpha[i, j, element] = max(alpha[i, j, element], 1 - min(1, Qp, Qm))
+        end
+    end
+
+    return nothing
+end
+
+@inline function idp_spec_entropy!(alpha, limiter, u, t, dt, semi, elements)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+
+    s_min = variable_bounds[2 * length(limiter.local_minmax_variables_cons) + 1]
+    if !limiter.bar_states
+        calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u, t, semi)
+    end
+
+    # Perform Newton's bisection method to find new alpha
+    @threaded for element in elements
+        for j in eachnode(dg), i in eachnode(dg)
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            newton_loops_alpha!(alpha, s_min[i, j, element], u_local, i, j, element,
+                                specEntropy_goal, specEntropy_dGoal_dbeta,
+                                specEntropy_initialCheck, standard_finalCheck,
+                                dt, mesh, equations, dg, cache, limiter)
+        end
+    end
+
+    return nothing
+end
+
+specEntropy_goal(bound, u, equations) = bound - entropy_spec(u, equations)
+function specEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations)
+    -dot(cons2entropy_spec(u, equations), dt * antidiffusive_flux)
+end
+function specEntropy_initialCheck(bound, goal, newton_abstol)
+    goal <= max(newton_abstol, abs(bound) * newton_abstol)
+end
+
+@inline function idp_math_entropy!(alpha, limiter, u, t, dt, semi, elements)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    @unpack spec_entropy = limiter
+    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+
+    s_max = variable_bounds[2 * length(limiter.local_minmax_variables_cons) + spec_entropy + 1]
+    if !limiter.bar_states
+        calc_bounds_1sided!(s_max, max, typemin, entropy_math, u, t, semi)
+    end
+
+    # Perform Newton's bisection method to find new alpha
+    @threaded for element in elements
+        for j in eachnode(dg), i in eachnode(dg)
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            newton_loops_alpha!(alpha, s_max[i, j, element], u_local, i, j, element,
+                                mathEntropy_goal, mathEntropy_dGoal_dbeta,
+                                mathEntropy_initialCheck, standard_finalCheck,
+                                dt, mesh, equations, dg, cache, limiter)
+        end
+    end
+
+    return nothing
+end
+
+mathEntropy_goal(bound, u, equations) = bound - entropy_math(u, equations)
+function mathEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations)
+    -dot(cons2entropy(u, equations), dt * antidiffusive_flux)
+end
+function mathEntropy_initialCheck(bound, goal, newton_abstol)
+    goal >= -max(newton_abstol, abs(bound) * newton_abstol)
+end
+
+@inline function idp_positivity!(alpha, limiter, u, dt, semi, elements)
+    # Conservative variables
+    for (index, variable) in enumerate(limiter.positivity_variables_cons)
+        idp_positivity!(alpha, limiter, u, dt, semi, elements, variable, index)
+    end
+
+    # Nonlinear variables
+    for (index, variable) in enumerate(limiter.positivity_variables_nonlinear)
+        idp_positivity_newton!(alpha, limiter, u, dt, semi, elements, variable, index)
+    end
+
+    return nothing
+end
+
+@inline function idp_positivity!(alpha, limiter, u, dt, semi, elements, variable,
+                                 index)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+    @unpack inverse_weights = dg.basis
+    @unpack local_minmax, spec_entropy, math_entropy, positivity_correction_factor = limiter
+
+    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+
+    counter = 2 * length(limiter.local_minmax_variables_cons) + spec_entropy +
+              math_entropy
+    if local_minmax
+        if variable in limiter.local_minmax_variables_cons
+            for (index_, variable_) in enumerate(limiter.local_minmax_variables_cons)
+                if variable == variable_
+                    var_min = variable_bounds[2 * (index_ - 1) + 1]
+                    break
+                end
+            end
+        else
+            for variable_ in limiter.positivity_variables_cons[1:index]
+                if !(variable_ in limiter.local_minmax_variables_cons)
+                    counter += 1
+                end
+            end
+            var_min = variable_bounds[counter]
+        end
+    else
+        var_min = variable_bounds[counter + index]
+    end
+
+    @threaded for element in elements
+        if mesh isa TreeMesh
+            inverse_jacobian = cache.elements.inverse_jacobian[element]
+        end
+        for j in eachnode(dg), i in eachnode(dg)
+            if mesh isa StructuredMesh
+                inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
+            end
+
+            var = u[variable, i, j, element]
+            if var < 0
+                error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
+            end
+
+            # Compute bound
+            if limiter.local_minmax
+                var_min[i, j, element] = max(var_min[i, j, element],
+                                             positivity_correction_factor * var)
+            else
+                var_min[i, j, element] = positivity_correction_factor * var
+            end
+
+            # Real one-sided Zalesak-type limiter
+            # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
+            # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+            # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+            #       for each interface, not each node
+            Qm = min(0, (var_min[i, j, element] - var) / dt)
+
+            # Calculate Pm
+            # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+            val_flux1_local = inverse_weights[i] *
+                              antidiffusive_flux1[variable, i, j, element]
+            val_flux1_local_ip1 = -inverse_weights[i] *
+                                  antidiffusive_flux1[variable, i + 1, j, element]
+            val_flux2_local = inverse_weights[j] *
+                              antidiffusive_flux2[variable, i, j, element]
+            val_flux2_local_jp1 = -inverse_weights[j] *
+                                  antidiffusive_flux2[variable, i, j + 1, element]
+
+            Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
+                 min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
+            Pm = inverse_jacobian * Pm
+
+            # Compute blending coefficient avoiding division by zero
+            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+            Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100)
+
+            # Calculate alpha
+            alpha[i, j, element] = max(alpha[i, j, element], 1 - Qm)
+        end
+    end
+
+    return nothing
+end
+
+@inline function idp_positivity_newton!(alpha, limiter, u, dt, semi, elements,
+                                        variable, index)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    @unpack spec_entropy, math_entropy, positivity_correction_factor, positivity_variables_cons = limiter
+    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+
+    index_ = 2 * length(limiter.local_minmax_variables_cons) + spec_entropy +
+             math_entropy + index
+    for variable_ in limiter.positivity_variables_cons
+        if !(variable_ in limiter.local_minmax_variables_cons)
+            index_ += 1
+        end
+    end
+    var_min = variable_bounds[index_]
+
+    @threaded for element in elements
+        for j in eachnode(dg), i in eachnode(dg)
+            # Compute bound
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            var = variable(u_local, equations)
+            if var < 0
+                error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
+            end
+            var_min[i, j, element] = positivity_correction_factor * var
+
+            # Perform Newton's bisection method to find new alpha
+            newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j, element,
+                                pressure_goal, pressure_dgoal_dbeta,
+                                pressure_initialCheck, pressure_finalCheck,
+                                dt, mesh, equations, dg, cache, limiter)
+        end
+    end
+
+    return nothing
+end
+
+pressure_goal(bound, u, equations) = bound - pressure(u, equations)
+function pressure_dgoal_dbeta(u, dt, antidiffusive_flux, equations)
+    -dot(dpdu(u, equations), dt * antidiffusive_flux)
+end
+pressure_initialCheck(bound, goal, newton_abstol) = goal <= 0
+function pressure_finalCheck(bound, goal, newton_abstol)
+    (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
+end
+
+@inline function newton_loops_alpha!(alpha, bound, u, i, j, element,
+                                     goal_fct, dgoal_fct, initialCheck, finalCheck,
+                                     dt, mesh, equations, dg, cache, limiter)
+    @unpack inverse_weights = dg.basis
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+    if mesh isa TreeMesh
+        inverse_jacobian = cache.elements.inverse_jacobian[element]
+    else # mesh isa StructuredMesh
+        inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
+    end
+
+    @unpack gamma_constant_newton = limiter
+
+    # negative xi direction
+    antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[i] *
+                         get_node_vars(antidiffusive_flux1, equations, dg, i, j,
+                                       element)
+    newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
+                 finalCheck, equations, dt, limiter, antidiffusive_flux)
+
+    # positive xi direction
+    antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
+                         inverse_weights[i] *
+                         get_node_vars(antidiffusive_flux1, equations, dg, i + 1, j,
+                                       element)
+    newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
+                 finalCheck, equations, dt, limiter, antidiffusive_flux)
+
+    # negative eta direction
+    antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[j] *
+                         get_node_vars(antidiffusive_flux2, equations, dg, i, j,
+                                       element)
+    newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
+                 finalCheck, equations, dt, limiter, antidiffusive_flux)
+
+    # positive eta direction
+    antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
+                         inverse_weights[j] *
+                         get_node_vars(antidiffusive_flux2, equations, dg, i, j + 1,
+                                       element)
+    newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
+                 finalCheck, equations, dt, limiter, antidiffusive_flux)
+
+    return nothing
+end
+
+@inline function newton_loop!(alpha, bound, u, i, j, element,
+                              goal_fct, dgoal_fct, initialCheck, finalCheck,
+                              equations, dt, limiter, antidiffusive_flux)
+    newton_reltol, newton_abstol = limiter.newton_tolerances
+
+    beta = 1 - alpha[i, j, element]
+
+    beta_L = 0 # alpha = 1
+    beta_R = beta # No higher beta (lower alpha) than the current one
+
+    u_curr = u + beta * dt * antidiffusive_flux
+
+    # If state is valid, perform initial check and return if correction is not needed
+    if isValidState(u_curr, equations)
+        as = goal_fct(bound, u_curr, equations)
+
+        initialCheck(bound, as, newton_abstol) && return nothing
+    end
+
+    # Newton iterations
+    for iter in 1:(limiter.max_iterations_newton)
+        beta_old = beta
+
+        # If the state is valid, evaluate d(goal)/d(beta)
+        if isValidState(u_curr, equations)
+            dSdbeta = dgoal_fct(u_curr, dt, antidiffusive_flux, equations)
+        else # Otherwise, perform a bisection step
+            dSdbeta = 0
+        end
+
+        if dSdbeta != 0
+            # Update beta with Newton's method
+            beta = beta - as / dSdbeta
+        end
+
+        # Check bounds
+        if (beta < beta_L) || (beta > beta_R) || (dSdbeta == 0) || isnan(beta)
+            # Out of bounds, do a bisection step
+            beta = 0.5 * (beta_L + beta_R)
+            # Get new u
+            u_curr = u + beta * dt * antidiffusive_flux
+
+            # If the state is invalid, finish bisection step without checking tolerance and iterate further
+            if !isValidState(u_curr, equations)
+                beta_R = beta
+                continue
+            end
+
+            # Check new beta for condition and update bounds
+            as = goal_fct(bound, u_curr, equations)
+            if initialCheck(bound, as, newton_abstol)
+                # New beta fulfills condition
+                beta_L = beta
+            else
+                # New beta does not fulfill condition
+                beta_R = beta
+            end
+        else
+            # Get new u
+            u_curr = u + beta * dt * antidiffusive_flux
+
+            # If the state is invalid, redefine right bound without checking tolerance and iterate further
+            if !isValidState(u_curr, equations)
+                beta_R = beta
+                continue
+            end
+
+            # Evaluate goal function
+            as = goal_fct(bound, u_curr, equations)
+        end
+
+        # Check relative tolerance
+        if abs(beta_old - beta) <= newton_reltol
+            break
+        end
+
+        # Check absolute tolerance
+        if finalCheck(bound, as, newton_abstol)
+            break
+        end
+    end
+
+    new_alpha = 1 - beta
+    if alpha[i, j, element] > new_alpha + newton_abstol
+        error("Alpha is getting smaller. old: $(alpha[i, j, element]), new: $new_alpha")
+    else
+        alpha[i, j, element] = new_alpha
+    end
+
+    return nothing
+end
+
+function standard_finalCheck(bound, goal, newton_abstol)
+    abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
+end
+
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquations{2},
+                      basis::LobattoLegendreBasis, PressurePositivityLimiterKuzmin)
+    container_subcell_limiter = Trixi.ContainerSubcellLimiterMCL2D{real(basis)
+                                                                   }(0,
+                                                                     nvariables(equations),
+                                                                     nnodes(basis))
+    container_bar_states = Trixi.ContainerBarStates{real(basis)}(0,
+                                                                 nvariables(equations),
+                                                                 nnodes(basis))
+
+    idp_bounds_delta = zeros(real(basis), 2,
+                             nvariables(equations) + PressurePositivityLimiterKuzmin)
+
+    return (; container_subcell_limiter, container_bar_states, idp_bounds_delta)
+end
+end # @muladd
