@@ -209,7 +209,7 @@ Return `x` if `x` is negative, else zero. In other words, return
 end
 
 """
-    stolarsky_mean(x, y)
+    stolarsky_mean(x, y, gamma)
 
 Compute an instance of a weighted Stolarsky mean of the form
 
