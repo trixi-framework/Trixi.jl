@@ -89,36 +89,6 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
             fstar2_R_threaded)
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
-                      volume_integral::VolumeIntegralSubcellLimiting, dg::DG, uEltype)
-    cache = create_cache(mesh, equations,
-                         VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
-                         dg, uEltype)
-    if volume_integral.limiter.smoothness_indicator
-        element_ids_dg = Int[]
-        element_ids_dgfv = Int[]
-        cache = (; cache..., element_ids_dg, element_ids_dgfv)
-    end
-
-    A3dp1_x = Array{uEltype, 3}
-    A3dp1_y = Array{uEltype, 3}
-    A3d = Array{uEltype, 3}
-
-    fhat1_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                     nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fhat2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                     nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
-    flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                             for _ in 1:Threads.nthreads()]
-
-    container_antidiffusive_flux = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0,
-                                                                               nvariables(equations),
-                                                                               nnodes(dg))
-
-    return (; cache..., container_antidiffusive_flux, fhat1_threaded, fhat2_threaded,
-            flux_temp_threaded)
-end
-
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
