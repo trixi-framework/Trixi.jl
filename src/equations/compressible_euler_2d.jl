@@ -31,7 +31,7 @@ The compressible Euler equations
 ```
 for an ideal gas with ratio of specific heats `gamma`
 in two space dimensions.
-Here, ``\rho`` is the density, ``v_1``,`v_2` the velocities, ``e`` the specific total energy **rather than** specific internal energy, and
+Here, ``\rho`` is the density, ``v_1``, ``v_2`` the velocities, ``e`` the specific total energy **rather than** specific internal energy, and
 ```math
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
 ```
@@ -861,7 +861,7 @@ Splitting of the compressible Euler flux of Steger and Warming.
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
-function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -993,7 +993,7 @@ it proved the most robust in practice.
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
-function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -1091,7 +1091,7 @@ to Burgers' equation.
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
-function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.

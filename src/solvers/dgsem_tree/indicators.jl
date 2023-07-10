@@ -159,7 +159,7 @@ and `basis` if this indicator should be used for shock capturing.
 - Löhner (1987)
   "An adaptive finite element scheme for transient problems in CFD"
   [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
+- [https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000](https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000)
 """
 struct IndicatorLöhner{RealT <: Real, Variable, Cache} <: AbstractIndicator
     f_wave::RealT # TODO: Taal documentation
