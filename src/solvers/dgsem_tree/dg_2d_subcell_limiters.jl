@@ -5,6 +5,31 @@
 @muladd begin
 #! format: noindent
 
+function create_cache(mesh::TreeMesh{2}, equations,
+                      volume_integral::VolumeIntegralSubcellLimiting, dg::DG, uEltype)
+    cache = create_cache(mesh, equations,
+                         VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
+                         dg, uEltype)
+
+    A3dp1_x = Array{uEltype, 3}
+    A3dp1_y = Array{uEltype, 3}
+    A3d = Array{uEltype, 3}
+
+    fhat1_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
+                                     nnodes(dg)) for _ in 1:Threads.nthreads()]
+    fhat2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
+                                     nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
+    flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
+                             for _ in 1:Threads.nthreads()]
+
+    container_antidiffusive_flux = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0,
+                                                                               nvariables(equations),
+                                                                               nnodes(dg))
+
+    return (; cache..., container_antidiffusive_flux, fhat1_threaded, fhat2_threaded,
+            flux_temp_threaded)
+end
+
 function calc_volume_integral!(du, u,
                                mesh::TreeMesh{2},
                                nonconservative_terms, equations,
