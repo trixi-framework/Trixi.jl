@@ -265,9 +265,9 @@ Given ε = 1.0e-4, we use the following algorithm.
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
     if f2 < epsilon_f2
         # convenience coefficients
-        c1 = (gamma - 2) / 3
-        c2 = -(gamma + 1) * (gamma - 2)* (gamma - 3) / 45
-        c3 = (gamma + 1) * (gamma - 2) * (gamma - 3)* (2 * gamma * (gamma - 2) - 9) / 945
+        c1 = (1 / 3) * (gamma - 2)
+        c2 = -(1 / 15) * (gamma + 1) * (gamma - 3) * c1
+        c3 = -(1 / 21) * (2 * gamma *(gamma - 2) - 9) * c2
         return 0.5 * (x + y) * @evalpoly(f2, 1, c1, c2, c3)
     else
         return (gamma - 1)/gamma * (y^gamma - x^gamma) / (y^(gamma-1) - x^(gamma-1))
