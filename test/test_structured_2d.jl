@@ -218,8 +218,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.3))
   end
 
-  @trixi_testset "elixir_eulerisotropic_wave.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerisotropic_wave.jl"),
+  @trixi_testset "elixir_eulerpolytropic_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_convergence.jl"),
+      l2   = [0.9265197650552958, 5.854697965606039, 14.85499224304319],
+      linf = [2.6651435738539053, 12.237661077904363, 36.79422185045536]
+  end
+
+  @trixi_testset "elixir_eulerisothermal_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerisothermal_wave.jl"),
       l2   = [0.004998778491726375, 0.004998916000294413, 9.644873288246357e-17],
       linf = [0.01000110367383511, 0.010051165098399165, 5.866026685895555e-16])
   end
