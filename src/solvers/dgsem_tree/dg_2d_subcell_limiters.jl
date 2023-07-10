@@ -5,7 +5,6 @@
 @muladd begin
 #! format: noindent
 
-
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
                       volume_integral::VolumeIntegralSubcellLimiting, dg::DG, uEltype)
     cache = create_cache(mesh, equations,
