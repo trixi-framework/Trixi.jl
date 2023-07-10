@@ -21,7 +21,7 @@ using Trixi
 # define the initial conditions
 
 function initial_condition_wave_isothermal(x, t, equations::PolytropicEulerEquations2D)
-    gamma = 1.001
+    gamma = 1.0
     kappa = 1.0
 
     rho = 1.0
@@ -50,7 +50,7 @@ end
 # semidiscretization of the linear advection equation
 
 # Define the equations involved.
-gamma1 = 1.001
+gamma1 = 1.0
 kappa1 = 1.0
 equations1 = PolytropicEulerEquations2D(gamma1, kappa1)
 gamma2 = 2.0
@@ -137,4 +137,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
 
 # Print the timer summary
 summary_callback()
-
