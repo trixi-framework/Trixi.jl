@@ -32,6 +32,8 @@ s = sinpi(2 * 30.0 / 360.0)
 rot_mat = Trixi.SMatrix{2, 2}([c -s; s c])
 mapping(xi, eta) = rot_mat * SVector(3.0*xi, 3.0*eta)
 
+# Mean density and speed of sound are slightly off from 1.0 to allow proper verification of
+# curved LEE implementation using this elixir (some things in the LEE cancel if both are 1.0)
 equations = LinearizedEulerEquations2D(v_mean_global=Tuple(rot_mat * SVector(-0.5, 0.25)),
                                        c_mean_global=1.02, rho_mean_global=1.01)
 
