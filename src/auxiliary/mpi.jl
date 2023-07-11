@@ -72,7 +72,7 @@ You must pass this function as a keyword argument
 to OrdinaryDiffEq.jl's `solve` when using error-based step size control with MPI
 parallel execution of Trixi.jl.
 
-See the "Advanced Adaptive Stepsize Control" section of the [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/)
+See the "Advanced Adaptive Stepsize Control" section of the [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
 """
 ode_norm(u::Number, t) = @fastmath abs(u)
 function ode_norm(u::AbstractArray, t)
@@ -125,6 +125,6 @@ You should pass this function as a keyword argument
 to OrdinaryDiffEq.jl's  `solve` when using error-based step size control with MPI
 parallel execution of Trixi.jl.
 
-See the "Miscellaneous" section of the [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/)
+See the "Miscellaneous" section of the [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
 """
 ode_unstable_check(dt, u, semi, t) = isnan(dt)
