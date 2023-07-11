@@ -670,6 +670,26 @@ isdir(outdir) && rm(outdir, recursive=true)
     for normal_direction in normal_directions
       @test flux_godunov(u, u, normal_direction, equation) ≈ flux(u, normal_direction, equation)
     end
+
+    # Linearized Euler 2D
+    equation = LinearizedEulerEquations2D(v_mean_global=(0.5, -0.7), c_mean_global=1.1,
+                                          rho_mean_global=1.2)
+    u_values = [SVector(1.0, 0.5, -0.7, 1.0),
+                SVector(1.5, -0.2, 0.1, 5.0),]
+
+    orientations = [1, 2]
+    for orientation in orientations, u in u_values
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    normal_directions = [SVector(1.0, 0.0),
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions, u in u_values
+      @test flux_godunov(u, u, normal_direction, equation) ≈ flux(u, normal_direction, equation)
+    end
   end
 
   @timed_testset "Consistency check for Engquist-Osher flux" begin
