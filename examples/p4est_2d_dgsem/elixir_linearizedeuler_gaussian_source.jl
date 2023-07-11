@@ -4,7 +4,7 @@ using Trixi
 
 # Based on the TreeMesh example `elixir_acoustics_gaussian_source.jl`.
 # The acoustic perturbation equations have been replaced with the linearized Euler
-# equations and instead of the cartesian `TreeMesh` a rotated `P4estMesh` is used
+# equations and instead of the Cartesian `TreeMesh` a rotated `P4estMesh` is used
 
 # Oscillating Gaussian-shaped source terms
 function source_terms_gauss(u, x, t, equations::LinearizedEulerEquations2D)
