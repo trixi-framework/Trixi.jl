@@ -21,9 +21,6 @@ using Trixi
 # define the initial conditions
 
 function initial_condition_wave_isothermal(x, t, equations::PolytropicEulerEquations2D)
-    equations.gamma = 1.0
-    equations.kappa = 1.0
-
     rho = 1.0
     v1 = 0.0
     v2 = 0.0
@@ -32,9 +29,6 @@ function initial_condition_wave_isothermal(x, t, equations::PolytropicEulerEquat
 end
 
 function initial_condition_wave_polytropic(x, t, equations::PolytropicEulerEquations2D)
-    equations.gamma = 2.0
-    equations.kappa = 1.0
-
     rho = 1.0
     v1 = 0.0
     if x[1] > 0.0
