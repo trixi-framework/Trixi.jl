@@ -25,7 +25,9 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     nmortars    :: Int
     nboundaries :: Int
 
-    function T8codeMesh{NDIMS}(cmesh, scheme, forest, nodes) where {NDIMS}
+    function T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes,
+                               boundary_names,
+                               current_filename) where {NDIMS}
         # TODO: Implement MPI parallelization.
         # if mpi_isparallel()
         #   if !T8code.uses_mpi()
@@ -42,6 +44,11 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                                                                                   forest,
                                                                                   is_parallel)
 
+        mesh.nodes = nodes
+        mesh.boundary_names = boundary_names
+        mesh.current_filename = current_filename
+        mesh.tree_node_coordinates = tree_node_coordinates
+
         # Destroy 't8code' structs when the mesh is garbage collected.
         finalizer(function (mesh::T8codeMesh{NDIMS})
                       # `cmesh` and `scheme` are automatically freed by this call.
@@ -50,19 +57,6 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
 
         return mesh
     end
-end
-
-function T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes,
-                           boundary_names,
-                           current_filename) where {NDIMS}
-    mesh = T8codeMesh{NDIMS}(cmesh, scheme, forest, nodes)
-
-    mesh.nodes = nodes
-    mesh.boundary_names = boundary_names
-    mesh.current_filename = current_filename
-    mesh.tree_node_coordinates = tree_node_coordinates
-
-    return mesh
 end
 
 const SerialT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
