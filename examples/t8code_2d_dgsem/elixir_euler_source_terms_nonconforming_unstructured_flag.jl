@@ -106,21 +106,10 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-# Not implemented yet.
-# save_restart = SaveRestartCallback(interval=100,
-#                                    save_final_restart=true)
-#
-# Not implemented yet.
-# save_solution = SaveSolutionCallback(interval=100,
-#                                      save_initial_solution=true,
-#                                      save_final_solution=true,
-#                                      solution_variables=cons2prim)
-
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        # save_restart, save_solution,
                         stepsize_callback)
 ###############################################################################
 # run the simulation

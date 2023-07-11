@@ -44,6 +44,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
 
         # Destroy 't8code' structs when the mesh is garbage collected.
         finalizer(function (mesh::T8codeMesh{NDIMS})
+                      # `cmesh` and `scheme` are automatically freed by this call.
                       trixi_t8_unref_forest(mesh.forest)
                   end, mesh)
 
