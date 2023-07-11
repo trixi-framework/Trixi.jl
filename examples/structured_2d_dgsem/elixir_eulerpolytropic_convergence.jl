@@ -30,7 +30,8 @@ mesh = StructuredMesh(cells_per_dimension,
                       coordinates_max)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+                                    boundary_conditions = boundary_conditions,
+                                    source_terms = source_terms_eoc_test_euler)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
