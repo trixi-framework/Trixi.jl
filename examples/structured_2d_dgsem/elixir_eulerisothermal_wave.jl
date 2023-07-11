@@ -14,8 +14,8 @@ function initial_condition_wave(x, t, equations::PolytropicEulerEquations2D)
     rho = 1.0
     v1 = 0.0
     if x[1] > 0.0
-        rho = ((1.0 + 0.01 * sin(x[1] * 2 * pi)) / kappa)^(1 / gamma)
-        v1 = ((0.01 * sin((x[1] - 1 / 2) * 2 * pi)) / kappa)
+        rho = ((1.0 + 0.01 * sin(x[1] * 2 * pi)) / eqiations.kappa)^(1 / eqiations.gamma)
+        v1 = ((0.01 * sin((x[1] - 1 / 2) * 2 * pi)) / eqiations.kappa)
     end
     v2 = 0.0
 
