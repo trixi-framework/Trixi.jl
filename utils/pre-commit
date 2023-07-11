@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Copy this file into .git/hooks/pre-commit to execute before each commit. 
+# It checks and corrects the format for each file.
+# If incorrect formatting is found you can add the correction via git add -p
+
+echo "Checking format before committing"
+
+if git ref-parse --verify HEAD >/dev/null 2>&1
+then
+    against=HEAD
+else
+    # Initial commit: diff against an empty tree object
+    against=280fc57fade28e35046c3e884e587ffef05d3867
+fi
+
+# Redirect output to stderr.
+exec 1>&2
+
+# Create a list of files to format. 
+files=()
+
+for file in `git diff --cached --name-only`
+do
+    # only indent existing files, this is necessary since if we rename or delete
+    # a file it is added to the committed files and we thus would try to indent a
+    # nonexisting file.
+    if [ ! -e $file ]
+    then
+        continue
+    fi
+    # We only indent .jl files
+    FILE_ENDING="${file##*.}"
+    if [ $FILE_ENDING = "jl" ]
+    then
+        files+=($file)
+    fi
+done
+
+julia utils/trixi-format-file.jl "${files[@]}"
