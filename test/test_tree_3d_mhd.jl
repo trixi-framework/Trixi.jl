@@ -67,7 +67,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_dgsem")
         psi = 0.0
         return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
       end,
-      surface_flux = (FluxHLL(min_max_speed_naive), flux_nonconservative_powell),
+      surface_flux = (flux_hll, flux_nonconservative_powell),
       volume_flux  = (flux_central, flux_nonconservative_powell),
       coordinates_min = (0.0, 0.0, 0.0),
       coordinates_max = (1.0, 1.0, 1.0),
