@@ -235,6 +235,8 @@ left and right states `u_ll, u_rr`, usually based only on the local wave speeds 
 - Amiram Harten, Peter D. Lax, Bram van Leer (1983)
   On Upstream Differencing and Godunov-Type Schemes for Hyperbolic Conservation Laws
   [DOI: 10.1137/1025002](https://doi.org/10.1137/1025002)
+
+See also [`FluxHLL`](@ref), [`min_max_speed_davis`](@ref), [`min_max_speed_einfeldt`](@ref).
 """
 function min_max_speed_naive end
 
