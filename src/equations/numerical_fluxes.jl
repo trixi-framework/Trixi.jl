@@ -239,7 +239,7 @@ left and right states `u_ll, u_rr`, usually based only on the local wave speeds 
 function min_max_speed_naive end
 
 """
-    min_max_speed_davis(u_ll, u_rr, orientation::Integer,   equations)
+    min_max_speed_davis(u_ll, u_rr, orientation::Integer, equations)
     min_max_speed_davis(u_ll, u_rr, normal_direction::AbstractVector, equations)
 
 Simple and fast bounds of the minimal and maximal wave speed of the Riemann problem with
