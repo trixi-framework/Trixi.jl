@@ -365,6 +365,7 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
     return nothing
 end
 
+# This version is used for divergence flux computations 
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2}, equations_parabolic,
                               dg::DG, cache_parabolic)
@@ -405,7 +406,7 @@ function calc_interface_flux!(surface_flux_values,
         end
 
         for node in eachnode(dg)
-            # We prolong the viscous flux dotted with respect the outward normal on the
+            # We prolong the viscous flux dotted with respect the outward normal on the 
             # primary element. We assume a BR-1 type of flux.
             viscous_flux_normal_ll, viscous_flux_normal_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                                                                    equations_parabolic,
@@ -446,6 +447,7 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
         # a start value and a step size to get the correct face and orientation.
         element = boundaries.neighbor_ids[boundary]
         node_indices = boundaries.node_indices[boundary]
+        direction = indices2direction(node_indices)
 
         i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
         j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
@@ -454,15 +456,12 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
         j_node = j_node_start
         for i in eachnode(dg)
             # this is the outward normal direction on the primary element
-            normal_direction = get_normal_direction(primary_direction,
-                                                    contravariant_vectors,
-                                                    i_node, j_node, primary_element)
+            normal_direction = get_normal_direction(direction, contravariant_vectors,
+                                                    i_node, j_node, element)
 
             for v in eachvariable(equations_parabolic)
-                flux_viscous = SVector(flux_viscous_x[v, i_primary, j_primary,
-                                                      primary_element],
-                                       flux_viscous_y[v, i_primary, j_primary,
-                                                      primary_element])
+                flux_viscous = SVector(flux_viscous_x[v, i_node, j_node, element],
+                                       flux_viscous_y[v, i_node, j_node, element])
 
                 boundaries.u[v, i, boundary] = dot(flux_viscous, normal_direction)
             end
@@ -470,6 +469,124 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
             j_node += j_node_step
         end
     end
+    return nothing
+end
+
+function calc_boundary_flux_gradients!(cache, t,
+                                       boundary_condition::Union{BoundaryConditionPeriodic,
+                                                                 BoundaryConditionDoNothing
+                                                                 },
+                                       mesh::P4estMesh, equations, surface_integral, dg::DG)
+    @assert isempty(eachboundary(dg, cache))
+end
+
+# Function barrier for type stability
+function calc_boundary_flux_gradients!(cache, t, boundary_conditions, mesh::P4estMesh,
+                                       equations, surface_integral, dg::DG)
+    (; boundary_condition_types, boundary_indices) = boundary_conditions
+
+    calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
+                                Gradient(), mesh, equations, surface_integral, dg)
+    return nothing
+end
+
+function calc_boundary_flux_divergence!(cache, t, boundary_conditions, mesh::P4estMesh,
+                                        equations, surface_integral, dg::DG)
+    (; boundary_condition_types, boundary_indices) = boundary_conditions
+
+    calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
+                                Divergence(), mesh, equations, surface_integral, dg)
+    return nothing
+end
+
+# Iterate over tuples of boundary condition types and associated indices
+# in a type-stable way using "lispy tuple programming".
+function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
+                                     BC_indices::NTuple{N, Vector{Int}},
+                                     operator_type,
+                                     mesh::P4estMesh,
+                                     equations, surface_integral, dg::DG) where {N}
+    # Extract the boundary condition type and index vector
+    boundary_condition = first(BCs)
+    boundary_condition_indices = first(BC_indices)
+    # Extract the remaining types and indices to be processed later
+    remaining_boundary_conditions = Base.tail(BCs)
+    remaining_boundary_condition_indices = Base.tail(BC_indices)
+
+    # process the first boundary condition type
+    calc_boundary_flux!(cache, t, boundary_condition, boundary_condition_indices,
+                        operator_type, mesh, equations, surface_integral, dg)
+
+    # recursively call this method with the unprocessed boundary types
+    calc_boundary_flux_by_type!(cache, t, remaining_boundary_conditions,
+                                remaining_boundary_condition_indices,
+                                operator_type,
+                                mesh, equations, surface_integral, dg)
 
     return nothing
+end
+
+# terminate the type-stable iteration over tuples
+function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
+                                     operator_type, mesh::P4estMesh, equations,
+                                     surface_integral, dg::DG)
+    nothing
+end
+
+function calc_boundary_flux!(cache, t,
+                             boundary_condition_parabolic, # works with Dict types
+                             boundary_condition_indices,
+                             operator_type, mesh::P4estMesh{2},
+                             equations_parabolic::AbstractEquationsParabolic,
+                             surface_integral, dg::DG)
+    (; boundaries) = cache
+    (; node_coordinates, surface_flux_values) = cache.elements
+    (; contravariant_vectors) = cache.elements
+    index_range = eachnode(dg)
+
+    @threaded for local_index in eachindex(boundary_condition_indices)
+        # Use the local index to get the global boundary index from the pre-sorted list
+        boundary_index = boundary_condition_indices[local_index]
+
+        # Get information on the adjacent element, compute the surface fluxes,
+        # and store them
+        element = boundaries.neighbor_ids[boundary_index]
+        node_indices = boundaries.node_indices[boundary_index]
+        direction_index = indices2direction(node_indices)
+
+        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        for node_index in eachnode(dg)
+            # Extract solution data from boundary container
+            u_inner = get_node_vars(boundaries.u, equations_parabolic, dg, node_index,
+                                    boundary_index)
+
+            # Outward-pointing normal direction (not normalized)
+            normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                                    i_node, j_node, element)
+
+            # TODO: revisit if we want more general boundary treatments.
+            # This assumes the gradient numerical flux at the boundary is the gradient variable,
+            # which is consistent with BR1, LDG.
+            flux_inner = u_inner
+
+            # Coordinates at boundary node
+            x = get_node_coords(node_coordinates, equations_parabolic, dg, i_node, j_node,
+                                element)
+
+            flux_ = boundary_condition_parabolic(flux_inner, u_inner, normal_direction,
+                                                 x, t, operator_type, equations_parabolic)
+
+            # Copy flux to element storage in the correct orientation
+            for v in eachvariable(equations_parabolic)
+                surface_flux_values[v, node_index, direction_index, element] = flux_[v]
+            end
+
+            i_node += i_node_step
+            j_node += j_node_step
+        end
+    end
 end
