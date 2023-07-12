@@ -245,9 +245,12 @@ function min_max_speed_naive end
 Simple and fast estimates of the minimal and maximal wave speed of the Riemann problem with
 left and right states `u_ll, u_rr`, usually based only on the local wave speeds associated to
 `u_ll` and `u_rr`.
+
 - S.F. Davis (1988)
   Simplified Second-Order Godunov-Type Methods
   [DOI: 10.1137/0909030](https://doi.org/10.1137/0909030)
+
+See also [`FluxHLL`](@ref), [`min_max_speed_naive`](@ref), [`min_max_speed_einfeldt`](@ref).
 """
 function min_max_speed_davis end
 
