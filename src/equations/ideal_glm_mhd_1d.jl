@@ -298,7 +298,7 @@ end
 end
 
 """
-min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations1D)
+    min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations1D)
 
 Calculate minimum and maximum wave speeds for HLL-type fluxes as in
 - Li (2005)
