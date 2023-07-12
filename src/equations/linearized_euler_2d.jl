@@ -53,7 +53,7 @@ end
 
 function LinearizedEulerEquations2D(; v_mean_global::NTuple{2, <:Real},
                                     c_mean_global::Real, rho_mean_global::Real)
-    return LinearizedEulerEquations2D(SVector(v_mean_global), c_mean_global,
+    return LinearizedEulerEquations2D(v_mean_global, c_mean_global,
                                       rho_mean_global)
 end
 
@@ -122,6 +122,24 @@ end
         f3 = v_mean_global[2] * v2_prime + p_prime / rho_mean_global
         f4 = v_mean_global[2] * p_prime + c_mean_global^2 * rho_mean_global * v2_prime
     end
+
+    return SVector(f1, f2, f3, f4)
+end
+
+# Calculate 1D flux for a single point
+@inline function flux(u, normal_direction::AbstractVector,
+                      equations::LinearizedEulerEquations2D)
+    @unpack v_mean_global, c_mean_global, rho_mean_global = equations
+    rho_prime, v1_prime, v2_prime, p_prime = u
+
+    v_mean_normal = v_mean_global[1] * normal_direction[1] +
+                    v_mean_global[2] * normal_direction[2]
+    v_prime_normal = v1_prime * normal_direction[1] + v2_prime * normal_direction[2]
+
+    f1 = v_mean_normal * rho_prime + rho_mean_global * v_prime_normal
+    f2 = v_mean_normal * v1_prime + normal_direction[1] * p_prime / rho_mean_global
+    f3 = v_mean_normal * v2_prime + normal_direction[2] * p_prime / rho_mean_global
+    f4 = v_mean_normal * p_prime + c_mean_global^2 * rho_mean_global * v_prime_normal
 
     return SVector(f1, f2, f3, f4)
 end
