@@ -19,6 +19,9 @@ Define the initial condition with a weak small-scale Gaussian noise magnetic fie
 function initial_condition_gaussian_noise_mhd(x, t, equations)
     amplitude = 1e-8
 
+    seed = reinterpret(UInt64, t + x[1] + x[2] + x[3])
+    Random.seed!(seed)
+
     rho = 1.0
     rho_v1 = 0.0
     rho_v2 = 0.0
