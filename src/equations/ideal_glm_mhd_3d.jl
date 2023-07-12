@@ -748,7 +748,7 @@ Calculate minimum and maximum wave speeds for HLL-type fluxes as in
 - Li (2005)
   An HLLC Riemann solver for magneto-hydrodynamics
   [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
-  """
+"""
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::IdealGlmMhdEquations3D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
