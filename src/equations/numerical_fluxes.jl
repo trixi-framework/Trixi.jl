@@ -252,7 +252,7 @@ left and right states `u_ll, u_rr`, usually based only on the local wave speeds 
 function min_max_speed_davis end
 
 """
-    min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,   equations)
+    min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer, equations)
     min_max_speed_einfeldt(u_ll, u_rr, normal_direction::AbstractVector, equations)
 
 More advanced mininmal and maximal wave speed computation based on
