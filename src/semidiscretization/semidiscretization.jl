@@ -77,7 +77,7 @@ Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan; offload::Bool=false, backend::Backend=CPU())
-    u0_ode = compute_coefficients(first(tspan), semi)
+    u0_ode = compute_coefficients(first(tspan), semi; backend=backend)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
@@ -121,8 +121,8 @@ the values of `func` at the nodes of the grid assoociated with the semidiscretiz
 For semidiscretizations `semi` associated with an initial condition, `func` can be omitted
 to use the given initial condition at time `t`.
 """
-function compute_coefficients(func, t, semi::AbstractSemidiscretization)
-    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
+function compute_coefficients(func, t, semi::AbstractSemidiscretization; backend::Backend=CPU())
+    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...; backend=backend)
     # Call `compute_coefficients` defined below
     compute_coefficients!(u_ode, func, t, semi)
     return u_ode

@@ -322,9 +322,9 @@ function calc_error_norms(func, u_ode, t, analyzer, semi::SemidiscretizationHype
                      cache, cache_analysis)
 end
 
-function compute_coefficients(t, semi::SemidiscretizationHyperbolic)
+function compute_coefficients(t, semi::SemidiscretizationHyperbolic; backend::Backend=CPU())
     # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
-    compute_coefficients(semi.initial_condition, t, semi)
+    compute_coefficients(semi.initial_condition, t, semi; backend=backend)
 end
 
 function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolic)

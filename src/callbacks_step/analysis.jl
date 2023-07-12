@@ -137,9 +137,16 @@ end
 # This method gets called from OrdinaryDiffEq's `solve(...)`
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
                      integrator) where {Condition, Affect! <: AnalysisCallback}
-    @unpack semi = integrator.p
+    @unpack semi, backend = integrator.p
     du_ode = first(get_tmp_cache(integrator))
-    initialize!(cb, u_ode, du_ode, t, integrator, semi)
+
+    tmp_u_ode = Array{eltype(u_ode)}(undef, size(u_ode))
+    tmp_du_ode = Array{eltype(du_ode)}(undef, size(du_ode))
+
+    copyto!(backend, tmp_u_ode, u_ode)
+    copyto!(backend, tmp_du_ode, du_ode)
+
+    initialize!(cb, tmp_u_ode, tmp_du_ode, t, integrator, semi)
 end
 
 # This is the actual initialization method
@@ -219,10 +226,17 @@ end
 
 # This method gets called from OrdinaryDiffEq's `solve(...)`
 function (analysis_callback::AnalysisCallback)(integrator)
-    @unpack semi = integrator.p
+    @unpack semi, backend = integrator.p
     du_ode = first(get_tmp_cache(integrator))
     u_ode = integrator.u
-    analysis_callback(u_ode, du_ode, integrator, semi)
+
+    tmp_u_ode = Array{eltype(u_ode)}(undef, size(u_ode))
+    tmp_du_ode = Array{eltype(du_ode)}(undef, size(du_ode))
+
+    copyto!(backend, tmp_u_ode, u_ode)
+    copyto!(backend, tmp_du_ode, du_ode)
+
+    analysis_callback(tmp_u_ode, tmp_du_ode, integrator, semi)
 end
 
 # This method gets called internally as the main entry point to the AnalysiCallback

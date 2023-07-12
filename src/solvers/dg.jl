@@ -526,11 +526,10 @@ include("dgsem/dgsem.jl")
 # functionality implemented for DGSEM.
 include("fdsbp_tree/fdsbp.jl")
 
-function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
+function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache; backend::Backend=CPU())
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
-    zeros(eltype(cache.elements),
-          nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    fill!(allocate(backend, eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)), 0)
 end
 
 @inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
@@ -573,7 +572,8 @@ end
         #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-        unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
+        arrType = get_array_type(get_backend(u_ode))
+        unsafe_wrap(arrType{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
                     (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
                      nelements(dg, cache)))
     end
@@ -617,7 +617,8 @@ end
         @assert length(u_ode) ==
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
     end
-    unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
+    arrType=get_array_type(get_backend(u_ode))
+    unsafe_wrap(arrType{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
                 (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
                  nelements(dg, cache)))
 end
@@ -645,14 +646,16 @@ end
 
 function compute_coefficients!(u, func, t, mesh::AbstractMesh{2}, equations, dg::DG,
                                cache)
+    u_tmp = Array{eltype(u)}(undef, size(u))
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
                                      j, element)
             u_node = func(x_node, t, equations)
-            set_node_vars!(u, u_node, equations, dg, i, j, element)
+            set_node_vars!(u_tmp, u_node, equations, dg, i, j, element)
         end
     end
+    copyto!(get_backend(u), u, u_tmp)
 end
 
 function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg::DG,
