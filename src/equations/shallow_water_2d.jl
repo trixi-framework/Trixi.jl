@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations2D(gravity, H0, threshold_limiter, threshold_wet)
+    ShallowWaterEquations2D(; gravity, H0 = 0, threshold_limiter = nothing, threshold_wet = nothing)
 
 Shallow water equations (SWE) in two space dimensions. The equations are given by
 ```math

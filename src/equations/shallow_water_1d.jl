@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations1D(gravity, H0, threshold_limiter, threshold_wet)
+    ShallowWaterEquations1D(; gravity, H0 = 0, threshold_limiter = nothing threshold_wet = nothing)
 
 Shallow water equations (SWE) in one space dimension. The equations are given by
 ```math

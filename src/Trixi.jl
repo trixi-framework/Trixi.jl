@@ -253,6 +253,7 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven,
        NeuralNetworkCNN
 
+# TODO: TrixiShallowWater: move new limiter
 export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterShallowWater
 
 export trixi_include, examples_dir, get_examples, default_example,
