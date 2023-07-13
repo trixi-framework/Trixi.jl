@@ -326,4 +326,37 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
 
     return u_ode
 end
+
+function save_restart_controller(integrator, controller::PIController, restart_callback)
+    @unpack output_directory = restart_callback
+    timestep = integrator.stats.naccept
+    filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+    # Open file (preserve existing content)
+    h5open(filename, "cw") do file
+        attributes(file)["qold"] = integrator.qold
+        attributes(file)["dtpropose"] = integrator.dtpropose
+    end
+end
+
+function save_restart_controller(integrator, controller::PIDController, restart_callback)
+    @unpack output_directory = restart_callback
+    timestep = integrator.stats.naccept
+    filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+    # Open file (preserve existing content)
+    h5open(filename, "cw") do file
+        attributes(file)["qold"] = integrator.qold
+        attributes(file)["dtpropose"] = integrator.dtpropose
+        file["controller_err"]=controller.err
+    end
+end
+
+function save_restart_controller(integrator, controller, restart_callback)
+    @unpack output_directory = restart_callback
+    timestep = integrator.stats.naccept
+    filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+    # Open file (preserve existing content)
+    h5open(filename, "cw") do file
+        attributes(file)["dtpropose"] = integrator.dtpropose
+    end
+end
 end # @muladd

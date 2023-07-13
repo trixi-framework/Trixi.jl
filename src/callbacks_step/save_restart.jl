@@ -105,6 +105,9 @@ function (restart_callback::SaveRestartCallback)(integrator)
         end
 
         save_restart_file(u_ode, t, dt, iter, semi, restart_callback)
+        if integrator.opts.adaptive
+            save_restart_controller(integrator, integrator.opts.controller, restart_callback)
+        end
     end
 
     # avoid re-evaluating possible FSAL stages

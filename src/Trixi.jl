@@ -30,7 +30,7 @@ using Reexport: @reexport
 # MPI needs to be imported before HDF5 to be able to use parallel HDF5
 # as long as HDF5.jl uses Requires.jl to enable parallel HDF5 with MPI
 using MPI: MPI
-
+using OrdinaryDiffEq
 using SciMLBase: CallbackSet, DiscreteCallback,
                  ODEProblem, ODESolution, ODEFunction,
                  SplitODEProblem
@@ -239,7 +239,7 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        AveragingCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
-       TrivialCallback, AnalysisCallbackCoupled
+       TrivialCallback, AnalysisCallbackCoupled, LoadRestartCallback
 
 export load_mesh, load_time
 
