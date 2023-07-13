@@ -5,20 +5,20 @@ using Trixi
 ###############################################################################
 # semidiscretization of the polytropic Euler equations
 
-gamma = 2.0
+gamma = 1.0
 kappa = 1.0     # Scaling factor for the pressure.
 equations = PolytropicEulerEquations2D(gamma, kappa)
 
 initial_condition = initial_condition_convergence_test
 
 volume_flux = flux_winters_etal
-solver = DGSEM(polydeg = 2, surface_flux = flux_hll,
+solver = DGSEM(polydeg = 3, surface_flux = flux_hll,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
 
-cells_per_dimension = (64, 64)
+cells_per_dimension = (8, 8)
 
 boundary_conditions = (x_neg = boundary_condition_periodic,
                        x_pos = boundary_condition_periodic,
@@ -36,7 +36,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.1)
+tspan = (0.0, 0.01)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -53,7 +53,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 1.7)
+stepsize_callback = StepsizeCallback(cfl = 0.1)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
