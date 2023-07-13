@@ -625,6 +625,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     for orientation in orientations
       @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
+
+    normal_directions = [SVector(1.0, 0.0),
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+      @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
+    end                         
   end
 
   @timed_testset "Consistency check for HLL flux (naive): SWE" begin
@@ -752,6 +761,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     for orientation in orientations
       @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
+
+    normal_directions = [SVector(1.0, 0.0),
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+      @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
+    end
   end
 
   @timed_testset "Consistency check for HLL flux with Davis wave speed estimates: SWE" begin
@@ -874,7 +892,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "Consistency check for HLLE flux: SWE" begin
     # Test HLL flux with min_max_speed_einfeldt
-    flux_hll = FluxHLL(min_max_speed_naive)
+    flux_hll = FluxHLL(min_max_speed_einfeldt)
 
     equations = ShallowWaterEquations1D(gravity_constant=9.81)
     u = SVector(1, 0.5, 0.0)
