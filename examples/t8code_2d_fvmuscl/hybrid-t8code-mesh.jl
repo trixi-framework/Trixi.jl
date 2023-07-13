@@ -101,24 +101,114 @@ function cmesh_new_periodic_hybrid(comm, n_dims) :: t8_cmesh_t
   return cmesh
 end
 
-function build_forest(comm, n_dims, level)
+function cmesh_new_periodic_tri(comm, n_dims) :: t8_cmesh_t
+    vertices = [  # /* Just all vertices of all trees. partly duplicated */
+      0, 0, 0,                    # /* tree 0, triangle */
+      1.0, 0, 0,
+      1.0, 1.0, 0,
+      0, 0, 0,                    # /* tree 1, triangle */
+      1.0, 1.0, 0,
+      0, 1.0, 0,
+    ]
 
-  # Periodic mesh of quads.
-  # cmesh = t8_cmesh_new_periodic(comm, NDIMS)
+    # Generally, one can define other geometries. But besides linear the other
+    # geometries in t8code do not have C interface yet.
+    linear_geom = t8_geometry_linear_new(n_dims)
 
-  # Periodic mesh of triangles.
-  # cmesh = t8_cmesh_new_periodic_tri(comm)
+    # /*
+    #  *  This is how the cmesh looks like. The numbers are the tree numbers:
+    #  *
+    #  *   +---+
+    #  *   |1 /|
+    #  *   | / |
+    #  *   |/0 |
+    #  *   +---+
+    #  */
 
-  # Periodic mesh of quads and triangles.
-  # cmesh = t8_cmesh_new_periodic_hybrid(comm) # The `t8code` version does exactly the same.
-  cmesh = cmesh_new_periodic_hybrid(comm, n_dims)
+    cmesh_ref = Ref(t8_cmesh_t())
+    t8_cmesh_init(cmesh_ref)
+    cmesh = cmesh_ref[]
 
-  scheme = t8_scheme_new_default_cxx()
+    # /* Use linear geometry */
+    t8_cmesh_register_geometry(cmesh, linear_geom)
+    t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_TRIANGLE)
 
-  let do_face_ghost = 1
-    forest = t8_forest_new_uniform(cmesh, scheme, level, do_face_ghost, comm)
-    return forest
-  end
+    t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[1 +  0:end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[1 +  9:end]), 3)
+
+    t8_cmesh_set_join(cmesh, 0, 1, 1, 2, 0)
+    t8_cmesh_set_join(cmesh, 0, 1, 0, 1, 0)
+    t8_cmesh_set_join(cmesh, 0, 1, 2, 0, 0)
+
+    t8_cmesh_commit(cmesh, comm)
+
+    return cmesh
+end
+
+function cmesh_new_periodic_quad(comm, n_dims) :: t8_cmesh_t
+    vertices = [  # /* Just all vertices of all trees. partly duplicated */
+      0, 0, 0,                    # /* tree 0, quad */
+      1.0, 0, 0,
+      0, 1.0, 0,
+      1.0, 1.0, 0
+      ]
+
+    # Generally, one can define other geometries. But besides linear the other
+    # geometries in t8code do not have C interface yet.
+    linear_geom = t8_geometry_linear_new(n_dims)
+
+    # /*
+    #  *  This is how the cmesh looks like. The numbers are the tree numbers:
+    #  *
+    #  *   +---+
+    #  *   |   |
+    #  *   | 0 |
+    #  *   |   |
+    #  *   +---+
+    #  */
+
+    cmesh_ref = Ref(t8_cmesh_t())
+    t8_cmesh_init(cmesh_ref)
+    cmesh = cmesh_ref[]
+
+    # /* Use linear geometry */
+    t8_cmesh_register_geometry(cmesh, linear_geom)
+    t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_QUAD)
+    # t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_QUAD)
+
+    t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[1 +  0:end]), 4)
+    # t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[1 +  12:end]), 4)
+
+    t8_cmesh_set_join(cmesh, 0, 0, 0, 1, 0)
+    t8_cmesh_set_join(cmesh, 0, 0, 2, 3, 0)
+
+    t8_cmesh_commit(cmesh, comm)
+
+    return cmesh
+end
+
+function build_forest(comm, n_dims, level, case)
+    # More information and meshes: https://github.com/DLR-AMR/t8code/blob/main/src/t8_cmesh/t8_cmesh_examples.c#L1481
+    if case == 1
+        # Periodic mesh of quads.
+        cmesh = cmesh_new_periodic_quad(comm, n_dims)
+    elseif case == 2
+        # Periodic mesh of triangles.
+        cmesh = cmesh_new_periodic_tri(comm, n_dims)
+    elseif case == 3
+        # Periodic mesh of quads and triangles.
+        # cmesh = t8_cmesh_new_periodic_hybrid(comm) # The `t8code` version does exactly the same.
+        cmesh = cmesh_new_periodic_hybrid(comm, n_dims)
+    else
+        error("case = $case not allowed.")
+    end
+    scheme = t8_scheme_new_default_cxx()
+
+    let do_face_ghost = 1
+        forest = t8_forest_new_uniform(cmesh, scheme, level, do_face_ghost, comm)
+        return forest
+    end
 end
 
 # Write the forest as vtu and also write the element's volumes in the file.
@@ -161,7 +251,7 @@ function fv_method_first_order(semi)
         u[element] = semi.initial_condition(elements[element].midpoint, 0.0, equations)
     end
     du = zeros(size(u))
-    
+
     # Output the data to vtu files.
     prefix_forest_with_data = "hybrid_mesh_example"
     output_data_to_vtu(semi, u, prefix_forest_with_data * "_0")
@@ -182,13 +272,13 @@ function rhs!(du, u, semi)
     num_elements = t8_forest_get_local_num_elements(mesh.forest)
 
     for element in 1:num_elements
-        @unpack volume, face_normals, num_faces, face_connectivity = cache.elements[element]
+        @unpack volume, face_normals, num_faces, face_areas, face_connectivity = cache.elements[element]
         for face in 1:num_faces
             neighbor = face_connectivity[face]
             normal = @views([face_normals[2 * face - 1 : 2 * face]...]) # Unfortunaly, flux() requires an Vector and no Tuple
-
-            du[element] += - (1 / volume) * solver.surface_flux(u[element], u[neighbor], normal, equations)
+            du[element] += - #=(1 / volume) *=# face_areas[face] * solver.surface_flux(u[element], u[neighbor], normal, equations)
         end
+        du[element] = (1 / volume) * du[element]
     end
 
     return nothing
@@ -212,7 +302,8 @@ t8_init(SC_LP_PRODUCTION)
 # Initialize an adapted forest with periodic boundaries.
 n_dims = 2
 refinement_level = 4
-forest = build_forest(comm, n_dims, refinement_level)
+# cases: 1 = quad, 2 = triangles, 3 = hybrid
+forest = build_forest(comm, n_dims, refinement_level, 1)
 
 max_number_faces = 4
 

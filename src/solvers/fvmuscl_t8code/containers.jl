@@ -17,13 +17,13 @@ struct data_per_element_t
     volume            :: Cdouble
     midpoint          :: NTuple{NDIMS,Cdouble}
     dx                :: Cdouble # Characteristic length (for CFL condition).
-  
+
     num_faces         :: Cint
     face_areas        :: NTuple{MAX_NUM_FACES,Cdouble}
     face_normals      :: NTuple{MAX_NUM_FACES*NDIMS,Cdouble}
     face_connectivity :: NTuple{MAX_NUM_FACES,t8_locidx_t} # ids of the face neighbors
   end
-  
+
 function Base.show(data::data_per_element_t)
     println("level              = ", data.level)
     println("volume             = ", data.volume)
@@ -32,10 +32,10 @@ function Base.show(data::data_per_element_t)
     println("num_faces          = ", data.num_faces)
     println("face_areas         = ", data.face_areas)
     println("face_normals       = ", data.face_normals)
-    println("face_connectivity  = ", data.face_connectivity)  
+    println("face_connectivity  = ", data.face_connectivity)
 end
 
-function init_elements(mesh::T8codeMesh{NDIMS}, RealT, uEltype) where NDIMS
+function init_elements(mesh::T8codeMesh, RealT, uEltype)
     # Initialize container
     elements = init_elements(mesh)
 
@@ -125,7 +125,7 @@ function init_elements(mesh::T8codeMesh)
                 neigh_scheme  = neigh_scheme_ref[]
 
                 face_connectivity[iface] = neighids[1]
- 
+
                 # Free allocated memory.
                 T8code.Libt8.sc_free(t8_get_package_id(), neighbors_ref[])
                 T8code.Libt8.sc_free(t8_get_package_id(), dual_faces_ref[])
