@@ -53,12 +53,12 @@ function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{
     threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
     parameter_s = log((1 - 0.0001) / 0.0001)
 
-    # If the water height `h` at one LGL node is lower than `threshold_wet`
+    # If the water height `h` at one LGL node is lower than `threshold_partially_wet`
     # the indicator sets the element-wise blending factor alpha[element] = 1
     # via the local variable `indicator_wet`. In turn, this ensures that a pure
     # FV method is used in partially wet cells and guarantees the well-balanced property.
     #
-    # Hard-coded cut-off value of `threshold_wet = 1e-4` was determined through many numerical experiments.
+    # Hard-coded cut-off value of `threshold_partially_wet = 1e-4` was determined through many numerical experiments.
     # Overall idea is to increase robustness when computing the velocity on (nearly) dry cells which
     # could be "dangerous" due to division of conservative variables, e.g., v1 = hv1 / h.
     # Here, the impact of the threshold on the number of cells being updated with FV is not that
@@ -67,7 +67,7 @@ function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{
     # Well-balancedness of the scheme on partially wet cells with hydrostatic reconstruction
     # can only be proven for the FV method (see Chen and Noelle).
     # Therefore we set alpha to be one regardless of its given value from the modal indicator.
-    threshold_wet = 1e-4
+    threshold_partially_wet = 1e-4
 
     @threaded for element in eachelement(dg, cache)
         indicator = indicator_threaded[Threads.threadid()]
@@ -82,7 +82,7 @@ function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{
             u_local = get_node_vars(u, equations, dg, i, j, element)
             h, _, _, _ = u_local
 
-            if h <= threshold_wet
+            if h <= threshold_partially_wet
                 indicator_wet = 0
             end
 
