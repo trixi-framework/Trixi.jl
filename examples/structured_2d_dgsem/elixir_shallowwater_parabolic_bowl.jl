@@ -98,8 +98,7 @@ summary_callback = SummaryCallback()
 analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=false,
                                      extra_analysis_integrals=(energy_kinetic,
-                                                               energy_internal,
-                                                               lake_at_rest_error))
+                                                               energy_internal))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
