@@ -51,26 +51,55 @@ end
 
 
 function load_integrator!(restart_file::String, integrator, controller::PIController, alg)
-   h5open(restart_file, "r") do file
-       integrator.qold=read(attributes(file)["qold"])
-       integrator.dt=read(attributes(file)["dtpropose"])
+   if mpi_isroot()
+       h5open(restart_file, "r") do file
+           integrator.qold=read(attributes(file)["qold"])
+           integrator.dt=read(attributes(file)["dtpropose"])
+       end
+   end
+   if mpi_isparallel()
+       recv_buf = [integrator.qold, integrator.dt]
+       MPI.Bcast!(recv_buf, mpi_root(), mpi_comm())
+       integrator.qold, integrator.dt = recv_buf
    end
 end 
 
 function load_integrator!(restart_file::String, integrator, controller::PIDController, alg)
-   h5open(restart_file, "r") do file
-       integrator.qold=read(attributes(file)["qold"])
-       integrator.dt=read(attributes(file)["dtpropose"])
-       err=read(file["controller_err"])
-       controller.err[1]=err[1]
-       controller.err[2]=err[2]
-       controller.err[3]=err[3]
+   if mpi_isroot()
+       h5open(restart_file, "r") do file
+           integrator.qold=read(attributes(file)["qold"])
+           integrator.dt=read(attributes(file)["dtpropose"])
+           err=read(file["controller_err"])
+           controller.err[1]=err[1]
+           controller.err[2]=err[2]
+           controller.err[3]=err[3]
+       end
+   end
+   if mpi_isparallel()
+       recv_buf = [integrator.qold, integrator.dt]
+       append!(recv_buf, controller.err)
+       MPI.Bcast!(recv_buf, mpi_root(), mpi_comm())
+       integrator.qold = recv_buf[1]
+       integrator.dt = recv_buf[2]
+       controller.err[1] = recv_buf[3]
+       controller.err[2] = recv_buf[4]
+       controller.err[3] = recv_buf[5]
    end
 end 
 
 function load_integrator!(restart_file::String, integrator, controller, alg)
    h5open(restart_file, "r") do file
        integrator.dt=read(attributes(file)["dtpropose"])
+   end
+   if mpi_isroot()
+       h5open(restart_file, "r") do file
+           integrator.dt=read(attributes(file)["dtpropose"])
+       end
+   end
+   if mpi_isparallel()
+       recv_buf = [integrator.dt]
+       MPI.Bcast!(recv_buf, mpi_root(), mpi_comm())
+       integrator.dt = recv_buf[1]
    end
 end 
 

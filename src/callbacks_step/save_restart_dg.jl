@@ -327,6 +327,16 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
     return u_ode
 end
 
+function save_restart_controller(mesh, integrator,
+                                 controller, restart_callback)
+    if mpi_isroot()
+        save_restart_controller(integrator, controller, restart_callback)
+    end
+    if mpi_isparallel()
+        MPI.Barrier(mpi_comm())
+    end
+end
+
 function save_restart_controller(integrator, controller::PIController, restart_callback)
     @unpack output_directory = restart_callback
     timestep = integrator.stats.naccept
