@@ -214,6 +214,10 @@ Create an HLL (Harten, Lax, van Leer) numerical flux where the minimum and maxim
 wave speeds are estimated as
 `λ_min, λ_max = min_max_speed(u_ll, u_rr, orientation_or_normal_direction, equations)`,
 defaulting to [`min_max_speed_naive`](@ref).
+Original paper:
+- Amiram Harten, Peter D. Lax, Bram van Leer (1983)
+  On Upstream Differencing and Godunov-Type Schemes for Hyperbolic Conservation Laws
+  [DOI: 10.1137/1025002](https://doi.org/10.1137/1025002)
 """
 struct FluxHLL{MinMaxSpeed}
     min_max_speed::MinMaxSpeed
@@ -222,17 +226,54 @@ end
 FluxHLL() = FluxHLL(min_max_speed_naive)
 
 """
-    min_max_speed_naive(u_ll, u_rr, orientation::Integer,   equations)
+    min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations)
     min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations)
 
-Simple and fast estimate of the minimal and maximal wave speed of the Riemann problem with
+Simple and fast estimate(!) of the minimal and maximal wave speed of the Riemann problem with
 left and right states `u_ll, u_rr`, usually based only on the local wave speeds associated to
 `u_ll` and `u_rr`.
 - Amiram Harten, Peter D. Lax, Bram van Leer (1983)
   On Upstream Differencing and Godunov-Type Schemes for Hyperbolic Conservation Laws
   [DOI: 10.1137/1025002](https://doi.org/10.1137/1025002)
+
+See also [`FluxHLL`](@ref), [`min_max_speed_davis`](@ref), [`min_max_speed_einfeldt`](@ref).
 """
 function min_max_speed_naive end
+
+"""
+    min_max_speed_davis(u_ll, u_rr, orientation::Integer, equations)
+    min_max_speed_davis(u_ll, u_rr, normal_direction::AbstractVector, equations)
+
+Simple and fast estimates of the minimal and maximal wave speed of the Riemann problem with
+left and right states `u_ll, u_rr`, usually based only on the local wave speeds associated to
+`u_ll` and `u_rr`.
+
+- S.F. Davis (1988)
+  Simplified Second-Order Godunov-Type Methods
+  [DOI: 10.1137/0909030](https://doi.org/10.1137/0909030)
+
+See also [`FluxHLL`](@ref), [`min_max_speed_naive`](@ref), [`min_max_speed_einfeldt`](@ref).
+"""
+function min_max_speed_davis end
+
+"""
+    min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer, equations)
+    min_max_speed_einfeldt(u_ll, u_rr, normal_direction::AbstractVector, equations)
+
+More advanced mininmal and maximal wave speed computation based on
+- Bernd Einfeldt (1988)
+  On Godunov-type methods for gas dynamics.
+  [DOI: 10.1137/0725021](https://doi.org/10.1137/0725021)
+- Bernd Einfeldt, Claus-Dieter Munz, Philip L. Roe and Björn Sjögreen (1991)
+  On Godunov-type methods near low densities.
+  [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
+
+originally developed for the compressible Euler equations.
+A compact representation can be found in [this lecture notes, eq. (9.28)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
+
+See also [`FluxHLL`](@ref), [`min_max_speed_naive`](@ref), [`min_max_speed_davis`](@ref).
+"""
+function min_max_speed_einfeldt end
 
 @inline function (numflux::FluxHLL)(u_ll, u_rr, orientation_or_normal_direction,
                                     equations)

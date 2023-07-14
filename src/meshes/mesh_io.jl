@@ -293,6 +293,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
         mesh = StructuredMesh(size, mapping; RealT = RealT, unsaved_changes = false,
                               mapping_as_string = mapping_as_string)
+        mesh.current_filename = mesh_file
     elseif mesh_type == "UnstructuredMesh2D"
         mesh_filename, periodicity_ = h5open(mesh_file, "r") do file
             return read(attributes(file)["mesh_filename"]),

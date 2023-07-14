@@ -166,7 +166,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
-       FluxHLL, min_max_speed_naive,
+       FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
        FluxLMARS,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
@@ -243,7 +243,7 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled
 
-export load_mesh, load_time
+export load_mesh, load_time, load_timestep, load_dt
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax,
