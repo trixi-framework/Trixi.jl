@@ -637,7 +637,7 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
 
     λ_min = min(v_ll - a_ll, v_rr - a_rr, zero(eltype(u_ll)))
     λ_max = max(v_ll + a_ll, v_rr + a_rr, zero(eltype(u_ll)))
-  
+
     return λ_min, λ_max
 end
 
