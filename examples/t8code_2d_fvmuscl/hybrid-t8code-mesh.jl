@@ -5,7 +5,7 @@
 #   ${JULIA_DEPOT_PATH}/.julia/bin/mpiexecjl --project=. -n 3 julia hybrid-t8code-mesh.jl
 #
 # More information: https://juliaparallel.org/MPI.jl/stable/usage/
-# using OrdinaryDiffEq
+using OrdinaryDiffEq
 using Trixi
 
 using MPI
@@ -268,7 +268,7 @@ function fv_method_first_order(semi)
 		end
 		@info "" t
 		du .= zero(eltype(du))
-		rhs!(du, u, semi)
+		Trixi.rhs!(du, u, semi)
 		u += dt * du
 		t += dt
 		step += 1
@@ -280,24 +280,6 @@ function fv_method_first_order(semi)
 	end
 
 	@info "" sqrt(sum((u - u_0) .^ 2))
-
-	return nothing
-end
-
-function rhs!(du, u, semi)
-	mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
-
-	num_elements = t8_forest_get_local_num_elements(mesh.forest)
-
-	for element in 1:num_elements
-		@unpack volume, face_normals, num_faces, face_areas, face_connectivity = cache.elements[element]
-		for face in 1:num_faces
-			neighbor = face_connectivity[face]
-			normal = @views([face_normals[2 * face - 1 : 2 * face]...]) # Unfortunaly, flux() requires an Vector and no Tuple
-			du[element] += - face_areas[face] * solver.surface_flux(u[element], u[neighbor], normal, equations)
-		end
-		du[element] = (1 / volume) * du[element]
-	end
 
 	return nothing
 end
@@ -328,9 +310,8 @@ max_number_faces = 4
 number_trees = t8_forest_get_num_local_trees(forest)
 println("rank $(MPI.Comm_rank(comm)): #trees $number_trees, #elements $(t8_forest_get_local_num_elements(forest)), #ghost_elements $(t8_forest_get_num_ghosts(forest))")
 
-number_elements_global = t8_forest_get_global_num_elements(forest)
 if MPI.Comm_rank(comm) == 0
-	println("#global elements $number_elements_global")
+	println("#global elements $(t8_forest_get_global_num_elements(forest))")
 end
 
 mesh = T8codeMesh{n_dims}(forest, max_number_faces)
@@ -341,8 +322,8 @@ advection_velocity = (0.2, 0.1)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 function initial_condition_test(x, t, equations::LinearScalarAdvectionEquation2D)
-	x1 = x[1]
-	x2 = x[2]
+	x1 = x[1] - equations.advection_velocity[1] * t
+	x2 = x[2] - equations.advection_velocity[2] * t
 
 	sigma = 0.05
 	x1c = 0.5
@@ -354,38 +335,31 @@ initial_condition = initial_condition_test
 solver = FVMuscl(surface_flux = flux_lax_friedrichs)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
-if MPI.Comm_rank(comm) == 0
-	@info "" semi
-	show(semi.cache.elements[42])
-end
 
-fv_method_first_order(semi)
+# fv_method_first_order(semi)
+ode = semidiscretize(semi, (0.0, 10.0));
 
-# Output the data to vtu files.
-# prefix_forest_with_data = "hybrid_mesh_example"
-# Trixi.output_data_to_vtu(mesh, semi, prefix_forest_with_data)
-
-# ode = semidiscretize(semi, (0.0, 1.0));
-
-# summary_callback = SummaryCallback()
+summary_callback = SummaryCallback()
 
 # analysis_callback = AnalysisCallback(semi, interval=100)
 
-# save_solution = SaveSolutionCallback(interval=100,
+# save_solution = SaveSolutionCallback(interval=1,
 #                                      solution_variables=cons2prim)
 
 # stepsize_callback = StepsizeCallback(cfl=1.6)
 
-# callbacks = CallbackSet()#summary_callback, analysis_callback, save_solution, stepsize_callback)
+callbacks = CallbackSet(summary_callback)#, save_solution)# analysis_callback stepsize_callback)
 
 
 ###############################################################################
 # run the simulation
 
-# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-#             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-#             save_everystep=false, callback=callbacks);
-# summary_callback()
+sol = solve(ode, Euler(),
+            dt=5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep=false, callback=callbacks);
+summary_callback()
+output_data_to_vtu(semi, sol.u[end], "solution_end")
+@info "L2 error:" sqrt(sum((sol.u[end] - sol.u[1]) .^ 2))
 
 #
 # Clean-up

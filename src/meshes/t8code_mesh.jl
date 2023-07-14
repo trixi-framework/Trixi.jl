@@ -14,16 +14,22 @@ to manage trees and mesh refinement.
 mutable struct T8codeMesh{NDIMS, RealT <: Real, Forest} <: AbstractMesh{NDIMS}
     forest::Forest
     number_trees::Int
-    # number_elements::Int
-    # tree shapes
     max_number_faces::Int
+    number_elements::Int
+    # number_ghost_elements
+    # tree shapes
+    current_filename::String
+    unsaved_changes::Bool
 
-    function T8codeMesh{NDIMS}(forest, max_number_faces) where {NDIMS}
+    function T8codeMesh{NDIMS}(forest, max_number_faces; current_filename="", unsaved_changes=true) where {NDIMS}
         @assert NDIMS == 2
         number_trees = t8_forest_get_num_local_trees(forest)
 
+        number_elements = t8_forest_get_local_num_elements(forest)
+
         mesh = new{NDIMS, Cdouble, typeof(forest)}(forest, number_trees,
-                                                   max_number_faces)
+                                                   max_number_faces, number_elements,
+                                                   current_filename, unsaved_changes)
 
         return mesh
     end
@@ -32,21 +38,31 @@ end
 @inline Base.ndims(::T8codeMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
+@inline nelements(mesh::T8codeMesh, solver, cache) = mesh.number_elements
+# @inline nelements(solver::FVMuscl, cache) = nelements(cache.elements)
+
 @inline function nelements_global(mesh::T8codeMesh, solver, cache)
+    nelements_global(mesh)
+end
+
+@inline function nelements_global(mesh::T8codeMesh)
     t8_forest_get_global_num_elements(mesh.forest)
 end
 
 function Base.show(io::IO, mesh::T8codeMesh)
-    print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}")
+    print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}(")
+    print(io, "#trees: ", mesh.number_trees)
+    print(io, ", #elements: ", nelements_global(mesh))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
     if get(io, :compact, false)
         show(io, mesh)
     else
-        summary_box(io,
-                    "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
-                    "}")
+        summary_header(io, "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}")
+        summary_line(io, "#trees", mesh.number_trees)
+        summary_line(io, "#elements", nelements_global(mesh))
+        summary_footer(io)
     end
 end
 
@@ -54,8 +70,40 @@ function create_cache(mesh::T8codeMesh, equations,
                       solver, RealT, uEltype)
     elements = init_elements(mesh, RealT, uEltype)
 
-    cache = (; elements)
+    solution = init_solution(mesh)
+
+    cache = (; elements, solution)
 
     return cache
+end
+
+# Write the forest as vtu and also write the element's volumes in the file.
+#
+# t8code supports writing element based data to vtu as long as its stored
+# as doubles. Each of the data fields to write has to be provided in its own
+# array of length num_local_elements.
+# We support two types: T8_VTK_SCALAR - One double per element.
+#                  and  T8_VTK_VECTOR - Three doubles per element.
+function output_data_to_vtu(mesh, u, out)
+	vtk_data = [
+		t8_vtk_data_field_t(
+			T8_VTK_SCALAR,
+			NTuple{8192, Cchar}(rpad("scalar\0", 8192, ' ')),
+			pointer(u),
+		),
+	]
+
+	# The number of user defined data fields to write.
+	num_data = length(vtk_data)
+
+	# Write user defined data to vtu file.
+	write_treeid = 1
+	write_mpirank = 1
+	write_level = 1
+	write_element_id = 1
+	write_ghosts = 0
+	t8_forest_write_vtk_ext(mesh.forest, out, write_treeid, write_mpirank,
+                            write_level, write_element_id, write_ghosts,
+                            0, 0, num_data, pointer(vtk_data))
 end
 end # @muladd

@@ -6,13 +6,14 @@
 #! format: noindent
 
 const NDIMS = 2
+const NVARS = 1
 const MAX_NUM_FACES = 4
 
 # The uniform refinement level of the forest.
 const refinement_level = 4
 
 # The data that we want to store for each element.
-struct data_per_element_t
+struct T8codeElementContainer
     level    :: Cint
     volume   :: Cdouble
     midpoint :: NTuple{NDIMS, Cdouble}
@@ -24,15 +25,15 @@ struct data_per_element_t
     face_connectivity :: NTuple{MAX_NUM_FACES, t8_locidx_t} # ids of the face neighbors
 end
 
-function Base.show(data::data_per_element_t)
-    println("level              = ", data.level)
-    println("volume             = ", data.volume)
-    println("midpoint           = ", data.midpoint)
-    println("dx                 = ", data.dx)
-    println("num_faces          = ", data.num_faces)
-    println("face_areas         = ", data.face_areas)
-    println("face_normals       = ", data.face_normals)
-    println("face_connectivity  = ", data.face_connectivity)
+function Base.show(container::T8codeElementContainer)
+    println("level              = ", container.level)
+    println("volume             = ", container.volume)
+    println("midpoint           = ", container.midpoint)
+    println("dx                 = ", container.dx)
+    println("num_faces          = ", container.num_faces)
+    println("face_areas         = ", container.face_areas)
+    println("face_normals       = ", container.face_normals)
+    println("face_connectivity  = ", container.face_connectivity)
 end
 
 function init_elements(mesh::T8codeMesh, RealT, uEltype)
@@ -53,13 +54,13 @@ function init_elements(mesh::T8codeMesh)
     @unpack max_number_faces = mesh
 
     # Get the number of local elements of forest.
-    num_local_elements = t8_forest_get_local_num_elements(forest)
+    num_local_elements = mesh.number_elements
     # Get the number of ghost elements of forest.
     num_ghost_elements = t8_forest_get_num_ghosts(forest)
 
     # Build an array of our data that is as long as the number of elements plus
     # the number of ghosts.
-    elements = Array{data_per_element_t}(undef, num_local_elements + num_ghost_elements)
+    elements = Array{T8codeElementContainer}(undef, num_local_elements + num_ghost_elements)
 
     # Get the number of trees that have elements of this process.
     num_local_trees = t8_forest_get_num_local_trees(forest)
@@ -137,19 +138,48 @@ function init_elements(mesh::T8codeMesh)
                 # [/ugly API]
             end
 
-            elements[current_index] = data_per_element_t(level,
-                                                         volume,
-                                                         Tuple(midpoint),
-                                                         dx,
-                                                         num_faces,
-                                                         Tuple(face_areas),
-                                                         Tuple(@views(face_normals[1:2,
-                                                                                   :])),
-                                                         Tuple(face_connectivity))
+            elements[current_index] = T8codeElementContainer(level,
+                                                             volume,
+                                                             Tuple(midpoint),
+                                                             dx,
+                                                             num_faces,
+                                                             Tuple(face_areas),
+                                                             Tuple(@views(face_normals[1:2,
+                                                                                       :])),
+                                                             Tuple(face_connectivity))
         end
     end
 
     return elements
+end
+
+function init_solution(mesh::T8codeMesh)
+    @unpack forest = mesh
+    # Check that the forest is a committed.
+    @assert(t8_forest_is_committed(forest)==1)
+    n_dims = ndims(mesh)
+    @unpack max_number_faces = mesh
+
+    # Get the number of local elements of forest.
+    num_local_elements = mesh.number_elements
+    # Get the number of ghost elements of forest.
+    num_ghost_elements = t8_forest_get_num_ghosts(forest)
+
+    # Build an array of our data that is as long as the number of elements plus
+    # the number of ghosts.
+    solution = Array{T8codeSolutionContainer}(undef, num_local_elements + num_ghost_elements)
+
+    # elements[current_index] = T8codeElementContainer(level,
+    #                                                      volume,
+    #                                                      Tuple(midpoint),
+    #                                                      dx,
+    #                                                      num_faces,
+    #                                                      Tuple(face_areas),
+    #                                                      Tuple(@views(face_normals[1:2,
+    #                                                                                :])),
+    #                                                      Tuple(face_connectivity))
+
+    return solution
 end
 
 # Each process has computed the data entries for its local elements. In order
@@ -161,7 +191,7 @@ function exchange_ghost_data(mesh, elements)
     # t8_forest_ghost_exchange_data expects an sc_array (of length num_local_elements + num_ghosts).
     # We wrap our data array to an sc_array.
     sc_array_wrapper = T8code.Libt8.sc_array_new_data(pointer(elements),
-                                                      sizeof(data_per_element_t),
+                                                      sizeof(typeof(elements[1])),
                                                       length(elements))
 
     # Carry out the data exchange. The entries with indices > num_local_elements will get overwritten.
@@ -169,5 +199,19 @@ function exchange_ghost_data(mesh, elements)
 
     # Destroy the wrapper array. This will not free the data memory since we used sc_array_new_data.
     T8code.Libt8.sc_array_destroy(sc_array_wrapper)
+end
+
+struct T8codeSolutionContainer
+    u::NTuple{NVARS, Cdouble}
+end
+
+function update_solution(mesh, u, solver, cache)
+    u_ = Array{Trixi.T8codeSolutionContainer}(undef, length(cache.elements))
+    for element in eachelement(mesh, solver)
+        u_[element] = T8codeSolutionContainer(Tuple(u[element]))
+    end
+    exchange_ghost_data(mesh, u_)
+
+    return u_
 end
 end # @muladd
