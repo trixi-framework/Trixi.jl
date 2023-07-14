@@ -149,9 +149,9 @@ end
 function cmesh_new_periodic_quad(comm, n_dims)::t8_cmesh_t
 	vertices = [ # Just all vertices of all trees. partly duplicated
 		0, 0, 0,                    # tree 0, quad
-		1, 0, 0,
-		0, 1, 0,
-		1, 1, 0,
+		1.0, 0, 0,
+		0, 1.0, 0,
+		1.0, 1.0, 0,
 	]
 
 	# Generally, one can define other geometries. But besides linear the other
