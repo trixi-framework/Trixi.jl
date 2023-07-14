@@ -14,29 +14,24 @@ initial_condition = initial_condition_convergence_test
 volume_flux = flux_winters_etal
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+# solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
 
-cells_per_dimension = (8, 8)
-
-boundary_conditions = (x_neg = boundary_condition_periodic,
-                       x_pos = boundary_condition_periodic,
-                       y_neg = boundary_condition_periodic,
-                       y_pos = boundary_condition_periodic)
+cells_per_dimension = (4, 4)
 
 mesh = StructuredMesh(cells_per_dimension,
                       coordinates_min,
                       coordinates_max)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions,
-                                    source_terms = source_terms_eoc_test_polytropic)
+                                    source_terms = source_terms_convergence_test)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.01)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
