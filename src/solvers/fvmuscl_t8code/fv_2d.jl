@@ -8,8 +8,8 @@
 struct FVMuscl{SurfaceFlux, Limiter}
     surface_flux::SurfaceFlux
     limiter::Limiter
-    
-    function FVMuscl(; surface_flux, limiter="TODO")
+
+    function FVMuscl(; surface_flux, limiter = "TODO")
         new{typeof(surface_flux), typeof(limiter)}(surface_flux, limiter)
     end
 end
@@ -20,7 +20,8 @@ end
 @inline nelements(mesh, solver::FVMuscl, cache) = nelements(solver, cache)
 @inline nelements(solver::FVMuscl, cache) = nelements(cache.elements)
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh, equations, solver::FVMuscl,
+function compute_coefficients!(u, func, t, mesh::AbstractMesh, equations,
+                               solver::FVMuscl,
                                cache)
     @threaded for element in eachelement(mesh, solver, cache)
         x_node = mesh.elements[element].midpoint

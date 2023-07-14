@@ -5,7 +5,6 @@
 @muladd begin
 #! format: noindent
 
-
 """
     T8codeMesh{NDIMS} <: AbstractMesh{NDIMS}
 
@@ -23,7 +22,8 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, Forest} <: AbstractMesh{NDIMS}
         @assert NDIMS == 2
         number_trees = t8_forest_get_num_local_trees(forest)
 
-        mesh = new{NDIMS, Cdouble, typeof(forest)}(forest, number_trees, max_number_faces)
+        mesh = new{NDIMS, Cdouble, typeof(forest)}(forest, number_trees,
+                                                   max_number_faces)
 
         return mesh
     end
@@ -32,7 +32,9 @@ end
 @inline Base.ndims(::T8codeMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
-@inline nelements_global(mesh::T8codeMesh, solver, cache) = t8_forest_get_global_num_elements(mesh.forest)
+@inline function nelements_global(mesh::T8codeMesh, solver, cache)
+    t8_forest_get_global_num_elements(mesh.forest)
+end
 
 function Base.show(io::IO, mesh::T8codeMesh)
     print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}")
@@ -43,7 +45,8 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
         show(io, mesh)
     else
         summary_box(io,
-                    "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}")
+                    "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
+                    "}")
     end
 end
 

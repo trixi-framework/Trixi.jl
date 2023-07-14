@@ -13,16 +13,16 @@ const refinement_level = 4
 
 # The data that we want to store for each element.
 struct data_per_element_t
-    level             :: Cint
-    volume            :: Cdouble
-    midpoint          :: NTuple{NDIMS,Cdouble}
-    dx                :: Cdouble # Characteristic length (for CFL condition).
+    level    :: Cint
+    volume   :: Cdouble
+    midpoint :: NTuple{NDIMS, Cdouble}
+    dx       :: Cdouble # Characteristic length (for CFL condition).
 
     num_faces         :: Cint
-    face_areas        :: NTuple{MAX_NUM_FACES,Cdouble}
-    face_normals      :: NTuple{MAX_NUM_FACES*NDIMS,Cdouble}
-    face_connectivity :: NTuple{MAX_NUM_FACES,t8_locidx_t} # ids of the face neighbors
-  end
+    face_areas        :: NTuple{MAX_NUM_FACES, Cdouble}
+    face_normals      :: NTuple{MAX_NUM_FACES * NDIMS, Cdouble}
+    face_connectivity :: NTuple{MAX_NUM_FACES, t8_locidx_t} # ids of the face neighbors
+end
 
 function Base.show(data::data_per_element_t)
     println("level              = ", data.level)
@@ -48,7 +48,7 @@ end
 function init_elements(mesh::T8codeMesh)
     @unpack forest = mesh
     # Check that the forest is a committed.
-    @assert(t8_forest_is_committed(forest) == 1)
+    @assert(t8_forest_is_committed(forest)==1)
     n_dims = ndims(mesh)
     @unpack max_number_faces = mesh
 
@@ -64,15 +64,15 @@ function init_elements(mesh::T8codeMesh)
     # Get the number of trees that have elements of this process.
     num_local_trees = t8_forest_get_num_local_trees(forest)
 
-    midpoint = Vector{Cdouble}(undef,n_dims)
+    midpoint = Vector{Cdouble}(undef, n_dims)
 
-    face_areas = Vector{Cdouble}(undef,max_number_faces)
-    face_normals = Matrix{Cdouble}(undef,3,max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
-    face_connectivity = Vector{t8_locidx_t}(undef,max_number_faces)
+    face_areas = Vector{Cdouble}(undef, max_number_faces)
+    face_normals = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
+    face_connectivity = Vector{t8_locidx_t}(undef, max_number_faces)
 
     # Loop over all local trees in the forest.
     current_index = 0
-    for itree = 0:num_local_trees-1
+    for itree in 0:(num_local_trees - 1)
         tree_class = t8_forest_get_tree_class(forest, itree)
         eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
 
@@ -80,7 +80,7 @@ function init_elements(mesh::T8codeMesh)
         num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
 
         # Loop over all local elements in the tree.
-        for ielement = 0:num_elements_in_tree-1
+        for ielement in 0:(num_elements_in_tree - 1)
             current_index += 1 # Note: Julia has 1-based indexing, while C/C++ starts with 0.
 
             element = t8_forest_get_element_in_tree(forest, itree, ielement)
@@ -100,9 +100,11 @@ function init_elements(mesh::T8codeMesh)
             # Set default value.
             face_connectivity .= -1
 
-            for iface = 1:num_faces
-                face_areas[iface] = t8_forest_element_face_area(forest, itree, element, iface-1) # C++ is zero-indexed
-                t8_forest_element_face_normal(forest, itree, element, iface-1, @views(face_normals[:,iface]))
+            for iface in 1:num_faces
+                face_areas[iface] = t8_forest_element_face_area(forest, itree, element,
+                                                                iface - 1) # C++ is zero-indexed
+                t8_forest_element_face_normal(forest, itree, element, iface - 1,
+                                              @views(face_normals[:, iface]))
 
                 # [ugly API, needs rework :/]
                 neighids_ref = Ref{Ptr{t8_locidx_t}}()
@@ -115,14 +117,16 @@ function init_elements(mesh::T8codeMesh)
                 forest_is_balanced = Cint(1)
 
                 t8_forest_leaf_face_neighbors(forest, itree, element,
-                                              neighbors_ref, iface-1, dual_faces_ref, num_neighbors_ref,
-                                              neighids_ref, neigh_scheme_ref, forest_is_balanced)
+                                              neighbors_ref, iface - 1, dual_faces_ref,
+                                              num_neighbors_ref,
+                                              neighids_ref, neigh_scheme_ref,
+                                              forest_is_balanced)
 
                 num_neighbors = num_neighbors_ref[]
-                dual_faces    = 1 .+ unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
-                neighids      = 1 .+ unsafe_wrap(Array, neighids_ref[], num_neighbors)
-                neighbors     = unsafe_wrap(Array, neighbors_ref[], num_neighbors)
-                neigh_scheme  = neigh_scheme_ref[]
+                dual_faces = 1 .+ unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
+                neighids = 1 .+ unsafe_wrap(Array, neighids_ref[], num_neighbors)
+                neighbors = unsafe_wrap(Array, neighbors_ref[], num_neighbors)
+                neigh_scheme = neigh_scheme_ref[]
 
                 face_connectivity[iface] = neighids[1]
 
@@ -133,23 +137,20 @@ function init_elements(mesh::T8codeMesh)
                 # [/ugly API]
             end
 
-
-        elements[current_index] = data_per_element_t(
-            level,
-            volume,
-            Tuple(midpoint),
-            dx,
-            num_faces,
-            Tuple(face_areas),
-            Tuple(@views(face_normals[1:2,:])),
-            Tuple(face_connectivity)
-        )
+            elements[current_index] = data_per_element_t(level,
+                                                         volume,
+                                                         Tuple(midpoint),
+                                                         dx,
+                                                         num_faces,
+                                                         Tuple(face_areas),
+                                                         Tuple(@views(face_normals[1:2,
+                                                                                   :])),
+                                                         Tuple(face_connectivity))
         end
     end
 
     return elements
 end
-
 
 # Each process has computed the data entries for its local elements. In order
 # to get the values for the ghost elements, we use
@@ -159,7 +160,9 @@ end
 function exchange_ghost_data(mesh, elements)
     # t8_forest_ghost_exchange_data expects an sc_array (of length num_local_elements + num_ghosts).
     # We wrap our data array to an sc_array.
-    sc_array_wrapper = T8code.Libt8.sc_array_new_data(pointer(elements), sizeof(data_per_element_t), length(elements))
+    sc_array_wrapper = T8code.Libt8.sc_array_new_data(pointer(elements),
+                                                      sizeof(data_per_element_t),
+                                                      length(elements))
 
     # Carry out the data exchange. The entries with indices > num_local_elements will get overwritten.
     t8_forest_ghost_exchange_data(mesh.forest, sc_array_wrapper)
