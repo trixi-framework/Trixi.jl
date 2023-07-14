@@ -69,8 +69,6 @@ varnames(::typeof(cons2prim), ::PolytropicEulerEquations2D) = ("rho", "v1", "v2"
     return SVector(f1, f2, f3)
 end
 
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
-# maximum velocity magnitude plus the maximum speed of sound
 @inline function flux(u, orientation::Integer, equations::PolytropicEulerEquations2D)
     rho, rho_v1, rho_v2 = u
     v1 = rho_v1 / rho
@@ -133,6 +131,8 @@ Euler equations
     return SVector(f1, f2, f3)
 end
 
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::PolytropicEulerEquations2D)
     rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
