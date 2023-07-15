@@ -86,6 +86,25 @@ end
     return SVector(f1, f2, f3)
 end
 
+@inline function flux(u, orientation::Integer, equations::PolytropicEulerEquations2D)
+    rho, rho_v1, rho_v2 = u
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    p = pressure(u, equations)
+
+    if orientation == 1
+        f1 = rho_v1
+        f2 = rho_v1 * v1 + p
+        f3 = rho_v1 * v2
+    else # orientation == 2
+        f1 = rho_v2
+        f2 = rho_v2 * v1
+        f3 = rho_v2 * v2 + p
+    end
+
+    return SVector(f1, f2, f3)
+end
+
 """
 flux_winters_etal(u_ll, u_rr, normal_direction,
                   equations::PolytropicEulerEquations2D)
@@ -127,6 +146,51 @@ Euler equations
     f3 = f1 * v2_avg + p_avg * normal_direction[2]
 
     return SVector(f1, f2, f3)
+end
+
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# maximum velocity magnitude plus the maximum speed of sound
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::PolytropicEulerEquations2D)
+    rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr = cons2prim(u_rr, equations)
+    p_ll = pressure(u_ll, equations)
+    p_rr = pressure(u_rr, equations)
+
+    # Get the velocity value in the appropriate direction
+    if orientation == 1
+        v_ll = v1_ll
+        v_rr = v1_rr
+    else # orientation == 2
+        v_ll = v2_ll
+        v_rr = v2_rr
+    end
+
+    # Calculate sound speeds
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+end
+
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::PolytropicEulerEquations2D)
+    rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr = cons2prim(u_rr, equations)
+    p_ll = pressure(u_ll, equations)
+    p_rr = pressure(u_rr, equations)
+
+    # Calculate normal velocities and sound speed
+    # left
+    v_ll = (v1_ll * normal_direction[1]
+            + v2_ll * normal_direction[2])
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    # right
+    v_rr = (v1_rr * normal_direction[1]
+            + v2_rr * normal_direction[2])
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
@@ -224,8 +288,10 @@ end
 source_terms_eoc_test_polytropic(u, x, t, equations::PolytropicEulerEquations2D)
 
 """
-@inline function source_terms_eoc_test_polytropic(u, x, t,
-                                                  equations::PolytropicEulerEquations2D)
+@inline function source_terms_convergence_test(u, x, t,
+                                               equations::PolytropicEulerEquations2D)
+    rho, v1, v2 = cons2prim(u, equations)
+
     # Residual from Winters (2019) [0.1007/s10543-019-00789-w] eq. (5.2).
     h = 8 + cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
     h_t = -2 * pi * cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * sin(2 * pi * t)
