@@ -54,6 +54,23 @@ function varnames(::typeof(cons2cons), ::PolytropicEulerEquations2D)
 end
 varnames(::typeof(cons2prim), ::PolytropicEulerEquations2D) = ("rho", "v1", "v2")
 
+# Calculate 2D flux for a single point
+@inline function flux(u, orientation::Integer, equations::PolytropicEulerEquations2D)
+    rho, v1, v2 = cons2prim(u, equations)
+    p = pressure(u, equations)
+
+    if orientation == 1
+        f1 = rho * v1
+        f2 = rho * v1^2 + p
+        f3 = rho * v1 * v2
+    else
+        f1 = rho * v2
+        f2 = rho * v2 * v1
+        f3 = rho * v2^2 + p
+    end
+    return SVector(f1, f2, f3)
+end
+
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector,
@@ -209,9 +226,8 @@ source_terms_eoc_test_polytropic(u, x, t, equations::PolytropicEulerEquations2D)
 """
 @inline function source_terms_eoc_test_polytropic(u, x, t,
                                                   equations::PolytropicEulerEquations2D)
-    rho, v1, v2 = cons2prim(u, equations)
-
     # Residual from Winters (2019) [0.1007/s10543-019-00789-w] eq. (5.2).
+    h = 8 + cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
     h_t = -2 * pi * cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * sin(2 * pi * t)
     h_x = -2 * pi * sin(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
     h_y = 2 * pi * cos(2 * pi * x[1]) * cos(2 * pi * x[2]) * cos(2 * pi * t)
@@ -219,19 +235,15 @@ source_terms_eoc_test_polytropic(u, x, t, equations::PolytropicEulerEquations2D)
     rho_x = h_x
     rho_y = h_y
 
-    c2 = pressure(u, equations) / rho
-
-    if equations.gamma == 1
-        b = c2
-    else
-        b = equations.kappa * equations.gamma * h^(equations.gamma-1)
-    end
+    b = equations.kappa * equations.gamma * h^(equations.gamma-1)
 
     r_1 = h_t + h_x / 2 + 3 / 2 * h_y
     r_2 = h_t / 2 + h_x / 4 + b * rho_x + 3 / 4 * h_y
     r_3 = h_t / 2 + 3 / 4 * h_x + 9 / 4 * h_y + b * rho_y
 
     return SVector(r_1, r_2, r_3)
+
+    # return SVector(0.0, 0.0, 0.0)
 end
 
 end # @muladd
