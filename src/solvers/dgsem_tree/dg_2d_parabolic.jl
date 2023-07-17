@@ -722,36 +722,6 @@ function calc_mortar_flux!(surface_flux_values,
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
-                           u_transformed::AbstractArray, 
-                           mesh::TreeMesh{2},
-                           equations_parabolic::AbstractEquationsParabolic,
-                           mortar_l2::LobattoLegendreMortarL2,
-                           surface_integral, dg::DG, cache, cache_parabolic)
-    @unpack surface_flux = surface_integral
-    @unpack u_lower, u_upper, orientations = cache.mortars
-    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
-
-    @threaded for mortar in eachmortar(dg, cache)
-        # Choose thread-specific pre-allocated container
-        fstar_upper = fstar_upper_threaded[Threads.threadid()]
-        fstar_lower = fstar_lower_threaded[Threads.threadid()]
-
-        # Calculate fluxes
-        orientation = orientations[mortar]
-        calc_fstar!(fstar_upper, equations_parabolic, surface_flux, u_transformed, dg, u_upper, mortar,
-                    orientation, cache_parabolic)
-        calc_fstar!(fstar_lower, equations_parabolic, surface_flux, u_transformed, dg, u_lower, mortar,
-                    orientation, cache_parabolic)
-
-        mortar_fluxes_to_elements!(surface_flux_values,
-                                   mesh, equations_parabolic, mortar_l2, dg, cache,
-                                   mortar, fstar_upper, fstar_lower)
-    end
-
-    return nothing
-end
-
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 2}, 
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_flux, dg::DGSEM,
@@ -759,36 +729,10 @@ end
                              cache_parabolic)
     for i in eachnode(dg)
         # Call pointwise two-point numerical flux function
-        u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u, equations_parabolic, dg, i, interface)
-        #flux = surface_flux(u_ll, u_rr, orientation, equations)
+        u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i, interface)
+
         # TODO: parabolic; only BR1 at the moment
         flux = 0.5 * (u_ll + u_rr) # CARE: Not sure if correct!
-
-        # Copy flux to left and right element storage
-        set_node_vars!(destination, flux, equations_parabolic, dg, i)
-    end
-
-    return nothing
-end
-
-@inline function calc_fstar!(destination::AbstractArray{<:Any, 2}, 
-                             equations_parabolic::AbstractEquationsParabolic,
-                             surface_flux, 
-                             u_transformed::AbstractArray,
-                             dg::DGSEM,
-                             u_interfaces, interface, orientation,
-                             cache_parabolic)                      
-    for i in eachnode(dg)
-        # Call pointwise two-point numerical flux function
-        
-        # TODO: Transformed u or regular u? Regular u is used in "calc_gradient!" -> "interface flux"
-        #u_ll, u_rr = get_surface_node_vars(u_transformed, equations_parabolic, dg, i, interface)
-        u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u, equations_parabolic, dg, i, interface)
-
-        # CARE: Not sure if correct!
-        #flux = surface_flux(u_ll, u_rr, orientation, equations_parabolic)
-        # TODO: parabolic; only BR1 at the moment
-        flux = 0.5 * (u_ll + u_rr)
 
         # Copy flux to left and right element storage
         set_node_vars!(destination, flux, equations_parabolic, dg, i)
@@ -969,7 +913,7 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(surface_flux_values, u_transformed,
+        calc_mortar_flux!(surface_flux_values,
                           mesh,
                           equations_parabolic,
                           dg.mortar, dg.surface_integral, dg, cache, cache_parabolic)
