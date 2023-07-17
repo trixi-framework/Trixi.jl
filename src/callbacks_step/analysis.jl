@@ -583,7 +583,10 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
     @unpack analyzer = analysis_callback
     cache_analysis = analysis_callback.cache
 
-    l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi,
+    sol_u_tmp = Array{eltype(sol.u[end])}(undef, size(sol.u[end]))
+    copyto!(get_backend(sol.u[end]), sol_u_tmp, sol.u[end])
+
+    l2_error, linf_error = calc_error_norms(sol_u_tmp, sol.t[end], analyzer, semi,
                                             cache_analysis)
     (; l2 = l2_error, linf = linf_error)
 end
