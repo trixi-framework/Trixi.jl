@@ -5,8 +5,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the polytropic Euler equations
 
-gamma = 1.4
-kappa = 0.5     # Scaling factor for the pressure.
+gamma = 1.0
+kappa = 1.0     # Scaling factor for the pressure.
 equations = PolytropicEulerEquations2D(gamma, kappa)
 
 initial_condition = initial_condition_convergence_test
