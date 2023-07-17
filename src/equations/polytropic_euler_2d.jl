@@ -305,7 +305,7 @@ source_terms_eoc_test_polytropic(u, x, t, equations::PolytropicEulerEquations2D)
 
     r_1 = h_t + h_x / 2 + 3 / 2 * h_y
     r_2 = h_t / 2 + h_x / 4 + b * rho_x + 3 / 4 * h_y
-    r_3 = h_t / 2 + 3 / 4 * h_x + 9 / 4 * h_y + b * rho_y
+    r_3 = 3 / 2 * h_t + 3 / 4 * h_x + 9 / 4 * h_y + b * rho_y
 
     return SVector(r_1, r_2, r_3)
 
