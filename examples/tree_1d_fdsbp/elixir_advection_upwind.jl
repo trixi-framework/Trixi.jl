@@ -5,7 +5,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear scalar advection equation equation
+# semidiscretization of the linear scalar advection equation
 
 equations = LinearScalarAdvectionEquation1D(1.0)
 
