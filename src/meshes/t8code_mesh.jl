@@ -39,20 +39,27 @@ end
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
 @inline nelements(mesh::T8codeMesh, solver, cache) = mesh.number_elements
-# @inline nelements(solver::FVMuscl, cache) = nelements(cache.elements)
 
-@inline function nelements_global(mesh::T8codeMesh, solver, cache)
-    nelements_global(mesh)
+@inline function eachelement(mesh::T8codeMesh, solver, cache)
+    eachelement(mesh, solver)
 end
 
-@inline function nelements_global(mesh::T8codeMesh)
+@inline function eachelement(mesh::T8codeMesh, solver)
+    Base.OneTo(mesh.number_elements)
+end
+
+@inline function nelementsglobal(mesh::T8codeMesh, solver, cache)
+    nelementsglobal(mesh)
+end
+
+@inline function nelementsglobal(mesh::T8codeMesh)
     t8_forest_get_global_num_elements(mesh.forest)
 end
 
 function Base.show(io::IO, mesh::T8codeMesh)
     print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}(")
     print(io, "#trees: ", mesh.number_trees)
-    print(io, ", #elements: ", nelements_global(mesh))
+    print(io, ", #elements: ", nelementsglobal(mesh))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
@@ -61,7 +68,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
     else
         summary_header(io, "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}")
         summary_line(io, "#trees", mesh.number_trees)
-        summary_line(io, "#elements", nelements_global(mesh))
+        summary_line(io, "#elements", nelementsglobal(mesh))
         summary_footer(io)
     end
 end

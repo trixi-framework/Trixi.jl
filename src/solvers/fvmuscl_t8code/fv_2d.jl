@@ -38,19 +38,19 @@ function Base.show(io::IO, mime::MIME"text/plain", solver::FVMuscl)
 end
 
 @inline Base.real(solver::FVMuscl) = Float64 # TODO
-@inline ndofs(mesh, solver::FVMuscl, cache) = nelements_global(mesh, solver, cache)
+@inline ndofs(mesh, solver::FVMuscl, cache) = nelementsglobal(mesh, solver, cache)
 
-@inline function eachelement(mesh::T8codeMesh, solver)
-    Base.OneTo(mesh.number_elements)
+@inline function ndofsglobal(mesh, solver::FVMuscl, cache)
+    ndofs(mesh, solver, cache)
 end
 
 function compute_coefficients!(u, func, t, mesh::AbstractMesh, equations,
                                solver::FVMuscl,
                                cache)
-    @threaded for element in eachelement(mesh, solver)
+    #=@threaded=# for element in eachelement(mesh, solver)
         x_node = cache.elements[element].midpoint
         u_node = func(x_node, t, equations)
-        u[element] = u_node
+        set_node_vars!(u, u_node, equations, solver, element)
     end
 end
 
@@ -59,6 +59,17 @@ function allocate_coefficients(mesh::AbstractMesh, equations, solver::FVMuscl, c
     # cf. wrap_array
     zeros(eltype(cache.elements[1].volume),
           nvariables(equations) * nelements(mesh, solver, cache))
+end
+
+@inline function get_node_vars(u, equations, solver::FVMuscl, element)
+    SVector(ntuple(@inline(v->u[v, element]), Val(nvariables(equations))))
+end
+
+@inline function set_node_vars!(u, u_node, equations, solver::FVMuscl, element)
+    for v in eachvariable(equations)
+        u[v, element] = u_node[v]
+    end
+    return nothing
 end
 
 # General fallback
@@ -81,17 +92,23 @@ end
 end
 
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms::Source, solver::FVMuscl, cache) where {Source}
-    u_ = update_solution(mesh, u, solver, cache)
+    @trixi_timeit timer() "update neighbor data" u_ = update_solution(mesh, u, solver, cache)
 
     du .= zero(eltype(du))
 
-	for element in eachelement(mesh, solver)
+	@trixi_timeit timer() "update du" for element in eachelement(mesh, solver)
 		@unpack volume, face_normals, num_faces, face_areas, face_connectivity = cache.elements[element]
 		for face in 1:num_faces
 			neighbor = face_connectivity[face]
-			normal = @views([face_normals[2 * face - 1 : 2 * face]...]) # Unfortunaly, flux() requires an Vector and no Tuple
-            du[element] += - face_areas[face] * solver.surface_flux(u_[element].u[1]#=TODO for system of equations=#,
-                                                                    u_[neighbor].u[1], normal, equations)
+			@trixi_timeit timer() "allocs" normal = @views([face_normals[2 * face - 1 : 2 * face]...]) # Unfortunaly, flux() requires an Vector and no Tuple
+            # u1 = u_[element].u[1] + (u_[neighbor].u[1] - u_[element].u[1])
+            for v in eachvariable(equations)
+                du[v, element] += - face_areas[face] *
+                                    solver.surface_flux(u_[element].u[v],
+                                                        u_[neighbor].u[v], normal, equations)
+            end
+
+            # Linaer reconstruction for unstructured meshes is complicated since the direction is noch easily defined.
 		end
 		du[element] = (1 / volume) * du[element]
 	end
@@ -101,6 +118,16 @@ end
 
 function get_element_variables!(element_variables, u, mesh::T8codeMesh, equations, solver, cache)
     return nothing
+end
+
+function SolutionAnalyzer(solver::FVMuscl; kwargs...)
+
+end
+
+function create_cache_analysis(analyzer, mesh,
+                               equations, solver::FVMuscl, cache,
+                               RealT, uEltype)
+
 end
 
 # Container data structures
