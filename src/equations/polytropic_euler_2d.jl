@@ -86,24 +86,6 @@ end
     return SVector(f1, f2, f3)
 end
 
-@inline function flux(u, orientation::Integer, equations::PolytropicEulerEquations2D)
-    rho, rho_v1, rho_v2 = u
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    p = pressure(u, equations)
-
-    if orientation == 1
-        f1 = rho_v1
-        f2 = rho_v1 * v1 + p
-        f3 = rho_v1 * v2
-    else # orientation == 2
-        f1 = rho_v2
-        f2 = rho_v2 * v1
-        f3 = rho_v2 * v2 + p
-    end
-
-    return SVector(f1, f2, f3)
-end
 
 """
 flux_winters_etal(u_ll, u_rr, normal_direction,
