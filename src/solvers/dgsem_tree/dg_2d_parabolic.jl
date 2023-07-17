@@ -511,10 +511,11 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 end
 
 function prolong2mortars!(cache, flux_viscous::Tuple{AbstractArray, AbstractArray},
-                          mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+                          mesh::TreeMesh{2},
+                          equations_parabolic::AbstractEquationsParabolic,
                           mortar_l2::LobattoLegendreMortarL2, surface_integral,
                           dg::DGSEM)
-    flux_viscous_x, flux_viscous_y = flux_viscous                          
+    flux_viscous_x, flux_viscous_y = flux_viscous
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
@@ -527,9 +528,9 @@ function prolong2mortars!(cache, flux_viscous::Tuple{AbstractArray, AbstractArra
                 for l in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
                         cache.mortars.u_upper[2, v, l, mortar] = flux_viscous_x[v, 1, l,
-                                                                   upper_element]
+                                                                                upper_element]
                         cache.mortars.u_lower[2, v, l, mortar] = flux_viscous_x[v, 1, l,
-                                                                   lower_element]
+                                                                                lower_element]
                     end
                 end
             else
@@ -537,9 +538,9 @@ function prolong2mortars!(cache, flux_viscous::Tuple{AbstractArray, AbstractArra
                 for l in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
                         cache.mortars.u_upper[2, v, l, mortar] = flux_viscous_y[v, l, 1,
-                                                                   upper_element]
+                                                                                upper_element]
                         cache.mortars.u_lower[2, v, l, mortar] = flux_viscous_y[v, l, 1,
-                                                                   lower_element]
+                                                                                lower_element]
                     end
                 end
             end
@@ -548,20 +549,26 @@ function prolong2mortars!(cache, flux_viscous::Tuple{AbstractArray, AbstractArra
                 # L2 mortars in x-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        cache.mortars.u_upper[1, v, l, mortar] = flux_viscous_x[v, nnodes(dg), l,
-                                                                   upper_element]
-                        cache.mortars.u_lower[1, v, l, mortar] = flux_viscous_x[v, nnodes(dg), l,
-                                                                   lower_element]
+                        cache.mortars.u_upper[1, v, l, mortar] = flux_viscous_x[v,
+                                                                                nnodes(dg),
+                                                                                l,
+                                                                                upper_element]
+                        cache.mortars.u_lower[1, v, l, mortar] = flux_viscous_x[v,
+                                                                                nnodes(dg),
+                                                                                l,
+                                                                                lower_element]
                     end
                 end
             else
                 # L2 mortars in y-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        cache.mortars.u_upper[1, v, l, mortar] = flux_viscous_y[v, l, nnodes(dg),
-                                                                   upper_element]
-                        cache.mortars.u_lower[1, v, l, mortar] = flux_viscous_y[v, l, nnodes(dg),
-                                                                   lower_element]
+                        cache.mortars.u_upper[1, v, l, mortar] = flux_viscous_y[v, l,
+                                                                                nnodes(dg),
+                                                                                upper_element]
+                        cache.mortars.u_lower[1, v, l, mortar] = flux_viscous_y[v, l,
+                                                                                nnodes(dg),
+                                                                                lower_element]
                     end
                 end
             end
@@ -601,10 +608,10 @@ function prolong2mortars!(cache, flux_viscous::Tuple{AbstractArray, AbstractArra
 end
 
 function prolong2mortars!(cache, u_transformed::AbstractArray,
-                          mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+                          mesh::TreeMesh{2},
+                          equations_parabolic::AbstractEquationsParabolic,
                           mortar_l2::LobattoLegendreMortarL2, surface_integral,
                           dg::DGSEM)
-                     
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
@@ -617,9 +624,9 @@ function prolong2mortars!(cache, u_transformed::AbstractArray,
                 for l in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
                         cache.mortars.u_upper[2, v, l, mortar] = u_transformed[v, 1, l,
-                                                                   upper_element]
+                                                                               upper_element]
                         cache.mortars.u_lower[2, v, l, mortar] = u_transformed[v, 1, l,
-                                                                   lower_element]
+                                                                               lower_element]
                     end
                 end
             else
@@ -627,9 +634,9 @@ function prolong2mortars!(cache, u_transformed::AbstractArray,
                 for l in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
                         cache.mortars.u_upper[2, v, l, mortar] = u_transformed[v, l, 1,
-                                                                   upper_element]
+                                                                               upper_element]
                         cache.mortars.u_lower[2, v, l, mortar] = u_transformed[v, l, 1,
-                                                                   lower_element]
+                                                                               lower_element]
                     end
                 end
             end
@@ -638,20 +645,26 @@ function prolong2mortars!(cache, u_transformed::AbstractArray,
                 # L2 mortars in x-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        cache.mortars.u_upper[1, v, l, mortar] = u_transformed[v, nnodes(dg), l,
-                                                                   upper_element]
-                        cache.mortars.u_lower[1, v, l, mortar] = u_transformed[v, nnodes(dg), l,
-                                                                   lower_element]
+                        cache.mortars.u_upper[1, v, l, mortar] = u_transformed[v,
+                                                                               nnodes(dg),
+                                                                               l,
+                                                                               upper_element]
+                        cache.mortars.u_lower[1, v, l, mortar] = u_transformed[v,
+                                                                               nnodes(dg),
+                                                                               l,
+                                                                               lower_element]
                     end
                 end
             else
                 # L2 mortars in y-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        cache.mortars.u_upper[1, v, l, mortar] = u_transformed[v, l, nnodes(dg),
-                                                                   upper_element]
-                        cache.mortars.u_lower[1, v, l, mortar] = u_transformed[v, l, nnodes(dg),
-                                                                   lower_element]
+                        cache.mortars.u_upper[1, v, l, mortar] = u_transformed[v, l,
+                                                                               nnodes(dg),
+                                                                               upper_element]
+                        cache.mortars.u_lower[1, v, l, mortar] = u_transformed[v, l,
+                                                                               nnodes(dg),
+                                                                               lower_element]
                     end
                 end
             end
@@ -722,17 +735,18 @@ function calc_mortar_flux!(surface_flux_values,
     return nothing
 end
 
-@inline function calc_fstar!(destination::AbstractArray{<:Any, 2}, 
+@inline function calc_fstar!(destination::AbstractArray{<:Any, 2},
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_flux, dg::DGSEM,
                              u_interfaces, interface, orientation,
                              cache_parabolic)
     for i in eachnode(dg)
         # Call pointwise two-point numerical flux function
-        u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i, interface)
+        u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i,
+                                           interface)
 
         # TODO: parabolic; only BR1 at the moment
-        flux = 0.5 * (u_ll + u_rr) # CARE: Not sure if correct!
+        flux = 0.5 * (u_ll + u_rr)
 
         # Copy flux to left and right element storage
         set_node_vars!(destination, flux, equations_parabolic, dg, i)
@@ -904,7 +918,6 @@ function calc_gradient!(gradients, u_transformed, t,
                                       dg.surface_integral, dg)
     end
 
-    # TODO: parabolic; mortars
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
@@ -918,7 +931,6 @@ function calc_gradient!(gradients, u_transformed, t,
                           equations_parabolic,
                           dg.mortar, dg.surface_integral, dg, cache, cache_parabolic)
     end
-    
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
