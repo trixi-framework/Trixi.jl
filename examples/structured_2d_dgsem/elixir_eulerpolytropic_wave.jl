@@ -6,7 +6,7 @@ using Trixi
 # semidiscretization of the polytropic Euler equations
 
 gamma = 2.0   # Adiabatic monatomic gas in 2d.
-kappa = 1.0     # Scaling factor for the pressure.
+kappa = 0.5     # Scaling factor for the pressure.
 equations = PolytropicEulerEquations2D(gamma, kappa)
 
 # Linear pressure wave in the negative x-direction.

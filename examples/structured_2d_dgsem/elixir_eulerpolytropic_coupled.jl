@@ -48,7 +48,7 @@ gamma1 = 1.0
 kappa1 = 1.0
 equations1 = PolytropicEulerEquations2D(gamma1, kappa1)
 gamma2 = 2.0
-kappa2 = 1.0
+kappa2 = 0.5
 equations2 = PolytropicEulerEquations2D(gamma2, kappa2)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
