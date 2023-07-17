@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEq, Plots
 using Trixi
 
 ###############################################################################
@@ -23,6 +23,14 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 periodicity=(true, false),
                 n_cells_max=30_000) # set maximum capacity of tree data structure
+
+# Refine mesh manually 
+LLID = Trixi.local_leaf_cells(mesh.tree)
+num_leafs = length(LLID)
+
+# Refine right 3 quarters of mesh
+@assert num_leafs % 4 == 0
+Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs/4)])
 
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion2D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion2D`)
@@ -194,7 +202,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
-tspan = (0.0, 0.5)
+tspan = (0.0, 0.01)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -207,7 +215,10 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5,
+sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5/4,
             ode_default_options()..., callback=callbacks)
 summary_callback() # print the timer summary
 
+plot(sol)
+pd = PlotData2D(sol)
+plot!(getmesh(pd))
