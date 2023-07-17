@@ -249,8 +249,12 @@ function save_solution_file(u, time, dt, timestep,
         filename = joinpath(output_directory,
                             @sprintf("solution_%s_%06d.h5", system, timestep))
     end
-    # u_ = Trixi.update_solution(mesh, u, solver, cache)
-    # Trixi.output_data_to_vtu(mesh, u_, filename)
+    u_ = Trixi.update_solution(mesh, u, solver, cache)
+    Trixi.output_data_to_vtu(mesh, u_, filename)
+    # TODO: (Run with three ranks) Somehow (and only sometimes) does the first solution file not work for the third rank.
+    # - solution_0000.h5.pvtu cannot be opened for piece 2...(?)
+    # - It only exists solution_0000_000, and solution_0000_001, but no solution_0000_002
+    # After running again, it works.
 
     return filename
 end

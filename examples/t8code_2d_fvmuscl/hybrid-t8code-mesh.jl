@@ -218,71 +218,71 @@ end
 # array of length num_local_elements.
 # We support two types: T8_VTK_SCALAR - One double per element.
 #                  and  T8_VTK_VECTOR - Three doubles per element.
-function output_data_to_vtu(semi, u, out)
-	vtk_data = [
-		t8_vtk_data_field_t(
-			T8_VTK_SCALAR,
-			NTuple{8192, Cchar}(rpad("scalar\0", 8192, ' ')),
-			pointer(u),
-		),
-	]
+# function output_data_to_vtu(semi, u, out)
+# 	vtk_data = [
+# 		t8_vtk_data_field_t(
+# 			T8_VTK_SCALAR,
+# 			NTuple{8192, Cchar}(rpad("scalar\0", 8192, ' ')),
+# 			pointer(u),
+# 		),
+# 	]
 
-	# The number of user defined data fields to write.
-	num_data = length(vtk_data)
+# 	# The number of user defined data fields to write.
+# 	num_data = length(vtk_data)
 
-	# Write user defined data to vtu file.
-	write_treeid = 1
-	write_mpirank = 1
-	write_level = 1
-	write_element_id = 1
-	write_ghosts = 0
-	t8_forest_write_vtk_ext(semi.mesh.forest, out, write_treeid, write_mpirank,
-                            write_level, write_element_id, write_ghosts,
-                            0, 0, num_data, pointer(vtk_data))
-end
+# 	# Write user defined data to vtu file.
+# 	write_treeid = 1
+# 	write_mpirank = 1
+# 	write_level = 1
+# 	write_element_id = 1
+# 	write_ghosts = 0
+# 	t8_forest_write_vtk_ext(semi.mesh.forest, out, write_treeid, write_mpirank,
+#                             write_level, write_element_id, write_ghosts,
+#                             0, 0, num_data, pointer(vtk_data))
+# end
 
-function fv_method_first_order(semi)
-	mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
-	@unpack elements = cache
-	num_elements = length(elements)
+# function fv_method_first_order(semi)
+# 	mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+# 	@unpack elements = cache
+# 	num_elements = length(elements)
 
-	u = Array{typeof(elements[1].volume)}(undef, num_elements)
-	for element in 1:num_elements
-		u[element] = semi.initial_condition(elements[element].midpoint, 0.0, equations)
-	end
-	du = zeros(size(u))
+# 	u = Array{typeof(elements[1].volume)}(undef, num_elements)
+# 	for element in 1:num_elements
+# 		u[element] = semi.initial_condition(elements[element].midpoint, 0.0, equations)
+# 	end
+# 	du = zeros(size(u))
 
-	# Output the data to vtu files.
-	prefix_forest_with_data = "hybrid_mesh_example"
-	output_data_to_vtu(semi, u, prefix_forest_with_data * "_0")
+# 	# Output the data to vtu files.
+# 	prefix_forest_with_data = "hybrid_mesh_example"
+# 	output_data_to_vtu(semi, u, prefix_forest_with_data * "_0")
 
-	u_0 = copy(u)
+# 	u_0 = copy(u)
 
-	dt = 5.0e-2
-	t = 0.0
-	t_end = 10.0
-	step = 0
-	while t < t_end
-		if t + dt > t_end
-			t = t_end
-		end
-		@info "" t
-		du .= zero(eltype(du))
-		Trixi.rhs!(du, u, semi)
-		u += dt * du
-		t += dt
-		step += 1
+# 	dt = 5.0e-2
+# 	t = 0.0
+# 	t_end = 10.0
+# 	step = 0
+# 	while t < t_end
+# 		if t + dt > t_end
+# 			t = t_end
+# 		end
+# 		@info "" t
+# 		du .= zero(eltype(du))
+# 		Trixi.rhs!(du, u, semi)
+# 		u += dt * du
+# 		t += dt
+# 		step += 1
 
-		# Output the data to vtu files.
-		if step % 1 == 0
-			output_data_to_vtu(semi, u, prefix_forest_with_data * "_$step")
-		end
-	end
+# 		# Output the data to vtu files.
+# 		if step % 1 == 0
+# 			output_data_to_vtu(semi, u, prefix_forest_with_data * "_$step")
+# 		end
+# 	end
 
-	@info "" sqrt(sum((u - u_0) .^ 2))
+# 	@info "" sqrt(sum((u - u_0) .^ 2))
 
-	return nothing
-end
+# 	return nothing
+# end
 
 #
 # Initialization.
@@ -343,12 +343,12 @@ summary_callback = SummaryCallback()
 
 # analysis_callback = AnalysisCallback(semi, interval=100)
 
-# save_solution = SaveSolutionCallback(interval=1,
-#                                      solution_variables=cons2prim)
+save_solution = SaveSolutionCallback(interval=5,
+                                     solution_variables=cons2prim)
 
 # stepsize_callback = StepsizeCallback(cfl=1.6)
 
-callbacks = CallbackSet(summary_callback)#, save_solution)# analysis_callback stepsize_callback)
+callbacks = CallbackSet(summary_callback, save_solution)# analysis_callback stepsize_callback)
 
 
 ###############################################################################
@@ -358,7 +358,7 @@ sol = solve(ode, Euler(),
             dt=5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback()
-output_data_to_vtu(semi, sol.u[end], "solution_end")
+# output_data_to_vtu(semi, sol.u[end], "solution_end")
 @info "L2 error:" sqrt(sum((sol.u[end] - sol.u[1]) .^ 2))
 
 #

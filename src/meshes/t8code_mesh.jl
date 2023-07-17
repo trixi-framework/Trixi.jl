@@ -84,7 +84,7 @@ end
 # array of length num_local_elements.
 # We support two types: T8_VTK_SCALAR - One double per element.
 #                  and  T8_VTK_VECTOR - Three doubles per element.
-function output_data_to_vtu(mesh, u, out)
+function output_data_to_vtu(mesh::T8codeMesh, u, out)
 	vtk_data = [
 		t8_vtk_data_field_t(
 			T8_VTK_SCALAR,
