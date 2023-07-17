@@ -264,7 +264,7 @@ function calc_volume_integral_gpu!(du, u,
     num_nodes = nnodes(dg)
     num_elements = nelements(cache.elements)
     @unpack derivative_dhat = dg.basis
-
+    
     kernel!(du, u, equations, derivative_dhat, num_nodes, ndrange=num_elements)
     # Ensure that device is finished
     synchronize(backend)

@@ -49,7 +49,8 @@ function integrate(func::Func, u_ode, semi::AbstractSemidiscretization;
 end
 
 function integrate(u, semi::AbstractSemidiscretization; normalize = true)
-    integrate(cons2cons, u, semi; normalize = normalize)
+    tmp_u = copyto!(CPU(), allocate(CPU(), eltype(u), size(u)), u)
+    integrate(cons2cons, tmp_u, semi; normalize = normalize)
 end
 
 """
@@ -62,7 +63,8 @@ for regression tests.
 
 function calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization,
                           cache_analysis)
-    calc_error_norms(cons2cons, u_ode, t, analyzer, semi, cache_analysis)
+    tmp_u_ode = copyto!(CPU(), allocate(CPU(), eltype(u_ode), size(u_ode)), u_ode)
+    calc_error_norms(cons2cons, tmp_u_ode, t, analyzer, semi, cache_analysis)
 end
 
 struct ODEParams

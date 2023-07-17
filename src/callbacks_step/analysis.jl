@@ -139,14 +139,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
                      integrator) where {Condition, Affect! <: AnalysisCallback}
     @unpack semi, backend = integrator.p
     du_ode = first(get_tmp_cache(integrator))
-
-    tmp_u_ode = Array{eltype(u_ode)}(undef, size(u_ode))
-    tmp_du_ode = Array{eltype(du_ode)}(undef, size(du_ode))
-
-    copyto!(backend, tmp_u_ode, u_ode)
-    copyto!(backend, tmp_du_ode, du_ode)
-
-    initialize!(cb, tmp_u_ode, tmp_du_ode, t, integrator, semi)
+    initialize!(cb, u_ode, du_ode, t, integrator, semi)
 end
 
 # This is the actual initialization method
@@ -230,13 +223,13 @@ function (analysis_callback::AnalysisCallback)(integrator)
     du_ode = first(get_tmp_cache(integrator))
     u_ode = integrator.u
 
-    tmp_u_ode = Array{eltype(u_ode)}(undef, size(u_ode))
-    tmp_du_ode = Array{eltype(du_ode)}(undef, size(du_ode))
+    #tmp_u_ode = Array{eltype(u_ode)}(undef, size(u_ode))
+    #tmp_du_ode = Array{eltype(du_ode)}(undef, size(du_ode))
 
-    copyto!(backend, tmp_u_ode, u_ode)
-    copyto!(backend, tmp_du_ode, du_ode)
+    #copyto!(backend, tmp_u_ode, u_ode)
+    #copyto!(backend, tmp_du_ode, du_ode)
 
-    analysis_callback(tmp_u_ode, tmp_du_ode, integrator, semi)
+    analysis_callback(u_ode, du_ode, integrator, semi)
 end
 
 # This method gets called internally as the main entry point to the AnalysiCallback
@@ -596,7 +589,11 @@ end
 # Trixi.analyze, Trixi.pretty_form_utf, Trixi.pretty_form_ascii
 function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    analyze(quantity, du, u, t, mesh, equations, solver, cache)
+
+    tmp_u = copyto!(CPU(), allocate(CPU(), eltype(u), size(u)), u)
+    tmp_du = copyto!(CPU(), allocate(CPU(), eltype(du), size(du)), du)
+
+    analyze(quantity, tmp_du, tmp_u, t, mesh, equations, solver, cache)
 end
 function analyze(quantity, du, u, t, mesh, equations, solver, cache)
     integrate(quantity, u, mesh, equations, solver, cache, normalize = true)
