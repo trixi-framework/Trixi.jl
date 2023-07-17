@@ -349,9 +349,9 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 save_solution = SaveSolutionCallback(interval=5,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=1.6)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
-callbacks = CallbackSet(summary_callback, save_solution, analysis_callback, alive_callback)# stepsize_callback)
+callbacks = CallbackSet(summary_callback, save_solution, analysis_callback, alive_callback, stepsize_callback)
 
 
 ###############################################################################

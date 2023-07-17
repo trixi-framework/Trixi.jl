@@ -170,4 +170,23 @@ function max_dt(u, t, mesh::ParallelP4estMesh{2},
 
     return dt
 end
+
+function max_dt(u, t, mesh,
+                constant_speed::True, equations, solver::FVMuscl, cache)
+    dt = typemax(eltype(u))
+
+    for element in eachelement(mesh, solver, cache)
+        max_lambda1, max_lambda2 = max_abs_speeds(equations)
+        @unpack dx = cache.elements[element]
+        dt = min(dt, dx / (max_lambda1 + max_lambda2))
+    end
+    # Since the speed is constant, we do the division after the for loop, right?
+    # For TreeMesh with constant speed is is done the same way. Why?
+
+    if mpi_nranks() > 1
+        dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
+    end
+
+    return dt
+end
 end # @muladd
