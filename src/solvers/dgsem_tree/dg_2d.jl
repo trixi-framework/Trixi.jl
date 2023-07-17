@@ -183,30 +183,18 @@ function rhs_gpu!(du, u, t,
     initial_condition, boundary_conditions, source_terms::Source,
     dg::DG, cache, backend::Backend) where {Source}
 
-    # Select backend
-    #backend = CUDABackend()
-    #backend = CPU()
-
-    # Offload u to device storage
-    dev_u  = allocate(backend, eltype(u),  size(u))
-    if !(backend isa CPU)
-        copyto!(backend, dev_u, u)
-    else
-        Base.copyto!(dev_u, u)
-    end
-
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t gpu" dev_du = fill!(allocate(backend, eltype(du), size(du)), 0)
+    @trixi_timeit timer() "reset ∂u/∂t gpu" fill!(du, 0)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral gpu" calc_volume_integral_gpu!(
-        dev_du, dev_u, mesh,
+        du, u, mesh,
         have_nonconservative_terms(equations), equations,
         dg.volume_integral, dg, cache)
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces gpu" prolong2interfaces_gpu!(
-    cache, dev_u, mesh, equations, dg.surface_integral, dg)
+    cache, u, mesh, equations, dg.surface_integral, dg)
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux gpu" calc_interface_flux_gpu!(
@@ -216,15 +204,15 @@ function rhs_gpu!(du, u, t,
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries gpu" prolong2boundaries_gpu!(
-    cache, dev_u, mesh, equations, dg.surface_integral, dg)
+    cache, u, mesh, equations, dg.surface_integral, dg)
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux gpu" calc_boundary_flux!(
     cache, t, boundary_conditions, mesh, equations, dg.surface_integral, dg)
 
-    # Prolong solution to mortars
+    # Prolong solution to mortarsStrid
     @trixi_timeit timer() "prolong2mortars gpu" prolong2mortars_gpu!(
-    cache, dev_u, mesh, equations, dg.mortar, dg.surface_integral, dg)
+    cache, u, mesh, equations, dg.mortar, dg.surface_integral, dg)
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux gpu" calc_mortar_flux_gpu!(
@@ -234,21 +222,15 @@ function rhs_gpu!(du, u, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral gpu" calc_surface_integral_gpu!(
-    dev_du, dev_u, mesh, equations, dg.surface_integral, dg, cache)
+    du, u, mesh, equations, dg.surface_integral, dg, cache)
 
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian gpu" apply_jacobian_gpu!(
-    dev_du, mesh, equations, dg, cache)
+    du, mesh, equations, dg, cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms gpu" calc_sources_gpu!(
-    dev_du, dev_u, t, source_terms, equations, dg, cache)
-
-    if !(backend isa CPU)
-        copyto!(backend, du, dev_du)
-    else
-        Base.copyto!(du, dev_du)
-    end
+    du, u, t, source_terms, equations, dg, cache)
 
     return nothing
 end
