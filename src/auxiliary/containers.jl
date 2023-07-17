@@ -314,9 +314,4 @@ end
 function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
     raw_copy!(c, c, from, from, destination)
 end
-
-function get_array_type(backend::CPU)
-    return Array
-end
-
 end # @muladd

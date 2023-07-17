@@ -345,4 +345,11 @@ function register_error_hints()
 
     return nothing
 end
+
+get_backend(::PtrArray) = CPU()
+
+function get_array_type(backend::CPU)
+    return Array
+end
+
 end # @muladd
