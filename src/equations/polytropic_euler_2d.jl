@@ -290,7 +290,6 @@ source_terms_eoc_test_polytropic(u, x, t, equations::PolytropicEulerEquations2D)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::PolytropicEulerEquations2D)
-    rho, v1, v2 = cons2prim(u, equations)
 
     # Residual from Winters (2019) [0.1007/s10543-019-00789-w] eq. (5.2).
     h = 8 + cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
