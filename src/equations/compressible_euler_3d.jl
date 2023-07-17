@@ -1070,7 +1070,7 @@ end
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
 
-# Calculate minimum and maximum wave speeds for HLL-type fluxes
+# Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations3D)
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
@@ -1104,6 +1104,54 @@ end
     # The v_normals are already scaled by the norm
     λ_min = v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) * norm_
     λ_max = v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) * norm_
+
+    return λ_min, λ_max
+end
+
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
+                                     equations::CompressibleEulerEquations3D)
+    rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
+
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    if orientation == 1 # x-direction
+        λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
+        λ_max = max(v1_ll + c_ll, v1_rr + c_rr)
+    elseif orientation == 2 # y-direction
+        λ_min = min(v2_ll - c_ll, v2_rr - c_rr)
+        λ_max = max(v2_ll + c_ll, v2_rr + c_rr)
+    else # z-direction
+        λ_min = min(v3_ll - c_ll, v3_rr - c_rr)
+        λ_max = max(v3_ll + c_ll, v3_rr + c_rr)
+    end
+
+    return λ_min, λ_max
+end
+
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::CompressibleEulerEquations3D)
+    rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
+
+    norm_ = norm(normal_direction)
+
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll) * norm_
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr) * norm_
+
+    v_normal_ll = v1_ll * normal_direction[1] +
+                  v2_ll * normal_direction[2] +
+                  v3_ll * normal_direction[3]
+    v_normal_rr = v1_rr * normal_direction[1] +
+                  v2_rr * normal_direction[2] +
+                  v3_rr * normal_direction[3]
+
+    # The v_normals are already scaled by the norm
+    λ_min = min(v_normal_ll - c_ll, v_normal_rr - c_rr)
+    λ_max = max(v_normal_ll + c_ll, v_normal_rr + c_rr)
 
     return λ_min, λ_max
 end
