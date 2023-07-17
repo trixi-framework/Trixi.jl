@@ -54,6 +54,46 @@ function varnames(::typeof(cons2cons), ::PolytropicEulerEquations2D)
 end
 varnames(::typeof(cons2prim), ::PolytropicEulerEquations2D) = ("rho", "v1", "v2")
 
+"""
+initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
+
+Manufactured smooth initial condition used for convergence tests.
+"""
+function initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
+    # manufactured initial condition from Winters (2019) [0.1007/s10543-019-00789-w]
+    # domain must be set to [0, 1] x [0, 1]
+    h = 8 + cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
+
+    return SVector(h, h / 2, 3 * h / 2)
+end
+
+
+"""
+source_terms_eoc_test_polytropic(u, x, t, equations::PolytropicEulerEquations2D)
+
+"""
+@inline function source_terms_convergence_test(u, x, t,
+                                               equations::PolytropicEulerEquations2D)
+    rho, v1, v2 = cons2prim(u, equations)
+
+    # Residual from Winters (2019) [0.1007/s10543-019-00789-w] eq. (5.2).
+    h = 8 + cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
+    h_t = -2 * pi * cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * sin(2 * pi * t)
+    h_x = -2 * pi * sin(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
+    h_y = 2 * pi * cos(2 * pi * x[1]) * cos(2 * pi * x[2]) * cos(2 * pi * t)
+
+    rho_x = h_x
+    rho_y = h_y
+
+    b = equations.kappa * equations.gamma * h^(equations.gamma-1)
+
+    r_1 = h_t + h_x / 2 + 3 / 2 * h_y
+    r_2 = h_t / 2 + h_x / 4 + b * rho_x + 3 / 4 * h_y
+    r_3 = h_t / 2 + 3 / 4 * h_x + 9 / 4 * h_y + b * rho_y
+
+    return SVector(r_1, r_2, r_3)
+end
+
 # Calculate 2D flux for a single point
 @inline function flux(u, orientation::Integer, equations::PolytropicEulerEquations2D)
     rho, v1, v2 = cons2prim(u, equations)
@@ -268,48 +308,6 @@ end
     rho, rho_v1, rho_v2 = u
     p = equations.kappa * rho^equations.gamma
     return p
-end
-
-"""
-initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
-
-Manufactured smooth initial condition used for convergence tests.
-"""
-function initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
-    # manufactured initial condition from Winters (2019) [0.1007/s10543-019-00789-w]
-    # domain must be set to [0, 1] x [0, 1]
-    h = 8 + cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
-
-    return SVector(h, h / 2, 3 * h / 2)
-end
-
-
-"""
-source_terms_eoc_test_polytropic(u, x, t, equations::PolytropicEulerEquations2D)
-
-"""
-@inline function source_terms_convergence_test(u, x, t,
-                                               equations::PolytropicEulerEquations2D)
-    rho, v1, v2 = cons2prim(u, equations)
-
-    # Residual from Winters (2019) [0.1007/s10543-019-00789-w] eq. (5.2).
-    h = 8 + cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
-    h_t = -2 * pi * cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * sin(2 * pi * t)
-    h_x = -2 * pi * sin(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
-    h_y = 2 * pi * cos(2 * pi * x[1]) * cos(2 * pi * x[2]) * cos(2 * pi * t)
-
-    rho_x = h_x
-    rho_y = h_y
-
-    b = equations.kappa * equations.gamma * h^(equations.gamma-1)
-
-    r_1 = h_t + h_x / 2 + 3 / 2 * h_y
-    r_2 = h_t / 2 + h_x / 4 + b * rho_x + 3 / 4 * h_y
-    r_3 = 3 / 2 * h_t + 3 / 4 * h_x + 9 / 4 * h_y + b * rho_y
-
-    return SVector(r_1, r_2, r_3)
-
-    # return SVector(0.0, 0.0, 0.0)
 end
 
 end # @muladd
