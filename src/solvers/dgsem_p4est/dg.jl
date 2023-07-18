@@ -9,7 +9,7 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::Any,
-                      ::Type{uEltype}) where {uEltype <: Real}
+                      ::Type{uEltype}, backend::Backend) where {uEltype <: Real}
     # Make sure to balance the `p4est` before creating any containers
     # in case someone has tampered with the `p4est` after creating the mesh
     balance!(mesh)
