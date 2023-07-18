@@ -226,6 +226,12 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [2.6651435738539053, 12.237661077904363, 36.79422185045536]
   end
 
+  @trixi_testset "elixir_eulerpolytropic_ec_shockcaptrugin.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_ec_shockcaptrugin.jl"),
+      l2   = [0.03647890611450939, 0.025284915444045052, 0.025340697771609126],
+      linf = [0.32516731565355583, 0.37509762516540046, 0.29812843284727336]
+  end
+
   @trixi_testset "elixir_eulerisothermal_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerisothermal_wave.jl"),
       l2   = [0.004998778491726375, 0.004998916000294413, 9.644873288246357e-17],
