@@ -93,6 +93,31 @@ source_terms_eoc_test_polytropic(u, x, t, equations::PolytropicEulerEquations2D)
     return SVector(r_1, r_2, r_3)
 end
 
+"""
+    initial_condition_weak_blast_wave(x, t, equations::PolytropicEulerEquations2D)
+
+A weak blast wave adapted from
+- Sebastian Hennemann, Gregor J. Gassner (2020)
+  A provably entropy stable subcell shock capturing approach for high order split form DG
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+function initial_condition_weak_blast_wave(x, t, equations::PolytropicEulerEquations2D)
+    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Set up polar coordinates
+    inicenter = (0, 0)
+    x_norm = x[1] - inicenter[1]
+    y_norm = x[2] - inicenter[2]
+    r = sqrt(x_norm^2 + y_norm^2)
+    phi = atan(y_norm, x_norm)
+
+    # Calculate primitive variables
+    rho = r > 0.5 ? 1.0 : 1.1691
+    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+
+    return prim2cons(SVector(rho, v1, v2,), equations)
+end
+
 # Calculate 2D flux for a single point
 @inline function flux(u, orientation::Integer, equations::PolytropicEulerEquations2D)
     rho, v1, v2 = cons2prim(u, equations)
