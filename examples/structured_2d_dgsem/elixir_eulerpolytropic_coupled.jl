@@ -8,7 +8,7 @@ using Trixi
 # In a rectangular domain we solve two different sets of equations for the
 # left and the right half. Those are the isothermal equations (left)
 # and polytropic equations (right).
-# The coupling hapens on two interfaces. One is located at the center of the
+# The coupling happens on two interfaces. One is located at the center of the
 # domain such that the right half is coupled through its left boundary
 # and the left half is coupled through its right boundary. The other coupling
 # makes sure that the domain is periodic. Here the right boundary of the right
@@ -112,7 +112,7 @@ analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback1, analysis_c
 save_solution = SaveSolutionCallback(interval = 5,
                                      solution_variables = cons2prim)
 
-# The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
+# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
