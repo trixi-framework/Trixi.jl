@@ -95,7 +95,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, P4estMesh{2}},
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache_parabolic.elements.surface_flux_values, mesh,
                           equations_parabolic,
-                          dg.mortar, dg.surface_integral, dg, cache, cache_parabolic)
+                          dg.mortar, dg.surface_integral, dg, cache)
     end
 
     # Calculate surface integrals
@@ -607,6 +607,8 @@ function prolong2mortars!(cache, flux_viscous::Tuple{AbstractArray, AbstractArra
     return nothing
 end
 
+# TODO: This is essentially not different from the implementation in standard 2D.
+# Only difference: defined `u_transformed` (equivalent of `u`) as AbstractArray.
 function prolong2mortars!(cache, u_transformed::AbstractArray,
                           mesh::TreeMesh{2},
                           equations_parabolic::AbstractEquationsParabolic,
@@ -703,14 +705,14 @@ function prolong2mortars!(cache, u_transformed::AbstractArray,
     return nothing
 end
 
-# NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs no nonconservative terms.
-# Reason: "calc_interface_flux!" for parabolic part is implemented as the version for 
+# NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
+# Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for 
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{2},
                            equations_parabolic::AbstractEquationsParabolic,
                            mortar_l2::LobattoLegendreMortarL2,
-                           surface_integral, dg::DG, cache, cache_parabolic)
+                           surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mortars
     @unpack fstar_upper_threaded, fstar_lower_threaded = cache
@@ -723,9 +725,9 @@ function calc_mortar_flux!(surface_flux_values,
         # Calculate fluxes
         orientation = orientations[mortar]
         calc_fstar!(fstar_upper, equations_parabolic, surface_flux, dg, u_upper, mortar,
-                    orientation, cache_parabolic)
+                    orientation)
         calc_fstar!(fstar_lower, equations_parabolic, surface_flux, dg, u_lower, mortar,
-                    orientation, cache_parabolic)
+                    orientation)
 
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations_parabolic, mortar_l2, dg, cache,
@@ -738,13 +740,11 @@ end
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 2},
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_flux, dg::DGSEM,
-                             u_interfaces, interface, orientation,
-                             cache_parabolic)
+                             u_interfaces, interface, orientation)
     for i in eachnode(dg)
         # Call pointwise two-point numerical flux function
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i,
                                            interface)
-
         # TODO: parabolic; only BR1 at the moment
         flux = 0.5 * (u_ll + u_rr)
 
@@ -929,7 +929,7 @@ function calc_gradient!(gradients, u_transformed, t,
         calc_mortar_flux!(surface_flux_values,
                           mesh,
                           equations_parabolic,
-                          dg.mortar, dg.surface_integral, dg, cache, cache_parabolic)
+                          dg.mortar, dg.surface_integral, dg, cache)
     end
 
     # Calculate surface integrals
