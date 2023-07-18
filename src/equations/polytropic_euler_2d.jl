@@ -67,7 +67,6 @@ function initial_condition_convergence_test(x, t, equations::PolytropicEulerEqua
     return SVector(h, h / 2, 3 * h / 2)
 end
 
-
 """
 source_terms_eoc_test_polytropic(u, x, t, equations::PolytropicEulerEquations2D)
 
@@ -85,7 +84,7 @@ source_terms_eoc_test_polytropic(u, x, t, equations::PolytropicEulerEquations2D)
     rho_x = h_x
     rho_y = h_y
 
-    b = equations.kappa * equations.gamma * h^(equations.gamma-1)
+    b = equations.kappa * equations.gamma * h^(equations.gamma - 1)
 
     r_1 = h_t + h_x / 2 + 3 / 2 * h_y
     r_2 = h_t / 2 + h_x / 4 + b * rho_x + 3 / 4 * h_y
@@ -125,7 +124,6 @@ end
     f3 = rho_v_normal * v2 + p * normal_direction[2]
     return SVector(f1, f2, f3)
 end
-
 
 """
 flux_winters_etal(u_ll, u_rr, normal_direction,
@@ -205,11 +203,13 @@ end
     # Calculate normal velocities and sound speed
     # left
     v_ll = (v1_ll * normal_direction[1]
-            + v2_ll * normal_direction[2])
+            +
+            v2_ll * normal_direction[2])
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
     # right
     v_rr = (v1_rr * normal_direction[1]
-            + v2_rr * normal_direction[2])
+            +
+            v2_rr * normal_direction[2])
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
@@ -291,5 +291,4 @@ end
     p = equations.kappa * rho^equations.gamma
     return p
 end
-
 end # @muladd
