@@ -115,7 +115,7 @@ function initial_condition_weak_blast_wave(x, t, equations::PolytropicEulerEquat
     v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
     v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
 
-    return prim2cons(SVector(rho, v1, v2,), equations)
+    return prim2cons(SVector(rho, v1, v2), equations)
 end
 
 # Calculate 2D flux for a single point
