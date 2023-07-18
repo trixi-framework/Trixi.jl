@@ -271,10 +271,11 @@ Given ε = 1.0e-4, we use the following algorithm.
         # convenience coefficients
         c1 = (1 / 3) * (gamma - 2)
         c2 = -(1 / 15) * (gamma + 1) * (gamma - 3) * c1
-        c3 = -(1 / 21) * (2 * gamma *(gamma - 2) - 9) * c2
+        c3 = -(1 / 21) * (2 * gamma * (gamma - 2) - 9) * c2
         return 0.5 * (x + y) * @evalpoly(f2, 1, c1, c2, c3)
     else
-        return (gamma - 1) / gamma * (y^gamma - x^gamma) / (y^(gamma-1) - x^(gamma-1))
+        return (gamma - 1) / gamma * (y^gamma - x^gamma) /
+               (y^(gamma - 1) - x^(gamma - 1))
     end
 end
 end # @muladd
