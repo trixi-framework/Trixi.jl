@@ -152,7 +152,7 @@ forest = build_forest(comm, n_dims, initial_refinement_level, 3)
 max_number_faces = 4
 
 number_trees = t8_forest_get_num_local_trees(forest)
-println("rank $(MPI.Comm_rank(comm)): #trees $number_trees, #elements $(t8_forest_get_local_num_elements(forest)), #ghost_elements $(t8_forest_get_num_ghosts(forest))")
+println("rank $(mpi_rank()): #trees $number_trees, #elements $(t8_forest_get_local_num_elements(forest)), #ghost_elements $(t8_forest_get_num_ghosts(forest))")
 
 if MPI.Comm_rank(comm) == 0
 	println("#global elements $(t8_forest_get_global_num_elements(forest))")

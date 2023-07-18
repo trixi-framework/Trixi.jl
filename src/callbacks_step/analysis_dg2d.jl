@@ -170,7 +170,7 @@ function calc_error_norms(func, u, t, analyzer,
     end
 
     # Accumulate local results on root process
-    if mpi_nranks() > 1
+    if mpi_isparallel()
         global_l2_error = Vector(l2_error)
         global_linf_error = Vector(linf_error)
         MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
@@ -272,7 +272,7 @@ function integrate_via_indices(func::Func, u,
         total_volume += volume
     end
 
-    if mpi_nranks() > 1
+    if mpi_isparallel()
         global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
         total_volume_ = MPI.Reduce(total_volume, +, mpi_root(), mpi_comm())
         if mpi_isroot()

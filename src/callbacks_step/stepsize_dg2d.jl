@@ -182,7 +182,7 @@ function max_dt(u, t, mesh,
         dt = min(dt, dx / (lambda1 + lambda2))
     end
 
-    if mpi_nranks() > 1
+    if mpi_isparallel()
         dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
     end
 
@@ -201,7 +201,7 @@ function max_dt(u, t, mesh,
     # Since the speed is constant, we do the division after the for loop, right?
     # For TreeMesh with constant speed is is done the same way. Why?
 
-    if mpi_nranks() > 1
+    if mpi_isparallel()
         dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
     end
 
