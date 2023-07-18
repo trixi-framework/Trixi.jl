@@ -64,12 +64,12 @@ gpu-offload-test-job:
 cpu-benchmark-job:
     extends: .benchmark-job
     script:
-        - $JULIA_EXEC --project="." --threads=24 -e 'using Trixi, BenchmarkTools; @benchmark trixi_include($joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), offload=false)'
+        - $JULIA_EXEC --project="." --threads=24 -e 'using Trixi, BenchmarkTools; display(@benchmark trixi_include($joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), offload=false))'
 
 cpu-offload-benchmark-job:
     extends: .benchmark-job
     script:
-        - $JULIA_EXEC --project="." --threads=24 -e 'using Trixi, BenchmarkTools; @benchmark trixi_include($joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), offload=true)'
+        - $JULIA_EXEC --project="." --threads=24 -e 'using Trixi, BenchmarkTools; display(@benchmark trixi_include($joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), offload=true))'
 
 gpu-offload-benchmark-job:
     extends: .benchmark-job
@@ -78,4 +78,4 @@ gpu-offload-benchmark-job:
         SLURM_PARAM_PARTITION: "--partition=c18g"
     script:
         - $JULIA_EXEC --project="." --threads=24 -e 'using Pkg; Pkg.add("CUDA")'
-        - $JULIA_EXEC --project="." --threads=24 -e 'using Trixi, CUDA, CUDA.CUDAKernels, BenchmarkTools; @benchmark trixi_include($joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), offload=true, backend=CUDABackend())'
+        - $JULIA_EXEC --project="." --threads=24 -e 'using Trixi, CUDA, CUDA.CUDAKernels, BenchmarkTools; display(@benchmark trixi_include($joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), offload=true, backend=CUDABackend()))'
