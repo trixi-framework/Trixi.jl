@@ -222,26 +222,26 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_eulerpolytropic_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_convergence.jl"),
-      l2   = [0.9265197650552958, 5.854697965606039, 14.85499224304319],
-      linf = [2.6651435738539053, 12.237661077904363, 36.79422185045536])
+      l2   = [0.0016688820596537988, 0.0025921681885685425, 0.003280950351435014],
+      linf = [0.010994679664394269, 0.01331197845637, 0.020080117011346488])
   end
 
-  @trixi_testset "elixir_eulerpolytropic_ec_shockcaptrugin.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_ec_shockcaptrugin.jl"),
+  @trixi_testset "elixir_eulerpolytropic_ec_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_ec_shockcapturing.jl"),
       l2   = [0.03647890611450939, 0.025284915444045052, 0.025340697771609126],
       linf = [0.32516731565355583, 0.37509762516540046, 0.29812843284727336])
   end
 
   @trixi_testset "elixir_eulerisothermal_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerisothermal_wave.jl"),
-      l2   = [0.004998778491726375, 0.004998916000294413, 9.644873288246357e-17],
-      linf = [0.01000110367383511, 0.010051165098399165, 5.866026685895555e-16])
+      l2   = [0.004998778491726366, 0.004998916000294425, 9.259136963058664e-17],
+      linf = [0.010001103673834888, 0.010051165098399503, 7.623942913643681e-16])
   end
 
   @trixi_testset "elixir_eulerpolytropic_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_wave.jl"),
-      l2   = [0.004163502792026258, 0.007467178084006138, 7.739975153896063e-17],
-      linf = [0.010509124387702351, 0.017663038621826756, 6.2937880869984e-16])
+      l2   = [0.23642682112204072, 0.2090426439033139, 9.864611225329867e-17],
+      linf = [0.48482503683499933, 0.25335087381569504, 7.552785191845908e-16])
   end
 
   @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
