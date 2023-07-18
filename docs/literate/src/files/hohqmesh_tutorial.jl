@@ -152,6 +152,7 @@ open("out/ice_cream_straight_sides.control", "w") do io
 \end{MODEL}
 \end{FILE}
 """)
+  close(io)
 end
 
 # The first three blocks of information are wrapped within a `CONTROL_INPUT` environment block as they define the
