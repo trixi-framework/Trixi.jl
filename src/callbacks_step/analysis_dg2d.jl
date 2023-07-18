@@ -161,7 +161,7 @@ function calc_error_norms(func, u, t, analyzer,
     for element in eachelement(mesh, solver, cache)
         @unpack midpoint, volume = cache.elements[element]
 
-        u_exact = initial_condition(midpoint, t, equations)
+        u_exact = initial_condition(SVector(midpoint), t, equations)
         diff = func(u_exact, equations) -
                func(get_node_vars(u, equations, solver, element), equations)
         l2_error += diff .^ 2 * volume

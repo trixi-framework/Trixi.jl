@@ -48,7 +48,7 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh, equations,
                                solver::FVMuscl,
                                cache)
     for element in eachelement(mesh, solver)    # TODO: Does @threaded work with mpi?
-        x_node = cache.elements[element].midpoint
+        x_node = SVector(cache.elements[element].midpoint) # Save t8code variables as SVector?
         u_node = func(x_node, t, equations)
         set_node_vars!(u, u_node, equations, solver, element)
     end

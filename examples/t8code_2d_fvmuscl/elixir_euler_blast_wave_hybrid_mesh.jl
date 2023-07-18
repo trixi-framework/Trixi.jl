@@ -35,7 +35,8 @@ function cmesh_new_periodic_hybrid(comm, n_dims)::t8_cmesh_t
 	]
     #
 	# This is how the cmesh looks like. The numbers are the tree numbers:
-	#
+	# Domain size [0,2]^2
+    #
     # +----------+
     # | 1  /\  3 |
     # |   /  \   |
@@ -89,108 +90,11 @@ function cmesh_new_periodic_hybrid(comm, n_dims)::t8_cmesh_t
 	return cmesh
 end
 
-function cmesh_new_periodic_tri(comm, n_dims)::t8_cmesh_t
-	vertices = [ # Just all vertices of all trees. partly duplicated
-		0, 0, 0,                    # tree 0, triangle
-		1.0, 0, 0,
-		1.0, 1.0, 0,
-		0, 0, 0,                    # tree 1, triangle
-		1.0, 1.0, 0,
-		0, 1.0, 0,
-	]
-
-	# Generally, one can define other geometries. But besides linear the other
-	# geometries in t8code do not have C interface yet.
-	linear_geom = t8_geometry_linear_new(n_dims)
-
-	#
-	# This is how the cmesh looks like. The numbers are the tree numbers:
-	#
-	#   +---+
-	#   |1 /|
-	#   | / |
-	#   |/0 |
-	#   +---+
-	#
-
-	cmesh_ref = Ref(t8_cmesh_t())
-	t8_cmesh_init(cmesh_ref)
-	cmesh = cmesh_ref[]
-
-	# /* Use linear geometry */
-	t8_cmesh_register_geometry(cmesh, linear_geom)
-	t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_TRIANGLE)
-	t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_TRIANGLE)
-
-    t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[1 +  0:end]), 3)
-    t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[1 +  9:end]), 3)
-
-	t8_cmesh_set_join(cmesh, 0, 1, 1, 2, 0)
-	t8_cmesh_set_join(cmesh, 0, 1, 0, 1, 0)
-	t8_cmesh_set_join(cmesh, 0, 1, 2, 0, 0)
-
-	t8_cmesh_commit(cmesh, comm)
-
-	return cmesh
-end
-
-function cmesh_new_periodic_quad(comm, n_dims)::t8_cmesh_t
-	vertices = [ # Just all vertices of all trees. partly duplicated
-		0, 0, 0,                    # tree 0, quad
-		1.0, 0, 0,
-		0, 1.0, 0,
-		1.0, 1.0, 0,
-	]
-
-	# Generally, one can define other geometries. But besides linear the other
-	# geometries in t8code do not have C interface yet.
-	linear_geom = t8_geometry_linear_new(n_dims)
-
-	#
-	# This is how the cmesh looks like. The numbers are the tree numbers:
-	#
-	#   +---+
-	#   |   |
-	#   | 0 |
-	#   |   |
-	#   +---+
-	#
-
-	cmesh_ref = Ref(t8_cmesh_t())
-	t8_cmesh_init(cmesh_ref)
-	cmesh = cmesh_ref[]
-
-	# Use linear geometry
-	t8_cmesh_register_geometry(cmesh, linear_geom)
-	t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_QUAD)
-	# t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_QUAD)
-
-	t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[1+0:end]), 4)
-	# t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[1 +  12:end]), 4)
-
-	t8_cmesh_set_join(cmesh, 0, 0, 0, 1, 0)
-	t8_cmesh_set_join(cmesh, 0, 0, 2, 3, 0)
-
-	t8_cmesh_commit(cmesh, comm)
-
-	return cmesh
-end
-
 function build_forest(comm, n_dims, level, case)
-	# More information and meshes: https://github.com/DLR-AMR/t8code/blob/main/src/t8_cmesh/t8_cmesh_examples.c#L1481
-	if case == 1
-		# Periodic mesh of quads.
-		cmesh = cmesh_new_periodic_quad(comm, n_dims)
-	elseif case == 2
-		# Periodic mesh of triangles.
-		cmesh = cmesh_new_periodic_tri(comm, n_dims)
-	elseif case == 3
-		# Periodic mesh of quads and triangles.
-		# cmesh = t8_cmesh_new_periodic_hybrid(comm) # The `t8code` version does exactly the same.
-		cmesh = cmesh_new_periodic_hybrid(comm, n_dims)
-	else
-		error("case = $case not allowed.")
-	end
+	# Periodic mesh of quads and triangles.
+	# cmesh = t8_cmesh_new_periodic_hybrid(comm) # The `t8code` version does exactly the same.
+	cmesh = cmesh_new_periodic_hybrid(comm, n_dims)
+
 	scheme = t8_scheme_new_default_cxx()
 
 	let do_face_ghost = 1
@@ -213,23 +117,6 @@ comm = MPI.COMM_WORLD
 T8code.Libt8.sc_init(comm, 1, 1, C_NULL, SC_LP_ESSENTIAL)
 # Initialize t8code with log level SC_LP_PRODUCTION. See sc.h for more info on the log levels.
 t8_init(SC_LP_PRODUCTION)
-
-# Initialize an adapted forest with periodic boundaries.
-n_dims = 2
-refinement_level = 4
-# cases: 1 = quad, 2 = triangles, 3 = hybrid
-forest = build_forest(comm, n_dims, refinement_level, 3)
-
-max_number_faces = 4
-
-number_trees = t8_forest_get_num_local_trees(forest)
-println("rank $(MPI.Comm_rank(comm)): #trees $number_trees, #elements $(t8_forest_get_local_num_elements(forest)), #ghost_elements $(t8_forest_get_num_ghosts(forest))")
-
-if MPI.Comm_rank(comm) == 0
-	println("#global elements $(t8_forest_get_global_num_elements(forest))")
-end
-
-mesh = T8codeMesh{n_dims}(forest, max_number_faces)
 
 ####################################################
 
@@ -256,6 +143,22 @@ end
 initial_condition = initial_condition_blast_wave
 
 solver = FVMuscl(surface_flux = flux_lax_friedrichs)
+
+# Initialize an adapted forest with periodic boundaries.
+n_dims = 2
+initial_refinement_level = 4
+forest = build_forest(comm, n_dims, initial_refinement_level, 3)
+
+max_number_faces = 4
+
+number_trees = t8_forest_get_num_local_trees(forest)
+println("rank $(MPI.Comm_rank(comm)): #trees $number_trees, #elements $(t8_forest_get_local_num_elements(forest)), #ghost_elements $(t8_forest_get_num_ghosts(forest))")
+
+if MPI.Comm_rank(comm) == 0
+	println("#global elements $(t8_forest_get_global_num_elements(forest))")
+end
+
+mesh = T8codeMesh{n_dims}(forest, max_number_faces)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
