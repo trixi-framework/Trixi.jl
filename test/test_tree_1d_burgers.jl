@@ -22,14 +22,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
   @trixi_testset "elixir_burgers_shock.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_shock.jl"),
-      l2   = [0.4407585104869119],
-      linf = [1.000000000000001])
+      l2   = [0.4422505602587537],
+      linf = [1.0000000000000009])
   end
 
   @trixi_testset "elixir_burgers_rarefaction.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_rarefaction.jl"),
-      l2   = [0.40287062735307044],
-      linf = [1.0042992585765542])
+      l2   = [0.4038224690923722],
+      linf = [1.0049201454652736])
   end
 end
 

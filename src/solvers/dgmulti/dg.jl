@@ -226,6 +226,11 @@ function estimate_dt(mesh::DGMultiMesh, dg::DGMulti)
     return StartUpDG.estimate_h(rd, mesh.md) / StartUpDG.inverse_trace_constant(rd)
 end
 
+dt_polydeg_scaling(dg::DGMulti) = inv(dg.basis.N + 1)
+function dt_polydeg_scaling(dg::DGMulti{3, <:Wedge, <:TensorProductWedge})
+    inv(maximum(dg.basis.N) + 1)
+end
+
 # for the stepsize callback
 function max_dt(u, t, mesh::DGMultiMesh,
                 constant_speed::False, equations, dg::DGMulti{NDIMS},
@@ -247,8 +252,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
     # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
     # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
     # the number of 1D nodes for `DGSEM` solvers.
-    polydeg = rd.N
-    return 2 * dt_min / (polydeg + 1)
+    return 2 * dt_min * dt_polydeg_scaling(dg)
 end
 
 function max_dt(u, t, mesh::DGMultiMesh,
@@ -270,8 +274,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
     # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
     # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
     # the number of 1D nodes for `DGSEM` solvers.
-    polydeg = rd.N
-    return 2 * dt_min / (polydeg + 1)
+    return 2 * dt_min * dt_polydeg_scaling(dg)
 end
 
 # interpolates from solution coefficients to face quadrature points
