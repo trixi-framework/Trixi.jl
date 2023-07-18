@@ -505,9 +505,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
                                                                       linear_indices[i_cell,
                                                                                      j_cell]])
                 boundary_condition.u_boundary[v, i, cell] = converted_u[v]
-                # boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node,
-                #                                               linear_indices[i_cell,
-                #                                                              j_cell]]
             end
             i_node += i_node_step
             j_node += j_node_step
