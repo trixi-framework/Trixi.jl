@@ -226,8 +226,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.010994679664394269, 0.01331197845637, 0.020080117011346488])
   end
 
-  @trixi_testset "elixir_eulerpolytropic_ec_shockcapturing.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_ec_shockcapturing.jl"),
+  @trixi_testset "elixir_eulerpolytropic_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_ec.jl"),
       l2   = [0.03647890611450939, 0.025284915444045052, 0.025340697771609126],
       linf = [0.32516731565355583, 0.37509762516540046, 0.29812843284727336])
   end
