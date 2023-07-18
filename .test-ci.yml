@@ -1,6 +1,7 @@
 stages:
     - precompile
     - test
+    - benchmark
 
 
 default:
@@ -32,6 +33,15 @@ precompile-job:
         - cd run
         - $JULIA_EXEC --project="." -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "KernelAbstractions"]); Pkg.develop(PackageSpec(path=".."));'
 
+.benchmark-job:
+    extends: .julia-job
+    stage: benchmark
+    before_script:
+        - source /work/co693196/MA/julia.sh
+        - mkdir run
+        - cd run
+        - $JULIA_EXEC --project="." -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "KernelAbstractions", "BenchmarkTools"]); Pkg.develop(PackageSpec(path=".."));'
+
 cpu-test-job:
     extends: .test-job
     script:
@@ -44,9 +54,28 @@ cpu-offload-test-job:
 
 gpu-offload-test-job:
     extends: .test-job
-    variables:        
+    variables:
         SLURM_PARAM_GPUS: "--gres=gpu:volta:1"
         SLURM_PARAM_PARTITION: "--partition=c18g"
     script:
         - $JULIA_EXEC --project="." --threads=24 -e 'using Pkg; Pkg.add("CUDA")'
         - $JULIA_EXEC --project="." --threads=24 -e 'using Trixi, CUDA; using CUDA.CUDAKernels; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=true, backend=CUDABackend())'
+
+cpu-benchmark-job:
+    extends: .benchmark-job
+    script:
+        - $JULIA_EXEC --project="." --threads=24 -e 'using Trixi, BenchmarkTools; @benchmark trixi_include($joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), offload=false)'
+
+cpu-offload-benchmark-job:
+    extends: .benchmark-job
+    script:
+        - $JULIA_EXEC --project="." --threads=24 -e 'using Trixi, BenchmarkTools; @benchmark trixi_include($joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), offload=true)'
+
+gpu-offload-benchmark-job:
+    extends: .benchmark-job
+    variables:
+        SLURM_PARAM_GPUS: "--gres=gpu:volta:1"
+        SLURM_PARAM_PARTITION: "--partition=c18g"
+    script:
+        - $JULIA_EXEC --project="." --threads=24 -e 'using Pkg; Pkg.add("CUDA")'
+        - $JULIA_EXEC --project="." --threads=24 -e 'using Trixi, CUDA, CUDA.CUDAKernels, BenchmarkTools; @benchmark trixi_include($joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), offload=true, backend=CUDABackend())'
