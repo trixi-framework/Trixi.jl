@@ -6,18 +6,6 @@
 #! format: noindent
 
 @doc raw"""
-    coupling_converters
-
-Define converter functions for two coupled systems.
-These should be used together with SemidiscretizationCoupled.
-Using converter functions we can couple two systems that do not
-share any variables.
-This is done by taking the last inner point of system i, apply
-a converter function on the state vector u_i and obtain a state
-vector u_j for the boundary of system j.
-"""
-
-@doc raw"""
     Identity coupling converter function.
 
 The coupling is given as a linear function.
