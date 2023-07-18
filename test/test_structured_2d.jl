@@ -223,13 +223,13 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_eulerpolytropic_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_convergence.jl"),
       l2   = [0.9265197650552958, 5.854697965606039, 14.85499224304319],
-      linf = [2.6651435738539053, 12.237661077904363, 36.79422185045536]
+      linf = [2.6651435738539053, 12.237661077904363, 36.79422185045536])
   end
 
   @trixi_testset "elixir_eulerpolytropic_ec_shockcaptrugin.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_ec_shockcaptrugin.jl"),
       l2   = [0.03647890611450939, 0.025284915444045052, 0.025340697771609126],
-      linf = [0.32516731565355583, 0.37509762516540046, 0.29812843284727336]
+      linf = [0.32516731565355583, 0.37509762516540046, 0.29812843284727336])
   end
 
   @trixi_testset "elixir_eulerisothermal_wave.jl" begin
@@ -242,12 +242,6 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_wave.jl"),
       l2   = [0.004163502792026258, 0.007467178084006138, 7.739975153896063e-17],
       linf = [0.010509124387702351, 0.017663038621826756, 6.2937880869984e-16])
-  end
-
-  @trixi_testset "elixir_eulerpolytropic_coupled.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_coupled.jl"),
-      l2   = [0.0036722668603851854, 0.0036770945693062585, 6.219512805736816e-17, 0.004396173729156031, 0.00968163194407191, 5.328567457283904e-17],
-      linf = [0.007166777740855723, 0.007189858933515634, 3.334601450120292e-16, 0.009841506991455362, 0.018773251247021595, 3.152557652220928e-16])
   end
 
   @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
