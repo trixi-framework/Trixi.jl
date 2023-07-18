@@ -21,7 +21,8 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, Forest} <: AbstractMesh{NDIMS}
     current_filename::String
     unsaved_changes::Bool
 
-    function T8codeMesh{NDIMS}(forest, max_number_faces; current_filename="", unsaved_changes=true) where {NDIMS}
+    function T8codeMesh{NDIMS}(forest, max_number_faces; current_filename = "",
+                               unsaved_changes = true) where {NDIMS}
         @assert NDIMS == 2
         number_trees = t8_forest_get_num_local_trees(forest)
 
@@ -66,7 +67,9 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
     if get(io, :compact, false)
         show(io, mesh)
     else
-        summary_header(io, "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}")
+        summary_header(io,
+                       "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
+                       "}")
         summary_line(io, "#trees", mesh.number_trees)
         summary_line(io, "#elements", nelementsglobal(mesh))
         summary_footer(io)
@@ -77,9 +80,9 @@ function create_cache(mesh::T8codeMesh, equations,
                       solver, RealT, uEltype)
     elements = init_elements(mesh, RealT, uEltype)
 
-    solution = init_solution(mesh)
+    u_ = init_solution!(mesh, equations)
 
-    cache = (; elements, solution)
+    cache = (; elements, u_)
 
     return cache
 end
@@ -91,25 +94,24 @@ end
 # array of length num_local_elements.
 # We support two types: T8_VTK_SCALAR - One double per element.
 #                  and  T8_VTK_VECTOR - Three doubles per element.
-function output_data_to_vtu(mesh::T8codeMesh, u, out)
-	vtk_data = [
-		t8_vtk_data_field_t(
-			T8_VTK_SCALAR,
-			NTuple{8192, Cchar}(rpad("scalar\0", 8192, ' ')),
-			pointer(u),
-		),
-	]
+function output_data_to_vtu(mesh::T8codeMesh, equations, solver, u, out)
+    vars = varnames(cons2cons, equations)
+    vtk_data = [t8_vtk_data_field_t(T8_VTK_SCALAR,
+                                    NTuple{8192, Cchar}(rpad("$(vars[v])\0", 8192, ' ')),
+                                    pointer([u[element].u[v]
+                                             for element in eachelement(mesh, solver)]))
+                for v in eachvariable(equations)]
 
-	# The number of user defined data fields to write.
-	num_data = length(vtk_data)
+    # The number of user defined data fields to write.
+    num_data = length(vtk_data)
 
-	# Write user defined data to vtu file.
-	write_treeid = 1
-	write_mpirank = 1
-	write_level = 1
-	write_element_id = 1
-	write_ghosts = 0
-	t8_forest_write_vtk_ext(mesh.forest, out, write_treeid, write_mpirank,
+    # Write user defined data to vtu file.
+    write_treeid = 1
+    write_mpirank = 1
+    write_level = 1
+    write_element_id = 1
+    write_ghosts = 0
+    t8_forest_write_vtk_ext(mesh.forest, out, write_treeid, write_mpirank,
                             write_level, write_element_id, write_ghosts,
                             0, 0, num_data, pointer(vtk_data))
 end

@@ -162,7 +162,8 @@ function calc_error_norms(func, u, t, analyzer,
         @unpack midpoint, volume = cache.elements[element]
 
         u_exact = initial_condition(midpoint, t, equations)
-        diff = func(u_exact, equations) - func(get_node_vars(u, equations, solver, element), equations)
+        diff = func(u_exact, equations) -
+               func(get_node_vars(u, equations, solver, element), equations)
         l2_error += diff .^ 2 * volume
         linf_error = @. max(linf_error, abs(diff))
         total_volume += volume
@@ -258,7 +259,8 @@ end
 
 function integrate_via_indices(func::Func, u,
                                mesh, equations,
-                               solver::FVMuscl, cache, args...; normalize = true) where {Func}
+                               solver::FVMuscl, cache, args...;
+                               normalize = true) where {Func}
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, equations, solver, args...))
     total_volume = zero(real(mesh))

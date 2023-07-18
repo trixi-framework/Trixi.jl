@@ -172,6 +172,24 @@ function max_dt(u, t, mesh::ParallelP4estMesh{2},
 end
 
 function max_dt(u, t, mesh,
+                constant_speed::False, equations, solver::FVMuscl, cache)
+    dt = typemax(eltype(u))
+
+    for element in eachelement(mesh, solver, cache)
+        u_node = get_node_vars(u, equations, solver, element)
+        lambda1, lambda2 = max_abs_speeds(u_node, equations)
+        @unpack dx = cache.elements[element]
+        dt = min(dt, dx / (lambda1 + lambda2))
+    end
+
+    if mpi_nranks() > 1
+        dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
+    end
+
+    return dt
+end
+
+function max_dt(u, t, mesh,
                 constant_speed::True, equations, solver::FVMuscl, cache)
     dt = typemax(eltype(u))
 

@@ -47,7 +47,7 @@ end
 function compute_coefficients!(u, func, t, mesh::AbstractMesh, equations,
                                solver::FVMuscl,
                                cache)
-    #=@threaded=# for element in eachelement(mesh, solver)
+    for element in eachelement(mesh, solver)    # TODO: Does @threaded work with mpi?
         x_node = cache.elements[element].midpoint
         u_node = func(x_node, t, equations)
         set_node_vars!(u, u_node, equations, solver, element)
@@ -91,43 +91,50 @@ end
                 (nvariables(equations), nelements(mesh, solver, cache)))
 end
 
-function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms::Source, solver::FVMuscl, cache) where {Source}
-    @trixi_timeit timer() "update neighbor data" u_ = update_solution(mesh, u, solver, cache)
+function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
+              source_terms::Source, solver::FVMuscl, cache) where {Source}
+    @trixi_timeit timer() "update neighbor data" update_solution!(u, mesh, equations,
+                                                                  solver, cache)
+    @unpack u_ = cache
 
     du .= zero(eltype(du))
 
-	@trixi_timeit timer() "update du" for element in eachelement(mesh, solver)
-		@unpack volume, face_normals, num_faces, face_areas, face_connectivity = cache.elements[element]
-		for face in 1:num_faces
-			neighbor = face_connectivity[face]
-			@trixi_timeit timer() "allocs" normal = @views([face_normals[2 * face - 1 : 2 * face]...]) # Unfortunaly, flux() requires an Vector and no Tuple
+    @trixi_timeit timer() "update du" for element in eachelement(mesh, solver)
+        @unpack volume, face_normals, num_faces, face_areas, face_connectivity = cache.elements[element]
+        for face in 1:num_faces
+            neighbor = face_connectivity[face]
+            # Unfortunaly, flux() requires an Vector and no Tuple.
+            @trixi_timeit timer() "allocs" normal=@views([
+                                                             face_normals[(2 * face - 1):(2 * face)]...,
+                                                         ])
             # u1 = u_[element].u[1] + (u_[neighbor].u[1] - u_[element].u[1])
+            flux = solver.surface_flux(SVector(u_[element].u), SVector(u_[neighbor].u),
+                                       normal, equations)
             for v in eachvariable(equations)
-                du[v, element] += - face_areas[face] *
-                                    solver.surface_flux(u_[element].u[v],
-                                                        u_[neighbor].u[v], normal, equations)
+                du[v, element] += -face_areas[face] * flux[v]
             end
 
             # Linaer reconstruction for unstructured meshes is complicated since the direction is noch easily defined.
-		end
-		du[element] = (1 / volume) * du[element]
-	end
+        end
+        for v in eachvariable(equations)
+            du[v, element] = (1 / volume) * du[v, element]
+        end
+    end
 
-	return nothing
+    return nothing
 end
 
-function get_element_variables!(element_variables, u, mesh::T8codeMesh, equations, solver, cache)
+function get_element_variables!(element_variables, u, mesh::T8codeMesh, equations,
+                                solver, cache)
     return nothing
 end
 
 function SolutionAnalyzer(solver::FVMuscl; kwargs...)
-
 end
 
 function create_cache_analysis(analyzer, mesh,
                                equations, solver::FVMuscl, cache,
                                RealT, uEltype)
-
 end
 
 # Container data structures
