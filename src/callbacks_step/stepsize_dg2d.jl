@@ -33,9 +33,11 @@ function max_dt(u, t, mesh::TreeMesh{2},
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
+    tmp_inverse_jacobian = copyto!(CPU(), allocate(CPU(), eltype(cache.elements.inverse_jacobian), size(cache.elements.inverse_jacobian)), cache.elements.inverse_jacobian)
+
     for element in eachelement(dg, cache)
         max_lambda1, max_lambda2 = max_abs_speeds(equations)
-        inv_jacobian = @allowscalar cache.elements.inverse_jacobian[element]
+        inv_jacobian = tmp_inverse_jacobian[element]
         max_scaled_speed = max(max_scaled_speed,
                                inv_jacobian * (max_lambda1 + max_lambda2))
     end
