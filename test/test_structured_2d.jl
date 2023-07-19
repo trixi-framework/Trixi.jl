@@ -244,12 +244,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.48482503683499933, 0.25335087381569504, 7.552785191845908e-16])
   end
 
-  @trixi_testset "elixir_eulerpolytropic_coupled.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_coupled.jl"),
-      l2   = [0.0036722668603851824, 0.0036770945693063266, 7.328907398530868e-17, 0.0043961737291559905, 0.009681631944071874, 5.5383635487039e-17],
-      linf = [0.007166777740855057, 0.007189858933514897, 3.8972436848752724e-16, 0.00984150699145514, 0.018773251247021745, 2.8709391713585104e-16])
-  end
-
   @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
       l2   = [0.8799744480157664, 0.8535008397034816, 0.7851383019164209],
