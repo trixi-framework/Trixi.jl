@@ -834,7 +834,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     return nothing
 end
 
-function prolong2mortars!(cache, u::AbstractArray,
+function prolong2mortars!(cache, u,
                           mesh::TreeMesh{3}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           surface_integral, dg::DGSEM)
