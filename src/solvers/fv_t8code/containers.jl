@@ -33,14 +33,16 @@ struct T8codeElementContainer{NDIMS, MAX_NUMBER_FACES, NDIMS_MAX_NUMBER_VARS}
 end
 
 function Base.show(container::T8codeElementContainer)
+    n_dims = length(container.midpoint)
+    @unpack num_faces = container
     println("level              = ", container.level)
     println("volume             = ", container.volume)
     println("midpoint           = ", container.midpoint)
     println("dx                 = ", container.dx)
-    println("num_faces          = ", container.num_faces)
-    println("face_areas         = ", container.face_areas)
-    println("face_normals       = ", container.face_normals)
-    println("face_connectivity  = ", container.face_connectivity)
+    println("num_faces          = ", num_faces)
+    println("face_areas         = ", container.face_areas[1:num_faces])
+    println("face_normals       = ", container.face_normals[1:n_dims * num_faces])
+    println("face_connectivity  = ", container.face_connectivity[1:num_faces])
 end
 
 function init_elements(mesh::T8codeMesh, RealT, uEltype)
@@ -73,9 +75,6 @@ function init_elements(mesh::T8codeMesh)
                                                                         num_local_elements +
                                                                         num_ghost_elements)
 
-    # Get the number of trees that have elements of this process.
-    num_local_trees = t8_forest_get_num_local_trees(forest)
-
     midpoint = Vector{Cdouble}(undef, n_dims)
 
     face_areas = Vector{Cdouble}(undef, max_number_faces)
@@ -84,7 +83,7 @@ function init_elements(mesh::T8codeMesh)
 
     # Loop over all local trees in the forest.
     current_index = 0
-    for itree in 0:(num_local_trees - 1)
+    for itree in 0:(mesh.number_trees_local - 1)
         tree_class = t8_forest_get_tree_class(forest, itree)
         eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
 
@@ -156,7 +155,7 @@ function init_elements(mesh::T8codeMesh)
                                                              dx,
                                                              num_faces,
                                                              Tuple(face_areas),
-                                                             Tuple(@views(face_normals[1:2,
+                                                             Tuple(@views(face_normals[1:n_dims,
                                                                                        :])),
                                                              Tuple(face_connectivity))
         end

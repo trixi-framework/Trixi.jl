@@ -13,7 +13,8 @@ to manage trees and mesh refinement.
 """
 mutable struct T8codeMesh{NDIMS, RealT <: Real, Forest} <: AbstractMesh{NDIMS}
     forest::Forest
-    number_trees::Int
+    number_trees_global::Int
+    number_trees_local::Int
     max_number_faces::Int
     number_elements::Int
     # number_ghost_elements
@@ -21,14 +22,36 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, Forest} <: AbstractMesh{NDIMS}
     current_filename::String
     unsaved_changes::Bool
 
-    function T8codeMesh{NDIMS}(forest, max_number_faces; current_filename = "",
+    function T8codeMesh{NDIMS}(forest; current_filename = "",
                                unsaved_changes = true) where {NDIMS}
         @assert NDIMS == 2
-        number_trees = t8_forest_get_num_local_trees(forest)
+        number_trees_global = t8_forest_get_num_global_trees(forest)
+        number_trees_local = t8_forest_get_num_local_trees(forest)
 
         number_elements = t8_forest_get_local_num_elements(forest)
 
-        mesh = new{NDIMS, Cdouble, typeof(forest)}(forest, number_trees,
+        # Very ugly way to get the maximum number of faces automatically.
+        max_number_faces = 0
+        for itree in 0:(number_trees_local - 1)
+            tree_class = t8_forest_get_tree_class(forest, itree)
+            eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
+
+            # Get the number of elements of this tree.
+            num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
+
+            # Loop over all local elements in the tree.
+            for ielement in 0:(num_elements_in_tree - 1)
+                element = t8_forest_get_element_in_tree(forest, itree, ielement)
+                num_faces = t8_element_num_faces(eclass_scheme, element)
+                max_number_faces = max(max_number_faces, num_faces)
+            end
+        end
+        # Is is necessary to Reduce it to all processes?
+        # Can e.g. AMR and the following re-balancing change the maximum number on faces on one rank?
+        if mpi_isparallel()
+            max_number_faces = MPI.Allreduce!(Ref(max_number_faces), max, mpi_comm())[]
+        end
+        mesh = new{NDIMS, Cdouble, typeof(forest)}(forest, number_trees_global, number_trees_local,
                                                    max_number_faces, number_elements,
                                                    current_filename, unsaved_changes)
 
@@ -59,7 +82,7 @@ end
 
 function Base.show(io::IO, mesh::T8codeMesh)
     print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}(")
-    print(io, "#trees: ", mesh.number_trees)
+    print(io, "#trees: ", mesh.number_trees_global)
     print(io, ", #elements: ", nelementsglobal(mesh))
 end
 
@@ -70,7 +93,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
         summary_header(io,
                        "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
                        "}")
-        summary_line(io, "#trees", mesh.number_trees)
+        summary_line(io, "#trees", mesh.number_trees_global)
         summary_line(io, "#elements", nelementsglobal(mesh))
         summary_footer(io)
     end
