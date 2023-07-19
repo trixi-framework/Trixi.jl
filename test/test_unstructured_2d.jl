@@ -1,5 +1,7 @@
 module TestExamplesUnstructuredMesh2D
 
+# TODO: TrixiShallowWater: move any wet/dry and two layer tests
+
 using Test
 using Trixi
 
@@ -134,6 +136,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.025))
   end
 
+  @trixi_testset "elixir_shallowwater_source_terms.jl with flux_hll" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
+      l2   = [0.0011197139793938727, 0.015430259691311309, 0.017081031802719554, 5.089218476759981e-6],
+      linf = [0.014300809338967824, 0.12783372461224918, 0.17625472321993918, 2.6407324614341476e-5],
+      surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal),
+      tspan = (0.0, 0.025))
+  end
+
   @trixi_testset "elixir_shallowwater_dirichlet.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_dirichlet.jl"),
       l2   = [1.1577518608940115e-5, 4.867189932537344e-13, 4.647273240470541e-13, 1.1577518608933468e-5],
@@ -152,6 +162,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_ec_shockcapturing.jl"),
       l2   = [0.6124656312639043, 0.504371951785709, 0.49180896200746366, 0.29467422718511727],
       linf = [2.7639232436274392, 3.3985508653311767, 3.3330308209196224, 2.052861364219655],
+      tspan = (0.0, 0.25))
+  end
+
+  @trixi_testset "elixir_shallowwater_three_mound_dam_break.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_three_mound_dam_break.jl"),
+      l2   = [0.0892957892027502, 0.30648836484407915, 2.28712547616214e-15, 0.0008778654298684622],
+      linf = [0.850329472915091, 2.330631694956507, 5.783660020252348e-14, 0.04326237921249021],
+      basis = LobattoLegendreBasis(3),
       tspan = (0.0, 0.25))
   end
 

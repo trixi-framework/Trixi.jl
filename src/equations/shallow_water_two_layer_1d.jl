@@ -5,6 +5,8 @@
 @muladd begin
 #! format: noindent
 
+# TODO: TrixiShallowWater: 1D two layer equations should move to new package
+
 @doc raw"""
     ShallowWaterTwoLayerEquations1D(gravity, H0, rho_upper, rho_lower)
 
