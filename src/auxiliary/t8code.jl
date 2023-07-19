@@ -13,10 +13,16 @@ function init_t8code()
     end
 
     # Initialize the sc library, has to happen before we initialize t8code.
-    T8code.Libt8.sc_init(mpi_comm(), 1, 1, C_NULL, T8code.Libt8.SC_LP_ERROR)
+    let catch_signals = 0, print_backtrace = 0
+        T8code.Libt8.sc_init(mpi_comm(), catch_signals, print_backtrace, C_NULL,
+                             T8code.Libt8.SC_LP_ERROR)
+    end
 
-    # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
-    T8code.Libt8.p4est_init(C_NULL, SC_LP_ERROR)
+    if T8code.Libt8.p4est_is_initialized() == 0
+        # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
+        T8code.Libt8.p4est_init(C_NULL, T8code.Libt8.SC_LP_ERROR)
+    end
+
     # Initialize t8code with log level ERROR to prevent a lot of output in AMR simulations.
     t8_init(T8code.Libt8.SC_LP_ERROR)
 
