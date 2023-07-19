@@ -16,18 +16,19 @@ struct T8codeElementContainer{NDIMS, MAX_NUMBER_FACES, NDIMS_MAX_NUMBER_VARS}
     dx       :: Cdouble # Characteristic length (for CFL condition).
 
     num_faces         :: Cint
+    face_midpoints    :: NTuple{NDIMS_MAX_NUMBER_VARS, Cdouble}
     face_areas        :: NTuple{MAX_NUMBER_FACES, Cdouble}
     face_normals      :: NTuple{NDIMS_MAX_NUMBER_VARS, Cdouble}
     face_connectivity :: NTuple{MAX_NUMBER_FACES, t8_locidx_t} # ids of the face neighbors
 
     function T8codeElementContainer(max_number_faces, level, volume, midpoint, dx,
-                                    num_faces, face_areas, face_normals,
+                                    num_faces, face_midpoints, face_areas, face_normals,
                                     face_connectivity)
         n_dims = length(midpoint)
         new{n_dims, max_number_faces, n_dims * max_number_faces}(level, volume,
                                                                  midpoint, dx,
-                                                                 num_faces, face_areas,
-                                                                 face_normals,
+                                                                 num_faces, face_midpoints,
+                                                                 face_areas, face_normals,
                                                                  face_connectivity)
     end
 end
@@ -40,6 +41,7 @@ function Base.show(container::T8codeElementContainer)
     println("midpoint           = ", container.midpoint)
     println("dx                 = ", container.dx)
     println("num_faces          = ", num_faces)
+    println("face_midpoints     = ", container.face_midpoints[1:n_dims * num_faces])
     println("face_areas         = ", container.face_areas[1:num_faces])
     println("face_normals       = ", container.face_normals[1:n_dims * num_faces])
     println("face_connectivity  = ", container.face_connectivity[1:num_faces])
@@ -77,6 +79,7 @@ function init_elements(mesh::T8codeMesh)
 
     midpoint = Vector{Cdouble}(undef, n_dims)
 
+    face_midpoints = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
     face_areas = Vector{Cdouble}(undef, max_number_faces)
     face_normals = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
     face_connectivity = Vector{t8_locidx_t}(undef, max_number_faces)
@@ -112,6 +115,7 @@ function init_elements(mesh::T8codeMesh)
             face_connectivity .= -1
 
             for iface in 1:num_faces
+                t8_forest_element_face_centroid(forest, itree, element, iface - 1, @views(face_midpoints[:, iface]))
                 face_areas[iface] = t8_forest_element_face_area(forest, itree, element,
                                                                 iface - 1) # C++ is zero-indexed
                 t8_forest_element_face_normal(forest, itree, element, iface - 1,
@@ -154,6 +158,8 @@ function init_elements(mesh::T8codeMesh)
                                                              Tuple(midpoint),
                                                              dx,
                                                              num_faces,
+                                                             Tuple(@views(face_midpoints[1:n_dims,
+                                                                                         :])),
                                                              Tuple(face_areas),
                                                              Tuple(@views(face_normals[1:n_dims,
                                                                                        :])),
