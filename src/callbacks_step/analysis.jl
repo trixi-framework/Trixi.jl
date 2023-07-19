@@ -134,7 +134,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                      initialize = initialize!)
 end
 
-function AnalysisCallback(mesh, equations::AbstractEquations, solver::FVMuscl, cache;
+function AnalysisCallback(mesh, equations::AbstractEquations, solver::FV, cache;
                           interval = 0,
                           save_analysis = false,
                           output_directory = "out",

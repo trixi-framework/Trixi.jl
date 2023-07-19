@@ -172,7 +172,7 @@ function max_dt(u, t, mesh::ParallelP4estMesh{2},
 end
 
 function max_dt(u, t, mesh,
-                constant_speed::False, equations, solver::FVMuscl, cache)
+                constant_speed::False, equations, solver::FV, cache)
     dt = typemax(eltype(u))
 
     for element in eachelement(mesh, solver, cache)
@@ -190,7 +190,7 @@ function max_dt(u, t, mesh,
 end
 
 function max_dt(u, t, mesh,
-                constant_speed::True, equations, solver::FVMuscl, cache)
+                constant_speed::True, equations, solver::FV, cache)
     dt = typemax(eltype(u))
 
     for element in eachelement(mesh, solver, cache)

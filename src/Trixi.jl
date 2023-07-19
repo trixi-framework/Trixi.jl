@@ -221,7 +221,7 @@ export DG,
        SurfaceIntegralUpwind,
        MortarL2
 
-export FVMuscl
+export FV
 
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable

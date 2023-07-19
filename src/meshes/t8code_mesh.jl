@@ -39,7 +39,7 @@ end
 @inline Base.ndims(::T8codeMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
-@inline nelements(mesh::T8codeMesh, solver, cache) = mesh.number_elements
+@inline nelements(mesh::T8codeMesh, solver, cache) = nelementsglobal(mesh, solver, cache)
 
 @inline function eachelement(mesh::T8codeMesh, solver, cache)
     eachelement(mesh, solver)

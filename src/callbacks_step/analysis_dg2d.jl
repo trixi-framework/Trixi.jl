@@ -151,7 +151,7 @@ end
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh, equations,
-                          initial_condition, solver::FVMuscl, cache, cache_analysis)
+                          initial_condition, solver::FV, cache, cache_analysis)
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, solver, 1), equations))
     linf_error = copy(l2_error)
@@ -259,7 +259,7 @@ end
 
 function integrate_via_indices(func::Func, u,
                                mesh, equations,
-                               solver::FVMuscl, cache, args...;
+                               solver::FV, cache, args...;
                                normalize = true) where {Func}
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, equations, solver, args...))
@@ -297,7 +297,7 @@ end
 
 function integrate(func::Func, u,
                    mesh,
-                   equations, solver::FVMuscl, cache; normalize = true) where {Func}
+                   equations, solver::FV, cache; normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, solver, cache;
                           normalize = normalize) do u, element, equations, solver
         u_local = get_node_vars(u, equations, solver, element)
@@ -320,7 +320,7 @@ end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh,
-                 equations, solver::FVMuscl, cache)
+                 equations, solver::FV, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, solver, cache,
                           du) do u, element, equations, solver, du
