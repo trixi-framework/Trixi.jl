@@ -113,6 +113,7 @@ makedocs(
             "Testing" => "testing.md",
             "Performance" => "performance.md",
             "Parallelization" => "parallelization.md",
+            "Coupling" => "coupling.md"
         ],
         "Troubleshooting and FAQ" => "troubleshooting.md",
         "Reference" => [
