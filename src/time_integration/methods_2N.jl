@@ -155,7 +155,6 @@ function solve!(integrator::SimpleIntegrator2N)
         integrator.u_tmp .= 0
         for stage in eachindex(alg.c)
             t_stage = integrator.t + integrator.dt * alg.c[stage]
-            println("Lengths ODE solver: ", length(integrator.du), " ", length(integrator.u))
             integrator.f(integrator.du, integrator.u, prob.p, t_stage)
 
             a_stage = alg.a[stage]

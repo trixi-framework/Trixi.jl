@@ -310,7 +310,6 @@ end
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
     @unpack mesh, equations_parabolic, initial_condition, boundary_conditions_parabolic, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
 
-    #println("RHS para ODE solver: ", length(du_ode), " ", length(u_ode))
     u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache_parabolic)
     du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache_parabolic)
 
@@ -331,7 +330,9 @@ end
 
 function rhs_hyperbolic_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
     @trixi_timeit timer() "hyperbolic-parabolic rhs!" begin 
-        du_ode_hyp = similar(du_ode) # TODO: Avoid allocations, make member variable of something?
+        # TODO: Avoid allocations, make member variable of something? 
+        # -> Could reside in integrator, then pass in similar to indices of PERK
+        du_ode_hyp = similar(du_ode)
         rhs!(du_ode_hyp, u_ode, semi, t)
         rhs_parabolic!(du_ode, u_ode, semi, t)
         du_ode .+= du_ode_hyp

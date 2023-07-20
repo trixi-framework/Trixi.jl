@@ -175,11 +175,7 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
         has_changed = amr_callback(u_ode, semi,
                                    integrator.t, integrator.iter; kwargs...)
         if has_changed
-            println("Target length u_ode: ", length(u_ode))
-            println("f.cache pre-change: ", length(integrator.f.cache))
             resize!(integrator, length(u_ode))
-            println("f.cache post-change: ", length(integrator.f.cache))
-            
             u_modified!(integrator, true)
         end
     end

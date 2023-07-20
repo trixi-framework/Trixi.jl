@@ -535,8 +535,7 @@ end
 
 @inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
                             dg::DGSEM, cache)
-    
-    #println(length(u_ode), " ", nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache), "\n")                            
+                         
     @boundscheck begin
         @assert length(u_ode) ==
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
