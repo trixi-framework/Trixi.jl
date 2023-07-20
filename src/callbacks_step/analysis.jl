@@ -267,7 +267,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     gc_time_absolute = 1.0e-9 * (Base.gc_time_ns() - analysis_callback.start_gc_time)
 
     # Compute the percentage of total time that was spent in garbage collection
-    gc_time_percentage = gc_time_absolute / runtime_absolute
+    gc_time_percentage = gc_time_absolute / runtime_absolute * 100
 
     # Obtain the current memory usage of the Julia garbage collector, in MiB, i.e., the total size of
     # objects in memory that have been allocated by the JIT compiler or the user code.
