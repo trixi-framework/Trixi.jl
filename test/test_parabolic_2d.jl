@@ -216,8 +216,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5,
             ode_default_options()..., callback=callbacks)           
       ac_sol = analysis_callback(sol)
-      @test ac_sol.l2 ≈ [ 0.00024296959173852447; 0.0002093263158670915; 0.0005390572390977262; 0.00026753561392341537]
-      @test ac_sol.linf ≈ [ 0.0016210102053424436; 0.002593287648655501; 0.002953907343823712; 0.002077119120180271]
+      @test ac_sol.l2 ≈ [0.00024296959173852447; 0.0002093263158670915; 0.0005390572390977262; 0.00026753561392341537]
+      @test ac_sol.linf ≈ [0.0016210102053424436; 0.002593287648655501; 0.002953907343823712; 0.002077119120180271]
   end
 
   @trixi_testset "TreeMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
