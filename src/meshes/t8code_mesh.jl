@@ -28,15 +28,6 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     function T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes,
                                boundary_names,
                                current_filename) where {NDIMS}
-        # TODO: Implement MPI parallelization.
-        # if mpi_isparallel()
-        #   if !T8code.uses_mpi()
-        #     error("t8code library does not support MPI")
-        #   end
-        #   is_parallel = Val(true)
-        # else
-        #   is_parallel = Val(false)
-        # end
         is_parallel = False()
 
         mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS + 2, length(nodes)}(cmesh,
@@ -48,12 +39,6 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh.boundary_names = boundary_names
         mesh.current_filename = current_filename
         mesh.tree_node_coordinates = tree_node_coordinates
-
-        # Destroy 't8code' structs when the mesh is garbage collected.
-        finalizer(function (mesh::T8codeMesh{NDIMS})
-                      # `cmesh` and `scheme` are automatically freed by this call.
-                      trixi_t8_unref_forest(mesh.forest)
-                  end, mesh)
 
         return mesh
     end

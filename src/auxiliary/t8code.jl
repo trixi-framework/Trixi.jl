@@ -2,7 +2,7 @@
     init_t8code()
 
 Initialize `t8code` by calling `sc_init`, `p4est_init`, and `t8_init` while
-setting the log level to `SC_LP_ERROR`.  This function will check if `t8code`
+setting the log level to `SC_LP_ERROR`. This function will check if `t8code`
 is already initialized and if yes, do nothing, thus it is safe to call it
 multiple times.
 """
