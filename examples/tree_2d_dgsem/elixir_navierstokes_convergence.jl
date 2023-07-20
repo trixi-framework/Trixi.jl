@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEq, Plots
 using Trixi
 
 ###############################################################################
@@ -23,7 +23,12 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 periodicity=(true, false),
                 n_cells_max=30_000) # set maximum capacity of tree data structure
-
+#=
+LLID = Trixi.local_leaf_cells(mesh.tree)
+num_leafs = length(LLID)
+@assert num_leafs % 4 == 0
+Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs/4)])
+=#
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion2D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion2D`)
 #       and by the initial condition (which passes in `CompressibleEulerEquations2D`).
@@ -190,24 +195,53 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
                                              boundary_conditions=(boundary_conditions, boundary_conditions_parabolic),
                                              source_terms=source_terms_navier_stokes_convergence_test)
 
+
+amr_indicator = IndicatorLöhner(semi, variable=Trixi.density)
+
+amr_controller = ControllerThreeLevel(semi, amr_indicator,
+                                      base_level=0,
+                                      med_level=3, med_threshold=0.05,
+                                      max_level=5, max_threshold=0.1)
+
+amr_callback = AMRCallback(semi, amr_controller,
+                          interval=5,
+                          adapt_initial_condition=false)
+
+
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 0.5)
-ode = semidiscretize(semi, tspan)
+split_form = true
+ode = semidiscretize(semi, tspan; split_form=split_form)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+#callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr_callback)
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation
 
 time_int_tol = 1e-8
+
+
 sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5,
             ode_default_options()..., callback=callbacks)
-summary_callback() # print the timer summary
 
+#=
+sol = solve(ode, RDPK3SpFSAL49(); adaptive=false, dt = 5e-4,
+            ode_default_options()..., callback=callbacks)
+=#
+#=
+ode_algorithm = Trixi.CarpenterKennedy2N54()
+sol = Trixi.solve(ode, ode_algorithm,
+                  dt=1e-5, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  save_everystep=false, callback=callbacks);
+= #       
+summary_callback() # print the timer summary
+plot(sol)
+=#

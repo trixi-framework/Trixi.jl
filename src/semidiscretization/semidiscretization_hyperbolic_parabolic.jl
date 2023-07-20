@@ -274,7 +274,7 @@ The parabolic right-hand side is the first function of the split ODE problem and
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
 """
-function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
+function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan; split_form::Bool=true)
     u0_ode = compute_coefficients(first(tspan), semi)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
@@ -283,7 +283,12 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
     # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
     # first function implicitly and the second one explicitly. Thus, we pass the
     # stiffer parabolic function first.
-    return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
+    if split_form
+        return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
+    else
+        specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
+        return ODEProblem{iip, specialize}(rhs_hyperbolic_parabolic!, u0_ode, tspan, semi)
+    end
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
@@ -305,6 +310,7 @@ end
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
     @unpack mesh, equations_parabolic, initial_condition, boundary_conditions_parabolic, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
 
+    #println("RHS para ODE solver: ", length(du_ode), " ", length(u_ode))
     u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache_parabolic)
     du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache_parabolic)
 
@@ -321,5 +327,14 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabol
     put!(semi.performance_counter.counters[2], runtime)
 
     return nothing
+end
+
+function rhs_hyperbolic_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
+    @trixi_timeit timer() "hyperbolic-parabolic rhs!" begin 
+        du_ode_hyp = similar(du_ode) # TODO: Avoid allocations, make member variable of something?
+        rhs!(du_ode_hyp, u_ode, semi, t)
+        rhs_parabolic!(du_ode, u_ode, semi, t)
+        du_ode .+= du_ode_hyp
+    end
 end
 end # @muladd
