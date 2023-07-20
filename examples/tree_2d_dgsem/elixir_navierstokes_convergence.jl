@@ -213,15 +213,15 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 0.5)
-split_form = true
+split_form = false
 ode = semidiscretize(semi, tspan; split_form=split_form)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
-#callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr_callback)
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr_callback)
+#callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation
