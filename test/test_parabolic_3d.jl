@@ -123,6 +123,30 @@ isdir(outdir) && rm(outdir, recursive=true)
                                                                      energy_internal,
                                                                      enstrophy))
       callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+      sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=5e-3,
+            save_everystep=false, callback=callbacks); 
+      ac_sol = analysis_callback(sol)
+      @test ac_sol.l2 ≈ [0.0013666103707729502; 0.2313581629543744; 0.2308164306264533; 0.17460246787819503; 0.28121914446544005]
+      @test ac_sol.linf ≈ [ 0.006938093883741336; 1.028235074139312; 1.0345438209717241; 1.0821111605203542; 1.2669636522564645]
+  end
+
+  @trixi_testset "TreeMesh3D: elixir_navierstokes_taylor_green_vortex.jl (Refined mesh)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_navierstokes_taylor_green_vortex.jl"),
+      tspan=(0.0, 0.0))
+      LLID = Trixi.local_leaf_cells(mesh.tree)
+      num_leafs = length(LLID)
+      @assert num_leafs % 32 == 0
+      Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs/32)])
+      tspan=(0.0, 10.0)
+      semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+                                             initial_condition, solver)
+      ode = semidiscretize(semi, tspan)
+      analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=true,
+                                           extra_analysis_integrals=(energy_kinetic,
+                                                                     energy_internal,
+                                                                     enstrophy))
+      callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
       sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
                   ode_default_options()..., callback=callbacks)
       ac_sol = analysis_callback(sol)
