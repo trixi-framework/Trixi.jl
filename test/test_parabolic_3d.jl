@@ -78,12 +78,53 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "TreeMesh3D: elixir_navierstokes_convergence.jl (Refined mesh)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_navierstokes_convergence.jl"),
+      tspan=(0.0, 0.0))
+      LLID = Trixi.local_leaf_cells(mesh.tree)
+      num_leafs = length(LLID)
+      @assert num_leafs % 16 == 0
+      Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs/16)])
+      tspan=(0.0, 1.0)
+      semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, solver;
+                                             boundary_conditions=(boundary_conditions, boundary_conditions_parabolic),
+                                             source_terms=source_terms_navier_stokes_convergence_test)
+      ode = semidiscretize(semi, tspan)
+      analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+      callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+      sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5,
+            ode_default_options()..., callback=callbacks)
+      ac_sol = analysis_callback(sol)
+      @test ac_sol.l2 ≈ [0.0003991794175622818; 0.0008853745163670504; 0.0010658655552066817; 0.0008785559918324284; 0.001403163458422815]
+      @test ac_sol.linf ≈ [0.0035306410538458177; 0.01505692306169911; 0.008862444161110705; 0.015065647972869856; 0.030402714743065218]
+  end
+
   @trixi_testset "TreeMesh3D: elixir_navierstokes_taylor_green_vortex.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_navierstokes_taylor_green_vortex.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.25),
       l2 = [0.00024173250389635442, 0.015684268393762454, 0.01568426839376248, 0.021991909545192333, 0.02825413672911425],
       linf = [0.0008410587892853094, 0.04740176181772552, 0.04740176181772507, 0.07483494924031157, 0.150181591534448]
     )
+  end
+
+  @trixi_testset "TreeMesh3D: elixir_navierstokes_taylor_green_vortex.jl (Refined mesh)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_navierstokes_taylor_green_vortex.jl"),
+      tspan=(0.0, 0.0))
+      LLID = Trixi.local_leaf_cells(mesh.tree)
+      num_leafs = length(LLID)
+      @assert num_leafs % 32 == 0
+      Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs/32)])
+      tspan=(0.0, 10.0)
+      semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+                                             initial_condition, solver)
+      ode = semidiscretize(semi, tspan)
+      analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+      callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+      sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
+                  ode_default_options()..., callback=callbacks)
+      ac_sol = analysis_callback(sol)
+      @test ac_sol.l2 ≈ [0.001366611840906741; 0.23135816439703072; 0.23081642735389143; 0.17460247710200574; 0.2812199821469314]
+      @test ac_sol.linf ≈ [ 0.00693819371819604; 1.0282359522598283; 1.034545315852348; 1.0821049374639153; 1.2669864039948209]
   end
 
 end
