@@ -76,8 +76,7 @@ cells_per_dimension2 = cells_per_dimension
 
 mesh2 = StructuredMesh(cells_per_dimension2, coordinates_min2, coordinates_max2)
 
-coupling_function2 = coupling_converter_heaviside_2d(-0.5, 1.0, 1.0, equations)
-# coupling_function2 = (x, u) -> (sign(x[2] - 0.0)*0.1 + 1.0)/1.1 * u
+coupling_function2 = (x, u) -> (sign(x[2] - 0.0)*0.1 + 1.0)/1.1 * u
 
 boundary_conditions_x_neg2 = BoundaryConditionCoupled(1, (:end, :i_forward), Float64,
                                                       coupling_function2)
