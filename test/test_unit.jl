@@ -402,6 +402,10 @@ isdir(outdir) && rm(outdir, recursive=true)
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
+    # TODO: TrixiShallowWater: move unit test
+    indicator_hg_swe = IndicatorHennemannGassnerShallowWater(1.0, 0.0, true, "variable", "cache")
+    @test_nowarn show(stdout, indicator_hg_swe)
+
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache=nothing))
     @test_nowarn show(stdout, indicator_loehner)
 

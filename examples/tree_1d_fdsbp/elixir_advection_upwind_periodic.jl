@@ -13,11 +13,10 @@ function initial_condition_sin(x, t, equation::LinearScalarAdvectionEquation1D)
     return SVector(sinpi(x[1] - equations.advection_velocity[1] * t))
 end
 
-D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
-                         derivative_order = 1,
+D_upw = upwind_operators(SummationByPartsOperators.periodic_derivative_operator,
                          accuracy_order = 4,
                          xmin = -1.0, xmax = 1.0,
-                         N = 16)
+                         N = 64)
 flux_splitting = splitting_lax_friedrichs
 solver = FDSBP(D_upw,
                surface_integral = SurfaceIntegralUpwind(flux_splitting),
@@ -26,7 +25,7 @@ solver = FDSBP(D_upw,
 coordinates_min = -1.0
 coordinates_max =  1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
+                initial_refinement_level = 0,
                 n_cells_max = 10_000,
                 periodicity = true)
 
