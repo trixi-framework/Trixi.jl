@@ -118,7 +118,10 @@ isdir(outdir) && rm(outdir, recursive=true)
       semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver)
       ode = semidiscretize(semi, tspan)
-      analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+      analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=true,
+                                           extra_analysis_integrals=(energy_kinetic,
+                                                                     energy_internal,
+                                                                     enstrophy))
       callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
       sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
                   ode_default_options()..., callback=callbacks)
