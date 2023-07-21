@@ -155,7 +155,7 @@ function save_mesh(semi::AbstractSemidiscretization, output_directory, timestep 
     mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
     if mesh.unsaved_changes
-        mesh.current_filename = save_mesh_file(mesh, output_directory)
+        mesh.current_filename = save_mesh_file(mesh, output_directory, timestep)
         mesh.unsaved_changes = false
     end
 end
