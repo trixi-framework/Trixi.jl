@@ -348,7 +348,8 @@ function save_restart_controller(integrator, controller::PIController, restart_c
     end
 end
 
-function save_restart_controller(integrator, controller::PIDController, restart_callback)
+function save_restart_controller(integrator, controller::PIDController,
+                                 restart_callback)
     @unpack output_directory = restart_callback
     timestep = integrator.stats.naccept
     filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
@@ -356,7 +357,7 @@ function save_restart_controller(integrator, controller::PIDController, restart_
     h5open(filename, "cw") do file
         attributes(file)["qold"] = integrator.qold
         attributes(file)["dtpropose"] = integrator.dtpropose
-        file["controller_err"]=controller.err
+        file["controller_err"] = controller.err
     end
 end
 

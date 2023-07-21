@@ -106,7 +106,8 @@ function (restart_callback::SaveRestartCallback)(integrator)
 
         save_restart_file(u_ode, t, dt, iter, semi, restart_callback)
         if integrator.opts.adaptive
-            save_restart_controller(mesh,integrator, integrator.opts.controller, restart_callback)
+            save_restart_controller(mesh, integrator, integrator.opts.controller,
+                                    restart_callback)
         end
     end
 
