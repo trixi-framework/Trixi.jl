@@ -26,7 +26,8 @@ ode = semidiscretize(semi, tspan, restart_filename);
 # Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
 save_solution.condition.save_initial_solution = false
 
-integrator = init(ode, CarpenterKennedy2N54(williamson_condition=false),
+alg = CarpenterKennedy2N54(williamson_condition=false)
+integrator = init(ode, alg,
                   dt=dt, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep=false, callback=callbacks)
 
