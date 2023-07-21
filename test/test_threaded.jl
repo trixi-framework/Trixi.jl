@@ -127,7 +127,8 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 
     @trixi_testset "elixir_euler_curved.jl with threaded time integration" begin
       @test_broken false
-      # TODO: This is cirrently broken and needs to be fixed upstream
+      # TODO: This is currently broken and needs to be fixed upstream
+      #       See https://github.com/JuliaSIMD/StrideArrays.jl/issues/77
       # @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_curved.jl"),
       #   alg = RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()),
       #   l2 = [1.720476068165337e-5, 1.592168205710526e-5, 1.592168205812963e-5, 4.894094865697305e-5],
