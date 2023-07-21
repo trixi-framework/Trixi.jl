@@ -24,9 +24,9 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [preferences.OrdinaryDiffEq]
 PrecompileAutoSpecialize = false
 PrecompileAutoSwitch = false
-PrecompileDefaultSpecialize = true
+PrecompileDefaultSpecialize = false
 PrecompileFunctionWrapperSpecialize = false
-PrecompileLowStorage = true
+PrecompileLowStorage = false
 PrecompileNoSpecialize = false
-PrecompileNonStiff = true
+PrecompileNonStiff = false
 PrecompileStiff = false
