@@ -148,7 +148,7 @@ function calc_gradient!(gradients, u_transformed, t,
         factor_1 = boundary_interpolation[1, 1]
         factor_2 = boundary_interpolation[nnodes(dg), 2]
         @threaded for element in eachelement(dg, cache)
-            for m in eachnode(dg), l in eachnode(dg)
+            for l in eachnode(dg), m in eachnode(dg)
                 for v in eachvariable(equations_parabolic)
                     for dim in 1:3
                         grad = gradients[dim]
