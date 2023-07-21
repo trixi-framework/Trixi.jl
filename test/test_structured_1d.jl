@@ -39,6 +39,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.3))
   end
 
+  @trixi_testset "elixir_euler_sedov_hll_davis.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
+      l2   = [1.278661029299215, 0.0663853410742763, 0.9585741943783386],
+      linf = [3.1661064228547255, 0.16256363944708607, 2.667676158812806],
+      tspan = (0.0, 12.5),
+      surface_flux = FluxHLL(min_max_speed_davis))
+  end
+
   @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
       # Expected errors are exactly the same as with TreeMesh!

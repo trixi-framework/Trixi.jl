@@ -75,8 +75,9 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
+alg = RDPK3SpFSAL49()
 time_int_tol = 1.0e-11
-sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
+sol = solve(ode, alg; abstol=time_int_tol, reltol=time_int_tol,
             ode_default_options()..., callback=callbacks)
 
 # Print the timer summary
