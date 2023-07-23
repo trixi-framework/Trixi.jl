@@ -199,12 +199,12 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 amr_indicator = IndicatorLöhner(semi, variable=Trixi.density)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level=0,
-                                      med_level=3, med_threshold=0.05,
-                                      max_level=5, max_threshold=0.1)
+                                      base_level=5,
+                                      med_level=6, med_threshold=0.05,
+                                      max_level=6, max_threshold=0.1)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                          interval=5,
+                          interval=1,
                           adapt_initial_condition=false)
 
 
@@ -212,13 +212,13 @@ amr_callback = AMRCallback(semi, amr_controller,
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
-tspan = (0.0, 0.5)
+tspan = (0.0, 0.1)
 split_form = false
 ode = semidiscretize(semi, tspan; split_form=split_form)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=10)
-analysis_interval = 100
+analysis_interval = 5
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr_callback)
 #callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
@@ -232,16 +232,5 @@ time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5,
             ode_default_options()..., callback=callbacks)
 
-#=
-sol = solve(ode, RDPK3SpFSAL49(); adaptive=false, dt = 5e-4,
-            ode_default_options()..., callback=callbacks)
-=#
-#=
-ode_algorithm = Trixi.CarpenterKennedy2N54()
-sol = Trixi.solve(ode, ode_algorithm,
-                  dt=1e-5, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep=false, callback=callbacks);
-= #       
 summary_callback() # print the timer summary
 plot(sol)
-=#

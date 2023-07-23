@@ -1416,6 +1416,12 @@ end
     return rho
 end
 
+@inline function v1(u, equations::CompressibleEulerEquations2D)
+    rho = u[1]
+    rho_v1 = u[2]
+    return rho_v1/rho
+end
+
 @inline function pressure(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)

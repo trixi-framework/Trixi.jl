@@ -111,6 +111,7 @@ function transform_variables!(u_transformed, u, mesh::TreeMesh{1},
             u_node = get_node_vars(u, equations_parabolic, dg, i, element)
             u_transformed_node = gradient_variable_transformation(equations_parabolic)(u_node,
                                                                                        equations_parabolic)
+            println("dg:", size(u_transformed))
             set_node_vars!(u_transformed, u_transformed_node, equations_parabolic, dg,
                            i, element)
         end
