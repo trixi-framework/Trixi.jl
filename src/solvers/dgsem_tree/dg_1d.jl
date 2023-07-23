@@ -385,15 +385,17 @@ end
 function prolong2interfaces!(cache, u,
                              mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
     @unpack interfaces = cache
+    @unpack neighbor_ids = interfaces
+    interfaces_u = interfaces.u
 
     @threaded for interface in eachinterface(dg, cache)
-        left_element = interfaces.neighbor_ids[1, interface]
-        right_element = interfaces.neighbor_ids[2, interface]
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
 
         # interface in x-direction
         for v in eachvariable(equations)
-            interfaces.u[1, v, interface] = u[v, nnodes(dg), left_element]
-            interfaces.u[2, v, interface] = u[v, 1, right_element]
+            interfaces_u[1, v, interface] = u[v, nnodes(dg), left_element]
+            interfaces_u[2, v, interface] = u[v, 1, right_element]
         end
     end
 
