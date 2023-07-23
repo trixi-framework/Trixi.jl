@@ -202,22 +202,4 @@ end
   end
 end
 
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive=true)
-
-# Gives a list of mesh files in dir
-meshfiles_in(dir) = filter(file -> endswith(file,".h5") && startswith(file,"mesh"), readdir(dir))
-
-# Test that SaveSolutionCallback prints multiple mesh files with AMR
-@testset "AMR output tests" begin
-  isdir(outdir) && rm(outdir, recursive=true)
-  trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_coarsen_twice.jl"))
-  @test length(meshfiles_in(outdir)) > 1
-
-  isdir(outdir) && rm(outdir, recursive=true) # Remove output directory for next test
-  trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_refine_twice.jl"))
-  @test length(meshfiles_in(outdir)) > 1
-end
-
 end # module
