@@ -623,8 +623,10 @@ end
 
 function apply_jacobian!(du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                          equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+
     @threaded for element in eachelement(dg, cache)
-        factor = -cache.elements.inverse_jacobian[element]
+        factor = -inverse_jacobian[element]
 
         for i in eachnode(dg)
             for v in eachvariable(equations)

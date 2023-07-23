@@ -1117,8 +1117,10 @@ end
 
 function apply_jacobian!(du, mesh::TreeMesh{2},
                          equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+
     @threaded for element in eachelement(dg, cache)
-        factor = -cache.elements.inverse_jacobian[element]
+        factor = -inverse_jacobian[element]
 
         for j in eachnode(dg), i in eachnode(dg)
             for v in eachvariable(equations)
