@@ -231,15 +231,6 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
         l2   = [0.00024871265138964204, 0.0003370077102132591, 0.0003370077102131964, 0.0007231525513793697],
         linf = [0.0015813032944647087, 0.0020494288423820173, 0.0020494288423824614, 0.004793821195083758],
         tspan = (0.0, 0.1))
-
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-          t = sol.t[end]
-          u_ode = sol.u[end]
-          du_ode = similar(u_ode)
-          @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
     end
   end
 
@@ -294,7 +285,11 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        if Threads.nthreads() < 2
+          @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        else
+          @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        end
       end
     end
 
