@@ -60,30 +60,13 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 25.0)
-ode = semidiscretize(semi, tspan; split_form = false);
+ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=100)
-analysis_interval = 10
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
-
-amr_indicator = IndicatorHennemannGassner(semi,
-                                          alpha_max=1.0,
-                                          alpha_min=0.0001,
-                                          alpha_smooth=false,
-                                          variable=Trixi.v1)
-
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level=4,
-                                      med_level =5, med_threshold=0.25,
-                                      max_level =6, max_threshold=0.75)
-
-amr_callback = AMRCallback(semi, amr_controller,
-                            interval=1,
-                            adapt_initial_condition=false)                                              
-
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr_callback)
-#callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+callbacks = CallbackSet(summary_callback, alive_callback)
 
 ###############################################################################
 # run the simulation
@@ -92,6 +75,5 @@ time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
             ode_default_options()..., callback=callbacks)
 summary_callback() # print the timer summary
-using Plots
 
-plot(sol)
+
