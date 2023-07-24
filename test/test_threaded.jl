@@ -96,6 +96,22 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
   end
 
 
+  @testset "T8codeMesh" begin
+    @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
+      @test_trixi_include(joinpath(examples_dir(), "t8code_2d_dgsem", "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+        l2   = [0.0034516244508588046, 0.0023420334036925493, 0.0024261923964557187, 0.004731710454271893],
+        linf = [0.04155789011775046, 0.024772109862748914, 0.03759938693042297, 0.08039824959535657])
+    end
+
+    @trixi_testset "elixir_eulergravity_convergence.jl" begin
+      @test_trixi_include(joinpath(examples_dir(), "t8code_2d_dgsem", "elixir_eulergravity_convergence.jl"),
+        l2   = [0.00024871265138964204, 0.0003370077102132591, 0.0003370077102131964, 0.0007231525513793697],
+        linf = [0.0015813032944647087, 0.0020494288423820173, 0.0020494288423824614, 0.004793821195083758],
+        tspan = (0.0, 0.1))
+    end
+  end
+
+
   @testset "DGMulti" begin
     @trixi_testset "elixir_euler_weakform.jl (SBP, EC)" begin
       @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_weakform.jl"),
