@@ -190,3 +190,9 @@ end
                                                                               })
     return gradient
 end
+
+# Calculate the magnetic energy for a conservative state `cons'.
+@inline function energy_magnetic_mhd(cons, ::CompressibleMhdDiffusion3D)
+    return 0.5 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
+end
+
