@@ -335,7 +335,7 @@ end
 # ================== new Makie plot recipes ====================
 
 # This initializes a Makie recipe, which creates a new type definition which Makie uses to create
-# custom `trixiheatmap` plots. See also https://makie.juliaplots.org/stable/recipes.html
+# custom `trixiheatmap` plots. See also https://docs.makie.org/stable/documentation/recipes/
 Makie.@recipe(TrixiHeatmap, plot_data_series) do scene
     Makie.Theme(colormap = default_Makie_colormap())
 end
@@ -346,9 +346,8 @@ function Makie.plot!(myplot::TrixiHeatmap)
     plotting_mesh = global_plotting_triangulation_makie(pds;
                                                         set_z_coordinate_zero = true)
 
-    @unpack variable_id = pds
     pd = pds.plot_data
-    solution_z = vec(StructArrays.component(pd.data, variable_id))
+    solution_z = vec(StructArrays.component(pd.data, pds.variable_id))
     Makie.mesh!(myplot, plotting_mesh, color = solution_z, shading = false,
                 colormap = myplot[:colormap])
     myplot.colorrange = extrema(solution_z)
