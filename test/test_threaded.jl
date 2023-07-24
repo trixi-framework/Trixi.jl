@@ -18,6 +18,14 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
         linf = [6.314906965243505e-5])
     end
 
+    @trixi_testset "elixir_advection_restart.jl with threaded time integration" begin
+      @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_restart.jl"),
+        alg = CarpenterKennedy2N54(williamson_condition = false, thread = OrdinaryDiffEq.True()),
+        # Expected errors are exactly the same as in the serial test!
+        l2   = [7.81674284320524e-6],
+        linf = [6.314906965243505e-5])
+    end
+
     @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
       @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_amr_refine_twice.jl"),
         l2   = [0.00020547512522578292],
@@ -41,6 +49,15 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
       @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"),
         l2   = [0.061751715597716854, 0.05018223615408711, 0.05018989446443463, 0.225871559730513],
         linf = [0.29347582879608825, 0.31081249232844693, 0.3107380389947736, 1.0540358049885143])
+    end
+
+    @trixi_testset "elixir_advection_diffusion.jl" begin
+      @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion.jl"),
+        initial_refinement_level = 2, tspan = (0.0, 0.4), polydeg = 5,
+        alg = RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()),
+        l2 = [4.0915532997994255e-6],
+        linf = [2.3040850347877395e-5]
+      )
     end
   end
 
@@ -122,6 +139,17 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
         l2 = [0.006400337855843578, 0.005303799804137764, 0.005303799804119745, 0.013204169007030144],
         linf = [0.03798302318566282, 0.05321027922532284, 0.05321027922605448, 0.13392025411839015],
       )
+    end
+
+    @trixi_testset "elixir_euler_curved.jl with threaded time integration" begin
+      @test_broken false
+      # TODO: This is currently broken and needs to be fixed upstream
+      #       See https://github.com/JuliaSIMD/StrideArrays.jl/issues/77
+      # @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_curved.jl"),
+      #   alg = RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()),
+      #   l2 = [1.720476068165337e-5, 1.592168205710526e-5, 1.592168205812963e-5, 4.894094865697305e-5],
+      #   linf = [0.00010525416930584619, 0.00010003778091061122, 0.00010003778085621029, 0.00036426282101720275]
+      # )
     end
 
     @trixi_testset "elixir_euler_triangulate_pkg_mesh.jl" begin
