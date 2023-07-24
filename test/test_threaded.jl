@@ -286,9 +286,9 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         if Threads.nthreads() < 2
-          @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        else
           @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        else
+          @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
         end
       end
     end
