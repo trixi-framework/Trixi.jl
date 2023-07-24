@@ -536,17 +536,14 @@ function create_cache_parabolic(mesh::TreeMesh{1},
     n_vars = nvariables(equations_hyperbolic)
     n_nodes = nnodes(elements)
     n_elements = nelements(elements)
-    u_transformed = Array{uEltype}(undef, n_vars, n_nodes, n_elements)
-    gradients = similar(u_transformed)
-    flux_viscous = similar(u_transformed)
 
-    cache_viscous = CacheViscous{uEltype}(n_vars, n_nodes, n_elements)
+    cache_viscous = CacheViscous1D{uEltype}(n_vars, n_nodes, n_elements)
 
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
     boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
 
-    cache = (; elements, interfaces, boundaries, gradients, flux_viscous, u_transformed, cache_viscous)
+    cache = (; elements, interfaces, boundaries, cache_viscous)
 
     return cache
 end
@@ -569,39 +566,5 @@ function apply_jacobian_parabolic!(du, mesh::TreeMesh{1},
 
     return nothing
 end
-
-mutable struct CacheViscous{uEltype <: Real}
-    u_transformed::Array{uEltype}
-    gradients::Array{uEltype}
-    flux_viscous::Array{uEltype}
-
-    # internal `resize!`able storage
-    _u_transformed::Vector{uEltype}
-    _gradients::Vector{uEltype}
-    _flux_viscous::Vector{uEltype}
-
-    function CacheViscous{uEltype}(n_vars::Integer, n_nodes::Integer, n_elements::Integer) where {uEltype <: Real}
-        new(Array{uEltype}(undef, n_vars, n_nodes, n_elements),
-            Array{uEltype}(undef, n_vars, n_nodes, n_elements),
-            Array{uEltype}(undef, n_vars, n_nodes, n_elements),
-            Vector{uEltype}(undef, n_vars*n_nodes*n_elements),
-            Vector{uEltype}(undef, n_vars*n_nodes*n_elements),
-            Vector{uEltype}(undef, n_vars*n_nodes*n_elements))
-    end
-end
-
-# Only one-dimensional `Array`s are `resize!`able in Julia.
-# Hence, we use `Vector`s as internal storage and `resize!`
-# them whenever needed. Then, we reuse the same memory by
-# `unsafe_wrap`ping multi-dimensional `Array`s around the
-# internal storage.
-function Base.resize!(cache_viscous::CacheViscous, capacity)
-    resize!(cache_viscous._u_transformed, capacity)
-    resize!(cache_viscous._gradients, capacity)
-    resize!(cache_viscous._flux_viscous, capacity)
-
-    return nothing
-end
-
 
 end # @muladd

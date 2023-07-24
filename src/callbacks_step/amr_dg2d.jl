@@ -166,6 +166,21 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
+        @unpack cache_viscous = cache_parabolic
+        resize!(cache_viscous, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+
+        cache_parabolic.cache_viscous.u_transformed = unsafe_wrap(Array, 
+                                                                  pointer(cache_parabolic.cache_viscous._u_transformed),
+                                                                  (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+        for dim in 1:2
+            cache_parabolic.cache_viscous.gradients[dim] = unsafe_wrap(Array, 
+                                                                       pointer(cache_parabolic.cache_viscous._gradients[dim]),
+                                                                       (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+            cache_parabolic.cache_viscous.flux_viscous[dim] = unsafe_wrap(Array, 
+                                                                          pointer(cache_parabolic.cache_viscous._flux_viscous[dim]),
+                                                                          (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+        end
+
         # Loop over all elements in old container and either copy them or refine them
         element_id = 1
         for old_element_id in 1:old_n_elements
@@ -372,6 +387,21 @@ function coarsen!(u_ode::AbstractVector, adaptor,
         resize!(u_ode,
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+        @unpack cache_viscous = cache_parabolic
+        resize!(cache_viscous, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+
+        cache_parabolic.cache_viscous.u_transformed = unsafe_wrap(Array, 
+                                                                  pointer(cache_parabolic.cache_viscous._u_transformed),
+                                                                  (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+        for dim in 1:2
+            cache_parabolic.cache_viscous.gradients[dim] = unsafe_wrap(Array, 
+                                                                           pointer(cache_parabolic.cache_viscous._gradients[dim]),
+                                                                           (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+            cache_parabolic.cache_viscous.flux_viscous[dim] = unsafe_wrap(Array, 
+                                                                          pointer(cache_parabolic.cache_viscous._flux_viscous[dim]),
+                                                                          (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+        end
 
         # Loop over all elements in old container and either copy them or coarsen them
         skip = 0
