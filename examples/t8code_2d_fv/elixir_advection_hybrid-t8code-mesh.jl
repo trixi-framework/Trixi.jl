@@ -150,7 +150,7 @@ mesh = T8codeMesh{n_dims}(forest)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
-ode = semidiscretize(semi, (0.0, 10.0));
+ode = semidiscretize(semi, (0.0, 30.0));
 
 summary_callback = SummaryCallback()
 
