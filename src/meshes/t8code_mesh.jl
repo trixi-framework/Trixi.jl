@@ -40,6 +40,10 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh.current_filename = current_filename
         mesh.tree_node_coordinates = tree_node_coordinates
 
+        MPI.add_finalize_hook!(function ()
+                                   trixi_t8_unref_forest(mesh.forest)
+                               end)
+
         return mesh
     end
 end

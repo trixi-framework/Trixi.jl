@@ -26,6 +26,10 @@ function init_t8code()
     # Initialize t8code with log level ERROR to prevent a lot of output in AMR simulations.
     t8_init(T8code.Libt8.SC_LP_ERROR)
 
+    MPI.add_finalize_hook!(function ()
+                               T8code.Libt8.sc_finalize()
+                           end)
+
     return nothing
 end
 
