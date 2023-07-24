@@ -118,15 +118,19 @@ isdir(outdir) && rm(outdir, recursive=true)
       semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver)
       ode = semidiscretize(semi, tspan)
-      analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+      analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=true,
+                                           extra_analysis_integrals=(energy_kinetic,
+                                                                     energy_internal,
+                                                                     enstrophy))
       callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
-      sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
-                  ode_default_options()..., callback=callbacks)
+      # Use CarpenterKennedy2N54 since `RDPK3SpFSAL49` gives slightly different results on different machines
+      sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=5e-3,
+            save_everystep=false, callback=callbacks); 
       ac_sol = analysis_callback(sol)
-      @test ac_sol.l2 ≈ [0.001366611840906741; 0.23135816439703072; 0.23081642735389143; 0.17460247710200574; 0.2812199821469314]
-      @test ac_sol.linf ≈ [0.00693819371819604; 1.0282359522598283; 1.034545315852348; 1.0821049374639153; 1.2669864039948209]
+      @test ac_sol.l2 ≈ [0.0013666103707729502; 0.2313581629543744; 0.2308164306264533; 0.17460246787819503; 0.28121914446544005]
+      @test ac_sol.linf ≈ [0.006938093883741336; 1.028235074139312; 1.0345438209717241; 1.0821111605203542; 1.2669636522564645]
   end
-
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
