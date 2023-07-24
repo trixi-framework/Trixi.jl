@@ -410,7 +410,7 @@ function Makie.plot!(fig, pd::PlotData2DTriangulated;
 
         row = row_list[variable_to_plot]
         col = col_list[variable_to_plot]
-        Makie.Colorbar(fig[row, col][1, 2], plt)
+        Makie.Colorbar(fig[row, col][1, 2], colormap = colormap)
 
         ax.aspect = Makie.DataAspect() # equal aspect ratio
         ax.title = variable_name
