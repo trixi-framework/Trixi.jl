@@ -16,26 +16,26 @@ using T8code.Libt8: SC_LP_PRODUCTION
 # Directly ported from: `src/t8_cmesh/t8_cmesh_examples.c: t8_cmesh_new_periodic_hybrid`.
 function cmesh_new_periodic_hybrid(comm, n_dims)::t8_cmesh_t
     vertices = [  # Just all vertices of all trees. partly duplicated
-		0, 0, 0,                # tree 0, triangle
-		1.0, 0, 0,
-		0, 1.0, 0,
-		0, 2.0, 0,              # tree 1, triangle
-		0, 1.0, 0,
-        1.0, 2.0, 0,
-		2.0, 0, 0,              # tree 2, triangle
-		2.0, 1.0, 0,
-		1.0, 0, 0,
-        2.0, 2.0, 0,            # tree 3, triangle
-		1.0, 2.0, 0,
-		2.0, 1.0, 0,
-		1.0, 0, 0,              # tree 4, quad
-		2.0, 1.0, 0,
-        0, 1.0, 0,
-        1.0, 2.0, 0,
+		-2.0, -2.0, 0,  # tree 0, triangle
+		0, -2.0, 0,
+		-2.0, 0, 0,
+		-2.0, 2.0, 0,   # tree 1, triangle
+		-2.0, 0, 0,
+        0, 2.0, 0,
+		2.0, -2.0, 0,   # tree 2, triangle
+		2.0, 0, 0,
+		0, -2.0, 0,
+        2.0, 2.0, 0,    # tree 3, triangle
+		0, 2.0, 0,
+		2.0, 0, 0,
+		0, -2.0, 0,     # tree 4, quad
+		2.0, 0, 0,
+        -2.0, 0, 0,
+        0, 2.0, 0,
 	]
     #
 	# This is how the cmesh looks like. The numbers are the tree numbers:
-	# Domain size [0,2]^2
+	# Domain size [-2,2]^2
     #
     # +----------+
     # | 1  /\  3 |
@@ -125,7 +125,7 @@ equations = CompressibleEulerEquations2D(1.4)
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
     # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
     # Set up polar coordinates
-    inicenter = SVector(1.0, 1.0)
+    inicenter = SVector(0.0, 0.0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
     r = sqrt(x_norm^2 + y_norm^2)
