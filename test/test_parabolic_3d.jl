@@ -131,7 +131,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test ac_sol.l2 ≈ [0.0013666103707729502; 0.2313581629543744; 0.2308164306264533; 0.17460246787819503; 0.28121914446544005]
       @test ac_sol.linf ≈ [0.006938093883741336; 1.028235074139312; 1.0345438209717241; 1.0821111605203542; 1.2669636522564645]
   end
-end
 
   @trixi_testset "P4estMesh3D: elixir_navierstokes_convergence.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem", "elixir_navierstokes_convergence.jl"),
@@ -148,8 +147,8 @@ end
       linf = [0.0006696415247340326, 0.03442565722527785, 0.03442565722577423, 0.06295407168705314, 0.032857472756916195]
     )
   end
-  
 end
+
 # Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive=true)
 
