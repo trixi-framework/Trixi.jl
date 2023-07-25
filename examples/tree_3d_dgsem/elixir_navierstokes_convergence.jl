@@ -249,13 +249,36 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan)
+ode = semidiscretize(semi, tspan; split_form = false)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+
+#=
+amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
+                                      base_level=2,
+                                      med_level=3, med_threshold=0.1,
+                                      max_level=4, max_threshold=0.6)
+=#
+amr_indicator = IndicatorHennemannGassner(semi,
+                                          alpha_max=1.0,
+                                          alpha_min=0.0001,
+                                          alpha_smooth=false,
+                                          variable=Trixi.density)
+
+amr_controller = ControllerThreeLevel(semi, amr_indicator,
+                                      base_level=2,
+                                      med_level =3, med_threshold=0.0003, # med_level = current level
+                                      max_level =4, max_threshold=0.003)
+
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval=5,
+                           adapt_initial_condition=true)
+
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr_callback)
+#callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation
