@@ -920,7 +920,7 @@ function prolong2boundaries_gpu!(cache, u,
     num_nodes = nnodes(dg)
     num_boundaries = nboundaries(boundaries)
 
-    # CUDA.jl has issues with zero element arrays, therefore skip this kernel since there is no work neccessary anyway
+    # CUDA.jl has issues with zero element arrays, therefore skip this kernel since there is no work necessary anyway
     if (num_boundaries > 0)
         kernel!(u, boundaries.u, boundaries.orientations, boundaries.neighbor_sides, boundaries.neighbor_ids, equations, num_nodes, ndrange=num_boundaries)
         # Ensure that device is finished
