@@ -205,7 +205,7 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1} <:
                AbstractContainer
     u::Array{uEltype, NDIMSP1}       # [variables, i, j, boundary]
     neighbor_ids::Vector{Int}                   # [boundary]
-    node_indices::Vector{NTuple{NDIMS, Symbol}} # [boundary]
+    node_indices::Vector{NTuple{NDIMS, Index}} # [boundary]
     name::Vector{Symbol}                # [boundary]
 
     # internal `resize!`able storage
@@ -255,7 +255,7 @@ function init_boundaries(mesh::P4estMesh, equations, basis, elements)
                      n_boundaries))
 
     neighbor_ids = Vector{Int}(undef, n_boundaries)
-    node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
+    node_indices = Vector{NTuple{NDIMS, Index}}(undef, n_boundaries)
     names = Vector{Symbol}(undef, n_boundaries)
 
     boundaries = P4estBoundaryContainer{NDIMS, uEltype, NDIMS + 1}(u, neighbor_ids,
@@ -336,12 +336,12 @@ mutable struct P4estMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3} <:
                AbstractContainer
     u::Array{uEltype, NDIMSP3} # [small/large side, variable, position, i, j, mortar]
     neighbor_ids::Matrix{Int}             # [position, mortar]
-    node_indices::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
+    node_indices::Matrix{NTuple{NDIMS, Index}} # [small/large, mortar]
 
     # internal `resize!`able storage
     _u::Vector{uEltype}
     _neighbor_ids::Vector{Int}
-    _node_indices::Vector{NTuple{NDIMS, Symbol}}
+    _node_indices::Vector{NTuple{NDIMS, Index}}
 end
 
 @inline nmortars(mortars::P4estMortarContainer) = size(mortars.neighbor_ids, 2)
@@ -389,7 +389,7 @@ function init_mortars(mesh::P4estMesh, equations, basis, elements)
     neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
                                (2^(NDIMS - 1) + 1, n_mortars))
 
-    _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mortars)
+    _node_indices = Vector{NTuple{NDIMS, Index}}(undef, 2 * n_mortars)
     node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mortars))
 
     mortars = P4estMortarContainer{NDIMS, uEltype, NDIMS + 1, NDIMS + 3}(u,
@@ -702,17 +702,17 @@ end
 # Return direction of the face, which is indexed by node_indices
 @inline function indices2direction(indices)
     # TODO: Remove all symbols
-    if indices[1] === :begin || indices[1] == _begin
+    if indices[1] == _begin
         return 1
-    elseif indices[1] === :end || indices[1] == _end
+    elseif indices[1] == _end
         return 2
-    elseif indices[2] === :begin || indices[2] == _begin
+    elseif indices[2] == _begin
         return 3
-    elseif indices[2] === :end || indices[2] == _end
+    elseif indices[2] == _end
         return 4
-    elseif indices[3] === :begin || indices[3] == _begin
+    elseif indices[3] == _begin
         return 5
-    else # if indices[3] === :end
+    else # if indices[3] == _end
         return 6
     end
 end

@@ -122,16 +122,16 @@ end
                                              face, boundary_id)
     if face == 0
         # Index face in negative x-direction
-        boundaries.node_indices[boundary_id] = (:begin, :i_forward)
+        boundaries.node_indices[boundary_id] = (_begin, i_forward)
     elseif face == 1
         # Index face in positive x-direction
-        boundaries.node_indices[boundary_id] = (:end, :i_forward)
+        boundaries.node_indices[boundary_id] = (_end, i_forward)
     elseif face == 2
         # Index face in negative y-direction
-        boundaries.node_indices[boundary_id] = (:i_forward, :begin)
+        boundaries.node_indices[boundary_id] = (i_forward, _begin)
     else # face == 3
         # Index face in positive y-direction
-        boundaries.node_indices[boundary_id] = (:i_forward, :end)
+        boundaries.node_indices[boundary_id] = (i_forward, _end)
     end
 
     return boundaries
@@ -146,24 +146,24 @@ end
         # relative to the mortar.
         if side == 1 || orientation == 0
             # Forward indexing for small side or orientation == 0
-            i = :i_forward
+            i = i_forward
         else
             # Backward indexing for large side with reversed orientation
-            i = :i_backward
+            i = i_backward
         end
 
         if faces[side] == 0
             # Index face in negative x-direction
-            mortars.node_indices[side, mortar_id] = (:begin, i)
+            mortars.node_indices[side, mortar_id] = (_begin, i)
         elseif faces[side] == 1
             # Index face in positive x-direction
-            mortars.node_indices[side, mortar_id] = (:end, i)
+            mortars.node_indices[side, mortar_id] = (_end, i)
         elseif faces[side] == 2
             # Index face in negative y-direction
-            mortars.node_indices[side, mortar_id] = (i, :begin)
+            mortars.node_indices[side, mortar_id] = (i, _begin)
         else # faces[side] == 3
             # Index face in positive y-direction
-            mortars.node_indices[side, mortar_id] = (i, :end)
+            mortars.node_indices[side, mortar_id] = (i, _end)
         end
     end
 
