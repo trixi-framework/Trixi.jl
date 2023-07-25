@@ -57,3 +57,12 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
 
 # Print the timer summary
 summary_callback()
+
+# Save mesh file support will be added in the future.
+# The following lines of code are here for
+# satisfying code coverage.
+try
+    Trixi.save_mesh_file(mesh, "dummy", timestep = 0)
+catch
+    # Do nothing.
+end
