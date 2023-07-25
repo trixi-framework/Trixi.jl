@@ -7,7 +7,8 @@
 
 @doc raw"""
     coupling_converter_identity(semi::AbstractSemidiscretization, tspan)
-    Identity coupling converter function.
+
+Identity coupling converter function.
 
 The coupling is given as a linear function.
 ```math
