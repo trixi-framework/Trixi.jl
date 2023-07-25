@@ -27,7 +27,7 @@ function init_t8code()
     t8_init(T8code.Libt8.SC_LP_ERROR)
 
     # `sc_finalize` should always be called during shutdown of an application.
-    # It checks wether there is still un-freed memory by t8code and/or
+    # It checks whether there is still un-freed memory by t8code and/or
     # T8code.jl and throws an exception if this is the case.
     MPI.add_finalize_hook!(T8code.Libt8.sc_finalize)
 
