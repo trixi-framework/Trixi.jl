@@ -13,7 +13,7 @@
 #               2. compute f(u, grad(u))
 #               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
-function rhs_parabolic!(du, u, t, mesh::TreeMesh{3},
+function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{3}, P4estMesh{3}},
                         equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -390,7 +390,7 @@ end
 
 function calc_boundary_flux_gradients!(cache, t,
                                        boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                       mesh::TreeMesh{3},
+                                       mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                        equations_parabolic::AbstractEquationsParabolic,
                                        surface_integral, dg::DG)
     return nothing
@@ -398,7 +398,7 @@ end
 
 function calc_boundary_flux_divergence!(cache, t,
                                         boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                        mesh::TreeMesh{3},
+                                        mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                         equations_parabolic::AbstractEquationsParabolic,
                                         surface_integral, dg::DG)
     return nothing

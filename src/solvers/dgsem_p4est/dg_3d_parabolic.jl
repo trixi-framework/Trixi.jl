@@ -22,87 +22,6 @@ function create_cache_parabolic(mesh::P4estMesh{3}, equations_hyperbolic::Abstra
     return cache
 end
 
-function rhs_parabolic!(du, u, t, mesh::P4estMesh{3},
-                        equations_parabolic::AbstractEquationsParabolic,
-                        initial_condition, boundary_conditions_parabolic, source_terms,
-                        dg::DG, parabolic_scheme, cache, cache_parabolic)
-    @unpack u_transformed, gradients, flux_viscous = cache_parabolic
-
-    # Convert conservative variables to a form more suitable for viscous flux calculations
-    @trixi_timeit timer() "transform variables" begin
-        transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                             dg, parabolic_scheme, cache, cache_parabolic)
-    end
-
-    # Compute the gradients of the transformed variables
-    @trixi_timeit timer() "calculate gradient" begin
-        calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
-                       boundary_conditions_parabolic, dg, cache, cache_parabolic)
-    end
-
-    # Compute and store the viscous fluxes
-    @trixi_timeit timer() "calculate viscous fluxes" begin
-        calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh,
-                             equations_parabolic, dg, cache, cache_parabolic)
-    end
-
-    # The remainder of this function is essentially a regular rhs! for parabolic
-    # equations (i.e., it computes the divergence of the viscous fluxes)
-    #
-    # OBS! In `calc_viscous_fluxes!`, the viscous flux values at the volume nodes of each element have
-    # been computed and stored in `fluxes_viscous`. In the following, we *reuse* (abuse) the
-    # `interfaces` and `boundaries` containers in `cache_parabolic` to interpolate and store the
-    # *fluxes* at the element surfaces, as opposed to interpolating and storing the *solution* (as it
-    # is done in the hyperbolic operator). That is, `interfaces.u`/`boundaries.u` store *viscous flux values*
-    # and *not the solution*.  The advantage is that a) we do not need to allocate more storage, b) we
-    # do not need to recreate the existing data structure only with a different name, and c) we do not
-    # need to interpolate solutions *and* gradients to the surfaces.
-
-    # TODO: parabolic; reconsider current data structure reuse strategy
-
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, flux_viscous, mesh, equations_parabolic, dg, cache)
-    end
-
-    # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-                            dg.surface_integral, dg, cache)
-    end
-
-    # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-                             equations_parabolic, dg, cache_parabolic)
-    end
-
-    # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-                            dg.surface_integral, dg, cache)
-    end
-
-    # TODO: parabolic; extend to mortars
-    @assert nmortars(dg, cache) == 0
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations_parabolic,
-                               dg.surface_integral, dg, cache_parabolic)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache_parabolic)
-    end
-
-    return nothing
-end
-
 function calc_gradient!(gradients, u_transformed, t,
                         mesh::P4estMesh{3}, equations_parabolic,
                         boundary_conditions_parabolic, dg::DG,
@@ -644,23 +563,9 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
     return nothing
 end
 
-function calc_boundary_flux_gradients!(cache, t,
-                                       boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                       mesh::P4estMesh{3},
-                                       equations_parabolic::AbstractEquationsParabolic,
-                                       surface_integral, dg::DG)
-    return nothing
-end
-
-function calc_boundary_flux_gradients!(cache, t,
-                                       boundary_condition::BoundaryConditionDoNothing,
-                                       mesh::P4estMesh{3}, equations, surface_integral, dg::DG)
-    @assert isempty(eachboundary(dg, cache))
-end
-
 # # Function barrier for type stability
 # !!! TODO: Figure out why this cannot removed eventhough it exists in the dg_2d_parabolic.jl file
-function calc_boundary_flux_gradients!(cache, t, boundary_conditions, mesh::P4estMesh{3},
+function calc_boundary_flux_gradients!(cache, t, boundary_conditions, mesh::P4estMesh,
                                        equations, surface_integral, dg::DG)
     (; boundary_condition_types, boundary_indices) = boundary_conditions
 
@@ -669,21 +574,7 @@ function calc_boundary_flux_gradients!(cache, t, boundary_conditions, mesh::P4es
     return nothing
 end
 
-function calc_boundary_flux_divergence!(cache, t,
-                                        boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                        mesh::P4estMesh{3},
-                                        equations_parabolic::AbstractEquationsParabolic,
-                                        surface_integral, dg::DG)
-    return nothing
-end
-
-function calc_boundary_flux_divergence!(cache, t,
-                                        boundary_condition::BoundaryConditionDoNothing,
-                                        mesh::P4estMesh{3}, equations, surface_integral, dg::DG)
-    @assert isempty(eachboundary(dg, cache))
-end
-
-function calc_boundary_flux_divergence!(cache, t, boundary_conditions, mesh::P4estMesh{3},
+function calc_boundary_flux_divergence!(cache, t, boundary_conditions, mesh::P4estMesh,
                                         equations, surface_integral, dg::DG)
     (; boundary_condition_types, boundary_indices) = boundary_conditions
 
@@ -697,7 +588,7 @@ end
 function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
                                      BC_indices::NTuple{N, Vector{Int}},
                                      operator_type,
-                                     mesh::P4estMesh{3},
+                                     mesh::P4estMesh,
                                      equations, surface_integral, dg::DG) where {N}
     # Extract the boundary condition type and index vector
     boundary_condition = first(BCs)
@@ -721,7 +612,7 @@ end
 
 # terminate the type-stable iteration over tuples
 function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
-                                     operator_type, mesh::P4estMesh{3}, equations,
+                                     operator_type, mesh::P4estMesh, equations,
                                      surface_integral, dg::DG)
     nothing
 end
