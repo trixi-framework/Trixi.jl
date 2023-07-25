@@ -24,4 +24,4 @@ and one that goes the other way.
 
 In their minimal form they take the position vector `x` and state vector `u`
 and return the transformed variables.
-Examples can be seen in `examples/structured_2d_dgsem/elixir_advection_coupled_converter.jl`.
+Examples can be seen in `examples/structured_2d_dgsem/elixir_advection_coupled.jl`.
