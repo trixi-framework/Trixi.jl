@@ -1,7 +1,7 @@
 # This method is called when a SemidiscretizationHyperbolicParabolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache_parabolic(mesh::P4estMesh, equations_hyperbolic::AbstractEquations,
+function create_cache_parabolic(mesh::P4estMesh{2}, equations_hyperbolic::AbstractEquations,
                                 equations_parabolic::AbstractEquationsParabolic,
                                 dg::DG, parabolic_scheme, RealT, uEltype)
     balance!(mesh)
