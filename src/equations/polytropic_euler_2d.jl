@@ -223,7 +223,7 @@ end
     if equations.gamma == 1.0 # isothermal gas
         internal_energy = equations.kappa * log(rho)
     else # equations.gamma > 1 # polytropic gas
-        internal_energy = equations.kappa * rho^equations.gamma /
+        internal_energy = equations.kappa * rho^(equations.gamma - 1) /
                           (equations.gamma - 1.0)
     end
 
