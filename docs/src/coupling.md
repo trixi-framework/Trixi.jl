@@ -7,11 +7,6 @@ We would then like to solve the Navier-Stokes equations in the fluid domain
 and the heat conduction equations in the plate.
 The coupling would happen at the interface through the exchange of thermal energy.
 
-Another type of coupling is bulk or volume coupling.
-There we have at least two systems that share all or parts of the domain.
-We could, for instance, have a Maxwell system and a fluid system.
-The coupling would then occur through the Lorentz force.
-
 
 ## Converter Coupling
 We can have the case where the two systems do not share any variables, but
