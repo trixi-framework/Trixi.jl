@@ -13,7 +13,7 @@
 #               2. compute f(u, grad(u))
 #               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
-function rhs_parabolic!(du, u, t, mesh::TreeMesh{3},
+function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{3}, P4estMesh{3}},
                         equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -115,7 +115,7 @@ end
 # Transform solution variables prior to taking the gradient
 # (e.g., conservative to primitive variables). Defaults to doing nothing.
 # TODO: can we avoid copying data?
-function transform_variables!(u_transformed, u, mesh::TreeMesh{3},
+function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{3}, P4estMesh{3}},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, parabolic_scheme, cache, cache_parabolic)
     @threaded for element in eachelement(dg, cache)
@@ -335,7 +335,8 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
     return nothing
 end
 
-function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::TreeMesh{3},
+function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed,
+                              mesh::Union{TreeMesh{3}, P4estMesh{3}},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache, cache_parabolic)
     gradients_x, gradients_y, gradients_z = gradients
@@ -389,7 +390,7 @@ end
 
 function calc_boundary_flux_gradients!(cache, t,
                                        boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                       mesh::TreeMesh{3},
+                                       mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                        equations_parabolic::AbstractEquationsParabolic,
                                        surface_integral, dg::DG)
     return nothing
@@ -397,7 +398,7 @@ end
 
 function calc_boundary_flux_divergence!(cache, t,
                                         boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                        mesh::TreeMesh{3},
+                                        mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                         equations_parabolic::AbstractEquationsParabolic,
                                         surface_integral, dg::DG)
     return nothing
@@ -1120,7 +1121,7 @@ end
 # This is because the parabolic fluxes are assumed to be of the form
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
-function apply_jacobian_parabolic!(du, mesh::TreeMesh{3},
+function apply_jacobian_parabolic!(du, mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                    equations::AbstractEquationsParabolic, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
         factor = cache.elements.inverse_jacobian[element]
