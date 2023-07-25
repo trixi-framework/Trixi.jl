@@ -56,17 +56,17 @@ end
     end
 end
 
-@inline function index_to_start_step_2d(index::Int, index_range)
+@inline function index_to_start_step_2d(index::Index, index_range)
     index_begin = first(index_range)
     index_end = last(index_range)
 
-    if index == 0 # :begin
+    if index == _begin
         return index_begin, 0
-    elseif index == 1 # :end
+    elseif index == _end
         return index_end, 0
-    elseif index == 2 # :i_forward
+    elseif index == i_forward
         return index_begin, 1
-    else # if index === :i_backward
+    else # if index == i_backward
         return index_end, -1
     end
 end
@@ -77,6 +77,8 @@ function prolong2interfaces!(cache, u,
                              equations, surface_integral, dg::DG)
     @unpack interfaces = cache
     index_range = eachnode(dg)
+
+    @autoinfiltrate
 
     @threaded for interface in eachinterface(dg, cache)
         # Copy solution data from the primary element using "delayed indexing" with

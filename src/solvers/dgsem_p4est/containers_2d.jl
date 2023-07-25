@@ -93,24 +93,24 @@ end
         # relative to the interface.
         if side == 1 || orientation == 0
             # Forward indexing
-            i = 2 # :i_forward
+            i = i_forward
         else
             # Backward indexing
-            i = 3 # :i_backward
+            i = i_backward
         end
 
         if faces[side] == 0
             # Index face in negative x-direction
-            interfaces.node_indices[side, interface_id] = (0, i) # (:begin, i)
+            interfaces.node_indices[side, interface_id] = (_begin, i)
         elseif faces[side] == 1
             # Index face in positive x-direction
-            interfaces.node_indices[side, interface_id] = (1, i) # (:end, i)
+            interfaces.node_indices[side, interface_id] = (_end, i)
         elseif faces[side] == 2
             # Index face in negative y-direction
-            interfaces.node_indices[side, interface_id] = (i, 0) # (i, :begin)
+            interfaces.node_indices[side, interface_id] = (i, _begin)
         else # faces[side] == 3
             # Index face in positive y-direction
-            interfaces.node_indices[side, interface_id] = (i, 1) # (i, :end)
+            interfaces.node_indices[side, interface_id] = (i, _end)
         end
     end
 

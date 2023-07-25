@@ -6,6 +6,12 @@
 #! format: noindent
 
 abstract type AbstractVolumeIntegral end
+@enum Index begin
+    _begin
+    _end
+    i_forward
+    i_backward
+end
 
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::AbstractVolumeIntegral, dg, cache)

@@ -129,16 +129,12 @@ mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2} <:
                AbstractContainer
     u::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
     neighbor_ids::Matrix{Int}                   # [primary/secondary, interface]
-    # 0 = :begin
-    # 1 = :end
-    # 2 = :i_forward
-    # 3 = :i_backward
-    node_indices::Matrix{NTuple{NDIMS, Int}} # [primary/secondary, interface]
+    node_indices::Matrix{NTuple{NDIMS, Index}} # [primary/secondary, interface]
 
     # internal `resize!`able storage
     _u::Vector{uEltype}
     _neighbor_ids::Vector{Int}
-    _node_indices::Vector{NTuple{NDIMS, Int}}
+    _node_indices::Vector{NTuple{NDIMS, Index}}
 end
 
 @inline function ninterfaces(interfaces::P4estInterfaceContainer)
@@ -186,7 +182,7 @@ function init_interfaces(mesh::P4estMesh, equations, basis, elements)
     _neighbor_ids = Vector{Int}(undef, 2 * n_interfaces)
     neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2, n_interfaces))
 
-    _node_indices = Vector{NTuple{NDIMS, Int}}(undef, 2 * n_interfaces)
+    _node_indices = Vector{NTuple{NDIMS, Index}}(undef, 2 * n_interfaces)
     node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_interfaces))
 
     interfaces = P4estInterfaceContainer{NDIMS, uEltype, NDIMS + 2}(u, neighbor_ids,
@@ -706,15 +702,15 @@ end
 # Return direction of the face, which is indexed by node_indices
 @inline function indices2direction(indices)
     # TODO: Remove all symbols
-    if indices[1] === :begin || indices[1] == 0
+    if indices[1] === :begin || indices[1] == _begin
         return 1
-    elseif indices[1] === :end || indices[1] == 1
+    elseif indices[1] === :end || indices[1] == _end
         return 2
-    elseif indices[2] === :begin || indices[2] == 0
+    elseif indices[2] === :begin || indices[2] == _begin
         return 3
-    elseif indices[2] === :end || indices[2] == 1
+    elseif indices[2] === :end || indices[2] == _end
         return 4
-    elseif indices[3] === :begin || indices[3] == 0
+    elseif indices[3] === :begin || indices[3] == _begin
         return 5
     else # if indices[3] === :end
         return 6
