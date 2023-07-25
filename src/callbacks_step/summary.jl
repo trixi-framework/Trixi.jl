@@ -16,8 +16,10 @@ beginning of a simulation and then resets the timer. When the returned callback 
 directly, the current timer values are shown.
 """
 function SummaryCallback(reset_threads = true)
-    initialize(cb, u, t, integrator) = initialize_summary_callback(cb, u, t, integrator;
-                                                                   reset_threads)
+    function initialize(cb, u, t, integrator)
+        initialize_summary_callback(cb, u, t, integrator;
+                                    reset_threads)
+    end
     DiscreteCallback(summary_callback, summary_callback,
                      save_positions = (false, false),
                      initialize = initialize)
