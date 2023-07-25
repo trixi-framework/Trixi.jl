@@ -21,5 +21,4 @@ end
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
-include("coupling_converters_2d.jl")
 end # @muladd
