@@ -56,6 +56,21 @@ end
     end
 end
 
+@inline function index_to_start_step_2d(index::Int, index_range)
+    index_begin = first(index_range)
+    index_end = last(index_range)
+
+    if index == 0 # :begin
+        return index_begin, 0
+    elseif index == 1 # :end
+        return index_end, 0
+    elseif index == 2 # :i_forward
+        return index_begin, 1
+    else # if index === :i_backward
+        return index_end, -1
+    end
+end
+
 # We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u,
                              mesh::P4estMesh{2},
