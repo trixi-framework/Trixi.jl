@@ -13,6 +13,22 @@ isdir(outdir) && rm(outdir, recursive = true)
 mkdir(outdir)
 
 @testset "T8codeMesh2D" begin
+
+    @trixi_testset "test save_mesh_file" begin
+      @test_throws Exception begin
+        # Save mesh file support will be added in the future. The following
+        # lines of code are here for satisfying code coverage.
+
+        # Create dummy mesh.
+        mesh = T8codeMesh((1, 1), polydeg = 1,
+                          mapping = Trixi.coordinates2mapping((-1.0, -1.0),  ( 1.0,  1.0)),
+                          initial_refinement_level = 1)
+
+        # This call throws an error.
+        Trixi.save_mesh_file(mesh, "dummy")
+      end
+    end
+
     @trixi_testset "elixir_advection_basic.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
