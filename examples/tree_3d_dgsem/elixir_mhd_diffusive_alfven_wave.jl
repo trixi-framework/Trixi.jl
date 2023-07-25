@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the ideal compressible MHD equations
+# semidiscretization of the resistive compressible MHD equations
 
 prandtl_number() = 0.72
 mu() = 4e-2
