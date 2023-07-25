@@ -26,9 +26,10 @@ function init_t8code()
     # Initialize t8code with log level ERROR to prevent a lot of output in AMR simulations.
     t8_init(T8code.Libt8.SC_LP_ERROR)
 
-    MPI.add_finalize_hook!(function ()
-                               T8code.Libt8.sc_finalize()
-                           end)
+    # `sc_finalize` should always be called during shutdown of an application.
+    # It checks wether there is still un-freed memory by t8code and/or
+    # T8code.jl and throws an exception if this is the case.
+    MPI.add_finalize_hook!(T8code.Libt8.sc_finalize)
 
     return nothing
 end
