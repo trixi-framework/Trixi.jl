@@ -12,9 +12,9 @@ mutable struct CacheViscous1D{uEltype <: Real}
       new(Array{uEltype}(undef, n_vars, n_nodes, n_elements),
           Array{uEltype}(undef, n_vars, n_nodes, n_elements),
           Array{uEltype}(undef, n_vars, n_nodes, n_elements),
-          Vector{uEltype}(undef, n_vars*n_nodes*n_elements),
-          Vector{uEltype}(undef, n_vars*n_nodes*n_elements),
-          Vector{uEltype}(undef, n_vars*n_nodes*n_elements))
+          Vector{uEltype}(undef, n_vars * n_nodes * n_elements),
+          Vector{uEltype}(undef, n_vars * n_nodes * n_elements),
+          Vector{uEltype}(undef, n_vars * n_nodes * n_elements))
   end
 end
 
@@ -45,10 +45,30 @@ mutable struct CacheViscous2D{uEltype <: Real}
         new(Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_elements),
             [Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_elements) for _ in 1:2],
             [Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_elements) for _ in 1:2],
-            Vector{uEltype}(undef, n_vars * n_nodes * n_nodes * n_elements),
-            [Vector{uEltype}(undef, n_vars * n_nodes * n_nodes * n_elements) for _ in 1:2],
-            [Vector{uEltype}(undef, n_vars * n_nodes * n_nodes * n_elements) for _ in 1:2])
+            Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements),
+            [Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements) for _ in 1:2],
+            [Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements) for _ in 1:2])
     end
+end
+
+mutable struct CacheViscous3D{uEltype <: Real}
+  u_transformed::Array{uEltype}
+  gradients::Vector{Array{uEltype}}
+  flux_viscous::Vector{Array{uEltype}}
+
+  # internal `resize!`able storage
+  _u_transformed::Vector{uEltype}
+  _gradients::Vector{Vector{uEltype}}
+  _flux_viscous::Vector{Vector{uEltype}}
+
+  function CacheViscous3D{uEltype}(n_vars::Integer, n_nodes::Integer, n_elements::Integer) where {uEltype <: Real}
+      new(Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
+          [Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements) for _ in 1:3],
+          [Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements) for _ in 1:3],
+          Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
+          [Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements) for _ in 1:3],
+          [Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements) for _ in 1:3])
+  end
 end
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
@@ -56,9 +76,9 @@ end
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(cache_viscous::CacheViscous2D, capacity)
+function Base.resize!(cache_viscous::Union{CacheViscous2D, CacheViscous3D}, capacity)
     resize!(cache_viscous._u_transformed, capacity)
-    for dim in 1:2
+    for dim in 1:length(cache_viscous._gradients)
       resize!(cache_viscous._gradients[dim], capacity)
       resize!(cache_viscous._flux_viscous[dim], capacity)
     end

@@ -112,7 +112,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
-        # Resize viscous helpers
+        # Resize parabolic helper variables
         resize!(cache_viscous, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
         cache_parabolic.cache_viscous.u_transformed = unsafe_wrap(Array, 
                                                                   pointer(cache_parabolic.cache_viscous._u_transformed),
@@ -338,7 +338,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
-        # Resize viscous helpers
+        # Resize parabolic helper variables
         resize!(cache_viscous, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
         cache_parabolic.cache_viscous.u_transformed = unsafe_wrap(Array, 
                                                                   pointer(cache_parabolic.cache_viscous._u_transformed),
