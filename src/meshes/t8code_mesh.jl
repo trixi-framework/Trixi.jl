@@ -40,8 +40,25 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh.current_filename = current_filename
         mesh.tree_node_coordinates = tree_node_coordinates
 
+        finalizer(function (mesh::T8codeMesh)
+                      # When finalizing `mesh.forest`, `mesh.scheme` and `mesh.cmesh` are
+                      # also cleaned up from within `t8code`. The cleanup code for `cmesh`
+                      # does some MPI calls for deallocating shared memory arrays. Due to
+                      # garbage collection in Julia the order of shutdown is not
+                      # deterministic. The following code might happen after MPI is already
+                      # in finalized state. In this case the `finalize_hook` of the MPI
+                      # module already took care of the cleanup. See further down.
+                      if !MPI.Finalized()
+                          trixi_t8_unref_forest(mesh.forest)
+                      end
+                  end, mesh)
+
         MPI.add_finalize_hook!(function ()
-                                   trixi_t8_unref_forest(mesh.forest)
+                                   try
+                                       trixi_t8_unref_forest(mesh.forest)
+                                   catch
+                                       # The `mesh` object was already finalized. Do nothing.
+                                   end
                                end)
 
         return mesh
