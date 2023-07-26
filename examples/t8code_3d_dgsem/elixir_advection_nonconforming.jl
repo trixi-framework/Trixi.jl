@@ -53,6 +53,8 @@ new_forest_ref = Ref{Trixi.t8_forest_t}()
 Trixi.t8_forest_init(new_forest_ref);
 new_forest = new_forest_ref[]
 
+# Check out `examples/t8_step4_partition_balance_ghost.jl` in
+# https://github.com/DLR-AMR/T8code.jl for detailed explanations.
 let set_from = C_NULL, recursive = 1, set_for_coarsening = 0, no_repartition = 0, do_ghost = 1
   Trixi.t8_forest_set_user_data(new_forest, C_NULL)
   Trixi.t8_forest_set_adapt(new_forest, mesh.forest, @Trixi.t8_adapt_callback(adapt_callback), recursive)
@@ -81,16 +83,11 @@ summary_callback = SummaryCallback()
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval=100)
 
-# Not supported yet.
-# # The SaveSolutionCallback allows to save the solution to a file in regular intervals
-# save_solution = SaveSolutionCallback(interval=100,
-#                                      solution_variables=cons2prim)
-
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, # save_solution,
+callbacks = CallbackSet(summary_callback, analysis_callback,
   stepsize_callback)
 
 ###############################################################################
