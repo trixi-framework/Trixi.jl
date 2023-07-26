@@ -112,22 +112,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
-
-
-
-
-data = [sol.u[2]]
-
-dataname = ["test"]
-filename = "final.vtu"
-write_data = true
-
-num_cells = Trixi.ncells(mesh)
-
-coords = reshape(semi.cache.elements.node_coordinates,size(semi.cache.elements.node_coordinates,1),prod(size(semi.cache.elements.node_coordinates)[2:end]))
-
-rd = Trixi.StartUpDG.RefElemData(Trixi.StartUpDG.Hex(), 4)
-
-Trixi.StartUpDG.MeshData_to_vtk(rd, num_cells, coords, data, dataname, filename, write_data);
-
-
