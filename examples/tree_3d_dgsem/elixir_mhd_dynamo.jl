@@ -19,7 +19,7 @@ Define the initial condition with a weak small-scale Gaussian noise magnetic fie
 function initial_condition_gaussian_noise_mhd(x, t, equations)
     amplitude = 1e-8
 
-    seed = reinterpret(UInt64, t + x[1] + x[2] + x[3])
+    seed = reinterpret(UInt, t + x[1] + x[2] + x[3])
     Random.seed!(seed)
 
     rho = 1.0
@@ -52,7 +52,7 @@ function source_terms_helical_forcing(u, x, t, equations::IdealGlmMhdEquations3D
     delta_t = 0.01
 
     # To make sure that the random numbers depend only on time we need to set the seeds.
-    seed = reinterpret(UInt64, t)
+    seed = reinterpret(UInt, t)
     Random.seed!(seed)
 
     # Random phase -pi < phi <= pi
