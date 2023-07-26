@@ -174,6 +174,15 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
       end
     end
 
+    @timed_testset "Navier-Stokes" begin
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_navierstokes_taylor_green_vortex.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=2)
+
+      J = jacobian_ad_forward(semi)
+      λ = eigvals(J)
+      @test maximum(real, λ) < 0.2
+    end
+
     @timed_testset "MHD" begin
       trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_mhd_alfven_wave.jl"),
                     tspan=(0.0, 0.0), initial_refinement_level=0)
