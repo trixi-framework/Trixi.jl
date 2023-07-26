@@ -1,7 +1,7 @@
 @doc raw"""
-CompressibleMhdDiffusion3D(gamma, inv_gamma_minus_one,
-μ, Pr, eta, kappa,
-equations, gradient_variables)
+    CompressibleMhdDiffusion3D(gamma, inv_gamma_minus_one,
+                               μ, Pr, eta, kappa,
+                               equations, gradient_variables)
 
 These equations contain the viscous Navier-Stokes equations coupled to
 the magnetic field together with the magnetic diffusion applied
