@@ -251,15 +251,6 @@ function jacobian_ad_forward(semi::AbstractSemidiscretization, t0, u0_ode)
     _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
 end
 
-function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
-    new_semi = remake(semi, uEltype = eltype(config))
-    J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
-        Trixi.rhs!(du_ode, u_ode, new_semi, t0)
-    end
-
-    return J
-end
-
 # This version is specialized to `StructArray`s used by some `DGMulti` solvers.
 # We need to convert the numerical solution vectors since ForwardDiff cannot
 # handle arrays of `SVector`s.
