@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
 
@@ -54,17 +58,17 @@ function calc_node_coordinates!(node_coordinates,
     end
 
     return node_coordinates
-  end
+end
 
-  function trixi_t8_init_mortar_neighbor_ids!(mortars::P4estMortarContainer{2}, my_face,
-                                              other_face, orientation, neighbor_ielements,
-                                              mortar_id)
-      if orientation == 0
-          mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[1] + 1
-          mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[2] + 1
-      else
-          mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[2] + 1
-          mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[1] + 1
-      end
-  end
+function trixi_t8_init_mortar_neighbor_ids!(mortars::P4estMortarContainer{2}, my_face,
+                                            other_face, orientation, neighbor_ielements,
+                                            mortar_id)
+    if orientation == 0
+        mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[1] + 1
+        mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[2] + 1
+    else
+        mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[2] + 1
+        mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[1] + 1
+    end
+end
 end # @muladd
