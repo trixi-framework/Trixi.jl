@@ -534,6 +534,36 @@ function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
     return nothing
 end
 
+# Print level information only if AMR is enabled
+function print_amr_information(callbacks, mesh::T8codeMesh, solver, cache)
+
+    # Return early if there is nothing to print
+    uses_amr(callbacks) || return nothing
+
+    # TODO: Switch to global element levels array when MPI supported or find
+    # another solution.
+    levels = trixi_t8_get_local_element_levels(mesh.forest)
+
+    min_level = minimum(levels)
+    max_level = maximum(levels)
+
+    mpi_println(" minlevel = $min_level")
+    mpi_println(" maxlevel = $max_level")
+
+    if min_level > 0
+        elements_per_level = [count(==(l), levels) for l in 1:max_level]
+
+        for level in max_level:-1:(min_level + 1)
+            mpi_println(" ├── level $level:    " *
+                        @sprintf("% 14d", elements_per_level[level]))
+        end
+        mpi_println(" └── level $min_level:    " *
+                    @sprintf("% 14d", elements_per_level[min_level]))
+    end
+
+    return nothing
+end
+
 # Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
 function analyze_integrals(analysis_integrals::NTuple{N, Any}, io, du, u, t,
                            semi) where {N}
