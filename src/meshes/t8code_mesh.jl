@@ -46,19 +46,24 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
             # `cmesh` does some MPI calls for deallocating shared memory
             # arrays. Due to garbage collection in Julia the order of shutdown
             # is not deterministic. The following code might happen after MPI
-            # is already in finalized state. In this case the `finalize_hook`
-            # of the MPI module already took care of the cleanup. See further
-            # down.
+            # is already in finalized state.
+            # If the environment variable `TRIXI_T8CODE_SC_FINALIZE` is set the
+            # `finalize_hook` of the MPI module takes care of the cleanup. See
+            # further down. However, this might cause a pile-up of `mesh`
+            # objects during long-running sessions.
             if !MPI.Finalized()
                 trixi_t8_unref_forest(mesh.forest)
             end
         end
 
-        MPI.add_finalize_hook!() do
-            try
+        # This finalizer call is only recommended during development and not for
+        # production runs, especially long-running sesions since a reference to
+        # the `mesh` object will be kept throughout the lifetime of the session.
+        # See comments in `init_t8code()` in file `src/auxiliary/t8code.jl` for
+        # more information.
+        if haskey(ENV, "TRIXI_T8CODE_SC_FINALIZE")
+            MPI.add_finalize_hook!() do
                 trixi_t8_unref_forest(mesh.forest)
-            catch
-                # The `mesh` object was already finalized. Do nothing.
             end
         end
 

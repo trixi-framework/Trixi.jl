@@ -13,8 +13,8 @@ function init_t8code()
     end
 
     # Initialize the sc library, has to happen before we initialize t8code.
-    let catch_signals = 0, print_backtrace = 0
-        T8code.Libt8.sc_init(mpi_comm(), catch_signals, print_backtrace, C_NULL,
+    let catch_signals = 0, print_backtrace = 0, log_handler = C_NULL
+        T8code.Libt8.sc_init(mpi_comm(), catch_signals, print_backtrace, log_handler,
                              T8code.Libt8.SC_LP_ERROR)
     end
 
@@ -26,10 +26,16 @@ function init_t8code()
     # Initialize t8code with log level ERROR to prevent a lot of output in AMR simulations.
     t8_init(T8code.Libt8.SC_LP_ERROR)
 
-    # `sc_finalize` should always be called during shutdown of an application.
-    # It checks whether there is still un-freed memory by t8code and/or
-    # T8code.jl and throws an exception if this is the case.
-    MPI.add_finalize_hook!(T8code.Libt8.sc_finalize)
+    if haskey(ENV, "TRIXI_T8CODE_SC_FINALIZE")
+        # Normally, `sc_finalize` should always be called during shutdown of an
+        # application. It checks whether there is still un-freed memory by t8code
+        # and/or T8code.jl and throws an exception if this is the case. For
+        # production runs this is not mandatory, but is helpful during
+        # development. Hence, this option is only activated when environment
+        # variable TRIXI_T8CODE_SC_FINALIZE exists.
+        @warn "T8code.jl: sc_finalize will be called during shutdown of Trixi.jl."
+        MPI.add_finalize_hook!(T8code.Libt8.sc_finalize)
+    end
 
     return nothing
 end
