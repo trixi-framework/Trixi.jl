@@ -57,16 +57,6 @@ function CompressibleMhdDiffusion3D(equations::IdealGlmMhdEquations3D;
                                  equations, gradient_variables)
 end
 
-# TODO: parabolic
-# This is the flexibility a user should have to select the different gradient variable types
-# varnames(::typeof(cons2prim)   , ::CompressibleMhdDiffusion3D) = ("v1", "v2", "v3", "T")
-# varnames(::typeof(cons2entropy), ::CompressibleMhdDiffusion3D) = ("w2", "w3", "w4", "w5")
-
-# # we specialize this function to compute gradients of primitive variables instead of
-# # conservative variables.
-# gradient_variable_transformation(::CompressibleMhdDiffusion3D{GradientVariablesPrimitive}) = cons2prim
-# gradient_variable_transformation(::CompressibleMhdDiffusion3D{GradientVariablesEntropy}) = cons2entropy
-
 # Explicit formulas for the diffusive MHD fluxes are available, e.g., in Section 2
 # of the paper by Rueda-Ramírez, Hennemann, Hindenlang, Winters, and Gassner
 # "An Entropy Stable Nodal Discontinuous Galerkin Method for the resistive
