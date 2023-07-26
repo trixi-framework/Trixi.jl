@@ -114,16 +114,14 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
                 if neighbor < element
                     continue
                 end
-                # Unfortunaly, flux() requires an Vector and no Tuple.
-                @trixi_timeit timer() "allocs" normal=@views([
-                                                                 face_normals[(2 * face - 1):(2 * face)]...,
-                                                             ])
+                normal = SVector(face_normals[2 * face - 1], face_normals[2 * face])
                 flux = solver.surface_flux(SVector(u_[element].u), SVector(u_[neighbor].u),
                                            normal, equations)
                 for v in eachvariable(equations)
-                    du[v, element] += -face_areas[face] * flux[v]
+                    flux_ = -face_areas[face] * flux[v]
+                    du[v, element] += flux_
                     if neighbor <= mesh.number_elements
-                        du[v, neighbor] += face_areas[face] * flux[v]
+                        du[v, neighbor] -= flux_
                     end
                 end
             end
