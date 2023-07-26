@@ -68,10 +68,7 @@ function source_terms_helical_forcing(u, x, t, equations::IdealGlmMhdEquations3D
     k_norm = k / norm(k)
 
     # Random unit vector, not aligned with k.
-    ee = [0.0, 0.0, 0.0]
-    ee[1] = rand() * 2 - 1
-    ee[2] = rand() * 2 - 1
-    ee[3] = rand() * 2 - 1
+    ee = SVector(rand(), rand(), rand()) .* 2 .- 1
     # Normalize the vector e.
     ee = ee / norm(ee)
 
