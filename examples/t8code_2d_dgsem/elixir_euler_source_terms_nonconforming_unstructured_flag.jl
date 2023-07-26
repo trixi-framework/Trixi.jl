@@ -77,6 +77,8 @@ new_forest_ref = Ref{Trixi.t8_forest_t}()
 Trixi.t8_forest_init(new_forest_ref);
 new_forest = new_forest_ref[]
 
+# Check out `examples/t8_step4_partition_balance_ghost.jl` in
+# https://github.com/DLR-AMR/T8code.jl for detailed explanations.
 let set_from = C_NULL, recursive = 1, set_for_coarsening = 0, no_repartition = 0
     Trixi.t8_forest_set_user_data(new_forest, C_NULL)
     Trixi.t8_forest_set_adapt(new_forest, mesh.forest,
@@ -106,21 +108,10 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-# Not implemented yet.
-# save_restart = SaveRestartCallback(interval=100,
-#                                    save_final_restart=true)
-#
-# Not implemented yet.
-# save_solution = SaveSolutionCallback(interval=100,
-#                                      save_initial_solution=true,
-#                                      save_final_solution=true,
-#                                      solution_variables=cons2prim)
-
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        # save_restart, save_solution,
                         stepsize_callback)
 ###############################################################################
 # run the simulation

@@ -471,7 +471,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
     return has_changed
 end
 
-function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
+function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::SerialT8codeMesh,
                                      equations, dg::DG, cache, semi,
                                      t, iter;
                                      only_refine = false, only_coarsen = false,

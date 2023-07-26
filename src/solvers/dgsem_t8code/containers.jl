@@ -30,6 +30,8 @@ function count_required_surfaces!(mesh::T8codeMesh)
     mesh.nmortars = counts.mortars
     mesh.ninterfaces = counts.interfaces
     mesh.nboundaries = counts.boundaries
+
+    return counts
 end
 
 # Compatibility to `dgsem_p4est/containers.jl`.

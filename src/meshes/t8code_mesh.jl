@@ -27,16 +27,9 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     nmortars    :: Int
     nboundaries :: Int
 
-    function T8codeMesh{NDIMS}(cmesh, scheme, forest, nodes) where {NDIMS}
-        # TODO: Implement MPI parallelization.
-        # if mpi_isparallel()
-        #   if !T8code.uses_mpi()
-        #     error("t8code library does not support MPI")
-        #   end
-        #   is_parallel = Val(true)
-        # else
-        #   is_parallel = Val(false)
-        # end
+    function T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes,
+                               boundary_names,
+                               current_filename) where {NDIMS}
         is_parallel = False()
 
         mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS + 2, length(nodes)}(cmesh,
@@ -44,26 +37,40 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                                                                                   forest,
                                                                                   is_parallel)
 
-        # Destroy 't8code' structs when the mesh is garbage collected.
-        finalizer(function (mesh::T8codeMesh{NDIMS})
-                      trixi_t8_unref_forest(mesh.forest)
-                  end, mesh)
+        mesh.nodes = nodes
+        mesh.boundary_names = boundary_names
+        mesh.current_filename = current_filename
+        mesh.tree_node_coordinates = tree_node_coordinates
+
+        finalizer(mesh) do mesh
+            # When finalizing `mesh.forest`, `mesh.scheme` and `mesh.cmesh` are
+            # also cleaned up from within `t8code`. The cleanup code for
+            # `cmesh` does some MPI calls for deallocating shared memory
+            # arrays. Due to garbage collection in Julia the order of shutdown
+            # is not deterministic. The following code might happen after MPI
+            # is already in finalized state.
+            # If the environment variable `TRIXI_T8CODE_SC_FINALIZE` is set the
+            # `finalize_hook` of the MPI module takes care of the cleanup. See
+            # further down. However, this might cause a pile-up of `mesh`
+            # objects during long-running sessions.
+            if !MPI.Finalized()
+                trixi_t8_unref_forest(mesh.forest)
+            end
+        end
+
+        # This finalizer call is only recommended during development and not for
+        # production runs, especially long-running sessions since a reference to
+        # the `mesh` object will be kept throughout the lifetime of the session.
+        # See comments in `init_t8code()` in file `src/auxiliary/t8code.jl` for
+        # more information.
+        if haskey(ENV, "TRIXI_T8CODE_SC_FINALIZE")
+            MPI.add_finalize_hook!() do
+                trixi_t8_unref_forest(mesh.forest)
+            end
+        end
 
         return mesh
     end
-end
-
-function T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes,
-                           boundary_names,
-                           current_filename) where {NDIMS}
-    mesh = T8codeMesh{NDIMS}(cmesh, scheme, forest, nodes)
-
-    mesh.nodes = nodes
-    mesh.boundary_names = boundary_names
-    mesh.current_filename = current_filename
-    mesh.tree_node_coordinates = tree_node_coordinates
-
-    return mesh
 end
 
 const SerialT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}

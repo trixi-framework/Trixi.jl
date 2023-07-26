@@ -222,7 +222,7 @@ end
 
 # TODO: Implement this function as soon as there is support for this in `t8code`.
 function save_mesh_file(mesh::T8codeMesh, output_directory, timestep, mpi_parallel)
-    @warn "Mesh file output not supported yet for `T8codeMesh`."
+    error("Mesh file output not supported yet for `T8codeMesh`.")
 
     return joinpath(output_directory, "dummy_mesh.h5")
 end
@@ -293,6 +293,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
         mesh = StructuredMesh(size, mapping; RealT = RealT, unsaved_changes = false,
                               mapping_as_string = mapping_as_string)
+        mesh.current_filename = mesh_file
     elseif mesh_type == "UnstructuredMesh2D"
         mesh_filename, periodicity_ = h5open(mesh_file, "r") do file
             return read(attributes(file)["mesh_filename"]),

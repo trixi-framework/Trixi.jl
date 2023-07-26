@@ -51,7 +51,7 @@ Given ε = 1.0e-4, we use the following algorithm.
 - Agner Fog.
   Lists of instruction latencies, throughputs and micro-operation breakdowns
   for Intel, AMD, and VIA CPUs.
-  https://www.agner.org/optimize/instruction_tables.pdf
+  [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
 """
 @inline function ln_mean(x, y)
     epsilon_f2 = 1.0e-4
@@ -166,8 +166,10 @@ checks necessary in the presence of `NaN`s (or signed zeros).
 
 # Examples
 
+```jldoctest
 julia> max(2, 5, 1)
 5
+```
 """
 @inline max(args...) = @fastmath max(args...)
 
@@ -183,8 +185,10 @@ checks necessary in the presence of `NaN`s (or signed zeros).
 
 # Examples
 
+```jldoctest
 julia> min(2, 5, 1)
 1
+```
 """
 @inline min(args...) = @fastmath min(args...)
 
