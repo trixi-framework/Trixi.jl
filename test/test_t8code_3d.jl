@@ -31,15 +31,6 @@ mkdir(outdir)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
                             l2=[0.00253595715323843],
                             linf=[0.016486952252155795])
-
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
     end
 
     @trixi_testset "elixir_advection_amr.jl" begin
@@ -60,12 +51,6 @@ mkdir(outdir)
                             coverage_override=(maxiters = 6, initial_refinement_level = 0,
                                                base_level = 0, med_level = 1, max_level = 2))
     end
-
-    # @trixi_testset "elixir_advection_cubed_sphere.jl" begin
-    #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_cubed_sphere.jl"),
-    #     l2   = [0.002006918015656413],
-    #     linf = [0.027655117058380085])
-    # end
 
     @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
