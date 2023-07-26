@@ -46,12 +46,11 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, Forest} <: AbstractMesh{NDIMS}
                 max_number_faces = max(max_number_faces, num_faces)
             end
         end
-        # Is is necessary to Reduce it to all processes?
-        # Can e.g. AMR and the following re-balancing change the maximum number on faces on one rank?
         if mpi_isparallel()
             max_number_faces = MPI.Allreduce!(Ref(max_number_faces), max, mpi_comm())[]
         end
-        mesh = new{NDIMS, Cdouble, typeof(forest)}(forest, number_trees_global, number_trees_local,
+        mesh = new{NDIMS, Cdouble, typeof(forest)}(forest, number_trees_global,
+                                                   number_trees_local,
                                                    max_number_faces, number_elements,
                                                    current_filename, unsaved_changes)
 
@@ -62,7 +61,9 @@ end
 @inline Base.ndims(::T8codeMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
-@inline nelements(mesh::T8codeMesh, solver, cache) = nelementsglobal(mesh, solver, cache)
+@inline function nelements(mesh::T8codeMesh, solver, cache)
+    nelementsglobal(mesh, solver, cache)
+end
 
 @inline function eachelement(mesh::T8codeMesh, solver, cache)
     eachelement(mesh, solver)

@@ -11,7 +11,8 @@ struct FV{SlopeLimiter, SurfaceFlux}
     surface_flux::SurfaceFlux
 
     function FV(; order = 1, slope_limiter = "TODO", surface_flux = flux_central)
-        new{typeof(slope_limiter), typeof(surface_flux)}(order, slope_limiter, surface_flux)
+        new{typeof(slope_limiter), typeof(surface_flux)}(order, slope_limiter,
+                                                         surface_flux)
     end
 end
 
@@ -99,30 +100,41 @@ end
 
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
               source_terms::Source, solver::FV, cache) where {Source}
-    @trixi_timeit timer() "update neighbor data" update_solution!(u, mesh, equations,
-                                                                  solver, cache)
+    @trixi_timeit timer() "update neighbor data" exchange_solution!(u, mesh, equations,
+                                                                    solver, cache)
     @unpack u_ = cache
 
     du .= zero(eltype(du))
 
-    @trixi_timeit timer() "update du" for element in eachelement(mesh, solver)
-        @unpack volume, face_normals, num_faces, face_areas, face_connectivity = cache.elements[element]
-        for face in 1:num_faces
-            neighbor = face_connectivity[face]
-            # Unfortunaly, flux() requires an Vector and no Tuple.
-            @trixi_timeit timer() "allocs" normal=@views([
-                                                             face_normals[(2 * face - 1):(2 * face)]...,
-                                                         ])
-            flux = solver.surface_flux(SVector(u_[element].u), SVector(u_[neighbor].u),
-                                       normal, equations)
-            for v in eachvariable(equations)
-                du[v, element] += -face_areas[face] * flux[v]
+    @trixi_timeit timer() "update du" begin
+        for element in eachelement(mesh, solver)
+            @unpack face_normals, num_faces, face_areas, face_connectivity = cache.elements[element]
+            for face in 1:num_faces
+                neighbor = face_connectivity[face]
+                if neighbor < element
+                    continue
+                end
+                # Unfortunaly, flux() requires an Vector and no Tuple.
+                @trixi_timeit timer() "allocs" normal=@views([
+                                                                 face_normals[(2 * face - 1):(2 * face)]...,
+                                                             ])
+                flux = solver.surface_flux(SVector(u_[element].u), SVector(u_[neighbor].u),
+                                           normal, equations)
+                for v in eachvariable(equations)
+                    du[v, element] += -face_areas[face] * flux[v]
+                    if neighbor <= mesh.number_elements
+                        du[v, neighbor] += face_areas[face] * flux[v]
+                    end
+                end
             end
         end
-        for v in eachvariable(equations)
-            du[v, element] = (1 / volume) * du[v, element]
+        for element in eachelement(mesh, solver)
+            @unpack volume = cache.elements[element]
+            for v in eachvariable(equations)
+                du[v, element] = (1 / volume) * du[v, element]
+            end
         end
-    end
+    end # timer
 
     return nothing
 end
