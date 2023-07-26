@@ -69,7 +69,6 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleMhdDiff
 
     @unpack eta = equations
 
-    # TODO: use primitive gradients
     _, dv1dx, dv2dx, dv3dx, dTdx, dB1dx, dB2dx, dB3dx, _ = convert_derivative_to_primitive(u,
                                                                                            gradients[1],
                                                                                            equations)
