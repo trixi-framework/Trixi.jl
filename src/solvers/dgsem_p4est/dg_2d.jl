@@ -71,6 +71,34 @@ function prolong2interfaces!(cache, u,
     return nothing
 end
 
+function prolong2interfaces_gpu!(cache, u,
+                             mesh::P4estMesh{2},
+                             equations, surface_integral, dg::DG)
+    @kernel function prolong2interfaces_kernel!(u, interfaces_u, interfaces_neighbor_ids, interfaces_node_indices, equations, num_nodes)
+        interface = @index(Global)
+        prolong2interfaces_internal!(u, interface, interfaces_u, interfaces_neighbor_ids, interfaces_node_indices, equations, num_nodes)
+    end
+
+    @unpack interfaces = cache
+    backend = get_backend(u)
+
+    kernel! = prolong2interfaces_kernel!(backend)
+    tmp_interfaces_u = copyto!(backend, allocate(backend, eltype(interfaces.u), size(interfaces.u)), interfaces.u)
+    tmp_interfaces_neighbor_ids = copyto!(backend, allocate(backend, eltype(interfaces.neighbor_ids), size(interfaces.neighbor_ids)), interfaces.neighbor_ids)
+    tmp_interfaces_node_indices = copyto!(backend, allocate(backend, eltype(interfaces.node_indices), size(interfaces.node_indices)), interfaces.node_indices)
+
+    num_nodes = nnodes(dg)
+    num_interfaces = ninterfaces(cache.interfaces)
+
+    kernel!(u, tmp_interfaces_u, tmp_interfaces_neighbor_ids, tmp_interfaces_node_indices, equations, num_nodes, ndrange=num_interfaces)
+
+    copyto!(backend, interfaces.u, tmp_interfaces_u)
+
+    synchronize(backend)
+
+    return nothing
+end
+
 @inline function prolong2interfaces_internal!(u, interface, interfaces_u, interfaces_neighbor_ids, interfaces_node_indices, equations, num_nodes)
     # Copy solution data from the primary element using "delayed indexing" with
     # a start value and a step size to get the correct face and orientation.
@@ -187,6 +215,14 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
+function calc_interface_flux_gpu!(surface_flux_values,
+                              mesh::P4estMesh{2},
+                              nonconservative_terms,
+                              equations, surface_integral, dg::DG, cache)
+    #dummy
+    calc_interface_flux!(surface_flux_values, mesh, nonconservative_terms, equations, surface_integral, dg, cache)
+end
+
 # Inlined version of the interface flux computation for conservation laws
 @inline function calc_interface_flux!(surface_flux_values,
                                       mesh::P4estMesh{2},
@@ -282,6 +318,12 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
+function prolong2boundaries_gpu!(cache, u,
+                             mesh::P4estMesh{2},
+                             equations, surface_integral, dg::DG)
+    #dummy since no boundaries for now
+end
+
 function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
@@ -315,6 +357,12 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
             j_node += j_node_step
         end
     end
+end
+
+function calc_boundary_flux_gpu!(cache, t, boundary_condition, boundary_indexing,
+                             mesh::P4estMesh{2},
+                             equations, surface_integral, dg::DG)
+    #dummy since no boundaries for now
 end
 
 # inlined version of the boundary flux calculation along a physical interface
@@ -458,6 +506,13 @@ function prolong2mortars!(cache, u,
     return nothing
 end
 
+function prolong2mortars_gpu!(cache, u,
+                          mesh::P4estMesh{2}, equations,
+                          mortar_l2::LobattoLegendreMortarL2,
+                          surface_integral, dg::DGSEM)
+    #dummy since no mortars for now
+end
+
 function calc_mortar_flux!(surface_flux_values,
                            mesh::P4estMesh{2},
                            nonconservative_terms, equations,
@@ -514,6 +569,14 @@ function calc_mortar_flux!(surface_flux_values,
     end
 
     return nothing
+end
+
+function calc_mortar_flux_gpu!(surface_flux_values,
+                           mesh::P4estMesh{2},
+                           nonconservative_terms, equations,
+                           mortar_l2::LobattoLegendreMortarL2,
+                           surface_integral, dg::DG, cache)
+    #dummy since no mortars for now
 end
 
 # Inlined version of the mortar flux computation on small elements for conservation laws
@@ -668,4 +731,14 @@ function calc_surface_integral!(du, u,
 
     return nothing
 end
+
+function calc_surface_integral_gpu!(du, u,
+                                mesh::P4estMesh{2},
+                                equations,
+                                surface_integral::SurfaceIntegralWeakForm,
+                                dg::DGSEM, cache)
+    #dummy
+    calc_surface_integral!(du, u, mesh, equations, surface_integral, dg, cache)
+end
+
 end # @muladd

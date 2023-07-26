@@ -49,6 +49,19 @@ function rhs!(du, u, t,
     return nothing
 end
 
+@inline function weak_form_kernel_intermediate!(du, u,
+                                   mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+                                               P4estMesh{2}},
+                                   nonconservative_terms, equations,
+                                   dg::DGSEM, cache, alpha = true)
+    #dummy
+    @threaded for element in eachelement(dg, cache)
+        weak_form_kernel!(du, u, element, mesh,
+                          nonconservative_terms, equations,
+                          dg, cache)
+    end
+end
+
 @inline function weak_form_kernel!(du, u,
                                    element,
                                    mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
@@ -627,4 +640,14 @@ function apply_jacobian!(du,
 
     return nothing
 end
+
+function apply_jacobian_gpu!(du,
+                         mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2
+                                                                                      }
+                                     },
+                         equations, dg::DG, cache)
+    #dummy
+    apply_jacobian!(du, mesh, equations, dg, cache)
+end
+
 end # @muladd

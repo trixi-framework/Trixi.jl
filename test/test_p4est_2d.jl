@@ -16,7 +16,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [8.311947673061856e-6],
-      linf = [6.627000273229378e-5])
+      linf = [6.627000273229378e-5], offload=false)
   end
 
 #  @trixi_testset "elixir_advection_nonconforming_flag.jl" begin

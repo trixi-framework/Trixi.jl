@@ -256,15 +256,23 @@ function calc_volume_integral_gpu!(du, u,
                                    nonconservative_terms, equations,
                                    volume_integral::VolumeIntegralWeakForm,
                                    dg::DGSEM, cache)
+    weak_form_kernel_intermediate!(du, u, mesh, nonconservative_terms, equations, dg, cache)
+end
 
+end #@muladd
+
+@inline function weak_form_kernel_intermediate!(du, u,
+                                   mesh::TreeMesh{2},
+                                   nonconservative_terms, equations,
+                                   dg::DGSEM, cache, alpha = true)
     backend = get_backend(u)
 
-    kernel! = weak_form_kernel_gpu!(backend)
+    kernel! = weak_form_kernel_gpu_tree!(backend)
     # Determine gridsize by number of node for each element
     num_nodes = nnodes(dg)
     num_elements = nelements(cache.elements)
     @unpack derivative_dhat = dg.basis
-    
+
     kernel!(du, u, equations, derivative_dhat, num_nodes, ndrange=num_elements)
     # Ensure that device is finished
     synchronize(backend)
@@ -272,9 +280,7 @@ function calc_volume_integral_gpu!(du, u,
     return nothing
 end
 
-end #@muladd
-
-@kernel function weak_form_kernel_gpu!(du, u,
+@kernel function weak_form_kernel_gpu_tree!(du, u,
                                        equations, derivative_dhat, num_nodes)
 
     element = @index(Global)
