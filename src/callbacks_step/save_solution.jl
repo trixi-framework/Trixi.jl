@@ -155,7 +155,14 @@ function save_mesh(semi::AbstractSemidiscretization, output_directory, timestep 
     mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
     if mesh.unsaved_changes
-        mesh.current_filename = save_mesh_file(mesh, output_directory)
+        # We only append the time step number to the mesh file name if it has
+        # changed during the simulation due to AMR. We do not append it for
+        # the first time step.
+        if timestep == 0
+            mesh.current_filename = save_mesh_file(mesh, output_directory)
+        else
+            mesh.current_filename = save_mesh_file(mesh, output_directory, timestep)
+        end
         mesh.unsaved_changes = false
     end
 end

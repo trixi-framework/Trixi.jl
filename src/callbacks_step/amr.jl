@@ -470,6 +470,65 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
     return has_changed
 end
 
+function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::SerialT8codeMesh,
+                                     equations, dg::DG, cache, semi,
+                                     t, iter;
+                                     only_refine = false, only_coarsen = false,
+                                     passive_args = ())
+    has_changed = false
+
+    @unpack controller, adaptor = amr_callback
+
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
+    indicators = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg,
+                                                              cache, t = t, iter = iter)
+
+    if only_coarsen
+        indicators[indicators .> 0] .= 0
+    end
+
+    if only_refine
+        indicators[indicators .< 0] .= 0
+    end
+
+    @boundscheck begin
+        @assert axes(indicators)==(Base.OneTo(ncells(mesh)),) ("Indicator array (axes = $(axes(indicators))) and mesh cells (axes = $(Base.OneTo(ncells(mesh)))) have different axes")
+    end
+
+    @trixi_timeit timer() "adapt" begin
+        difference = @trixi_timeit timer() "mesh" trixi_t8_adapt!(mesh, indicators)
+
+        @trixi_timeit timer() "solver" adapt!(u_ode, adaptor, mesh, equations, dg,
+                                              cache, difference)
+    end
+
+    # Store whether there were any cells coarsened or refined and perform load balancing.
+    has_changed = any(difference .!= 0)
+
+    # TODO: T8codeMesh for MPI not implemented yet.
+    # Check if mesh changed on other processes
+    # if mpi_isparallel()
+    #   has_changed = MPI.Allreduce!(Ref(has_changed), |, mpi_comm())[]
+    # end
+
+    if has_changed
+        # TODO: T8codeMesh for MPI not implemented yet.
+        # if mpi_isparallel() && amr_callback.dynamic_load_balancing
+        #   @trixi_timeit timer() "dynamic load balancing" begin
+        #     global_first_quadrant = unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
+        #     old_global_first_quadrant = copy(global_first_quadrant)
+        #     partition!(mesh)
+        #     rebalance_solver!(u_ode, mesh, equations, dg, cache, old_global_first_quadrant)
+        #   end
+        # end
+
+        reinitialize_boundaries!(semi.boundary_conditions, cache)
+    end
+
+    # Return true if there were any cells coarsened or refined, otherwise false.
+    return has_changed
+end
+
 function reinitialize_boundaries!(boundary_conditions::UnstructuredSortedBoundaryTypes,
                                   cache)
     # Reinitialize boundary types container because boundaries may have changed.
@@ -636,6 +695,10 @@ function current_element_levels(mesh::P4estMesh, solver, cache)
     iterate_p4est(mesh.p4est, current_levels; iter_volume_c = iter_volume_c)
 
     return current_levels
+end
+
+function current_element_levels(mesh::T8codeMesh, solver, cache)
+    return trixi_t8_get_local_element_levels(mesh.forest)
 end
 
 # TODO: Taal refactor, merge the two loops of ControllerThreeLevel and IndicatorLöhner etc.?
