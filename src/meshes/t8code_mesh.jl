@@ -57,7 +57,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         end
 
         # This finalizer call is only recommended during development and not for
-        # production runs, especially long-running sesions since a reference to
+        # production runs, especially long-running sessions since a reference to
         # the `mesh` object will be kept throughout the lifetime of the session.
         # See comments in `init_t8code()` in file `src/auxiliary/t8code.jl` for
         # more information.
