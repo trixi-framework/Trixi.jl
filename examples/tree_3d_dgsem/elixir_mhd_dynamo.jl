@@ -83,7 +83,7 @@ function source_terms_helical_forcing(u, x, t, equations::IdealGlmMhdEquations3D
 
     forcing = real(N * f_k * exp(im * dot(k, x) + im * phi)) / u[1]
 
-    return SVector(0.0, forcing[1], forcing[2], forcing[3], 0.0, 0.0, 0.0, 0.0, 0.0)
+    return SVector(0, forcing[1], forcing[2], forcing[3], 0, 0, 0, 0, 0)
 end
 
 
