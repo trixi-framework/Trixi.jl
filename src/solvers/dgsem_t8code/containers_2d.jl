@@ -71,5 +71,4 @@ function trixi_t8_init_mortar_neighbor_ids!(mortars::P4estMortarContainer{2}, my
         mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[1] + 1
     end
 end
-
 end # @muladd

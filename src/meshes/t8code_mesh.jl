@@ -256,7 +256,6 @@ conforming mesh from a `t8_cmesh` data structure.
 function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
                            mapping = nothing, polydeg = 1, RealT = Float64,
                            initial_refinement_level = 0) where {NDIMS}
-
     scheme = t8_scheme_new_default_cxx()
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, 0, mpi_comm())
 
