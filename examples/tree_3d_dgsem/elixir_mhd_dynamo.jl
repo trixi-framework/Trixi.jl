@@ -38,7 +38,7 @@ end
 """
     source_terms_helical_forcing(u, x, t, equations::CompressibleMhdDiffusion3D)
 
-Forcing term that adds a helical small-scale driver to the system. that is
+Forcing term that adds a helical small-scale driver to the system that is
 delta-correlated in time.
 """
 function source_terms_helical_forcing(u, x, t, equations::IdealGlmMhdEquations3D)
