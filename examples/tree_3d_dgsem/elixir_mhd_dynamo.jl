@@ -27,9 +27,9 @@ function initial_condition_gaussian_noise_mhd(x, t, equations)
     rho_v2 = 0.0
     rho_v3 = 0.0
     rho_e = 10.0
-    B1 = randn(1)[1] * amplitude
-    B2 = randn(1)[1] * amplitude
-    B3 = randn(1)[1] * amplitude
+    B1 = randn() * amplitude
+    B2 = randn() * amplitude
+    B3 = randn() * amplitude
     psi = 0.0
 
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
