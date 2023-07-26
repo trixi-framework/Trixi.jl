@@ -159,6 +159,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 time_int_tol = 1e-5
-sol = solve(ode, RDPK3SpFSAL49(), abstol = time_int_tol, reltol = time_int_tol, dt = 1e-5,
-            save_everystep = false, callback = callbacks)
+sol = solve(ode, RDPK3SpFSAL49(), dt = 1e-5, save_everystep = false, callback = callbacks)
 summary_callback() # print the timer summary
