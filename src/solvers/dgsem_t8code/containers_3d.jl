@@ -68,7 +68,7 @@ function calc_node_coordinates!(node_coordinates,
     return node_coordinates
 end
 
-# This routine was copied and adapated from `src/dgsem_p4est/containers_3d.jl`: `orientation_to_indices_p4est`.
+# This routine was copied and adapted from `src/dgsem_p4est/containers_3d.jl`: `orientation_to_indices_p4est`.
 function trixi_t8_init_mortar_neighbor_ids!(mortars::P4estMortarContainer{3}, my_face,
                                             other_face, orientation, neighbor_ielements,
                                             mortar_id)
