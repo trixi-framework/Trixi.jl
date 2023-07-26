@@ -24,7 +24,6 @@ can be provided in any consistent unit system, e.g.,
 #!!! warning "Experimental code"
 #    This code is experimental and may be changed or removed in any future release.
 """
-
 struct CompressibleMhdDiffusion3D{GradientVariables, RealT <: Real,
                                   E <: AbstractIdealGlmMhdEquations{3}} <:
        AbstractCompressibleMhdDiffusion{3, 9}
