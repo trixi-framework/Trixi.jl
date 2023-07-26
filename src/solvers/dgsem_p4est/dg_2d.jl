@@ -62,53 +62,59 @@ function prolong2interfaces!(cache, u,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
     @unpack interfaces = cache
-    index_range = eachnode(dg)
+    num_nodes = nnodes(dg)
 
     @threaded for interface in eachinterface(dg, cache)
-        # Copy solution data from the primary element using "delayed indexing" with
-        # a start value and a step size to get the correct face and orientation.
-        # Note that in the current implementation, the interface will be
-        # "aligned at the primary element", i.e., the index of the primary side
-        # will always run forwards.
-        primary_element = interfaces.neighbor_ids[1, interface]
-        primary_indices = interfaces.node_indices[1, interface]
+        prolong2interfaces_internal!(u, interface, interfaces.u, interfaces.neighbor_ids, interfaces.node_indices, equations, num_nodes)
+    end
 
-        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
-                                                                 index_range)
-        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
-                                                                 index_range)
+    return nothing
+end
 
-        i_primary = i_primary_start
-        j_primary = j_primary_start
-        for i in eachnode(dg)
-            for v in eachvariable(equations)
-                interfaces.u[1, v, i, interface] = u[v, i_primary, j_primary,
-                                                     primary_element]
-            end
-            i_primary += i_primary_step
-            j_primary += j_primary_step
+@inline function prolong2interfaces_internal!(u, interface, interfaces_u, interfaces_neighbor_ids, interfaces_node_indices, equations, num_nodes)
+    # Copy solution data from the primary element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    # Note that in the current implementation, the interface will be
+    # "aligned at the primary element", i.e., the index of the primary side
+    # will always run forwards.
+    primary_element = interfaces_neighbor_ids[1, interface]
+    primary_indices = interfaces_node_indices[1, interface]
+
+    i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
+                                                                1:num_nodes)
+    j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
+                                                                1:num_nodes)
+
+    i_primary = i_primary_start
+    j_primary = j_primary_start
+    for i in 1:num_nodes
+        for v in eachvariable(equations)
+            interfaces_u[1, v, i, interface] = u[v, i_primary, j_primary,
+                                                    primary_element]
         end
+        i_primary += i_primary_step
+        j_primary += j_primary_step
+    end
 
-        # Copy solution data from the secondary element using "delayed indexing" with
-        # a start value and a step size to get the correct face and orientation.
-        secondary_element = interfaces.neighbor_ids[2, interface]
-        secondary_indices = interfaces.node_indices[2, interface]
+    # Copy solution data from the secondary element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    secondary_element = interfaces_neighbor_ids[2, interface]
+    secondary_indices = interfaces_node_indices[2, interface]
 
-        i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
-                                                                     index_range)
-        j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
-                                                                     index_range)
+    i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+                                                                    1:num_nodes)
+    j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+                                                                    1:num_nodes)
 
-        i_secondary = i_secondary_start
-        j_secondary = j_secondary_start
-        for i in eachnode(dg)
-            for v in eachvariable(equations)
-                interfaces.u[2, v, i, interface] = u[v, i_secondary, j_secondary,
-                                                     secondary_element]
-            end
-            i_secondary += i_secondary_step
-            j_secondary += j_secondary_step
+    i_secondary = i_secondary_start
+    j_secondary = j_secondary_start
+    for i in 1:num_nodes
+        for v in eachvariable(equations)
+            interfaces_u[2, v, i, interface] = u[v, i_secondary, j_secondary,
+                                                    secondary_element]
         end
+        i_secondary += i_secondary_step
+        j_secondary += j_secondary_step
     end
 
     return nothing
