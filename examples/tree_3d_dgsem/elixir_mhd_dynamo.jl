@@ -56,22 +56,22 @@ function source_terms_helical_forcing(u, x, t, equations::IdealGlmMhdEquations3D
     Random.seed!(seed)
 
     # Random phase -pi < phi <= pi
-    phi = (rand(1)[1] * 2 - 1) * pi
+    phi = (rand() * 2 - 1) * pi
 
     # Random vector k, also delta-correlated in time.
     k = [0.0, 0.0, 0.0]
-    k[1] = (rand(1)[1] * 2 - 1) * pi
-    k[2] = (rand(1)[1] * 2 - 1) * pi
-    k[3] = (rand(1)[1] * 2 - 1) * pi
+    k[1] = (rand() * 2 - 1) * pi
+    k[2] = (rand() * 2 - 1) * pi
+    k[3] = (rand() * 2 - 1) * pi
     k = k / norm(k)
     k = 6 * k
     k_norm = k / norm(k)
 
     # Random unit vector, not aligned with k.
     ee = [0.0, 0.0, 0.0]
-    ee[1] = rand(1)[1] * 2 - 1
-    ee[2] = rand(1)[1] * 2 - 1
-    ee[3] = rand(1)[1] * 2 - 1
+    ee[1] = rand() * 2 - 1
+    ee[2] = rand() * 2 - 1
+    ee[3] = rand() * 2 - 1
     # Normalize the vector e.
     ee = ee / norm(ee)
 
