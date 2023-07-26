@@ -256,6 +256,7 @@ conforming mesh from a `t8_cmesh` data structure.
 function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
                            mapping = nothing, polydeg = 1, RealT = Float64,
                            initial_refinement_level = 0) where {NDIMS}
+
     scheme = t8_scheme_new_default_cxx()
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, 0, mpi_comm())
 
@@ -417,6 +418,7 @@ mesh from a Gmsh mesh file (`.msh`).
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 """
 function T8codeMesh{NDIMS}(meshfile::String; kwargs...) where {NDIMS}
+
     # Prevent `t8code` from crashing Julia if the file doesn't exist.
     @assert isfile(meshfile)
 
