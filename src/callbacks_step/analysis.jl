@@ -267,7 +267,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     gc_time_absolute = 1.0e-9 * (Base.gc_time_ns() - analysis_callback.start_gc_time)
 
     # Compute the percentage of total time that was spent in garbage collection
-    gc_time_percentage = gc_time_absolute / runtime_absolute
+    gc_time_percentage = gc_time_absolute / runtime_absolute * 100
 
     # Obtain the current memory usage of the Julia garbage collector, in MiB, i.e., the total size of
     # objects in memory that have been allocated by the JIT compiler or the user code.
@@ -530,6 +530,36 @@ function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
     end
     mpi_println(" └── level $min_level:    " *
                 @sprintf("% 14d", elements_per_level[min_level + 1]))
+
+    return nothing
+end
+
+# Print level information only if AMR is enabled
+function print_amr_information(callbacks, mesh::T8codeMesh, solver, cache)
+
+    # Return early if there is nothing to print
+    uses_amr(callbacks) || return nothing
+
+    # TODO: Switch to global element levels array when MPI supported or find
+    # another solution.
+    levels = trixi_t8_get_local_element_levels(mesh.forest)
+
+    min_level = minimum(levels)
+    max_level = maximum(levels)
+
+    mpi_println(" minlevel = $min_level")
+    mpi_println(" maxlevel = $max_level")
+
+    if min_level > 0
+        elements_per_level = [count(==(l), levels) for l in 1:max_level]
+
+        for level in max_level:-1:(min_level + 1)
+            mpi_println(" ├── level $level:    " *
+                        @sprintf("% 14d", elements_per_level[level]))
+        end
+        mpi_println(" └── level $min_level:    " *
+                    @sprintf("% 14d", elements_per_level[min_level]))
+    end
 
     return nothing
 end
