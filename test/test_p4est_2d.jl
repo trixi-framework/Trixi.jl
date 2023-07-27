@@ -164,6 +164,11 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.02))
   end
 
+  @trixi_testset "elixir_linearizedeuler_gaussian_source.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_gaussian_source.jl"),
+      l2 = [0.006047938590548741, 0.0040953286019907035, 0.004222698522497298, 0.006269492499336128],
+      linf = [0.06386175207349379, 0.0378926444850457, 0.041759728067967065, 0.06430136016259067])
+  end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

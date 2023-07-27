@@ -10,6 +10,7 @@ for human readability.
 
 - Experimental support for 3D parabolic diffusion terms has been added.
 - Capability to set truly discontinuous initial conditions in 1D.
+- Wetting and drying feature and examples for 1D and 2D shallow water equations
 
 #### Changed
 
