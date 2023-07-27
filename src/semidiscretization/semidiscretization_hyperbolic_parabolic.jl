@@ -331,7 +331,7 @@ end
 function rhs_hyperbolic_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
     @trixi_timeit timer() "hyperbolic-parabolic rhs!" begin 
         # TODO: Avoid allocations, make member variable of something? 
-        # -> Could reside in integrator, then pass in similar to indices of PERK
+        # -> Could reside in (PERK) integrator, then pass in similar to indices of PERK
         du_ode_hyp = similar(du_ode)
         rhs!(du_ode_hyp, u_ode, semi, t)
         rhs_parabolic!(du_ode, u_ode, semi, t)
