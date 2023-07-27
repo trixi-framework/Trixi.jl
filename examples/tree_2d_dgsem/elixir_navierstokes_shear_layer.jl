@@ -1,5 +1,5 @@
 
-using OrdinaryDiffEq, Plots
+using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
@@ -53,7 +53,8 @@ summary_callback = SummaryCallback()
 analysis_interval = 50
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=true,
                                      extra_analysis_integrals=(energy_kinetic,
-                                                               energy_internal))
+                                                               energy_internal,
+                                                               enstrophy))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval,)
 
@@ -68,4 +69,3 @@ time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
             ode_default_options()..., callback=callbacks)
 summary_callback() # print the timer summary
-plot(sol)
