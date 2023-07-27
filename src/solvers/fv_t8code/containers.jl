@@ -20,10 +20,11 @@ struct T8codeElementContainer{NDIMS, MAX_NUMBER_FACES, NDIMS_MAX_NUMBER_FACES}
     face_areas        :: NTuple{MAX_NUMBER_FACES, Cdouble}
     face_normals      :: NTuple{NDIMS_MAX_NUMBER_FACES, Cdouble}
     face_connectivity :: NTuple{MAX_NUMBER_FACES, t8_locidx_t} # ids of the face neighbors
+    neighbor_faces    :: NTuple{MAX_NUMBER_FACES, t8_locidx_t}
 
     function T8codeElementContainer(max_number_faces, level, volume, midpoint, dx,
                                     num_faces, face_midpoints, face_areas, face_normals,
-                                    face_connectivity)
+                                    face_connectivity, neighbor_faces)
         n_dims = length(midpoint)
         new{n_dims, max_number_faces, n_dims * max_number_faces}(level, volume,
                                                                  midpoint, dx,
@@ -31,7 +32,8 @@ struct T8codeElementContainer{NDIMS, MAX_NUMBER_FACES, NDIMS_MAX_NUMBER_FACES}
                                                                  face_midpoints,
                                                                  face_areas,
                                                                  face_normals,
-                                                                 face_connectivity)
+                                                                 face_connectivity,
+                                                                 neighbor_faces)
     end
 end
 
@@ -47,6 +49,7 @@ function Base.show(container::T8codeElementContainer)
     println("face_areas         = ", container.face_areas[1:num_faces])
     println("face_normals       = ", container.face_normals[1:(n_dims * num_faces)])
     println("face_connectivity  = ", container.face_connectivity[1:num_faces])
+    println("neighbor_faces     = ", container.neighbor_faces[1:num_faces])
 end
 
 function init_elements(mesh::T8codeMesh, RealT, uEltype)
@@ -85,6 +88,7 @@ function init_elements(mesh::T8codeMesh)
     face_areas = Vector{Cdouble}(undef, max_number_faces)
     face_normals = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
     face_connectivity = Vector{t8_locidx_t}(undef, max_number_faces)
+    neighbor_faces = Vector{t8_locidx_t}(undef, max_number_faces)
 
     # Loop over all local trees in the forest.
     current_index = 0
@@ -147,6 +151,7 @@ function init_elements(mesh::T8codeMesh)
                 neigh_scheme = neigh_scheme_ref[]
 
                 face_connectivity[iface] = neighids[1]
+                neighbor_faces[iface] = dual_faces[1]
 
                 # Free allocated memory.
                 T8code.Libt8.sc_free(t8_get_package_id(), neighbors_ref[])
@@ -166,7 +171,8 @@ function init_elements(mesh::T8codeMesh)
                                                              Tuple(face_areas),
                                                              Tuple(@views(face_normals[1:n_dims,
                                                                                        :])),
-                                                             Tuple(face_connectivity))
+                                                             Tuple(face_connectivity),
+                                                             Tuple(neighbor_faces))
         end
     end
 
@@ -213,11 +219,12 @@ function exchange_ghost_data(mesh, container)
     T8code.Libt8.sc_array_destroy(sc_array_wrapper)
 end
 
-struct T8codeSolutionContainer{NVARS}
+struct T8codeSolutionContainer{NDIMS, NVARS}
     u::NTuple{NVARS, Cdouble}
+    slope::NTuple{NDIMS, Cdouble}
 
-    function T8codeSolutionContainer(u)
-        new{length(u)}(u)
+    function T8codeSolutionContainer(u, slope)
+        new{length(slope), length(u)}(u, slope)
     end
 end
 
@@ -225,7 +232,8 @@ function exchange_solution!(u, mesh, equations, solver, cache)
     @unpack u_ = cache
     for element in eachelement(mesh, solver)
         u_[element] = T8codeSolutionContainer(Tuple(get_node_vars(u, equations, solver,
-                                                                  element)))
+                                                                  element)),
+                                              u_[element].slope)
     end
     exchange_ghost_data(mesh, u_)
 
