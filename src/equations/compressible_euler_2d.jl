@@ -17,7 +17,7 @@ The compressible Euler equations
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
-    \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e +p) v_1
+ \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e +p) v_1
 \end{pmatrix}
 +
 \frac{\partial}{\partial y}
@@ -131,8 +131,8 @@ A sine wave in the density with constant velocity and pressure; reduces the
 compressible Euler equations to the linear advection equations.
 This setup is the test case for stability of EC fluxes from paper
 - Gregor J. Gassner, Magnus Svärd, Florian J. Hindenlang (2020)
-    Stability issues of entropy-stable and/or split-form high-order schemes
-    [arXiv: 2007.09026](https://arxiv.org/abs/2007.09026)
+  Stability issues of entropy-stable and/or split-form high-order schemes
+  [arXiv: 2007.09026](https://arxiv.org/abs/2007.09026)
 with the following parameters
 - domain [-1, 1]
 - mesh = 4x4
@@ -154,8 +154,8 @@ end
 
 A weak blast wave taken from
 - Sebastian Hennemann, Gregor J. Gassner (2020)
-    A provably entropy stable subcell shock capturing approach for high order split form DG
-    [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  A provably entropy stable subcell shock capturing approach for high order split form DG
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
 function initial_condition_weak_blast_wave(x, t,
                                            equations::CompressibleEulerEquations2D)
@@ -182,8 +182,8 @@ end
 
 Setup used for convergence tests of the Euler equations with self-gravity used in
 - Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-    A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-    [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
 in combination with [`source_terms_eoc_test_coupled_euler_gravity`](@ref)
 or [`source_terms_eoc_test_euler`](@ref).
 """
@@ -211,8 +211,8 @@ end
 
 Setup used for convergence tests of the Euler equations with self-gravity used in
 - Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-    A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-    [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
 in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
 """
 @inline function source_terms_eoc_test_coupled_euler_gravity(u, x, t,
@@ -241,8 +241,8 @@ end
 
 Setup used for convergence tests of the Euler equations with self-gravity used in
 - Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-    A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-    [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
 in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
 """
 @inline function source_terms_eoc_test_euler(u, x, t,
@@ -268,7 +268,7 @@ end
 
 """
     boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
-                                    equations::CompressibleEulerEquations2D)
+                                 equations::CompressibleEulerEquations2D)
 
 Determine the boundary numerical surface flux for a slip wall condition.
 Imposes a zero normal velocity at the wall.
@@ -276,15 +276,15 @@ Density is taken from the internal solution state and pressure is computed as an
 exact solution of a 1D Riemann problem. Further details about this boundary state
 are available in the paper:
 - J. J. W. van der Vegt and H. van der Ven (2002)
-    Slip flow boundary conditions in discontinuous Galerkin discretizations of
-    the Euler equations of gas dynamics
-    [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
+  Slip flow boundary conditions in discontinuous Galerkin discretizations of
+  the Euler equations of gas dynamics
+  [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
 
 Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of the book
 - Eleuterio F. Toro (2009)
-    Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
-    3rd edition
-    [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+  Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
+  3rd edition
+  [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
 Should be used together with [`UnstructuredMesh2D`](@ref).
 """
@@ -330,7 +330,7 @@ end
 
 """
     boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
-                                    surface_flux_function, equations::CompressibleEulerEquations2D)
+                                 surface_flux_function, equations::CompressibleEulerEquations2D)
 
 Should be used together with [`TreeMesh`](@ref).
 """
@@ -352,7 +352,7 @@ end
 
 """
     boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t,
-                                    surface_flux_function, equations::CompressibleEulerEquations2D)
+                                 surface_flux_function, equations::CompressibleEulerEquations2D)
 
 Should be used together with [`StructuredMesh`](@ref).
 """
@@ -417,15 +417,15 @@ end
 
 This flux is is a modification of the original kinetic energy preserving two-point flux by
 - Yuichi Kuya, Kosuke Totani and Soshi Kawai (2018)
-    Kinetic energy and entropy preserving schemes for compressible flows
-    by split convective forms
-    [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
+  Kinetic energy and entropy preserving schemes for compressible flows
+  by split convective forms
+  [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
 
 The modification is in the energy flux to guarantee pressure equilibrium and was developed by
 - Nao Shima, Yuichi Kuya, Yoshiharu Tamaki, Soshi Kawai (JCP 2020)
-    Preventing spurious pressure oscillations in split convective form discretizations for
-    compressible flows
-    [DOI: 10.1016/j.jcp.2020.110060](https://doi.org/10.1016/j.jcp.2020.110060)
+  Preventing spurious pressure oscillations in split convective form discretizations for
+  compressible flows
+  [DOI: 10.1016/j.jcp.2020.110060](https://doi.org/10.1016/j.jcp.2020.110060)
 """
 @inline function flux_shima_etal(u_ll, u_rr, orientation::Integer,
                                  equations::CompressibleEulerEquations2D)
@@ -491,9 +491,9 @@ end
 
 Kinetic energy preserving two-point flux by
 - Kennedy and Gruber (2008)
-    Reduced aliasing formulations of the convective terms within the
-    Navier-Stokes equations for a compressible fluid
-    [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
+  Reduced aliasing formulations of the convective terms within the
+  Navier-Stokes equations for a compressible fluid
+  [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
 @inline function flux_kennedy_gruber(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations2D)
@@ -556,9 +556,9 @@ end
 
 Entropy conserving two-point flux by
 - Chandrashekar (2013)
-    Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
-    for Compressible Euler and Navier-Stokes Equations
-    [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
+  Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
+  for Compressible Euler and Navier-Stokes Equations
+  [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer,
                                     equations::CompressibleEulerEquations2D)
@@ -600,18 +600,18 @@ end
 
 """
     flux_ranocha(u_ll, u_rr, orientation_or_normal_direction,
-                    equations::CompressibleEulerEquations2D)
+                 equations::CompressibleEulerEquations2D)
 
 Entropy conserving and kinetic energy preserving two-point flux by
 - Hendrik Ranocha (2018)
-    Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
-    for Hyperbolic Balance Laws
-    [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+  Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
+  for Hyperbolic Balance Laws
+  [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
 See also
 - Hendrik Ranocha (2020)
-    Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
-    the Euler Equations Using Summation-by-Parts Operators
-    [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+  Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
+  the Euler Equations Using Summation-by-Parts Operators
+  [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
 @inline function flux_ranocha(u_ll, u_rr, orientation::Integer,
                               equations::CompressibleEulerEquations2D)
@@ -684,10 +684,10 @@ end
 
 """
     splitting_steger_warming(u, orientation::Integer,
-                                equations::CompressibleEulerEquations2D)
+                             equations::CompressibleEulerEquations2D)
     splitting_steger_warming(u, which::Union{Val{:minus}, Val{:plus}}
-                                orientation::Integer,
-                                equations::CompressibleEulerEquations2D)
+                             orientation::Integer,
+                             equations::CompressibleEulerEquations2D)
 
 Splitting of the compressible Euler flux of Steger and Warming.
 
@@ -702,9 +702,9 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()
 ## References
 
 - Joseph L. Steger and R. F. Warming (1979)
-    Flux Vector Splitting of the Inviscid Gasdynamic Equations
-    With Application to Finite Difference Methods
-    [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
+  Flux Vector Splitting of the Inviscid Gasdynamic Equations
+  With Application to Finite Difference Methods
+  [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
 """
 @inline function splitting_steger_warming(u, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
@@ -811,10 +811,10 @@ end
 
 """
     splitting_vanleer_haenel(u, orientation::Integer,
-                                equations::CompressibleEulerEquations2D)
+                             equations::CompressibleEulerEquations2D)
     splitting_vanleer_haenel(u, which::Union{Val{:minus}, Val{:plus}}
-                                orientation::Integer,
-                                equations::CompressibleEulerEquations2D)
+                             orientation::Integer,
+                             equations::CompressibleEulerEquations2D)
 
 Splitting of the compressible Euler flux from van Leer. This splitting further
 contains a reformulation due to Hänel et al. where the energy flux uses the
@@ -834,14 +834,14 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()
 ## References
 
 - Bram van Leer (1982)
-    Flux-Vector Splitting for the Euler Equation
-    [DOI: 10.1007/978-3-642-60543-7_5](https://doi.org/10.1007/978-3-642-60543-7_5)
+  Flux-Vector Splitting for the Euler Equation
+  [DOI: 10.1007/978-3-642-60543-7_5](https://doi.org/10.1007/978-3-642-60543-7_5)
 - D. Hänel, R. Schwane and G. Seider (1987)
-    On the accuracy of upwind schemes for the solution of the Navier-Stokes equations
-    [DOI: 10.2514/6.1987-1105](https://doi.org/10.2514/6.1987-1105)
+  On the accuracy of upwind schemes for the solution of the Navier-Stokes equations
+  [DOI: 10.2514/6.1987-1105](https://doi.org/10.2514/6.1987-1105)
 - Meng-Sing Liou and Chris J. Steffen, Jr. (1991)
-    High-Order Polynomial Expansions (HOPE) for Flux-Vector Splitting
-    [NASA Technical Memorandum](https://ntrs.nasa.gov/citations/19910016425)
+  High-Order Polynomial Expansions (HOPE) for Flux-Vector Splitting
+  [NASA Technical Memorandum](https://ntrs.nasa.gov/citations/19910016425)
 """
 @inline function splitting_vanleer_haenel(u, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
@@ -912,10 +912,10 @@ end
 
 """
     splitting_lax_friedrichs(u, orientation::Integer,
-                                equations::CompressibleEulerEquations2D)
+                             equations::CompressibleEulerEquations2D)
     splitting_lax_friedrichs(u, which::Union{Val{:minus}, Val{:plus}}
-                                orientation::Integer,
-                                equations::CompressibleEulerEquations2D)
+                             orientation::Integer,
+                             equations::CompressibleEulerEquations2D)
 
 Naive local Lax-Friedrichs style flux splitting of the form `f⁺ = 0.5 (f + λ u)`
 and `f⁻ = 0.5 (f - λ u)` similar to a flux splitting one would apply, e.g.,
@@ -1261,11 +1261,11 @@ by Einfeldt to ensure that the internal energy and density remain positive durin
 of the numerical flux.
 
 - Bernd Einfeldt (1988)
-    On Godunov-type methods for gas dynamics.
-    [DOI: 10.1137/0725021](https://doi.org/10.1137/0725021)
+  On Godunov-type methods for gas dynamics.
+  [DOI: 10.1137/0725021](https://doi.org/10.1137/0725021)
 - Bernd Einfeldt, Claus-Dieter Munz, Philip L. Roe and Björn Sjögreen (1991)
-    On Godunov-type methods near low densities.
-    [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
+  On Godunov-type methods near low densities.
+  [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
 """
 function flux_hlle(u_ll, u_rr, orientation::Integer,
                    equations::CompressibleEulerEquations2D)
