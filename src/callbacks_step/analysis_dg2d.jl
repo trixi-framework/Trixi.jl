@@ -31,7 +31,7 @@ end
 
 function create_cache_analysis(analyzer,
                                mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}},
+                                           P4estMesh{2}, T8codeMesh{2}},
                                equations, dg::DG, cache,
                                RealT, uEltype)
 
@@ -108,7 +108,7 @@ end
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                      P4estMesh{2}}, equations,
+                                      P4estMesh{2}, T8codeMesh{2}}, equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack node_coordinates, inverse_jacobian = cache.elements
@@ -176,7 +176,7 @@ end
 
 function integrate_via_indices(func::Func, u,
                                mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}}, equations,
+                                           P4estMesh{2}, T8codeMesh{2}}, equations,
                                dg::DGSEM, cache, args...; normalize = true) where {Func}
     @unpack weights = dg.basis
 
@@ -204,7 +204,7 @@ end
 
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                               P4estMesh{2}},
+                               P4estMesh{2}, T8codeMesh{2}},
                    equations, dg::DG, cache; normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, element, equations, dg
@@ -215,7 +215,7 @@ end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                             P4estMesh{2}},
+                             P4estMesh{2}, T8codeMesh{2}},
                  equations, dg::DG, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
@@ -259,7 +259,8 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
+                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
+                             T8codeMesh{2}},
                  equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
     @unpack contravariant_vectors = cache.elements
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
@@ -326,7 +327,8 @@ function analyze(::Val{:linf_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
+                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
+                             T8codeMesh{2}},
                  equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
     @unpack contravariant_vectors = cache.elements
