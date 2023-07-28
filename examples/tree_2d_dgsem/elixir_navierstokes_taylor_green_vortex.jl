@@ -16,7 +16,8 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu=mu(),
 """
     initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations2D)
 
-The classical inviscid Taylor-Green vortex.
+The classical inviscid Taylor-Green vortex, see for instance 
+https://en.wikipedia.org/wiki/Taylor%E2%80%93Green_vortex#Taylor%E2%80%93Green_vortex_solution
 """
 function initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations2D)
   A  = 1.0 # magnitude of speed
@@ -39,7 +40,7 @@ solver = DGSEM(polydeg=3, surface_flux=flux_hllc,
 coordinates_min = (-1.0, -1.0) .* pi
 coordinates_max = ( 1.0,  1.0) .* pi
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=2,
+                initial_refinement_level=4,
                 n_cells_max=100_000)
 
 
@@ -49,7 +50,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 20.0)
+tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
