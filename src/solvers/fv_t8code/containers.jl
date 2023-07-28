@@ -193,9 +193,11 @@ function init_solution!(mesh::T8codeMesh, equations)
 
     # Build an array of our data that is as long as the number of elements plus
     # the number of ghosts.
-    u_ = Array{T8codeSolutionContainer{n_dims, nvariables(equations)}}(undef,
-                                                                       num_local_elements +
-                                                                       num_ghost_elements)
+    u_ = Array{
+               T8codeSolutionContainer{nvariables(equations),
+                                       nvariables(equations) * n_dims}}(undef,
+                                                                        num_local_elements +
+                                                                        num_ghost_elements)
 
     return u_
 end
@@ -219,18 +221,22 @@ function exchange_ghost_data(mesh, container)
     T8code.Libt8.sc_array_destroy(sc_array_wrapper)
 end
 
-struct T8codeSolutionContainer{NDIMS, NVARS}
+struct T8codeSolutionContainer{NVARS, NVARS_NDIMS}
     u::NTuple{NVARS, Cdouble}
-    slope::NTuple{NDIMS, Cdouble}
+    slope::NTuple{NVARS_NDIMS, Cdouble}
 
     function T8codeSolutionContainer(u, slope)
-        new{length(slope), length(u)}(u, slope)
+        new{length(u), length(slope)}(u, slope)
     end
+end
+
+function get_slope_variable(slope, equations, shift)
+    return SVector(ntuple(@inline(idx->slope[shift + idx]), Val(ndims(equations))))
 end
 
 function exchange_solution!(u, mesh, equations, solver, cache)
     @unpack u_ = cache
-    for element in eachelement(mesh, solver)
+    @threaded for element in eachelement(mesh, solver)
         u_[element] = T8codeSolutionContainer(Tuple(get_node_vars(u, equations, solver,
                                                                   element)),
                                               u_[element].slope)

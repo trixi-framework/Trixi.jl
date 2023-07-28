@@ -90,10 +90,52 @@ function cmesh_new_periodic_hybrid(comm, n_dims)::t8_cmesh_t
 	return cmesh
 end
 
-function build_forest(comm, n_dims, level, case)
+function cmesh_new_periodic_quad(comm, n_dims)::t8_cmesh_t
+	vertices = [ # Just all vertices of all trees. partly duplicated
+		-2.0, -2.0, 0,                    # tree 0, quad
+		2.0, -2.0, 0,
+		-2.0, 2.0, 0,
+		2.0, 2.0, 0,
+	]
+
+	# Generally, one can define other geometries. But besides linear the other
+	# geometries in t8code do not have C interface yet.
+	linear_geom = t8_geometry_linear_new(n_dims)
+
+	#
+	# This is how the cmesh looks like. The numbers are the tree numbers:
+	#
+	#   +---+
+	#   |   |
+	#   | 0 |
+	#   |   |
+	#   +---+
+	#
+
+	cmesh_ref = Ref(t8_cmesh_t())
+	t8_cmesh_init(cmesh_ref)
+	cmesh = cmesh_ref[]
+
+	# Use linear geometry
+	t8_cmesh_register_geometry(cmesh, linear_geom)
+	t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_QUAD)
+	# t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_QUAD)
+
+	t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[1+0:end]), 4)
+	# t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[1 +  12:end]), 4)
+
+	t8_cmesh_set_join(cmesh, 0, 0, 0, 1, 0)
+	t8_cmesh_set_join(cmesh, 0, 0, 2, 3, 0)
+
+	t8_cmesh_commit(cmesh, comm)
+
+	return cmesh
+end
+
+function build_forest(comm, n_dims, level)
 	# Periodic mesh of quads and triangles.
 	# cmesh = t8_cmesh_new_periodic_hybrid(comm) # The `t8code` version does exactly the same.
-	cmesh = cmesh_new_periodic_hybrid(comm, n_dims)
+	cmesh = cmesh_new_periodic_quad(comm, n_dims)
 
 	scheme = t8_scheme_new_default_cxx()
 
@@ -142,12 +184,12 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
 end
 initial_condition = initial_condition_blast_wave
 
-solver = FV(surface_flux = flux_lax_friedrichs)
+solver = FV(order = 2, slope_limiter = Trixi.minmod, surface_flux = flux_lax_friedrichs)
 
 # Initialize an adapted forest with periodic boundaries.
 n_dims = 2
 initial_refinement_level = 4
-forest = build_forest(comm, n_dims, initial_refinement_level, 3)
+forest = build_forest(comm, n_dims, initial_refinement_level)
 
 number_trees = t8_forest_get_num_local_trees(forest)
 println("rank $(Trixi.mpi_rank()): #trees $number_trees, #elements $(t8_forest_get_local_num_elements(forest)), #ghost_elements $(t8_forest_get_num_ghosts(forest))")
@@ -169,10 +211,10 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=1,
+save_solution = SaveSolutionCallback(interval=10,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.4)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback, save_solution, analysis_callback, alive_callback, stepsize_callback)
 
@@ -180,7 +222,7 @@ callbacks = CallbackSet(summary_callback, save_solution, analysis_callback, aliv
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, Euler(),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),#Euler(),
             dt=5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback()

@@ -10,7 +10,8 @@ struct FV{SlopeLimiter, SurfaceFlux}
     slope_limiter::SlopeLimiter
     surface_flux::SurfaceFlux
 
-    function FV(; order = 1, slope_limiter = average_slope_limiter, surface_flux = flux_central)
+    function FV(; order = 1, slope_limiter = average_slope_limiter,
+                surface_flux = flux_central)
         new{typeof(slope_limiter), typeof(surface_flux)}(order, slope_limiter,
                                                          surface_flux)
     end
@@ -106,7 +107,8 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
 
     du .= zero(eltype(du))
 
-    @trixi_timeit timer() "reconstruction" reconstruction(u_, mesh, equations, solver, cache)
+    @trixi_timeit timer() "reconstruction" reconstruction(u_, mesh, equations, solver,
+                                                          cache)
 
     @trixi_timeit timer() "update du" begin
         for element in eachelement(mesh, solver)
@@ -117,11 +119,19 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
                     continue
                 end
                 normal = SVector(face_normals[2 * face - 1], face_normals[2 * face])
-                @trixi_timeit timer() "evaluation" u_element, u_neighbor = evaluate_interface_values(element, neighbor,
-                                                                face, normal, u_,
-                                                                mesh, solver, cache)
-                @trixi_timeit timer() "surface flux" flux = solver.surface_flux(u_element, u_neighbor,
-                                                                                normal, equations)
+                @trixi_timeit timer() "evaluation" u_element, u_neighbor=evaluate_interface_values(element,
+                                                                                                   neighbor,
+                                                                                                   face,
+                                                                                                   normal,
+                                                                                                   u_,
+                                                                                                   mesh,
+                                                                                                   equations,
+                                                                                                   solver,
+                                                                                                   cache)
+                @trixi_timeit timer() "surface flux" flux=solver.surface_flux(u_element,
+                                                                              u_neighbor,
+                                                                              normal,
+                                                                              equations)
                 @trixi_timeit timer() "for loop" for v in eachvariable(equations)
                     flux_ = -face_areas[face] * flux[v]
                     du[v, element] += flux_
@@ -162,11 +172,12 @@ function linear_reconstruction(u_, mesh, equations, solver, cache)
         @unpack u = u_[element]
         @unpack num_faces, face_connectivity, face_areas, face_normals, midpoint, face_midpoints, volume = cache.elements[element]
 
-        slope = zeros(Cdouble, ndims(mesh))
+        slope = zeros(Cdouble, nvariables(equations) * ndims(mesh))
         for face in 1:num_faces
             neighbor = face_connectivity[face]
             normal = SVector(face_normals[2 * face - 1], face_normals[2 * face])
-            face_midpoint = SVector(face_midpoints[2 * face - 1], face_midpoints[2 * face])
+            face_midpoint = SVector(face_midpoints[2 * face - 1],
+                                    face_midpoints[2 * face])
 
             neighbor_face = elements[element].neighbor_faces[face]
             face_midpoint_neighbor = SVector(elements[neighbor].face_midpoints[2 * neighbor_face - 1],
@@ -185,7 +196,12 @@ function linear_reconstruction(u_, mesh, equations, solver, cache)
             slope_ = (u_[neighbor].u .- u) ./ distance
             u_face = u .+ slope_ .* norm(face_midpoint .- midpoint)
 
-            slope .+= face_areas[face] .* u_face .* normal
+            for v in eachvariable(equations)
+                for d in eachindex(normal)
+                    slope[(v - 1) * ndims(mesh) + d] += face_areas[face] * u_face[v] *
+                                                        normal[d]
+                end
+            end
         end
         slope .*= 1 / volume
         u_[element] = T8codeSolutionContainer(u, Tuple(slope))
@@ -196,8 +212,8 @@ function linear_reconstruction(u_, mesh, equations, solver, cache)
     return nothing
 end
 
-function evaluate_interface_values(element, neighbor, face, normal, u_, mesh, solver,
-                                   cache)
+function evaluate_interface_values(element, neighbor, face, normal, u_, mesh, equations,
+                                   solver, cache)
     @unpack elements = cache
 
     if solver.order == 1
@@ -210,37 +226,37 @@ function evaluate_interface_values(element, neighbor, face, normal, u_, mesh, so
         face_midpoints_neighbor = elements[neighbor].face_midpoints
         face_midpoint_neighbor = SVector(face_midpoints_neighbor[2 * face_neighbor - 1],
                                          face_midpoints_neighbor[2 * face_neighbor])
-        # TODO: Currently, slope only for nvariables=1
-        slope = solver.slope_limiter(u_[element].slope, u_[neighbor].slope)
-        u1 = SVector(u_[element].u .+ sum(slope .* (face_midpoint .- midpoint)))
-        u2 = SVector(u_[neighbor].u .+ sum(slope .* (face_midpoint_neighbor .-
-                                                     elements[neighbor].midpoint)))
+
+        u1 = zeros(Cdouble, length(u_[element].u))
+        u2 = zeros(Cdouble, length(u_[element].u))
+        for v in eachvariable(equations)
+            s1 = Trixi.get_slope_variable(u_[element].slope, equations,
+                                          (v - 1) * ndims(mesh))
+            s2 = Trixi.get_slope_variable(u_[neighbor].slope, equations,
+                                          (v - 1) * ndims(mesh))
+            slope_v = solver.slope_limiter.(s1, s2)
+            u1[v] = u_[element].u[v] + sum(slope_v .*
+                                           (face_midpoint .- midpoint))
+            u2[v] = u_[neighbor].u[v] + sum(slope_v .*
+                        (face_midpoint_neighbor .-
+                         elements[neighbor].midpoint))
+        end
         return u1, u2
-    else
-        error("Order $(solver.order) is not supported.")
     end
-    error()
+    error("Order $(solver.order) is not supported.")
 end
 
-function average_slope_limiter(slope1, slope2)
-    return 0.5 .* slope1 .+ 0.5 .* slope2
+function average_slope_limiter(s1, s2)
+    return 0.5 * s1 + 0.5 * s2
 end
 
-function minmod(slope1::Tuple, slope2::Tuple)
-    slope = zeros(length(slope1))
-    for d in eachindex(slope1)
-        slope[d] = minmod(slope1[d], slope2[2])
+function minmod(s1, s2)
+    if s1 > 0 && s2 > 0
+        return min(s1, s2)
+    elseif s1 < 0 && s2 < 0
+        return max(s1, s2)
     end
-    return slope
-end
-
-function minmod(slope1, slope2)
-    if slope1 > 0 && slope2 > 0
-        return min(slope1, slope2)
-    elseif slope1 < 0 && slope2 < 0
-        return max(slope1, slope2)
-    end
-    return zero(eltype(slope1))
+    return zero(eltype(s1))
 end
 
 function get_element_variables!(element_variables, u, mesh::T8codeMesh, equations,

@@ -249,6 +249,7 @@ function save_solution_file(u, time, dt, timestep,
         filename = joinpath(output_directory,
                             @sprintf("solution_%s_%06d.h5", system, timestep))
     end
+    # MPI.Barrier(MPI.COMM_WORLD)
     Trixi.exchange_solution!(u, mesh, equations, solver, cache)
     Trixi.output_data_to_vtu(mesh, equations, solver, cache.u_, filename)
     # TODO: (3 ranks) In the first run of an example the first solution file is not generated for one rank.
