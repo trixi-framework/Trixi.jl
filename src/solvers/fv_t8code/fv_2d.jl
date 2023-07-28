@@ -173,16 +173,16 @@ function linear_reconstruction(u_, mesh, equations, solver, cache)
                                              elements[neighbor].face_midpoints[2 * neighbor_face])
             if face_midpoint != face_midpoint_neighbor
                 # Periodic boundary
-                # Currently, the face_midpoint must be synchronous at each side of the mesh.
-                # Is it possible to have shifted faces?
-                # Rn, the distance is implemented as the sum of the two distances to the face_midpoint.
+                # - The face_midpoint must be synchronous at each side of the mesh.
+                #   Is it possible to have shifted faces?
+                # - Distance is implemented as the sum of the two distances to the face_midpoint.
+                #   In general, this is not the actual distance.
                 distance = norm(face_midpoint .- midpoint) +
                            norm(face_midpoint_neighbor .- elements[neighbor].midpoint)
-                slope_ = (u_[neighbor].u .- u) ./ distance
             else
                 distance = norm(elements[neighbor].midpoint .- midpoint)
-                slope_ = (u_[neighbor].u .- u) ./ distance
             end
+            slope_ = (u_[neighbor].u .- u) ./ distance
             u_face = u .+ slope_ .* norm(face_midpoint .- midpoint)
 
             slope .+= face_areas[face] .* u_face .* normal
