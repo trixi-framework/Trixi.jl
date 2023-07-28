@@ -10,7 +10,7 @@ struct FV{SlopeLimiter, SurfaceFlux}
     slope_limiter::SlopeLimiter
     surface_flux::SurfaceFlux
 
-    function FV(; order = 1, slope_limiter = "TODO", surface_flux = flux_central)
+    function FV(; order = 1, slope_limiter = average_slope_limiter, surface_flux = flux_central)
         new{typeof(slope_limiter), typeof(surface_flux)}(order, slope_limiter,
                                                          surface_flux)
     end
@@ -155,6 +155,8 @@ function reconstruction(u_, mesh, equations, solver, cache)
 end
 
 function linear_reconstruction(u_, mesh, equations, solver, cache)
+    @unpack elements = cache
+
     # Approximate slope
     for element in eachelement(mesh, solver, cache)
         @unpack u = u_[element]
@@ -165,13 +167,24 @@ function linear_reconstruction(u_, mesh, equations, solver, cache)
             neighbor = face_connectivity[face]
             normal = SVector(face_normals[2 * face - 1], face_normals[2 * face])
             face_midpoint = SVector(face_midpoints[2 * face - 1], face_midpoints[2 * face])
-            if norm(face_midpoint .- cache.elements[neighbor].midpoint) > norm(cache.elements[neighbor].midpoint .- midpoint)
-                ratio = 0.5 # TODO periodic boundary.
+
+            neighbor_face = elements[element].neighbor_faces[face]
+            face_midpoint_neighbor = SVector(elements[neighbor].face_midpoints[2 * neighbor_face - 1],
+                                             elements[neighbor].face_midpoints[2 * neighbor_face])
+            if face_midpoint != face_midpoint_neighbor
+                # Periodic boundary
+                # Currently, the face_midpoint must be synchronous at each side of the mesh.
+                # Is it possible to have shifted faces?
+                # Rn, the distance is implemented as the sum of the two distances to the face_midpoint.
+                distance = norm(face_midpoint .- midpoint) +
+                           norm(face_midpoint_neighbor .- elements[neighbor].midpoint)
+                slope_ = (u_[neighbor].u .- u) ./ distance
             else
-                ratio = norm(face_midpoint .- midpoint) /
-                        norm(cache.elements[neighbor].midpoint .- midpoint)
+                distance = norm(elements[neighbor].midpoint .- midpoint)
+                slope_ = (u_[neighbor].u .- u) ./ distance
             end
-            u_face = u .+ (u_[neighbor].u .- u) .* ratio
+            u_face = u .+ slope_ .* norm(face_midpoint .- midpoint)
+
             slope .+= face_areas[face] .* u_face .* normal
         end
         slope .*= 1 / volume
@@ -206,6 +219,11 @@ function evaluate_interface_values(element, neighbor, face, normal, u_, mesh, so
     else
         error("Order $(solver.order) is not supported.")
     end
+    error()
+end
+
+function average_slope_limiter(slope1, slope2)
+    return 0.5 .* slope1 .+ 0.5 .* slope2
 end
 
 function minmod(slope1::Tuple, slope2::Tuple)
@@ -213,7 +231,6 @@ function minmod(slope1::Tuple, slope2::Tuple)
     for d in eachindex(slope1)
         slope[d] = minmod(slope1[d], slope2[2])
     end
-    # TODO
     return slope
 end
 

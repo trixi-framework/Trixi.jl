@@ -142,7 +142,7 @@ end
 function build_forest(comm, n_dims, level)
 	# Periodic mesh of quads and triangles.
 	# cmesh = t8_cmesh_new_periodic_hybrid(comm) # The `t8code` version does exactly the same.
-	cmesh = cmesh_new_periodic_quad(comm, n_dims) # cmesh_new_periodic_hybrid
+	cmesh = cmesh_new_periodic_hybrid(comm, n_dims)
 
 	scheme = t8_scheme_new_default_cxx()
 
@@ -174,7 +174,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 
-solver = FV(order = 2, slope_limiter = Trixi.minmod, surface_flux = flux_lax_friedrichs)
+solver = FV(order = 2, slope_limiter = Trixi.average_slope_limiter, surface_flux = flux_lax_friedrichs)
 
 # Initialize an adapted forest with periodic boundaries.
 n_dims = 2
