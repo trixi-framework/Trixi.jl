@@ -2,7 +2,7 @@
 using Trixi, OrdinaryDiffEq
 
 dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type=SBP(),
-             surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
+             surface_integral = SurfaceIntegralWeakForm(flux_hll),
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 equations = CompressibleEulerEquations3D(1.4)
