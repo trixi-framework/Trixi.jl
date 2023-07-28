@@ -136,6 +136,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_convergence.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.1),
+      analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+      extra_analysis_integrals=(energy_kinetic,
+                                energy_internal,
+                                enstrophy)),
       l2 = [0.002111672530658797, 0.0034322351490857846, 0.0038742528195910416, 0.012469246082568561],
       linf = [0.012006418939223495, 0.035520871209746126, 0.024512747492231427, 0.11191122588756564]
     )

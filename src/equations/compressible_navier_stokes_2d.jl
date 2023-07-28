@@ -300,6 +300,21 @@ end
     return T
 end
 
+@inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
+    # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
+
+    omega = vorticity(u, gradients, equations)
+    return 0.5 * u[1] * omega^2
+end
+
+@inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
+    # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
+    _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
+    _, dv1dy, dv2dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
+
+    return dv2dx - dv1dy
+end
+
 # TODO: can we generalize this to MHD?
 """
     struct BoundaryConditionNavierStokesWall
