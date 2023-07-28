@@ -71,7 +71,7 @@ amr_controller = ControllerThreeLevel(semi,
                                       IndicatorMax(semi, variable=first),
                                       base_level=3,
                                       med_level=4, med_threshold=0.8,
-                                      max_level=5, max_threshold=1.2)
+                                      max_level=5, max_threshold=1.3)
 
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,

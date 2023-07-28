@@ -512,7 +512,7 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
     return nothing
 end
 
-function prolong2mortars!(cache, #flux_viscous::Tuple{AbstractArray, AbstractArray},
+function prolong2mortars!(cache,
                           flux_viscous::Vector{Array{Float64}},
                           mesh::TreeMesh{2},
                           equations_parabolic::AbstractEquationsParabolic,
@@ -911,11 +911,6 @@ function create_cache_parabolic(mesh::TreeMesh{2},
     n_vars = nvariables(equations_hyperbolic)
     n_nodes = nnodes(elements)
     n_elements = nelements(elements)
-    #=
-    u_transformed = Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_elements)
-    gradients = ntuple(_ -> similar(u_transformed), ndims(mesh))
-    flux_viscous = ntuple(_ -> similar(u_transformed), ndims(mesh))
-    =#
     cache_viscous = CacheViscous2D{uEltype}(n_vars, n_nodes, n_elements)
 
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
@@ -925,7 +920,6 @@ function create_cache_parabolic(mesh::TreeMesh{2},
     # mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
     # cache = (; elements, interfaces, boundaries, mortars)
-    #cache = (; elements, interfaces, boundaries, gradients, flux_viscous, u_transformed)
     cache = (; elements, interfaces, boundaries, cache_viscous)
 
     # Add specialized parts of the cache required to compute the mortars etc.
