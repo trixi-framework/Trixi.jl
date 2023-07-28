@@ -7,6 +7,7 @@ using OrdinaryDiffEq
 using Trixi
 using Random
 using LinearAlgebra
+using StableRNGs
 
 ###############################################################################
 # initial condition and forcing function
@@ -20,16 +21,16 @@ function initial_condition_gaussian_noise_mhd(x, t, equations)
     amplitude = 1e-8
 
     seed = reinterpret(UInt, t + x[1] + x[2] + x[3])
-    Random.seed!(seed)
+    rng = StableRNG(seed)
 
     rho = 1.0
     rho_v1 = 0.0
     rho_v2 = 0.0
     rho_v3 = 0.0
     rho_e = 10.0
-    B1 = randn() * amplitude
-    B2 = randn() * amplitude
-    B3 = randn() * amplitude
+    B1 = randn(rng) * amplitude
+    B2 = randn(rng) * amplitude
+    B3 = randn(rng) * amplitude
     psi = 0.0
 
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
@@ -53,16 +54,16 @@ function source_terms_helical_forcing(u, x, t, equations::IdealGlmMhdEquations3D
 
     # To make sure that the random numbers depend only on time we need to set the seeds.
     seed = reinterpret(UInt, t)
-    Random.seed!(seed)
+    rng = StableRNG(seed)
 
     # Random phase -pi < phi <= pi
     phi = (rand() * 2 - 1) * pi
 
     # Random vector k, also delta-correlated in time.
     k = [0.0, 0.0, 0.0]
-    k[1] = (rand() * 2 - 1) * pi
-    k[2] = (rand() * 2 - 1) * pi
-    k[3] = (rand() * 2 - 1) * pi
+    k[1] = (randn(rng) * 2 - 1) * pi
+    k[2] = (randn(rng) * 2 - 1) * pi
+    k[3] = (randn(rng) * 2 - 1) * pi
     k = k / norm(k)
     k = 6 * k
     k_norm = k / norm(k)
