@@ -213,6 +213,24 @@ function integrate(func::Func, u,
     end
 end
 
+function integrate(func::Func, u,
+                   mesh::Union{TreeMesh{2}, P4estMesh{2}},
+                   equations, equations_parabolic,
+                   dg::DGSEM,
+                   cache, cache_parabolic; normalize = true) where {Func}
+    gradients_x, gradients_y = cache_parabolic.gradients
+    integrate_via_indices(u, mesh, equations, dg, cache;
+                          normalize = normalize) do u, i, j, element, equations, dg
+        u_local = get_node_vars(u, equations, dg, i, j, element)
+        gradients_1_local = get_node_vars(gradients_x, equations_parabolic, dg, i, j,
+                                          element)
+        gradients_2_local = get_node_vars(gradients_y, equations_parabolic, dg, i, j,
+                                          element)
+        return func(u_local, (gradients_1_local, gradients_2_local),
+                    equations_parabolic)
+    end
+end
+
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
                              P4estMesh{2}, T8codeMesh{2}},
