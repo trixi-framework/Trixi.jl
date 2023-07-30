@@ -228,7 +228,7 @@ function integrate(func::Func, u,
 end
 
 function integrate(func::Func, u,
-                   mesh::TreeMesh{3},
+                   mesh::Union{TreeMesh{3}, P4estMesh{3}},
                    equations, equations_parabolic,
                    dg::DGSEM,
                    cache, cache_parabolic; normalize = true) where {Func}
