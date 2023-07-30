@@ -29,10 +29,10 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
   
   @trixi_testset "elixir_euler_density_wave_restart.jl" begin
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"))
-    l2_exact, linf_exact = analysis_callback(sol)
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"),
+    l2, linf = analysis_callback(sol)
+    eval(:(@test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"),
       # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl
-      l2 = l2_exact, linf = linf_exact)
+      l2 = $l2, linf = $linf)))
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
