@@ -64,7 +64,7 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
       l2, linf = analysis_callback(sol)
       eval(:(@test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_restart.jl"),
         # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl
-        l2 = $l2_exact, linf = $linf)))
+        l2 = $l2, linf = $linf)))
     end
   end
 
