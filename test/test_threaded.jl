@@ -62,7 +62,7 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
     @trixi_testset "elixir_euler_density_wave_restart.jl" begin
       trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_extended.jl"))
       l2_exact, linf_exact = analysis_callback(sol)
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"),
+      @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_restart.jl"),
         # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl
         l2 = l2_exact, linf = linf_exact)
     end
