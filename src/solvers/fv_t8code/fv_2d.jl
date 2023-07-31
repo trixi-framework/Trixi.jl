@@ -118,7 +118,8 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
                 if neighbor < element
                     continue
                 end
-                normal = SVector(face_normals[2 * face - 1], face_normals[2 * face])
+                normal = Trixi.get_variable_wrapped(face_normals, equations,
+                                                    2 * (face - 1))
                 @trixi_timeit timer() "evaluation" u_element, u_neighbor=evaluate_interface_values(element,
                                                                                                    neighbor,
                                                                                                    face,
@@ -172,16 +173,17 @@ function linear_reconstruction(u_, mesh, equations, solver, cache)
         @unpack u = u_[element]
         @unpack num_faces, face_connectivity, face_areas, face_normals, midpoint, face_midpoints, volume = cache.elements[element]
 
-        slope = zeros(Cdouble, nvariables(equations) * ndims(mesh))
+        slope = zeros(eltype(u), nvariables(equations) * ndims(mesh))
         for face in 1:num_faces
             neighbor = face_connectivity[face]
-            normal = SVector(face_normals[2 * face - 1], face_normals[2 * face])
-            face_midpoint = SVector(face_midpoints[2 * face - 1],
-                                    face_midpoints[2 * face])
+            normal = Trixi.get_variable_wrapped(face_normals, equations, 2 * (face - 1))
+            face_midpoint = Trixi.get_variable_wrapped(face_midpoints, equations,
+                                                       2 * (face - 1))
 
             neighbor_face = elements[element].neighbor_faces[face]
-            face_midpoint_neighbor = SVector(elements[neighbor].face_midpoints[2 * neighbor_face - 1],
-                                             elements[neighbor].face_midpoints[2 * neighbor_face])
+            face_midpoint_neighbor = Trixi.get_variable_wrapped(elements[neighbor].face_midpoints,
+                                                                equations,
+                                                                2 * (neighbor_face - 1))
             if face_midpoint != face_midpoint_neighbor
                 # Periodic boundary
                 # - The face_midpoint must be synchronous at each side of the mesh.
@@ -220,26 +222,26 @@ function evaluate_interface_values(element, neighbor, face, normal, u_, mesh, eq
         return SVector(u_[element].u), SVector(u_[neighbor].u)
     elseif solver.order == 2
         @unpack midpoint, face_midpoints = elements[element]
-        face_midpoint = SVector(face_midpoints[2 * face - 1], face_midpoints[2 * face])
+        face_midpoint = Trixi.get_variable_wrapped(face_midpoints, equations,
+                                                   2 * (face - 1))
 
         face_neighbor = elements[element].neighbor_faces[face]
         face_midpoints_neighbor = elements[neighbor].face_midpoints
-        face_midpoint_neighbor = SVector(face_midpoints_neighbor[2 * face_neighbor - 1],
-                                         face_midpoints_neighbor[2 * face_neighbor])
+        face_midpoint_neighbor = Trixi.get_variable_wrapped(face_midpoints_neighbor,
+                                                            equations,
+                                                            2 * (face_neighbor - 1))
 
-        u1 = zeros(Cdouble, length(u_[element].u))
-        u2 = zeros(Cdouble, length(u_[element].u))
+        u1 = zeros(eltype(u_[element].u), length(u_[element].u))
+        u2 = zeros(eltype(u_[element].u), length(u_[element].u))
         for v in eachvariable(equations)
-            s1 = Trixi.get_slope_variable(u_[element].slope, equations,
-                                          (v - 1) * ndims(mesh))
-            s2 = Trixi.get_slope_variable(u_[neighbor].slope, equations,
-                                          (v - 1) * ndims(mesh))
+            s1 = Trixi.get_variable_wrapped(u_[element].slope, equations,
+                                            (v - 1) * ndims(mesh))
+            s2 = Trixi.get_variable_wrapped(u_[neighbor].slope, equations,
+                                            (v - 1) * ndims(mesh))
             slope_v = solver.slope_limiter.(s1, s2)
-            u1[v] = u_[element].u[v] + sum(slope_v .*
-                                           (face_midpoint .- midpoint))
+            u1[v] = u_[element].u[v] + sum(slope_v .* (face_midpoint .- midpoint))
             u2[v] = u_[neighbor].u[v] + sum(slope_v .*
-                        (face_midpoint_neighbor .-
-                         elements[neighbor].midpoint))
+                        (face_midpoint_neighbor .- elements[neighbor].midpoint))
         end
         return u1, u2
     end
