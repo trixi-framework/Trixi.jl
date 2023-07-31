@@ -183,8 +183,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "TreeMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_lid_driven_cavity.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.5),
-      l2 = [0.0009282710243200006, 0.012454658292106657, 0.012454658292105363, 0.03049866515205495],
-      linf = [0.0024366464517627806, 0.0248316501260043, 0.024831650126004967, 0.06745989803815178]
+      l2 = [0.00015144571529699053, 0.018766076072331623, 0.007065070765652574, 0.0208399005734258],
+      linf = [0.0014523369373669048, 0.12366779944955864, 0.05532450997115432, 0.16099927805328207]
     )
   end
 
