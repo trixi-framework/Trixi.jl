@@ -162,10 +162,15 @@ end
 
 function load_controller!(integrator, restart_file::AbstractString)
     controller_type = ""
-    h5open(restart_file, "r") do file
-        if "controller_type" in keys(attributes(file))
-            controller_type = read(attributes(file)["controller_type"])
+    if mpi_isroot()
+        h5open(restart_file, "r") do file
+            if "controller_type" in keys(attributes(file))
+                controller_type = read(attributes(file)["controller_type"])
+            end
         end
+    end
+    if mpi_isparallel()
+        controller_type = MPI.bcast(controller_type, mpi_root(), mpi_comm())
     end
     if controller_type == "PID"
         load_PIDController!(integrator, restart_file)
