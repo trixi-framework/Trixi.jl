@@ -53,12 +53,12 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 5.0)
+tspan = (0.0, 20.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 50
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=true,
                                      extra_analysis_integrals=(energy_kinetic,
                                                                energy_internal))
@@ -72,7 +72,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-8
+time_int_tol = 1e-9
 sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
             ode_default_options()..., callback=callbacks)
 summary_callback() # print the timer summary
