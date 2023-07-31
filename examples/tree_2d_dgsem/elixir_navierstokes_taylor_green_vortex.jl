@@ -16,8 +16,11 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu=mu(),
 """
     initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations2D)
 
-The classical inviscid Taylor-Green vortex, see for instance 
-https://en.wikipedia.org/wiki/Taylor%E2%80%93Green_vortex#Taylor%E2%80%93Green_vortex_solution
+The classical inviscid Taylor-Green vortex in 2D.
+This forms the basis behind the 3D case found for instance in
+  - Jonathan R. Bull and Antony Jameson
+  Simulation of the Compressible Taylor Green Vortex using High-Order Flux Reconstruction Schemes
+  [DOI: 10.2514/6.2014-3210](https://doi.org/10.2514/6.2014-3210)
 """
 function initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations2D)
   A  = 1.0 # magnitude of speed
