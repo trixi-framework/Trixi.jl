@@ -337,10 +337,6 @@ function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u
 
     du_ode_hyp = Vector{eltype(config)}(undef, length(du_ode))
     J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
-        for i in eachindex(du_ode)
-            du_ode_hyp[i] = du_ode[i]
-        end
-
         # Implementation of split ODE problem in OrdinaryDiffEq
         rhs!(du_ode_hyp, u_ode, new_semi, t0)
         rhs_parabolic!(du_ode, u_ode, new_semi, t0)
