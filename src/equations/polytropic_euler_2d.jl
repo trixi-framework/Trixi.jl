@@ -10,17 +10,17 @@
 
 The polytropic Euler equations
 ```math
-\partial t
+\frac{\partial}{\partial t}
 \begin{pmatrix}
 \rho \\ \rho v_1 \\ \rho v_2
 \end{pmatrix}
 +
-\partial x
+\frac{\partial}{\partial x}
 \begin{pmatrix}
  \rho v_1 \\ \rho v_1^2 + \kappa\rho^\gamma \\ \rho v_1 v_2
 \end{pmatrix}
 +
-\partial y
+\frac{\partial}{\partial y}
 \begin{pmatrix}
 \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + \kappa\rho^\gamma
 \end{pmatrix}
@@ -36,7 +36,6 @@ Here, ``\rho`` is the density and ``v_1`` and`v_2` the velocities and
 p = \kappa\rho^\gamma
 ```
 the pressure, which we replaced using this relation.
-
 """
 struct PolytropicEulerEquations2D{RealT <: Real} <:
        AbstractPolytropicEulerEquations{2, 3}
@@ -55,9 +54,10 @@ end
 varnames(::typeof(cons2prim), ::PolytropicEulerEquations2D) = ("rho", "v1", "v2")
 
 """
-initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
+    initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
 
-Manufactured smooth initial condition used for convergence tests.
+Manufactured smooth initial condition used for convergence tests
+in combination with [`source_terms_convergence_test`](@ref).
 """
 function initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
     # manufactured initial condition from Winters (2019) [0.1007/s10543-019-00789-w]
@@ -68,8 +68,10 @@ function initial_condition_convergence_test(x, t, equations::PolytropicEulerEqua
 end
 
 """
-source_terms_eoc_test_polytropic(u, x, t, equations::PolytropicEulerEquations2D)
+    source_terms_convergence_test(u, x, t, equations::PolytropicEulerEquations2D)
 
+Source terms used for convergence tests in combination with
+[`initial_condition_convergence_test`](@ref).
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::PolytropicEulerEquations2D)
@@ -134,8 +136,8 @@ end
 end
 
 """
-flux_winters_etal(u_ll, u_rr, normal_direction,
-                  equations::PolytropicEulerEquations2D)
+    flux_winters_etal(u_ll, u_rr, normal_direction,
+                      equations::PolytropicEulerEquations2D)
 
 Entropy conserving two-point flux for isothermal or polytropic gases.
 Requires a special weighted Stolarsky mean for the evaluation of the density
@@ -144,9 +146,9 @@ this `stolarsky_mean` becomes the [`ln_mean`](@ref).
 
 For details see Section 3.2 of the following reference
 - Andrew R. Winters, Christof Czernik, Moritz B. Schily & Gregor J. Gassner (2020)
-Entropy stable numerical approximations for the isothermal and polytropic
-Euler equations
-[DOI: 10.1007/s10543-019-00789-w](https://doi.org/10.1007/s10543-019-00789-w)
+  Entropy stable numerical approximations for the isothermal and polytropic
+  Euler equations
+  [DOI: 10.1007/s10543-019-00789-w](https://doi.org/10.1007/s10543-019-00789-w)
 """
 @inline function flux_winters_etal(u_ll, u_rr, normal_direction::AbstractVector,
                                    equations::PolytropicEulerEquations2D)
