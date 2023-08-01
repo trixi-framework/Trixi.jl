@@ -51,12 +51,12 @@ end
 
 @inline function weak_form_kernel_intermediate!(du, u,
                                    mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                               P4estMesh{2}},
+                                               P4estMesh{2}, T8codeMesh{2}},
                                    nonconservative_terms, equations,
                                    dg::DGSEM, cache, alpha = true)
     #dummy
     @threaded for element in eachelement(dg, cache)
-        weak_form_kernel!(du, u, element, mesh,
+        weak_form_kernel_other!(du, u, element, mesh,
                           nonconservative_terms, equations,
                           dg, cache)
     end
@@ -72,9 +72,21 @@ end
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_dhat = dg.basis
     @unpack contravariant_vectors = cache.elements
+    num_nodes = nnodes(dg)
 
-    for j in eachnode(dg), i in eachnode(dg)
-        u_node = get_node_vars(u, equations, dg, i, j, element)
+    weak_form_kernel_internal!(du, u, element, derivative_dhat, contravariant_vectors, equations, alpha, num_nodes)
+
+    return nothing
+end
+
+#@kernel function weak_form_kernel_gpu_other!(du, u,
+#                                       equations, derivative_dhat, num_nodes)
+#end
+
+@inline function weak_form_kernel_internal!(du, u, element, derivative_dhat, contravariant_vectors, equations, alpha, num_nodes)
+    for j in 1:num_nodes, i in 1:num_nodes
+        #u_node = get_node_vars(u, equations, dg, i, j, element)
+        u_node = SVector(ntuple(@inline(v->u[v, i, j, element]), Val(nvariables(equations))))
 
         flux1 = flux(u_node, 1, equations)
         flux2 = flux(u_node, 2, equations)
@@ -83,24 +95,30 @@ end
         # first contravariant vector Ja^1 and the flux vector
         Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
         contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
-        for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
-                                       contravariant_flux1, equations, dg, ii, j,
-                                       element)
+        for ii in 1:num_nodes
+            #multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
+            #                           contravariant_flux1, equations, dg, ii, j,
+            #                           element)
+            factor = alpha * derivative_dhat[ii, i]
+            for v in eachvariable(equations)
+                du[v, ii, j, element] = du[v, ii, j, element] + factor * contravariant_flux1[v]
+            end
         end
 
         # Compute the contravariant flux by taking the scalar product of the
         # second contravariant vector Ja^2 and the flux vector
         Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
         contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
-        for jj in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
-                                       contravariant_flux2, equations, dg, i, jj,
-                                       element)
+        for jj in 1:num_nodes
+            #multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
+            #                           contravariant_flux2, equations, dg, i, jj,
+            #                           element)
+            factor = alpha * derivative_dhat[jj, j]
+            for v in eachvariable(equations)
+                du[v, i, jj, element] = du[v, i, jj, element] + factor * contravariant_flux2[v]
+            end
         end
     end
-
-    return nothing
 end
 
 @inline function flux_differencing_kernel!(du, u,

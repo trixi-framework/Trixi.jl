@@ -188,7 +188,7 @@ function calc_interface_flux_gpu!(surface_flux_values,
 
     @unpack interfaces = cache
     @unpack contravariant_vectors = cache.elements
-    backend = get_backend(interfaces.u) # Caution: May not work if interfaces.u is not initalized on the GPU, but the other data is
+    backend = get_backend(interfaces.u) # Caution: May not work if interfaces.u is not initialized on the GPU, but the other data is
 
     kernel! = calc_interface_flux_kernel!(backend)
     tmp_interfaces_u = copyto!(backend, allocate(backend, eltype(interfaces.u), size(interfaces.u)), interfaces.u)
