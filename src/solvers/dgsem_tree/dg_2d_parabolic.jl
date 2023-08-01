@@ -17,7 +17,6 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2},
                         equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
-    #(; u_transformed, gradients, flux_viscous) = cache_parabolic
     @unpack cache_viscous = cache_parabolic
     @unpack u_transformed, gradients, flux_viscous = cache_viscous
 
@@ -125,7 +124,7 @@ function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{2}, P4estMe
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations_parabolic, dg, i, j, element)
             u_transformed_node = gradient_variable_transformation(equations_parabolic)(u_node,
-                                                                                       equations_parabolic)
+                                                                                       equations_parabolic)                                                                               
             set_node_vars!(u_transformed, u_transformed_node, equations_parabolic, dg,
                            i, j, element)
         end
@@ -249,86 +248,6 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
     @unpack orientations, neighbor_sides = boundaries
     flux_viscous_x, flux_viscous_y = flux_viscous
 
-    @trixi_timeit timer() "for lvalue" begin
-    @threaded for boundary in eachboundary(dg, cache_parabolic)
-        element = boundaries.neighbor_ids[boundary]
-
-        if orientations[boundary] == 1
-            # boundary in x-direction
-            if neighbor_sides[boundary] == 1
-                # element in -x direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
-                    flux_viscous[1][v, nnodes(dg), l,
-                    element] = 0.0                                                              
-                end
-            else # Element in +x direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
-                    flux_viscous[1][v, 1, l, element] = 0.0
-                end
-            end
-        else # if orientations[boundary] == 2
-            # boundary in y-direction
-            if neighbor_sides[boundary] == 1
-                # element in -y direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
-                    flux_viscous[2][v, l, nnodes(dg),
-                    element] = 0.0                                                                 
-                end
-            else
-                # element in +y direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
-                    flux_viscous[2][v, l, 1, element] = 0.0
-                end
-            end
-        end
-    end
-    end
-
-    @trixi_timeit timer() "for rvalue" begin
-    dummy = 0
-    @threaded for boundary in eachboundary(dg, cache_parabolic)
-        element = boundaries.neighbor_ids[boundary]
-
-        if orientations[boundary] == 1
-            # boundary in x-direction
-            if neighbor_sides[boundary] == 1
-                # element in -x direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
-                    dummy = flux_viscous[1][v, nnodes(dg), l,
-                                                                     element]                                                      
-                end
-            else # Element in +x direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
-                    dummy = flux_viscous[1][v, 1, l, element]
-                end
-            end
-        else # if orientations[boundary] == 2
-            # boundary in y-direction
-            if neighbor_sides[boundary] == 1
-                # element in -y direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
-                    dummy = flux_viscous[2][v, l, nnodes(dg),
-                                                                     element]                                                             
-                end
-            else
-                # element in +y direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
-                    dummy = flux_viscous[2][v, l, 1, element]
-                end
-            end
-        end
-    end
-    end
-
-    @trixi_timeit timer() "for loop orig" begin
     @threaded for boundary in eachboundary(dg, cache_parabolic)
         element = boundaries.neighbor_ids[boundary]
 
@@ -364,7 +283,6 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
                 end
             end
         end
-    end
     end
     return nothing
 end
@@ -593,11 +511,11 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 end
 
 function prolong2mortars!(cache,
-                          flux_viscous::Vector{Array{Float64}},
+                          flux_viscous::Vector{Array{uEltype, 4}},
                           mesh::TreeMesh{2},
                           equations_parabolic::AbstractEquationsParabolic,
                           mortar_l2::LobattoLegendreMortarL2, surface_integral,
-                          dg::DGSEM)
+                          dg::DGSEM) where {uEltype <: Real}
     flux_viscous_x, flux_viscous_y = flux_viscous
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
