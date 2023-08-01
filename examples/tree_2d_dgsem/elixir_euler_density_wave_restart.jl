@@ -23,6 +23,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 tspan = (load_time(restart_filename), 4.0)
 dt = load_dt(restart_filename)
+
 ode = semidiscretize(semi, tspan, restart_filename);
 
 # Do not overwrite the initial snapshot written by elixir_euler_density_wave_extended.jl.
