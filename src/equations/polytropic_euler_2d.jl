@@ -54,9 +54,10 @@ end
 varnames(::typeof(cons2prim), ::PolytropicEulerEquations2D) = ("rho", "v1", "v2")
 
 """
-initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
+    initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
 
-Manufactured smooth initial condition used for convergence tests.
+Manufactured smooth initial condition used for convergence tests
+in combination with [`source_terms_convergence_test`](@ref).
 """
 function initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
     # manufactured initial condition from Winters (2019) [0.1007/s10543-019-00789-w]
