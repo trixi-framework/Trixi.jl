@@ -99,7 +99,7 @@ gamma = 1.0 + 2.0 / 3.0
 
 equations = IdealGlmMhdEquations3D(gamma)
 equations_parabolic = ViscoResistiveMhd3D(equations, mu = mu(),
-                                          Prandtl = prandtl_number(), eta = eta,
+					  Prandtl = prandtl_number(), eta = eta(),
                                           gradient_variables = GradientVariablesPrimitive())
 
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
