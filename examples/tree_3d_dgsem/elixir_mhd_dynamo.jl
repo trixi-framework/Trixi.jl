@@ -41,6 +41,7 @@ end
 
 Forcing term that adds a helical small-scale driver to the system that is
 delta-correlated in time.
+For more information see Candelaresi et al. (2013) DOI: 10.1103/PhysRevE.87.043104.
 """
 function source_terms_helical_forcing(u, x, t, equations::IdealGlmMhdEquations3D)
     # forcing amplitude
