@@ -136,8 +136,8 @@ end
 end
 
 """
-flux_winters_etal(u_ll, u_rr, normal_direction,
-                  equations::PolytropicEulerEquations2D)
+    flux_winters_etal(u_ll, u_rr, normal_direction,
+                      equations::PolytropicEulerEquations2D)
 
 Entropy conserving two-point flux for isothermal or polytropic gases.
 Requires a special weighted Stolarsky mean for the evaluation of the density
