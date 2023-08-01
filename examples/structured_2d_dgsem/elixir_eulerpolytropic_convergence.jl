@@ -14,7 +14,6 @@ initial_condition = initial_condition_convergence_test
 volume_flux = flux_winters_etal
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
-# solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
