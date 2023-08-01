@@ -152,64 +152,12 @@ function calc_interface_flux!(surface_flux_values,
                               mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                               nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
-    @unpack neighbor_ids, node_indices = cache.interfaces
+    @unpack interfaces = cache
     @unpack contravariant_vectors = cache.elements
-    index_range = eachnode(dg)
-    index_end = last(index_range)
+    num_nodes = nnodes(dg)
 
     @threaded for interface in eachinterface(dg, cache)
-        # Get element and side index information on the primary element
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
-        primary_direction = indices2direction(primary_indices)
-
-        # Create the local i,j indexing on the primary element used to pull normal direction information
-        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
-                                                                 index_range)
-        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
-                                                                 index_range)
-
-        i_primary = i_primary_start
-        j_primary = j_primary_start
-
-        # Get element and side index information on the secondary element
-        secondary_element = neighbor_ids[2, interface]
-        secondary_indices = node_indices[2, interface]
-        secondary_direction = indices2direction(secondary_indices)
-
-        # Initiate the secondary index to be used in the surface for loop.
-        # This index on the primary side will always run forward but
-        # the secondary index might need to run backwards for flipped sides.
-        if :i_backward in secondary_indices
-            node_secondary = index_end
-            node_secondary_step = -1
-        else
-            node_secondary = 1
-            node_secondary_step = 1
-        end
-
-        for node in eachnode(dg)
-            # Get the normal direction on the primary element.
-            # Contravariant vectors at interfaces in negative coordinate direction
-            # are pointing inwards. This is handled by `get_normal_direction`.
-            normal_direction = get_normal_direction(primary_direction,
-                                                    contravariant_vectors,
-                                                    i_primary, j_primary,
-                                                    primary_element)
-
-            calc_interface_flux!(surface_flux_values, mesh, nonconservative_terms,
-                                 equations,
-                                 surface_integral, dg, cache,
-                                 interface, normal_direction,
-                                 node, primary_direction, primary_element,
-                                 node_secondary, secondary_direction, secondary_element)
-
-            # Increment primary element indices to pull the normal direction
-            i_primary += i_primary_step
-            j_primary += j_primary_step
-            # Increment the surface node index along the secondary element
-            node_secondary += node_secondary_step
-        end
+        calc_interface_flux_internal(interface, interfaces.u, interfaces.neighbor_ids, interfaces.node_indices, nonconservative_terms, surface_flux_values, surface_integral.surface_flux, contravariant_vectors, equations, num_nodes)
     end
 
     return nothing
@@ -223,21 +171,74 @@ function calc_interface_flux_gpu!(surface_flux_values,
     calc_interface_flux!(surface_flux_values, mesh, nonconservative_terms, equations, surface_integral, dg, cache)
 end
 
+@inline function calc_interface_flux_internal(interface, interfaces_u, interface_neighbor_ids, interface_node_indices, nonconservative_terms, surface_flux_values, surface_flux, contravariant_vectors, equations, num_nodes)
+    # Get element and side index information on the primary element
+    primary_element = interface_neighbor_ids[1, interface]
+    primary_indices = interface_node_indices[1, interface]
+    primary_direction = indices2direction(primary_indices)
+
+    # Create the local i,j indexing on the primary element used to pull normal direction information
+    i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
+                                                             1:num_nodes)
+    j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
+                                                             1:num_nodes)
+
+    i_primary = i_primary_start
+    j_primary = j_primary_start
+
+    # Get element and side index information on the secondary element
+    secondary_element = interface_neighbor_ids[2, interface]
+    secondary_indices = interface_node_indices[2, interface]
+    secondary_direction = indices2direction(secondary_indices)
+
+    # Initiate the secondary index to be used in the surface for loop.
+    # This index on the primary side will always run forward but
+    # the secondary index might need to run backwards for flipped sides.
+    if i_backward in secondary_indices
+        node_secondary = num_nodes
+        node_secondary_step = -1
+    else
+        node_secondary = 1
+        node_secondary_step = 1
+    end
+
+    for node in 1:num_nodes
+        # Get the normal direction on the primary element.
+        # Contravariant vectors at interfaces in negative coordinate direction
+        # are pointing inwards. This is handled by `get_normal_direction`.
+        normal_direction = get_normal_direction(primary_direction,
+                                                contravariant_vectors,
+                                                i_primary, j_primary,
+                                                primary_element)
+
+        calc_interface_flux_internal2!(interfaces_u, surface_flux_values, nonconservative_terms,
+                             equations,
+                             surface_flux,
+                             interface, normal_direction,
+                             node, primary_direction, primary_element,
+                             node_secondary, secondary_direction, secondary_element)
+
+        # Increment primary element indices to pull the normal direction
+        i_primary += i_primary_step
+        j_primary += j_primary_step
+        # Increment the surface node index along the secondary element
+        node_secondary += node_secondary_step
+    end
+end
+
 # Inlined version of the interface flux computation for conservation laws
-@inline function calc_interface_flux!(surface_flux_values,
-                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+@inline function calc_interface_flux_internal2!(interfaces_u, surface_flux_values,
                                       nonconservative_terms::False, equations,
-                                      surface_integral, dg::DG, cache,
+                                      surface_flux,
                                       interface_index, normal_direction,
                                       primary_node_index, primary_direction_index,
                                       primary_element_index,
                                       secondary_node_index, secondary_direction_index,
                                       secondary_element_index)
-    @unpack u = cache.interfaces
-    @unpack surface_flux = surface_integral
-
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_node_index,
-                                       interface_index)
+    #u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_node_index,
+    #                                   interface_index)
+    u_ll = SVector(ntuple(@inline(v->interfaces_u[1, v, primary_node_index, interface_index]), Val(nvariables(equations))))
+    u_rr = SVector(ntuple(@inline(v->interfaces_u[2, v, primary_node_index, interface_index]), Val(nvariables(equations))))
 
     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
@@ -248,6 +249,7 @@ end
 end
 
 # Inlined version of the interface flux computation for equations with conservative and nonconservative terms
+# TODO: Port later to calc_interface_flux_internal2
 @inline function calc_interface_flux!(surface_flux_values,
                                       mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                       nonconservative_terms::True, equations,
