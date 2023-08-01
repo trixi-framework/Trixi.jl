@@ -117,10 +117,10 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleMhdDiff
         f3 = tau_12 * mu
         f4 = tau_13 * mu
         f5 = (v1 * tau_11 + v2 * tau_12 + v3 * tau_13 + q1) * mu +
-             (-B3 * dB1dz + B3 * dB3dx + B2 * dB2dx - B2 * dB1dx) * eta
-        f6 = eta * dB1dx
-        f7 = eta * dB2dx
-        f8 = eta * dB3dx
+             (B2 * (dB2dx - dB1dy) + B3 * (dB3dx - dB1dz)) * eta
+        f6 = zero(rho)
+        f7 = eta * (dB2dx - dB1dy)
+        f8 = eta * (dB3dx - dB1dz)
         f9 = zero(rho)
 
         return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
