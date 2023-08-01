@@ -47,9 +47,12 @@ callbacks = CallbackSet(summary_callback,
                         save_restart, save_solution,
                         stepsize_callback)
 
+# create timestep controller
+controller = PIController(7 // 30, 2 // 15)
+
 ###############################################################################
 # run the simulation
 
 sol = solve(ode, SSPRK43();
-            ode_default_options()..., callback = callbacks);
+            ode_default_options()..., callback = callbacks, controller = controller);
 summary_callback() # print the timer summary

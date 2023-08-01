@@ -2,6 +2,7 @@ module TestExamplesMPITreeMesh
 
 using Test
 using Trixi
+using OrdinaryDiffEq: PIDController
 
 include("test_trixi.jl")
 
@@ -191,9 +192,9 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
   end
 
   @trixi_testset "elixir_euler_density_wave_restart.jl" begin
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"))
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl", controller = PIDController(1.0, 0.5, 0.2)))
     l2, linf = analysis_callback(sol)
-    eval(:(@test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"),
+    eval(:(@test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"), controller = PIDController(1.0, 0.5, 0.2), 
       # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl
       l2 = $l2, linf = $linf)))
   end

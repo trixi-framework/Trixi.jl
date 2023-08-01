@@ -1,12 +1,14 @@
-
++
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# create a restart file
+# create timestep controller
+controller = PIController(7 // 30, 2 // 15)
 
+# create a restart file
 trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_euler_density_wave_extended.jl"),
-              tspan = (0.0, 2.0))
+              tspan = (0.0, 2.0), controller = controller)
 
 ###############################################################################
 # adapt the parameters that have changed compared to "elixir_euler_density_wave_extended.jl"
@@ -29,7 +31,8 @@ save_solution.condition.save_initial_solution = false
 alg = SSPRK43()
 integrator = init(ode, alg,
                   dt = dt; # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep = false, callback = callbacks, ode_default_options()...)
+                  save_everystep = false, callback = callbacks, controller = controller,
+                  ode_default_options()...)
 load_controller!(integrator, restart_filename)
 
 # Get the last time index and work with that.
