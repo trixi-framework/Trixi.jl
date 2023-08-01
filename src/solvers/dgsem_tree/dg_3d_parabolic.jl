@@ -601,7 +601,7 @@ function prolong2mortars!(cache,
                           mortar_l2::LobattoLegendreMortarL2,
                           surface_integral, dg::DGSEM)
     # temporary buffer for projections
-    @unpack fstar_tmp1_threaded = cache # CARE: Not sure if I have to do something with this (not present in 2D)
+    @unpack fstar_tmp1_threaded = cache
 
     flux_viscous_x, flux_viscous_y, flux_viscous_z = flux_viscous
     @threaded for mortar in eachmortar(dg, cache)
@@ -982,7 +982,7 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Prolong solution to mortars
-    # NOTE: This re-uses the implementation for hyperoblic in "dg_3d.jl"
+    # NOTE: This re-uses the implementation for hyperbolic terms in "dg_3d.jl"
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
                          dg.mortar, dg.surface_integral, dg)
