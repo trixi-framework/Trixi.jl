@@ -146,9 +146,9 @@ this `stolarsky_mean` becomes the [`ln_mean`](@ref).
 
 For details see Section 3.2 of the following reference
 - Andrew R. Winters, Christof Czernik, Moritz B. Schily & Gregor J. Gassner (2020)
-Entropy stable numerical approximations for the isothermal and polytropic
-Euler equations
-[DOI: 10.1007/s10543-019-00789-w](https://doi.org/10.1007/s10543-019-00789-w)
+  Entropy stable numerical approximations for the isothermal and polytropic
+  Euler equations
+  [DOI: 10.1007/s10543-019-00789-w](https://doi.org/10.1007/s10543-019-00789-w)
 """
 @inline function flux_winters_etal(u_ll, u_rr, normal_direction::AbstractVector,
                                    equations::PolytropicEulerEquations2D)
