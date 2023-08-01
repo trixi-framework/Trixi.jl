@@ -157,7 +157,12 @@ function calc_interface_flux!(surface_flux_values,
     num_nodes = nnodes(dg)
 
     @threaded for interface in eachinterface(dg, cache)
-        calc_interface_flux_internal(interface, interfaces.u, interfaces.neighbor_ids, interfaces.node_indices, nonconservative_terms, surface_flux_values, surface_integral.surface_flux, contravariant_vectors, equations, num_nodes)
+        calc_interface_flux_internal!(interface,
+                                      interfaces.u, interfaces.neighbor_ids, interfaces.node_indices,
+                                      nonconservative_terms,
+                                      surface_flux_values, surface_integral.surface_flux,
+                                      contravariant_vectors,
+                                      equations, num_nodes)
     end
 
     return nothing
@@ -167,14 +172,55 @@ function calc_interface_flux_gpu!(surface_flux_values,
                               mesh::P4estMesh{2},
                               nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
-    #dummy
-    calc_interface_flux!(surface_flux_values, mesh, nonconservative_terms, equations, surface_integral, dg, cache)
+    @kernel function calc_interface_flux_kernel!(interfaces_u, interfaces_neighbor_ids, interfaces_node_indices,
+                                                nonconservative_terms,
+                                                surface_flux_values, surface_flux,
+                                                contravariant_vectors,
+                                                equations, num_nodes)
+        interface = @index(Global)
+        calc_interface_flux_internal!(interface,
+                                      interfaces_u, interfaces_neighbor_ids, interfaces_node_indices,
+                                      nonconservative_terms,
+                                      surface_flux_values, surface_flux,
+                                      contravariant_vectors,
+                                      equations, num_nodes)
+    end
+
+    @unpack interfaces = cache
+    @unpack contravariant_vectors = cache.elements
+    backend = get_backend(interfaces.u) # Caution: May not work if interfaces.u is not initalized on the GPU, but the other data is
+
+    kernel! = calc_interface_flux_kernel!(backend)
+    tmp_interfaces_u = copyto!(backend, allocate(backend, eltype(interfaces.u), size(interfaces.u)), interfaces.u)
+    tmp_interfaces_neighbor_ids = copyto!(backend, allocate(backend, eltype(interfaces.neighbor_ids), size(interfaces.neighbor_ids)), interfaces.neighbor_ids)
+    tmp_interfaces_node_indices = copyto!(backend, allocate(backend, eltype(interfaces.node_indices), size(interfaces.node_indices)), interfaces.node_indices)
+    tmp_surface_flux_values = copyto!(backend, allocate(backend, eltype(surface_flux_values), size(surface_flux_values)), surface_flux_values)
+    tmp_contravariant_vectors = copyto!(backend, allocate(backend, eltype(contravariant_vectors), size(contravariant_vectors)), contravariant_vectors)
+
+    num_nodes = nnodes(dg)
+    num_interfaces = ninterfaces(cache.interfaces)
+
+    kernel!(tmp_interfaces_u, tmp_interfaces_neighbor_ids, tmp_interfaces_node_indices,
+            nonconservative_terms,
+            tmp_surface_flux_values, surface_integral.surface_flux,
+            tmp_contravariant_vectors,
+            equations, num_nodes,
+            ndrange=num_interfaces)
+
+    copyto!(backend, surface_flux_values, tmp_surface_flux_values)
+
+    synchronize(backend)
 end
 
-@inline function calc_interface_flux_internal(interface, interfaces_u, interface_neighbor_ids, interface_node_indices, nonconservative_terms, surface_flux_values, surface_flux, contravariant_vectors, equations, num_nodes)
+@inline function calc_interface_flux_internal!(interface,
+                                               interfaces_u, interfaces_neighbor_ids, interfaces_node_indices,
+                                               nonconservative_terms,
+                                               surface_flux_values, surface_flux,
+                                               contravariant_vectors,
+                                               equations, num_nodes)
     # Get element and side index information on the primary element
-    primary_element = interface_neighbor_ids[1, interface]
-    primary_indices = interface_node_indices[1, interface]
+    primary_element = interfaces_neighbor_ids[1, interface]
+    primary_indices = interfaces_node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
 
     # Create the local i,j indexing on the primary element used to pull normal direction information
@@ -187,8 +233,8 @@ end
     j_primary = j_primary_start
 
     # Get element and side index information on the secondary element
-    secondary_element = interface_neighbor_ids[2, interface]
-    secondary_indices = interface_node_indices[2, interface]
+    secondary_element = interfaces_neighbor_ids[2, interface]
+    secondary_indices = interfaces_node_indices[2, interface]
     secondary_direction = indices2direction(secondary_indices)
 
     # Initiate the secondary index to be used in the surface for loop.
