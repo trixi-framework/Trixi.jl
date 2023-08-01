@@ -54,12 +54,25 @@ end
                                                P4estMesh{2}, T8codeMesh{2}},
                                    nonconservative_terms, equations,
                                    dg::DGSEM, cache, alpha = true)
-    #dummy
-    @threaded for element in eachelement(dg, cache)
-        weak_form_kernel_other!(du, u, element, mesh,
-                          nonconservative_terms, equations,
-                          dg, cache)
+    @kernel function weak_form_kernel_gpu_other!(du, u, derivative_dhat, contravariant_vectors, equations, alpha, num_nodes)
+        element = @index(Global)
+        weak_form_kernel_internal!(du, u, element, derivative_dhat, contravariant_vectors, equations, alpha, num_nodes)
     end
+
+    @unpack derivative_dhat = dg.basis
+    @unpack contravariant_vectors = cache.elements
+
+    backend = get_backend(u)
+    kernel! = weak_form_kernel_gpu_other!(backend)
+
+    tmp_contravariant_vectors = copyto!(backend, allocate(backend, eltype(contravariant_vectors), size(contravariant_vectors)), contravariant_vectors)
+    tmp_derivative_dhat = copyto!(backend, allocate(backend, eltype(derivative_dhat), size(derivative_dhat)), derivative_dhat)
+
+    num_nodes = nnodes(dg)
+    num_elements = nelements(cache.elements)
+
+    kernel!(du, u, tmp_derivative_dhat, tmp_contravariant_vectors, equations, alpha, num_nodes, ndrange=num_elements)
+    synchronize(backend)
 end
 
 @inline function weak_form_kernel!(du, u,
@@ -78,10 +91,6 @@ end
 
     return nothing
 end
-
-#@kernel function weak_form_kernel_gpu_other!(du, u,
-#                                       equations, derivative_dhat, num_nodes)
-#end
 
 @inline function weak_form_kernel_internal!(du, u, element, derivative_dhat, contravariant_vectors, equations, alpha, num_nodes)
     for j in 1:num_nodes, i in 1:num_nodes
