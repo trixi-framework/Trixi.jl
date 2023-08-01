@@ -249,6 +249,86 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
     @unpack orientations, neighbor_sides = boundaries
     flux_viscous_x, flux_viscous_y = flux_viscous
 
+    @trixi_timeit timer() "for lvalue" begin
+    @threaded for boundary in eachboundary(dg, cache_parabolic)
+        element = boundaries.neighbor_ids[boundary]
+
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations_parabolic)
+                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
+                    flux_viscous[1][v, nnodes(dg), l,
+                    element] = 0.0                                                              
+                end
+            else # Element in +x direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations_parabolic)
+                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
+                    flux_viscous[1][v, 1, l, element] = 0.0
+                end
+            end
+        else # if orientations[boundary] == 2
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations_parabolic)
+                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
+                    flux_viscous[2][v, l, nnodes(dg),
+                    element] = 0.0                                                                 
+                end
+            else
+                # element in +y direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations_parabolic)
+                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
+                    flux_viscous[2][v, l, 1, element] = 0.0
+                end
+            end
+        end
+    end
+    end
+
+    @trixi_timeit timer() "for rvalue" begin
+    dummy = 0
+    @threaded for boundary in eachboundary(dg, cache_parabolic)
+        element = boundaries.neighbor_ids[boundary]
+
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations_parabolic)
+                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
+                    dummy = flux_viscous[1][v, nnodes(dg), l,
+                                                                     element]                                                      
+                end
+            else # Element in +x direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations_parabolic)
+                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
+                    dummy = flux_viscous[1][v, 1, l, element]
+                end
+            end
+        else # if orientations[boundary] == 2
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations_parabolic)
+                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
+                    dummy = flux_viscous[2][v, l, nnodes(dg),
+                                                                     element]                                                             
+                end
+            else
+                # element in +y direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations_parabolic)
+                    # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
+                    dummy = flux_viscous[2][v, l, 1, element]
+                end
+            end
+        end
+    end
+    end
+
+    @trixi_timeit timer() "for loop orig" begin
     @threaded for boundary in eachboundary(dg, cache_parabolic)
         element = boundaries.neighbor_ids[boundary]
 
@@ -285,7 +365,7 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
             end
         end
     end
-
+    end
     return nothing
 end
 
