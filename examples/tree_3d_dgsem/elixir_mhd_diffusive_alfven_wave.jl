@@ -10,10 +10,10 @@ mu() = 4e-2
 eta() = 4e-2
 
 equations = IdealGlmMhdEquations3D(1.4)
-equations_parabolic = CompressibleMhdDiffusion3D(equations, mu = mu(),
-                                                 Prandtl = prandtl_number(),
-                                                 eta = eta(),
-                                                 gradient_variables = GradientVariablesPrimitive())
+equations_parabolic = ViscoResistiveMhd3D(equations, mu = mu(),
+                                          Prandtl = prandtl_number(),
+                                          eta = eta(),
+                                          gradient_variables = GradientVariablesPrimitive())
 
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 solver = DGSEM(polydeg = 3,

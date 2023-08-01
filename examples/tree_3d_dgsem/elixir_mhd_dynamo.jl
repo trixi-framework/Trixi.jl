@@ -39,7 +39,7 @@ function initial_condition_gaussian_noise_mhd(x, t, equations)
 end
 
 """
-    source_terms_helical_forcing(u, x, t, equations::CompressibleMhdDiffusion3D)
+    source_terms_helical_forcing(u, x, t, equations::ViscoResistiveMhd3D)
 
 Forcing term that adds a helical small-scale driver to the system that is
 delta-correlated in time.
@@ -99,9 +99,9 @@ eta() = 2e-3
 gamma = 1.0 + 2.0 / 3.0
 
 equations = IdealGlmMhdEquations3D(gamma)
-equations_parabolic = CompressibleMhdDiffusion3D(equations, mu = mu(),
-                                                 Prandtl = prandtl_number(), eta = eta,
-                                                 gradient_variables = GradientVariablesPrimitive())
+equations_parabolic = ViscoResistiveMhd3D(equations, mu = mu(),
+                                          Prandtl = prandtl_number(), eta = eta,
+                                          gradient_variables = GradientVariablesPrimitive())
 
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 solver = DGSEM(polydeg = 3,
