@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
 @doc raw"""
     CompressibleNavierStokesDiffusion2D(equations; mu, Pr,
                                         gradient_variables=GradientVariablesPrimitive())
@@ -489,3 +496,6 @@ end
                                                                                                                                       })
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4])
 end
+
+
+end # @muladd

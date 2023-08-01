@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
 @doc raw"""
     CompressibleMhdDiffusion3D(gamma, inv_gamma_minus_one,
                                μ, Pr, eta, kappa,
@@ -183,3 +190,5 @@ end
 @inline function energy_magnetic_mhd(cons, ::CompressibleMhdDiffusion3D)
     return 0.5 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
 end
+
+end # @muladd
