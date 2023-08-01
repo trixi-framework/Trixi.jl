@@ -60,11 +60,7 @@ function source_terms_helical_forcing(u, x, t, equations::IdealGlmMhdEquations3D
     phi = (randn(rng) * 2 - 1) * pi
 
     # Random vector k, also delta-correlated in time.
-    # k = SVector((randn(rng) * 2 - 1) * pi, (randn(rng) * 2 - 1) * pi, (randn(rng) * 2 - 1) * pi)
-    k = [0.0, 0.0, 0.0]
-    k[1] = (randn(rng) * 2 - 1) * pi
-    k[2] = (randn(rng) * 2 - 1) * pi
-    k[3] = (randn(rng) * 2 - 1) * pi
+    k = SVector((randn(rng) * 2 - 1) * pi, (randn(rng) * 2 - 1) * pi, (randn(rng) * 2 - 1) * pi)
     k = k / norm(k)
     k = 6 * k
     k_norm = k / norm(k)
