@@ -89,12 +89,12 @@ end
 
 
 ###############################################################################
-# semidiscretization of the resistive compressible MHD equations
+# semidiscretization of the visco-resistive compressible MHD equations
 
 prandtl_number() = 0.72
 # Corresponds to previous alpha^2 runs.
 mu() = 2e-3
-eta = 2e-3
+eta() = 2e-3
 
 gamma = 1.0 + 2.0 / 3.0
 
