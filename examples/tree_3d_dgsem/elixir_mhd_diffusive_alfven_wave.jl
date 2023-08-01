@@ -29,6 +29,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 50_000) # set maximum capacity of tree data structure
 
 function initial_condition_constant_alfven(x, t, equations)
+    # Alfven H., 150, p. 450, Nature (1942), DOI: 10.1038/150405d0
     p = 1
     omega = 2 * pi / 2 # may be multiplied by frequency
     # r: length-variable = length of computational domain
