@@ -7,7 +7,7 @@ using Trixi
 
 prandtl_number() = 0.72
 mu() = 4e-2
-eta = 4e-2
+eta() = 4e-2
 
 equations = IdealGlmMhdEquations3D(1.4)
 equations_parabolic = CompressibleMhdDiffusion3D(equations, mu = mu(),
