@@ -173,8 +173,15 @@ function load_controller!(integrator, restart_file::AbstractString)
         controller_type = MPI.bcast(controller_type, mpi_root(), mpi_comm())
     end
     if controller_type == "PID"
+        if !(typeof(integrator.opts.controller) <: PIDController)
+            error("restart mismatch: controller differ from value in restart file")
+        end
         load_PIDController!(integrator, restart_file)
     elseif controller_type == "PI" || controller_type == "I"
+        if !(typeof(integrator.opts.controller) <: PIController) &&
+           !(typeof(integrator.opts.controller) <: IController)
+            error("restart mismatch: controller differ from value in restart file")
+        end
         load_PI_I_Controller!(integrator, restart_file)
     end
     integrator.accept_step = true
