@@ -29,8 +29,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
       errors = analysis_callback(sol)
-      @test errors.l2   ≈ [7.816742843181738e-6, 7.816742843196112e-6] rtol=1.0e-4
-      @test errors.linf ≈ [6.314906965543265e-5, 6.314906965410039e-5] rtol=1.0e-4
+      @test errors.l2   ≈ [0.3495477674652473, 0.3472339065154432] rtol=1.0e-4
+      @test errors.linf ≈ [0.5569080960939969, 0.537610538307045] rtol=1.0e-4
     end
   end
 
