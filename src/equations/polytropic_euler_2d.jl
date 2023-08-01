@@ -67,8 +67,10 @@ function initial_condition_convergence_test(x, t, equations::PolytropicEulerEqua
 end
 
 """
-source_terms_eoc_test_polytropic(u, x, t, equations::PolytropicEulerEquations2D)
+    source_terms_convergence_test(u, x, t, equations::PolytropicEulerEquations2D)
 
+Source terms used for convergence tests in combination with
+[`initial_condition_convergence_test`](@ref).
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::PolytropicEulerEquations2D)
