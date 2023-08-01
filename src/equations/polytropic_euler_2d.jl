@@ -36,7 +36,6 @@ Here, ``\rho`` is the density and ``v_1`` and`v_2` the velocities and
 p = \kappa\rho^\gamma
 ```
 the pressure, which we replaced using this relation.
-
 """
 struct PolytropicEulerEquations2D{RealT <: Real} <:
        AbstractPolytropicEulerEquations{2, 3}
