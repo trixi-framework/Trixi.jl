@@ -2,6 +2,7 @@
 # We start with a weak small-scale magnetic field provided as Gaussian noise.
 # The energy is supplied via a forcing function f_force(x, t), which is delta-correlated in time.
 # For a comparison look into the Pencil Code example https://github.com/pencil-code/pencil-code/tree/master/samples/helical-MHDturb.
+# For more information see Cnadelaresi et al. (2013), DOI: 10.1103/PhysRevE.87.043104.
 
 using OrdinaryDiffEq
 using Trixi
@@ -18,6 +19,7 @@ using StableRNGs
 Define the initial condition with a weak small-scale Gaussian noise magnetic field.
 """
 function initial_condition_gaussian_noise_mhd(x, t, equations)
+    # Random weak small-scale initial magnetic field.
     amplitude = 1e-8
 
     seed = reinterpret(UInt, t + x[1] + x[2] + x[3])
