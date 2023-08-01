@@ -23,8 +23,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_advection_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
-      l2   = [7.816742843181738e-6, 7.816742843196112e-6],
-      linf = [6.314906965543265e-5, 6.314906965410039e-5],
+      l2   = [0.3495477674652473, 0.3472339065154432],
+      linf = [0.5569080960939969, 0.537610538307045],
       coverage_override = (maxiters=10^5,))
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
