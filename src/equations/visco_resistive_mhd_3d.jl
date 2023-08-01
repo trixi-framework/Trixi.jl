@@ -154,7 +154,7 @@ function flux(u, gradients, orientation::Integer, equations::ViscoResistiveMhd3D
         h3 = tau_23 * mu # tau_32 * mu
         h4 = tau_33 * mu
         h5 = (v1 * tau_13 + v2 * tau_23 + v3 * tau_33 + q3) * mu +
-             (B1 * (dB1dz - dB3dx) + B2 * (dB2dz - dB3dy) * eta
+             (B1 * (dB1dz - dB3dx) + B2 * (dB2dz - dB3dy)) * eta
         h6 = eta * (dB1dz - dB3dx)
         h7 = eta * (dB2dz - dB3dy)
         h8 = zero(rho)
