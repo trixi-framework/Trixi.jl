@@ -234,10 +234,16 @@ function evaluate_interface_values(element, neighbor, face, normal, u_, mesh, eq
         for v in eachvariable(equations)
             s1 = Trixi.get_variable_wrapped(u_[element].slope, equations, v)
             s2 = Trixi.get_variable_wrapped(u_[neighbor].slope, equations, v)
-            slope_v = solver.slope_limiter.(s1, s2)
-            u1[v] = u_[element].u[v] + sum(slope_v .* (face_midpoint .- midpoint))
-            u2[v] = u_[neighbor].u[v] + sum(slope_v .*
-                        (face_midpoint_neighbor .- elements[neighbor].midpoint))
+
+            s1 = dot(s1, (face_midpoint .- midpoint) ./ norm(face_midpoint .- midpoint))
+            s2 = dot(s2, (elements[neighbor].midpoint .- face_midpoint_neighbor) ./
+                         norm(elements[neighbor].midpoint .- face_midpoint_neighbor))
+            # Is it useful to compare such slopes in different directions? Alternatively, one could use the normal vector.
+            # But this is again not useful, since u_face would use the slope in normal direction. I think it looks good the way it is.
+
+            slope_v = solver.slope_limiter(s1, s2)
+            u1[v] = u_[element].u[v] + slope_v * norm(face_midpoint .- midpoint)
+            u2[v] = u_[neighbor].u[v] - slope_v * norm(elements[neighbor].midpoint .- face_midpoint_neighbor)
         end
         return u1, u2
     end
