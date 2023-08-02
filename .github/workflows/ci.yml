@@ -41,6 +41,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+
+  HDF5-system-libs:
+    name: julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} (system libhdf5 + mpich)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        version:
+          - '1.9'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+    steps:
+      - uses: actions/checkout@v3
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
+      - uses: julia-actions/julia-buildpkg@v1
+        env:
+          PYTHON: ""
+      - name: Install libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install mpich libhdf5-mpich-dev
+          echo "JULIA_HDF5_PATH=/usr/lib/x86_64-linux-gnu/hdf5/mpich/" >> $GITHUB_ENV
+      - name: Configure MPI.jl
+        shell: julia --color=yes {0}
+        run: |
+          @show pwd()
+          include(joinpath(pwd(), "test", "configure_packages.jl"))
+
   test:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
     # We could also include the Julia version as in
@@ -107,20 +141,10 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
+      - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
-      - name: Install libraries
-        run: |
-          sudo apt-get update
-          sudo apt-get install mpich libhdf5-mpich-dev
-          echo "JULIA_HDF5_PATH=/usr/lib/x86_64-linux-gnu/hdf5/mpich/" >> $GITHUB_ENV
-      - name: Configure MPI.jl
-        shell: julia --color=yes {0}
-        run: |
-          @show pwd()
-          include(joinpath(pwd(), "test", "configure_packages.jl"))
-      - uses: julia-actions/cache@v1
       - name: Run tests without coverage
         uses: julia-actions/julia-runtest@v1
         with:
