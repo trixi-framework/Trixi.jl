@@ -66,9 +66,6 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
-      - uses: julia-actions/julia-buildpkg@v1
-        env:
-          PYTHON: ""
       - name: Configure MPI.jl
         shell: julia --color=yes {0}
         run: |

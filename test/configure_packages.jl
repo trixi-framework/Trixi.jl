@@ -19,4 +19,3 @@ MPIPreferences.Preferences.set_preferences!(
     "libhdf5_hl" => joinpath(JULIA_HDF5_PATH, "libhdf5_hl." * Libdl.dlext);
     force=true
 )
-Pkg.build("HDF5")
