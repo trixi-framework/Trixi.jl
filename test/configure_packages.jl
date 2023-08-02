@@ -1,3 +1,6 @@
+if !Sys.islinux()
+   return nothing 
+end
 using Pkg, Libdl
 Pkg.activate(dirname(@__DIR__))
 Pkg.instantiate()
@@ -6,7 +9,7 @@ Pkg.instantiate()
 # that may still exist.
 run(`sudo apt-get update`)
 run(`sudo apt-get install mpich libhdf5-mpich-dev`)
-run(`echo "JULIA_HDF5_PATH=/usr/lib/x86_64-linux-gnu/hdf5/mpich/" \>\> $GITHUB_ENV`)
+run(`echo "JULIA_HDF5_PATH=/usr/lib/x86_64-linux-gnu/hdf5/mpich/" \>\> \$GITHUB_ENV`)
 const JULIA_HDF5_PATH = get(ENV, "JULIA_HDF5_PATH", "")
 rm(joinpath(dirname(@__DIR__), "LocalPreferences.toml"); force=true)
 
@@ -22,5 +25,3 @@ MPIPreferences.Preferences.set_preferences!(
     "libhdf5_hl" => joinpath(JULIA_HDF5_PATH, "libhdf5_hl." * Libdl.dlext);
     force=true
 )
-Pkg.add("HDF5")
-Pkg.resolve()
