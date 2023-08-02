@@ -1,11 +1,12 @@
 using Pkg, Libdl
 Pkg.activate(dirname(@__DIR__))
-Pkg.rm("HDF5")
-Pkg.resolve()
 Pkg.instantiate()
 # Configure the test setup based on environment variables set in CI.
 # First, we get the settings and remove all local preference configurations
 # that may still exist.
+run(`sudo apt-get update`)
+run(`sudo apt-get install mpich libhdf5-mpich-dev`)
+run(`echo "JULIA_HDF5_PATH=/usr/lib/x86_64-linux-gnu/hdf5/mpich/" \>\> $GITHUB_ENV`)
 const JULIA_HDF5_PATH = get(ENV, "JULIA_HDF5_PATH", "")
 rm(joinpath(dirname(@__DIR__), "LocalPreferences.toml"); force=true)
 
