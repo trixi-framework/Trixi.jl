@@ -55,6 +55,11 @@ jobs:
         arch:
           - x64
     steps:
+      - name: Install libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install mpich libhdf5-mpich-dev
+          echo "JULIA_HDF5_PATH=/usr/lib/x86_64-linux-gnu/hdf5/mpich/" >> $GITHUB_ENV
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
         with:
@@ -64,11 +69,6 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
-      - name: Install libraries
-        run: |
-          sudo apt-get update
-          sudo apt-get install mpich libhdf5-mpich-dev
-          echo "JULIA_HDF5_PATH=/usr/lib/x86_64-linux-gnu/hdf5/mpich/" >> $GITHUB_ENV
       - name: Configure MPI.jl
         shell: julia --color=yes {0}
         run: |
