@@ -170,7 +170,7 @@ end
 @inline function convert_transformed_to_primitive(u_transformed,
                                                   equations::ViscoResistiveMhd3D{
                                                                                  GradientVariablesPrimitive
-                                                                                })
+                                                                                 })
     return u_transformed
 end
 
@@ -182,7 +182,7 @@ end
 @inline function convert_derivative_to_primitive(u, gradient,
                                                  ::ViscoResistiveMhd3D{
                                                                        GradientVariablesPrimitive
-                                                                      })
+                                                                       })
     return gradient
 end
 
@@ -190,5 +190,4 @@ end
 @inline function energy_magnetic_mhd(cons, ::ViscoResistiveMhd3D)
     return 0.5 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
 end
-
 end # @muladd

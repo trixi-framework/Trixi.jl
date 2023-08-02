@@ -84,7 +84,8 @@ w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = -\frac{\rho}{p}
     This code is experimental and may be changed or removed in any future release.
 """
 struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real,
-                                           E <: AbstractCompressibleEulerEquations{2}} <:
+                                           E <: AbstractCompressibleEulerEquations{2}
+                                           } <:
        AbstractCompressibleNavierStokesDiffusion{2, 4}
     # TODO: parabolic
     # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
@@ -134,7 +135,8 @@ function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquatio
     CompressibleNavierStokesDiffusion2D{typeof(gradient_variables), typeof(gamma),
                                         typeof(equations)}(gamma, inv_gamma_minus_one,
                                                            μ, Pr, kappa,
-                                                           equations, gradient_variables)
+                                                           equations,
+                                                           gradient_variables)
 end
 
 # TODO: parabolic
@@ -364,12 +366,14 @@ end
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
                                                                                       normal::AbstractVector,
-                                                                                      x, t,
+                                                                                      x,
+                                                                                      t,
                                                                                       operator_type::Gradient,
                                                                                       equations::CompressibleNavierStokesDiffusion2D{
                                                                                                                                      GradientVariablesPrimitive
                                                                                                                                      })
-    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
+    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
+                                                                                    t,
                                                                                     equations)
     return SVector(u_inner[1], v1, v2, u_inner[4])
 end
@@ -378,7 +382,8 @@ end
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
                                                                                       normal::AbstractVector,
-                                                                                      x, t,
+                                                                                      x,
+                                                                                      t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion2D{
                                                                                                                                      GradientVariablesPrimitive
@@ -387,7 +392,8 @@ end
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
                                                                                                            equations)
-    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
+    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
+                                                                                    t,
                                                                                     equations)
     _, tau_1n, tau_2n, _ = flux_inner # extract fluxes for 2nd and 3rd equations
     normal_energy_flux = v1 * tau_1n + v2 * tau_2n + normal_heat_flux
@@ -398,12 +404,14 @@ end
                                                                         <:Isothermal})(flux_inner,
                                                                                        u_inner,
                                                                                        normal::AbstractVector,
-                                                                                       x, t,
+                                                                                       x,
+                                                                                       t,
                                                                                        operator_type::Gradient,
                                                                                        equations::CompressibleNavierStokesDiffusion2D{
                                                                                                                                       GradientVariablesPrimitive
                                                                                                                                       })
-    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
+    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
+                                                                                    t,
                                                                                     equations)
     T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t,
                                                                                 equations)
@@ -414,7 +422,8 @@ end
                                                                         <:Isothermal})(flux_inner,
                                                                                        u_inner,
                                                                                        normal::AbstractVector,
-                                                                                       x, t,
+                                                                                       x,
+                                                                                       t,
                                                                                        operator_type::Divergence,
                                                                                        equations::CompressibleNavierStokesDiffusion2D{
                                                                                                                                       GradientVariablesPrimitive
@@ -434,12 +443,14 @@ end
                                                                         <:Adiabatic})(flux_inner,
                                                                                       w_inner,
                                                                                       normal::AbstractVector,
-                                                                                      x, t,
+                                                                                      x,
+                                                                                      t,
                                                                                       operator_type::Gradient,
                                                                                       equations::CompressibleNavierStokesDiffusion2D{
                                                                                                                                      GradientVariablesEntropy
                                                                                                                                      })
-    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
+    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
+                                                                                    t,
                                                                                     equations)
     negative_rho_inv_p = w_inner[4] # w_4 = -rho / p
     return SVector(w_inner[1], -v1 * negative_rho_inv_p, -v2 * negative_rho_inv_p,
@@ -451,7 +462,8 @@ end
                                                                         <:Adiabatic})(flux_inner,
                                                                                       w_inner,
                                                                                       normal::AbstractVector,
-                                                                                      x, t,
+                                                                                      x,
+                                                                                      t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion2D{
                                                                                                                                      GradientVariablesEntropy
@@ -459,7 +471,8 @@ end
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
                                                                                                            equations)
-    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
+    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
+                                                                                    t,
                                                                                     equations)
     _, tau_1n, tau_2n, _ = flux_inner # extract fluxes for 2nd and 3rd equations
     normal_energy_flux = v1 * tau_1n + v2 * tau_2n + normal_heat_flux
@@ -470,12 +483,14 @@ end
                                                                         <:Isothermal})(flux_inner,
                                                                                        w_inner,
                                                                                        normal::AbstractVector,
-                                                                                       x, t,
+                                                                                       x,
+                                                                                       t,
                                                                                        operator_type::Gradient,
                                                                                        equations::CompressibleNavierStokesDiffusion2D{
                                                                                                                                       GradientVariablesEntropy
                                                                                                                                       })
-    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
+    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
+                                                                                    t,
                                                                                     equations)
     T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t,
                                                                                 equations)
@@ -489,13 +504,12 @@ end
                                                                         <:Isothermal})(flux_inner,
                                                                                        w_inner,
                                                                                        normal::AbstractVector,
-                                                                                       x, t,
+                                                                                       x,
+                                                                                       t,
                                                                                        operator_type::Divergence,
                                                                                        equations::CompressibleNavierStokesDiffusion2D{
                                                                                                                                       GradientVariablesEntropy
                                                                                                                                       })
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4])
 end
-
-
 end # @muladd
