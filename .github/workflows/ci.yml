@@ -111,16 +111,16 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
-      - uses: julia-actions/cache@v1
-      - uses: julia-actions/julia-buildpkg@v1
-        env:
-          PYTHON: ""
       - name: Configure MPI.jl
         shell: julia --color=yes {0}
         run: |
           @show pwd()
           include(joinpath(pwd(), "test", "configure_packages.jl"))
+      - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-buildpkg@v1
+        env:
+          PYTHON: ""
       - name: Run tests without coverage
         uses: julia-actions/julia-runtest@v1
         with:

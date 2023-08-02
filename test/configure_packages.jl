@@ -1,4 +1,6 @@
-using Pkg, Libdl
+using Pkg
+Pkg.build("Libdl")
+using Libdl
 Pkg.activate(dirname(@__DIR__))
 Pkg.instantiate()
 
@@ -9,6 +11,9 @@ const JULIA_HDF5_PATH = get(ENV, "JULIA_HDF5_PATH", "")
 rm(joinpath(dirname(@__DIR__), "LocalPreferences.toml"); force=true)
 
 # Next, we configure MPI.jl appropriately.
+Pkg.build("MPIPreferences")
+Pkg.build("Preferences")
+Pkg.build("UUIDs")
 import MPIPreferences
 MPIPreferences.use_system_binary()
 
