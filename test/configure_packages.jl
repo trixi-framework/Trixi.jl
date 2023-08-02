@@ -1,6 +1,5 @@
 using Pkg, Libdl
 Pkg.activate(dirname(@__DIR__))
-Pkg.instantiate()
 # Configure the test setup based on environment variables set in CI.
 # First, we get the settings and remove all local preference configurations
 # that may still exist.
