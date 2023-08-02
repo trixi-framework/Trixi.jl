@@ -467,6 +467,24 @@ end
 # In 2D
 function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2},
                                              direction, mesh, equations, dg::DGSEM)
+    @autoinfiltrate
+    if direction in (1, 2)
+        cell_size = size(mesh, 2)
+    else
+        cell_size = size(mesh, 1)
+    end
+
+    uEltype = eltype(boundary_condition)
+    boundary_condition.u_boundary = Array{uEltype, 3}(undef, nvariables(equations),
+                                                      nnodes(dg),
+                                                      cell_size)
+end
+
+# In 2D
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2
+                                                                                          },
+                                             direction, mesh::P4estMesh, equations, dg::DGSEM)
+    @autoinfiltrate
     if direction in (1, 2)
         cell_size = size(mesh, 2)
     else
