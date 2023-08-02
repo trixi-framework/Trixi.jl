@@ -1,6 +1,5 @@
 using Pkg, Libdl
 Pkg.activate(dirname(@__DIR__))
-Pkg.rm("HDF5")
 Pkg.instantiate()
 
 # Configure the test setup based on environment variables set in CI.
@@ -14,7 +13,6 @@ MPIPreferences.use_system_binary()
 
 # Finally, we configure HDF5.jl as desired.
 import UUIDs, Preferences
-Pkg.add("HDF5")
 const JULIA_HDF5_PATH = get(ENV, "JULIA_HDF5_PATH", "")
 Preferences.set_preferences!(
     UUIDs.UUID("f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"), # UUID of HDF5.jl
