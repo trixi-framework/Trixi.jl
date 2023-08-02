@@ -99,10 +99,15 @@ end
 
 function cmesh_new_periodic_quad(comm, n_dims)::t8_cmesh_t
 	vertices = [ # Just all vertices of all trees. partly duplicated
-		-1.0, -1.0, 0,                    # tree 0, quad
-		1.0, -1.0, 0,
-		-1.0, 1.0, 0,
-		1.0, 1.0, 0,
+		# -1.0, -1.0, 0,                    # tree 0, quad
+		# 1.0, -1.0, 0,
+		# -1.0, 1.0, 0,
+		# 1.0, 1.0, 0,
+
+        -1.0, 0.0, 0,                    # tree 0, quad
+        0.0, -1.0, 0,
+        0.0, 1.0, 0,
+        1.0, 0.0, 0,
 	]
 
 	# Generally, one can define other geometries. But besides linear the other
@@ -139,10 +144,65 @@ function cmesh_new_periodic_quad(comm, n_dims)::t8_cmesh_t
 	return cmesh
 end
 
+
+function cmesh_new_periodic_tri(comm, n_dims)::t8_cmesh_t
+	vertices = [ # Just all vertices of all trees. partly duplicated
+		# -1.0, -1.0, 0, # tree 0, triangle
+		# 1.0, -1.0, 0,
+		# 1.0, 1.0, 0,
+		# -1.0, -1.0, 0, # tree 1, triangle
+		# 1.0, 1.0, 0,
+		# -1.0, 1.0, 0,
+
+        -1.0, 0, 0,  # tree 0, triangle
+		0, -1.0, 0,
+		1.0, 0, 0,
+		-1.0, 0, 0,  # tree 1, triangle
+		1.0, 0, 0,
+		0, 1.0, 0,
+	]
+
+	# Generally, one can define other geometries. But besides linear the other
+	# geometries in t8code do not have C interface yet.
+	linear_geom = t8_geometry_linear_new(n_dims)
+
+	#
+	# This is how the cmesh looks like. The numbers are the tree numbers:
+	#
+	#   +---+
+	#   |1 /|
+	#   | / |
+	#   |/0 |
+	#   +---+
+	#
+
+	cmesh_ref = Ref(t8_cmesh_t())
+	t8_cmesh_init(cmesh_ref)
+	cmesh = cmesh_ref[]
+
+	# /* Use linear geometry */
+	t8_cmesh_register_geometry(cmesh, linear_geom)
+	t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_TRIANGLE)
+	t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_TRIANGLE)
+
+    t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[1 +  0:end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[1 +  9:end]), 3)
+
+	t8_cmesh_set_join(cmesh, 0, 1, 1, 2, 0)
+	t8_cmesh_set_join(cmesh, 0, 1, 0, 1, 0)
+	t8_cmesh_set_join(cmesh, 0, 1, 2, 0, 1)
+
+	t8_cmesh_commit(cmesh, comm)
+
+	return cmesh
+end
+
 function build_forest(comm, n_dims, level)
 	# Periodic mesh of quads and triangles.
 	# cmesh = t8_cmesh_new_periodic_hybrid(comm) # The `t8code` version does exactly the same.
 	cmesh = cmesh_new_periodic_hybrid(comm, n_dims)
+	# cmesh = cmesh_new_periodic_quad(comm, n_dims)
+	# cmesh = cmesh_new_periodic_tri(comm, n_dims)
 
 	scheme = t8_scheme_new_default_cxx()
 
@@ -212,7 +272,7 @@ callbacks = CallbackSet(summary_callback, save_solution, analysis_callback, aliv
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),#Euler(),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback()

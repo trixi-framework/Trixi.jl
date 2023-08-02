@@ -222,7 +222,7 @@ callbacks = CallbackSet(summary_callback, save_solution, analysis_callback, aliv
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),#Euler(),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback()

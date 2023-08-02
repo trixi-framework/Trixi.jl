@@ -125,6 +125,14 @@ function output_data_to_vtu(mesh::T8codeMesh, equations, solver, u, out)
                                     pointer([u[element].u[v]
                                              for element in eachelement(mesh, solver)]))
                 for v in eachvariable(equations)]
+    for v in eachvariable(equations)
+        vtk_data_v = [t8_vtk_data_field_t(T8_VTK_SCALAR,
+                                          NTuple{8192, Cchar}(rpad("slope_$(vars[v])_$d\0", 8192, ' ')),
+                                          pointer([u[element].slope[(v - 1) * ndims(equations) + d]
+                                                   for element in eachelement(mesh, solver)]))
+                      for d in 1:ndims(equations)]
+        vtk_data = [vtk_data..., vtk_data_v...]
+    end
 
     # The number of user defined data fields to write.
     num_data = length(vtk_data)

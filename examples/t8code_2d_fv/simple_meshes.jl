@@ -120,7 +120,7 @@ function cmesh_new_periodic_tri(comm, n_dims)::t8_cmesh_t
 
 	t8_cmesh_set_join(cmesh, 0, 1, 1, 2, 0)
 	t8_cmesh_set_join(cmesh, 0, 1, 0, 1, 0)
-	t8_cmesh_set_join(cmesh, 0, 1, 2, 0, 0)
+	t8_cmesh_set_join(cmesh, 0, 1, 2, 0, 1)
 
 	t8_cmesh_commit(cmesh, comm)
 
