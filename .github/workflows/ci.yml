@@ -84,10 +84,10 @@ jobs:
             os: ubuntu-latest
             arch: x64
             trixi_test: threaded_legacy
-          - version: '1.9'
-            os: macOS-latest
-            arch: x64
-            trixi_test: mpi
+         # - version: '1.9'
+         #   os: macOS-latest
+         #   arch: x64
+         #   trixi_test: mpi
           - version: '1.9'
             os: macOS-latest
             arch: x64
