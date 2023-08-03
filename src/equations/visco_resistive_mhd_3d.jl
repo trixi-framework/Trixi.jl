@@ -28,8 +28,25 @@ Fluid properties such as the dynamic viscosity $\mu$ and magnetic diffusion $\et
 can be provided in any consistent unit system, e.g.,
 [$\mu$] = kg m⁻¹ s⁻¹.
 
-#!!! warning "Experimental code"
-#    This code is experimental and may be changed or removed in any future release.
+The equations given here are the visco-resistive part of the MHD equations
+in conservation form:
+```math
+\overleftrightarrow{f}^\mathrm{\mu\eta} =
+\begin{pmatrix}
+\overrightarrow{0} \\
+\underline{\tau} \\
+\underline{\tau}\overrightarrow{v} - \overrightarrow{\nabla}q -
+ \eta\left( (\overrightarrow{\nabla}\times\overrightarrow{B})\times\overrightarrow{B} \right) \\
+\eta \left( (\overrightarrow{\nabla}\overrightarrow{B})^\mathrm{T} - \overrightarrow{\nabla}\overrightarrow{B} \right) \\
+\overrightarrow{0}
+\end{pmatrix},
+```
+where `\tau` is the viscous stress tensor and `q = \kappa \overrightarrow{\nabla} T`.
+For the induction term we have the usual Laplace operator on the magnetic field
+but we also include terms with `div(B)`.
+Divergence cleaning is done using the `\Psi` field.
+
+For more details see e.g. arXiv:2012.12040.
 """
 struct ViscoResistiveMhd3D{GradientVariables, RealT <: Real,
                            E <: AbstractIdealGlmMhdEquations{3}} <:
