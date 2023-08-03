@@ -437,13 +437,14 @@ function allocate_coupled_boundary_condition(boundary_condition, direction, mesh
     return nothing
 end
 
-# In 2D
+# In 2D for a structured mesh.
 function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2
                                                                                           },
                                              direction, mesh, equations, dg::DGSEM)
-    @autoinfiltrate
+    # Negative and positive x.
     if direction in (1, 2)
         cell_size = size(mesh, 2)
+    # Negative and positive y.
     else
         cell_size = size(mesh, 1)
     end
@@ -454,15 +455,22 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
                                                       cell_size)
 end
 
-# In 2D
+# In 2D for a p4est mesh.
 function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2
                                                                                           },
                                              direction, mesh::P4estMesh, equations, dg::DGSEM)
-    @autoinfiltrate
-    if direction in (1, 2)
-        cell_size = size(mesh, 2)
+    # Negative x.
+    if direction == 1
+        cell_size = sum(mesh.tree_node_coordinates[1, 1, 1, :] .== minimum(mesh.tree_node_coordinates[1, 1, 1, :]))
+    # Positive x.
+    elseif direction == 2
+        cell_size = sum(mesh.tree_node_coordinates[1, 1, 1, :] .== maximum(mesh.tree_node_coordinates[1, 1, 1, :]))
+    # Negative y.
+    elseif direction == 3
+        cell_size = sum(mesh.tree_node_coordinates[2, 1, 1, :] .== minimum(mesh.tree_node_coordinates[2, 1, 1, :]))
+    # Positive  y.
     else
-        cell_size = size(mesh, 1)
+        cell_size = sum(mesh.tree_node_coordinates[2, 1, 1, :] .== maximum(mesh.tree_node_coordinates[2, 1, 1, :]))
     end
 
     uEltype = eltype(boundary_condition)
