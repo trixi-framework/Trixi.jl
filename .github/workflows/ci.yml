@@ -108,6 +108,9 @@ jobs:
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - name: Configure MPI.jl
+        env:
+          PYTHON: ""
+          TRIXI_TEST: ${{ matrix.trixi_test }}
         shell: julia --color=yes {0}
         run: |
           @show pwd()
