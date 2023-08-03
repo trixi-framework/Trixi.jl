@@ -58,7 +58,7 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh, equations,
                                solver::FV,
                                cache)
     for element in eachelement(mesh, solver)    # TODO: Does @threaded work with mpi? It should, yes.
-        x_node = SVector(cache.elements[element].midpoint) # Save t8code variables as SVector? No fixed size.
+        x_node = SVector(cache.elements[element].midpoint) # Save t8code variables as SVector?
         u_node = func(x_node, t, equations)
         # TODO: Use an average as initial condition?
         set_node_vars!(u, u_node, equations, solver, element)
@@ -131,6 +131,8 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
                                                                                                    equations,
                                                                                                    solver,
                                                                                                    cache)
+                # TODO: surface flux produces allocs when u's are no SVectors.
+                # Problem: Setting u's to SVectors needs much time and also allocs.
                 @trixi_timeit timer() "surface flux" flux=solver.surface_flux(u_element,
                                                                               u_neighbor,
                                                                               normal,
@@ -170,12 +172,14 @@ end
 function linear_reconstruction(u_, mesh, equations, solver, cache)
     @unpack elements = cache
 
+    slope = zeros(eltype(u_[1].u), nvariables(equations) * ndims(mesh))
+
     # Approximate slope
     for element in eachelement(mesh, solver, cache)
         @unpack u = u_[element]
         @unpack num_faces, face_connectivity, face_areas, face_normals, midpoint, face_midpoints, volume = cache.elements[element]
 
-        slope = zeros(eltype(u), nvariables(equations) * ndims(mesh))
+        slope .= zero(eltype(slope))
         for face in 1:num_faces
             neighbor = face_connectivity[face]
             normal = Trixi.get_variable_wrapped(face_normals, equations, face)
