@@ -1,4 +1,5 @@
-if Sys.islinux()
+const TRIXI_TEST = get(ENV, "TRIXI_TEST", "threaded")
+if Sys.islinux() && (TRIXI_TEST == "all" || TRIXI_TEST == "mpi")
     using Pkg, Libdl
     Pkg.activate(dirname(@__DIR__))
     Pkg.instantiate()
