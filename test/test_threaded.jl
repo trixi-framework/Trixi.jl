@@ -146,10 +146,10 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
       end
     end
     @trixi_testset "elixir_euler_density_wave_restart.jl" begin
-      using OrdinaryDiffEq: IController
-      trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_extended.jl"), controller = IController())
+      using OrdinaryDiffEq: PIDController
+      trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_extended.jl"), controller = PIDController(1.0,0.5,0.2))
       l2, linf = analysis_callback(sol)
-      eval(:(@test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_restart.jl"), controller = IController(),
+      eval(:(@test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_restart.jl"), controller = PIDController(1.0,0.5,0.2),
         # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl
         l2 = $l2, linf = $linf)))
     end

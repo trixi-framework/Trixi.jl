@@ -24,4 +24,6 @@ if Sys.islinux() && (TRIXI_TEST == "all" || TRIXI_TEST == "mpi")
         "libhdf5_hl" => joinpath(JULIA_HDF5_PATH, "libhdf5_hl." * Libdl.dlext);
         force=true
     )
+using HDF5
+println(HDF5.has_parallel())
 end
