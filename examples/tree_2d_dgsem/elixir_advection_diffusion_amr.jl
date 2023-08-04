@@ -54,7 +54,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
 
 # Create ODE problem with time span from 0.0 to 1.5
 tspan = (0.0, 0.4)
-ode = semidiscretize(semi, tspan; split_form = false)
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
