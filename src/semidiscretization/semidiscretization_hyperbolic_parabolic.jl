@@ -274,9 +274,8 @@ The parabolic right-hand side is the first function of the split ODE problem and
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
 """
-function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan; 
-                        reset_threads = true, split_form::Bool=true)
-
+function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
+                        reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -292,12 +291,7 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
     # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
     # first function implicitly and the second one explicitly. Thus, we pass the
     # stiffer parabolic function first.
-    if split_form
-        return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
-    else
-        specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
-        return ODEProblem{iip, specialize}(rhs_hyperbolic_parabolic!, u0_ode, tspan, semi)
-    end
+    return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
@@ -335,16 +329,5 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabol
     put!(semi.performance_counter.counters[2], runtime)
 
     return nothing
-end
-
-function rhs_hyperbolic_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
-    @trixi_timeit timer() "hyperbolic-parabolic rhs!" begin 
-        # TODO: Avoid allocations, make member variable of something? 
-        # -> Could reside in (PERK) integrator, then pass in similar to indices of PERK
-        du_ode_hyp = similar(du_ode)
-        rhs!(du_ode_hyp, u_ode, semi, t)
-        rhs_parabolic!(du_ode, u_ode, semi, t)
-        du_ode .+= du_ode_hyp
-    end
 end
 end # @muladd
