@@ -146,7 +146,7 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
       end
     end
     @trixi_testset "elixir_euler_density_wave_restart.jl" begin
-      # using OrdinaryDiffEq: IController
+      using OrdinaryDiffEq: IController
       trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_extended.jl"), controller = IController())
       l2, linf = analysis_callback(sol)
       eval(:(@test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_restart.jl"), controller = IController(),
