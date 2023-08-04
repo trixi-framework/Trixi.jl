@@ -94,7 +94,7 @@ function save_restart_file(u, time, dt, timestep,
     @unpack output_directory = restart_callback
     # Filename based on current time step
     filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
-
+    println( get(ENV, "JULIA_HDF5_PATH", ""), " ", HDF5.has_parallel())
     if HDF5.has_parallel()
         save_restart_file_parallel(u, time, dt, timestep, mesh, equations, dg, cache,
                                    filename)

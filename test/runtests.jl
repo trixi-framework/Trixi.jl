@@ -1,5 +1,7 @@
 using Test
 using MPI: mpiexec
+using HDF5: has_parallel
+println( get(ENV, "JULIA_HDF5_PATH", ""), " ", HDF5.has_parallel())
 
 # We run tests in parallel with CI jobs setting the `TRIXI_TEST` environment
 # variable to determine the subset of tests to execute.
