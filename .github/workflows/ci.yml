@@ -41,31 +41,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  HDF5-system-libs:
-    name: julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} (system libhdf5 + mpich)
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
-    strategy:
-      matrix:
-        version:
-          - '1.9'
-        os:
-          - ubuntu-20.04 # required for libhdf5 v1.10.4 support
-        arch:
-          - x64
-    steps:
-      - uses: actions/checkout@v3
-      - uses: julia-actions/setup-julia@v1
-        with:
-          version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
-      - uses: julia-actions/julia-buildpkg@v1
-      - name: Configure MPI.jl
-        shell: julia --color=yes {0}
-        run: |
-          @show pwd()
-          include(joinpath(pwd(), "test", "configure_packages.jl"))
-      - uses: julia-actions/julia-runtest@v1
   test:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
     # We could also include the Julia version as in
@@ -132,18 +107,18 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
-      # - name: Configure MPI.jl
-      #   env:
-      #     PYTHON: ""
-      #     TRIXI_TEST: ${{ matrix.trixi_test }}
-      #   shell: julia --color=yes {0}
-      #   run: |
-      #     @show pwd()
-      #     include(joinpath(pwd(), "test", "configure_packages.jl"))
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
+      - name: Configure MPI.jl
+        env:
+          PYTHON: ""
+          TRIXI_TEST: ${{ matrix.trixi_test }}
+        shell: julia --color=yes {0}
+        run: |
+          @show pwd()
+          include(joinpath(pwd(), "test", "configure_packages.jl"))
       - name: Run tests without coverage
         uses: julia-actions/julia-runtest@v1
         with:
