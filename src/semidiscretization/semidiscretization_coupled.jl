@@ -501,12 +501,25 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     u = wrap_array(get_system_u_ode(u_ode, other_semi_index, semi), mesh, equations, solver,
                    cache)
 
-    linear_indices = LinearIndices(size(mesh))
+    @autoinfiltrate
+    if mesh isa P4estMesh
+        linear_indices = LinearIndices(mesh.trees_per_dimension)
+    else
+        linear_indices = LinearIndices(size(mesh))
+    end
 
-    if other_orientation == 1
-        cells = axes(mesh, 2)
-    else # other_orientation == 2
-        cells = axes(mesh, 1)
+    if mesh isa P4estMesh
+        if other_orientation == 1
+            cells = mesh.trees_per_dimension[2]
+        else # other_orientation == 2
+            cells = mesh.trees_per_dimension[1]
+        end
+    else
+        if other_orientation == 1
+            cells = axes(mesh, 2)
+        else # other_orientation == 2
+            cells = axes(mesh, 1)
+        end
     end
 
     # Copy solution data to the coupled boundary using "delayed indexing" with
@@ -515,8 +528,13 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
     j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
 
-    i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh, 1))
-    j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh, 2))
+    if mesh isa P4estMesh
+        i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], mesh.trees_per_dimension[1])
+        j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], mesh.trees_per_dimension[2])
+    else
+        i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh, 1))
+        j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh, 2))
+    end
 
     i_cell = i_cell_start
     j_cell = j_cell_start
