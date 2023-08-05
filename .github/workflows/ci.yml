@@ -111,14 +111,6 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
-      - name: Configure MPI.jl
-        env:
-          PYTHON: ""
-          TRIXI_TEST: ${{ matrix.trixi_test }}
-        shell: julia --color=yes {0}
-        run: |
-          @show pwd()
-          include(joinpath(pwd(), "test", "configure_packages.jl"))
       - name: Run tests without coverage
         uses: julia-actions/julia-runtest@v1
         with:

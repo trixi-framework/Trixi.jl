@@ -16,7 +16,6 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LinearMaps = "7a12625a-238d-50fd-b39a-03d52299707e"
 LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
 MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
-MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 MuladdMacro = "46d2c3a1-f734-5fdb-9937-b9b9aeba4221"
 Octavian = "6fd5a793-0b7e-452c-907f-f8bfe9c57db4"
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
@@ -44,6 +43,12 @@ TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
 TriplotBase = "981d1d27-644d-49a2-9326-4793e63143c3"
 TriplotRecipes = "808ab39a-a642-4abf-81ff-4cb34ebbffa3"
+
+[weakdeps]
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+
+[extensions]
+TrixiMakieExt = "Makie"
 
 [compat]
 CodeTracking = "1.0.5"
@@ -84,11 +89,5 @@ TriplotBase = "0.1"
 TriplotRecipes = "0.1"
 julia = "1.8"
 
-[extensions]
-TrixiMakieExt = "Makie"
-
 [extras]
-Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
-
-[weakdeps]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
