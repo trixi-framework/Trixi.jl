@@ -2,7 +2,11 @@
 # We start with a weak small-scale magnetic field provided as Gaussian noise.
 # The energy is supplied via a forcing function f_force(x, t), which is delta-correlated in time.
 # For a comparison look into the Pencil Code example https://github.com/pencil-code/pencil-code/tree/master/samples/helical-MHDturb.
-# For more information see Cnadelaresi et al. (2013), DOI: 10.1103/PhysRevE.87.043104 section II A.
+# For more information on the initial condition and forcing term see
+#  S. Candelaresi and A. Brandenburg (2013)
+#  Kinetic helicity needed to drive large-scale dynamos
+#  [DOI: 10.1103/PhysRevE.87.043104](https://doi.org/10.1103/PhysRevE.87.043104)
+#  section II A
 
 using OrdinaryDiffEq
 using Trixi
