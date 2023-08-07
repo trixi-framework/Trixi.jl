@@ -276,22 +276,6 @@ end
     return T
 end
 
-#=
-@inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion1D)
-    # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
-
-    omega = vorticity(u, gradients, equations)
-    return 0.5 * u[1] * omega^2
-end
-
-@inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion1D)
-    # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
-    _, dv1dx, _ = convert_derivative_to_primitive(u, gradients, equations)
-
-    return dv1dx
-end
-=#
-
 # TODO: can we generalize this to MHD?
 """
     struct BoundaryConditionNavierStokesWall
@@ -374,7 +358,7 @@ end
                                                                                                            equations)
     v1 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
                                                                                 equations)
-    _, tau_1n, _ = flux_inner # extract fluxes for 2nd and 3rd equations
+    _, tau_1n, _ = flux_inner # extract fluxes for 2nd equation
     normal_energy_flux = v1 * tau_1n + normal_heat_flux
     return SVector(flux_inner[1], flux_inner[2], normal_energy_flux)
 end
@@ -445,7 +429,7 @@ end
                                                                                                            equations)
     v1 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
                                                                                 equations)
-    _, tau_1n, _ = flux_inner # extract fluxes for 2nd and 3rd equations
+    _, tau_1n, _ = flux_inner # extract fluxes for 2nd equation
     normal_energy_flux = v1 * tau_1n + normal_heat_flux
     return SVector(flux_inner[1], flux_inner[2], normal_energy_flux)
 end
