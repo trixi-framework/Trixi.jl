@@ -526,8 +526,8 @@ mutable struct L2MortarContainer3D{uEltype <: Real} <: AbstractContainer
     u_lower_right::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
     neighbor_ids::Array{Int, 2}     # [position, mortars]
     # Large sides: left -> 1, right -> 2
-    large_sides::Vector{Int} # [mortars]
-    orientations::Vector{Int} # [mortars]
+    large_sides::Vector{Int}  # [mortars]
+    orientations::Vector{Int}  # [mortars]
     # internal `resize!`able storage
     _u_upper_left::Vector{uEltype}
     _u_upper_right::Vector{uEltype}
