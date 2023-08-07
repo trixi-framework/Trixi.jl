@@ -29,7 +29,12 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 50_000) # set maximum capacity of tree data structure
 
 function initial_condition_constant_alfven(x, t, equations)
+    # Homogeneous background magnetic field in the x-direction that is perturbed
+    # by a small change in the y-direction (e.g. Biskamp 2003, section 2.5.1).
+    # For a derivation of Alfven waves see e.g.:
     # Alfven H., 150, p. 450, Nature (1942), DOI: 10.1038/150405d0
+    # Chandrasekhar, Hydrodynamic and hydromagnetic stability (1961)
+    # Biskamp, Magnetohydrodynamic Turbulence (2003)
     p = 1
     omega = 2 * pi / 2 # may be multiplied by frequency
     # r: length-variable = length of computational domain
