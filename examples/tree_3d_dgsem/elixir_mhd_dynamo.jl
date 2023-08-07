@@ -43,7 +43,10 @@ end
 
 Forcing term that adds a helical small-scale driver to the system that is
 delta-correlated in time.
-For more information see Candelaresi et al. (2013) DOI: 10.1103/PhysRevE.87.043104.
+For more information on the initial condition and forcing term see 
+- S. Candelaresi and A. Brandenburg (2013) 
+  Kinetic helicity needed to drive large-scale dynamos
+  [DOI: 10.1103/PhysRevE.87.043104](https://doi.org/10.1103/PhysRevE.87.043104)
 """
 function source_terms_helical_forcing(u, x, t, equations::IdealGlmMhdEquations3D)
     # forcing amplitude
