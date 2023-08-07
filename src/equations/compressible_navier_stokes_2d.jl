@@ -29,7 +29,7 @@ The particular form of the compressible Navier-Stokes implemented is
 =
 \nabla \cdot
 \begin{pmatrix}
-0 \\ \underline{\tau} \\ \underline{\tau}\mathbf{v} - \nabla q
+0 \\ \underline{\tau} \\ \underline{\tau}\mathbf{v} - \mathbf{q}
 \end{pmatrix}
 ```
 where the system is closed with the ideal gas assumption giving
@@ -44,7 +44,7 @@ are built from the viscous stress tensor
 ```
 where ``\underline{I}`` is the ``2\times 2`` identity matrix and the heat flux is
 ```math
-\nabla q = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
+\mathbf{q} = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
 ```
 where ``T`` is the temperature and ``\kappa`` is the thermal conductivity for Fick's law.
 Under the assumption that the gas has a constant Prandtl number,
@@ -55,7 +55,7 @@ the thermal conductivity is
 From this combination of temperature ``T`` and thermal conductivity ``\kappa`` we see
 that the gas constant `R` cancels and the heat flux becomes
 ```math
-\nabla q = -\kappa\nabla\left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}}\nabla\left(\frac{p}{\rho}\right)
+\mathbf{q} = -\kappa\nabla\left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}}\nabla\left(\frac{p}{\rho}\right)
 ```
 which is the form implemented below in the [`flux`](@ref) function.
 
