@@ -102,6 +102,7 @@ prandtl_number() = 0.72
 mu() = 5e-3
 eta() = 5e-3
 
+# Adiabatic monatomic gas in 3d 
 gamma = 1.0 + 2.0 / 3.0
 
 equations = IdealGlmMhdEquations3D(gamma)
