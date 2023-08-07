@@ -11,5 +11,6 @@ include("laplace_diffusion_2d.jl")
 # Compressible Navier-Stokes equations
 abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS} <:
               AbstractEquationsParabolic{NDIMS, NVARS} end
+include("compressible_navier_stokes_1d.jl")
 include("compressible_navier_stokes_2d.jl")
 include("compressible_navier_stokes_3d.jl")

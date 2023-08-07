@@ -19,7 +19,13 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [2.847421658558336e-05]
     )
   end
-  
+
+  @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence.jl"),
+      l2 = [0.0001133835907077494, 6.226282245610444e-5, 0.0002820171699999139],
+      linf = [0.0006255102377159538, 0.00036195501456059986, 0.0016147729485886941]
+    )
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory
