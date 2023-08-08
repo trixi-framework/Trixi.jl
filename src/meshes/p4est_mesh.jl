@@ -24,9 +24,9 @@ mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NN
     current_filename::String
     unsaved_changes::Bool
     p4est_partition_allow_for_coarsening::Bool
-    coordinates_min::Tuple{RealT, RealT}
-    coordinates_max::Tuple{RealT, RealT}
-    trees_per_dimension::Tuple{Int, Int}
+    coordinates_min::SVector{NDIMS, RealT}
+    coordinates_max::SVector{NDIMS, RealT}
+    trees_per_dimension::SVector{NDIMS, Int}
 
     function P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes, boundary_names,
                               current_filename, unsaved_changes,
