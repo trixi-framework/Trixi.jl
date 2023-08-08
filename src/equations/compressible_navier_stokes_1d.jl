@@ -261,7 +261,8 @@ end
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
-                                                                                      normal::AbstractVector,
+                                                                                      orientation::Integer,
+                                                                                      direction, 
                                                                                       x, t,
                                                                                       operator_type::Gradient,
                                                                                       equations::CompressibleNavierStokesDiffusion1D{
@@ -275,7 +276,8 @@ end
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
-                                                                                      normal::AbstractVector,
+                                                                                      orientation::Integer,
+                                                                                      direction,
                                                                                       x, t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion1D{
@@ -295,7 +297,8 @@ end
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Isothermal})(flux_inner,
                                                                                        u_inner,
-                                                                                       normal::AbstractVector,
+                                                                                       orientation::Integer,
+                                                                                       direction,
                                                                                        x, t,
                                                                                        operator_type::Gradient,
                                                                                        equations::CompressibleNavierStokesDiffusion1D{
@@ -311,7 +314,8 @@ end
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Isothermal})(flux_inner,
                                                                                        u_inner,
-                                                                                       normal::AbstractVector,
+                                                                                       orientation::Integer,
+                                                                                       direction,
                                                                                        x, t,
                                                                                        operator_type::Divergence,
                                                                                        equations::CompressibleNavierStokesDiffusion1D{
@@ -331,7 +335,8 @@ end
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       w_inner,
-                                                                                      normal::AbstractVector,
+                                                                                      orientation::Integer,
+                                                                                      direction,
                                                                                       x, t,
                                                                                       operator_type::Gradient,
                                                                                       equations::CompressibleNavierStokesDiffusion1D{
@@ -347,7 +352,8 @@ end
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       w_inner,
-                                                                                      normal::AbstractVector,
+                                                                                      orientation::Integer,
+                                                                                      direction,
                                                                                       x, t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion1D{
@@ -366,7 +372,8 @@ end
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Isothermal})(flux_inner,
                                                                                        w_inner,
-                                                                                       normal::AbstractVector,
+                                                                                       orientation::Integer,
+                                                                                       direction,
                                                                                        x, t,
                                                                                        operator_type::Gradient,
                                                                                        equations::CompressibleNavierStokesDiffusion1D{
@@ -385,7 +392,8 @@ end
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Isothermal})(flux_inner,
                                                                                        w_inner,
-                                                                                       normal::AbstractVector,
+                                                                                       orientation::Integer,
+                                                                                       direction,
                                                                                        x, t,
                                                                                        operator_type::Divergence,
                                                                                        equations::CompressibleNavierStokesDiffusion1D{
