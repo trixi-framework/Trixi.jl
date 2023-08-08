@@ -14,14 +14,16 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu=mu(),
                                                           Prandtl=prandtl_number())
 
 function initial_condition_shear_layer(x, t, equations::CompressibleEulerEquations2D)
+  # Shear layer parameters
   k = 80
   delta = 0.05
   u0 = 1.0
+  
   Ms = 0.1 # maximum Mach number
 
   rho = 1.0
-  v1  = x[2] <= 0.5 ? u0*tanh(k*(x[2]*0.5 - 0.25)) : tanh(k*(0.75 -x[2]*0.5))
-  v2  = u0*delta * sin(2*pi*(x[1]*0.5 + 0.25))
+  v1  = x[2] <= 0.5 ? u0 * tanh(k*(x[2]*0.5 - 0.25)) : u0 * tanh(k*(0.75 -x[2]*0.5))
+  v2  = u0 * delta * sin(2*pi*(x[1]*0.5 + 0.25))
   p   = (u0 / Ms)^2 * rho / equations.gamma # scaling to get Ms
 
   return prim2cons(SVector(rho, v1, v2, p), equations)
