@@ -374,7 +374,7 @@ Splitting of the compressible Euler flux of Steger and Warming.
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
-function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -462,7 +462,7 @@ it proved the most robust in practice.
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
-function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -555,7 +555,7 @@ are to handle flows at the low Mach number limit.
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
-function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -628,7 +628,7 @@ end
     return SVector(f1m, f2m, f3m)
 end
 
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# Calculate estimates for maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations1D)
@@ -648,7 +648,7 @@ end
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
-# Calculate minimum and maximum wave speeds for HLL-type fluxes
+# Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations1D)
     rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
@@ -656,6 +656,21 @@ end
 
     λ_min = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
     λ_max = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
+
+    return λ_min, λ_max
+end
+
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
+                                     equations::CompressibleEulerEquations1D)
+    rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
+
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
+    λ_max = max(v1_ll + c_ll, v1_rr + c_rr)
 
     return λ_min, λ_max
 end

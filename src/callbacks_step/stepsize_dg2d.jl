@@ -75,7 +75,9 @@ function max_dt(u, t, mesh::ParallelTreeMesh{2},
     return dt
 end
 
-function max_dt(u, t, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
+function max_dt(u, t,
+                mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
+                            T8codeMesh{2}},
                 constant_speed::False, equations, dg::DG, cache)
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
@@ -109,7 +111,9 @@ function max_dt(u, t, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMe
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
+function max_dt(u, t,
+                mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
+                            T8codeMesh{2}},
                 constant_speed::True, equations, dg::DG, cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
