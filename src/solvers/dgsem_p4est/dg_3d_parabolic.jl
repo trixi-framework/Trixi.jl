@@ -30,6 +30,8 @@ end
 #               2. compute f(u, grad(u))
 #               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
+# TODO: Remove in favor of the implementation for the TreeMesh 
+#       once the P4estMesh can handle mortars as well
 function rhs_parabolic!(du, u, t, mesh::P4estMesh{3},
                         equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions_parabolic, source_terms,

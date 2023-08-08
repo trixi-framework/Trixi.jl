@@ -22,6 +22,8 @@ function create_cache_parabolic(mesh::P4estMesh{2}, equations_hyperbolic::Abstra
     return cache
 end
 
+# TODO: Remove in favor of the implementation for the TreeMesh 
+#       once the P4estMesh can handle mortars as well
 function rhs_parabolic!(du, u, t, mesh::P4estMesh{2},
                         equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions_parabolic, source_terms,
