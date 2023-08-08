@@ -16,7 +16,7 @@ equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu=mu(),
 """
     initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations3D)
 
-The classical inviscid Taylor-Green vortex, as found for instance in
+The classical viscous Taylor-Green vortex, as found for instance in
 
 - Jonathan R. Bull and Antony Jameson
   Simulation of the Compressible Taylor Green Vortex using High-Order Flux Reconstruction Schemes
