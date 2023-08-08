@@ -177,6 +177,9 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
         # to increase the runtime performance
         # but HDF5 can only handle plain arrays
         file["boundary_names"] = mesh.boundary_names .|> String
+        file["coordinates_min"] = Vector(mesh.coordinates_min)
+        file["coordinates_max"] = Vector(mesh.coordinates_max)
+        file["trees_per_dimension"] = Vector(mesh.trees_per_dimension)
     end
 
     return filename
@@ -217,6 +220,9 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
         # to increase the runtime performance
         # but HDF5 can only handle plain arrays
         file["boundary_names"] = mesh.boundary_names .|> String
+        file["coordinates_min"] = mesh.coordinates_min
+        file["coordinates_max"] = mesh.coordinates_max
+        file["trees_per_dimension"] = mesh.trees_per_dimension
     end
 
     return filename
@@ -301,11 +307,15 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
                                   unsaved_changes = false)
     elseif mesh_type == "P4estMesh"
         p4est_filename, tree_node_coordinates,
-        nodes, boundary_names_ = h5open(mesh_file, "r") do file
+        nodes, boundary_names_, coordinates_min,
+        coordinates_max, trees_per_dimension = h5open(mesh_file, "r") do file
             return read(attributes(file)["p4est_file"]),
                    read(file["tree_node_coordinates"]),
                    read(file["nodes"]),
-                   read(file["boundary_names"])
+                   read(file["boundary_names"]),
+                   read(file["coordinates_min"]),
+                   read(file["coordinates_max"]),
+                   read(file["trees_per_dimension"])           
         end
 
         boundary_names = boundary_names_ .|> Symbol
@@ -317,7 +327,8 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         p4est = load_p4est(p4est_file, Val(ndims))
 
         mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
-                                nodes, boundary_names, "", false, true)
+                                nodes, boundary_names, "", false, true,
+                                coordinates_min, coordinates_max, trees_per_dimension)
     else
         error("Unknown mesh type!")
     end
@@ -381,12 +392,16 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
     elseif mesh_type == "P4estMesh"
         if mpi_isroot()
             p4est_filename, tree_node_coordinates,
-            nodes, boundary_names_ = h5open(mesh_file, "r") do file
+            nodes, boundary_names_, coordinates_min,
+            coordinates_max, trees_per_dimension = h5open(mesh_file, "r") do file
                 return read(attributes(file)["p4est_file"]),
                        read(file["tree_node_coordinates"]),
                        read(file["nodes"]),
-                       read(file["boundary_names"])
-            end
+                       read(file["boundary_names"]),
+                       read(file["coordinates_min"]),
+                       read(file["coordinates_max"]),
+                       read(file["trees_per_dimension"])           
+                end
 
             boundary_names = boundary_names_ .|> Symbol
 
