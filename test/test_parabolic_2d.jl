@@ -134,18 +134,28 @@ isdir(outdir) && rm(outdir, recursive=true)
       Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs/8)])
       tspan=(0.0, 1.5)
       semi = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations, equations_parabolic),
-                                             initial_condition, solver;
-                                             boundary_conditions=(boundary_conditions,
-                                                                  boundary_conditions_parabolic))
+                                                   (equations, equations_parabolic),
+                                                   initial_condition, solver;
+                                                   boundary_conditions=(boundary_conditions,
+                                                                        boundary_conditions_parabolic))
       ode = semidiscretize(semi, tspan)
       analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
       callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
       sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
-            ode_default_options()..., callback=callbacks)        
+            ode_default_options()..., callback=callbacks)
       ac_sol = analysis_callback(sol)
       @test ac_sol.l2[1] ≈ 1.67452550744728e-6
       @test ac_sol.linf[1] ≈ 7.905059166368744e-6
+
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 100
+        @test (@allocated Trixi.rhs_parabolic!(du_ode, u_ode, semi, t)) < 100
+      end
   end
 
   @trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl" begin
