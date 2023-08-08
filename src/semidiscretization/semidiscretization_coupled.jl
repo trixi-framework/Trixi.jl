@@ -501,9 +501,8 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     u = wrap_array(get_system_u_ode(u_ode, other_semi_index, semi), mesh, equations, solver,
                    cache)
 
-    @autoinfiltrate
     if mesh isa P4estMesh
-        linear_indices = LinearIndices(mesh.trees_per_dimension)
+        linear_indices = LinearIndices((mesh.trees_per_dimension[1], mesh.trees_per_dimension[2]))
     else
         linear_indices = LinearIndices(size(mesh))
     end
@@ -539,6 +538,7 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     i_cell = i_cell_start
     j_cell = j_cell_start
 
+    # @autoinfiltrate
     for cell in cells
         i_node = i_node_start
         j_node = j_node_start
