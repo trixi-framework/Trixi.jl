@@ -20,10 +20,17 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
-  @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence.jl"),
+  @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_periodic.jl"),
       l2 = [0.0001133835907077494, 6.226282245610444e-5, 0.0002820171699999139],
       linf = [0.0006255102377159538, 0.00036195501456059986, 0.0016147729485886941]
+    )
+  end
+
+  @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_walls.jl"),
+      l2 = [0.000321596075226452, 0.0003182128802451823, 0.0014390613437572657],
+      linf = [0.0012224119045414206, 0.0026168886703672534, 0.012041112066421888]
     )
   end
 end
