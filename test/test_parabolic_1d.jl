@@ -27,6 +27,16 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl: GradientVariablesEntropy" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_periodic.jl"),
+      equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu=mu(),
+                                                                Prandtl=prandtl_number(), 
+                                                                gradient_variables = GradientVariablesEntropy()),
+      l2 = [0.00011310615871043463, 6.216495207074201e-5, 0.00028195843110817814],
+      linf = [0.0006240837363233886, 0.0003616694320713876, 0.0016147339542413874]
+    )
+  end
+
   @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_walls.jl"),
       l2 = [0.000321596075226452, 0.0003182128802451823, 0.0014390613437572657],
