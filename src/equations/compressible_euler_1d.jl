@@ -232,21 +232,21 @@ are available in the paper:
     if v_normal <= 0.0
         sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
         p_star = p_local *
-                    (1 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2 *
-                                                                                equations.gamma *
-                                                                                equations.inv_gamma_minus_one)
+                 (1 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2 *
+                                                                             equations.gamma *
+                                                                             equations.inv_gamma_minus_one)
     else # v_normal > 0.0
         A = 2 / ((equations.gamma + 1) * rho_local)
         B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
         p_star = p_local +
-                    0.5 * v_normal / A *
-                    (v_normal + sqrt(v_normal^2 + 4 * A * (p_local + B)))
+                 0.5 * v_normal / A *
+                 (v_normal + sqrt(v_normal^2 + 4 * A * (p_local + B)))
     end
 
     # For the slip wall we directly set the flux as the normal velocity is zero
     return SVector(zero(eltype(u_inner)),
-                    p_star,
-                    zero(eltype(u_inner)))
+                   p_star,
+                   zero(eltype(u_inner)))
 end
 
 # Calculate 1D flux for a single point

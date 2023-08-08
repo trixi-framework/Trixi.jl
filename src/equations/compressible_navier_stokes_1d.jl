@@ -262,7 +262,7 @@ end
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
                                                                                       orientation::Integer,
-                                                                                      direction, 
+                                                                                      direction,
                                                                                       x, t,
                                                                                       operator_type::Gradient,
                                                                                       equations::CompressibleNavierStokesDiffusion1D{

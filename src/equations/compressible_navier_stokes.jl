@@ -51,7 +51,6 @@ struct Adiabatic{F}
     boundary_value_normal_flux_function::F # scaled heat flux 1/T * kappa * dT/dn
 end
 
-
 """
 !!! warning "Experimental code"
     This code is experimental and may be changed or removed in any future release.
