@@ -363,7 +363,7 @@ end
 #
 # In some sense, having plain multidimensional `Array`s not support `resize!`
 # isn't necessarily a bug (although it would be nice to add this possibility to
-# base Julia) but can turn out to be a feature for us, because it will aloow us
+# base Julia) but can turn out to be a feature for us, because it will allow us
 # more specializations.
 # Since we can use multiple dispatch, these kinds of specializations can be
 # tailored specifically to each combinations of mesh/solver etc.
