@@ -139,13 +139,6 @@ function solve!(integrator::SimpleIntegratorSSP)
     t_end = last(prob.tspan)
     callbacks = integrator.opts.callback
 
-    # WARNING: Only works if the last callback got a variable `output_directory`.
-    if callbacks.discrete_callbacks[end].condition isa SaveSolutionCallback
-        output_directory = callbacks.discrete_callbacks[end].condition.output_directory
-    else
-        output_directory = "out"
-    end
-
     integrator.finalstep = false
     while !integrator.finalstep
         if isnan(integrator.dt)
