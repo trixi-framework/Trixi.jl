@@ -3,12 +3,14 @@
 
 using OrdinaryDiffEq
 using Trixi
+using KernelAbstractions
 
 ###############################################################################
 # semidiscretization of the linear advection equation
 
 advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
+backend = CPU()
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
@@ -24,14 +26,14 @@ mesh = P4estMesh(trees_per_dimension, polydeg=3,
                  initial_refinement_level=1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver; backend=backend)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0); offload=false);
+ode = semidiscretize(semi, (0.0, 1.0); offload=false, backend=backend);
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers

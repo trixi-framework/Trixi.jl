@@ -83,12 +83,14 @@ function prolong2interfaces_gpu!(cache, u,
     backend = get_backend(u)
 
     kernel! = prolong2interfaces_kernel!(backend)
-    tmp_interfaces_u = copyto!(backend, allocate(backend, eltype(interfaces.u), size(interfaces.u)), interfaces.u)
-    tmp_interfaces_neighbor_ids = copyto!(backend, allocate(backend, eltype(interfaces.neighbor_ids), size(interfaces.neighbor_ids)), interfaces.neighbor_ids)
-    tmp_interfaces_node_indices = copyto!(backend, allocate(backend, eltype(interfaces.node_indices), size(interfaces.node_indices)), interfaces.node_indices)
+    tmp_interfaces_u = copyto!(backend, allocate(backend, eltype(interfaces.u), size(interfaces.u)), interfaces.u) # not init
+    tmp_interfaces_neighbor_ids = copyto!(backend, allocate(backend, eltype(interfaces.neighbor_ids), size(interfaces.neighbor_ids)), interfaces.neighbor_ids) # not init
+    tmp_interfaces_node_indices = copyto!(backend, allocate(backend, eltype(interfaces.node_indices), size(interfaces.node_indices)), interfaces.node_indices) # not init
 
     num_nodes = nnodes(dg)
     num_interfaces = ninterfaces(cache.interfaces)
+
+    #@autoinfiltrate
 
     kernel!(u, tmp_interfaces_u, tmp_interfaces_neighbor_ids, tmp_interfaces_node_indices, equations, num_nodes, ndrange=num_interfaces)
 
@@ -171,7 +173,7 @@ end
 function calc_interface_flux_gpu!(surface_flux_values,
                               mesh::P4estMesh{2},
                               nonconservative_terms,
-                              equations, surface_integral, dg::DG, cache)
+                              equations, surface_integral, dg::DG, cache, backend=CPU()) # temporary backend parameter
     @kernel function calc_interface_flux_kernel!(interfaces_u, interfaces_neighbor_ids, interfaces_node_indices,
                                                 nonconservative_terms,
                                                 surface_flux_values, surface_flux,
@@ -188,17 +190,19 @@ function calc_interface_flux_gpu!(surface_flux_values,
 
     @unpack interfaces = cache
     @unpack contravariant_vectors = cache.elements
-    backend = get_backend(interfaces.u) # Caution: May not work if interfaces.u is not initialized on the GPU, but the other data is
+    #backend = get_backend(interfaces.u) # Caution: May not work if interfaces.u is not initialized on the GPU, but the other data is
 
     kernel! = calc_interface_flux_kernel!(backend)
-    tmp_interfaces_u = copyto!(backend, allocate(backend, eltype(interfaces.u), size(interfaces.u)), interfaces.u)
-    tmp_interfaces_neighbor_ids = copyto!(backend, allocate(backend, eltype(interfaces.neighbor_ids), size(interfaces.neighbor_ids)), interfaces.neighbor_ids)
-    tmp_interfaces_node_indices = copyto!(backend, allocate(backend, eltype(interfaces.node_indices), size(interfaces.node_indices)), interfaces.node_indices)
-    tmp_surface_flux_values = copyto!(backend, allocate(backend, eltype(surface_flux_values), size(surface_flux_values)), surface_flux_values)
-    tmp_contravariant_vectors = copyto!(backend, allocate(backend, eltype(contravariant_vectors), size(contravariant_vectors)), contravariant_vectors)
+    tmp_interfaces_u = copyto!(backend, allocate(backend, eltype(interfaces.u), size(interfaces.u)), interfaces.u) # not init
+    tmp_interfaces_neighbor_ids = copyto!(backend, allocate(backend, eltype(interfaces.neighbor_ids), size(interfaces.neighbor_ids)), interfaces.neighbor_ids) # not init
+    tmp_interfaces_node_indices = copyto!(backend, allocate(backend, eltype(interfaces.node_indices), size(interfaces.node_indices)), interfaces.node_indices) # not init
+    tmp_surface_flux_values = copyto!(backend, allocate(backend, eltype(surface_flux_values), size(surface_flux_values)), surface_flux_values) # not init
+    tmp_contravariant_vectors = copyto!(backend, allocate(backend, eltype(contravariant_vectors), size(contravariant_vectors)), contravariant_vectors) # not init
 
     num_nodes = nnodes(dg)
     num_interfaces = ninterfaces(cache.interfaces)
+
+    #@autoinfiltrate
 
     kernel!(tmp_interfaces_u, tmp_interfaces_neighbor_ids, tmp_interfaces_node_indices,
             nonconservative_terms,
@@ -221,7 +225,7 @@ end
     # Get element and side index information on the primary element
     primary_element = interfaces_neighbor_ids[1, interface]
     primary_indices = interfaces_node_indices[1, interface]
-    primary_direction = indices2direction(primary_indices)
+    primary_direction = indices2direction_2d(primary_indices)
 
     # Create the local i,j indexing on the primary element used to pull normal direction information
     i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
@@ -235,7 +239,7 @@ end
     # Get element and side index information on the secondary element
     secondary_element = interfaces_neighbor_ids[2, interface]
     secondary_indices = interfaces_node_indices[2, interface]
-    secondary_direction = indices2direction(secondary_indices)
+    secondary_direction = indices2direction_2d(secondary_indices)
 
     # Initiate the secondary index to be used in the surface for loop.
     # This index on the primary side will always run forward but
@@ -387,7 +391,7 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
         # and store them
         element = boundaries.neighbor_ids[boundary]
         node_indices = boundaries.node_indices[boundary]
-        direction = indices2direction(node_indices)
+        direction = indices2direction_2d(node_indices)
 
         i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
         j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
@@ -578,7 +582,7 @@ function calc_mortar_flux!(surface_flux_values,
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
-        small_direction = indices2direction(small_indices)
+        small_direction = indices2direction_2d(small_indices)
 
         i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
                                                              index_range)
@@ -685,7 +689,7 @@ end
 
     # Copy solution small to small
     small_indices = node_indices[1, mortar]
-    small_direction = indices2direction(small_indices)
+    small_direction = indices2direction_2d(small_indices)
 
     for position in 1:2
         element = neighbor_ids[position, mortar]
@@ -717,7 +721,7 @@ end
     # the index of the large side might need to run backwards for flipped sides.
     large_element = neighbor_ids[3, mortar]
     large_indices = node_indices[2, mortar]
-    large_direction = indices2direction(large_indices)
+    large_direction = indices2direction_2d(large_indices)
 
     if :i_backward in large_indices
         for i in eachnode(dg)
@@ -775,7 +779,7 @@ function calc_surface_integral_gpu!(du, u,
     backend = get_backend(u)
     kernel! = calc_surface_integral_kernel!(backend)
 
-    tmp_surface_flux_values = copyto!(backend, allocate(backend, eltype(surface_flux_values), size(surface_flux_values)), surface_flux_values)
+    tmp_surface_flux_values = copyto!(backend, allocate(backend, eltype(surface_flux_values), size(surface_flux_values)), surface_flux_values) # not init
     factor_1 = boundary_interpolation[1, 1]
     factor_2 = boundary_interpolation[nnodes(dg), 2]
 
