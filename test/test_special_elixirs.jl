@@ -107,6 +107,15 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
       @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
     end
 
+    @timed_testset "Linear advection-diffusion" begin
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_diffusion.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=2)
+
+      J = jacobian_ad_forward(semi)
+      λ = eigvals(J)
+      @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+    end
+
     @timed_testset "Compressible Euler equations" begin
       trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_density_wave.jl"),
                     tspan=(0.0, 0.0), initial_refinement_level=1)
@@ -163,6 +172,15 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
         λ = eigvals(J)
         @test maximum(real, λ) < 7.0e-7
       end
+    end
+
+    @timed_testset "Navier-Stokes" begin
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_navierstokes_taylor_green_vortex.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=2)
+
+      J = jacobian_ad_forward(semi)
+      λ = eigvals(J)
+      @test maximum(real, λ) < 0.2
     end
 
     @timed_testset "MHD" begin
