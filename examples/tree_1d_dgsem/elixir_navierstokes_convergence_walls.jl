@@ -117,16 +117,22 @@ initial_condition = initial_condition_navier_stokes_convergence_test
 
 # BC types
 velocity_bc_left_right = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x, t, equations)[2])
-heat_bc_left_right = Adiabatic((x, t, equations) -> 0.0)
-boundary_condition_left_right = BoundaryConditionNavierStokesWall(velocity_bc_left_right, heat_bc_left_right)
+
+heat_bc_left = Isothermal((x, t, equations) -> 
+                          Trixi.temperature(initial_condition_navier_stokes_convergence_test(x, t, equations), 
+                                            equations_parabolic))
+heat_bc_right = Adiabatic((x, t, equations) -> 0.0)
+
+boundary_condition_left = BoundaryConditionNavierStokesWall(velocity_bc_left_right, heat_bc_left)
+boundary_condition_right = BoundaryConditionNavierStokesWall(velocity_bc_left_right, heat_bc_right)
 
 # define inviscid boundary conditions
 boundary_conditions = (; x_neg = boundary_condition_slip_wall,
                          x_pos = boundary_condition_slip_wall)
 
 # define viscous boundary conditions
-boundary_conditions_parabolic = (; x_neg = boundary_condition_left_right,
-                                   x_pos = boundary_condition_left_right)
+boundary_conditions_parabolic = (; x_neg = boundary_condition_left,
+                                   x_pos = boundary_condition_right)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, solver;
                                              boundary_conditions=(boundary_conditions, boundary_conditions_parabolic),
@@ -148,7 +154,7 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-6
+time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5,
             ode_default_options()..., callback=callbacks)
 summary_callback() # print the timer summary
