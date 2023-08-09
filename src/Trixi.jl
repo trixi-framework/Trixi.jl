@@ -221,13 +221,15 @@ export DG,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
-       VolumeIntegralSubcellLimiting, SubcellLimiterIDP,
 # TODO: TrixiShallowWater: move new indicator
        IndicatorHennemannGassnerShallowWater,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
+
+export VolumeIntegralSubcellLimiting,
+       SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
@@ -258,7 +260,7 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
        NeuralNetworkCNN
 
 # TODO: TrixiShallowWater: move new limiter
-export PositivityPreservingLimiterZhangShu, SubcellLimiterIDPCorrection, PositivityPreservingLimiterShallowWater
+export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterShallowWater
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options

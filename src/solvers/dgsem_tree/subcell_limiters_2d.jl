@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(indicator::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, number_bounds)
