@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::Union{TreeMesh, P4estMesh}, output_directory,
+function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, T8codeMesh}, output_directory,
                         timestep = 0)
     save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
 end
@@ -220,6 +220,13 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
     return filename
 end
 
+# TODO: Implement this function as soon as there is support for this in `t8code`.
+function save_mesh_file(mesh::T8codeMesh, output_directory, timestep, mpi_parallel)
+    error("Mesh file output not supported yet for `T8codeMesh`.")
+
+    return joinpath(output_directory, "dummy_mesh.h5")
+end
+
 """
     load_mesh(restart_file::AbstractString; n_cells_max)
 
@@ -286,6 +293,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
         mesh = StructuredMesh(size, mapping; RealT = RealT, unsaved_changes = false,
                               mapping_as_string = mapping_as_string)
+        mesh.current_filename = mesh_file
     elseif mesh_type == "UnstructuredMesh2D"
         mesh_filename, periodicity_ = h5open(mesh_file, "r") do file
             return read(attributes(file)["mesh_filename"]),

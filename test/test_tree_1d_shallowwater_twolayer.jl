@@ -1,5 +1,7 @@
 module TestExamples1DShallowWaterTwoLayer
 
+# TODO: TrixiShallowWater: move two layer tests to new package
+
 using Test
 using Trixi
 

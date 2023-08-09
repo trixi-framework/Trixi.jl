@@ -23,6 +23,24 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_fdsbp")
       @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
   end
+
+  @trixi_testset "elixir_advection_extended.jl with periodic operators" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+      l2   = [1.1239649404463432e-5],
+      linf = [1.5895264629195438e-5],
+      D_SBP = SummationByPartsOperators.periodic_derivative_operator(
+        derivative_order = 1, accuracy_order = 4, xmin = 0.0, xmax = 1.0, N = 40),
+      initial_refinement_level = 0)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+      t = sol.t[end]
+      u_ode = sol.u[end]
+      du_ode = similar(u_ode)
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+  end
 end
 
 @testset "Compressible Euler" begin

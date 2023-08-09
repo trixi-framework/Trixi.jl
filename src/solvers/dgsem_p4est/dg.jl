@@ -50,5 +50,6 @@ include("dg_2d.jl")
 include("dg_2d_parabolic.jl")
 
 include("dg_3d.jl")
+include("dg_3d_parabolic.jl")
 include("dg_parallel.jl")
 end # @muladd

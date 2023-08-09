@@ -1,5 +1,7 @@
 module TestExamples2DShallowWaterTwoLayer
 
+# TODO: TrixiShallowWater: move two layer tests to new package
+
 using Test
 using Trixi
 
@@ -32,8 +34,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 
   @trixi_testset "elixir_shallowwater_twolayer_well_balanced with flux_lax_friedrichs.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_twolayer_well_balanced.jl"),
-    l2    = [2.0525741072929735e-16, 6.000589392730905e-17, 6.102759428478984e-17, 
-             0.0030769233188014905, 1.8421386173122792e-16, 1.8473184927121752e-16, 
+    l2    = [2.0525741072929735e-16, 6.000589392730905e-17, 6.102759428478984e-17,
+             0.0030769233188014905, 1.8421386173122792e-16, 1.8473184927121752e-16,
              0.0030769233188014935],
     linf  = [7.355227538141662e-16, 2.960836949170518e-16, 4.2726562436938764e-16,
              0.02647405113891016, 1.038795478061861e-15, 1.0401789378532516e-15,

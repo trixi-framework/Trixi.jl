@@ -6,4 +6,6 @@
 #! format: noindent
 
 include("positivity_zhang_shu.jl")
+# TODO: TrixiShallowWater: move specific limiter file
+include("positivity_shallow_water.jl")
 end # @muladd
