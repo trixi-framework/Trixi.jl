@@ -808,10 +808,10 @@ end
 
 # Container data structure (structure-of-arrays style) for DG MPI interfaces
 mutable struct MPIInterfaceContainer2D{uEltype <: Real} <: AbstractContainer
-    u::Array{uEltype, 4}           # [leftright, variables, i, interfaces]
+    u::Array{uEltype, 4}            # [leftright, variables, i, interfaces]
     local_neighbor_ids::Vector{Int} # [interfaces]
-    orientations::Vector{Int}      # [interfaces]
-    remote_sides::Vector{Int}      # [interfaces]
+    orientations::Vector{Int}       # [interfaces]
+    remote_sides::Vector{Int}       # [interfaces]
     # internal `resize!`able storage
     _u::Vector{uEltype}
 end
