@@ -126,14 +126,15 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, Re
     return elements
 end
 
-mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2} <:
+mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2, uArray <: DenseArray{uEltype, NDIMSP2},
+                                                                        _uArray <: DenseArray{uEltype, 1}} <:
                AbstractContainer
-    u::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
+    u::uArray       # [primary/secondary, variable, i, j, interface]
     neighbor_ids::Matrix{Int}                   # [primary/secondary, interface]
     node_indices::Matrix{NTuple{NDIMS, Index}} # [primary/secondary, interface]
 
     # internal `resize!`able storage
-    _u::Vector{uEltype}
+    _u::_uArray
     _neighbor_ids::Vector{Int}
     _node_indices::Vector{NTuple{NDIMS, Index}}
 end
@@ -166,17 +167,18 @@ function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
 end
 
 # Create interface container and initialize interface data.
-function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
+function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements, backend)
     NDIMS = ndims(elements)
+    NDIMSP2 = NDIMS + 2
     uEltype = eltype(elements)
+
+    arrType = get_array_type(backend)
 
     # Initialize container
     n_interfaces = count_required_surfaces(mesh).interfaces
 
-    _u = Vector{uEltype}(undef,
-                         2 * nvariables(equations) * nnodes(basis)^(NDIMS - 1) *
-                         n_interfaces)
-    u = unsafe_wrap(Array, pointer(_u),
+    _u = allocate(backend, uEltype, 2 * nvariables(equations) * nnodes(basis)^(NDIMS - 1) * n_interfaces)
+    u = unsafe_wrap(arrType, pointer(_u),
                     (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
                      n_interfaces))
 
@@ -186,7 +188,7 @@ function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, e
     _node_indices = Vector{NTuple{NDIMS, Index}}(undef, 2 * n_interfaces)
     node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_interfaces))
 
-    interfaces = P4estInterfaceContainer{NDIMS, uEltype, NDIMS + 2}(u, neighbor_ids,
+    interfaces = P4estInterfaceContainer{NDIMS, uEltype, NDIMSP2, arrType{uEltype, NDIMSP2}, arrType{uEltype, 1}}(u, neighbor_ids,
                                                                     node_indices,
                                                                     _u, _neighbor_ids,
                                                                     _node_indices)
