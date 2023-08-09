@@ -1,5 +1,7 @@
 module TestExamples1DShallowWater
 
+# TODO: TrixiShallowWater: move any wet/dry tests to new package
+
 using Test
 using Trixi
 
@@ -35,6 +37,13 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
       l2   = [0.10416666834254835, 1.1891029971551825e-14, 0.10416666834254838],
       linf = [2.0000000000000018, 2.4019608337954543e-14, 2.0],
       surface_flux=(FluxHydrostaticReconstruction(flux_lax_friedrichs, hydrostatic_reconstruction_audusse_etal), flux_nonconservative_audusse_etal),
+      tspan = (0.0, 0.25))
+  end
+
+  @trixi_testset "elixir_shallowwater_well_balanced_wet_dry.jl with FluxHydrostaticReconstruction" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced_wet_dry.jl"),
+      l2   = [0.00965787167169024, 5.345454081916856e-14, 0.03857583749209928],
+      linf = [0.4999999999998892, 2.2447689894899726e-13, 1.9999999999999714],
       tspan = (0.0, 0.25))
   end
 
@@ -86,6 +95,20 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_shock_capturing.jl"),
       l2   = [0.07424140641160326, 0.2148642632748155, 0.0372579849000542],
       linf = [1.1209754279344226, 1.3230788645853582, 0.8646939843534251],
+      tspan = (0.0, 0.05))
+  end
+
+  @trixi_testset "elixir_shallowwater_beach.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_beach.jl"),
+      l2   = [0.17979210479598923, 1.2377495706611434, 6.289818963361573e-8],
+      linf = [0.845938394800688, 3.3740800777086575, 4.4541473087633676e-7],
+      tspan = (0.0, 0.05))
+  end
+
+  @trixi_testset "elixir_shallowwater_parabolic_bowl.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_parabolic_bowl.jl"),
+      l2   = [8.965981683033589e-5, 1.8565707397810857e-5, 4.1043039226164336e-17],
+      linf = [0.00041080213807871235, 0.00014823261488938177, 2.220446049250313e-16],
       tspan = (0.0, 0.05))
   end
 end

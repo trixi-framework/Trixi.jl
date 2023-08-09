@@ -7,7 +7,8 @@
 
 function save_restart_file(u, time, dt, timestep,
                            mesh::Union{SerialTreeMesh, StructuredMesh,
-                                       UnstructuredMesh2D, SerialP4estMesh},
+                                       UnstructuredMesh2D, SerialP4estMesh,
+                                       SerialT8codeMesh},
                            equations, dg::DG, cache,
                            restart_callback)
     @unpack output_directory = restart_callback

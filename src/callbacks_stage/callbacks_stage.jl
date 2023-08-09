@@ -8,4 +8,6 @@
 include("positivity_zhang_shu.jl")
 include("subcell_limiter_idp_correction.jl")
 include("bounds_check.jl")
+# TODO: TrixiShallowWater: move specific limiter file
+include("positivity_shallow_water.jl")
 end # @muladd

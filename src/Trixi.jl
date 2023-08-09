@@ -51,9 +51,10 @@ using LoopVectorization: LoopVectorization, @turbo, indices
 using StaticArrayInterface: static_length # used by LoopVectorization
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
-using Polyester: @batch # You know, the cheapest threads you can find...
+using Polyester: Polyester, @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
+using T8code
 using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
@@ -110,6 +111,7 @@ include("basic_types.jl")
 include("auxiliary/auxiliary.jl")
 include("auxiliary/mpi.jl")
 include("auxiliary/p4est.jl")
+include("auxiliary/t8code.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
@@ -162,9 +164,13 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_fjordholm_etal, flux_nonconservative_fjordholm_etal, flux_es_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
+# TODO: TrixiShallowWater: move anything with "chen_noelle" to new file
+       hydrostatic_reconstruction_chen_noelle, flux_nonconservative_chen_noelle,
+       flux_hll_chen_noelle,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
-       FluxHLL, min_max_speed_naive,
+       FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
+       min_max_speed_chen_noelle,
        FluxLMARS,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
@@ -208,7 +214,7 @@ export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
 export lake_at_rest_error
 export ncomponents, eachcomponent
 
-export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
+export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh, T8codeMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
@@ -217,6 +223,8 @@ export DG,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+# TODO: TrixiShallowWater: move new indicator
+       IndicatorHennemannGassnerShallowWater,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
@@ -247,14 +255,15 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled
 
-export load_mesh, load_time
+export load_mesh, load_time, load_timestep, load_dt
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax,
        IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven,
        NeuralNetworkCNN
 
-export PositivityPreservingLimiterZhangShu
+# TODO: TrixiShallowWater: move new limiter
+export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterShallowWater
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options
@@ -276,6 +285,7 @@ function __init__()
     init_mpi()
 
     init_p4est()
+    init_t8code()
 
     register_error_hints()
 
