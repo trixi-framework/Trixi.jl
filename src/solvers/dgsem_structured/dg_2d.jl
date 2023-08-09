@@ -65,11 +65,13 @@ end
     backend = get_backend(u)
     kernel! = weak_form_kernel_gpu_other!(backend)
 
-    tmp_contravariant_vectors = copyto!(backend, allocate(backend, eltype(contravariant_vectors), size(contravariant_vectors)), contravariant_vectors)
-    tmp_derivative_dhat = copyto!(backend, allocate(backend, eltype(derivative_dhat), size(derivative_dhat)), derivative_dhat)
+    tmp_contravariant_vectors = copyto!(backend, allocate(backend, eltype(contravariant_vectors), size(contravariant_vectors)), contravariant_vectors) # not init
+    tmp_derivative_dhat = copyto!(backend, allocate(backend, eltype(derivative_dhat), size(derivative_dhat)), derivative_dhat) # not init
 
     num_nodes = nnodes(dg)
     num_elements = nelements(cache.elements)
+
+    #@autoinfiltrate
 
     kernel!(du, u, tmp_derivative_dhat, tmp_contravariant_vectors, equations, alpha, num_nodes, ndrange=num_elements)
     synchronize(backend)
@@ -654,26 +656,45 @@ function apply_jacobian!(du,
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
-    @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
-            factor = -inverse_jacobian[i, j, element]
+    num_nodes = nnodes(dg)
 
-            for v in eachvariable(equations)
-                du[v, i, j, element] *= factor
-            end
-        end
+    @threaded for element in eachelement(dg, cache)
+        apply_jacobian_internal!(du, element, inverse_jacobian, equations, num_nodes)
     end
 
     return nothing
 end
 
 function apply_jacobian_gpu!(du,
-                         mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2
-                                                                                      }
-                                     },
+                         mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+                                     P4estMesh{2}, T8codeMesh{2}},
                          equations, dg::DG, cache)
-    #dummy
-    apply_jacobian!(du, mesh, equations, dg, cache)
+    @kernel function apply_jacobian_kernel!(du, inverse_jacobian, equations, num_nodes)
+        element = @index(Global)
+        apply_jacobian_internal!(du, element, inverse_jacobian, equations, num_nodes)
+    end
+
+    @unpack inverse_jacobian = cache.elements
+    backend = get_backend(du)
+
+    kernel! = apply_jacobian_kernel!(backend)
+
+    tmp_inverse_jacobian = copyto!(backend, allocate(backend, eltype(inverse_jacobian), size(inverse_jacobian)), inverse_jacobian) # not init
+
+    kernel!(du, tmp_inverse_jacobian, equations, nnodes(dg), ndrange=nelements(cache.elements))
+    synchronize(backend)
+
+    return nothing
+end
+
+function apply_jacobian_internal!(du, element, inverse_jacobian, equations, num_nodes)
+    for j in 1:num_nodes, i in 1:num_nodes
+        factor = -inverse_jacobian[i, j, element]
+
+        for v in eachvariable(equations)
+            du[v, i, j, element] *= factor
+        end
+    end
 end
 
 end # @muladd
