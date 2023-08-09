@@ -49,8 +49,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu=mu(),
                                                                 Prandtl=prandtl_number(), 
                                                                 gradient_variables = GradientVariablesEntropy()),
-      l2 = [0.0004702396543424139, 0.00032222144750623604, 0.0014999908210611393],
-      linf = [0.002994783988792271, 0.002864514179705944, 0.012717662985073375]
+      l2 = [0.0004608500483647771, 0.00032431091222851285, 0.0015159733360626845],
+      linf = [0.002754803146635787, 0.0028567714697580906, 0.012941794048176192]
     )
   end
 end
