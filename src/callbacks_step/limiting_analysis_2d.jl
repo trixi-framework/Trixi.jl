@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-@inline function analyze_coefficient_IDP(mesh::TreeMesh2D, equations, dg, cache,
+function analyze_coefficient_IDP(mesh::TreeMesh2D, equations, dg, cache,
                                          limiter)
     @unpack weights = dg.basis
     @unpack alpha = limiter.cache.container_subcell_limiter
@@ -23,7 +23,7 @@
     return alpha_avg / total_volume
 end
 
-@inline function analyze_coefficient_IDP(mesh::StructuredMesh{2}, equations, dg, cache,
+function analyze_coefficient_IDP(mesh::StructuredMesh{2}, equations, dg, cache,
                                          limiter)
     @unpack weights = dg.basis
     @unpack alpha = limiter.cache.container_subcell_limiter

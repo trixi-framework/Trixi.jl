@@ -217,11 +217,14 @@ export DG,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
-       VolumeIntegralSubcellLimiting, SubcellLimiterIDP, SubcellLimiterMCL,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
+
+export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
+       SubcellLimiterIDP, SubcellLimiterIDPCorrection,
+       SubcellLimiterMCL
 
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
@@ -251,7 +254,7 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven,
        NeuralNetworkCNN
 
-export PositivityPreservingLimiterZhangShu, SubcellLimiterIDPCorrection, BoundsCheckCallback
+export PositivityPreservingLimiterZhangShu
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options

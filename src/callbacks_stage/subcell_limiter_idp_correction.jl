@@ -32,8 +32,9 @@ struct SubcellLimiterIDPCorrection end
 function (limiter!::SubcellLimiterIDPCorrection)(u_ode,
                                                  integrator::Trixi.SimpleIntegratorSSP,
                                                  stage)
-    limiter!(u_ode, integrator.p, integrator.t, integrator.dt,
-             integrator.p.solver.volume_integral)
+    semi = integrator.p
+    limiter!(u_ode, semi, integrator.t, integrator.dt,
+             semi.solver.volume_integral)
 end
 
 function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
