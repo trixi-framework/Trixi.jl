@@ -12,7 +12,7 @@ default:
         SLURM_PARAM_ACCOUNT: "-A thes1464"
         SLURM_PARAM_TASKS: "-n 1"
         SLURM_PARAM_CPUS: "--cpus-per-task=24"
-        SLURM_PARAM_TIME: "-t 01:00:00"
+        SLURM_PARAM_TIME: "-t 10:00:00"
     before_script:
         - source /work/co693196/MA/julia.sh
 
