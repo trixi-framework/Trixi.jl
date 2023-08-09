@@ -2,7 +2,7 @@
 using Trixi, OrdinaryDiffEq
 
 dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = SBP(),
-             surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
+             surface_integral = SurfaceIntegralWeakForm(flux_hll),
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 equations = CompressibleEulerEquations2D(1.4)
@@ -42,7 +42,8 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+alg = RDPK3SpFSAL49()
+sol = solve(ode, alg; abstol=1.0e-6, reltol=1.0e-6,
             ode_default_options()..., callback=callbacks);
 
 summary_callback() # print the timer summary

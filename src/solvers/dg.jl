@@ -403,7 +403,8 @@ function get_element_variables!(element_variables, u, mesh, equations, dg::DG, c
                            dg, cache)
 end
 
-const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh}
+const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh,
+                          T8codeMesh}
 
 @inline function ndofs(mesh::MeshesDGSEM, dg::DG, cache)
     nelements(cache.elements) * nnodes(dg)^ndims(mesh)
@@ -719,4 +720,5 @@ include("dgsem_tree/dg.jl")
 include("dgsem_structured/dg.jl")
 include("dgsem_unstructured/dg.jl")
 include("dgsem_p4est/dg.jl")
+include("dgsem_t8code/dg.jl")
 end # @muladd
