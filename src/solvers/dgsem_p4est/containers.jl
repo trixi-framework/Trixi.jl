@@ -127,16 +127,20 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, Re
 end
 
 mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2, uArray <: DenseArray{uEltype, NDIMSP2},
-                                                                        _uArray <: DenseArray{uEltype, 1}} <:
+                                                                        neighborArray <: DenseArray{Int, 2},
+                                                                        nodeIndicesArray <: DenseArray{NTuple{NDIMS, Index}, 2},
+                                                                        _uArray <: DenseArray{uEltype, 1},
+                                                                        _neighborArray <: DenseArray{Int, 1},
+                                                                        _nodeIndicesArray <: DenseArray{NTuple{NDIMS, Index}, 1}} <:
                AbstractContainer
     u::uArray       # [primary/secondary, variable, i, j, interface]
-    neighbor_ids::Matrix{Int}                   # [primary/secondary, interface]
-    node_indices::Matrix{NTuple{NDIMS, Index}} # [primary/secondary, interface]
+    neighbor_ids::neighborArray                   # [primary/secondary, interface]
+    node_indices::nodeIndicesArray # [primary/secondary, interface]
 
     # internal `resize!`able storage
     _u::_uArray
-    _neighbor_ids::Vector{Int}
-    _node_indices::Vector{NTuple{NDIMS, Index}}
+    _neighbor_ids::_neighborArray
+    _node_indices::_nodeIndicesArray
 end
 
 @inline function ninterfaces(interfaces::P4estInterfaceContainer)
@@ -182,13 +186,18 @@ function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, e
                     (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
                      n_interfaces))
 
-    _neighbor_ids = Vector{Int}(undef, 2 * n_interfaces)
-    neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2, n_interfaces))
+    _neighbor_ids = allocate(backend, Int, 2 * n_interfaces)
+    neighbor_ids = unsafe_wrap(arrType, pointer(_neighbor_ids), (2, n_interfaces))
 
-    _node_indices = Vector{NTuple{NDIMS, Index}}(undef, 2 * n_interfaces)
-    node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_interfaces))
+    _node_indices = allocate(backend, NTuple{NDIMS, Index}, 2 * n_interfaces)
+    node_indices = unsafe_wrap(arrType, pointer(_node_indices), (2, n_interfaces))
 
-    interfaces = P4estInterfaceContainer{NDIMS, uEltype, NDIMSP2, arrType{uEltype, NDIMSP2}, arrType{uEltype, 1}}(u, neighbor_ids,
+    interfaces = P4estInterfaceContainer{NDIMS, uEltype, NDIMSP2, arrType{uEltype, NDIMSP2},
+                                                                  arrType{Int, 2},
+                                                                  arrType{NTuple{NDIMS, Index}, 2},
+                                                                  arrType{uEltype, 1},
+                                                                  arrType{Int, 1},
+                                                                  arrType{NTuple{NDIMS, Index}, 1}}(u, neighbor_ids,
                                                                     node_indices,
                                                                     _u, _neighbor_ids,
                                                                     _node_indices)
@@ -540,8 +549,8 @@ function init_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
 
     # Write data to interfaces container
     # `p4est` uses zero-based indexing; convert to one-based indexing
-    interfaces.neighbor_ids[1, interface_id] = quad_ids[1] + 1
-    interfaces.neighbor_ids[2, interface_id] = quad_ids[2] + 1
+    @allowscalar interfaces.neighbor_ids[1, interface_id] = quad_ids[1] + 1
+    @allowscalar interfaces.neighbor_ids[2, interface_id] = quad_ids[2] + 1
 
     # Face at which the interface lies
     faces = (sides_pw[1].face[], sides_pw[2].face[])

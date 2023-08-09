@@ -102,16 +102,16 @@ end
 
         if faces[side] == 0
             # Index face in negative x-direction
-            interfaces.node_indices[side, interface_id] = (_begin, i)
+            @allowscalar interfaces.node_indices[side, interface_id] = (_begin, i)
         elseif faces[side] == 1
             # Index face in positive x-direction
-            interfaces.node_indices[side, interface_id] = (_end, i)
+            @allowscalar interfaces.node_indices[side, interface_id] = (_end, i)
         elseif faces[side] == 2
             # Index face in negative y-direction
-            interfaces.node_indices[side, interface_id] = (i, _begin)
+            @allowscalar interfaces.node_indices[side, interface_id] = (i, _begin)
         else # faces[side] == 3
             # Index face in positive y-direction
-            interfaces.node_indices[side, interface_id] = (i, _end)
+            @allowscalar interfaces.node_indices[side, interface_id] = (i, _end)
         end
     end
 
