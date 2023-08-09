@@ -142,10 +142,6 @@ forest = build_forest(comm, n_dims, initial_refinement_level)
 number_trees = t8_forest_get_num_local_trees(forest)
 println("rank $(Trixi.mpi_rank()): #trees $number_trees, #elements $(t8_forest_get_local_num_elements(forest)), #ghost_elements $(t8_forest_get_num_ghosts(forest))")
 
-if MPI.Comm_rank(comm) == 0
-	println("#global elements $(t8_forest_get_global_num_elements(forest))")
-end
-
 mesh = T8codeMesh{n_dims}(forest)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

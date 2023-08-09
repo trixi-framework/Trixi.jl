@@ -133,6 +133,11 @@ function cmesh_new_periodic_quad(comm, n_dims)::t8_cmesh_t
 		1.0, 0, 0,
 		0, 1.0, 0,
 		1.0, 1.0, 0,
+
+        # -2.0, 0.0, 0,                    # tree 0, quad
+        # 0.0, -2.0, 0,
+        # 0.0, 2.0, 0,
+        # 2.0, 0.0, 0,
 	]
 
 	# Generally, one can define other geometries. But besides linear the other

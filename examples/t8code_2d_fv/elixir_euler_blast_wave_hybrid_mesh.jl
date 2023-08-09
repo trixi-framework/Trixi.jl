@@ -90,52 +90,10 @@ function cmesh_new_periodic_hybrid(comm, n_dims)::t8_cmesh_t
 	return cmesh
 end
 
-function cmesh_new_periodic_quad(comm, n_dims)::t8_cmesh_t
-	vertices = [ # Just all vertices of all trees. partly duplicated
-		-2.0, -2.0, 0,                    # tree 0, quad
-		2.0, -2.0, 0,
-		-2.0, 2.0, 0,
-		2.0, 2.0, 0,
-	]
-
-	# Generally, one can define other geometries. But besides linear the other
-	# geometries in t8code do not have C interface yet.
-	linear_geom = t8_geometry_linear_new(n_dims)
-
-	#
-	# This is how the cmesh looks like. The numbers are the tree numbers:
-	#
-	#   +---+
-	#   |   |
-	#   | 0 |
-	#   |   |
-	#   +---+
-	#
-
-	cmesh_ref = Ref(t8_cmesh_t())
-	t8_cmesh_init(cmesh_ref)
-	cmesh = cmesh_ref[]
-
-	# Use linear geometry
-	t8_cmesh_register_geometry(cmesh, linear_geom)
-	t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_QUAD)
-	# t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_QUAD)
-
-	t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[1+0:end]), 4)
-	# t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[1 +  12:end]), 4)
-
-	t8_cmesh_set_join(cmesh, 0, 0, 0, 1, 0)
-	t8_cmesh_set_join(cmesh, 0, 0, 2, 3, 0)
-
-	t8_cmesh_commit(cmesh, comm)
-
-	return cmesh
-end
-
 function build_forest(comm, n_dims, level)
 	# Periodic mesh of quads and triangles.
 	# cmesh = t8_cmesh_new_periodic_hybrid(comm) # The `t8code` version does exactly the same.
-	cmesh = cmesh_new_periodic_quad(comm, n_dims)
+	cmesh = cmesh_new_periodic_hybrid(comm, n_dims)
 
 	scheme = t8_scheme_new_default_cxx()
 
@@ -193,10 +151,6 @@ forest = build_forest(comm, n_dims, initial_refinement_level)
 
 number_trees = t8_forest_get_num_local_trees(forest)
 println("rank $(Trixi.mpi_rank()): #trees $number_trees, #elements $(t8_forest_get_local_num_elements(forest)), #ghost_elements $(t8_forest_get_num_ghosts(forest))")
-
-if MPI.Comm_rank(comm) == 0
-	println("#global elements $(t8_forest_get_global_num_elements(forest))")
-end
 
 mesh = T8codeMesh{n_dims}(forest)
 

@@ -118,22 +118,39 @@ end
 # array of length num_local_elements.
 # We support two types: T8_VTK_SCALAR - One double per element.
 #                  and  T8_VTK_VECTOR - Three doubles per element.
-function output_data_to_vtu(mesh::T8codeMesh, equations, solver, u, out)
+function output_data_to_vtu(mesh::T8codeMesh, equations, solver, u_, out)
     vars = varnames(cons2cons, equations)
-    vtk_data = [t8_vtk_data_field_t(T8_VTK_SCALAR,
-                                    NTuple{8192, Cchar}(rpad("$(vars[v])\0", 8192, ' ')),
-                                    pointer([u[element].u[v]
-                                             for element in eachelement(mesh, solver)]))
-                for v in eachvariable(equations)]
+
+    vtk_data = Vector{t8_vtk_data_field_t}(undef, 2 * nvariables(equations))
+
     for v in eachvariable(equations)
-        vtk_data_v = [t8_vtk_data_field_t(T8_VTK_SCALAR,
-                                          NTuple{8192, Cchar}(rpad("slope_$(vars[v])_$d\0", 8192, ' ')),
-                                          pointer([u[element].slope[(v - 1) * ndims(equations) + d]
-                                                   for element in eachelement(mesh, solver)]))
-                      for d in 1:ndims(equations)]
-        vtk_data = [vtk_data..., vtk_data_v...]
+        let
+            data = [u_[element].u[v] for element in eachelement(mesh, solver)]
+
+            GC.@preserve data begin
+                vtk_data[v] = t8_vtk_data_field_t(T8_VTK_SCALAR,
+                                            NTuple{8192, Cchar}(rpad("$(vars[v])\0", 8192, ' ')),
+                                            pointer(data))
+                                            # pointer(@view(data[v, :])))
+                                            # data_ptr)
+            end
+        end
+    end
+    for v in eachvariable(equations)
+        data_ = eltype(u_[1].u)[]
+        for element in eachelement(mesh, solver)
+            slope_ = Trixi.get_variable_wrapped(u_[element].slope, equations, v)
+            push!(data_, tuple(slope_..., zeros(eltype(u_[1].slope), 3 - ndims(equations))...)...)
+        end
+
+        GC.@preserve data_ begin
+            vtk_data[nvariables(equations) + v] = t8_vtk_data_field_t(T8_VTK_VECTOR,
+                                                                      NTuple{8192, Cchar}(rpad("slope_$(vars[v])\0", 8192, ' ')),
+                                                                      pointer(data_))
+        end
     end
 
+    MPI.Barrier(MPI.COMM_WORLD)
     # The number of user defined data fields to write.
     num_data = length(vtk_data)
 
