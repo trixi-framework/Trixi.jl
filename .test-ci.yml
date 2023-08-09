@@ -62,6 +62,7 @@ gpu-offload-test-job:
     script:
         - $JULIA_EXEC --project="." --threads=24 -e 'using Pkg; Pkg.add("CUDA")'
         - $JULIA_EXEC --project="." --threads=24 -e 'using Trixi, CUDA; using CUDA.CUDAKernels; trixi_include(pkgdir(Trixi, "test", "test_tree_2d_advection.jl"), offload=true, backend=CUDABackend())'
+        - $JULIA_EXEC --project="." --threads=24 -e 'using Trixi, CUDA; using CUDA.CUDAKernels; trixi_include(pkgdir(Trixi, "test", "test_p4est_2d.jl"), offload=true, backend=CUDABackend())'
 
 cpu-benchmark-job:
     extends: .benchmark-job
