@@ -14,7 +14,7 @@ function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::A
     # in case someone has tampered with the `p4est` after creating the mesh
     balance!(mesh)
 
-    elements = init_elements(mesh, equations, dg.basis, uEltype)
+    elements = init_elements(mesh, equations, dg.basis, uEltype, backend)
     interfaces = init_interfaces(mesh, equations, dg.basis, elements, backend)
     boundaries = init_boundaries(mesh, equations, dg.basis, elements)
     mortars = init_mortars(mesh, equations, dg.basis, elements)

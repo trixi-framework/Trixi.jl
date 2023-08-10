@@ -65,16 +65,15 @@ end
     backend = get_backend(u)
     kernel! = weak_form_kernel_gpu_other!(backend)
 
-    tmp_contravariant_vectors = copyto!(backend, allocate(backend, eltype(contravariant_vectors), size(contravariant_vectors)), contravariant_vectors) # not init
     tmp_derivative_dhat = copyto!(backend, allocate(backend, eltype(derivative_dhat), size(derivative_dhat)), derivative_dhat) # not init
 
     num_nodes = nnodes(dg)
     num_elements = nelements(cache.elements)
 
-    #@autoinfiltrate
-
-    kernel!(du, u, tmp_derivative_dhat, tmp_contravariant_vectors, equations, alpha, num_nodes, ndrange=num_elements)
+    kernel!(du, u, tmp_derivative_dhat, contravariant_vectors, equations, alpha, num_nodes, ndrange=num_elements)
     synchronize(backend)
+
+    return nothing
 end
 
 @inline function weak_form_kernel!(du, u,
@@ -679,9 +678,7 @@ function apply_jacobian_gpu!(du,
 
     kernel! = apply_jacobian_kernel!(backend)
 
-    tmp_inverse_jacobian = copyto!(backend, allocate(backend, eltype(inverse_jacobian), size(inverse_jacobian)), inverse_jacobian) # not init
-
-    kernel!(du, tmp_inverse_jacobian, equations, nnodes(dg), ndrange=nelements(cache.elements))
+    kernel!(du, inverse_jacobian, equations, nnodes(dg), ndrange=nelements(cache.elements))
     synchronize(backend)
 
     return nothing

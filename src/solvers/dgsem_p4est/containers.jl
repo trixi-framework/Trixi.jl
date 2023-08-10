@@ -6,25 +6,30 @@
 #! format: noindent
 
 mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIMSP1,
-                                     NDIMSP2, NDIMSP3} <: AbstractContainer
+                                     NDIMSP2, NDIMSP3, contravariantVectorArray <: DenseArray{RealT, NDIMSP3},
+                                                       inverseJacobianArray <: DenseArray{RealT, NDIMSP1},
+                                                       surfaceFluxArray <: DenseArray{uEltype, NDIMSP2},
+                                                       _contravariantVectorArray <: DenseArray{RealT, 1},
+                                                       _inverseJacobianArray <: DenseArray{RealT, 1},
+                                                       _surfaceFluxArray <: DenseArray{uEltype, 1}} <: AbstractContainer
     # Physical coordinates at each node
     node_coordinates::Array{RealT, NDIMSP2}   # [orientation, node_i, node_j, node_k, element]
     # Jacobian matrix of the transformation
     # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
     jacobian_matrix::Array{RealT, NDIMSP3}
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
-    contravariant_vectors::Array{RealT, NDIMSP3}   # [dimension, index, node_i, node_j, node_k, element]
+    contravariant_vectors::contravariantVectorArray   # [dimension, index, node_i, node_j, node_k, element]
     # 1/J where J is the Jacobian determinant (determinant of Jacobian matrix)
-    inverse_jacobian::Array{RealT, NDIMSP1}   # [node_i, node_j, node_k, element]
+    inverse_jacobian::inverseJacobianArray   # [node_i, node_j, node_k, element]
     # Buffer for calculated surface flux
-    surface_flux_values::Array{uEltype, NDIMSP2} # [variable, i, j, direction, element]
+    surface_flux_values::surfaceFluxArray # [variable, i, j, direction, element]
 
     # internal `resize!`able storage
     _node_coordinates::Vector{RealT}
     _jacobian_matrix::Vector{RealT}
-    _contravariant_vectors::Vector{RealT}
-    _inverse_jacobian::Vector{RealT}
-    _surface_flux_values::Vector{uEltype}
+    _contravariant_vectors::_contravariantVectorArray
+    _inverse_jacobian::_inverseJacobianArray
+    _surface_flux_values::_surfaceFluxArray
 end
 
 @inline function nelements(elements::P4estElementContainer)
@@ -84,8 +89,9 @@ end
 function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, RealT}},
                        equations,
                        basis,
-                       ::Type{uEltype}) where {NDIMS, RealT <: Real, uEltype <: Real}
+                       ::Type{uEltype}, backend::Backend) where {NDIMS, RealT <: Real, uEltype <: Real}
     nelements = ncells(mesh)
+    arrType = get_array_type(backend)
 
     _node_coordinates = Vector{RealT}(undef, NDIMS * nnodes(basis)^NDIMS * nelements)
     node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
@@ -97,25 +103,33 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, Re
                                   (NDIMS, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
                                    nelements))
 
-    _contravariant_vectors = similar(_jacobian_matrix)
-    contravariant_vectors = unsafe_wrap(Array, pointer(_contravariant_vectors),
+    _contravariant_vectors = allocate(backend, eltype(_jacobian_matrix), size(_jacobian_matrix))
+    contravariant_vectors = unsafe_wrap(arrType, pointer(_contravariant_vectors),
                                         size(jacobian_matrix))
 
-    _inverse_jacobian = Vector{RealT}(undef, nnodes(basis)^NDIMS * nelements)
-    inverse_jacobian = unsafe_wrap(Array, pointer(_inverse_jacobian),
+    _inverse_jacobian = allocate(backend, RealT, nnodes(basis)^NDIMS * nelements)
+    inverse_jacobian = unsafe_wrap(arrType, pointer(_inverse_jacobian),
                                    (ntuple(_ -> nnodes(basis), NDIMS)..., nelements))
 
-    _surface_flux_values = Vector{uEltype}(undef,
+    _surface_flux_values = allocate(backend, uEltype,
                                            nvariables(equations) *
                                            nnodes(basis)^(NDIMS - 1) * (NDIMS * 2) *
                                            nelements)
-    surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
+    surface_flux_values = unsafe_wrap(arrType, pointer(_surface_flux_values),
                                       (nvariables(equations),
                                        ntuple(_ -> nnodes(basis), NDIMS - 1)...,
                                        NDIMS * 2, nelements))
 
-    elements = P4estElementContainer{NDIMS, RealT, uEltype, NDIMS + 1, NDIMS + 2,
-                                     NDIMS + 3}(node_coordinates, jacobian_matrix,
+    NDIMSP1 = NDIMS + 1
+    NDIMSP2 = NDIMS + 2
+    NDIMSP3 = NDIMS + 3
+    elements = P4estElementContainer{NDIMS, RealT, uEltype, NDIMSP1, NDIMSP2, NDIMSP3,
+                                     arrType{RealT, NDIMSP3},
+                                     arrType{RealT, NDIMSP1},
+                                     arrType{uEltype, NDIMSP2},
+                                     arrType{RealT, 1},
+                                     arrType{RealT, 1},
+                                     arrType{uEltype, 1},}(node_coordinates, jacobian_matrix,
                                                 contravariant_vectors,
                                                 inverse_jacobian, surface_flux_values,
                                                 _node_coordinates, _jacobian_matrix,

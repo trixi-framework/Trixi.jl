@@ -184,24 +184,18 @@ function calc_interface_flux_gpu!(surface_flux_values,
     backend = get_backend(interfaces.u) # Caution: May not work if interfaces.u is not initialized on the GPU
 
     kernel! = calc_interface_flux_kernel!(backend)
-    tmp_surface_flux_values = copyto!(backend, allocate(backend, eltype(surface_flux_values), size(surface_flux_values)), surface_flux_values) # not init
-    tmp_contravariant_vectors = copyto!(backend, allocate(backend, eltype(contravariant_vectors), size(contravariant_vectors)), contravariant_vectors) # not init
-
     num_nodes = nnodes(dg)
     num_interfaces = ninterfaces(cache.interfaces)
 
-    #@autoinfiltrate
-
     kernel!(interfaces.u, interfaces.neighbor_ids, interfaces.node_indices,
             nonconservative_terms,
-            tmp_surface_flux_values, surface_integral.surface_flux,
-            tmp_contravariant_vectors,
+            surface_flux_values, surface_integral.surface_flux,
+            contravariant_vectors,
             equations, num_nodes,
             ndrange=num_interfaces)
-
-    copyto!(backend, surface_flux_values, tmp_surface_flux_values)
-
     synchronize(backend)
+
+    return nothing
 end
 
 @inline function calc_interface_flux_internal!(interface,
@@ -767,12 +761,10 @@ function calc_surface_integral_gpu!(du, u,
     backend = get_backend(u)
     kernel! = calc_surface_integral_kernel!(backend)
 
-    tmp_surface_flux_values = copyto!(backend, allocate(backend, eltype(surface_flux_values), size(surface_flux_values)), surface_flux_values) # not init
     factor_1 = boundary_interpolation[1, 1]
     factor_2 = boundary_interpolation[nnodes(dg), 2]
 
-    kernel!(du, tmp_surface_flux_values, factor_1, factor_2, equations, nnodes(dg), ndrange=nelements(cache.elements))
-
+    kernel!(du, surface_flux_values, factor_1, factor_2, equations, nnodes(dg), ndrange=nelements(cache.elements))
     synchronize(backend)
 
     return nothing

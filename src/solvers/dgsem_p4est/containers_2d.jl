@@ -11,15 +11,22 @@ function init_elements!(elements, mesh::Union{P4estMesh{2}, T8codeMesh{2}},
     @unpack node_coordinates, jacobian_matrix,
     contravariant_vectors, inverse_jacobian = elements
 
+    backend = get_backend(contravariant_vectors)
+    tmp_contravariant_vectors = Array{eltype(contravariant_vectors)}(undef, size(contravariant_vectors))
+    tmp_inverse_jacobian = Array{eltype(inverse_jacobian)}(undef, size(inverse_jacobian))
+
     calc_node_coordinates!(node_coordinates, mesh, basis)
 
     for element in 1:ncells(mesh)
         calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
 
-        calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix)
+        calc_contravariant_vectors!(tmp_contravariant_vectors, element, jacobian_matrix)
 
-        calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix)
+        calc_inverse_jacobian!(tmp_inverse_jacobian, element, jacobian_matrix)
     end
+
+    copyto!(backend, contravariant_vectors, tmp_contravariant_vectors)
+    copyto!(backend, inverse_jacobian, tmp_inverse_jacobian)
 
     return nothing
 end
