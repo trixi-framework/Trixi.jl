@@ -194,10 +194,10 @@ function init_solution!(mesh::T8codeMesh, equations)
     # Build an array of our data that is as long as the number of elements plus
     # the number of ghosts.
     u_ = Vector{
-               T8codeSolutionContainer{nvariables(equations),
-                                       nvariables(equations) * n_dims}}(undef,
-                                                                        num_local_elements +
-                                                                        num_ghost_elements)
+                T8codeSolutionContainer{nvariables(equations),
+                                        nvariables(equations) * n_dims}}(undef,
+                                                                         num_local_elements +
+                                                                         num_ghost_elements)
 
     # The slope is not calculated before the first save_solution call.
     # With still undefined values an errors occurs in Paraview.

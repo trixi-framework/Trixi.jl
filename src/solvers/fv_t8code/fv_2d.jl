@@ -114,6 +114,11 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
                                                           cache)
 
     @trixi_timeit timer() "update du" begin
+        # Better to allocate these here instead of inside the evaluation function.
+        # Another option: Move to cache?
+        u1 = zeros(eltype(u_[1].u), length(u_[1].u))
+        u2 = zeros(eltype(u_[1].u), length(u_[1].u))
+
         for element in eachelement(mesh, solver)
             @unpack face_normals, num_faces, face_areas, face_connectivity = cache.elements[element]
             for face in 1:num_faces
@@ -130,7 +135,8 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
                                                                                                    mesh,
                                                                                                    equations,
                                                                                                    solver,
-                                                                                                   cache)
+                                                                                                   cache,
+                                                                                                   u1, u2)
                 # TODO: surface flux produces allocs when u's are no SVectors.
                 # Problem: Setting u's to SVectors needs much time and also allocs.
                 @trixi_timeit timer() "surface flux" flux=solver.surface_flux(u_element,
@@ -219,7 +225,7 @@ function linear_reconstruction(u_, mesh, equations, solver, cache)
 end
 
 function evaluate_interface_values(element, neighbor, face, normal, u_, mesh, equations,
-                                   solver, cache)
+                                   solver, cache, u1, u2)
     @unpack elements = cache
 
     if solver.order == 1
@@ -233,8 +239,6 @@ function evaluate_interface_values(element, neighbor, face, normal, u_, mesh, eq
         face_midpoint_neighbor = Trixi.get_variable_wrapped(face_midpoints_neighbor,
                                                             equations, face_neighbor)
 
-        u1 = zeros(eltype(u_[element].u), length(u_[element].u))
-        u2 = zeros(eltype(u_[element].u), length(u_[element].u))
         for v in eachvariable(equations)
             s1 = Trixi.get_variable_wrapped(u_[element].slope, equations, v)
             s2 = Trixi.get_variable_wrapped(u_[neighbor].slope, equations, v)

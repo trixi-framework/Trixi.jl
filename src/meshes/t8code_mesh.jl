@@ -135,10 +135,16 @@ function output_data_to_vtu(mesh::T8codeMesh, equations, solver, u_, out)
         end
     end
     for v in eachvariable(equations)
-        data_ = eltype(u_[1].u)[]
+        data_ = Vector{eltype(u_[1].u)}(undef, 3 * mesh.number_elements)
         for element in eachelement(mesh, solver)
+            idx = 3 * (element - 1)
             slope_ = Trixi.get_variable_wrapped(u_[element].slope, equations, v)
-            push!(data_, tuple(slope_..., zeros(eltype(u_[1].slope), 3 - ndims(equations))...)...)
+            for d in 1:ndims(equations)
+                data_[idx + d] = slope_[d]
+            end
+            for d in 1:(3 - ndims(equations))
+                data_[idx + ndims(equations) + d] = zero(eltype(u_[1].slope))
+            end
         end
 
         GC.@preserve data_ begin
