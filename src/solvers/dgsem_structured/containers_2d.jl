@@ -68,14 +68,16 @@ function calc_jacobian_matrix!(jacobian_matrix, element,
     # jacobian_matrix[1, 2, :, :, element] = node_coordinates[1, :, :, element] * derivative_matrix' # x_η
     # jacobian_matrix[2, 2, :, :, element] = node_coordinates[2, :, :, element] * derivative_matrix' # y_η
 
+    tmp_derivate_matrix = copyto!(CPU(), allocate(CPU(), eltype(derivative_matrix), size(derivative_matrix)), derivative_matrix)
+
     # x_ξ, y_ξ
     @turbo for xy in indices((jacobian_matrix, node_coordinates), (1, 1))
         for j in indices((jacobian_matrix, node_coordinates), (4, 3)),
-            i in indices((jacobian_matrix, derivative_matrix), (3, 1))
+            i in indices((jacobian_matrix, tmp_derivate_matrix), (3, 1))
 
             result = zero(eltype(jacobian_matrix))
-            for ii in indices((node_coordinates, derivative_matrix), (2, 2))
-                result += derivative_matrix[i, ii] *
+            for ii in indices((node_coordinates, tmp_derivate_matrix), (2, 2))
+                result += tmp_derivate_matrix[i, ii] *
                           node_coordinates[xy, ii, j, element]
             end
             jacobian_matrix[xy, 1, i, j, element] = result
@@ -84,12 +86,12 @@ function calc_jacobian_matrix!(jacobian_matrix, element,
 
     # x_η, y_η
     @turbo for xy in indices((jacobian_matrix, node_coordinates), (1, 1))
-        for j in indices((jacobian_matrix, derivative_matrix), (4, 1)),
+        for j in indices((jacobian_matrix, tmp_derivate_matrix), (4, 1)),
             i in indices((jacobian_matrix, node_coordinates), (3, 2))
 
             result = zero(eltype(jacobian_matrix))
-            for jj in indices((node_coordinates, derivative_matrix), (3, 2))
-                result += derivative_matrix[j, jj] *
+            for jj in indices((node_coordinates, tmp_derivate_matrix), (3, 2))
+                result += tmp_derivate_matrix[j, jj] *
                           node_coordinates[xy, i, jj, element]
             end
             jacobian_matrix[xy, 2, i, j, element] = result

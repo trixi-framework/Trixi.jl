@@ -65,12 +65,10 @@ end
     backend = get_backend(u)
     kernel! = weak_form_kernel_gpu_other!(backend)
 
-    tmp_derivative_dhat = copyto!(backend, allocate(backend, eltype(derivative_dhat), size(derivative_dhat)), derivative_dhat) # not init
-
     num_nodes = nnodes(dg)
     num_elements = nelements(cache.elements)
 
-    kernel!(du, u, tmp_derivative_dhat, contravariant_vectors, equations, alpha, num_nodes, ndrange=num_elements)
+    kernel!(du, u, derivative_dhat, contravariant_vectors, equations, alpha, num_nodes, ndrange=num_elements)
     synchronize(backend)
 
     return nothing

@@ -750,8 +750,10 @@ function calc_surface_integral_gpu!(du, u,
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
-    @kernel function calc_surface_integral_kernel!(du, surface_flux_values, factor_1, factor_2, equations, num_nodes)
+    @kernel function calc_surface_integral_kernel!(du, surface_flux_values, boundary_interpolation, equations, num_nodes)
         element = @index(Global)
+        factor_1 = boundary_interpolation[1, 1]
+        factor_2 = boundary_interpolation[num_nodes, 2]
         calc_surface_integral_internal!(du, element, surface_flux_values, factor_1, factor_2, equations, num_nodes)
     end
 
@@ -761,10 +763,7 @@ function calc_surface_integral_gpu!(du, u,
     backend = get_backend(u)
     kernel! = calc_surface_integral_kernel!(backend)
 
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
-
-    kernel!(du, surface_flux_values, factor_1, factor_2, equations, nnodes(dg), ndrange=nelements(cache.elements))
+    kernel!(du, surface_flux_values, boundary_interpolation, equations, nnodes(dg), ndrange=nelements(cache.elements))
     synchronize(backend)
 
     return nothing
