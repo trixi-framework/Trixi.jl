@@ -134,18 +134,28 @@ isdir(outdir) && rm(outdir, recursive=true)
       Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs/8)])
       tspan=(0.0, 1.5)
       semi = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations, equations_parabolic),
-                                             initial_condition, solver;
-                                             boundary_conditions=(boundary_conditions,
-                                                                  boundary_conditions_parabolic))
+                                                   (equations, equations_parabolic),
+                                                   initial_condition, solver;
+                                                   boundary_conditions=(boundary_conditions,
+                                                                        boundary_conditions_parabolic))
       ode = semidiscretize(semi, tspan)
       analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
       callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
       sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
-            ode_default_options()..., callback=callbacks)        
+            ode_default_options()..., callback=callbacks)
       ac_sol = analysis_callback(sol)
       @test ac_sol.l2[1] ≈ 1.67452550744728e-6
       @test ac_sol.linf[1] ≈ 7.905059166368744e-6
+
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 100
+        @test (@allocated Trixi.rhs_parabolic!(du_ode, u_ode, semi, t)) < 100
+      end
   end
 
   @trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl" begin
@@ -229,6 +239,13 @@ isdir(outdir) && rm(outdir, recursive=true)
       initial_refinement_level = 2, tspan=(0.0, 0.5),
       l2 = [0.00015144571529699053, 0.018766076072331623, 0.007065070765652574, 0.0208399005734258],
       linf = [0.0014523369373669048, 0.12366779944955864, 0.05532450997115432, 0.16099927805328207]
+    )
+  end
+
+  @trixi_testset "TreeMesh2D: elixir_navierstokes_taylor_green_vortex.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_taylor_green_vortex.jl"),
+      l2 = [0.0009279657228109691, 0.012454661988687185, 0.012454661988689886, 0.030487112728612178],
+      linf = [0.002435582543096171, 0.024824039368199546, 0.024824039368212758, 0.06731583711777489]
     )
   end
 

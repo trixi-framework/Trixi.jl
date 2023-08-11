@@ -596,15 +596,11 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 end
 
 function prolong2mortars!(cache,
-                          #=
-                          flux_viscous::Tuple{AbstractArray, AbstractArray,
-                                              AbstractArray},
-                          =#
-                          flux_viscous::Vector{Array{Float64}},
+                          flux_viscous::Vector{Array{uEltype}},
                           mesh::TreeMesh{3},
                           equations_parabolic::AbstractEquationsParabolic,
                           mortar_l2::LobattoLegendreMortarL2,
-                          surface_integral, dg::DGSEM)
+                          surface_integral, dg::DGSEM) where {uEltype <: Real}
     # temporary buffer for projections
     @unpack fstar_tmp1_threaded = cache
 
