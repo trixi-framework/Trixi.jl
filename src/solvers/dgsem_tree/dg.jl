@@ -54,7 +54,7 @@ include("containers.jl")
 # Dimension-agnostic parallel setup
 include("dg_parallel.jl")
 
-# Helper struct for parabolic dg
+# Helper struct for parabolic AMR
 include("cache_viscous.jl")
 
 # 1D DG implementation
