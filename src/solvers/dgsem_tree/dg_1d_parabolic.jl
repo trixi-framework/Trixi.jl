@@ -17,7 +17,6 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
                         equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
-    #@unpack u_transformed, gradients, flux_viscous = cache_parabolic
     @unpack cache_viscous = cache_parabolic
     @unpack u_transformed, gradients, flux_viscous = cache_viscous
 
