@@ -565,5 +565,4 @@ function apply_jacobian_parabolic!(du, mesh::TreeMesh{1},
 
     return nothing
 end
-
 end # @muladd
