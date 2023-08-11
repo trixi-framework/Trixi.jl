@@ -28,6 +28,7 @@ are listed in alphabetical order:
 * Jesse Chan
 * Lars Christmann
 * Christof Czernik
+* Daniel Doehring
 * Patrick Ersing
 * Erik Faulhaber
 * Gregor Gassner
