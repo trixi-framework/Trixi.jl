@@ -17,9 +17,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{3},
                         equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
-    #@unpack u_transformed, gradients, flux_viscous = cache_parabolic
-    @unpack cache_viscous = cache_parabolic
-    @unpack u_transformed, gradients, flux_viscous = cache_viscous
+    @unpack u_transformed, gradients, flux_viscous = cache_parabolic
 
     # Convert conservative variables to a form more suitable for viscous flux calculations
     @trixi_timeit timer() "transform variables" begin
@@ -596,11 +594,12 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 end
 
 function prolong2mortars!(cache,
-                          flux_viscous::Vector{Array{uEltype}},
+                          flux_viscous::Tuple{AbstractArray, AbstractArray,
+                                              AbstractArray},
                           mesh::TreeMesh{3},
                           equations_parabolic::AbstractEquationsParabolic,
                           mortar_l2::LobattoLegendreMortarL2,
-                          surface_integral, dg::DGSEM) where {uEltype <: Real}
+                          surface_integral, dg::DGSEM)
     # temporary buffer for projections
     @unpack fstar_tmp1_threaded = cache
 
@@ -1100,7 +1099,9 @@ function create_cache_parabolic(mesh::TreeMesh{3},
     n_vars = nvariables(equations_hyperbolic)
     n_nodes = nnodes(elements)
     n_elements = nelements(elements)
-    cache_viscous = CacheViscous3D{uEltype}(n_vars, n_nodes, n_elements)
+    u_transformed = Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)
+    gradients = ntuple(_ -> similar(u_transformed), ndims(mesh))
+    flux_viscous = ntuple(_ -> similar(u_transformed), ndims(mesh))
 
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
@@ -1109,7 +1110,7 @@ function create_cache_parabolic(mesh::TreeMesh{3},
     # mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
     # cache = (; elements, interfaces, boundaries, mortars)
-    cache = (; elements, interfaces, boundaries, cache_viscous)
+    cache = (; elements, interfaces, boundaries, gradients, flux_viscous, u_transformed)
 
     # Add specialized parts of the cache required to compute the mortars etc.
     # cache = (;cache..., create_cache(mesh, equations_parabolic, dg.mortar, uEltype)...)
