@@ -113,16 +113,23 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         # Resize parabolic helper variables
-        resize!(cache_viscous, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-        cache_parabolic.cache_viscous.u_transformed = unsafe_wrap(Array, 
+        resize!(cache_viscous,
+                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+        cache_parabolic.cache_viscous.u_transformed = unsafe_wrap(Array,
                                                                   pointer(cache_parabolic.cache_viscous._u_transformed),
-                                                                  (nvariables(equations), nnodes(dg), nelements(dg, cache)))
-        cache_parabolic.cache_viscous.gradients = unsafe_wrap(Array, 
+                                                                  (nvariables(equations),
+                                                                   nnodes(dg),
+                                                                   nelements(dg, cache)))
+        cache_parabolic.cache_viscous.gradients = unsafe_wrap(Array,
                                                               pointer(cache_parabolic.cache_viscous._gradients),
-                                                              (nvariables(equations), nnodes(dg), nelements(dg, cache)))
-        cache_parabolic.cache_viscous.flux_viscous = unsafe_wrap(Array, 
+                                                              (nvariables(equations),
+                                                               nnodes(dg),
+                                                               nelements(dg, cache)))
+        cache_parabolic.cache_viscous.flux_viscous = unsafe_wrap(Array,
                                                                  pointer(cache_parabolic.cache_viscous._flux_viscous),
-                                                                 (nvariables(equations), nnodes(dg), nelements(dg, cache)))
+                                                                 (nvariables(equations),
+                                                                  nnodes(dg),
+                                                                  nelements(dg, cache)))
         # Loop over all elements in old container and either copy them or refine them
         element_id = 1
         for old_element_id in 1:old_n_elements
@@ -339,16 +346,23 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         # Resize parabolic helper variables
-        resize!(cache_viscous, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-        cache_parabolic.cache_viscous.u_transformed = unsafe_wrap(Array, 
+        resize!(cache_viscous,
+                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+        cache_parabolic.cache_viscous.u_transformed = unsafe_wrap(Array,
                                                                   pointer(cache_parabolic.cache_viscous._u_transformed),
-                                                                  (nvariables(equations), nnodes(dg), nelements(dg, cache)))
-        cache_parabolic.cache_viscous.gradients = unsafe_wrap(Array, 
+                                                                  (nvariables(equations),
+                                                                   nnodes(dg),
+                                                                   nelements(dg, cache)))
+        cache_parabolic.cache_viscous.gradients = unsafe_wrap(Array,
                                                               pointer(cache_parabolic.cache_viscous._gradients),
-                                                              (nvariables(equations), nnodes(dg), nelements(dg, cache)))
-        cache_parabolic.cache_viscous.flux_viscous = unsafe_wrap(Array, 
+                                                              (nvariables(equations),
+                                                               nnodes(dg),
+                                                               nelements(dg, cache)))
+        cache_parabolic.cache_viscous.flux_viscous = unsafe_wrap(Array,
                                                                  pointer(cache_parabolic.cache_viscous._flux_viscous),
-                                                                 (nvariables(equations), nnodes(dg), nelements(dg, cache)))
+                                                                 (nvariables(equations),
+                                                                  nnodes(dg),
+                                                                  nelements(dg, cache)))
 
         # Loop over all elements in old container and either copy them or coarsen them
         skip = 0

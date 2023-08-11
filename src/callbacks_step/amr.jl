@@ -198,7 +198,8 @@ end
                                              kwargs...)
     # Note that we don't `wrap_array` the vector `u_ode` to be able to `resize!`
     # it when doing AMR while still dispatching on the `mesh` etc.
-    amr_callback(u_ode, mesh_equations_solver_cache(semi)..., semi.cache_parabolic, semi, t, iter; kwargs...)
+    amr_callback(u_ode, mesh_equations_solver_cache(semi)..., semi.cache_parabolic,
+                 semi, t, iter; kwargs...)
 end
 
 # `passive_args` is currently used for Euler with self-gravity to adapt the gravity solver
@@ -362,7 +363,7 @@ end
 # `passive_args` is expected to be an iterable of `Tuple`s of the form
 # `(p_u_ode, p_mesh, p_equations, p_dg, p_cache)`.
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
-                                     equations, dg::DG, 
+                                     equations, dg::DG,
                                      cache, cache_parabolic,
                                      semi::SemidiscretizationHyperbolicParabolic,
                                      t, iter;
@@ -413,7 +414,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
         # refine solver
         @trixi_timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg,
-                                               cache, cache_parabolic, elements_to_refine)                                             
+                                               cache, cache_parabolic,
+                                               elements_to_refine)
         for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
             @trixi_timeit timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh,
                                                            p_equations, p_dg, p_cache,
@@ -481,8 +483,9 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
         # coarsen solver
         @trixi_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg,
-                                                cache, cache_parabolic, elements_to_remove)
-                                                                                        
+                                                cache, cache_parabolic,
+                                                elements_to_remove)
+
         for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
             @trixi_timeit timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh,
                                                             p_equations, p_dg, p_cache,
