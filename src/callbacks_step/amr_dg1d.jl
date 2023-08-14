@@ -150,11 +150,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         @assert element_id ==
                 nelements(dg, cache) +
                 1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
-        #=
         @assert element_id ==
                 nelements(dg, cache_parabolic) +
                 1||element_id == nelements(dg, cache_parabolic) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache_parabolic) = $(nelements(dg, cache_parabolic))"
-        =#
     end # GC.@preserve old_u_ode
 
     # re-initialize interfaces container
