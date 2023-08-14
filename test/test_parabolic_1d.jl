@@ -25,7 +25,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan=(0.0, 0.0), initial_refinement_level = 6)
       tspan=(0.0, 1.0)
       ode = semidiscretize(semi, tspan)
-      initial_refinement_level = 6
       amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
                                       base_level=4,
                                       med_level=5, med_threshold=0.1,
