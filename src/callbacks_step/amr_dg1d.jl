@@ -176,7 +176,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # Sanity check
     if isperiodic(mesh.tree)
         @assert ninterfaces(interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
-        #@assert ninterfaces(interfaces)==1 * nelements(dg, cache_parabolic) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+        @assert ninterfaces(interfaces)==1 * nelements(dg, cache_parabolic) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
     end
 
     return nothing
