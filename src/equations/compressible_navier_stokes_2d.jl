@@ -29,7 +29,7 @@ The particular form of the compressible Navier-Stokes implemented is
 =
 \nabla \cdot
 \begin{pmatrix}
-0 \\ \underline{\tau} \\ \underline{\tau}\mathbf{v} - \nabla q
+0 \\ \underline{\tau} \\ \underline{\tau}\mathbf{v} - \mathbf{q}
 \end{pmatrix}
 ```
 where the system is closed with the ideal gas assumption giving
@@ -44,7 +44,7 @@ are built from the viscous stress tensor
 ```
 where ``\underline{I}`` is the ``2\times 2`` identity matrix and the heat flux is
 ```math
-\nabla q = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
+\mathbf{q} = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
 ```
 where ``T`` is the temperature and ``\kappa`` is the thermal conductivity for Fick's law.
 Under the assumption that the gas has a constant Prandtl number,
@@ -55,7 +55,7 @@ the thermal conductivity is
 From this combination of temperature ``T`` and thermal conductivity ``\kappa`` we see
 that the gas constant `R` cancels and the heat flux becomes
 ```math
-\nabla q = -\kappa\nabla\left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}}\nabla\left(\frac{p}{\rho}\right)
+\mathbf{q} = -\kappa\nabla\left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}}\nabla\left(\frac{p}{\rho}\right)
 ```
 which is the form implemented below in the [`flux`](@ref) function.
 
@@ -92,24 +92,6 @@ struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real,
     equations_hyperbolic::E    # CompressibleEulerEquations2D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
 end
-
-"""
-!!! warning "Experimental code"
-    This code is experimental and may be changed or removed in any future release.
-
-`GradientVariablesPrimitive` and `GradientVariablesEntropy` are gradient variable type parameters
-for `CompressibleNavierStokesDiffusion2D`. By default, the gradient variables are set to be
-`GradientVariablesPrimitive`. Specifying `GradientVariablesEntropy` instead uses the entropy variable
-formulation from
-- Hughes, Mallet, Franca (1986)
-  A new finite element formulation for computational fluid dynamics: I. Symmetric forms of the
-  compressible Euler and Navier-Stokes equations and the second law of thermodynamics.
-  [https://doi.org/10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
-
-Under `GradientVariablesEntropy`, the Navier-Stokes discretization is provably entropy stable.
-"""
-struct GradientVariablesPrimitive end
-struct GradientVariablesEntropy end
 
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquations2D;
@@ -300,57 +282,19 @@ end
     return T
 end
 
-# TODO: can we generalize this to MHD?
-"""
-    struct BoundaryConditionNavierStokesWall
+@inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
+    # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
-Creates a wall-type boundary conditions for the compressible Navier-Stokes equations.
-The fields `boundary_condition_velocity` and `boundary_condition_heat_flux` are intended
-to be boundary condition types such as the `NoSlip` velocity boundary condition and the
-`Adiabatic` or `Isothermal` heat boundary condition.
-
-!!! warning "Experimental feature"
-    This is an experimental feature and may change in future releases.
-"""
-struct BoundaryConditionNavierStokesWall{V, H}
-    boundary_condition_velocity::V
-    boundary_condition_heat_flux::H
+    omega = vorticity(u, gradients, equations)
+    return 0.5 * u[1] * omega^2
 end
 
-"""
-    struct NoSlip
+@inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
+    # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
+    _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
+    _, dv1dy, dv2dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
 
-Use to create a no-slip boundary condition with `BoundaryConditionNavierStokesWall`. The field `boundary_value_function`
-should be a function with signature `boundary_value_function(x, t, equations)`
-and should return a `SVector{NDIMS}` whose entries are the velocity vector at a
-point `x` and time `t`.
-"""
-struct NoSlip{F}
-    boundary_value_function::F # value of the velocity vector on the boundary
-end
-
-"""
-    struct Isothermal
-
-Used to create a no-slip boundary condition with [`BoundaryConditionNavierStokesWall`](@ref).
-The field `boundary_value_function` should be a function with signature
-`boundary_value_function(x, t, equations)` and return a scalar value for the
-temperature at point `x` and time `t`.
-"""
-struct Isothermal{F}
-    boundary_value_function::F # value of the temperature on the boundary
-end
-
-"""
-    struct Adiabatic
-
-Used to create a no-slip boundary condition with [`BoundaryConditionNavierStokesWall`](@ref).
-The field `boundary_value_normal_flux_function` should be a function with signature
-`boundary_value_normal_flux_function(x, t, equations)` and return a scalar value for the
-normal heat flux at point `x` and time `t`.
-"""
-struct Adiabatic{F}
-    boundary_value_normal_flux_function::F # scaled heat flux 1/T * kappa * dT/dn
+    return dv2dx - dv1dy
 end
 
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
