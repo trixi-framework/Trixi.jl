@@ -76,6 +76,114 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     return nothing
 end
 
+function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
+                 equations, dg::DGSEM, cache, cache_parabolic,
+                 elements_to_refine)
+    # Return early if there is nothing to do
+    if isempty(elements_to_refine)
+        return
+    end
+
+    # Determine for each existing element whether it needs to be refined
+    needs_refinement = falses(nelements(dg, cache))
+    needs_refinement[elements_to_refine] .= true
+
+    # Retain current solution data
+    old_n_elements = nelements(dg, cache)
+    old_u_ode = copy(u_ode)
+    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+
+        # Get new list of leaf cells
+        leaf_cell_ids = local_leaf_cells(mesh.tree)
+
+        # re-initialize elements container
+        @unpack elements = cache
+        resize!(elements, length(leaf_cell_ids))
+        init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+        @assert nelements(dg, cache) > old_n_elements
+
+        @unpack elements, cache_viscous = cache_parabolic
+        resize!(elements, length(leaf_cell_ids))
+        init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+        @assert nelements(dg, cache_parabolic) > old_n_elements
+
+        resize!(u_ode,
+                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+        # Resize parabolic helper variables
+        resize!(cache_viscous,
+                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+        cache_parabolic.cache_viscous.u_transformed = unsafe_wrap(Array,
+                                                                  pointer(cache_parabolic.cache_viscous._u_transformed),
+                                                                  (nvariables(equations),
+                                                                   nnodes(dg),
+                                                                   nelements(dg, cache)))
+        cache_parabolic.cache_viscous.gradients = unsafe_wrap(Array,
+                                                              pointer(cache_parabolic.cache_viscous._gradients),
+                                                              (nvariables(equations),
+                                                               nnodes(dg),
+                                                               nelements(dg, cache)))
+        cache_parabolic.cache_viscous.flux_viscous = unsafe_wrap(Array,
+                                                                 pointer(cache_parabolic.cache_viscous._flux_viscous),
+                                                                 (nvariables(equations),
+                                                                  nnodes(dg),
+                                                                  nelements(dg, cache)))
+        # Loop over all elements in old container and either copy them or refine them
+        element_id = 1
+        for old_element_id in 1:old_n_elements
+            if needs_refinement[old_element_id]
+                # Refine element and store solution directly in new data structure
+                refine_element!(u, element_id, old_u, old_element_id,
+                                adaptor, equations, dg)
+                element_id += 2^ndims(mesh)
+            else
+                # Copy old element data to new element container
+                @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+                element_id += 1
+            end
+        end
+        # If everything is correct, we should have processed all elements.
+        # Depending on whether the last element processed above had to be refined or not,
+        # the counter `element_id` can have two different values at the end.
+        @assert element_id ==
+                nelements(dg, cache) +
+                1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+        #=
+        @assert element_id ==
+                nelements(dg, cache_parabolic) +
+                1||element_id == nelements(dg, cache_parabolic) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache_parabolic) = $(nelements(dg, cache_parabolic))"
+        =#
+    end # GC.@preserve old_u_ode
+
+    # re-initialize interfaces container
+    @unpack interfaces = cache
+    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
+    init_interfaces!(interfaces, elements, mesh)
+
+    @unpack interfaces = cache_parabolic
+    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
+    init_interfaces!(interfaces, elements, mesh)
+
+    # re-initialize boundaries container
+    @unpack boundaries = cache
+    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
+    init_boundaries!(boundaries, elements, mesh)
+
+    @unpack boundaries = cache_parabolic
+    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
+    init_boundaries!(boundaries, elements, mesh)
+
+    # Sanity check
+    if isperiodic(mesh.tree)
+        @assert ninterfaces(interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+        #@assert ninterfaces(interfaces)==1 * nelements(dg, cache_parabolic) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+    end
+
+    return nothing
+end
+
 # TODO: Taal compare performance of different implementations
 # Refine solution data u for an element, using L2 projection (interpolation)
 function refine_element!(u::AbstractArray{<:Any, 3}, element_id,
@@ -196,6 +304,120 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # Sanity check
     if isperiodic(mesh.tree)
         @assert ninterfaces(interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+    end
+
+    return nothing
+end
+
+function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
+                  equations, dg::DGSEM, cache, cache_parabolic,
+                  elements_to_remove)
+    # Return early if there is nothing to do
+    if isempty(elements_to_remove)
+        return
+    end
+
+    # Determine for each old element whether it needs to be removed
+    to_be_removed = falses(nelements(dg, cache))
+    to_be_removed[elements_to_remove] .= true
+
+    # Retain current solution data
+    old_n_elements = nelements(dg, cache)
+    old_u_ode = copy(u_ode)
+    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+
+        # Get new list of leaf cells
+        leaf_cell_ids = local_leaf_cells(mesh.tree)
+
+        # re-initialize elements container
+        @unpack elements = cache
+        resize!(elements, length(leaf_cell_ids))
+        init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+        @assert nelements(dg, cache) < old_n_elements
+
+        @unpack elements, cache_viscous = cache_parabolic
+        resize!(elements, length(leaf_cell_ids))
+        init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+        @assert nelements(dg, cache_parabolic) < old_n_elements
+
+        resize!(u_ode,
+                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+        # Resize parabolic helper variables
+        resize!(cache_viscous,
+                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+        cache_parabolic.cache_viscous.u_transformed = unsafe_wrap(Array,
+                                                                  pointer(cache_parabolic.cache_viscous._u_transformed),
+                                                                  (nvariables(equations),
+                                                                   nnodes(dg),
+                                                                   nelements(dg, cache)))
+        cache_parabolic.cache_viscous.gradients = unsafe_wrap(Array,
+                                                              pointer(cache_parabolic.cache_viscous._gradients),
+                                                              (nvariables(equations),
+                                                               nnodes(dg),
+                                                               nelements(dg, cache)))
+        cache_parabolic.cache_viscous.flux_viscous = unsafe_wrap(Array,
+                                                                 pointer(cache_parabolic.cache_viscous._flux_viscous),
+                                                                 (nvariables(equations),
+                                                                  nnodes(dg),
+                                                                  nelements(dg, cache)))
+
+        # Loop over all elements in old container and either copy them or coarsen them
+        skip = 0
+        element_id = 1
+        for old_element_id in 1:old_n_elements
+            # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the following elements
+            if skip > 0
+                skip -= 1
+                continue
+            end
+
+            if to_be_removed[old_element_id]
+                # If an element is to be removed, sanity check if the following elements
+                # are also marked - otherwise there would be an error in the way the
+                # cells/elements are sorted
+                @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
+
+                # Coarsen elements and store solution directly in new data structure
+                coarsen_elements!(u, element_id, old_u, old_element_id,
+                                  adaptor, equations, dg)
+                element_id += 1
+                skip = 2^ndims(mesh) - 1
+            else
+                # Copy old element data to new element container
+                @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+                element_id += 1
+            end
+        end
+        # If everything is correct, we should have processed all elements.
+        @assert element_id==nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+        @assert element_id==nelements(dg, cache_parabolic) + 1 "element_id = $element_id, nelements(dg, cache_parabolic) = $(nelements(dg, cache_parabolic))"
+    end # GC.@preserve old_u_ode
+
+    # re-initialize interfaces container
+    @unpack interfaces = cache
+    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
+    init_interfaces!(interfaces, elements, mesh)
+
+    @unpack interfaces = cache_parabolic
+    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
+    init_interfaces!(interfaces, elements, mesh)
+
+    # re-initialize boundaries container
+    @unpack boundaries = cache
+    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
+    init_boundaries!(boundaries, elements, mesh)
+
+    @unpack boundaries = cache_parabolic
+    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
+    init_boundaries!(boundaries, elements, mesh)
+
+    # Sanity check
+    if isperiodic(mesh.tree)
+        @assert ninterfaces(interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+        @assert ninterfaces(interfaces)==1 * nelements(dg, cache_parabolic) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
     end
 
     return nothing
