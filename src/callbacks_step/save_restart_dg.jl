@@ -343,8 +343,5 @@ function save_restart_controller(integrator,
             end
         end
     end
-    if mpi_isparallel()
-        MPI.Barrier(mpi_comm())
-    end
 end
 end # @muladd
