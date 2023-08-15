@@ -217,6 +217,109 @@ plot(p1, p2, p3, p4) #hide #md
 
 # Now you are able to download, modify and execute simulation setups for Trixi.jl.
 
+# ### Create first setup
+
+# In this part of the tutorial we will consider a creation of first Trixi.jl setup. To make code
+# easy to read and understand we will discuss only one dimensional case. But all described logic
+# will be valid for more complicated 2D and 3D cases. You can take a look at one of the elixirs
+# to see 2D or 3D use cases, e.g.
+# [`elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_basic.jl).
+
+# The first step is to create and open a file with .jl extension. You can do it with your favorite
+# text editor.
+
+# First you need to connect the packages that you will use in your setup. By default you will always need
+# Trixi.jl itself and [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
+
+using Trixi
+using OrdinaryDiffEq
+
+# The next thing to do is to choose an equation suitable for your problem. For simplicity we use
+# [`LinearScalarAdvectionEquation1D`](@ref). To see all currently implemented equations, take
+# a look at
+# [src/equations](https://github.com/trixi-framework/Trixi.jl/tree/main/src/equations).
+# If you are interested in adding a new physics model that is not implemented in Trixi.jl yet,
+# take a look at 
+# [Adding a new scalar conservation law](@ref adding_new_scalar_equations) and
+# [Adding a non-conservative equation](@ref adding_nonconservative_equation).
+
+advection_velocity = 1.0
+equations = LinearScalarAdvectionEquation1D(advection_velocity)
+
+# To solve your problem numerically with Trixi.jl, you have to define an instruction for spatial
+# discretization. To do it, you need to setup a mesh. The most widely used in Trixi.jl is the
+# `TreeMesh`. The interval used is [-1.0, 1.0]. We also set a number of elements in
+# the mesh using `initial_refinement_level` that describes the initial height of the tree mesh.
+# The variable `n_cells_max` is used to limit the number of elements in the mesh, which cannot be
+# exceeded due to [adaptive mesh refinement](@ref Adaptive-mesh-refinement).
+
+coordinates_min = -1.0
+coordinates_max =  1.0
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level=4,
+                n_cells_max=30_000)
+
+# To approximate the solution of the given model we create a DG solver. The solution in every of
+# the recently defined mesh's elements will be approximated by a polynomial of `polydeg`. See more
+# in the [Introduction to DG methods](@ref scalar_linear_advection_1d).
+
+solver = DGSEM(polydeg=3)
+
+# Create an initial conditions, e.g. a Gaussian pulse. All already implemented initial conditions for the
+# [`LinearScalarAdvectionEquation1D`](@ref) can be found in
+# [`src/equations/linear_scalar_advection_1d.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/src/equations/linear_scalar_advection_1d.jl)
+# or you can implement your initial conditions as shown above for another example.
+
+initial_conditions = initial_condition_gauss
+
+# Now we collect the information that will be needed to define spatial discretization, and create
+# an ODE problem with a time span fpom 0.0 to 1.0.
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+tspan=(0.0,1.0)
+ode = semidiscretize(semi, tspan);
+
+# At this point our problem is defined. We will use `solve` function defined in OrdinaryDiffEq.jl.
+# OrdinaryDiffEq.jl gives us possibility to extend the solver using Callbacks without actually
+# modifing it. Trixi.jl already has some implemented [Callbacks](@ref callbacks-id).
+
+# To print a summary of the simulation setup at the begining of main loop
+# and to reset we use [`SummaryCallback`](@ref).
+
+summary_callback = SummaryCallback()
+
+# Also we want to analyse the current state of the solution in regular intervals using
+# [`AnalysisCallback`](@ref). 
+
+analysis_callback = AnalysisCallback(semi, interval=10)
+
+# It is also possible to controll the time step using [`StepsizeCallback`](@ref).
+# To get more details, look at
+# [CFL based step size control](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/time_stepping/#CFL-based-step-size-control)
+
+stepsize_callback = StepsizeCallback(cfl=1.6)
+
+# Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
+
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
+
+# OrdinaryDiffEq.jl defines a wide range of
+# [ODE solvers](https://docs.sciml.ai/DiffEqDocs/latest/solvers/ode_solve/). We will pass the ODE
+# problem, the ODE solver and the callbacks into `solve` function. Also we have to specify
+# explicitly the time step `dt`, which is necessary for the `StepsizeCallback`. And there is no
+# need to save every step of the solution, we are only interested in the final result.
+
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1.0, save_everystep=false, callback=callbacks);
+
+# Finally, we print the timer summary.
+summary_callback()
+
+# Now you can plot the solution as shown above, analyse it and improve your setup to make
+# the solution stable, more accurate or more efficient.
+
+
+
 # ## Next steps: changing Trixi.jl itself
 
 # If you plan on editing Trixi.jl itself, you can download Trixi.jl locally and run it from
