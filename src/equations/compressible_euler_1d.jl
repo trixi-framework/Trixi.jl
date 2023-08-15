@@ -198,6 +198,57 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
     return prim2cons(SVector(rho, v1, p), equations)
 end
 
+"""
+    boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                 surface_flux_function, equations::CompressibleEulerEquations1D)
+Determine the boundary numerical surface flux for a slip wall condition.
+Imposes a zero normal velocity at the wall.
+Density is taken from the internal solution state and pressure is computed as an
+exact solution of a 1D Riemann problem. Further details about this boundary state
+are available in the paper:
+- J. J. W. van der Vegt and H. van der Ven (2002)
+  Slip flow boundary conditions in discontinuous Galerkin discretizations of
+  the Euler equations of gas dynamics
+  [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
+
+  Should be used together with [`TreeMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, orientation,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations1D)
+    # compute the primitive variables
+    rho_local, v_normal, p_local = cons2prim(u_inner, equations)
+
+    if isodd(direction) # flip sign of normal to make it outward pointing
+        v_normal *= -1
+    end
+
+    # Get the solution of the pressure Riemann problem
+    # See Section 6.3.3 of
+    # Eleuterio F. Toro (2009)
+    # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
+    # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+    if v_normal <= 0.0
+        sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
+        p_star = p_local *
+                 (1 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2 *
+                                                                             equations.gamma *
+                                                                             equations.inv_gamma_minus_one)
+    else # v_normal > 0.0
+        A = 2 / ((equations.gamma + 1) * rho_local)
+        B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
+        p_star = p_local +
+                 0.5 * v_normal / A *
+                 (v_normal + sqrt(v_normal^2 + 4 * A * (p_local + B)))
+    end
+
+    # For the slip wall we directly set the flux as the normal velocity is zero
+    return SVector(zero(eltype(u_inner)),
+                   p_star,
+                   zero(eltype(u_inner)))
+end
+
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations1D)
     rho, rho_v1, rho_e = u
