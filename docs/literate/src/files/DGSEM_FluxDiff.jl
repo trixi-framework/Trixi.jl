@@ -96,13 +96,13 @@
 # \begin{align*}
 # J \underline{\dot{u}}(t) &= - M^{-1} B (\underline{f}^* - \underline{f}) - 2D \underline{f}_{vol}(u^-, u^+)\\[5pt]
 # &= - M^{-1} B (\underline{f}^* - \underline{f}_{vol}(\underline{u}, \underline{u})) - 2D \underline{f}_{vol}(u^-, u^+)\\[5pt]
-# &= - M^{-1} B \underline{f}_{sur}^* - (2D - M^{-1} B) \underline{f}_{vol}\\[5pt]
-# &= - M^{-1} B \underline{f}_{sur}^* - D_{split} \underline{f}_{vol}
+# &= - M^{-1} B \underline{f}_{surface}^* - (2D - M^{-1} B) \underline{f}_{vol}\\[5pt]
+# &= - M^{-1} B \underline{f}_{surface}^* - D_{split} \underline{f}_{vol}
 # \end{align*}
 # ```
 # This formulation is in a weak form type formulation and can be implemented by using the derivative
 # split matrix $D_{split}=(2D-M^{-1}B)$ and two different fluxes. We divide between the surface
-# flux $f=f_{sur}$ used for the numerical flux $f_{sur}^*$ and the already mentioned volume
+# flux $f=f_{surface}$ used for the numerical flux $f_{surface}^*$ and the already mentioned volume
 # flux $f_{vol}$ especially for this formulation.
 
 
