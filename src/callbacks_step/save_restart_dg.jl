@@ -328,52 +328,24 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
     return u_ode
 end
 
-function save_restart_controller(mesh, integrator,
+function save_restart_controller(integrator,
                                  controller, restart_callback)
     if mpi_isroot()
-        save_restart_controller(integrator, controller, restart_callback)
+        @unpack output_directory = restart_callback
+        timestep = integrator.stats.naccept
+        filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+        # Open file (preserve existing content)
+        h5open(filename, "cw") do file
+            attributes(file)["qold"] = integrator.qold
+            attributes(file)["dtpropose"] = integrator.dtpropose
+            if :err in fieldnames(typeof(controller))
+                attributes(file)["controller_err"] = controller.err
+            end
+        end
     end
     if mpi_isparallel()
         MPI.Barrier(mpi_comm())
     end
 end
 
-function save_restart_controller(integrator, controller::PIDController,
-                                 restart_callback)
-    @unpack output_directory = restart_callback
-    timestep = integrator.stats.naccept
-    filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
-    # Open file (preserve existing content)
-    h5open(filename, "cw") do file
-        attributes(file)["controller_type"] = "PID"
-        attributes(file)["qold"] = integrator.qold
-        attributes(file)["dtpropose"] = integrator.dtpropose
-        file["controller_err"] = controller.err
-    end
-end
-
-function save_restart_controller(integrator, controller::PIController, restart_callback)
-    @unpack output_directory = restart_callback
-    timestep = integrator.stats.naccept
-    filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
-    # Open file (preserve existing content)
-    h5open(filename, "cw") do file
-        attributes(file)["controller_type"] = "PI"
-        attributes(file)["qold"] = integrator.qold
-        attributes(file)["dtpropose"] = integrator.dtpropose
-    end
-end
-
-function save_restart_controller(integrator, controller::IController, restart_callback)
-    @unpack output_directory = restart_callback
-    timestep = integrator.stats.naccept
-    filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
-    # Open file (preserve existing content)
-    h5open(filename, "cw") do file
-        attributes(file)["controller_type"] = "I"
-        attributes(file)["qold"] = integrator.qold
-        attributes(file)["dtpropose"] = integrator.dtpropose
-    end
-end
-save_restart_controller(integrator, controller, restart_callback) = nothing
 end # @muladd

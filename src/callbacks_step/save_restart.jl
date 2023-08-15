@@ -106,7 +106,7 @@ function (restart_callback::SaveRestartCallback)(integrator)
 
         save_restart_file(u_ode, t, dt, iter, semi, restart_callback)
         if integrator.opts.adaptive
-            save_restart_controller(mesh, integrator, integrator.opts.controller,
+            save_restart_controller(integrator, integrator.opts.controller,
                                     restart_callback)
         end
     end
@@ -161,68 +161,29 @@ function load_restart_file(semi::AbstractSemidiscretization, restart_file)
 end
 
 function load_controller!(integrator, restart_file::AbstractString)
-    controller_type = ""
+    controller = integrator.opts.controller
     if mpi_isroot()
         h5open(restart_file, "r") do file
-            if "controller_type" in keys(attributes(file))
-                controller_type = read(attributes(file)["controller_type"])
+            if ("qold" in keys(attributes(file))) && ("dtpropose" in keys(attributes(file)))
+                integrator.qold = read(attributes(file)["qold"])
+                integrator.dtpropose = read(attributes(file)["dtpropose"])
+                integrator.accept_step = true
+            end
+            if (:err in fieldnames(typeof(controller))) && ("controller_err" in keys(attributes(file)))
+                controller.err[1:3] = read(attributes(file)["controller_err"])
             end
         end
     end
     if mpi_isparallel()
-        controller_type = MPI.bcast(controller_type, mpi_root(), mpi_comm())
-    end
-    if controller_type == "PID"
-        if !(typeof(integrator.opts.controller) <: PIDController)
-            error("restart mismatch: controller differ from value in restart file")
+        recv_buf = [integrator.qold, integrator.dtpropose, integrator.accept_step]
+        if :err in fieldnames(typeof(controller))
+            append!(recv_buf, controller.err)
         end
-        load_PIDController!(integrator, restart_file)
-    elseif controller_type == "PI" || controller_type == "I"
-        if !(typeof(integrator.opts.controller) <: PIController) &&
-           !(typeof(integrator.opts.controller) <: IController)
-            error("restart mismatch: controller differ from value in restart file")
-        end
-        load_PI_I_Controller!(integrator, restart_file)
-    end
-    integrator.accept_step = true
-end
-
-function load_PIDController!(integrator, restart_file::AbstractString)
-    controller = integrator.opts.controller
-    if mpi_isroot()
-        h5open(restart_file, "r") do file
-            integrator.qold = read(attributes(file)["qold"])
-            integrator.dtpropose = read(attributes(file)["dtpropose"])
-            err = read(file["controller_err"])
-            controller.err[1] = err[1]
-            controller.err[2] = err[2]
-            controller.err[3] = err[3]
-        end
-    end
-    if mpi_isparallel()
-        recv_buf = [integrator.qold, integrator.dtpropose]
-        append!(recv_buf, controller.err)
         MPI.Bcast!(recv_buf, mpi_root(), mpi_comm())
-        integrator.qold = recv_buf[1]
-        integrator.dtpropose = recv_buf[2]
-        controller.err[1] = recv_buf[3]
-        controller.err[2] = recv_buf[4]
-        controller.err[3] = recv_buf[5]
-    end
-end
-
-function load_PI_I_Controller!(integrator, restart_file::AbstractString)
-    controller = integrator.opts.controller
-    if mpi_isroot()
-        h5open(restart_file, "r") do file
-            integrator.qold = read(attributes(file)["qold"])
-            integrator.dtpropose = read(attributes(file)["dtpropose"])
+        integrator.qold, integrator.dtpropose, integrator.accept_step = recv_buf[1:3]
+        if :err in fieldnames(typeof(controller))
+            controller.err[1:3] = recv_buf[4:6]
         end
-    end
-    if mpi_isparallel()
-        recv_buf = [integrator.qold, integrator.dtpropose]
-        MPI.Bcast!(recv_buf, mpi_root(), mpi_comm())
-        integrator.qold, integrator.dtpropose = recv_buf
     end
 end
 

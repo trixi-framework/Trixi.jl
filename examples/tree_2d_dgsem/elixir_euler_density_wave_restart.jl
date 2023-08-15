@@ -1,4 +1,3 @@
-+
 using OrdinaryDiffEq
 using Trixi
 
@@ -31,7 +30,7 @@ save_solution.condition.save_initial_solution = false
 
 alg = SSPRK43()
 integrator = init(ode, alg,
-                  dt = dt; # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = dt; 
                   save_everystep = false, callback = callbacks, controller = controller,
                   ode_default_options()...)
 load_controller!(integrator, restart_filename)
