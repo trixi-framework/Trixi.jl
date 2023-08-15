@@ -30,7 +30,7 @@ save_solution.condition.save_initial_solution = false
 
 alg = SSPRK43()
 integrator = init(ode, alg,
-                  dt = dt; 
+                  dt = dt;
                   save_everystep = false, callback = callbacks, controller = controller,
                   ode_default_options()...)
 load_controller!(integrator, restart_filename)

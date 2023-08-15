@@ -164,12 +164,14 @@ function load_controller!(integrator, restart_file::AbstractString)
     controller = integrator.opts.controller
     if mpi_isroot()
         h5open(restart_file, "r") do file
-            if ("qold" in keys(attributes(file))) && ("dtpropose" in keys(attributes(file)))
+            if ("qold" in keys(attributes(file))) &&
+               ("dtpropose" in keys(attributes(file)))
                 integrator.qold = read(attributes(file)["qold"])
                 integrator.dtpropose = read(attributes(file)["dtpropose"])
                 integrator.accept_step = true
             end
-            if (:err in fieldnames(typeof(controller))) && ("controller_err" in keys(attributes(file)))
+            if (:err in fieldnames(typeof(controller))) &&
+               ("controller_err" in keys(attributes(file)))
                 controller.err[1:3] = read(attributes(file)["controller_err"])
             end
         end

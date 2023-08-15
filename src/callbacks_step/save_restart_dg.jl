@@ -347,5 +347,4 @@ function save_restart_controller(integrator,
         MPI.Barrier(mpi_comm())
     end
 end
-
 end # @muladd
