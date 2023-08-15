@@ -30,7 +30,6 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
                    !occursin("--code-coverage=none", cmd)
         if !(coverage && Sys.iswindows()) && !(coverage && Sys.isapple())
             # We provide a `--heap-size-hint` to avoid/reduce out-of-memory errors during CI testing
-            # TODO: remove this line
             mpiexec() do cmd
                 run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes --heap-size-hint=0.5G $(abspath("test_mpi.jl"))`)
             end
