@@ -21,7 +21,7 @@ surface_flux = flux_lax_friedrichs
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=surface_flux,
                                                  volume_flux_fv=surface_flux)
-                                                 
+
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinate_min = 0.0
@@ -59,7 +59,7 @@ end
 
 boundary_conditions = (x_neg=boundary_condition_inflow,
                        x_pos=boundary_condition_outflow)
-                       
+
 initial_condition = initial_condition_shock
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -79,7 +79,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl=0.9)
+stepsize_callback = StepsizeCallback(cfl=0.85)
 
 
 callbacks = CallbackSet(summary_callback,

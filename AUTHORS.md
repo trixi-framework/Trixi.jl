@@ -24,9 +24,11 @@ are listed in alphabetical order:
 
 * Maximilian D. Bertrand
 * Benjamin Bolm
+* Simon Candelaresi
 * Jesse Chan
 * Lars Christmann
 * Christof Czernik
+* Daniel Doehring
 * Patrick Ersing
 * Erik Faulhaber
 * Gregor Gassner

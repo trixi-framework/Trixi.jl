@@ -29,5 +29,5 @@ coverage_report/
 
 run
 run/*
-trixi
-trixi/*
+
+LocalPreferences.toml

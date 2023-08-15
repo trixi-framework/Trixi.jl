@@ -52,7 +52,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.8'
+          - '1.9'
+          # - '~1.9.0-0' # including development versions
           # - 'nightly'
         os:
           - ubuntu-latest
@@ -68,6 +69,7 @@ jobs:
           - structured
           - p4est_part1
           - p4est_part2
+          - t8code_part1
           - unstructured_dgmulti
           - parabolic
           - paper_self_gravitating_gas_dynamics
@@ -79,18 +81,22 @@ jobs:
           - threaded
         include:
           - version: '1.8'
+            os: ubuntu-latest
+            arch: x64
+            trixi_test: threaded_legacy
+          - version: '1.9'
             os: macOS-latest
             arch: x64
             trixi_test: mpi
-          - version: '1.8'
+          - version: '1.9'
             os: macOS-latest
             arch: x64
             trixi_test: threaded
-          - version: '1.8'
+          - version: '1.9'
             os: windows-latest
             arch: x64
             trixi_test: mpi
-          - version: '1.8'
+          - version: '1.9'
             os: windows-latest
             arch: x64
             trixi_test: threaded
@@ -121,7 +127,7 @@ jobs:
           TRIXI_TEST: ${{ matrix.trixi_test }}
       - uses: julia-actions/julia-processcoverage@v1
         with:
-          directories: src,examples
+          directories: src,examples,ext
       - uses: codecov/codecov-action@v3
         with:
           file: ./lcov.info

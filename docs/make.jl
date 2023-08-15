@@ -94,6 +94,7 @@ makedocs(
         "Getting started" => [
             "Overview" => "overview.md",
             "Visualization" => "visualization.md",
+            "Restart simulation" => "restart.md",
         ],
         "Tutorials" => tutorials,
         "Basic building blocks" => [

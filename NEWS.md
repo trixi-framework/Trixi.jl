@@ -9,6 +9,9 @@ for human readability.
 #### Added
 
 - Experimental support for 3D parabolic diffusion terms has been added.
+- Non-uniform `TreeMesh` available for hyperbolic-parabolic equations.
+- Capability to set truly discontinuous initial conditions in 1D.
+- Wetting and drying feature and examples for 1D and 2D shallow water equations
 
 #### Changed
 

@@ -4,8 +4,8 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the ideal MHD equations
-equations = IdealGlmMhdMulticomponentEquations1D(gammas           = (2.0, 2.0, 2.0),
-                                                 gas_constants    = (2.0, 2.0, 2.0))
+equations = IdealGlmMhdMulticomponentEquations1D(gammas        = (2.0, 2.0, 2.0),
+                                                 gas_constants = (2.0, 2.0, 2.0))
 
 initial_condition = initial_condition_weak_blast_wave
 

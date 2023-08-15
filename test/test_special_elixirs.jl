@@ -30,6 +30,12 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
         @test isapprox(mean_convergence[:l2], [4.0], rtol=0.05)
       end
 
+      @timed_testset "structured_2d_dgsem coupled" begin
+        mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_coupled.jl"), 3)
+        @test isapprox(mean_convergence[1][:l2], [4.0], rtol=0.05)
+        @test isapprox(mean_convergence[2][:l2], [4.0], rtol=0.05)
+      end
+
       @timed_testset "p4est_2d_dgsem" begin
         # Run convergence test on unrefined mesh
         no_refine = @cfunction((p4est, which_tree, quadrant) -> Cint(0), Cint, (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p4est_quadrant_t}))
@@ -57,6 +63,7 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
       @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
       @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 2, initial_refinement_level=0, tspan=(0.0, 0.1))
       @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
+      @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_coupled.jl"), 2, tspan=(0.0, 0.01))
       @test_nowarn_mod convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 2, cells_per_dimension=(1, 1), tspan=(0.0, 0.1))
     end
   end
@@ -96,6 +103,15 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
 
       J = jacobian_fd(semi)
       @test Matrix(A) ≈ J
+      λ = eigvals(J)
+      @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+    end
+
+    @timed_testset "Linear advection-diffusion" begin
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_diffusion.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=2)
+
+      J = jacobian_ad_forward(semi)
       λ = eigvals(J)
       @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
     end
@@ -156,6 +172,15 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
         λ = eigvals(J)
         @test maximum(real, λ) < 7.0e-7
       end
+    end
+
+    @timed_testset "Navier-Stokes" begin
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_navierstokes_taylor_green_vortex.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=2)
+
+      J = jacobian_ad_forward(semi)
+      λ = eigvals(J)
+      @test maximum(real, λ) < 0.2
     end
 
     @timed_testset "MHD" begin

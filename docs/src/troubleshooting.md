@@ -175,14 +175,16 @@ to execute the following Julia code.
 
 ```julia
 using Preferences, UUIDs
-set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileNonStiff" => true)
-set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileStiff" => false)
-set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileAutoSwitch" => false)
-set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileLowStorage" => true)
-set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileDefaultSpecialize" => true)
-set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileAutoSpecialize" => false)
-set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileFunctionWrapperSpecialize" => false)
-set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileNoSpecialize" => false)
+let uuid = UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed")
+  set_preferences!(uuid, "PrecompileAutoSpecialize" => false)
+  set_preferences!(uuid, "PrecompileAutoSwitch" => false)
+  set_preferences!(uuid, "PrecompileDefaultSpecialize" => true)
+  set_preferences!(uuid, "PrecompileFunctionWrapperSpecialize" => false)
+  set_preferences!(uuid, "PrecompileLowStorage" => true)
+  set_preferences!(uuid, "PrecompileNoSpecialize" => false)
+  set_preferences!(uuid, "PrecompileNonStiff" => true)
+  set_preferences!(uuid, "PrecompileStiff" => false)
+end
 ```
 
 This disables precompilation of all implicit methods. This should usually not affect

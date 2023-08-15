@@ -17,6 +17,16 @@
   <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
 
+***
+**Trixi.jl at JuliaCon 2023**<br/>
+At this year's JuliaCon, we will be present with an online contribution that involves Trixi.jl:
+
+* [Scaling Trixi.jl to more than 10,000 cores using MPI](https://pretalx.com/juliacon2023/talk/PC8PZ8/),
+  27th July 2023, 10:30–11:30 (US/Eastern), 32-G449 (Kiva)
+
+We are looking forward to seeing you there ♥️
+***
+
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
@@ -64,7 +74,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi.jl works
-with Julia v1.8.
+with Julia v1.8 and newer. We recommend using the latest stable release of Julia.
 
 ### For users
 Trixi.jl and its related tools are registered Julia packages. Hence, you
