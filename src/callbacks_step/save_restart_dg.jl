@@ -330,14 +330,21 @@ end
 
 function save_restart_controller(integrator,
                                  controller, restart_callback)
+    # Save only on root
     if mpi_isroot()
         @unpack output_directory = restart_callback
         timestep = integrator.stats.naccept
+
+        # Filename based on current time step
         filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+
         # Open file (preserve existing content)
         h5open(filename, "cw") do file
+            # Add context information as attributes
             attributes(file)["qold"] = integrator.qold
-            attributes(file)["dtpropose"] = integrator.dtpropose
+            # Ensure that `dtpropose` is written as a double precision scalar
+            attributes(file)["dtpropose"] = convert(Float64, integrator.dtpropose)
+            # For PIDController is necessary to save additional parameters
             if :err in fieldnames(typeof(controller))
                 attributes(file)["controller_err"] = controller.err
             end

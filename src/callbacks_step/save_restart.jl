@@ -162,29 +162,20 @@ end
 
 function load_controller!(integrator, restart_file::AbstractString)
     controller = integrator.opts.controller
-    if mpi_isroot()
-        h5open(restart_file, "r") do file
-            if ("qold" in keys(attributes(file))) &&
-               ("dtpropose" in keys(attributes(file)))
-                integrator.qold = read(attributes(file)["qold"])
-                integrator.dtpropose = read(attributes(file)["dtpropose"])
-                integrator.accept_step = true
-            end
-            if (:err in fieldnames(typeof(controller))) &&
-               ("controller_err" in keys(attributes(file)))
-                controller.err[1:3] = read(attributes(file)["controller_err"])
-            end
+    # Read context information for controller
+    h5open(restart_file, "r") do file
+        # Ensure that necessary information was saved
+        if ("qold" in keys(attributes(file))) &&
+            ("dtpropose" in keys(attributes(file)))
+            integrator.qold = read(attributes(file)["qold"])
+            integrator.dtpropose = read(attributes(file)["dtpropose"])
+            # Accept step to use dtpropose already in the first step
+            integrator.accept_step = true
         end
-    end
-    if mpi_isparallel()
-        recv_buf = [integrator.qold, integrator.dtpropose, integrator.accept_step]
-        if :err in fieldnames(typeof(controller))
-            append!(recv_buf, controller.err)
-        end
-        MPI.Bcast!(recv_buf, mpi_root(), mpi_comm())
-        integrator.qold, integrator.dtpropose, integrator.accept_step = recv_buf[1:3]
-        if :err in fieldnames(typeof(controller))
-            controller.err[1:3] = recv_buf[4:6]
+        # Load additional parameters for PIDController
+        if (:err in fieldnames(typeof(controller))) &&
+           ("controller_err" in keys(attributes(file)))
+            controller.err[1:3] = read(attributes(file)["controller_err"])
         end
     end
 end
