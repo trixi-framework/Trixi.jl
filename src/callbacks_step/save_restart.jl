@@ -166,7 +166,7 @@ function load_controller!(integrator, restart_file::AbstractString)
     h5open(restart_file, "r") do file
         # Ensure that necessary information was saved
         if ("qold" in keys(attributes(file))) &&
-            ("dtpropose" in keys(attributes(file)))
+           ("dtpropose" in keys(attributes(file)))
             integrator.qold = read(attributes(file)["qold"])
             integrator.dtpropose = read(attributes(file)["dtpropose"])
             # Accept step to use dtpropose already in the first step
