@@ -121,6 +121,7 @@ include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("semidiscretization/semidiscretization_coupled_dynamic.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
@@ -244,7 +245,7 @@ export SemidiscretizationEulerAcoustics
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
-export SemidiscretizationCoupled
+export SemidiscretizationCoupled, SemidiscretizationCoupledDynamic
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
