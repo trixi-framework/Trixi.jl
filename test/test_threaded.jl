@@ -145,14 +145,6 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
       end
     end
-    @trixi_testset "elixir_euler_density_wave_restart.jl" begin
-      using OrdinaryDiffEq: IController
-      trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_extended.jl"), controller = IController())
-      l2, linf = analysis_callback(sol)
-      :@test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_restart.jl"), controller = IController(),
-        # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl
-        l2 = l2, linf = linf)
-    end
   end
 
 
