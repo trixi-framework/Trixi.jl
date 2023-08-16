@@ -23,10 +23,9 @@ solver = DGSEM(polydeg = 3,
 coordinates_min = (-1.0, -1.0, -1.0) # minimum coordinates (min(x), min(y), min(z))
 coordinates_max = (1.0, 1.0, 1.0) # maximum coordinates (max(x), max(y), max(z))
 
-# Create a uniformly refined mesh with periodic boundaries
+# Create a uniformly refined mesh
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 1,
-		periodicity=(true, false, true),
+                initial_refinement_level = 2,
                 n_cells_max = 50_000) # set maximum capacity of tree data structure
 
 function initial_condition_constant_alfven(x, t, equations)
