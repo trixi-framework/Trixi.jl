@@ -12,8 +12,7 @@ The semidiscretizations can be coupled by gluing meshes together using [`Boundar
 struct SemidiscretizationCoupledDynamic{S, Indices, EquationList} <: AbstractSemidiscretization
     semis::S
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
-    # converters::Array
-    # TODO: Add coupling functions.
+    domain_marker::Array
     performance_counter::PerformanceCounter
 end
 
@@ -27,10 +26,19 @@ function SemidiscretizationCoupledDynamic(semis...)
 
     # Number of coefficients for each semidiscretization
     n_coefficients = zeros(Int, length(semis))
+    domain_marker = 0
     for i in 1:length(semis)
-        _, equations, _, _ = mesh_equations_solver_cache(semis[i])
+        _, equations, _, cache = mesh_equations_solver_cache(semis[i])
         n_coefficients[i] = ndofs(semis[i]) * nvariables(equations)
+        if i == 1
+            # Allocate memory for the domain markers.
+            domain_marker = zeros(Int8, size(cache.elements.node_coordinates[1, :, :, :]))
+        end
+        # TODO: do not hard code this.
+        domain_marker[cache.elements.node_coordinates[1, :, :, :] .<= 0] .= 1
+        domain_marker[cache.elements.node_coordinates[1, :, :, :] .> 0] .= 2
     end
+
 
     # Compute range of coefficients associated with each semidiscretization.
     u_indices = Vector{UnitRange{Int}}(undef, length(semis))
@@ -42,7 +50,7 @@ function SemidiscretizationCoupledDynamic(semis...)
     performance_counter = PerformanceCounter()
 
     SemidiscretizationCoupledDynamic{typeof(semis), typeof(u_indices), typeof(performance_counter)
-                                     }(semis, u_indices, performance_counter)
+                                     }(semis, u_indices, domain_marker, performance_counter)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupledDynamic)
@@ -143,19 +151,13 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledDynamic, t)
 
     time_start = time_ns()
 
-    # TODO: perform instead the dynamic copy.
-    @trixi_timeit timer() "copy to coupled boundaries" begin
-        for semi_ in semi.semis
-            copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi)
-        end
-    end
-
     # Call rhs! for each semidiscretization
     for i in eachsystem(semi)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
 
         @trixi_timeit timer() "system #$i" rhs!(du_loc, u_loc, semi.semis[i], t)
+        copy_to_coupled_boundary!(u_loc, i, semi)
     end
 
     runtime = time_ns() - time_start
@@ -308,10 +310,40 @@ end
                                     solution_callback,
                                     integrator)
     @unpack semis = semi
+    @unpack t, dt = integrator
 
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[1])
+
+    # Save the solution.
     for i in eachsystem(semi)
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        save_solution_file(semis[i], u_ode_slice, solution_callback, integrator, system = i)
+        save_solution_file(semis[i], u_ode_slice, solution_callback, integrator)
+    end
+
+    # Save the domain boundary.
+    @unpack output_directory, solution_variables = solution_callback
+    timestep = integrator.stats.naccept
+    filename = joinpath(output_directory, @sprintf("domain_indices_%06d.h5", timestep))
+    # Open file (clobber existing content)
+    h5open(filename, "w") do file
+        # Add context information as attributes
+        attributes(file)["ndims"] = ndims(mesh)
+        # attributes(file)["equations"] = get_name(equations)
+        attributes(file)["polydeg"] = polydeg(solver)
+        attributes(file)["n_vars"] = 1
+        attributes(file)["n_elements"] = nelements(solver, cache)
+        attributes(file)["mesh_type"] = get_name(mesh)
+        attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
+        attributes(file)["time"] = convert(Float64, t) # Ensure that `time` is written as a double precision scalar
+        attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
+        attributes(file)["timestep"] = timestep
+
+        # Store each variable of the solution data
+        file["variables_1"] = vec(semi.domain_marker)
+
+        # Add variable name as attribute
+        var = file["variables_1"]
+        attributes(var)["name"] = "domain_marker"
     end
 end
 
@@ -398,57 +430,57 @@ end
 # end
 
 
-# # TODO: adapt to the dynamic stuff.
-# # In 2D
-# function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2}, u_ode,
-#                                    semi)
-#     @unpack u_indices = semi
-#     @unpack other_semi_index, other_orientation, indices = boundary_condition
+# In 2D
+function copy_to_coupled_boundary!(u_loc, i, semi_coupled)
+    @unpack u_indices = semi_coupled
 
-#     mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
-#     u = wrap_array(get_system_u_ode(u_ode, other_semi_index, semi), mesh, equations, solver,
-#                    cache)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi_coupled.semis[i])
+    u_loc = wrap_array(u_loc, mesh, equations, solver, cache)
+    a = @view u_loc[1, :, :, :]
+    a[semi_coupled.domain_marker .!= i] .= 1.0
+    a = @view u_loc[2, :, :, :]
+    a[semi_coupled.domain_marker .!= i] .= 0.0
+    a = @view u_loc[3, :, :, :]
+    a[semi_coupled.domain_marker .!= i] .= 0.0
+    a = @view u_loc[4, :, :, :]
+    a[semi_coupled.domain_marker .!= i] .= 1.0
+    # u_loc[1, :, :, :][semi_coupled.domain_marker .!= i] .= 1.0
+    # u_loc[2, :, :, :][semi_coupled.domain_marker .!= i] .= 0.0
+    # u_loc[3, :, :, :][semi_coupled.domain_marker .!= i] .= 0.0
+    # u_loc[4, :, :, :][semi_coupled.domain_marker .!= i] .= 1.0
 
-#     linear_indices = LinearIndices(size(mesh))
+    # Copy the values of the other system the the boundary values.
 
-#     if other_orientation == 1
-#         cells = axes(mesh, 2)
-#     else # other_orientation == 2
-#         cells = axes(mesh, 1)
-#     end
+    # linear_indices = LinearIndices(size(mesh))
 
-#     # Copy solution data to the coupled boundary using "delayed indexing" with
-#     # a start value and a step size to get the correct face and orientation.
-#     node_index_range = eachnode(solver)
-#     i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
-#     j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
+    # i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
+    # j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
 
-#     i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh, 1))
-#     j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh, 2))
+    # i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh, 1))
+    # j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh, 2))
 
-#     i_cell = i_cell_start
-#     j_cell = j_cell_start
+    # i_cell = i_cell_start
+    # j_cell = j_cell_start
 
-#     for cell in cells
-#         i_node = i_node_start
-#         j_node = j_node_start
+    # for cell in cells
+    #     i_node = 1
+    #     j_node = 1
 
-#         for i in eachnode(solver)
-#             for v in 1:size(u, 1)
-#                 x = cache.elements.node_coordinates[:, i_node, j_node, linear_indices[i_cell, j_cell]]
-#                 converted_u = boundary_condition.coupling_converter(x, u[:, i_node, j_node, linear_indices[i_cell, j_cell]])
-#                 boundary_condition.u_boundary[v, i, cell] = converted_u[v]
-#                 # boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node,
-#                 #                                               linear_indices[i_cell,
-#                 #                                                              j_cell]]
-#             end
-#             i_node += i_node_step
-#             j_node += j_node_step
-#         end
-#         i_cell += i_cell_step
-#         j_cell += j_cell_step
-#     end
-# end
+    #         for v in 1:size(u, 1)
+    #             x = cache.elements.node_coordinates[:, i_node, j_node, linear_indices[i_cell, j_cell]]
+    #             converted_u = boundary_condition.coupling_converter(x, u[:, i_node, j_node, linear_indices[i_cell, j_cell]])
+    #             boundary_condition.u_boundary[v, i, cell] = converted_u[v]
+
+    #             # boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node,
+    #             #                                               linear_indices[i_cell,
+    #             #                                                              j_cell]]
+    #         end
+    #         i_node += i_node_step
+    #         j_node += j_node_step
+    #     i_cell += 1
+    #     j_cell += 1
+    # end
+end
 
 
 # function get_boundary_indices(element, orientation, mesh::StructuredMesh{2})
