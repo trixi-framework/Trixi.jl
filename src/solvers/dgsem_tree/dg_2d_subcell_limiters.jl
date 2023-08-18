@@ -22,11 +22,11 @@ function create_cache(mesh::TreeMesh{2}, equations,
     flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.nthreads()]
 
-    container_antidiffusive_flux = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0,
-                                                                               nvariables(equations),
-                                                                               nnodes(dg))
+    antidiffusive_fluxes = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0,
+                                                                       nvariables(equations),
+                                                                       nnodes(dg))
 
-    return (; cache..., container_antidiffusive_flux, fhat1_threaded, fhat2_threaded,
+    return (; cache..., antidiffusive_fluxes, fhat1_threaded, fhat2_threaded,
             flux_temp_threaded)
 end
 
@@ -169,7 +169,7 @@ end
 @inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
 
     for j in eachnode(dg), i in 2:nnodes(dg)
         for v in eachvariable(equations)
