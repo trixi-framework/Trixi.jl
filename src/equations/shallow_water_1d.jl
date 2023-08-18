@@ -653,7 +653,7 @@ end
     c_rr = sqrt(equations.gravity * h_rr)
 
     λ_min = min(v_ll - c_ll, v_rr - c_rr)
-    λ_max = max(v_rr + c_rr, v_rr + c_rr)
+    λ_max = max(v_ll + c_ll, v_rr + c_rr)
 
     return λ_min, λ_max
 end

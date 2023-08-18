@@ -8,12 +8,12 @@
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, number_bounds)
-    container_subcell_limiter = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
-                                                                   }(0,
-                                                                     nnodes(basis),
-                                                                     number_bounds)
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
+                                                                      }(0,
+                                                                        nnodes(basis),
+                                                                        number_bounds)
 
-    cache = (; container_subcell_limiter)
+    cache = (; subcell_limiter_coefficients)
 
     return cache
 end
@@ -21,7 +21,7 @@ end
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
                                       dt;
                                       kwargs...)
-    @unpack alpha = limiter.cache.container_subcell_limiter
+    @unpack alpha = limiter.cache.subcell_limiter_coefficients
     alpha .= zero(eltype(alpha))
 
     if limiter.positivity
@@ -30,7 +30,7 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
     end
 
     # Calculate alpha1 and alpha2
-    @unpack alpha1, alpha2 = limiter.cache.container_subcell_limiter
+    @unpack alpha1, alpha2 = limiter.cache.subcell_limiter_coefficients
     @threaded for element in eachelement(dg, semi.cache)
         for j in eachnode(dg), i in 2:nnodes(dg)
             alpha1[i, j, element] = max(alpha[i - 1, j, element], alpha[i, j, element])
@@ -58,11 +58,11 @@ end
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi, variable, index)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
     @unpack inverse_weights = dg.basis
     @unpack positivity_correction_factor = limiter
 
-    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
 
     var_min = variable_bounds[index]
 
