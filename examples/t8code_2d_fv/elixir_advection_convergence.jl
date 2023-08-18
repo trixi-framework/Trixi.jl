@@ -16,26 +16,26 @@ using T8code.Libt8: SC_LP_PRODUCTION
 # Directly ported from: `src/t8_cmesh/t8_cmesh_examples.c: t8_cmesh_new_periodic_hybrid`.
 function cmesh_new_periodic_hybrid(comm, n_dims)::t8_cmesh_t
 	vertices = [  # Just all vertices of all trees. partly duplicated
-	    -5.0, -5.0, 0, # tree 0, triangle
-		0, -5.0, 0,
+	    -1.0, -1.0, 0, # tree 0, triangle
+		0, -1.0, 0,
 		0, 0, 0,
-		-5.0, -5.0, 0, # tree 1, triangle
+		-1.0, -1.0, 0, # tree 1, triangle
 		0, 0, 0,
-		-5.0, 0, 0,
-		0, -5.0, 0,    # tree 2, quad
-		5, -5, 0,
+		-1.0, 0, 0,
+		0, -1.0, 0,    # tree 2, quad
+		1.0, -1.0, 0,
 		0, 0, 0,
-		5, 0, 0,
-		-5, 0, 0,      # tree 3, quad
+		1.0, 0, 0,
+		-1.0, 0, 0,    # tree 3, quad
 		0, 0, 0,
-		-5, 5, 0,
-		0, 5, 0,
+		-1.0, 1.0, 0,
+		0, 1.0, 0,
 		0, 0, 0,       # tree 4, triangle
-		5, 0, 0,
-		5, 5, 0,
+		1.0, 0, 0,
+		1.0, 1.0, 0,
 		0, 0, 0,       # tree 5, triangle
-		5, 5, 0,
-		0, 5, 0,
+		1.0, 1.0, 0,
+		0, 1.0, 0,
 	]
 
 	# Generally, one can define other geometries. But besides linear the other
@@ -44,7 +44,7 @@ function cmesh_new_periodic_hybrid(comm, n_dims)::t8_cmesh_t
 
 	#
 	# This is how the cmesh looks like. The numbers are the tree numbers:
-	# Domain size [-5,5]^2
+	# Domain size [-1,1]^2
     #
 	#   +---+---+
 	#   |   |5 /|
