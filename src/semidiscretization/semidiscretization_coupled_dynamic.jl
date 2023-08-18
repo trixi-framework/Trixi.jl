@@ -157,7 +157,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledDynamic, t)
         du_loc = get_system_u_ode(du_ode, i, semi)
 
         @trixi_timeit timer() "system #$i" rhs!(du_loc, u_loc, semi.semis[i], t)
-        copy_to_coupled_boundary!(u_loc, i, semi)
+        copy_to_coupled_boundary!(u_loc, u_ode, i, semi)
     end
 
     runtime = time_ns() - time_start
@@ -317,7 +317,7 @@ end
     # Save the solution.
     for i in eachsystem(semi)
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        save_solution_file(semis[i], u_ode_slice, solution_callback, integrator)
+        save_solution_file(semis[i], u_ode_slice, solution_callback, integrator, system = i)
     end
 
     # Save the domain boundary.
@@ -431,19 +431,32 @@ end
 
 
 # In 2D
-function copy_to_coupled_boundary!(u_loc, i, semi_coupled)
+function copy_to_coupled_boundary!(u_loc, u_ode, i, semi_coupled)
     @unpack u_indices = semi_coupled
 
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi_coupled.semis[i])
     u_loc = wrap_array(u_loc, mesh, equations, solver, cache)
+
+    j = 1
+    if i == 1
+        j = 2
+    end
+    u_other = get_system_u_ode(u_ode, j, semi_coupled)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi_coupled.semis[j])
+    u_other = wrap_array(u_other, mesh, equations, solver, cache)
+
     a = @view u_loc[1, :, :, :]
-    a[semi_coupled.domain_marker .!= i] .= 1.0
+    b = @view u_other[1, :, :, :]
+    a[semi_coupled.domain_marker .!= i] = deepcopy(b[semi_coupled.domain_marker .!= i]|)
     a = @view u_loc[2, :, :, :]
-    a[semi_coupled.domain_marker .!= i] .= 0.0
+    b = @view u_other[2, :, :, :]
+    a[semi_coupled.domain_marker .!= i] = deepcopy(b[semi_coupled.domain_marker .!= i])
     a = @view u_loc[3, :, :, :]
-    a[semi_coupled.domain_marker .!= i] .= 0.0
+    b = @view u_other[3, :, :, :]
+    a[semi_coupled.domain_marker .!= i] = deepcopy(b[semi_coupled.domain_marker .!= i])
     a = @view u_loc[4, :, :, :]
-    a[semi_coupled.domain_marker .!= i] .= 1.0
+    b = @view u_other[4, :, :, :]
+    a[semi_coupled.domain_marker .!= i] = deepcopy(b[semi_coupled.domain_marker .!= i])
     # u_loc[1, :, :, :][semi_coupled.domain_marker .!= i] .= 1.0
     # u_loc[2, :, :, :][semi_coupled.domain_marker .!= i] .= 0.0
     # u_loc[3, :, :, :][semi_coupled.domain_marker .!= i] .= 0.0
