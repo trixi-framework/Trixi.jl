@@ -370,6 +370,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                                           t = t, iter = iter)
 
     if mpi_isparallel()
+        error("MPI has not been verified yet for parabolic AMR")
+
         # Collect lambda for all elements
         lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(dg, cache))
         # Use parent because n_elements_by_rank is an OffsetArray
@@ -401,7 +403,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                                                       to_refine)
 
         # Find all indices of elements whose cell ids are in refined_original_cells
-        # NOTE: This assumes same indices for hyperbolic and parabolic part!
+        # Note: This assumes same indices for hyperbolic and parabolic part.
         elements_to_refine = findall(in(refined_original_cells),
                                      cache.elements.cell_ids)
 
@@ -466,7 +468,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         end
 
         # Find all indices of elements whose cell ids are in removed_child_cells
-        # NOTE: This assumes same indices for hyperbolic and parabolic part!
+        # Note: This assumes same indices for hyperbolic and parabolic part.
         elements_to_remove = findall(in(removed_child_cells), cache.elements.cell_ids)
 
         # coarsen solver
@@ -487,6 +489,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
     # Dynamically balance computational load by first repartitioning the mesh and then redistributing the cells/elements
     if has_changed && mpi_isparallel() && amr_callback.dynamic_load_balancing
+        error("MPI has not been verified yet for parabolic AMR")
+
         @trixi_timeit timer() "dynamic load balancing" begin
             old_mpi_ranks_per_cell = copy(mesh.tree.mpi_ranks)
 
