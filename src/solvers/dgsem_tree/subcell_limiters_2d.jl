@@ -6,8 +6,7 @@
 #! format: noindent
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
-function create_cache(indicator::Type{SubcellLimiterIDP},
-                      equations::AbstractEquations{2},
+function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, number_bounds)
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
                                                                       }(0,
