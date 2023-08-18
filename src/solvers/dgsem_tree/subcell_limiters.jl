@@ -103,8 +103,8 @@ end
 
 function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
                              ::VolumeIntegralSubcellLimiting, equations)
-    node_variables[:alpha_limiter] = limiter.cache.container_subcell_limiter.alpha
-    # Note: alpha is not filled before the first timestep. (TODO?)
+    node_variables[:alpha_limiter] = limiter.cache.subcell_limiter_coefficients.alpha
+    # Note: The coefficients are uninitialized in the first solution file.
     return nothing
 end
 end # @muladd
