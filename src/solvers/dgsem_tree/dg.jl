@@ -55,7 +55,7 @@ include("containers.jl")
 include("dg_parallel.jl")
 
 # Helper struct for parabolic AMR
-include("cache_viscous.jl")
+include("container_viscous_1d.jl")
 
 # 1D DG implementation
 include("dg_1d.jl")
