@@ -356,19 +356,12 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     return has_changed
 end
 
-# `passive_args` is currently used for Euler with self-gravity to adapt the gravity solver
-# passively without querying its indicator, based on the assumption that both solvers use
-# the same mesh. That's a hack and should be improved in the future once we have more examples
-# and a better understanding of such a coupling.
-# `passive_args` is expected to be an iterable of `Tuple`s of the form
-# `(p_u_ode, p_mesh, p_equations, p_dg, p_cache)`.
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                      equations, dg::DG,
                                      cache, cache_parabolic,
                                      semi::SemidiscretizationHyperbolicParabolic,
                                      t, iter;
-                                     only_refine = false, only_coarsen = false,
-                                     passive_args = ())
+                                     only_refine = false, only_coarsen = false)
     @unpack controller, adaptor = amr_callback
 
     u = wrap_array(u_ode, mesh, equations, dg, cache)
@@ -416,11 +409,6 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         @trixi_timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg,
                                                cache, cache_parabolic,
                                                elements_to_refine)
-        for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
-            @trixi_timeit timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh,
-                                                           p_equations, p_dg, p_cache,
-                                                           elements_to_refine)
-        end
     else
         # If there is nothing to refine, create empty array for later use
         refined_original_cells = Int[]
@@ -485,12 +473,6 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         @trixi_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg,
                                                 cache, cache_parabolic,
                                                 elements_to_remove)
-
-        for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
-            @trixi_timeit timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh,
-                                                            p_equations, p_dg, p_cache,
-                                                            elements_to_remove)
-        end
     else
         # If there is nothing to coarsen, create empty array for later use
         coarsened_original_cells = Int[]
