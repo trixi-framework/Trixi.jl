@@ -20,7 +20,8 @@ mutable struct ViscousContainer1D{uEltype <: Real}
 end
 
 function init_viscous_container(n_vars::Integer, n_nodes::Integer,
-                                n_elements::Integer, ::Type{uEltype}) where {uEltype <: Real}
+                                n_elements::Integer,
+                                ::Type{uEltype}) where {uEltype <: Real}
     return ViscousContainer1D{uEltype}(n_vars, n_nodes, n_elements)
 end
 
@@ -30,7 +31,6 @@ end
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
 function Base.resize!(viscous_container::ViscousContainer1D, equations, dg, cache)
-
     capacity = nvariables(equations) * nnodes(dg) * nelements(dg, cache)
     resize!(viscous_container._u_transformed, capacity)
     resize!(viscous_container._gradients, capacity)
