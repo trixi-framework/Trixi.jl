@@ -174,6 +174,46 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
+"""
+    VolumeIntegralSubcellLimiting(limiter;
+                                  volume_flux_dg, volume_flux_fv)
+
+A subcell limiting volume integral type for DG methods based on subcell blending approaches
+with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
+       AbstractVolumeIntegral
+    volume_flux_dg::VolumeFluxDG
+    volume_flux_fv::VolumeFluxFV
+    limiter::Limiter
+end
+
+function VolumeIntegralSubcellLimiting(limiter; volume_flux_dg,
+                                       volume_flux_fv)
+    VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
+                                  typeof(limiter)}(volume_flux_dg, volume_flux_fv,
+                                                   limiter)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain",
+                   integral::VolumeIntegralSubcellLimiting)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        summary_header(io, "VolumeIntegralSubcellLimiting")
+        summary_line(io, "volume flux DG", integral.volume_flux_dg)
+        summary_line(io, "volume flux FV", integral.volume_flux_fv)
+        summary_line(io, "limiter", integral.limiter |> typeof |> nameof)
+        show(increment_indent(io), mime, integral.limiter)
+        summary_footer(io)
+    end
+end
+
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
 """
