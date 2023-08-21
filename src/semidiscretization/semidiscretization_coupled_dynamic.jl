@@ -21,22 +21,20 @@ end
 
 Create a coupled semidiscretization that consists of the semidiscretizations passed as arguments.
 """
-function SemidiscretizationCoupledDynamic(semis...)
+function SemidiscretizationCoupledDynamic(semis...; domain_marker=nothing)
     @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
 
     # Number of coefficients for each semidiscretization
     n_coefficients = zeros(Int, length(semis))
-    domain_marker = 0
     for i in 1:length(semis)
         _, equations, _, cache = mesh_equations_solver_cache(semis[i])
         n_coefficients[i] = ndofs(semis[i]) * nvariables(equations)
-        if i == 1
-            # Allocate memory for the domain markers.
-            domain_marker = zeros(Int8, size(cache.elements.node_coordinates[1, :, :, :]))
+        if isnothing(domain_marker)
+            if i == 1
+                # Allocate memory for the domain markers.
+                domain_marker = zeros(Int8, size(cache.elements.node_coordinates[1, :, :, :])) .+ 1
+            end
         end
-        # TODO: do not hard code this.
-        domain_marker[cache.elements.node_coordinates[1, :, :, :] .<= 0] .= 1
-        domain_marker[cache.elements.node_coordinates[1, :, :, :] .> 0] .= 2
     end
 
 
@@ -156,8 +154,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledDynamic, t)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
 
-        @trixi_timeit timer() "system #$i" rhs!(du_loc, u_loc, semi.semis[i], t)
         copy_to_coupled_boundary!(u_loc, u_ode, i, semi)
+        @trixi_timeit timer() "system #$i" rhs!(du_loc, u_loc, semi.semis[i], t)
     end
 
     runtime = time_ns() - time_start
@@ -437,49 +435,31 @@ function copy_to_coupled_boundary!(u_loc, u_ode, i, semi_coupled)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi_coupled.semis[i])
     u_loc = wrap_array(u_loc, mesh, equations, solver, cache)
 
-    j = 1
-    if i == 1
-        j = 2
+    for (j, semi) in enumerate(semi_coupled.semis)
+        if i != j
+            u_other = get_system_u_ode(u_ode, j, semi_coupled)
+            mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+            u_other = wrap_array(u_other, mesh, equations, solver, cache)
+
+            a = @view u_loc[1, :, :, :]
+            b = @view u_other[1, :, :, :]
+            a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
+            a = @view u_loc[2, :, :, :]
+            b = @view u_other[2, :, :, :]
+            a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
+            a = @view u_loc[3, :, :, :]
+            b = @view u_other[3, :, :, :]
+            a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
+            a = @view u_loc[4, :, :, :]
+            b = @view u_other[4, :, :, :]
+            a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
+            # u_loc[1, :, :, :][semi_coupled.domain_marker .!= i] .= 1.0
+            # u_loc[2, :, :, :][semi_coupled.domain_marker .!= i] .= 0.0
+            # u_loc[3, :, :, :][semi_coupled.domain_marker .!= i] .= 0.0
+            # u_loc[4, :, :, :][semi_coupled.domain_marker .!= i] .= 1.0
+        end
     end
-    u_other = get_system_u_ode(u_ode, j, semi_coupled)
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi_coupled.semis[j])
-    u_other = wrap_array(u_other, mesh, equations, solver, cache)
 
-    a = @view u_loc[1, :, :, :]
-    b = @view u_other[1, :, :, :]
-    a[semi_coupled.domain_marker .!= i] = deepcopy(b[semi_coupled.domain_marker .!= i]|)
-    a = @view u_loc[2, :, :, :]
-    b = @view u_other[2, :, :, :]
-    a[semi_coupled.domain_marker .!= i] = deepcopy(b[semi_coupled.domain_marker .!= i])
-    a = @view u_loc[3, :, :, :]
-    b = @view u_other[3, :, :, :]
-    a[semi_coupled.domain_marker .!= i] = deepcopy(b[semi_coupled.domain_marker .!= i])
-    a = @view u_loc[4, :, :, :]
-    b = @view u_other[4, :, :, :]
-    a[semi_coupled.domain_marker .!= i] = deepcopy(b[semi_coupled.domain_marker .!= i])
-    # u_loc[1, :, :, :][semi_coupled.domain_marker .!= i] .= 1.0
-    # u_loc[2, :, :, :][semi_coupled.domain_marker .!= i] .= 0.0
-    # u_loc[3, :, :, :][semi_coupled.domain_marker .!= i] .= 0.0
-    # u_loc[4, :, :, :][semi_coupled.domain_marker .!= i] .= 1.0
-
-    # Copy the values of the other system the the boundary values.
-
-    # linear_indices = LinearIndices(size(mesh))
-
-    # i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
-    # j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
-
-    # i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh, 1))
-    # j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh, 2))
-
-    # i_cell = i_cell_start
-    # j_cell = j_cell_start
-
-    # for cell in cells
-    #     i_node = 1
-    #     j_node = 1
-
-    #         for v in 1:size(u, 1)
     #             x = cache.elements.node_coordinates[:, i_node, j_node, linear_indices[i_cell, j_cell]]
     #             converted_u = boundary_condition.coupling_converter(x, u[:, i_node, j_node, linear_indices[i_cell, j_cell]])
     #             boundary_condition.u_boundary[v, i, cell] = converted_u[v]
@@ -487,12 +467,6 @@ function copy_to_coupled_boundary!(u_loc, u_ode, i, semi_coupled)
     #             # boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node,
     #             #                                               linear_indices[i_cell,
     #             #                                                              j_cell]]
-    #         end
-    #         i_node += i_node_step
-    #         j_node += j_node_step
-    #     i_cell += 1
-    #     j_cell += 1
-    # end
 end
 
 
