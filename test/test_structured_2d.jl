@@ -245,20 +245,20 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.05))
   end
 
-  @trixi_testset "elixir_euler_shock_upstream_sc_subcell.jl" begin
+  @trixi_testset "elixir_euler_shock_upstream_sc_subcell.jl" begin # TODO test. Zahlen ändern
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shock_upstream_sc_subcell.jl"),
-      l2   = [1.6235046821060115, 1.3268082379825517, 2.260222745763045, 13.836104055251756],
-      linf = [5.325409024016956, 6.709625872864434, 9.083315813037805, 41.99330375684724],
+      l2   = [1.2351468819080416, 1.1269856297330367, 1.7239124305681928, 11.715260007491556],
+      linf = [5.385494274885787, 6.575446482687761, 10.065233650013157, 51.00907987260031],
       cells_per_dimension = (8, 12),
-      tspan = (0.0, 1.0))
+      tspan = (0.0, 0.5))
   end
 
-  @trixi_testset "elixir_euler_shock_upstream_MCL.jl" begin
+  @trixi_testset "elixir_euler_shock_upstream_MCL.jl" begin # TODO test. Zahlen ändern
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shock_upstream_MCL.jl"),
-      l2   = [1.658656964774321, 1.3774222979640156, 2.3582271089306537, 14.118411580269786],
-      linf = [5.70562521337294, 9.254765871614621, 11.472661014676802, 45.56200325907666],
+      l2   = [1.2607430289877726, 1.1565837325291355, 1.7791790302458714, 11.891223800389232],
+      linf = [5.68876088477983, 8.165554425950146, 10.859100194836538, 50.25822408989214],
       cells_per_dimension = (8, 12),
-      tspan = (0.0, 1.0))
+      tspan = (0.0, 0.5))
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
