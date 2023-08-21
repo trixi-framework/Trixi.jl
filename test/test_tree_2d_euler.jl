@@ -28,10 +28,10 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
   end
   
   @trixi_testset "elixir_euler_density_wave_restart.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"),
-      # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl
-      l2 = [0.0013009966063625815, 0.00013035281976778808, 0.0002597434052551178, 0.0006677449766244259],
-      linf = [0.007425455419466154, 0.0007462672706272794, 0.0014860217930253716, 0.008824111935112455])
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"), controller = PIDController(1.0,0.5,0.2), 
+      # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl with PIDController(1.0,0.5,0.2)
+      l2 = [0.0013063218880701862, 0.0001321156420306584, 0.0002767849831618995, 0.008164564600925186],
+      linf = [0.0072404995625627855, 0.0009585625036930279, 0.0015017176517665431, 0.10856506397463761])
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
