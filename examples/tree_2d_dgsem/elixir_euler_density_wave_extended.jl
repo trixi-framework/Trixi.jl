@@ -50,6 +50,6 @@ controller = PIController(7 // 30, 2 // 15)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43();
+sol = solve(ode, RDPK3SpFSAL49();
             callback = callbacks, controller = controller, ode_default_options()...);
 summary_callback() # print the timer summary

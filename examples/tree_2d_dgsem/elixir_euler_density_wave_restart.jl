@@ -28,7 +28,7 @@ ode = semidiscretize(semi, tspan, restart_filename);
 # Do not overwrite the initial snapshot written by elixir_euler_density_wave_extended.jl.
 save_solution.condition.save_initial_solution = false
 
-alg = SSPRK43()
+alg = RDPK3SpFSAL49()
 integrator = init(ode, alg,
                   dt = dt;
                   save_everystep = false, callback = callbacks, controller = controller,
