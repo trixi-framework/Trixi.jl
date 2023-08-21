@@ -1514,7 +1514,7 @@ function Base.resize!(container::ContainerSubcellLimiterMCL2D, capacity)
     return nothing
 end
 
-# Container data structure (structure-of-arrays style) for variables used for subcell limiting useing bar states
+# Container data structure (structure-of-arrays style) for variables used for subcell limiting using bar states
 mutable struct ContainerBarStates{uEltype <: Real}
     bar_states1::Array{uEltype, 4}            # [variable, i, j, element]
     bar_states2::Array{uEltype, 4}            # [variable, i, j, element]
