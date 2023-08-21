@@ -7,7 +7,7 @@
 
 function analyze_coefficient_IDP(mesh::TreeMesh2D, equations, dg, cache, limiter)
     @unpack weights = dg.basis
-    @unpack alpha = limiter.cache.container_subcell_limiter
+    @unpack alpha = limiter.cache.subcell_limiter_coefficients
 
     alpha_avg = zero(eltype(alpha))
     total_volume = zero(eltype(alpha))
@@ -24,7 +24,7 @@ end
 
 function analyze_coefficient_IDP(mesh::StructuredMesh{2}, equations, dg, cache, limiter)
     @unpack weights = dg.basis
-    @unpack alpha = limiter.cache.container_subcell_limiter
+    @unpack alpha = limiter.cache.subcell_limiter_coefficients
 
     alpha_avg = zero(eltype(alpha))
     total_volume = zero(eltype(alpha))
@@ -42,7 +42,7 @@ end
 function analyze_coefficient_MCL(mesh::TreeMesh2D, equations, dg, cache, limiter)
     @unpack weights = dg.basis
     @unpack alpha, alpha_mean, alpha_pressure,
-    alpha_mean_pressure, alpha_entropy, alpha_mean_entropy = limiter.cache.container_subcell_limiter
+    alpha_mean_pressure, alpha_entropy, alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
 
     n_vars = nvariables(equations)
 
@@ -87,7 +87,7 @@ function analyze_coefficient_MCL(mesh::StructuredMesh{2}, equations, dg, cache,
                                  limiter)
     @unpack weights = dg.basis
     @unpack alpha, alpha_mean, alpha_pressure,
-    alpha_mean_pressure, alpha_entropy, alpha_mean_entropy = limiter.cache.container_subcell_limiter
+    alpha_mean_pressure, alpha_entropy, alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
 
     n_vars = nvariables(equations)
 

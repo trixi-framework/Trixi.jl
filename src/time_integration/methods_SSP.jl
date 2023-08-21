@@ -231,12 +231,12 @@ end
 Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
 
 function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
-    # Resize container_antidiffusive_flux
-    resize!(semi.cache.container_antidiffusive_flux, new_size)
+    # Resize container antidiffusive_fluxes
+    resize!(semi.cache.antidiffusive_fluxes, new_size)
 
-    # Resize container_subcell_limiter
+    # Resize container subcell_limiter_coefficients
     @unpack limiter = volume_integral
-    resize!(limiter.cache.container_subcell_limiter, new_size)
+    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
     # Calc subcell normal directions before StepsizeCallback
 
     if limiter isa SubcellLimiterMCL ||

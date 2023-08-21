@@ -218,7 +218,7 @@ end
 
 function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
                              ::VolumeIntegralSubcellLimiting, equations)
-    node_variables[:alpha_limiter] = limiter.cache.container_subcell_limiter.alpha
+    node_variables[:alpha_limiter] = limiter.cache.subcell_limiter_coefficients.alpha
     # TODO: alpha is not filled before the first timestep.
     return nothing
 end
@@ -394,7 +394,7 @@ function get_node_variables!(node_variables, limiter::SubcellLimiterMCL,
     if !limiter.Plotting
         return nothing
     end
-    @unpack alpha = limiter.cache.container_subcell_limiter
+    @unpack alpha = limiter.cache.subcell_limiter_coefficients
     variables = varnames(cons2cons, equations)
     for v in eachvariable(equations)
         s = Symbol("alpha_", variables[v])
@@ -402,28 +402,28 @@ function get_node_variables!(node_variables, limiter::SubcellLimiterMCL,
     end
 
     if limiter.PressurePositivityLimiterKuzmin
-        @unpack alpha_pressure = limiter.cache.container_subcell_limiter
+        @unpack alpha_pressure = limiter.cache.subcell_limiter_coefficients
         node_variables[:alpha_pressure] = alpha_pressure
     end
 
     if limiter.SemiDiscEntropyLimiter
-        @unpack alpha_entropy = limiter.cache.container_subcell_limiter
+        @unpack alpha_entropy = limiter.cache.subcell_limiter_coefficients
         node_variables[:alpha_entropy] = alpha_entropy
     end
 
     for v in eachvariable(equations)
-        @unpack alpha_mean = limiter.cache.container_subcell_limiter
+        @unpack alpha_mean = limiter.cache.subcell_limiter_coefficients
         s = Symbol("alpha_mean_", variables[v])
         node_variables[s] = copy(alpha_mean[v, ntuple(_ -> :, size(alpha, 2) + 1)...])
     end
 
     if limiter.PressurePositivityLimiterKuzmin
-        @unpack alpha_mean_pressure = limiter.cache.container_subcell_limiter
+        @unpack alpha_mean_pressure = limiter.cache.subcell_limiter_coefficients
         node_variables[:alpha_mean_pressure] = alpha_mean_pressure
     end
 
     if limiter.SemiDiscEntropyLimiter
-        @unpack alpha_mean_entropy = limiter.cache.container_subcell_limiter
+        @unpack alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
         node_variables[:alpha_mean_entropy] = alpha_mean_entropy
     end
 

@@ -8,10 +8,10 @@
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, number_bounds, bar_states)
-    container_subcell_limiter = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
-                                                                   }(0,
-                                                                     nnodes(basis),
-                                                                     number_bounds)
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
+                                                                      }(0,
+                                                                        nnodes(basis),
+                                                                        number_bounds)
 
     cache = (;)
     if bar_states
@@ -23,13 +23,13 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
 
     idp_bounds_delta = zeros(real(basis), number_bounds)
 
-    return (; cache..., container_subcell_limiter, idp_bounds_delta)
+    return (; cache..., subcell_limiter_coefficients, idp_bounds_delta)
 end
 
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
                                       dt;
                                       kwargs...)
-    @unpack alpha = limiter.cache.container_subcell_limiter
+    @unpack alpha = limiter.cache.subcell_limiter_coefficients
     alpha .= zero(eltype(alpha))
     if limiter.smoothness_indicator
         elements = semi.cache.element_ids_dgfv
@@ -59,7 +59,7 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
     end
 
     # Calculate alpha1 and alpha2
-    @unpack alpha1, alpha2 = limiter.cache.container_subcell_limiter
+    @unpack alpha1, alpha2 = limiter.cache.subcell_limiter_coefficients
     @threaded for element in elements
         for j in eachnode(dg), i in 2:nnodes(dg)
             alpha1[i, j, element] = max(alpha[i - 1, j, element], alpha[i, j, element])
@@ -328,7 +328,7 @@ end
 @inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable,
                                    index)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
 
     var_min = variable_bounds[2 * (index - 1) + 1]
     var_max = variable_bounds[2 * (index - 1) + 2]
@@ -336,7 +336,7 @@ end
         calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
     end
 
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
     @unpack inverse_weights = dg.basis
 
     @threaded for element in elements
@@ -396,7 +396,7 @@ end
 
 @inline function idp_spec_entropy!(alpha, limiter, u, t, dt, semi, elements)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
 
     s_min = variable_bounds[2 * length(limiter.local_minmax_variables_cons) + 1]
     if !limiter.bar_states
@@ -428,7 +428,7 @@ end
 @inline function idp_math_entropy!(alpha, limiter, u, t, dt, semi, elements)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     @unpack spec_entropy = limiter
-    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
 
     s_max = variable_bounds[2 * length(limiter.local_minmax_variables_cons) + spec_entropy + 1]
     if !limiter.bar_states
@@ -474,11 +474,11 @@ end
 @inline function idp_positivity!(alpha, limiter, u, dt, semi, elements, variable,
                                  index)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
     @unpack inverse_weights = dg.basis
     @unpack local_minmax, spec_entropy, math_entropy, positivity_correction_factor = limiter
 
-    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
 
     counter = 2 * length(limiter.local_minmax_variables_cons) + spec_entropy +
               math_entropy
@@ -562,7 +562,7 @@ end
                                         variable, index)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     @unpack spec_entropy, math_entropy, positivity_correction_factor, positivity_variables_cons = limiter
-    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
 
     index_ = 2 * length(limiter.local_minmax_variables_cons) + spec_entropy +
              math_entropy + index
@@ -607,7 +607,7 @@ end
                                      goal_fct, dgoal_fct, initialCheck, finalCheck,
                                      dt, mesh, equations, dg, cache, limiter)
     @unpack inverse_weights = dg.basis
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
     if mesh isa TreeMesh
         inverse_jacobian = cache.elements.inverse_jacobian[element]
     else # mesh isa StructuredMesh
@@ -748,10 +748,10 @@ end
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, PressurePositivityLimiterKuzmin)
-    container_subcell_limiter = Trixi.ContainerSubcellLimiterMCL2D{real(basis)
-                                                                   }(0,
-                                                                     nvariables(equations),
-                                                                     nnodes(basis))
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterMCL2D{real(basis)
+                                                                      }(0,
+                                                                        nvariables(equations),
+                                                                        nnodes(basis))
     container_bar_states = Trixi.ContainerBarStates{real(basis)}(0,
                                                                  nvariables(equations),
                                                                  nnodes(basis))
@@ -759,6 +759,6 @@ function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquat
     idp_bounds_delta = zeros(real(basis), 2,
                              nvariables(equations) + PressurePositivityLimiterKuzmin)
 
-    return (; container_subcell_limiter, container_bar_states, idp_bounds_delta)
+    return (; subcell_limiter_coefficients, container_bar_states, idp_bounds_delta)
 end
 end # @muladd

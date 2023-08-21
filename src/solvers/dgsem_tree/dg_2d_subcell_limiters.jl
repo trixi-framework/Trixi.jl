@@ -27,11 +27,11 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
     flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.nthreads()]
 
-    container_antidiffusive_flux = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0,
-                                                                               nvariables(equations),
-                                                                               nnodes(dg))
+    antidiffusive_fluxes = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0,
+                                                                       nvariables(equations),
+                                                                       nnodes(dg))
 
-    return (; cache..., container_antidiffusive_flux, fhat1_threaded, fhat2_threaded,
+    return (; cache..., antidiffusive_fluxes, fhat1_threaded, fhat2_threaded,
             flux_temp_threaded)
 end
 
@@ -178,7 +178,7 @@ end
                                     limiter, dg, element, cache,
                                     fstar1_L, fstar2_L)
 
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
     for j in eachnode(dg), i in eachnode(dg)
         for v in eachvariable(equations)
             du[v, i, j, element] += inverse_weights[i] *
@@ -278,7 +278,7 @@ end
 @inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
 
     for j in eachnode(dg), i in 2:nnodes(dg)
         for v in eachvariable(equations)
@@ -303,7 +303,7 @@ end
 @inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations,
                                          limiter::SubcellLimiterMCL, dg, element, cache)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
 
     for j in eachnode(dg), i in 2:nnodes(dg)
         for v in eachvariable(equations)
@@ -531,7 +531,7 @@ end
     if !limiter.bar_states
         return nothing
     end
-    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
     @unpack bar_states1, bar_states2 = limiter.cache.container_bar_states
 
     counter = 1
@@ -638,7 +638,7 @@ end
 
 @inline function calc_variable_bounds!(u, mesh, nonconservative_terms, equations,
                                        limiter::SubcellLimiterMCL, dg, cache)
-    @unpack var_min, var_max = limiter.cache.container_subcell_limiter
+    @unpack var_min, var_max = limiter.cache.subcell_limiter_coefficients
     @unpack bar_states1, bar_states2, lambda1, lambda2 = limiter.cache.container_bar_states
 
     @threaded for element in eachelement(dg, cache)
@@ -778,13 +778,13 @@ end
                                                  equations, limiter, dg, element,
                                                  cache,
                                                  fstar1, fstar2)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
-    @unpack var_min, var_max = limiter.cache.container_subcell_limiter
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
+    @unpack var_min, var_max = limiter.cache.subcell_limiter_coefficients
     @unpack bar_states1, bar_states2, lambda1, lambda2 = limiter.cache.container_bar_states
 
     if limiter.Plotting
         @unpack alpha, alpha_pressure, alpha_entropy,
-        alpha_mean, alpha_mean_pressure, alpha_mean_entropy = limiter.cache.container_subcell_limiter
+        alpha_mean, alpha_mean_pressure, alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
         for j in eachnode(dg), i in eachnode(dg)
             alpha_mean[:, i, j, element] .= zero(eltype(alpha_mean))
             alpha[:, i, j, element] .= one(eltype(alpha))
@@ -837,7 +837,7 @@ end
                 end
 
                 if limiter.Plotting
-                    @unpack alpha, alpha_mean = limiter.cache.container_subcell_limiter
+                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
                     alpha[1, i - 1, j, element] = min(alpha[1, i - 1, j, element],
                                                       coefficient)
                     alpha[1, i, j, element] = min(alpha[1, i, j, element], coefficient)
@@ -887,7 +887,7 @@ end
                 end
 
                 if limiter.Plotting
-                    @unpack alpha, alpha_mean = limiter.cache.container_subcell_limiter
+                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
                     alpha[1, i, j - 1, element] = min(alpha[1, i, j - 1, element],
                                                       coefficient)
                     alpha[1, i, j, element] = min(alpha[1, i, j, element], coefficient)
@@ -948,7 +948,7 @@ end
                                           (g_limited + sign(g_limited) * eps()) /
                                           (g + sign(g_limited) * eps()))
                     end
-                    @unpack alpha, alpha_mean = limiter.cache.container_subcell_limiter
+                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
                     alpha[v, i - 1, j, element] = min(alpha[v, i - 1, j, element],
                                                       coefficient)
                     alpha[v, i, j, element] = min(alpha[v, i, j, element], coefficient)
@@ -999,7 +999,7 @@ end
                                           (g_limited + sign(g_limited) * eps()) /
                                           (g + sign(g_limited) * eps()))
                     end
-                    @unpack alpha, alpha_mean = limiter.cache.container_subcell_limiter
+                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
                     alpha[v, i, j - 1, element] = min(alpha[v, i, j - 1, element],
                                                       coefficient)
                     alpha[v, i, j, element] = min(alpha[v, i, j, element], coefficient)
@@ -1043,7 +1043,7 @@ end
                                           (antidiffusive_flux1[v, i, j, element] +
                                            sign(flux_limited) * eps()))
                     end
-                    @unpack alpha, alpha_mean = limiter.cache.container_subcell_limiter
+                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
                     alpha[v, i - 1, j, element] = min(alpha[v, i - 1, j, element],
                                                       coefficient)
                     alpha[v, i, j, element] = min(alpha[v, i, j, element], coefficient)
@@ -1083,7 +1083,7 @@ end
                                           (antidiffusive_flux2[v, i, j, element] +
                                            sign(flux_limited) * eps()))
                     end
-                    @unpack alpha, alpha_mean = limiter.cache.container_subcell_limiter
+                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
                     alpha[v, i, j - 1, element] = min(alpha[v, i, j - 1, element],
                                                       coefficient)
                     alpha[v, i, j, element] = min(alpha[v, i, j, element], coefficient)
@@ -1122,7 +1122,7 @@ end
                 end
 
                 if limiter.Plotting
-                    @unpack alpha, alpha_mean = limiter.cache.container_subcell_limiter
+                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
                     alpha[1, i - 1, j, element] = min(alpha[1, i - 1, j, element],
                                                       coefficient)
                     alpha[1, i, j, element] = min(alpha[1, i, j, element], coefficient)
@@ -1168,7 +1168,7 @@ end
                 end
 
                 if limiter.Plotting
-                    @unpack alpha, alpha_mean = limiter.cache.container_subcell_limiter
+                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
                     alpha[1, i, j - 1, element] = min(alpha[1, i, j - 1, element],
                                                       coefficient)
                     alpha[1, i, j, element] = min(alpha[1, i, j, element], coefficient)
@@ -1193,7 +1193,7 @@ end
 
     # Divide alpha_mean by number of additions
     if limiter.Plotting
-        @unpack alpha_mean = limiter.cache.container_subcell_limiter
+        @unpack alpha_mean = limiter.cache.subcell_limiter_coefficients
         # Interfaces contribute with 1.0
         if limiter.DensityLimiter || limiter.DensityPositivityLimiter
             for i in eachnode(dg)
@@ -1223,7 +1223,7 @@ end
 
     # Limit pressure à la Kuzmin
     if limiter.PressurePositivityLimiterKuzmin
-        @unpack alpha_pressure, alpha_mean_pressure = limiter.cache.container_subcell_limiter
+        @unpack alpha_pressure, alpha_mean_pressure = limiter.cache.subcell_limiter_coefficients
         for j in eachnode(dg), i in 2:nnodes(dg)
             bar_state_velocity = bar_states1[2, i, j, element]^2 +
                                  bar_states1[3, i, j, element]^2
@@ -1334,7 +1334,7 @@ end
             end
         end
         if limiter.Plotting
-            @unpack alpha_mean_pressure = limiter.cache.container_subcell_limiter
+            @unpack alpha_mean_pressure = limiter.cache.subcell_limiter_coefficients
             # Interfaces contribute with 1.0
             for i in eachnode(dg)
                 alpha_mean_pressure[i, 1, element] += 1.0
@@ -1388,7 +1388,7 @@ end
                 end
             end
             if limiter.Plotting
-                @unpack alpha_entropy, alpha_mean_entropy = limiter.cache.container_subcell_limiter
+                @unpack alpha_entropy, alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
                 alpha_entropy[i - 1, j, element] = min(alpha_entropy[i - 1, j, element],
                                                        alpha)
                 alpha_entropy[i, j, element] = min(alpha_entropy[i, j, element], alpha)
@@ -1433,7 +1433,7 @@ end
                 end
             end
             if limiter.Plotting
-                @unpack alpha_entropy, alpha_mean_entropy = limiter.cache.container_subcell_limiter
+                @unpack alpha_entropy, alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
                 alpha_entropy[i, j - 1, element] = min(alpha_entropy[i, j - 1, element],
                                                        alpha)
                 alpha_entropy[i, j, element] = min(alpha_entropy[i, j, element], alpha)
@@ -1442,7 +1442,7 @@ end
             end
         end
         if limiter.Plotting
-            @unpack alpha_mean_entropy = limiter.cache.container_subcell_limiter
+            @unpack alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
             # Interfaces contribute with 1.0
             for i in eachnode(dg)
                 alpha_mean_entropy[i, 1, element] += 1.0

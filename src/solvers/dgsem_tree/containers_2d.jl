@@ -1320,6 +1320,7 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
     return nothing
 end
 
+# Container data structure (structure-of-arrays style) for variables used for IDP limiting
 mutable struct ContainerSubcellLimiterIDP2D{uEltype <: Real}
     alpha::Array{uEltype, 3}                  # [i, j, element]
     alpha1::Array{uEltype, 3}
@@ -1388,6 +1389,7 @@ function Base.resize!(container::ContainerSubcellLimiterIDP2D, capacity)
     return nothing
 end
 
+# Container data structure (structure-of-arrays style) for variables used for MCL limiting
 mutable struct ContainerSubcellLimiterMCL2D{uEltype <: Real}
     var_min::Array{uEltype, 4}                # [variable, i, j, element]
     var_max::Array{uEltype, 4}                # [variable, i, j, element]
@@ -1512,6 +1514,7 @@ function Base.resize!(container::ContainerSubcellLimiterMCL2D, capacity)
     return nothing
 end
 
+# Container data structure (structure-of-arrays style) for variables used for subcell limiting useing bar states
 mutable struct ContainerBarStates{uEltype <: Real}
     bar_states1::Array{uEltype, 4}            # [variable, i, j, element]
     bar_states2::Array{uEltype, 4}            # [variable, i, j, element]

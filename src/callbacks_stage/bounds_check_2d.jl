@@ -9,7 +9,7 @@
                               limiter::SubcellLimiterIDP,
                               time, iter, output_directory, save_errors, interval)
     @unpack local_minmax, positivity, spec_entropy, math_entropy = solver.volume_integral.limiter
-    @unpack variable_bounds = limiter.cache.container_subcell_limiter
+    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
     @unpack idp_bounds_delta = limiter.cache
 
     save_errors_ = save_errors && (iter % interval == 0)
@@ -138,10 +138,10 @@ end
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
                               limiter::SubcellLimiterMCL,
                               time, iter, output_directory, save_errors, interval)
-    @unpack var_min, var_max = limiter.cache.container_subcell_limiter
+    @unpack var_min, var_max = limiter.cache.subcell_limiter_coefficients
     @unpack bar_states1, bar_states2, lambda1, lambda2 = limiter.cache.container_bar_states
     @unpack idp_bounds_delta = limiter.cache
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.container_antidiffusive_flux
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
 
     n_vars = nvariables(equations)
 

@@ -143,7 +143,7 @@ end
                                                                         limiter::SubcellLimiterIDP,
                                                                         time, iter)
     @unpack output_directory = limiting_analysis_callback
-    @unpack alpha = limiter.cache.container_subcell_limiter
+    @unpack alpha = limiter.cache.subcell_limiter_coefficients
 
     alpha_avg = analyze_coefficient_IDP(mesh, equations, dg, cache, limiter)
 
@@ -159,7 +159,7 @@ end
     @unpack output_directory = limiting_analysis_callback
     @unpack weights = dg.basis
     @unpack alpha, alpha_pressure, alpha_entropy,
-    alpha_mean, alpha_mean_pressure, alpha_mean_entropy = limiter.cache.container_subcell_limiter
+    alpha_mean, alpha_mean_pressure, alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
 
     n_vars = nvariables(equations)
 
