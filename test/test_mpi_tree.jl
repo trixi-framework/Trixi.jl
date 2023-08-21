@@ -191,10 +191,10 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
   end
 
   @trixi_testset "elixir_euler_density_wave_restart.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"), controller = PIDController(1.0,0.4,0.2), 
-      # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl with PIDController(1.0,0.4,0.2)
-      l2 = [0.0012226518339058883, 0.00012562244228793448, 0.0002453719502844425, 0.0008018207037762187],
-      linf = [0.0047768599053406025, 0.000575479011973557, 0.0010271097171284382, 0.009192136024232411])
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"), controller = PIDController(1.0,0.5,0.2), 
+      # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl with PIDController(1.0,0.5,0.2)
+      l2 = [0.0013063218880701862, 0.0001321156420306584, 0.0002767849831618995, 0.008164564600925186],
+      linf = [0.0072404995625627855, 0.0009585625036930279, 0.0015017176517665431, 0.10856506397463761])
   end
 end
 

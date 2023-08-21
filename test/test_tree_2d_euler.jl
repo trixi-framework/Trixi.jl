@@ -30,8 +30,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
   @trixi_testset "elixir_euler_density_wave_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"),
       # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl
-      l2 = [0.001216870805652372, 0.00012159517760160904, 0.00024340243381168144, 3.939990933215729e-5],
-      linf = [0.004286275727269917, 0.000429015896869972, 0.0008619270677295288, 0.00021182526808161128])
+      l2 = [0.0013009966063625815, 0.00013035281976778808, 0.0002597434052551178, 0.0006677449766244259],
+      linf = [0.007425455419466154, 0.0007462672706272794, 0.0014860217930253716, 0.008824111935112455])
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin

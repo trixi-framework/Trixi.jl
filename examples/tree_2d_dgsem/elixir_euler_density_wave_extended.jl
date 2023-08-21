@@ -22,7 +22,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 4.0)
+tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -32,7 +32,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_restart = SaveRestartCallback(interval = 1000,
+save_restart = SaveRestartCallback(interval = 400,
                                    save_final_restart = false)
 
 save_solution = SaveSolutionCallback(interval = 100,
@@ -50,6 +50,6 @@ controller = PIController(7 // 30, 2 // 15)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49();
+sol = solve(ode, RDPK3SpFSAL35();
             callback = callbacks, controller = controller, ode_default_options()...);
 summary_callback() # print the timer summary
