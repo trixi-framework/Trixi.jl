@@ -13,6 +13,7 @@ struct SemidiscretizationCoupledDynamic{S, Indices, EquationList} <: AbstractSem
     semis::S
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     domain_marker::Array
+    coupling_functions::Array
     performance_counter::PerformanceCounter
 end
 
@@ -21,7 +22,7 @@ end
 
 Create a coupled semidiscretization that consists of the semidiscretizations passed as arguments.
 """
-function SemidiscretizationCoupledDynamic(semis...; domain_marker=nothing; coupling_functions=nothing)
+function SemidiscretizationCoupledDynamic(semis...; domain_marker=nothing, coupling_functions=nothing)
     @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
 
     # Number of coefficients for each semidiscretization
@@ -39,7 +40,9 @@ function SemidiscretizationCoupledDynamic(semis...; domain_marker=nothing; coupl
 
     # Initialize the coupling functions to the identity if they do not exist.
     if isnothing(coupling_functions)
-        coupling_functions = 
+        coupling_functions = Array{Function}(undef, length(semis), length(semis))
+        coupling_functions .= (x, u) -> u
+    end
 
     # Compute range of coefficients associated with each semidiscretization.
     u_indices = Vector{UnitRange{Int}}(undef, length(semis))
@@ -51,7 +54,7 @@ function SemidiscretizationCoupledDynamic(semis...; domain_marker=nothing; coupl
     performance_counter = PerformanceCounter()
 
     SemidiscretizationCoupledDynamic{typeof(semis), typeof(u_indices), typeof(performance_counter)
-                                     }(semis, u_indices, domain_marker, performance_counter)
+                                     }(semis, u_indices, domain_marker, coupling_functions, performance_counter)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupledDynamic)
@@ -444,18 +447,26 @@ function copy_to_coupled_boundary!(u_loc, u_ode, i, semi_coupled)
             mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
             u_other = wrap_array(u_other, mesh, equations, solver, cache)
 
-            a = @view u_loc[1, :, :, :]
-            b = @view u_other[1, :, :, :]
-            a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
-            a = @view u_loc[2, :, :, :]
-            b = @view u_other[2, :, :, :]
-            a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
-            a = @view u_loc[3, :, :, :]
-            b = @view u_other[3, :, :, :]
-            a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
-            a = @view u_loc[4, :, :, :]
-            b = @view u_other[4, :, :, :]
-            a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
+            a = @view u_loc[:, :, :, :]
+            b = @view u_other[:, :, :, :]
+            x = cache.elements.node_coordinates
+            c = semi_coupled.coupling_functions[i, j](x, b)
+            # @autoinfiltrate
+            for v in 1:size(u_loc, 1)
+                a[v, :, :, :][semi_coupled.domain_marker .== j] .= deepcopy(c[v, :, :, :][semi_coupled.domain_marker .== j])
+            end
+            # a = @view u_loc[1, :, :, :]
+            # b = @view u_other[1, :, :, :]
+            # a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]*
+            # a = @view u_loc[2, :, :, :]
+            # b = @view u_other[2, :, :, :]
+            # a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
+            # a = @view u_loc[3, :, :, :]
+            # b = @view u_other[3, :, :, :]
+            # a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
+            # a = @view u_loc[4, :, :, :]
+            # b = @view u_other[4, :, :, :]
+            # a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
             # u_loc[1, :, :, :][semi_coupled.domain_marker .!= i] .= 1.0
             # u_loc[2, :, :, :][semi_coupled.domain_marker .!= i] .= 0.0
             # u_loc[3, :, :, :][semi_coupled.domain_marker .!= i] .= 0.0
