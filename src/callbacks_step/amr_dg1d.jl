@@ -242,6 +242,8 @@ end
 function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                   equations, dg::DGSEM, cache, cache_parabolic,
                   elements_to_remove)
+    # Call `coarsen!` for the hyperbolic part, which does the heavy lifting of
+    # actually transferring the solution to the coarsened cells
     coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove)
 
     # Get new list of leaf cells
