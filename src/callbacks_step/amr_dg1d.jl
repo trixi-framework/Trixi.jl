@@ -79,7 +79,12 @@ end
 function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                  equations, dg::DGSEM, cache, cache_parabolic,
                  elements_to_refine)
+    # Call `refine!` for the hyperbolic part, which does the heavy lifting of
+    # actually transferring the solution to the refined cells
     refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine)
+    
+    # The remaining function only handles the necessary adaptation of the data structures
+    # for the parabolic part of the semidiscretization
 
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)
