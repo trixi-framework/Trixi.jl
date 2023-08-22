@@ -21,7 +21,7 @@ end
 
 Create a coupled semidiscretization that consists of the semidiscretizations passed as arguments.
 """
-function SemidiscretizationCoupledDynamic(semis...; domain_marker=nothing)
+function SemidiscretizationCoupledDynamic(semis...; domain_marker=nothing; coupling_functions=nothing)
     @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
 
     # Number of coefficients for each semidiscretization
@@ -37,6 +37,9 @@ function SemidiscretizationCoupledDynamic(semis...; domain_marker=nothing)
         end
     end
 
+    # Initialize the coupling functions to the identity if they do not exist.
+    if isnothing(coupling_functions)
+        coupling_functions = 
 
     # Compute range of coefficients associated with each semidiscretization.
     u_indices = Vector{UnitRange{Int}}(undef, length(semis))
