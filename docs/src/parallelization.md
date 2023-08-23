@@ -179,6 +179,7 @@ julia> set_preferences!(
 ```
 For more information see also the [documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/).
 In total, you should have a file called LocalPreferences.toml in the project directory that contains a section `[MPIPreferences]`,
-a section `[HDF5]` with entries `libhdf5` and `libhdf5_hl` as well as a section `[P4est]` with the entry `libp4est`.
+a section `[HDF5]` with entries `libhdf5` and `libhdf5_hl`, a section `[P4est]` with the entry `libp4est` as well as a section
+`[T8code]` with the entries `libt8`, `libp4est` and `libsc`.
 
 If HDF5 is not MPI-enabled, Trixi.jl will fall back on a less efficient I/O mechanism. In that case, all disk I/O is performed only on rank zero and data is distributed to/gathered from the other ranks using regular MPI communication.
