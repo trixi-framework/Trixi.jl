@@ -190,17 +190,10 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
     end
   end
 
-  @trixi_testset "1elixir_euler_density_wave_restart.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"), 
-      # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl
-      l2 = [0.0012804743998541133, 0.00012808176121491938, 0.00025927742118623533, 0.000686449461719783],
-      linf = [0.008680803177186391, 0.0007961219319038843, 0.0017606374685099763, 0.00922630845884953])
-  end
-
-  @trixi_testset "2elixir_euler_density_wave_restart.jl" begin
-    trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"))
+  @trixi_testset "elixir_euler_density_wave_restart.jl" begin
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"))
     l2_expected, linf_expected = analysis_callback(sol)
-    trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"))
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"))
     l2_actual, linf_actual = analysis_callback(sol)
     if Trixi.mpi_isroot()
       @test l2_actual == l2_expected
