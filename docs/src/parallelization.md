@@ -66,8 +66,8 @@ installations. Follow the steps described
 [here](https://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation) and
 [here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) for the
 configuration. The paths that point to `libp4est.so` (and potentially to `libsc.so`) need to be
-the same for P4est.jl and T8code.jl. This could e.g. be `libp4est.so` that can be found in
-`p4est/src/.libs/` in the installation directory of `t8code`.
+the same for P4est.jl and T8code.jl. This could e.g. be `libp4est.so` that usually can be found
+in `lib/` or `local/lib` in the installation directory of `t8code`.
 In total, in your active Julia project you should have a LocalPreferences.toml file with sections
 `[MPIPreferences]`, `[T8code]` and `[P4est]` as well as an entry `MPIPreferences` in your
 Project.toml to use a custom MPI installation.
