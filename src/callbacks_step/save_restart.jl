@@ -160,6 +160,11 @@ function load_restart_file(semi::AbstractSemidiscretization, restart_file)
     load_restart_file(mesh_equations_solver_cache(semi)..., restart_file)
 end
 
+"""
+    load_controller!(integrator, restart_file::AbstractString)
+
+Load the context information for PID- and PIControllers saved in a `restart_file`.
+"""
 function load_controller!(integrator, restart_file::AbstractString)
     controller = integrator.opts.controller
     # Read context information for controller
