@@ -27,11 +27,22 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       tspan = (0.0, 0.5))
   end
   
-  @trixi_testset "elixir_euler_density_wave_restart.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"), controller = PIDController(1.0,0.5,0.2), 
-      # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl with PIDController(1.0,0.5,0.2)
-      l2 = [0.0013063218880701862, 0.0001321156420306584, 0.0002767849831618995, 0.008164564600925186],
-      linf = [0.0072404995625627855, 0.0009585625036930279, 0.0015017176517665431, 0.10856506397463761])
+  @trixi_testset "1elixir_euler_density_wave_restart.jl" begin
+    using OrdinaryDiffEq: SSPRK43
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"), alg = SSPRK43()
+      # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl
+      l2 = [0.001270869807336869, 0.00012722550004665238, 0.0002538810906298964, 0.0006698596265485126],
+      linf = [0.007144670778606033, 0.0007128834186178115, 0.001426493670855053, 0.008735160305562317])
+  end
+
+  @trixi_testset "2elixir_euler_density_wave_restart.jl" begin
+    using OrdinaryDiffEq: SSPRK43
+    trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"), alg = SSPRK43())
+    l2_expected, linf_expected = analysis_callback(sol)
+    trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"), alg = SSPRK43())
+    l2_actual, linf_actual = analysis_callback(sol)
+    @test l2_actual == l2_expected
+    @test linf_actual == linf_expected
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin

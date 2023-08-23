@@ -171,6 +171,8 @@ function load_controller!(integrator, restart_file::AbstractString)
             integrator.dtpropose = read(attributes(file)["dtpropose"])
             # Accept step to use dtpropose already in the first step
             integrator.accept_step = true
+            # Reevaluate integrator.fsal_first on the first step
+            integrator.reeval_fsal = true
         end
         # Load additional parameters for PIDController
         if (:err in fieldnames(typeof(controller))) &&

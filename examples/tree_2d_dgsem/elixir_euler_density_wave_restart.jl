@@ -2,12 +2,12 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# create timestep controller
-controller = PIController(7 // 30, 2 // 15)
+# define time integration algorithm
+alg = RDPK3SpFSAL49()
 
 # create a restart file
 trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_euler_density_wave_extended.jl"),
-              tspan = (0.0, 1.0), controller = controller)
+              tspan = (0.0, 1.0), alg = alg)
 
 ###############################################################################
 # adapt the parameters that have changed compared to "elixir_euler_density_wave_extended.jl"
@@ -15,7 +15,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_euler_density_wave_extende
 # Note: If you get a restart file from somewhere else, you need to provide
 # appropriate setups in the elixir loading a restart file
 
-restart_filename = joinpath("out", "restart_000400.h5")
+restart_filename = joinpath("out", "restart_000200.h5")
 mesh = load_mesh(restart_filename)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -28,10 +28,9 @@ ode = semidiscretize(semi, tspan, restart_filename);
 # Do not overwrite the initial snapshot written by elixir_euler_density_wave_extended.jl.
 save_solution.condition.save_initial_solution = false
 
-alg = RDPK3SpFSAL35()
 integrator = init(ode, alg,
                   dt = dt;
-                  save_everystep = false, callback = callbacks, controller = controller,
+                  save_everystep = false, callback = callbacks,
                   ode_default_options()...)
 load_controller!(integrator, restart_filename)
 

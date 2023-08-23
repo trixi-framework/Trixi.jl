@@ -32,7 +32,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_restart = SaveRestartCallback(interval = 400,
+save_restart = SaveRestartCallback(interval = 200,
                                    save_final_restart = false)
 
 save_solution = SaveSolutionCallback(interval = 100,
@@ -44,12 +44,9 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_restart, save_solution)
 
-# create timestep controller
-controller = PIController(7 // 30, 2 // 15)
-
 ###############################################################################
 # run the simulation
-
-sol = solve(ode, RDPK3SpFSAL35();
-            callback = callbacks, controller = controller, ode_default_options()...);
+alg = RDPK3SpFSAL49()
+sol = solve(ode, alg;
+            callback = callbacks, ode_default_options()...);
 summary_callback() # print the timer summary
