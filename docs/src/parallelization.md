@@ -158,18 +158,19 @@ section, specifically at the descriptions of the performance index (PID).
 
 
 ### Using error-based step size control with MPI
-If you use error-based step size control (see also the section on [error-based adaptive step sizes](@ref adaptive_step_sizes))
-together with MPI you need to pass `internalnorm=ode_norm` and you should pass
-`unstable_check=ode_unstable_check` to OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/),
+If you use error-based step size control (see also the section on
+[error-based adaptive step sizes](@ref adaptive_step_sizes)) together with MPI you need to pass
+`internalnorm=ode_norm` and you should pass `unstable_check=ode_unstable_check` to
+OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/),
 which are both included in [`ode_default_options`](@ref).
 
 ### Using parallel input and output
 Trixi.jl allows parallel I/O using MPI by leveraging parallel HDF5.jl. On most systems, this is
-enabled by default. Additionally, you can also use a local installation of the HDF5 library (with MPI support).
-For this, you first need to use a system-provided MPI library, see also [here](@ref parallel_system_MPI) and
-you need to tell [HDF5.jl](https://github.com/JuliaIO/HDF5.jl) to use this library.
-To do so with HDF5.jl v0.17 and newer, set the preferences `libhdf5` and `libhdf5_hl` 
-to the local paths of the libraries `libhdf5` and `libhdf5_hl`, which can be done by
+enabled by default. Additionally, you can also use a local installation of the HDF5 library
+(with MPI support). For this, you first need to use a system-provided MPI library, see also
+[here](@ref parallel_system_MPI) and you need to tell [HDF5.jl](https://github.com/JuliaIO/HDF5.jl)
+to use this library. To do so with HDF5.jl v0.17 and newer, set the preferences `libhdf5` and
+`libhdf5_hl` to the local paths of the libraries `libhdf5` and `libhdf5_hl`, which can be done by
 ```julia
 julia> using Preferences, UUIDs
 julia> set_preferences!(
