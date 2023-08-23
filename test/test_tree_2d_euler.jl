@@ -29,7 +29,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
   
   @trixi_testset "1elixir_euler_density_wave_restart.jl" begin
     using OrdinaryDiffEq: SSPRK43
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"), alg = SSPRK43()
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"), alg = SSPRK43(),
       # Expected errors are exactly the same as in the elixir_euler_density_wave_extended.jl
       l2 = [0.001270869807336869, 0.00012722550004665238, 0.0002538810906298964, 0.0006698596265485126],
       linf = [0.007144670778606033, 0.0007128834186178115, 0.001426493670855053, 0.008735160305562317])
