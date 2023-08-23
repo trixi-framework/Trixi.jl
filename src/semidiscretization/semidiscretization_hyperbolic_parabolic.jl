@@ -274,7 +274,15 @@ The parabolic right-hand side is the first function of the split ODE problem and
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
 """
-function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
+function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
+                        reset_threads = true)
+    # Optionally reset Polyester.jl threads. See
+    # https://github.com/trixi-framework/Trixi.jl/issues/1583
+    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
+    if reset_threads
+        Polyester.reset_threads!()
+    end
+
     u0_ode = compute_coefficients(first(tspan), semi)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
@@ -321,5 +329,20 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabol
     put!(semi.performance_counter.counters[2], runtime)
 
     return nothing
+end
+
+function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u0_ode,
+                              du_ode, config)
+    new_semi = remake(semi, uEltype = eltype(config))
+
+    du_ode_hyp = Vector{eltype(config)}(undef, length(du_ode))
+    J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
+        # Implementation of split ODE problem in OrdinaryDiffEq
+        rhs!(du_ode_hyp, u_ode, new_semi, t0)
+        rhs_parabolic!(du_ode, u_ode, new_semi, t0)
+        du_ode .+= du_ode_hyp
+    end
+
+    return J
 end
 end # @muladd

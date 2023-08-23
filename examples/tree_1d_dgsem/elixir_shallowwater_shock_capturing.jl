@@ -7,24 +7,37 @@ using Trixi
 
 equations = ShallowWaterEquations1D(gravity_constant=9.812, H0=1.75)
 
-function initial_condition_stone_throw(x, t, equations::ShallowWaterEquations1D)
-    # Set up polar coordinates
-    inicenter = 0.15
-    x_norm = x[1] - inicenter[1]
-    r = abs(x_norm)
+# Initial condition with a truly discontinuous velocity and bottom topography.
+# Works as intended for TreeMesh1D with `initial_refinement_level=3`. If the mesh
+# refinement level is changed the initial condition below may need changed as well to
+# ensure that the discontinuities lie on an element interface.
+function initial_condition_stone_throw_discontinuous_bottom(x, t, equations::ShallowWaterEquations1D)
 
-    # Calculate primitive variables
-    H = equations.H0
-    # v = 0.0 # for well-balanced test
-    v = r < 0.6 ? 1.75 : 0.0 # for stone throw
+  # Calculate primitive variables
 
-    b = (  1.5 / exp( 0.5 * ((x[1] - 1.0)^2 ) )
-       + 0.75 / exp( 0.5 * ((x[1] + 1.0)^2 ) ) )
+  # flat lake
+  H = equations.H0
 
-    return prim2cons(SVector(H, v, b), equations)
+  # Discontinuous velocity
+  v = 0.0
+  if x[1] >= -0.75 && x[1] <= 0.0
+      v = -1.0
+  elseif x[1] >= 0.0 && x[1] <= 0.75
+      v = 1.0
+  end
+
+  b = (  1.5 / exp( 0.5 * ((x[1] - 1.0)^2 ) )
+     + 0.75 / exp( 0.5 * ((x[1] + 1.0)^2 ) ) )
+
+  # Force a discontinuous bottom topography
+  if x[1] >= -1.5 && x[1] <= 0.0
+    b = 0.5
+  end
+
+  return prim2cons(SVector(H, v, b), equations)
 end
 
-initial_condition = initial_condition_stone_throw
+initial_condition = initial_condition_stone_throw_discontinuous_bottom
 
 boundary_condition = boundary_condition_slip_wall
 
@@ -62,49 +75,13 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_condition)
 
 ###############################################################################
-# ODE solvers, callbacks etc.
+# ODE solver
 
 tspan = (0.0, 3.0)
 ode = semidiscretize(semi, tspan)
 
-# Hack in a discontinuous bottom for a more interesting test
-function initial_condition_stone_throw_discontinuous_bottom(x, t, element_id, equations::ShallowWaterEquations1D)
-
-    inicenter = 0.15
-    x_norm = x[1] - inicenter[1]
-    r = abs(x_norm)
-
-    # Calculate primitive variables
-    H = equations.H0 # flat lake
-    # Discontinuous velocity set via element id number
-    v = 0.0
-    if element_id == 4
-        v = -1.0
-    elseif element_id == 5
-        v = 1.0
-    end
-
-    b = (  1.5 / exp( 0.5 * ((x[1] - 1.0)^2 ) )
-       + 0.75 / exp( 0.5 * ((x[1] + 1.0)^2 ) ) )
-
-    # Setup a discontinuous bottom topography using the element id number
-    if element_id == 3 || element_id == 4
-      b = 0.5
-    end
-
-    return prim2cons(SVector(H, v, b), equations)
-end
-
-# point to the data we want to augment
-u = Trixi.wrap_array(ode.u0, semi)
-# reset the initial condition
-for element in eachelement(semi.solver, semi.cache)
-  for i in eachnode(semi.solver)
-    x_node = Trixi.get_node_coords(semi.cache.elements.node_coordinates, equations, semi.solver, i, element)
-    u_node = initial_condition_stone_throw_discontinuous_bottom(x_node, first(tspan), element, equations)
-    Trixi.set_node_vars!(u, u_node, equations, semi.solver, i, element)
-  end
-end
+###############################################################################
+# Callbacks
 
 summary_callback = SummaryCallback()
 

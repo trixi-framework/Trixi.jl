@@ -96,6 +96,21 @@ function DGMulti(; polydeg = nothing,
             polydeg = polydeg, kwargs...)
 end
 
+# dispatchable constructor for DGMulti using a TensorProductWedge
+function DGMulti(element_type::Wedge,
+                 approximation_type,
+                 volume_integral,
+                 surface_integral;
+                 polydeg::Tuple,
+                 kwargs...)
+    factor_a = RefElemData(Tri(), approximation_type, polydeg[1]; kwargs...)
+    factor_b = RefElemData(Line(), approximation_type, polydeg[2]; kwargs...)
+
+    tensor = TensorProductWedge(factor_a, factor_b)
+    rd = RefElemData(element_type, tensor; kwargs...)
+    return DG(rd, nothing, surface_integral, volume_integral)
+end
+
 # dispatchable constructor for DGMulti to allow for specialization
 function DGMulti(element_type::AbstractElemShape,
                  approximation_type,
@@ -165,9 +180,9 @@ GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffi
 # other potential mesh types to add later: Polynomial{polydeg_geo}?
 
 """
-  DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV;
-              is_on_boundary=nothing,
-              periodicity=ntuple(_->false, NDIMS)) where {NDIMS}
+    DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV;
+                is_on_boundary=nothing,
+                periodicity=ntuple(_->false, NDIMS)) where {NDIMS}
 
 - `dg::DGMulti` contains information associated with to the reference element (e.g., quadrature,
   basis evaluation, differentiation, etc).

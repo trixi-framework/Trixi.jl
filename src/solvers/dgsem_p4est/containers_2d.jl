@@ -6,7 +6,8 @@
 #! format: noindent
 
 # Initialize data structures in element container
-function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasis)
+function init_elements!(elements, mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                        basis::LobattoLegendreBasis)
     @unpack node_coordinates, jacobian_matrix,
     contravariant_vectors, inverse_jacobian = elements
 
@@ -25,7 +26,7 @@ end
 
 # Interpolate tree_node_coordinates to each quadrant at the nodes of the specified basis
 function calc_node_coordinates!(node_coordinates,
-                                mesh::P4estMesh{2},
+                                mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                 basis::LobattoLegendreBasis)
     # Hanging nodes will cause holes in the mesh if its polydeg is higher
     # than the polydeg of the solver.
@@ -52,7 +53,7 @@ function calc_node_coordinates!(node_coordinates,
     p4est_root_len = 1 << P4EST_MAXLEVEL
     p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
 
-    trees = unsafe_wrap_sc(p4est_tree_t, unsafe_load(mesh.p4est).trees)
+    trees = unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
 
     for tree in eachindex(trees)
         offset = trees[tree].quadrants_offset

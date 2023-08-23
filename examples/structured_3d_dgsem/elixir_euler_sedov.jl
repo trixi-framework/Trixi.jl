@@ -11,7 +11,7 @@ equations = CompressibleEulerEquations3D(1.4)
     initial_condition_medium_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
 
 The Sedov blast wave setup based on Flash
-- http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
 with smaller strength of the initial discontinuity.
 """
 function initial_condition_medium_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
@@ -22,11 +22,11 @@ function initial_condition_medium_sedov_blast_wave(x, t, equations::Compressible
   z_norm = x[3] - inicenter[3]
   r = sqrt(x_norm^2 + y_norm^2 + z_norm^2)
 
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+  # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
   r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
   E = 1.0
   p0_inner = 3 * (equations.gamma - 1) * E / (4 * pi * r0^2)
-  p0_outer = 1.0e-3 
+  p0_outer = 1.0e-3
 
   # Calculate primitive variables
   rho = 1.0
@@ -52,8 +52,8 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
-                                               
-solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)  
+
+solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
 
 # Mapping as described in https://arxiv.org/abs/2012.12040
 function mapping(xi, eta, zeta)

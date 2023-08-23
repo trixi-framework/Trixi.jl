@@ -13,4 +13,10 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [0.0011006084408365924, 0.0005788678074691855, 0.0005788678074701847, 0.0011006084408365924]
     )
   end
+
+  @trixi_testset "elixir_linearizedeuler_gauss_wall.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_gauss_wall.jl"),
+      l2 = [0.048185623945503485, 0.01941899333212175, 0.019510224816991825, 0.048185623945503485],
+      linf = [1.0392165942153189, 0.18188777290819994, 0.1877028372108587, 1.0392165942153189])
+  end
 end

@@ -125,6 +125,39 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (Refined mesh)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion.jl"),
+      tspan=(0.0, 0.0))
+      LLID = Trixi.local_leaf_cells(mesh.tree)
+      num_leafs = length(LLID)
+      @assert num_leafs % 8 == 0
+      Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs/8)])
+      tspan=(0.0, 1.5)
+      semi = SemidiscretizationHyperbolicParabolic(mesh,
+                                                   (equations, equations_parabolic),
+                                                   initial_condition, solver;
+                                                   boundary_conditions=(boundary_conditions,
+                                                                        boundary_conditions_parabolic))
+      ode = semidiscretize(semi, tspan)
+      analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+      callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+      sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
+            ode_default_options()..., callback=callbacks)
+      ac_sol = analysis_callback(sol)
+      @test ac_sol.l2[1] ≈ 1.67452550744728e-6
+      @test ac_sol.linf[1] ≈ 7.905059166368744e-6
+
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 100
+        @test (@allocated Trixi.rhs_parabolic!(du_ode, u_ode, semi, t)) < 100
+      end
+  end
+
   @trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion_nonperiodic.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.1),
@@ -136,6 +169,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_convergence.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.1),
+      analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+      extra_analysis_integrals=(energy_kinetic,
+                                energy_internal,
+                                enstrophy)),
       l2 = [0.002111672530658797, 0.0034322351490857846, 0.0038742528195910416, 0.012469246082568561],
       linf = [0.012006418939223495, 0.035520871209746126, 0.024512747492231427, 0.11191122588756564]
     )
@@ -176,11 +213,39 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (Refined mesh)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_convergence.jl"),
+      tspan=(0.0, 0.0), initial_refinement_level=3)
+      LLID = Trixi.local_leaf_cells(mesh.tree)
+      num_leafs = length(LLID)
+      @assert num_leafs % 4 == 0
+      Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs/4)])
+      tspan=(0.0, 0.5)
+      semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, solver;
+                                                   boundary_conditions=(boundary_conditions, boundary_conditions_parabolic),
+                                                   source_terms=source_terms_navier_stokes_convergence_test)
+      ode = semidiscretize(semi, tspan)
+      analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+      callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+      sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5,
+            ode_default_options()..., callback=callbacks)           
+      ac_sol = analysis_callback(sol)
+      @test ac_sol.l2 ≈ [0.00024296959173852447; 0.0002093263158670915; 0.0005390572390977262; 0.00026753561392341537]
+      @test ac_sol.linf ≈ [0.0016210102053424436; 0.002593287648655501; 0.002953907343823712; 0.002077119120180271]
+  end
+
   @trixi_testset "TreeMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_lid_driven_cavity.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.5),
       l2 = [0.00015144571529699053, 0.018766076072331623, 0.007065070765652574, 0.0208399005734258],
       linf = [0.0014523369373669048, 0.12366779944955864, 0.05532450997115432, 0.16099927805328207]
+    )
+  end
+
+  @trixi_testset "TreeMesh2D: elixir_navierstokes_taylor_green_vortex.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_taylor_green_vortex.jl"),
+      l2 = [0.0009279657228109691, 0.012454661988687185, 0.012454661988689886, 0.030487112728612178],
+      linf = [0.002435582543096171, 0.024824039368199546, 0.024824039368212758, 0.06731583711777489]
     )
   end
 
@@ -197,6 +262,38 @@ isdir(outdir) && rm(outdir, recursive=true)
       trees_per_dimension = (1, 1), initial_refinement_level = 2, tspan=(0.0, 0.5),
       l2 = [0.012380458938507371], 
       linf = [0.10860506906472567]
+    )
+  end
+
+  @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_curved.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_advection_diffusion_periodic_curved.jl"),
+      trees_per_dimension = (1, 1), initial_refinement_level = 2, tspan=(0.0, 0.5),
+      l2 = [0.012380458938507371], 
+      linf = [0.10860506906472567]
+    )
+  end
+
+  @trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_advection_diffusion_nonperiodic_curved.jl"),
+      trees_per_dimension = (1, 1), initial_refinement_level = 2, tspan=(0.0, 0.5),
+      l2 = [0.04933902988507035], 
+      linf = [0.2550261714590271]
+    )
+  end
+
+  @trixi_testset "P4estMesh2D: elixir_navierstokes_convergence.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_convergence.jl"),
+      initial_refinement_level = 1, tspan=(0.0, 0.2), 
+      l2 = [0.0003811978985836709, 0.0005874314969169538, 0.0009142898787923481, 0.0011613918899727263], 
+      linf = [0.0021633623982135752, 0.009484348274135372, 0.004231572066492217, 0.011661660275365193]
+    )
+  end
+
+  @trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_lid_driven_cavity.jl"),
+      initial_refinement_level = 2, tspan=(0.0, 0.5),
+      l2 = [0.00028716166408816073, 0.08101204560401647, 0.02099595625377768, 0.05008149754143295], 
+      linf = [0.014804500261322406, 0.9513271652357098, 0.7223919625994717, 1.4846907331004786]
     )
   end
 

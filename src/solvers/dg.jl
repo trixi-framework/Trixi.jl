@@ -174,6 +174,46 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
+"""
+    VolumeIntegralSubcellLimiting(limiter;
+                                  volume_flux_dg, volume_flux_fv)
+
+A subcell limiting volume integral type for DG methods based on subcell blending approaches
+with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
+       AbstractVolumeIntegral
+    volume_flux_dg::VolumeFluxDG
+    volume_flux_fv::VolumeFluxFV
+    limiter::Limiter
+end
+
+function VolumeIntegralSubcellLimiting(limiter; volume_flux_dg,
+                                       volume_flux_fv)
+    VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
+                                  typeof(limiter)}(volume_flux_dg, volume_flux_fv,
+                                                   limiter)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain",
+                   integral::VolumeIntegralSubcellLimiting)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        summary_header(io, "VolumeIntegralSubcellLimiting")
+        summary_line(io, "volume flux DG", integral.volume_flux_dg)
+        summary_line(io, "volume flux FV", integral.volume_flux_fv)
+        summary_line(io, "limiter", integral.limiter |> typeof |> nameof)
+        show(increment_indent(io), mime, integral.limiter)
+        summary_footer(io)
+    end
+end
+
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
 """
@@ -363,7 +403,8 @@ function get_element_variables!(element_variables, u, mesh, equations, dg::DG, c
                            dg, cache)
 end
 
-const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh}
+const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh,
+                          T8codeMesh}
 
 @inline function ndofs(mesh::MeshesDGSEM, dg::DG, cache)
     nelements(cache.elements) * nnodes(dg)^ndims(mesh)
@@ -628,6 +669,15 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg:
         for i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
                                      element)
+            # Changing the node positions passed to the initial condition by the minimum
+            # amount possible with the current type of floating point numbers allows setting
+            # discontinuous initial data in a simple way. In particular, a check like `if x < x_jump`
+            # works if the jump location `x_jump` is at the position of an interface.
+            if i == 1
+                x_node = SVector(nextfloat(x_node[1]))
+            elseif i == nnodes(dg)
+                x_node = SVector(prevfloat(x_node[1]))
+            end
             u_node = func(x_node, t, equations)
             set_node_vars!(u, u_node, equations, dg, i, element)
         end
@@ -670,4 +720,5 @@ include("dgsem_tree/dg.jl")
 include("dgsem_structured/dg.jl")
 include("dgsem_unstructured/dg.jl")
 include("dgsem_p4est/dg.jl")
+include("dgsem_t8code/dg.jl")
 end # @muladd
