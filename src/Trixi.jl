@@ -121,10 +121,10 @@ include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
-include("time_integration/time_integration.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
@@ -152,7 +152,8 @@ export AcousticPerturbationEquations2D,
        LinearizedEulerEquations2D
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D,
-       CompressibleNavierStokesDiffusion2D, CompressibleNavierStokesDiffusion3D
+       CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
+       CompressibleNavierStokesDiffusion3D
 
 export GradientVariablesPrimitive, GradientVariablesEntropy
 
@@ -228,6 +229,9 @@ export DG,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
+
+export VolumeIntegralSubcellLimiting,
+       SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
