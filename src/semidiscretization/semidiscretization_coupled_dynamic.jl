@@ -447,40 +447,16 @@ function copy_to_coupled_boundary!(u_loc, u_ode, i, semi_coupled)
             mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
             u_other = wrap_array(u_other, mesh, equations, solver, cache)
 
-            a = @view u_loc[:, :, :, :]
-            b = @view u_other[:, :, :, :]
             x = cache.elements.node_coordinates
-            c = semi_coupled.coupling_functions[i, j](x, b)
-            # @autoinfiltrate
+            u_converted = semi_coupled.coupling_functions[i, j](x, u_other)
             for v in 1:size(u_loc, 1)
-                a[v, :, :, :][semi_coupled.domain_marker .== j] .= deepcopy(c[v, :, :, :][semi_coupled.domain_marker .== j])
+                a = @view u_loc[v, :, :, :]
+                x = @view u_converted[v, :, :, :]
+
+                a[semi_coupled.domain_marker .== j] .= x[semi_coupled.domain_marker .== j]
             end
-            # a = @view u_loc[1, :, :, :]
-            # b = @view u_other[1, :, :, :]
-            # a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]*
-            # a = @view u_loc[2, :, :, :]
-            # b = @view u_other[2, :, :, :]
-            # a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
-            # a = @view u_loc[3, :, :, :]
-            # b = @view u_other[3, :, :, :]
-            # a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
-            # a = @view u_loc[4, :, :, :]
-            # b = @view u_other[4, :, :, :]
-            # a[semi_coupled.domain_marker .== j] = b[semi_coupled.domain_marker .== j]
-            # u_loc[1, :, :, :][semi_coupled.domain_marker .!= i] .= 1.0
-            # u_loc[2, :, :, :][semi_coupled.domain_marker .!= i] .= 0.0
-            # u_loc[3, :, :, :][semi_coupled.domain_marker .!= i] .= 0.0
-            # u_loc[4, :, :, :][semi_coupled.domain_marker .!= i] .= 1.0
         end
     end
-
-    #             x = cache.elements.node_coordinates[:, i_node, j_node, linear_indices[i_cell, j_cell]]
-    #             converted_u = boundary_condition.coupling_converter(x, u[:, i_node, j_node, linear_indices[i_cell, j_cell]])
-    #             boundary_condition.u_boundary[v, i, cell] = converted_u[v]
-
-    #             # boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node,
-    #             #                                               linear_indices[i_cell,
-    #             #                                                              j_cell]]
 end
 
 
