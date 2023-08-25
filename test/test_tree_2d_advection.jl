@@ -23,13 +23,6 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [0.04347734797775926],
       polydeg=1)
   end
-
-  @trixi_testset "elixir_advection_restart.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      # Expected errors are exactly the same as in the parallel test!
-      l2   = [7.81674284320524e-6],
-      linf = [6.314906965243505e-5])
-  end
   
   @trixi_testset "elixir_euler_density_wave_restart.jl" begin
     using OrdinaryDiffEq: SSPRK43
