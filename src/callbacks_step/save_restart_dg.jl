@@ -330,7 +330,7 @@ end
 
 # Store controller values for an adaptive time stepping scheme
 function save_adaptive_time_integrator(integrator,
-                                 controller, restart_callback)
+                                       controller, restart_callback)
     # Save only on root
     if mpi_isroot()
         @unpack output_directory = restart_callback

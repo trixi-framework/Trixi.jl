@@ -108,7 +108,7 @@ function (restart_callback::SaveRestartCallback)(integrator)
         # If using an adaptive time stepping scheme, store controller values for restart
         if integrator.opts.adaptive
             save_adaptive_time_integrator(integrator, integrator.opts.controller,
-                                    restart_callback)
+                                          restart_callback)
         end
     end
 
@@ -174,7 +174,7 @@ function load_adaptive_time_integrator!(integrator, restart_file::AbstractString
         if !("time_integrator_qold" in keys(attributes(file))) ||
            !("time_integrator_dtpropose" in keys(attributes(file))) ||
            (hasproperty(controller, :err) &&
-           !("time_integrator_controller_err" in keys(attributes(file))))
+            !("time_integrator_controller_err" in keys(attributes(file))))
             error("Missing data in restart file: check the consistency of adaptive time controller with initial setup!")
         end
         integrator.qold = read(attributes(file)["time_integrator_qold"])
