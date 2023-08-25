@@ -23,7 +23,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [0.04347734797775926],
       polydeg=1)
   end
-  
+
   @trixi_testset "elixir_advection_restart.jl" begin
     using OrdinaryDiffEq: SSPRK43
     println("═"^100)
