@@ -181,8 +181,7 @@ function load_controller!(integrator, restart_file::AbstractString)
             integrator.reeval_fsal = true
         end
         # Load additional parameters for PIDController
-        if (:err in fieldnames(typeof(controller))) &&
-           ("controller_err" in keys(attributes(file)))
+        if hasproperty(controller, :err)
             controller.err[1:3] = read(attributes(file)["controller_err"])
         end
     end
