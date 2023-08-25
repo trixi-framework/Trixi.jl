@@ -11,17 +11,17 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 
 @testset "Threaded tests" begin
   @testset "TreeMesh" begin
-    @trixi_testset "elixir_euler_density_wave_restart.jl" begin
-      elixir = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_extended.jl")
+    @trixi_testset "elixir_advection_restart.jl" begin
+      elixir = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_extended.jl")
       Trixi.mpi_isroot() && println("═"^100)
       Trixi.mpi_isroot() && println(elixir)
-      trixi_include(@__MODULE__, elixir)
+      trixi_include(@__MODULE__, elixir, tspan = (0.0, 10.0))
       l2_expected, linf_expected = analysis_callback(sol)
 
-      elixir = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_density_wave_restart.jl")
+      elixir = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_restart.jl")
       Trixi.mpi_isroot() && println("═"^100)
       Trixi.mpi_isroot() && println(elixir)
-      # Errors are exactly the same as in the elixir_euler_density_wave_extended.jl
+      # Errors are exactly the same as in the elixir_advection_extended.jl
       trixi_include(@__MODULE__, elixir)
       l2_actual, linf_actual = analysis_callback(sol)
       Trixi.mpi_isroot() && @test l2_actual == l2_expected

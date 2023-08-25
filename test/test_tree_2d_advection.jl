@@ -24,17 +24,17 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       polydeg=1)
   end
   
-  @trixi_testset "elixir_euler_density_wave_restart.jl" begin
+  @trixi_testset "elixir_advection_restart.jl" begin
     using OrdinaryDiffEq: SSPRK43
     println("═"^100)
-    println(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"))
+    println(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"))
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-      alg = SSPRK43())
+      alg = SSPRK43(), tspan = (0.0, 10.0))
     l2_expected, linf_expected = analysis_callback(sol)
 
     println("═"^100)
-    println(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"))
-    # Errors are exactly the same as in the elixir_euler_density_wave_extended.jl
+    println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
+    # Errors are exactly the same as in the elixir_advection_extended.jl
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       alg = SSPRK43())
     l2_actual, linf_actual = analysis_callback(sol)

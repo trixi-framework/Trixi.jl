@@ -22,18 +22,18 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
       linf = [6.627000273229378e-5])
   end
 
-  @trixi_testset "elixir_euler_density_wave_restart.jl" begin
+  @trixi_testset "elixir_advection_restart.jl" begin
     using OrdinaryDiffEq: RDPK3SpFSAL49
     Trixi.mpi_isroot() && println("═"^100)
-    Trixi.mpi_isroot() && println(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"))
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"),
-      alg = RDPK3SpFSAL49());
+    Trixi.mpi_isroot() && println(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"))
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+      alg = RDPK3SpFSAL49(), tspan = (0.0, 10.0))
     l2_expected, linf_expected = analysis_callback(sol)
 
     Trixi.mpi_isroot() && println("═"^100)
-    Trixi.mpi_isroot() && println(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"))
-    # Errors are exactly the same as in the elixir_euler_density_wave_extended.jl
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"),
+    Trixi.mpi_isroot() && println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
+    # Errors are exactly the same as in the elixir_advection_extended.jl
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       alg = RDPK3SpFSAL49())
     l2_actual, linf_actual = analysis_callback(sol)
     Trixi.mpi_isroot() && @test l2_actual == l2_expected
