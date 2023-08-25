@@ -22,11 +22,22 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
       linf = [6.627000273229378e-5])
   end
 
-  @trixi_testset "elixir_advection_restart.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      # Expected errors are exactly the same as in the serial test!
-      l2   = [7.81674284320524e-6],
-      linf = [6.314906965243505e-5])
+  @trixi_testset "elixir_euler_density_wave_restart.jl" begin
+    using OrdinaryDiffEq: RDPK3SpFSAL49
+    Trixi.mpi_isroot() && println("═"^100)
+    Trixi.mpi_isroot() && println(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"))
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"),
+      alg = RDPK3SpFSAL49());
+    l2_expected, linf_expected = analysis_callback(sol)
+
+    Trixi.mpi_isroot() && println("═"^100)
+    Trixi.mpi_isroot() && println(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"))
+    # Errors are exactly the same as in the elixir_euler_density_wave_extended.jl
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"),
+      alg = RDPK3SpFSAL49())
+    l2_actual, linf_actual = analysis_callback(sol)
+    Trixi.mpi_isroot() && @test l2_actual == l2_expected
+    Trixi.mpi_isroot() && @test linf_actual == linf_expected
   end
 
   @trixi_testset "elixir_advection_mortar.jl" begin
@@ -187,20 +198,6 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
         l2   = [0.0017158367642679273, 0.09619888722871434, 0.09616432767924141, 0.17553381166255197],
         linf = [0.021853862449723982, 0.9878047229255944, 0.9880191167111795, 2.2154030488035588],
         rtol = 0.001)
-    end
-  end
-
-  @trixi_testset "elixir_euler_density_wave_restart.jl" begin
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_extended.jl"));
-    l2_expected, linf_expected = analysis_callback(sol)
-    Trixi.mpi_isroot() && println("═"^100)
-    Trixi.mpi_isroot() && println(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"))
-    # Errors are exactly the same as in the elixir_euler_density_wave_extended.jl
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_restart.jl"))
-    l2_actual, linf_actual = analysis_callback(sol)
-    if Trixi.mpi_isroot()
-      @test l2_actual == l2_expected
-      @test linf_actual == linf_expected
     end
   end
 end
