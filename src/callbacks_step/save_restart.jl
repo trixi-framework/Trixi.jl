@@ -164,7 +164,7 @@ end
 """
     load_controller!(integrator, restart_file::AbstractString)
 
-Load the context information for PID- and PIControllers saved in a `restart_file`.
+Load the context information for error-based time integrators saved in a `restart_file`.
 """
 function load_controller!(integrator, restart_file::AbstractString)
     controller = integrator.opts.controller
