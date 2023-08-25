@@ -32,7 +32,7 @@ integrator = init(ode, alg,
                   dt = dt;
                   save_everystep = false, callback = callbacks,
                   ode_default_options()...)
-load_controller!(integrator, restart_filename)
+load_adaptive_time_integrator!(integrator, restart_filename)
 
 # Get the last time index and work with that.
 integrator.iter = load_timestep(restart_filename)

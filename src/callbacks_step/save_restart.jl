@@ -107,7 +107,7 @@ function (restart_callback::SaveRestartCallback)(integrator)
         save_restart_file(u_ode, t, dt, iter, semi, restart_callback)
         # If using an adaptive time stepping scheme, store controller values for restart
         if integrator.opts.adaptive
-            save_restart_controller(integrator, integrator.opts.controller,
+            save_adaptive_time_integrator(integrator, integrator.opts.controller,
                                     restart_callback)
         end
     end
@@ -162,27 +162,30 @@ function load_restart_file(semi::AbstractSemidiscretization, restart_file)
 end
 
 """
-    load_controller!(integrator, restart_file::AbstractString)
+    load_adaptive_time_integrator!(integrator, restart_file::AbstractString)
 
 Load the context information for error-based time integrators saved in a `restart_file`.
 """
-function load_controller!(integrator, restart_file::AbstractString)
+function load_adaptive_time_integrator!(integrator, restart_file::AbstractString)
     controller = integrator.opts.controller
     # Read context information for controller
     h5open(restart_file, "r") do file
         # Ensure that necessary information was saved
-        if ("qold" in keys(attributes(file))) &&
-           ("dtpropose" in keys(attributes(file)))
-            integrator.qold = read(attributes(file)["qold"])
-            integrator.dtpropose = read(attributes(file)["dtpropose"])
-            # Accept step to use dtpropose already in the first step
-            integrator.accept_step = true
-            # Reevaluate integrator.fsal_first on the first step
-            integrator.reeval_fsal = true
+        if !("time_integrator_qold" in keys(attributes(file))) ||
+           !("time_integrator_dtpropose" in keys(attributes(file))) ||
+           (hasproperty(controller, :err) &&
+           !("time_integrator_controller_err" in keys(attributes(file))))
+            error("Missing data in restart file: check the consistency of adaptive time controller with initial setup!")
         end
+        integrator.qold = read(attributes(file)["time_integrator_qold"])
+        integrator.dtpropose = read(attributes(file)["time_integrator_dtpropose"])
+        # Accept step to use dtpropose already in the first step
+        integrator.accept_step = true
+        # Reevaluate integrator.fsal_first on the first step
+        integrator.reeval_fsal = true
         # Load additional parameters for PIDController
         if hasproperty(controller, :err)
-            controller.err[:] = read(attributes(file)["controller_err"])
+            controller.err[:] = read(attributes(file)["time_integrator_controller_err"])
         end
     end
 end
