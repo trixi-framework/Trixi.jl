@@ -105,6 +105,7 @@ function (restart_callback::SaveRestartCallback)(integrator)
         end
 
         save_restart_file(u_ode, t, dt, iter, semi, restart_callback)
+        # If using an adaptive time stepping scheme, store controller values for restart
         if integrator.opts.adaptive
             save_restart_controller(integrator, integrator.opts.controller,
                                     restart_callback)
