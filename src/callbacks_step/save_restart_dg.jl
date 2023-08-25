@@ -339,7 +339,7 @@ function save_restart_controller(integrator,
         filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
 
         # Open file (preserve existing content)
-        h5open(filename, "cw") do file
+        h5open(filename, "r+") do file
             # Add context information as attributes
             attributes(file)["qold"] = integrator.qold
             # Ensure that `dtpropose` is written as a double precision scalar
