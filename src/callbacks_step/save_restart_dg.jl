@@ -345,7 +345,7 @@ function save_restart_controller(integrator,
             # Ensure that `dtpropose` is written as a double precision scalar
             attributes(file)["dtpropose"] = convert(Float64, integrator.dtpropose)
             # For PIDController is necessary to save additional parameters
-            if :err in fieldnames(typeof(controller))
+            if hasproperty(controller, :err)
                 attributes(file)["controller_err"] = controller.err
             end
         end
