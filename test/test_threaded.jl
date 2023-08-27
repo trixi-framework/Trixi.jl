@@ -24,6 +24,7 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
       # Errors are exactly the same as in the elixir_advection_extended.jl
       trixi_include(@__MODULE__, elixir)
       l2_actual, linf_actual = analysis_callback(sol)
+      
       Trixi.mpi_isroot() && @test l2_actual == l2_expected
       Trixi.mpi_isroot() && @test linf_actual == linf_expected
 

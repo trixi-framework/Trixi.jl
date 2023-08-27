@@ -38,6 +38,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       alg = SSPRK43())
     l2_actual, linf_actual = analysis_callback(sol)
+    
     @test l2_actual == l2_expected
     @test linf_actual == linf_expected
   end

@@ -36,6 +36,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       alg = RDPK3SpFSAL49())
     l2_actual, linf_actual = analysis_callback(sol)
+    
     Trixi.mpi_isroot() && @test l2_actual == l2_expected
     Trixi.mpi_isroot() && @test linf_actual == linf_expected
   end
