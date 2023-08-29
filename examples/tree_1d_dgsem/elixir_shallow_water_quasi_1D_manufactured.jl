@@ -4,7 +4,7 @@ using Trixi
 ###############################################################################
 # Semidiscretization of the shallow water equations
 
-equations = QuasiShallowWaterEquations1D(gravity_constant=9.81)
+equations = ShallowWaterEquationsQuasi1D(gravity_constant=9.81)
 
 initial_condition = initial_condition_convergence_test
 
