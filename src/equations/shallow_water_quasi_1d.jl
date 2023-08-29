@@ -90,7 +90,7 @@ A smooth initial condition used for convergence tests in combination with
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
 function initial_condition_convergence_test(x, t, equations::ShallowWaterEquationsQuasi1D)
-    #generate manufactured fucntion a(x)
+    # generates a manufactured solution. 
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
     Omega = sqrt(2) * pi 
     H = 2.0 + 0.5 * sin(Omega * x[1] - t)
