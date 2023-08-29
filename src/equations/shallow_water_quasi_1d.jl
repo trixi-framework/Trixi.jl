@@ -8,7 +8,7 @@
 @doc raw"""
     ShallowWaterEquationsQuasi1D(; gravity, H0 = 0, threshold_limiter = nothing threshold_wet = nothing)
 
-Quasi Shallow water equations (SWE) in one space dimension. The equations are given by
+The quasi-1D shallow water equations (SWE). The equations are given by
 ```math
 \begin{aligned}
   \frac{\partial}{\partial t}(a h) + \frac{\partial}{\partial x}(a h v) &= 0 \\
@@ -16,8 +16,8 @@ Quasi Shallow water equations (SWE) in one space dimension. The equations are gi
     + g a h \frac{\partial}{\partial x}(h + b) &= 0
 \end{aligned}
 ```
-The unknown quantities of the Quasi SWE are the water height ``h`` and the velocity ``v``.
-The gravitational constant is denoted by `g`, the (possibly) variable bottom topography function ``b(x)``, and channel width ''a(x)''. Conservative variable water height ``h`` is measured from the bottom topography ``b``, therefore one also defines the total water height as ``H = h + b``.
+The unknown quantities of the Quasi-1D SWE are the water height ``h`` and the scaled velocity ``v``.
+The gravitational constant is denoted by `g`, the (possibly) variable bottom topography function ``b(x)``, and (possibly) variable channel width ``a(x)``. The water height ``h`` is measured from the bottom topography ``b``, therefore one also defines the total water height as ``H = h + b``.
 
 The additional quantity ``H_0`` is also available to store a reference value for the total water height that
 is useful to set initial conditions or test the "lake-at-rest" well-balancedness.
@@ -28,9 +28,9 @@ used in [`PositivityPreservingLimiterShallowWater`](@ref) on the water height, a
 condition and cutoff before the next time step. The second one, `threshold_wet`, is applied on the water height to
 define when the flow is "wet" before calculating the numerical flux.
 
-The bottom topography function ``b(x)`` is set inside the initial condition routine
+The bottom topography function ``b(x)`` and channel width ``a(x)`` are set inside the initial condition routine
 for a particular problem setup. To test the conservative form of the SWE one can set the bottom topography
-variable `b` to zero and "a" to one. 
+variable `b` to zero and ``a`` to one. 
 
 In addition to the unknowns, Trixi.jl currently stores the bottom topography and channel width values at the approximation points 
 despite being fixed in time. This is done for convenience of computing the bottom topography gradients
@@ -44,8 +44,7 @@ This affects the implementation and use of these equations in various ways:
 * Trixi.jl's visualization tools will visualize the bottom topography and channel width by default.
 """
 
-struct ShallowWaterEquationsQuasi1D{RealT <: Real} <:
-       Trixi.AbstractShallowWaterEquations{1, 4}
+struct ShallowWaterEquationsQuasi1D{RealT <: Real} <: AbstractShallowWaterEquations{1, 4}
     gravity::RealT # gravitational constant
     H0::RealT      # constant "lake-at-rest" total water height
     # `threshold_limiter` used in `PositivityPreservingLimiterShallowWater` on water height,
@@ -76,10 +75,8 @@ function ShallowWaterEquationsQuasi1D(; gravity_constant, H0 = zero(gravity_cons
     ShallowWaterEquationsQuasi1D(gravity_constant, H0, threshold_limiter, threshold_wet)
 end
 
-have_nonconservative_terms(::ShallowWaterEquationsQuasi1D) = Trixi.True()
-function varnames(::typeof(cons2cons), ::ShallowWaterEquationsQuasi1D)
-    ("a_h", "a_h_v", "b", "a")
-end
+have_nonconservative_terms(::ShallowWaterEquationsQuasi1D) = True()
+varnames(::typeof(cons2cons), ::ShallowWaterEquationsQuasi1D) = ("a_h", "a_h_v", "b", "a")
 # Note, we use the total water height, H = h + b, as the first primitive variable for easier
 # visualization and setting initial conditions
 varnames(::typeof(cons2prim), ::ShallowWaterEquationsQuasi1D) = ("H", "v", "b", "a")
@@ -140,38 +137,6 @@ as defined in [`initial_condition_convergence_test`](@ref).
     return SVector(du1, du2, 0.0, 0.0)
 end
 
-"""
-    boundary_condition_slip_wall(u_inner, orientation_or_normal, x, t, surface_flux_function,
-                                 equations::ShallowWaterEquationsQuasi1D)
-
-Create a boundary state by reflecting the normal velocity component and keep
-the tangential velocity component unchanged. The boundary water height is taken from
-the internal value.
-
-For details see Section 9.2.5 of the book:
-- Eleuterio F. Toro (2001)
-  Shock-Capturing Methods for Free-Surface Shallow Flows
-  1st edition
-  ISBN 0471987662
-"""
-
-function boundary_condition_slip_wall(u_inner, orientation_or_normal, direction,
-                                      x, t, surface_flux_function,
-                                      equations::ShallowWaterEquationsQuasi1D)
-    # create the "external" boundary solution state
-    u_boundary = SVector(u_inner[1],
-                         -u_inner[2],
-                         u_inner[3],
-                         u_inner[4])
-
-    # calculate the boundary flux
-    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-        f = surface_flux_function(u_inner, u_boundary, orientation_or_normal, equations)
-    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-        f = surface_flux_function(u_boundary, u_inner, orientation_or_normal, equations)
-    end
-    return f
-end
 
 # Calculate 1D flux for a single point
 # Note, the bottom topography and channel width have no flux
@@ -293,11 +258,11 @@ end
 #Convert conservative variables to entropy variables
 # Note, only the first two are the entropy variables, the third and foruth entries still
 # just carry the bottom topography and channel width values for convenience
-@inline function Trixi.cons2entropy(u, equations::ShallowWaterEquationsQuasi1D)
+@inline function cons2entropy(u, equations::ShallowWaterEquationsQuasi1D)
     a_h, a_h_v, b, a = u
     h = waterheight(u, equations)
     v = velocity(u, equations)
-    #entropy variables are the same as ones in standard equations
+    #entropy variables are the same as ones in standard shallow water equations
     w1 = equations.gravity * (h + b) - 0.5 * v^2
     w2 = v
 
@@ -317,42 +282,20 @@ end
     return u[1] / u[4]
 end
 
-@inline function pressure(u, equations::ShallowWaterEquationsQuasi1D)
-    a = u[4]
-    h = waterheight(u, equations)
-    p = 0.5 * a * equations.gravity * h^2
-    return p
-end
 
 # Entropy function for the shallow water equations is the total energy
 @inline function entropy(cons, equations::ShallowWaterEquationsQuasi1D)
-    energy_total(cons, equations)
+    a = cons[4]
+    return a * energy_total(cons, equations)
 end
 
 # Calculate total energy for a conservative state `cons`
 @inline function energy_total(cons, equations::ShallowWaterEquationsQuasi1D)
     a_h, a_h_v, b, a = cons
-    e = (a_h_v^2) / (2 * a_h) + 0.5 * equations.gravity * (a_h^2 / a) +
-        equations.gravity * a_h * b
+    e = (a_h_v^2) / (2 * a * a_h) + 0.5 * equations.gravity * (a_h^2 / a) + equations.gravity * a_h * b
     return e
 end
 
-# Calculate kinetic energy for a conservative state `cons`
-@inline function energy_kinetic(u, equations::ShallowWaterEquationsQuasi1D)
-    a_h, a_h_v, _, _ = u
-    return (a_h_v^2) / (2 * a_h)
-end
 
-# Calculate potential energy for a conservative state `cons`
-@inline function energy_internal(cons, equations::ShallowWaterEquationsQuasi1D)
-    return energy_total(cons, equations) - energy_kinetic(cons, equations)
-end
 
-# Calculate the error for the "lake-at-rest" test case
-@inline function lake_at_rest_error(u, equations::ShallowWaterEquationsQuasi1D)
-    a_h, _, b, _ = u
-    h = waterheight(u, equations)
-    H0_wet_dry = max(equations.H0, b + equations.threshold_limiter)
-    return abs(H0_wet_dry - (h + b))
-end
 end # @muladd
