@@ -44,7 +44,8 @@ This affects the implementation and use of these equations in various ways:
 * Trixi.jl's visualization tools will visualize the bottom topography and channel width by default.
 """
 
-struct ShallowWaterEquationsQuasi1D{RealT <: Real} <: AbstractShallowWaterEquations{1, 4}
+struct ShallowWaterEquationsQuasi1D{RealT <: Real} <:
+       AbstractShallowWaterEquations{1, 4}
     gravity::RealT # gravitational constant
     H0::RealT      # constant "lake-at-rest" total water height
     # `threshold_limiter` used in `PositivityPreservingLimiterShallowWater` on water height,
@@ -76,7 +77,9 @@ function ShallowWaterEquationsQuasi1D(; gravity_constant, H0 = zero(gravity_cons
 end
 
 have_nonconservative_terms(::ShallowWaterEquationsQuasi1D) = True()
-varnames(::typeof(cons2cons), ::ShallowWaterEquationsQuasi1D) = ("a_h", "a_h_v", "b", "a")
+function varnames(::typeof(cons2cons), ::ShallowWaterEquationsQuasi1D)
+    ("a_h", "a_h_v", "b", "a")
+end
 # Note, we use the total water height, H = h + b, as the first primitive variable for easier
 # visualization and setting initial conditions
 varnames(::typeof(cons2prim), ::ShallowWaterEquationsQuasi1D) = ("H", "v", "b", "a")
@@ -136,7 +139,6 @@ as defined in [`initial_condition_convergence_test`](@ref).
 
     return SVector(du1, du2, 0.0, 0.0)
 end
-
 
 # Calculate 1D flux for a single point
 # Note, the bottom topography and channel width have no flux
@@ -282,7 +284,6 @@ end
     return u[1] / u[4]
 end
 
-
 # Entropy function for the shallow water equations is the total energy
 @inline function entropy(cons, equations::ShallowWaterEquationsQuasi1D)
     a = cons[4]
@@ -292,10 +293,8 @@ end
 # Calculate total energy for a conservative state `cons`
 @inline function energy_total(cons, equations::ShallowWaterEquationsQuasi1D)
     a_h, a_h_v, b, a = cons
-    e = (a_h_v^2) / (2 * a * a_h) + 0.5 * equations.gravity * (a_h^2 / a) + equations.gravity * a_h * b
+    e = (a_h_v^2) / (2 * a * a_h) + 0.5 * equations.gravity * (a_h^2 / a) +
+        equations.gravity * a_h * b
     return e
 end
-
-
-
 end # @muladd
