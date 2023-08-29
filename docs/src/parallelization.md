@@ -178,9 +178,16 @@ julia> set_preferences!(
            "libhdf5" => "/path/to/your/libhdf5.so",
            "libhdf5_hl" => "/path/to/your/libhdf5_hl.so", force = true)
 ```
-For more information see also the [documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/).
-In total, you should have a file called LocalPreferences.toml in the project directory that contains a section `[MPIPreferences]`,
-a section `[HDF5]` with entries `libhdf5` and `libhdf5_hl`, a section `[P4est]` with the entry `libp4est` as well as a section
-`[T8code]` with the entries `libt8`, `libp4est` and `libsc`.
+For more information see also the
+[documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). In total, you should
+have a file called LocalPreferences.toml in the project directory that contains a section
+`[MPIPreferences]`, a section `[HDF5]` with entries `libhdf5` and `libhdf5_hl`, a section `[P4est]`
+with the entry `libp4est` as well as a section `[T8code]` with the entries `libt8`, `libp4est`
+and `libsc`.
+If you use HDF5.jl v0.16 or older, instead of setting the preferences for HDF5.jl, you need to set
+the environment variable `JULIA_HDF5_PATH` to the path, where the HDF5 binaries are located and
+then call `]build HDF5` from Julia.
 
-If HDF5 is not MPI-enabled, Trixi.jl will fall back on a less efficient I/O mechanism. In that case, all disk I/O is performed only on rank zero and data is distributed to/gathered from the other ranks using regular MPI communication.
+If HDF5 is not MPI-enabled, Trixi.jl will fall back on a less efficient I/O mechanism. In that
+case, all disk I/O is performed only on rank zero and data is distributed to/gathered from the
+other ranks using regular MPI communication.
