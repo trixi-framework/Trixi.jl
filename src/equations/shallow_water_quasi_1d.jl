@@ -4,7 +4,7 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
-    
+
 @doc raw"""
     ShallowWaterEquationsQuasi1D(; gravity, H0 = 0, threshold_limiter = nothing threshold_wet = nothing)
 
@@ -44,7 +44,8 @@ This affects the implementation and use of these equations in various ways:
 * Trixi.jl's visualization tools will visualize the bottom topography and channel width by default.
 """
 
-struct ShallowWaterEquationsQuasi1D{RealT <: Real} <: Trixi.AbstractShallowWaterEquations{1, 4}
+struct ShallowWaterEquationsQuasi1D{RealT <: Real} <:
+       Trixi.AbstractShallowWaterEquations{1, 4}
     gravity::RealT # gravitational constant
     H0::RealT      # constant "lake-at-rest" total water height
     # `threshold_limiter` used in `PositivityPreservingLimiterShallowWater` on water height,
@@ -63,7 +64,8 @@ end
 # well-balancedness test cases.
 # Strict default values for thresholds that performed well in many numerical experiments
 function ShallowWaterEquationsQuasi1D(; gravity_constant, H0 = zero(gravity_constant),
-                                 threshold_limiter = nothing, threshold_wet = nothing)
+                                      threshold_limiter = nothing,
+                                      threshold_wet = nothing)
     T = promote_type(typeof(gravity_constant), typeof(H0))
     if threshold_limiter === nothing
         threshold_limiter = 500 * eps(T)
@@ -75,7 +77,9 @@ function ShallowWaterEquationsQuasi1D(; gravity_constant, H0 = zero(gravity_cons
 end
 
 have_nonconservative_terms(::ShallowWaterEquationsQuasi1D) = Trixi.True()
-varnames(::typeof(cons2cons), ::ShallowWaterEquationsQuasi1D) = ("a_h", "a_h_v", "b", "a")
+function varnames(::typeof(cons2cons), ::ShallowWaterEquationsQuasi1D)
+    ("a_h", "a_h_v", "b", "a")
+end
 # Note, we use the total water height, H = h + b, as the first primitive variable for easier
 # visualization and setting initial conditions
 varnames(::typeof(cons2prim), ::ShallowWaterEquationsQuasi1D) = ("H", "v", "b", "a")
@@ -89,14 +93,15 @@ A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
-function initial_condition_convergence_test(x, t, equations::ShallowWaterEquationsQuasi1D)
+function initial_condition_convergence_test(x, t,
+                                            equations::ShallowWaterEquationsQuasi1D)
     # generates a manufactured solution. 
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
-    Omega = sqrt(2) * pi 
+    Omega = sqrt(2) * pi
     H = 2.0 + 0.5 * sin(Omega * x[1] - t)
     v = 0.25
-    b = 0.2 - 0.05 * sin(1 * sqrt(2) * pi *x[1])
-    a = 1 + 0.1 * cos(sqrt(2) * pi * x[1])   
+    b = 0.2 - 0.05 * sin(1 * sqrt(2) * pi * x[1])
+    a = 1 + 0.1 * cos(sqrt(2) * pi * x[1])
     return prim2cons(SVector(H, v, b, a), equations)
 end
 
@@ -116,16 +121,16 @@ as defined in [`initial_condition_convergence_test`](@ref).
                                                equations::ShallowWaterEquationsQuasi1D)
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocity is taken to be constant
-    Omega = sqrt(2) * pi 
+    Omega = sqrt(2) * pi
     H = 2.0 + 0.5 * sin(Omega * x[1] - t)
     H_x = 0.5 * cos(Omega * x[1] - t) * Omega
     H_t = -0.5 * cos(Omega * x[1] - t)
 
     v = 0.25
-    
-    b =  0.2 - 0.05 * sin(sqrt(2) * pi *x[1])
-    b_x = -0.05 * cos(sqrt(2) * pi *x[1]) * sqrt(2) * pi
-    
+
+    b = 0.2 - 0.05 * sin(sqrt(2) * pi * x[1])
+    b_x = -0.05 * cos(sqrt(2) * pi * x[1]) * sqrt(2) * pi
+
     a = 1 + 0.1 * cos(sqrt(2) * pi * x[1])
     a_x = -0.1 * sin(sqrt(2) * pi * x[1]) * sqrt(2) * pi
 
@@ -133,7 +138,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
     du2 = v * du1 + a * (equations.gravity * (H - b) * H_x)
 
     return SVector(du1, du2, 0.0, 0.0)
-end  
+end
 
 """
     boundary_condition_slip_wall(u_inner, orientation_or_normal, x, t, surface_flux_function,
@@ -151,8 +156,8 @@ For details see Section 9.2.5 of the book:
 """
 
 function boundary_condition_slip_wall(u_inner, orientation_or_normal, direction,
-                                              x, t, surface_flux_function,
-                                              equations::ShallowWaterEquationsQuasi1D)
+                                      x, t, surface_flux_function,
+                                      equations::ShallowWaterEquationsQuasi1D)
     # create the "external" boundary solution state
     u_boundary = SVector(u_inner[1],
                          -u_inner[2],
@@ -176,7 +181,7 @@ end
     v = velocity(u, equations)
 
     p = 0.5 * a * equations.gravity * h^2
-    
+
     f1 = a_h_v
     f2 = a_h_v * v + p
 
@@ -202,12 +207,12 @@ Further details are available in the paper:
                                                 equations::ShallowWaterEquationsQuasi1D)
     a_h_ll, _, b_ll, a_ll = u_ll
     a_h_rr, _, b_rr, a_rr = u_rr
-    
+
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
-    
+
     z = zero(eltype(u_ll))
-    
+
     return SVector(z, equations.gravity * a_ll * h_ll * (h_rr + b_rr), z, z)
 end
 
@@ -226,17 +231,17 @@ Further details are available in the paper:
   [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)
 """
 
-@inline function flux_chan_etal(u_ll, u_rr, orientation::Integer, 
+@inline function flux_chan_etal(u_ll, u_rr, orientation::Integer,
                                 equations::ShallowWaterEquationsQuasi1D)
     a_h_ll, a_h_v_ll, _, _ = u_ll
     a_h_rr, a_h_v_rr, _, _ = u_rr
-    
+
     v_ll = velocity(u_ll, equations)
     v_rr = velocity(u_rr, equations)
 
     f1 = 0.5 * (a_h_v_ll + a_h_v_rr)
     f2 = f1 * 0.5 * (v_ll + v_rr)
-    
+
     return SVector(f1, f2, zero(eltype(u_ll)), zero(eltype(u_ll)))
 end
 
@@ -270,9 +275,9 @@ end
 # Helper function to extract the velocity vector from the conservative variables
 @inline function velocity(u, equations::ShallowWaterEquationsQuasi1D)
     a_h, a_h_v, _, _ = u
-    
+
     v = a_h_v / a_h
-    
+
     return v
 end
 
@@ -295,14 +300,14 @@ end
     #entropy variables are the same as ones in standard equations
     w1 = equations.gravity * (h + b) - 0.5 * v^2
     w2 = v
-    
+
     return SVector(w1, w2, b, a)
 end
 
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::ShallowWaterEquationsQuasi1D)
     H, v, b, a = prim
-    
+
     a_h = a * (H - b)
     a_h_v = a_h * v
     return SVector(a_h, a_h_v, b, a)
@@ -327,7 +332,8 @@ end
 # Calculate total energy for a conservative state `cons`
 @inline function energy_total(cons, equations::ShallowWaterEquationsQuasi1D)
     a_h, a_h_v, b, a = cons
-    e = (a_h_v^2) / (2 * a_h) + 0.5 * equations.gravity * (a_h^2 / a) + equations.gravity * a_h * b
+    e = (a_h_v^2) / (2 * a_h) + 0.5 * equations.gravity * (a_h^2 / a) +
+        equations.gravity * a_h * b
     return e
 end
 
