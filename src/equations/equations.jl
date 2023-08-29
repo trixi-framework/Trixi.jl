@@ -350,6 +350,7 @@ include("shallow_water_1d.jl")
 include("shallow_water_2d.jl")
 include("shallow_water_two_layer_1d.jl")
 include("shallow_water_two_layer_2d.jl")
+include("shallow_water_quasi_1d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <:
