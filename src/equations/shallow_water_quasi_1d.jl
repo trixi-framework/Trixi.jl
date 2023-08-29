@@ -135,38 +135,6 @@ as defined in [`initial_condition_convergence_test`](@ref).
     return SVector(du1, du2, 0.0, 0.0)
 end  
 
-"""
-    boundary_condition_slip_wall(u_inner, orientation_or_normal, x, t, surface_flux_function,
-                                 equations::ShallowWaterEquationsQuasi1D)
-
-Create a boundary state by reflecting the normal velocity component and keep
-the tangential velocity component unchanged. The boundary water height is taken from
-the internal value.
-
-For details see Section 9.2.5 of the book:
-- Eleuterio F. Toro (2001)
-  Shock-Capturing Methods for Free-Surface Shallow Flows
-  1st edition
-  ISBN 0471987662
-"""
-
-function boundary_condition_slip_wall(u_inner, orientation_or_normal, direction,
-                                              x, t, surface_flux_function,
-                                              equations::ShallowWaterEquationsQuasi1D)
-    # create the "external" boundary solution state
-    u_boundary = SVector(u_inner[1],
-                         -u_inner[2],
-                         u_inner[3],
-                         u_inner[4])
-
-    # calculate the boundary flux
-    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-        f = surface_flux_function(u_inner, u_boundary, orientation_or_normal, equations)
-    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-        f = surface_flux_function(u_boundary, u_inner, orientation_or_normal, equations)
-    end
-    return f
-end
 
 # Calculate 1D flux for a single point
 # Note, the bottom topography and channel width have no flux
