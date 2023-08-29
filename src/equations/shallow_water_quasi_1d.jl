@@ -44,7 +44,7 @@ This affects the implementation and use of these equations in various ways:
 * Trixi.jl's visualization tools will visualize the bottom topography and channel width by default.
 """
 
-struct ShallowWaterEquationsQuasi1D{RealT <: Real} <: Trixi.AbstractShallowWaterEquations{1, 4}
+struct ShallowWaterEquationsQuasi1D{RealT <: Real} <: AbstractShallowWaterEquations{1, 4}
     gravity::RealT # gravitational constant
     H0::RealT      # constant "lake-at-rest" total water height
     # `threshold_limiter` used in `PositivityPreservingLimiterShallowWater` on water height,
@@ -74,7 +74,7 @@ function ShallowWaterEquationsQuasi1D(; gravity_constant, H0 = zero(gravity_cons
     ShallowWaterEquationsQuasi1D(gravity_constant, H0, threshold_limiter, threshold_wet)
 end
 
-have_nonconservative_terms(::ShallowWaterEquationsQuasi1D) = Trixi.True()
+have_nonconservative_terms(::ShallowWaterEquationsQuasi1D) = True()
 varnames(::typeof(cons2cons), ::ShallowWaterEquationsQuasi1D) = ("a_h", "a_h_v", "b", "a")
 # Note, we use the total water height, H = h + b, as the first primitive variable for easier
 # visualization and setting initial conditions
@@ -288,11 +288,11 @@ end
 #Convert conservative variables to entropy variables
 # Note, only the first two are the entropy variables, the third and foruth entries still
 # just carry the bottom topography and channel width values for convenience
-@inline function Trixi.cons2entropy(u, equations::ShallowWaterEquationsQuasi1D)
+@inline function cons2entropy(u, equations::ShallowWaterEquationsQuasi1D)
     a_h, a_h_v, b, a = u
     h = waterheight(u, equations)
     v = velocity(u, equations)
-    #entropy variables are the same as ones in standard equations
+    #entropy variables are the same as ones in standard shallow water equations
     w1 = equations.gravity * (h + b) - 0.5 * v^2
     w2 = v
     
@@ -326,18 +326,6 @@ end
     return e
 end
 
-# Calculate kinetic energy for a conservative state `cons`
-@inline function energy_kinetic(u, equations::ShallowWaterEquationsQuasi1D)
-    a_h, a_h_v, b, a = u
-    return (a_h_v^2) / (2 * a * a_h) # 0.5 * v^2
-end
 
 
-# Calculate the error for the "lake-at-rest" test case
-@inline function lake_at_rest_error(u, equations::ShallowWaterEquationsQuasi1D)
-    a_h, _, b, _ = u
-    h = waterheight(u, equations)
-    H0_wet_dry = max(equations.H0, b + equations.threshold_limiter)
-    return abs(H0_wet_dry - (h + b))
-end
 end # @muladd
