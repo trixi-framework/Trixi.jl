@@ -99,8 +99,8 @@ function initial_condition_convergence_test(x, t,
     Omega = sqrt(2) * pi
     H = 2.0 + 0.5 * sin(Omega * x[1] - t)
     v = 0.25
-    b = 0.2 - 0.05 * sin(1 * sqrt(2) * pi * x[1])
-    a = 1 + 0.1 * cos(sqrt(2) * pi * x[1])
+    b = 0.2 - 0.05 * sin(Omega * x[1])
+    a = 1 + 0.1 * cos(Omega * x[1])
     return prim2cons(SVector(H, v, b, a), equations)
 end
 
@@ -126,11 +126,11 @@ as defined in [`initial_condition_convergence_test`](@ref).
 
     v = 0.25
 
-    b = 0.2 - 0.05 * sin(sqrt(2) * pi * x[1])
-    b_x = -0.05 * cos(sqrt(2) * pi * x[1]) * sqrt(2) * pi
+    b = 0.2 - 0.05 * sin(Omega * x[1])
+    b_x = -0.05 * cos(Omega * x[1]) * Omega
 
-    a = 1 + 0.1 * cos(sqrt(2) * pi * x[1])
-    a_x = -0.1 * sin(sqrt(2) * pi * x[1]) * sqrt(2) * pi
+    a = 1 + 0.1 * cos(Omega * x[1])
+    a_x = -0.1 * sin(Omega * x[1]) * Omega
 
     du1 = a * H_t + v * (a_x * (H - b) + a * (H_x - b_x))
     du2 = v * du1 + a * (equations.gravity * (H - b) * H_x)
@@ -184,7 +184,7 @@ end
     flux_chan_etal(u_ll, u_rr, orientation,
                    equations::ShallowWaterEquationsQuasi1D)
 
-Total energy conservative (mathematical entropy for quasi shallow water equations) split form.
+Total energy conservative (mathematical entropy for quasi 1D shallow water equations) split form.
 When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
 The `surface_flux` should still use, e.g., [`FluxPlusDissipation(flux_chan_etal, DissipationLocalLaxFriedrichs())`](@ref).
 
@@ -226,6 +226,7 @@ end
 end
 
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography
+# and channel width
 @inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
                                                               orientation_or_normal_direction,
                                                               equations::ShallowWaterEquationsQuasi1D)
@@ -253,8 +254,8 @@ end
     return SVector(H, v, b, a)
 end
 
-#Convert conservative variables to entropy variables
-# Note, only the first two are the entropy variables, the third and foruth entries still
+# Convert conservative variables to entropy variables
+# Note, only the first two are the entropy variables, the third and fourth entries still
 # just carry the bottom topography and channel width values for convenience
 @inline function cons2entropy(u, equations::ShallowWaterEquationsQuasi1D)
     a_h, a_h_v, b, a = u
