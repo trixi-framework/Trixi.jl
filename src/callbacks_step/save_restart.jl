@@ -144,7 +144,8 @@ end
 """
     load_timestep!(integrator, restart_file::AbstractString)
 
-Load the time step number (`iter` and `stats.naccept` in OrdinaryDiffEq.jl) saved in a `restart_file`.
+Load the time step number (`iter` in OrdinaryDiffEq.jl) saved in a `restart_file`.
+And set the number of accepted steps (`stats.naccept` in OrdinaryDiffEq.jl) 
 """
 function load_timestep!(integrator, restart_file::AbstractString)
     integrator.iter = load_timestep(restart_file)
