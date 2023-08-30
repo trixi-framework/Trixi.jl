@@ -341,12 +341,11 @@ function save_adaptive_time_integrator(integrator,
 
         # Open file (preserve existing content)
         h5open(filename, "r+") do file
-            # Add context information as attributes
+            # Add context information as attributes both for PIController and PIDController
             attributes(file)["time_integrator_qold"] = integrator.qold
-            # Ensure that `dtpropose` is written as a double precision scalar
             attributes(file)["time_integrator_dtpropose"] = integrator.dtpropose
             # For PIDController is necessary to save additional parameters
-            if hasproperty(controller, :err)
+            if hasproperty(controller, :err) # Distinguish PIDController from PIController
                 attributes(file)["time_integrator_controller_err"] = controller.err
             end
         end

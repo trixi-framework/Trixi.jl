@@ -171,13 +171,14 @@ function load_adaptive_time_integrator!(integrator, restart_file::AbstractString
     controller = integrator.opts.controller
     # Read context information for controller
     h5open(restart_file, "r") do file
-        # Ensure that necessary information was saved
+        # Ensure that the necessary information was saved
         if !("time_integrator_qold" in keys(attributes(file))) ||
            !("time_integrator_dtpropose" in keys(attributes(file))) ||
            (hasproperty(controller, :err) &&
             !("time_integrator_controller_err" in keys(attributes(file))))
             error("Missing data in restart file: check the consistency of adaptive time controller with initial setup!")
         end
+        # Load data that is required both for PIController and PIDController
         integrator.qold = read(attributes(file)["time_integrator_qold"])
         integrator.dtpropose = read(attributes(file)["time_integrator_dtpropose"])
         # Accept step to use dtpropose already in the first step
@@ -185,7 +186,7 @@ function load_adaptive_time_integrator!(integrator, restart_file::AbstractString
         # Reevaluate integrator.fsal_first on the first step
         integrator.reeval_fsal = true
         # Load additional parameters for PIDController
-        if hasproperty(controller, :err)
+        if hasproperty(controller, :err) # Distinguish PIDController from PIController 
             controller.err[:] = read(attributes(file)["time_integrator_controller_err"])
         end
     end
