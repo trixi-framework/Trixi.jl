@@ -43,7 +43,6 @@ This affects the implementation and use of these equations in various ways:
 * [`AnalysisCallback`](@ref) analyzes this variable.
 * Trixi.jl's visualization tools will visualize the bottom topography and channel width by default.
 """
-
 struct ShallowWaterEquationsQuasi1D{RealT <: Real} <:
        AbstractShallowWaterEquations{1, 4}
     gravity::RealT # gravitational constant
@@ -116,7 +115,6 @@ This manufactured solution source term is specifically designed for the bottom t
 `b(x) = 0.2 - 0.05 * sin(sqrt(2) * pi *x[1])` and channel width 'a(x)= 1 + 0.1 * cos(sqrt(2) * pi * x[1])'
 as defined in [`initial_condition_convergence_test`](@ref).
 """
-
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::ShallowWaterEquationsQuasi1D)
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
@@ -156,8 +154,8 @@ end
 end
 
 """
-flux_nonconservative_chan_etal(u_ll, u_rr, orientation::Integer,
-                                                equations::ShallowWaterEquationsQuasi1D)
+    flux_nonconservative_chan_etal(u_ll, u_rr, orientation::Integer,
+                                   equations::ShallowWaterEquationsQuasi1D)
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the bottom topography [`ShallowWaterEquationsQuasi1D`](@ref) 
@@ -169,7 +167,6 @@ Further details are available in the paper:
     shallow water and compressible Euler equations
     [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)
 """
-
 @inline function flux_nonconservative_chan_etal(u_ll, u_rr, orientation::Integer,
                                                 equations::ShallowWaterEquationsQuasi1D)
     a_h_ll, _, b_ll, a_ll = u_ll
@@ -185,7 +182,7 @@ end
 
 """
     flux_chan_etal(u_ll, u_rr, orientation,
-                          equations::ShallowWaterEquationsQuasi1D)
+                   equations::ShallowWaterEquationsQuasi1D)
 
 Total energy conservative (mathematical entropy for quasi shallow water equations) split form.
 When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
@@ -197,7 +194,6 @@ Further details are available in the paper:
   shallow water and compressible Euler equations
   [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)
 """
-
 @inline function flux_chan_etal(u_ll, u_rr, orientation::Integer,
                                 equations::ShallowWaterEquationsQuasi1D)
     a_h_ll, a_h_v_ll, _, _ = u_ll
