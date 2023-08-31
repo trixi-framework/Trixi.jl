@@ -21,6 +21,17 @@ mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
                   coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                   initial_refinement_level = 2)
 
+# Note: This is actually a `p8est_quadrant_t` which is much bigger than the
+# following struct. But we only need the first four fields for our purpose.
+struct t8_dhex_t
+    x::Int32
+    y::Int32
+    z::Int32
+    level::Int8
+    # [...] # See `p8est.h` in `p4est` for more info.
+end
+
+# Refine bottom left quadrant of each second tree to level 2
 function adapt_callback(forest,
                         forest_from,
                         which_tree,
@@ -29,12 +40,11 @@ function adapt_callback(forest,
                         is_family,
                         num_elements,
                         elements_ptr)::Cint
-    vertex = Vector{Cdouble}(undef, 3)
     elements = unsafe_wrap(Array, elements_ptr, num_elements)
-    Trixi.t8_element_vertex_reference_coords(ts, elements[1], 0, pointer(vertex))
-    level = Trixi.t8_element_level(ts, elements[1])
+    el = unsafe_load(Ptr{t8_dhex_t}(elements[1]))
 
-    if all(vertex .< 1e-8) && level < 3
+    if iseven(convert(Int, which_tree)) && el.x == 0 && el.y == 0 && el.z == 0 &&
+       el.level < 3
         # return true (refine)
         return 1
     else

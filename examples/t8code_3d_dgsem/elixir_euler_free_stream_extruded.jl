@@ -68,10 +68,7 @@ function adapt_callback(forest,
                         is_family,
                         num_elements,
                         elements_ptr)::Cint
-    vertex = Vector{Cdouble}(undef, 3)
     elements = unsafe_wrap(Array, elements_ptr, num_elements)
-    Trixi.t8_element_vertex_reference_coords(ts, elements[1], 0, pointer(vertex))
-
     el = unsafe_load(Ptr{t8_dhex_t}(elements[1]))
 
     if convert(Int, which_tree) < 4 && el.x == 0 && el.y == 0 && el.level < 2
@@ -90,6 +87,8 @@ new_forest_ref = Ref{Trixi.t8_forest_t}()
 Trixi.t8_forest_init(new_forest_ref);
 new_forest = new_forest_ref[]
 
+# Check out `examples/t8_step4_partition_balance_ghost.jl` in
+# https://github.com/DLR-AMR/T8code.jl for detailed explanations.
 let set_from = C_NULL, recursive = 1, set_for_coarsening = 0, no_repartition = 0,
     do_ghost = 1
 
@@ -120,19 +119,10 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-# save_restart = SaveRestartCallback(interval=100,
-#                                    save_final_restart=true)
-# 
-# save_solution = SaveSolutionCallback(interval=100,
-#                                      save_initial_solution=true,
-#                                      save_final_solution=true,
-#                                      solution_variables=cons2prim)
-
 stepsize_callback = StepsizeCallback(cfl = 1.2)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        # save_restart, save_solution,
                         stepsize_callback)
 
 ###############################################################################

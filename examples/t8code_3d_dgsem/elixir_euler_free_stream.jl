@@ -79,10 +79,7 @@ function adapt_callback(forest,
                         is_family,
                         num_elements,
                         elements_ptr)::Cint
-    vertex = Vector{Cdouble}(undef, 3)
     elements = unsafe_wrap(Array, elements_ptr, num_elements)
-    Trixi.t8_element_vertex_reference_coords(ts, elements[1], 0, pointer(vertex))
-
     el = unsafe_load(Ptr{t8_dhex_t}(elements[1]))
 
     if iseven(convert(Int, which_tree)) && el.x == 0 && el.y == 0 && el.z == 0 &&
