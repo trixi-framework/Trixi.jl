@@ -50,7 +50,7 @@ isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/d45
                               mesh_file)
 
 # INP mesh files are only support by p4est. Hence, we
-# create a p4est connecvity object first from which
+# create a p4est connectivity object first from which
 # we can create a t8code mesh.
 conn = Trixi.read_inp_p4est(mesh_file,Val(3))
 
