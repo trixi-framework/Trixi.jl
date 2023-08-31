@@ -13,20 +13,19 @@ isdir(outdir) && rm(outdir, recursive = true)
 mkdir(outdir)
 
 @testset "T8codeMesh2D" begin
-
     @trixi_testset "test save_mesh_file" begin
-      @test_throws Exception begin
-        # Save mesh file support will be added in the future. The following
-        # lines of code are here for satisfying code coverage.
+        @test_throws Exception begin
+            # Save mesh file support will be added in the future. The following
+            # lines of code are here for satisfying code coverage.
 
-        # Create dummy mesh.
-        mesh = T8codeMesh((1, 1), polydeg = 1,
-                          mapping = Trixi.coordinates2mapping((-1.0, -1.0),  ( 1.0,  1.0)),
-                          initial_refinement_level = 1)
+            # Create dummy mesh.
+            mesh = T8codeMesh((1, 1), polydeg = 1,
+                              mapping = Trixi.coordinates2mapping((-1.0, -1.0), (1.0, 1.0)),
+                              initial_refinement_level = 1)
 
-        # This call throws an error.
-        Trixi.save_mesh_file(mesh, "dummy")
-      end
+            # This call throws an error.
+            Trixi.save_mesh_file(mesh, "dummy")
+        end
     end
 
     @trixi_testset "elixir_advection_basic.jl" begin
@@ -41,6 +40,14 @@ mkdir(outdir)
                                      "elixir_advection_nonconforming_flag.jl"),
                             l2=[3.198940059144588e-5],
                             linf=[0.00030636069494005547])
+        # Ensure that we do not have excessive memory allocations 
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
     @trixi_testset "elixir_advection_unstructured_flag.jl" begin
