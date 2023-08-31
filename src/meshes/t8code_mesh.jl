@@ -173,7 +173,7 @@ function T8codeMesh(trees_per_dimension; polydeg,
     # Non-periodic boundaries.
     boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
 
-    if mapping == nothing
+    if mapping === nothing
         mapping_ = coordinates2mapping(ntuple(_ -> -1.0, NDIMS), ntuple(_ -> 1.0, NDIMS))
     else
         mapping_ = mapping
