@@ -327,7 +327,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
     old_index = 1
     new_index = 1
 
-    # Note: This is true for `hexs`.
+    # Note: This is only true for `hexs`.
     T8_CHILDREN = 8
 
     # Retain current solution data.
