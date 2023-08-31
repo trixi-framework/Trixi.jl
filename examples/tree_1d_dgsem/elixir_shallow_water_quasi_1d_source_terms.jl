@@ -2,7 +2,8 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# Semidiscretization of the shallow water equations
+# Semidiscretization of the quasi 1d shallow water equations
+# See Chan et al.  https://doi.org/10.48550/arXiv.2307.12089 for details
 
 equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.81)
 
