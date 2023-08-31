@@ -10,7 +10,7 @@ equations = CompressibleEulerEquations3D(1.4)
     initial_condition_medium_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
 
 The Sedov blast wave setup based on Flash
-- http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
 with smaller strength of the initial discontinuity.
 """
 function initial_condition_medium_sedov_blast_wave(x, t,
