@@ -116,7 +116,7 @@
 
 # ## Examples in Trixi.jl
 # Trixi.jl already contains several more coding examples, the so-called `elixirs`. You can find them
-# in the folder [`examples`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/).
+# in the folder [`examples/`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/).
 # They are structured by the underlying mesh type and the respective number of spatial dimensions.
 # The name of an elixir is composed of the underlying system of conservation equations (for instance
 # `advection` or `euler`) and other special characteristics like the initial condition

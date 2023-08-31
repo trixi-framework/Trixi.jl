@@ -7,44 +7,37 @@ using Trixi
 
 # TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
-mu() = 6.25e-4 # equivalent to Re = 1600
+mu() = 1.0/3.0 * 10^(-3) # equivalent to Re = 3000
 
-equations = CompressibleEulerEquations3D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu=mu(),
+equations = CompressibleEulerEquations2D(1.4)
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu=mu(),
                                                           Prandtl=prandtl_number())
 
-"""
-    initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations3D)
-
-The classical viscous Taylor-Green vortex, as found for instance in
-
-- Jonathan R. Bull and Antony Jameson
-  Simulation of the Compressible Taylor Green Vortex using High-Order Flux Reconstruction Schemes
-  [DOI: 10.2514/6.2014-3210](https://doi.org/10.2514/6.2014-3210)
-"""
-function initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations3D)
-  A  = 1.0 # magnitude of speed
+function initial_condition_shear_layer(x, t, equations::CompressibleEulerEquations2D)
+  # Shear layer parameters
+  k = 80
+  delta = 0.05
+  u0 = 1.0
+  
   Ms = 0.1 # maximum Mach number
 
   rho = 1.0
-  v1  =  A * sin(x[1]) * cos(x[2]) * cos(x[3])
-  v2  = -A * cos(x[1]) * sin(x[2]) * cos(x[3])
-  v3  = 0.0
-  p   = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
-  p   = p + 1.0/16.0 * A^2 * rho * (cos(2*x[1])*cos(2*x[3]) + 2*cos(2*x[2]) + 2*cos(2*x[1]) + cos(2*x[2])*cos(2*x[3]))
+  v1  = x[2] <= 0.5 ? u0 * tanh(k*(x[2]*0.5 - 0.25)) : u0 * tanh(k*(0.75 -x[2]*0.5))
+  v2  = u0 * delta * sin(2*pi*(x[1]*0.5 + 0.25))
+  p   = (u0 / Ms)^2 * rho / equations.gamma # scaling to get Ms
 
-  return prim2cons(SVector(rho, v1, v2, v3, p), equations)
+  return prim2cons(SVector(rho, v1, v2, p), equations)
 end
-initial_condition = initial_condition_taylor_green_vortex
+initial_condition = initial_condition_shear_layer
 
 volume_flux = flux_ranocha
 solver = DGSEM(polydeg=3, surface_flux=flux_hllc,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (-1.0, -1.0, -1.0) .* pi
-coordinates_max = ( 1.0,  1.0,  1.0) .* pi
+coordinates_min = (0.0, 0.0)
+coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
+                initial_refinement_level=4,
                 n_cells_max=100_000)
 
 
@@ -54,7 +47,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 20.0)
+tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
