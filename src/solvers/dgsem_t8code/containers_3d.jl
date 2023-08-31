@@ -39,15 +39,15 @@ function calc_node_coordinates!(node_coordinates,
             t8_element_vertex_reference_coords(eclass_scheme, element, 0,
                                                pointer(element_coords))
 
-            nodes_out_x = 2 *
-                          (element_length * 1 / 2 * (nodes .+ 1) .+ element_coords[1]) .-
-                          1
-            nodes_out_y = 2 *
-                          (element_length * 1 / 2 * (nodes .+ 1) .+ element_coords[2]) .-
-                          1
-            nodes_out_z = 2 *
-                          (element_length * 1 / 2 * (nodes .+ 1) .+ element_coords[3]) .-
-                          1
+            nodes_out_x = (2 *
+                           (element_length * 0.5 * (nodes .+ 1) .+ element_coords[1]) .-
+                           1)
+            nodes_out_y = (2 *
+                           (element_length * 0.5 * (nodes .+ 1) .+ element_coords[2]) .-
+                           1)
+            nodes_out_z = (2 *
+                           (element_length * 0.5 * (nodes .+ 1) .+ element_coords[3]) .-
+                           1)
 
             polynomial_interpolation_matrix!(matrix1, mesh.nodes, nodes_out_x,
                                              baryweights_in)
