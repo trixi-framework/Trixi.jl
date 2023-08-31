@@ -8,45 +8,42 @@ advection_velocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux.
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = (-1.0, -1.0, -1.0) # minimum coordinates (min(x), min(y), min(z))
-coordinates_max = ( 1.0,  1.0,  1.0) # maximum coordinates (max(x), max(y), max(z))
+coordinates_max = (1.0, 1.0, 1.0) # maximum coordinates (max(x), max(y), max(z))
 trees_per_dimension = (1, 1, 1)
-
-mapping = Trixi.coordinates2mapping(coordinates_min, coordinates_max)
 
 # Note that it is not necessary to use mesh polydeg lower than the solver polydeg
 # on a Cartesian mesh.
 # See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
-mesh = T8codeMesh(trees_per_dimension, polydeg=3,
-                  mapping=mapping,
-                  initial_refinement_level=2)
+mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
+                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                  initial_refinement_level = 2)
 
 function adapt_callback(forest,
                         forest_from,
                         which_tree,
                         lelement_id,
                         ts,
-                        is_family, 
+                        is_family,
                         num_elements,
-                        elements_ptr) :: Cint
+                        elements_ptr)::Cint
+    vertex = Vector{Cdouble}(undef, 3)
+    elements = unsafe_wrap(Array, elements_ptr, num_elements)
+    Trixi.t8_element_vertex_reference_coords(ts, elements[1], 0, pointer(vertex))
+    level = Trixi.t8_element_level(ts, elements[1])
 
-  vertex = Vector{Cdouble}(undef,3)
-  elements = unsafe_wrap(Array, elements_ptr, num_elements)
-  Trixi.t8_element_vertex_reference_coords(ts, elements[1], 0, pointer(vertex))
-  level = Trixi.t8_element_level(ts,elements[1])
-
-  if all(vertex .< 1e-8)  && level < 3
-    # return true (refine)
-    return 1
-  else
-    # return false (don't refine)
-    return 0
-  end
+    if all(vertex .< 1e-8) && level < 3
+        # return true (refine)
+        return 1
+    else
+        # return false (don't refine)
+        return 0
+    end
 end
 
-@assert(Trixi.t8_forest_is_committed(mesh.forest) != 0);
+@assert(Trixi.t8_forest_is_committed(mesh.forest)!=0);
 
 # Init new forest.
 new_forest_ref = Ref{Trixi.t8_forest_t}()
@@ -55,19 +52,23 @@ new_forest = new_forest_ref[]
 
 # Check out `examples/t8_step4_partition_balance_ghost.jl` in
 # https://github.com/DLR-AMR/T8code.jl for detailed explanations.
-let set_from = C_NULL, recursive = 1, set_for_coarsening = 0, no_repartition = 0, do_ghost = 1
-  Trixi.t8_forest_set_user_data(new_forest, C_NULL)
-  Trixi.t8_forest_set_adapt(new_forest, mesh.forest, @Trixi.t8_adapt_callback(adapt_callback), recursive)
-  Trixi.t8_forest_set_balance(new_forest, set_from, no_repartition)
-  Trixi.t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
-  Trixi.t8_forest_set_ghost(new_forest, do_ghost, Trixi.T8_GHOST_FACES);
-  Trixi.t8_forest_commit(new_forest)
+let set_from = C_NULL, recursive = 1, set_for_coarsening = 0, no_repartition = 0,
+    do_ghost = 1
+
+    Trixi.t8_forest_set_user_data(new_forest, C_NULL)
+    Trixi.t8_forest_set_adapt(new_forest, mesh.forest,
+                              Trixi.@t8_adapt_callback(adapt_callback), recursive)
+    Trixi.t8_forest_set_balance(new_forest, set_from, no_repartition)
+    Trixi.t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
+    Trixi.t8_forest_set_ghost(new_forest, do_ghost, Trixi.T8_GHOST_FACES)
+    Trixi.t8_forest_commit(new_forest)
 end
 
 mesh.forest = new_forest
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
+                                    solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -81,22 +82,22 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval=100)
+analysis_callback = AnalysisCallback(semi, interval = 100)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=1.6)
+stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback,
-  stepsize_callback)
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
 
 # Print the timer summary
 summary_callback()

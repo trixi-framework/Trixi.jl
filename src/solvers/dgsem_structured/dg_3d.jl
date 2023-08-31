@@ -270,8 +270,8 @@ end
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
                               fstar3_R, u,
-                              mesh::Union{StructuredMesh{3}, P4estMesh{3}, 
-                                          T8codeMesh{3}}
+                              mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                          T8codeMesh{3}},
                               nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
@@ -366,7 +366,7 @@ end
 # # Calculate the finite volume fluxes inside curvilinear elements (**with non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
                               fstar3_R, u,
-                              mesh::Union{StructuredMesh{3}, P4estMesh{3}, 
+                              mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                           T8codeMesh{3}},
                               nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
