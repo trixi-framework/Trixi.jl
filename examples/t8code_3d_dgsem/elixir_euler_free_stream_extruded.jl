@@ -45,9 +45,9 @@ isfile(mesh_file) ||
 # we can create a t8code mesh.
 conn = Trixi.read_inp_p4est(mesh_file, Val(3))
 
-mesh = T8codeMesh{3}(conn, polydeg = 3,
-                     mapping = mapping,
-                     initial_refinement_level = 0)
+mesh = T8codeMesh(conn, polydeg = 3,
+                  mapping = mapping,
+                  initial_refinement_level = 0)
 
 # Note: This is actually a `p8est_quadrant_t` which is much bigger than the
 # following struct. But we only need the first four fields for our purpose.

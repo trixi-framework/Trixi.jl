@@ -360,12 +360,10 @@ conforming mesh from a `p4est_connectivity` data structure.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 """
-function T8codeMesh{NDIMS}(conn::Ptr{p4est_connectivity}; kwargs...) where {NDIMS}
-    @assert NDIMS == 2 # Only support for NDIMS = 2.
-
+function T8codeMesh(conn::Ptr{p4est_connectivity}; kwargs...)
     cmesh = t8_cmesh_new_from_p4est(conn, mpi_comm(), 0)
 
-    return T8codeMesh{NDIMS}(cmesh; kwargs...)
+    return T8codeMesh{2}(cmesh; kwargs...)
 end
 
 """
@@ -388,12 +386,10 @@ conforming mesh from a `p4est_connectivity` data structure.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 """
-function T8codeMesh{NDIMS}(conn::Ptr{p8est_connectivity}; kwargs...) where {NDIMS}
-    @assert NDIMS == 3 # Only support for NDIMS = 3.
-
+function T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
     cmesh = t8_cmesh_new_from_p8est(conn, mpi_comm(), 0)
 
-    return T8codeMesh{NDIMS}(cmesh; kwargs...)
+    return T8codeMesh{3}(cmesh; kwargs...)
 end
 
 """

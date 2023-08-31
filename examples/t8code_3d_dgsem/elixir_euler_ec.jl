@@ -55,9 +55,9 @@ isfile(mesh_file) ||
 # we can create a t8code mesh.
 conn = Trixi.read_inp_p4est(mesh_file, Val(3))
 
-mesh = T8codeMesh{3}(conn, polydeg = 5,
-                     mapping = mapping,
-                     initial_refinement_level = 0)
+mesh = T8codeMesh(conn, polydeg = 5,
+                  mapping = mapping,
+                  initial_refinement_level = 0)
 
 # Create the semidiscretization object.
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

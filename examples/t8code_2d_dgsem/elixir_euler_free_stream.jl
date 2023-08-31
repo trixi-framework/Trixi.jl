@@ -40,9 +40,9 @@ isfile(mesh_file) ||
 # we can create a t8code mesh.
 conn = Trixi.read_inp_p4est(mesh_file, Val(2))
 
-mesh = T8codeMesh{2}(conn, polydeg = 3,
-                     mapping = mapping,
-                     initial_refinement_level = 1)
+mesh = T8codeMesh(conn, polydeg = 3,
+                  mapping = mapping,
+                  initial_refinement_level = 1)
 
 function adapt_callback(forest,
                         forest_from,
