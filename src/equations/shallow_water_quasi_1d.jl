@@ -84,7 +84,6 @@ end
 varnames(::typeof(cons2prim), ::ShallowWaterEquationsQuasi1D) = ("H", "v", "b", "a")
 
 # Set initial conditions at physical location `x` for time `t`
-#need to revise
 """
     initial_condition_convergence_test(x, t, equations::ShallowWaterEquationsQuasi1D)
 
