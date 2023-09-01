@@ -37,9 +37,9 @@ isdir(outdir) && rm(outdir, recursive=true)
       callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr_callback)
       sol = solve(ode, KenCarp4(autodiff=false), abstol=time_abs_tol, reltol=time_int_tol,
             save_everystep=false, callback=callbacks)
-      analysis_callback_sol = analysis_callback(sol)
-      @test analysis_callback_sol.l2[1] ≈ 6.4878111416468355e-6
-      @test analysis_callback_sol.linf[1] ≈ 3.258075790424364e-5
+      l2_error, linf_error = analysis_callback(sol)
+      @test l2_error ≈ [6.4878111416468355e-6]
+      @test linf_error ≈ [3.258075790424364e-5]
   end
 
   @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl" begin
