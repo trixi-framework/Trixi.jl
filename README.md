@@ -247,7 +247,7 @@ Schlottke-Lakemper](https://lakemper.eu)
 (RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(University of Hamburg, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
+(Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
 they are the principal developers of Trixi.jl.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
