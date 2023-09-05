@@ -237,7 +237,5 @@ function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_
     # Resize container subcell_limiter_coefficients
     @unpack limiter = volume_integral
     resize!(limiter.cache.subcell_limiter_coefficients, new_size)
-    (; alpha) = limiter.cache.subcell_limiter_coefficients
-    alpha .= zero(eltype(alpha))
 end
 end # @muladd
