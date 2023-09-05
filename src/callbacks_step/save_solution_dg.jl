@@ -125,8 +125,6 @@ function save_solution_file(u, time, dt, timestep,
         n_vars = size(data, 1)
     end
 
-    # TODO: In trixi2txt, the data file is read; including node_variables for every mesh.
-    # So, do we need node_variables here as well?
     if HDF5.has_parallel()
         save_solution_file_parallel(data, time, dt, timestep, n_vars, mesh, equations,
                                     dg, cache, solution_variables, filename,
