@@ -18,7 +18,7 @@ save_restart = SaveRestartCallback(interval=100,
 Make this part of your `CallbackSet`.
 
 An example is
-[```examples/examples/structured_2d_dgsem/elixir_advection_extended.jl```](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_extended.jl).
+[`examples/examples/structured_2d_dgsem/elixir_advection_extended.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_extended.jl).
 
 
 ## [Perform the simulation restart](@id restart_perform)
@@ -26,7 +26,7 @@ Since all of the information about the simulation can be obtained from the
 last snapshot, the restart can be done with relatively few lines
 in an extra elixir file.
 However, some might prefer to keep everything in one elixir and
-conditionals like ```if restart``` with a boolean variable ```restart``` that is user defined.
+conditionals like `if restart` with a boolean variable `restart` that is user defined.
 
 First we need to define from which file we want to restart, e.g.
 ```julia
@@ -50,7 +50,7 @@ time the one form the snapshot:
 tspan = (load_time(restart_filename), 2.0)
 ```
 
-We now also take the last ```dt```, so that our solver does not need to first find
+We now also take the last `dt`, so that our solver does not need to first find
 one to fulfill the CFL condition:
 ```julia
 dt = load_dt(restart_filename)
@@ -63,7 +63,7 @@ ode = semidiscretize(semi, tspan, restart_filename)
 
 You should now define a [`SaveSolutionCallback`](@ref) similar to the
 [original simulation](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_extended.jl),
-but with ```save_initial_solution=false```, otherwise our initial snapshot will be overwritten.
+but with `save_initial_solution=false`, otherwise our initial snapshot will be overwritten.
 If you are using one file for the original simulation and the restart
 you can reuse your [`SaveSolutionCallback`](@ref), but need to set
 ```julia
@@ -86,4 +86,4 @@ Now we can compute the solution:
 sol = solve!(integrator)
 ```
 
-An example is in `[``examples/structured_2d_dgsem/elixir_advection_restart.jl```](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_restart.jl).
+An example is in [`examples/structured_2d_dgsem/elixir_advection_restart.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_advection_restart.jl).
