@@ -128,7 +128,7 @@ condition_number = cond(V)
 # you can compute the gradient of an entropy-dissipative semidiscretization with respect to the
 # ideal gas constant of the compressible Euler equations as described in the following. This example
 # is also available as the elixir
-# [examples/special\_elixirs/elixir\_euler\_ad.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/special_elixirs/elixir_euler_ad.jl)
+# [`examples/special_elixirs/elixir_euler_ad.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/special_elixirs/elixir_euler_ad.jl)
 
 # First, we create a semidiscretization of the compressible Euler equations.
 
