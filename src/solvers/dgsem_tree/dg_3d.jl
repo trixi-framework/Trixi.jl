@@ -229,8 +229,8 @@ function rhs_gpu!(du, u, t,
     end
 
     # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+    @trixi_timeit timer() "interface flux gpu" begin
+        calc_interface_flux_gpu!(cache.elements.surface_flux_values, mesh,
                              have_nonconservative_terms(equations), equations,
                              dg.surface_integral, dg, cache)
     end

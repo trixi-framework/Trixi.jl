@@ -187,102 +187,146 @@ end
     end
 end
 
+function calc_interface_flux_gpu!(surface_flux_values,
+                              mesh::P4estMesh{3},
+                              nonconservative_terms,
+                              equations, surface_integral, dg::DG, cache)
+    @kernel function calc_interface_flux_kernel!(interfaces_u, interfaces_neighbor_ids, interfaces_node_indices,
+                                                nonconservative_terms,
+                                                surface_flux_values, surface_flux,
+                                                contravariant_vectors,
+                                                equations, num_nodes)
+        interface = @index(Global)
+        calc_interface_flux_p4est_3d_internal!(interface,
+                                      interfaces_u, interfaces_neighbor_ids, interfaces_node_indices,
+                                      nonconservative_terms,
+                                      surface_flux_values, surface_flux,
+                                      contravariant_vectors,
+                                      equations, num_nodes)
+    end
+
+    @unpack interfaces = cache
+    @unpack contravariant_vectors = cache.elements
+    backend = get_backend(interfaces.u) # Caution: May not work if interfaces.u is not initialized on the GPU
+
+    kernel! = calc_interface_flux_kernel!(backend)
+    num_nodes = nnodes(dg)
+    num_interfaces = ninterfaces(cache.interfaces)
+
+    kernel!(interfaces.u, interfaces.neighbor_ids, interfaces.node_indices,
+            nonconservative_terms,
+            surface_flux_values, surface_integral.surface_flux,
+            contravariant_vectors,
+            equations, num_nodes,
+            ndrange=num_interfaces)
+    synchronize(backend)
+
+    return nothing
+end
+
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{3},
                               nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
-    @unpack neighbor_ids, node_indices = cache.interfaces
+    @unpack interfaces = cache
     @unpack contravariant_vectors = cache.elements
-    index_range = eachnode(dg)
+    num_nodes = nnodes(dg)
 
     @threaded for interface in eachinterface(dg, cache)
-        # Get element and side information on the primary element
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
-        primary_direction = indices2direction(primary_indices)
-
-        i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
-                                                                                     index_range)
-        j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
-                                                                                     index_range)
-        k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
-                                                                                     index_range)
-
-        i_primary = i_primary_start
-        j_primary = j_primary_start
-        k_primary = k_primary_start
-
-        # Get element and side information on the secondary element
-        secondary_element = neighbor_ids[2, interface]
-        secondary_indices = node_indices[2, interface]
-        secondary_direction = indices2direction(secondary_indices)
-        secondary_surface_indices = surface_indices(secondary_indices)
-
-        # Get the surface indexing on the secondary element.
-        # Note that the indices of the primary side will always run forward but
-        # the secondary indices might need to run backwards for flipped sides.
-        i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[1],
-                                                                                           index_range)
-        j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[2],
-                                                                                           index_range)
-        i_secondary = i_secondary_start
-        j_secondary = j_secondary_start
-
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                # Get the normal direction from the primary element.
-                # Note, contravariant vectors at interfaces in negative coordinate direction
-                # are pointing inwards. This is handled by `get_normal_direction`.
-                normal_direction = get_normal_direction(primary_direction,
-                                                        contravariant_vectors,
-                                                        i_primary, j_primary, k_primary,
-                                                        primary_element)
-
-                calc_interface_flux!(surface_flux_values, mesh, nonconservative_terms,
-                                     equations,
-                                     surface_integral, dg, cache,
-                                     interface, normal_direction,
-                                     i, j, primary_direction, primary_element,
-                                     i_secondary, j_secondary, secondary_direction,
-                                     secondary_element)
-
-                # Increment the primary element indices
-                i_primary += i_primary_step_i
-                j_primary += j_primary_step_i
-                k_primary += k_primary_step_i
-                # Increment the secondary element surface indices
-                i_secondary += i_secondary_step_i
-                j_secondary += j_secondary_step_i
-            end
-            # Increment the primary element indices
-            i_primary += i_primary_step_j
-            j_primary += j_primary_step_j
-            k_primary += k_primary_step_j
-            # Increment the secondary element surface indices
-            i_secondary += i_secondary_step_j
-            j_secondary += j_secondary_step_j
-        end
+        calc_interface_flux_p4est_3d_internal!(interface,
+                                      interfaces.u, interfaces.neighbor_ids, interfaces.node_indices,
+                                      nonconservative_terms,
+                                      surface_flux_values, surface_integral.surface_flux,
+                                      contravariant_vectors,
+                                      equations, num_nodes)
     end
 
     return nothing
 end
 
-# Inlined function for interface flux computation for conservative flux terms
-@inline function calc_interface_flux!(surface_flux_values,
-                                      mesh::P4estMesh{3},
-                                      nonconservative_terms::False, equations,
-                                      surface_integral, dg::DG, cache,
-                                      interface_index, normal_direction,
-                                      primary_i_node_index, primary_j_node_index,
-                                      primary_direction_index, primary_element_index,
-                                      secondary_i_node_index, secondary_j_node_index,
-                                      secondary_direction_index,
-                                      secondary_element_index)
-    @unpack u = cache.interfaces
-    @unpack surface_flux = surface_integral
+@inline function calc_interface_flux_p4est_3d_internal!(interface,
+                                                        interfaces_u, interfaces_neighbor_ids, interfaces_node_indices,
+                                                        nonconservative_terms,
+                                                        surface_flux_values, surface_flux,
+                                                        contravariant_vectors,
+                                                        equations, num_nodes)
+    # Get element and side information on the primary element
+    primary_element = interfaces_neighbor_ids[1, interface]
+    primary_indices = interfaces_node_indices[1, interface]
+    primary_direction = indices2direction(primary_indices)
 
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_i_node_index,
-                                       primary_j_node_index, interface_index)
+    i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                 1:num_nodes)
+    j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                 1:num_nodes)
+    k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                 1:num_nodes)
+
+    i_primary = i_primary_start
+    j_primary = j_primary_start
+    k_primary = k_primary_start
+
+    # Get element and side information on the secondary element
+    secondary_element = interfaces_neighbor_ids[2, interface]
+    secondary_indices = interfaces_node_indices[2, interface]
+    secondary_direction = indices2direction(secondary_indices)
+    secondary_surface_indices = surface_indices(secondary_indices)
+
+    # Get the surface indexing on the secondary element.
+    # Note that the indices of the primary side will always run forward but
+    # the secondary indices might need to run backwards for flipped sides.
+    i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[1],
+                                                                                       1:num_nodes)
+    j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[2],
+                                                                                       1:num_nodes)
+    i_secondary = i_secondary_start
+    j_secondary = j_secondary_start
+
+    for j in 1:num_nodes
+        for i in 1:num_nodes
+            # Get the normal direction from the primary element.
+            # Note, contravariant vectors at interfaces in negative coordinate direction
+            # are pointing inwards. This is handled by `get_normal_direction`.
+            normal_direction = get_normal_direction(primary_direction,
+                                                    contravariant_vectors,
+                                                    i_primary, j_primary, k_primary,
+                                                    primary_element)
+
+            calc_interface_flux_p4est_3d!(interfaces_u, surface_flux_values, nonconservative_terms,
+                             equations,
+                             surface_flux,
+                             interface, normal_direction,
+                             i, j, primary_direction, primary_element,
+                             i_secondary, j_secondary, secondary_direction, secondary_element)
+
+            # Increment the primary element indices
+            i_primary += i_primary_step_i
+            j_primary += j_primary_step_i
+            k_primary += k_primary_step_i
+            # Increment the secondary element surface indices
+            i_secondary += i_secondary_step_i
+            j_secondary += j_secondary_step_i
+        end
+        # Increment the primary element indices
+        i_primary += i_primary_step_j
+        j_primary += j_primary_step_j
+        k_primary += k_primary_step_j
+        # Increment the secondary element surface indices
+        i_secondary += i_secondary_step_j
+        j_secondary += j_secondary_step_j
+    end
+end
+
+@inline function calc_interface_flux_p4est_3d!(interfaces_u, surface_flux_values,
+                                               nonconservative_terms::False, equations,
+                                               surface_flux,
+                                               interface_index, normal_direction,
+                                               primary_i_node_index, primary_j_node_index, primary_direction_index, primary_element_index,
+                                               secondary_i_node_index, secondary_j_node_index, secondary_direction_index, secondary_element_index)
+    #u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_i_node_index,
+    #                                   primary_j_node_index, interface_index)
+    u_ll = SVector(ntuple(@inline(v->interfaces_u[1, v, primary_i_node_index, primary_j_node_index, interface_index]), Val(nvariables(equations))))
+    u_rr = SVector(ntuple(@inline(v->interfaces_u[2, v, primary_i_node_index, primary_j_node_index, interface_index]), Val(nvariables(equations))))
 
     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
