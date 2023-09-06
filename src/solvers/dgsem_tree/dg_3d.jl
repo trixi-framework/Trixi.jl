@@ -223,8 +223,8 @@ function rhs_gpu!(du, u, t,
     end
 
     # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations,
+    @trixi_timeit timer() "prolong2interfaces gpu" begin
+        prolong2interfaces_gpu!(cache, u, mesh, equations,
                             dg.surface_integral, dg)
     end
 
