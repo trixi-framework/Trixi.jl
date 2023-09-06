@@ -81,6 +81,17 @@ end
     return nothing
 end
 
+@inline function get_surface_node_vars(u, equations, solver::FV, indices...)
+    # There is a cut-off at `n == 10` inside of the method
+    # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
+    # in Julia `v1.5`, leading to type instabilities if
+    # more than ten variables are used. That's why we use
+    # `Val(...)` below.
+    u_ll = SVector(ntuple(@inline(v->u[1, v, indices...]), Val(nvariables(equations))))
+    u_rr = SVector(ntuple(@inline(v->u[2, v, indices...]), Val(nvariables(equations))))
+    return u_ll, u_rr
+end
+
 # General fallback
 @inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
                             solver::FV, cache)
@@ -105,54 +116,36 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations, initial_condition,
               cache) where {Source}
     @trixi_timeit timer() "update neighbor data" exchange_solution!(u, mesh, equations,
                                                                     solver, cache)
-    @unpack u_ = cache
+    @unpack elements, interfaces, u_ = cache
 
     du .= zero(eltype(du))
 
     @trixi_timeit timer() "reconstruction" reconstruction(u_, mesh, equations, solver,
                                                           cache)
 
-    @trixi_timeit timer() "update du" begin
-        # Better to allocate these here instead of inside the evaluation function.
-        # Another option: Move to cache?
-        u1 = zeros(eltype(u_[1].u), length(u_[1].u))
-        u2 = zeros(eltype(u_[1].u), length(u_[1].u))
+    @trixi_timeit timer() "evaluation" evaluate_interface_values!(mesh, equations, solver, cache)
 
-        for element in eachelement(mesh, solver)
-            @unpack face_normals, num_faces, face_areas, face_connectivity = cache.elements[element]
-            for face in 1:num_faces
-                neighbor = face_connectivity[face]
-                if neighbor < element
-                    continue
-                end
-                normal = Trixi.get_variable_wrapped(face_normals, equations, face)
-                @trixi_timeit timer() "evaluation" u_element, u_neighbor=evaluate_interface_values(element,
-                                                                                                   neighbor,
-                                                                                                   face,
-                                                                                                   normal,
-                                                                                                   u_,
-                                                                                                   mesh,
-                                                                                                   equations,
-                                                                                                   solver,
-                                                                                                   cache,
-                                                                                                   u1,
-                                                                                                   u2)
-                # TODO: surface flux produces allocs when u's are no SVectors.
-                # Problem: Setting u's to SVectors needs much time and also allocs.
-                @trixi_timeit timer() "surface flux" flux=solver.surface_flux(u_element,
-                                                                              u_neighbor,
-                                                                              normal,
-                                                                              equations)
-                @trixi_timeit timer() "for loop" for v in eachvariable(equations)
-                    flux_ = -face_areas[face] * flux[v]
-                    du[v, element] += flux_
-                    if neighbor <= mesh.number_elements
-                        du[v, neighbor] -= flux_
-                    end
+    @trixi_timeit timer() "update du" begin
+        for interface in eachinterface(solver, cache)
+            element = interfaces.neighbor_ids[1, interface]
+            neighbor = interfaces.neighbor_ids[2, interface]
+            face = interfaces.faces[1, interface]
+
+            # TODO: Save normal and face_areas in interface
+            normal = Trixi.get_variable_wrapped(elements[element].face_normals, equations, face)
+            u_ll, u_rr = get_surface_node_vars(interfaces.u, equations, solver, interface)
+            @trixi_timeit timer() "surface flux" flux=solver.surface_flux(u_ll, u_rr,
+                                                                          normal,
+                                                                          equations)
+            @trixi_timeit timer() "for loop" for v in eachvariable(equations)
+                flux_ = -elements[element].face_areas[face] * flux[v]
+                du[v, element] += flux_
+                if neighbor <= mesh.number_elements
+                    du[v, neighbor] -= flux_
                 end
             end
         end
-        for element in eachelement(mesh, solver)
+        for element in eachelement(mesh, solver, cache)
             @unpack volume = cache.elements[element]
             for v in eachvariable(equations)
                 du[v, element] = (1 / volume) * du[v, element]
@@ -225,54 +218,64 @@ function linear_reconstruction(u_, mesh, equations, solver, cache)
     return nothing
 end
 
-function evaluate_interface_values(element, neighbor, face, normal, u_, mesh, equations,
-                                   solver, cache, u1, u2)
-    @unpack elements = cache
+function evaluate_interface_values!(mesh, equations, solver, cache)
+    @unpack elements, interfaces, u_ = cache
 
-    if solver.order == 1
-        return SVector(u_[element].u), SVector(u_[neighbor].u)
-    elseif solver.order == 2
-        @unpack midpoint, face_midpoints = elements[element]
-        face_midpoint = Trixi.get_variable_wrapped(face_midpoints, equations, face)
+    for interface in eachinterface(solver, cache)
+        element = interfaces.neighbor_ids[1, interface]
+        neighbor = interfaces.neighbor_ids[2, interface]
+        if solver.order == 1
+            for v in eachvariable(equations)
+                interfaces.u[1, v, interface] = u_[element].u[v]
+                interfaces.u[2, v, interface] = u_[neighbor].u[v]
+            end
+        elseif solver.order == 2
+            @unpack midpoint, face_midpoints = elements[element]
+            face = interfaces.faces[1, interface]
+            face_neighbor = interfaces.faces[2, interface]
 
-        face_neighbor = elements[element].neighbor_faces[face]
-        face_midpoints_neighbor = elements[neighbor].face_midpoints
-        face_midpoint_neighbor = Trixi.get_variable_wrapped(face_midpoints_neighbor,
-                                                            equations, face_neighbor)
+            face_midpoint = Trixi.get_variable_wrapped(face_midpoints, equations, face)
+            face_midpoints_neighbor = elements[neighbor].face_midpoints
+            face_midpoint_neighbor = Trixi.get_variable_wrapped(face_midpoints_neighbor,
+                                                                equations, face_neighbor)
 
-        for v in eachvariable(equations)
-            s1 = Trixi.get_variable_wrapped(u_[element].slope, equations, v)
-            s2 = Trixi.get_variable_wrapped(u_[neighbor].slope, equations, v)
+            for v in eachvariable(equations)
+                s1 = Trixi.get_variable_wrapped(u_[element].slope, equations, v)
+                s2 = Trixi.get_variable_wrapped(u_[neighbor].slope, equations, v)
 
-            s1 = dot(s1, (face_midpoint .- midpoint) ./ norm(face_midpoint .- midpoint))
-            s2 = dot(s2,
-                     (elements[neighbor].midpoint .- face_midpoint_neighbor) ./
-                     norm(elements[neighbor].midpoint .- face_midpoint_neighbor))
-            # Is it useful to compare such slopes in different directions? Alternatively, one could use the normal vector.
-            # But this is again not useful, since u_face would use the slope in normal direction. I think it looks good the way it is.
+                s1 = dot(s1, (face_midpoint .- midpoint) ./ norm(face_midpoint .- midpoint))
+                s2 = dot(s2, (elements[neighbor].midpoint .- face_midpoint_neighbor) ./
+                                norm(elements[neighbor].midpoint .- face_midpoint_neighbor))
+                # Is it useful to compare such slopes in different directions? Alternatively, one could use the normal vector.
+                # But this is again not useful, since u_face would use the slope in normal direction. I think it looks good the way it is.
 
-            slope_v = solver.slope_limiter(s1, s2)
-            u1[v] = u_[element].u[v] + slope_v * norm(face_midpoint .- midpoint)
-            u2[v] = u_[neighbor].u[v] -
-                    slope_v *
-                    norm(elements[neighbor].midpoint .- face_midpoint_neighbor)
+                slope_v = solver.slope_limiter(s1, s2)
+                interfaces.u[1, v, interface] = u_[element].u[v] + slope_v * norm(face_midpoint .- midpoint)
+                interfaces.u[2, v, interface] = u_[neighbor].u[v] - slope_v * norm(elements[neighbor].midpoint .- face_midpoint_neighbor)
+            end
+        else
+            error("Order $(solver.order) is not supported.")
         end
-        return u1, u2
     end
-    error("Order $(solver.order) is not supported.")
+
+    return nothing
 end
 
 function average_slope_limiter(s1, s2)
     return 0.5 * s1 + 0.5 * s2
 end
 
-function minmod(s1, s2)
-    if s1 > 0 && s2 > 0
-        return min(s1, s2)
-    elseif s1 < 0 && s2 < 0
-        return max(s1, s2)
+function minmod(s...)
+    if all(s .> 0)
+        return minimum(s)
+    elseif all(s .< 0)
+        return maximum(s)
     end
-    return zero(eltype(s1))
+    return zero(eltype(s[1]))
+end
+
+function monotonized_central(s1, s2)
+    return minmod(2 * s1, (s1 + s2) / 2, 2 * s2)
 end
 
 function get_element_variables!(element_variables, u, mesh::T8codeMesh, equations,

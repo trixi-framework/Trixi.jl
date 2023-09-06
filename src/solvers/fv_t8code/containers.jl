@@ -179,6 +179,113 @@ function init_elements(mesh::T8codeMesh)
     return elements
 end
 
+mutable struct T8codeInterfaceContainer{NDIMS, uEltype <: Real} <: AbstractContainer
+    u::Array{uEltype, 3}                # [primary/secondary, variable, interface]
+    neighbor_ids::Matrix{Int}           # [primary/secondary, interface]
+    faces::Matrix{uEltype}              # [primary/secondary, interface]
+
+    # internal `resize!`able storage
+    _u::Vector{uEltype}
+    _neighbor_ids::Vector{Int}
+    _faces::Vector{uEltype}
+end
+
+@inline ninterfaces(solver::FV, cache) = ninterfaces(cache.interfaces)
+@inline function ninterfaces(interfaces::T8codeInterfaceContainer)
+    size(interfaces.neighbor_ids, 2)
+end
+@inline Base.ndims(::T8codeInterfaceContainer{NDIMS}) where {NDIMS} = NDIMS
+
+# See explanation of Base.resize! for the element container
+function Base.resize!(interfaces::T8codeInterfaceContainer, capacity)
+    @unpack _u, _neighbor_ids, _faces = interfaces
+
+    n_variables = size(interfaces.u, 2)
+
+    resize!(_u, 2 * n_variables * capacity)
+    interfaces.u = unsafe_wrap(Array, pointer(_u),
+                               (2, n_variables, capacity))
+
+    resize!(_neighbor_ids, 2 * capacity)
+    interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2, capacity))
+
+    resize!(_faces, 2 * capacity)
+    interfaces.faces = unsafe_wrap(Array, pointer(_faces), (2, capacity))
+
+    return nothing
+end
+
+# Create interface container and initialize interface data.
+function init_interfaces(mesh::T8codeMesh, equations, elements)
+    NDIMS = ndims(mesh)
+    uEltype = eltype(elements[1].volume)
+
+    # Initialize container # TODO: nonperiodic
+    n_interfaces = zero(Int)
+    for element in 1:mesh.number_elements
+        for face in 1:elements[element].num_faces
+            if elements[element].face_connectivity[face] <= mesh.number_elements
+                n_interfaces += 0.5
+            elseif elements[element].face_connectivity[face] <= length(elements)
+                n_interfaces += 1.0
+            else
+                error("Should not occur for periodic domains.")
+            end
+        end
+    end
+    @assert Int(n_interfaces) == n_interfaces "Something is wrong!"
+    n_interfaces = Int(n_interfaces)
+
+    _u = Vector{uEltype}(undef,
+                         2 * nvariables(equations) * n_interfaces)
+    u = unsafe_wrap(Array, pointer(_u),
+                    (2, nvariables(equations), n_interfaces))
+
+    _neighbor_ids = Vector{Int}(undef, 2 * n_interfaces)
+    neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2, n_interfaces))
+
+    _faces = Vector{Int}(undef, 2 * n_interfaces)
+    faces = unsafe_wrap(Array, pointer(_faces), (2, n_interfaces))
+
+    interfaces = T8codeInterfaceContainer{NDIMS, uEltype}(u, neighbor_ids, faces, _u,
+                                                          _neighbor_ids, _faces)
+
+    init_interfaces!(interfaces, mesh, equations, elements)
+
+    return interfaces
+end
+
+function init_interfaces!(interfaces, mesh::T8codeMesh, equations, elements)
+    # Note: In t8code, the routine 't8code_forest_iterate' is not implemented yet.
+
+    idx = 1
+    for element in 1:mesh.number_elements
+        (; face_connectivity, num_faces, face_midpoints, neighbor_faces) = elements[element]
+        for (face, neighbor) in enumerate(face_connectivity[1:num_faces])
+            if neighbor < element
+                continue
+            end
+
+            face_midpoint = Trixi.get_variable_wrapped(face_midpoints, equations, face)
+            face_neighbor = neighbor_faces[face]
+            face_midpoint_neighbor = Trixi.get_variable_wrapped(elements[neighbor].face_midpoints,
+                                                                equations,
+                                                                face_neighbor)
+            interfaces.neighbor_ids[1, idx] = element
+            interfaces.neighbor_ids[2, idx] = neighbor
+
+            interfaces.faces[1, idx] = face
+            interfaces.faces[2, idx] = face_neighbor
+
+            idx += 1
+        end
+    end
+
+    return interfaces
+end
+
+@inline eachinterface(solver::FV, cache) = Base.OneTo(ninterfaces(solver, cache))
+
 function init_solution!(mesh::T8codeMesh, equations)
     @unpack forest = mesh
     # Check that the forest is a committed.

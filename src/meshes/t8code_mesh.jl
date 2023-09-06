@@ -104,9 +104,11 @@ function create_cache(mesh::T8codeMesh, equations,
                       solver, RealT, uEltype)
     elements = init_elements(mesh, RealT, uEltype)
 
+    interfaces = init_interfaces(mesh, equations, elements)
+
     u_ = init_solution!(mesh, equations)
 
-    cache = (; elements, u_)
+    cache = (; elements, interfaces, u_)
 
     return cache
 end
@@ -126,12 +128,13 @@ function output_data_to_vtu(mesh::T8codeMesh, equations, solver, u_, out)
     for v in eachvariable(equations)
         let
             data = [u_[element].u[v] for element in eachelement(mesh, solver)]
+            data_ptr = pointer(data)
 
             GC.@preserve data begin
                 vtk_data[v] = t8_vtk_data_field_t(T8_VTK_SCALAR,
                                                   NTuple{8192, Cchar}(rpad("$(vars[v])\0",
                                                                            8192, ' ')),
-                                                  pointer(data))
+                                                  data_ptr)
             end
         end
     end
@@ -158,7 +161,6 @@ function output_data_to_vtu(mesh::T8codeMesh, equations, solver, u_, out)
         end
     end
 
-    MPI.Barrier(MPI.COMM_WORLD)
     # The number of user defined data fields to write.
     num_data = length(vtk_data)
 
