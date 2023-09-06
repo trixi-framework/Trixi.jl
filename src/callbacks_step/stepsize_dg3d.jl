@@ -88,26 +88,34 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
-    @unpack contravariant_vectors = cache.elements
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    tmp_inverse_jacobian = copyto!(CPU(),
+                                   allocate(CPU(), eltype(inverse_jacobian), size(inverse_jacobian)),
+                                   inverse_jacobian)
+    tmp_contravariant_vectors = copyto!(CPU(),
+                                   allocate(CPU(), eltype(contravariant_vectors), size(contravariant_vectors)),
+                                   contravariant_vectors)
+
 
     max_lambda1, max_lambda2, max_lambda3 = max_abs_speeds(equations)
 
     for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j,
+            Ja11, Ja12, Ja13 = get_contravariant_vector(1, tmp_contravariant_vectors, i, j,
                                                         k, element)
             lambda1_transformed = abs(Ja11 * max_lambda1 + Ja12 * max_lambda2 +
                                       Ja13 * max_lambda3)
-            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j,
+            Ja21, Ja22, Ja23 = get_contravariant_vector(2, tmp_contravariant_vectors, i, j,
                                                         k, element)
             lambda2_transformed = abs(Ja21 * max_lambda1 + Ja22 * max_lambda2 +
                                       Ja23 * max_lambda3)
-            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j,
+            Ja31, Ja32, Ja33 = get_contravariant_vector(3, tmp_contravariant_vectors, i, j,
                                                         k, element)
             lambda3_transformed = abs(Ja31 * max_lambda1 + Ja32 * max_lambda2 +
                                       Ja33 * max_lambda3)
 
-            inv_jacobian = abs(cache.elements.inverse_jacobian[i, j, k, element])
+            inv_jacobian = abs(tmp_inverse_jacobian[i, j, k, element])
 
             max_scaled_speed = max(max_scaled_speed,
                                    inv_jacobian *

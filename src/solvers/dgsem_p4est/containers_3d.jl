@@ -10,16 +10,23 @@ function init_elements!(elements, mesh::P4estMesh{3}, basis::LobattoLegendreBasi
     @unpack node_coordinates, jacobian_matrix,
     contravariant_vectors, inverse_jacobian = elements
 
+    backend = get_backend(contravariant_vectors)
+    tmp_contravariant_vectors = Array{eltype(contravariant_vectors)}(undef, size(contravariant_vectors))
+    tmp_inverse_jacobian = Array{eltype(inverse_jacobian)}(undef, size(inverse_jacobian))
+
     calc_node_coordinates!(node_coordinates, mesh, basis)
 
     for element in 1:ncells(mesh)
         calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
 
-        calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix,
+        calc_contravariant_vectors!(tmp_contravariant_vectors, element, jacobian_matrix,
                                     node_coordinates, basis)
 
-        calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, basis)
+        calc_inverse_jacobian!(tmp_inverse_jacobian, element, jacobian_matrix, basis)
     end
+
+    copyto!(backend, contravariant_vectors, tmp_contravariant_vectors)
+    copyto!(backend, inverse_jacobian, tmp_inverse_jacobian)
 
     return nothing
 end
@@ -93,27 +100,27 @@ end
 
         if faces[side] == 0
             # Index face in negative x-direction
-            interfaces.node_indices[side, interface_id] = (_begin, surface_index1,
+            @allowscalar interfaces.node_indices[side, interface_id] = (_begin, surface_index1,
                                                            surface_index2)
         elseif faces[side] == 1
             # Index face in positive x-direction
-            interfaces.node_indices[side, interface_id] = (_end, surface_index1,
+            @allowscalar interfaces.node_indices[side, interface_id] = (_end, surface_index1,
                                                            surface_index2)
         elseif faces[side] == 2
             # Index face in negative y-direction
-            interfaces.node_indices[side, interface_id] = (surface_index1, _begin,
+            @allowscalar interfaces.node_indices[side, interface_id] = (surface_index1, _begin,
                                                            surface_index2)
         elseif faces[side] == 3
             # Index face in positive y-direction
-            interfaces.node_indices[side, interface_id] = (surface_index1, _end,
+            @allowscalar interfaces.node_indices[side, interface_id] = (surface_index1, _end,
                                                            surface_index2)
         elseif faces[side] == 4
             # Index face in negative z-direction
-            interfaces.node_indices[side, interface_id] = (surface_index1,
+            @allowscalar interfaces.node_indices[side, interface_id] = (surface_index1,
                                                            surface_index2, _begin)
         else # faces[side] == 5
             # Index face in positive z-direction
-            interfaces.node_indices[side, interface_id] = (surface_index1,
+            @allowscalar interfaces.node_indices[side, interface_id] = (surface_index1,
                                                            surface_index2, _end)
         end
     end

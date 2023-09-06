@@ -12,7 +12,7 @@ equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
-               volume_integral=VolumeIntegralFluxDifferencing(flux_lax_friedrichs))
+               volume_integral=VolumeIntegralFluxDifferencing(flux_lax_friedrichs), backend=backendcl)
 
 coordinates_min = (-1.0, -1.0, -1.0) # minimum coordinates (min(x), min(y), min(z))
 coordinates_max = ( 1.0,  1.0,  1.0) # maximum coordinates (max(x), max(y), max(z))
@@ -24,7 +24,7 @@ mesh = P4estMesh(trees_per_dimension, polydeg=1,
                  initial_refinement_level=1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver; backend=backend)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -40,10 +40,6 @@ summary_callback = SummaryCallback()
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval=100)
 
-# The SaveRestartCallback allows to save a file from which a Trixi.jl simulation can be restarted
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
-
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
@@ -52,7 +48,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.2)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_restart, save_solution, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
 
 
 ###############################################################################

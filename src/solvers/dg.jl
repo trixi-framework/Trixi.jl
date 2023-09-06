@@ -709,14 +709,16 @@ end
 
 function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg::DG,
                                cache)
+    u_tmp = Array{eltype(u)}(undef, size(u))
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
                                      j, k, element)
             u_node = func(x_node, t, equations)
-            set_node_vars!(u, u_node, equations, dg, i, j, k, element)
+            set_node_vars!(u_tmp, u_node, equations, dg, i, j, k, element)
         end
     end
+    copyto!(get_backend(u), u, u_tmp)
 end
 
 # Discretizations specific to each mesh type of Trixi.jl

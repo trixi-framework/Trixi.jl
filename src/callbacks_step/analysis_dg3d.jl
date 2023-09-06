@@ -130,6 +130,10 @@ function calc_error_norms(func, u, t, analyzer,
     linf_error = copy(l2_error)
     total_volume = zero(real(mesh))
 
+    tmp_inverse_jacobian = copyto!(CPU(),
+                                   allocate(CPU(), eltype(inverse_jacobian), size(inverse_jacobian)),
+                                   inverse_jacobian)
+
     # Iterate over all elements for error calculations
     for element in eachelement(dg, cache)
         # Interpolate solution and node locations to analysis nodes
@@ -139,7 +143,7 @@ function calc_error_norms(func, u, t, analyzer,
                                 view(node_coordinates, :, :, :, :, element), x_tmp1,
                                 x_tmp2)
         multiply_scalar_dimensionwise!(jacobian_local, vandermonde,
-                                       inv.(view(inverse_jacobian, :, :, :, element)),
+                                       inv.(view(tmp_inverse_jacobian, :, :, :, element)),
                                        jacobian_tmp1, jacobian_tmp2)
 
         # Calculate errors at each analysis node
@@ -199,10 +203,14 @@ function integrate_via_indices(func::Func, u,
     integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
     total_volume = zero(real(mesh))
 
+    tmp_inverse_jacobian = copyto!(CPU(),
+                                   allocate(CPU(), eltype(cache.elements.inverse_jacobian), size(cache.elements.inverse_jacobian)),
+                                   cache.elements.inverse_jacobian)
+
     # Use quadrature to numerically integrate over entire domain
     for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, k, element]))
+            volume_jacobian = abs(inv(tmp_inverse_jacobian[i, j, k, element]))
             integral += volume_jacobian * weights[i] * weights[j] * weights[k] *
                         func(u, i, j, k, element, equations, dg, args...)
             total_volume += volume_jacobian * weights[i] * weights[j] * weights[k]
