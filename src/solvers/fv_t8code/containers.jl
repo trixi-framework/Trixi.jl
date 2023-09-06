@@ -184,7 +184,6 @@ function init_solution!(mesh::T8codeMesh, equations)
     # Check that the forest is a committed.
     @assert(t8_forest_is_committed(forest)==1)
     n_dims = ndims(mesh)
-    @unpack max_number_faces = mesh
 
     # Get the number of local elements of forest.
     num_local_elements = mesh.number_elements

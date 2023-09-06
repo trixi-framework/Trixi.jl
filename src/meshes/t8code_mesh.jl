@@ -129,8 +129,9 @@ function output_data_to_vtu(mesh::T8codeMesh, equations, solver, u_, out)
 
             GC.@preserve data begin
                 vtk_data[v] = t8_vtk_data_field_t(T8_VTK_SCALAR,
-                                            NTuple{8192, Cchar}(rpad("$(vars[v])\0", 8192, ' ')),
-                                            pointer(data))
+                                                  NTuple{8192, Cchar}(rpad("$(vars[v])\0",
+                                                                           8192, ' ')),
+                                                  pointer(data))
             end
         end
     end
@@ -149,7 +150,10 @@ function output_data_to_vtu(mesh::T8codeMesh, equations, solver, u_, out)
 
         GC.@preserve data_ begin
             vtk_data[nvariables(equations) + v] = t8_vtk_data_field_t(T8_VTK_VECTOR,
-                                                                      NTuple{8192, Cchar}(rpad("slope_$(vars[v])\0", 8192, ' ')),
+                                                                      NTuple{8192, Cchar
+                                                                             }(rpad("slope_$(vars[v])\0",
+                                                                                    8192,
+                                                                                    ' ')),
                                                                       pointer(data_))
         end
     end

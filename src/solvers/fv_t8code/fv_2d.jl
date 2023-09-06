@@ -54,18 +54,16 @@ Base.summary(io::IO, solver::FV) = print(io, "FV(order=$(solver.order))")
     ndofs(mesh, solver, cache)
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh, equations,
-                               solver::FV,
-                               cache)
-    for element in eachelement(mesh, solver)
+function compute_coefficients!(u, func, t, mesh::T8codeMesh, equations,
+                               solver::FV, cache)
+    for element in eachelement(mesh, solver, cache)
         x_node = SVector(cache.elements[element].midpoint) # Save t8code variables as SVector?
         u_node = func(x_node, t, equations)
-        # TODO: Use an average as initial condition?
         set_node_vars!(u, u_node, equations, solver, element)
     end
 end
 
-function allocate_coefficients(mesh::AbstractMesh, equations, solver::FV, cache)
+function allocate_coefficients(mesh::T8codeMesh, equations, solver::FV, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
     zeros(eltype(cache.elements[1].volume),
@@ -102,8 +100,9 @@ end
                 (nvariables(equations), nelements(mesh, solver, cache)))
 end
 
-function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
-              source_terms::Source, solver::FV, cache) where {Source}
+function rhs!(du, u, t, mesh::T8codeMesh, equations, initial_condition,
+              boundary_conditions, source_terms::Source, solver::FV,
+              cache) where {Source}
     @trixi_timeit timer() "update neighbor data" exchange_solution!(u, mesh, equations,
                                                                     solver, cache)
     @unpack u_ = cache
@@ -136,7 +135,8 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
                                                                                                    equations,
                                                                                                    solver,
                                                                                                    cache,
-                                                                                                   u1, u2)
+                                                                                                   u1,
+                                                                                                   u2)
                 # TODO: surface flux produces allocs when u's are no SVectors.
                 # Problem: Setting u's to SVectors needs much time and also allocs.
                 @trixi_timeit timer() "surface flux" flux=solver.surface_flux(u_element,
@@ -193,7 +193,8 @@ function linear_reconstruction(u_, mesh, equations, solver, cache)
 
             face_neighbor = elements[element].neighbor_faces[face]
             face_midpoint_neighbor = Trixi.get_variable_wrapped(elements[neighbor].face_midpoints,
-                                                                equations, face_neighbor)
+                                                                equations,
+                                                                face_neighbor)
             if face_midpoint != face_midpoint_neighbor
                 # Periodic boundary
                 # - The face_midpoint must be synchronous at each side of the mesh.
@@ -244,14 +245,17 @@ function evaluate_interface_values(element, neighbor, face, normal, u_, mesh, eq
             s2 = Trixi.get_variable_wrapped(u_[neighbor].slope, equations, v)
 
             s1 = dot(s1, (face_midpoint .- midpoint) ./ norm(face_midpoint .- midpoint))
-            s2 = dot(s2, (elements[neighbor].midpoint .- face_midpoint_neighbor) ./
-                         norm(elements[neighbor].midpoint .- face_midpoint_neighbor))
+            s2 = dot(s2,
+                     (elements[neighbor].midpoint .- face_midpoint_neighbor) ./
+                     norm(elements[neighbor].midpoint .- face_midpoint_neighbor))
             # Is it useful to compare such slopes in different directions? Alternatively, one could use the normal vector.
             # But this is again not useful, since u_face would use the slope in normal direction. I think it looks good the way it is.
 
             slope_v = solver.slope_limiter(s1, s2)
             u1[v] = u_[element].u[v] + slope_v * norm(face_midpoint .- midpoint)
-            u2[v] = u_[neighbor].u[v] - slope_v * norm(elements[neighbor].midpoint .- face_midpoint_neighbor)
+            u2[v] = u_[neighbor].u[v] -
+                    slope_v *
+                    norm(elements[neighbor].midpoint .- face_midpoint_neighbor)
         end
         return u1, u2
     end
