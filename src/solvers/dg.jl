@@ -11,6 +11,8 @@ abstract type AbstractVolumeIntegral end
     _end
     i_forward
     i_backward
+    j_forward
+    j_backward
 end
 
 function get_element_variables!(element_variables, u, mesh, equations,

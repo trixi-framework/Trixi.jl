@@ -705,7 +705,7 @@ end
     large_indices = node_indices[2, mortar]
     large_direction = indices2direction_2d(large_indices)
 
-    if :i_backward in large_indices
+    if i_backward in large_indices
         for i in eachnode(dg)
             for v in eachvariable(equations)
                 surface_flux_values[v, end + 1 - i, large_direction, large_element] = u_buffer[v,

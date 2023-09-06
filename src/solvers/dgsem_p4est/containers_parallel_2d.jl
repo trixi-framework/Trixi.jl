@@ -16,24 +16,24 @@
     # relative to the interface.
     if local_side == 1 || orientation == 0
         # Forward indexing
-        i = :i_forward
+        i = i_forward
     else
         # Backward indexing
-        i = :i_backward
+        i = i_backward
     end
 
     if faces[local_side] == 0
         # Index face in negative x-direction
-        mpi_interfaces.node_indices[mpi_interface_id] = (:begin, i)
+        mpi_interfaces.node_indices[mpi_interface_id] = (_begin, i)
     elseif faces[local_side] == 1
         # Index face in positive x-direction
         mpi_interfaces.node_indices[mpi_interface_id] = (:end, i)
     elseif faces[local_side] == 2
         # Index face in negative y-direction
-        mpi_interfaces.node_indices[mpi_interface_id] = (i, :begin)
+        mpi_interfaces.node_indices[mpi_interface_id] = (i, _begin)
     else # faces[local_side] == 3
         # Index face in positive y-direction
-        mpi_interfaces.node_indices[mpi_interface_id] = (i, :end)
+        mpi_interfaces.node_indices[mpi_interface_id] = (i, _end)
     end
 
     return mpi_interfaces

@@ -220,15 +220,15 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
                             # relative to the interface.
                             if side == 1 || orientation == 0
                                 # Forward indexing
-                                indexing = :i_forward
+                                indexing = i_forward
                             else
                                 # Backward indexing
-                                indexing = :i_backward
+                                indexing = i_backward
                             end
 
                             if faces[side] == 0
                                 # Index face in negative x-direction
-                                interfaces.node_indices[side, interface_id] = (:begin,
+                                interfaces.node_indices[side, interface_id] = (_begin,
                                                                                indexing)
                             elseif faces[side] == 1
                                 # Index face in positive x-direction
@@ -237,11 +237,11 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
                             elseif faces[side] == 2
                                 # Index face in negative y-direction
                                 interfaces.node_indices[side, interface_id] = (indexing,
-                                                                               :begin)
+                                                                               _begin)
                             else # faces[side] == 3
                                 # Index face in positive y-direction
                                 interfaces.node_indices[side, interface_id] = (indexing,
-                                                                               :end)
+                                                                               _end)
                             end
                         end
 
@@ -266,10 +266,10 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
                             # relative to the mortar.
                             if side == 1 || orientation == 0
                                 # Forward indexing for small side or orientation == 0.
-                                indexing = :i_forward
+                                indexing = i_forward
                             else
                                 # Backward indexing for large side with reversed orientation.
-                                indexing = :i_backward
+                                indexing = i_backward
                                 # Since the orientation is reversed we have to account for this
                                 # when filling the `neighbor_ids` array.
                                 mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[2] +
@@ -280,16 +280,16 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
 
                             if faces[side] == 0
                                 # Index face in negative x-direction
-                                mortars.node_indices[side, mortar_id] = (:begin, indexing)
+                                mortars.node_indices[side, mortar_id] = (_begin, indexing)
                             elseif faces[side] == 1
                                 # Index face in positive x-direction
                                 mortars.node_indices[side, mortar_id] = (:end, indexing)
                             elseif faces[side] == 2
                                 # Index face in negative y-direction
-                                mortars.node_indices[side, mortar_id] = (indexing, :begin)
+                                mortars.node_indices[side, mortar_id] = (indexing, _begin)
                             else # faces[side] == 3
                                 # Index face in positive y-direction
-                                mortars.node_indices[side, mortar_id] = (indexing, :end)
+                                mortars.node_indices[side, mortar_id] = (indexing, _end)
                             end
                         end
 
@@ -305,16 +305,16 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
 
                     if iface == 0
                         # Index face in negative x-direction.
-                        boundaries.node_indices[boundary_id] = (:begin, :i_forward)
+                        boundaries.node_indices[boundary_id] = (_begin, i_forward)
                     elseif iface == 1
                         # Index face in positive x-direction.
-                        boundaries.node_indices[boundary_id] = (:end, :i_forward)
+                        boundaries.node_indices[boundary_id] = (:end, i_forward)
                     elseif iface == 2
                         # Index face in negative y-direction.
-                        boundaries.node_indices[boundary_id] = (:i_forward, :begin)
+                        boundaries.node_indices[boundary_id] = (i_forward, _begin)
                     else # iface == 3
                         # Index face in positive y-direction.
-                        boundaries.node_indices[boundary_id] = (:i_forward, :end)
+                        boundaries.node_indices[boundary_id] = (i_forward, _end)
                     end
 
                     # One-based indexing.

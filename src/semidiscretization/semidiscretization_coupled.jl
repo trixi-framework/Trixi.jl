@@ -352,13 +352,13 @@ This is currently only implemented for [`StructuredMesh`](@ref).
 ```julia
 # Connect the left boundary of mesh 2 to our boundary such that our positive
 # boundary direction will match the positive y direction of the other boundary
-BoundaryConditionCoupled(2, (:begin, :i), Float64)
+BoundaryConditionCoupled(2, (_begin, :i), Float64)
 
 # Connect the same two boundaries oppositely oriented
-BoundaryConditionCoupled(2, (:begin, :i_backwards), Float64)
+BoundaryConditionCoupled(2, (_begin, i_backwards), Float64)
 
 # Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
-BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64)
+BoundaryConditionCoupled(2, (:j, i_backwards, _end), Float64)
 ```
 
 !!! warning "Experimental code"
@@ -376,11 +376,11 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indic
         NDIMS = length(indices)
         u_boundary = Array{uEltype, NDIMS * 2 - 1}(undef, ntuple(_ -> 0, NDIMS * 2 - 1))
 
-        if indices[1] in (:begin, :end)
+        if indices[1] in (_begin, _end)
             other_orientation = 1
-        elseif indices[2] in (:begin, :end)
+        elseif indices[2] in (_begin, _end)
             other_orientation = 2
-        else # indices[3] in (:begin, :end)
+        else # indices[3] in (_begin, _end)
             other_orientation = 3
         end
 
