@@ -824,52 +824,81 @@ function calc_surface_integral!(du, u,
                                 dg::DGSEM, cache)
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
+    num_nodes = nnodes(dg)
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # Access the factors only once before beginning the loop to increase performance.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
     factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor_2 = boundary_interpolation[num_nodes, 2]
     @threaded for element in eachelement(dg, cache)
-        for m in eachnode(dg), l in eachnode(dg)
-            for v in eachvariable(equations)
-                # surface at -x
-                du[v, 1, l, m, element] = (du[v, 1, l, m, element] +
-                                           surface_flux_values[v, l, m, 1, element] *
-                                           factor_1)
-
-                # surface at +x
-                du[v, nnodes(dg), l, m, element] = (du[v, nnodes(dg), l, m, element] +
-                                                    surface_flux_values[v, l, m, 2,
-                                                                        element] *
-                                                    factor_2)
-
-                # surface at -y
-                du[v, l, 1, m, element] = (du[v, l, 1, m, element] +
-                                           surface_flux_values[v, l, m, 3, element] *
-                                           factor_1)
-
-                # surface at +y
-                du[v, l, nnodes(dg), m, element] = (du[v, l, nnodes(dg), m, element] +
-                                                    surface_flux_values[v, l, m, 4,
-                                                                        element] *
-                                                    factor_2)
-
-                # surface at -z
-                du[v, l, m, 1, element] = (du[v, l, m, 1, element] +
-                                           surface_flux_values[v, l, m, 5, element] *
-                                           factor_1)
-
-                # surface at +z
-                du[v, l, m, nnodes(dg), element] = (du[v, l, m, nnodes(dg), element] +
-                                                    surface_flux_values[v, l, m, 6,
-                                                                        element] *
-                                                    factor_2)
-            end
-        end
+        calc_surface_integral_p4est_3d_internal!(du, element, surface_flux_values, factor_1, factor_2, equations, num_nodes)
     end
 
     return nothing
+end
+
+function calc_surface_integral_gpu!(du, u,
+                                mesh::P4estMesh{3},
+                                equations,
+                                surface_integral::SurfaceIntegralWeakForm,
+                                dg::DGSEM, cache)
+    @kernel function calc_surface_integral_kernel!(du, surface_flux_values, boundary_interpolation, equations, num_nodes)
+        element = @index(Global)
+        factor_1 = boundary_interpolation[1, 1]
+        factor_2 = boundary_interpolation[num_nodes, 2]
+        calc_surface_integral_p4est_3d_internal!(du, element, surface_flux_values, factor_1, factor_2, equations, num_nodes)
+    end
+
+    @unpack boundary_interpolation = dg.basis
+    @unpack surface_flux_values = cache.elements
+
+    backend = get_backend(u)
+    kernel! = calc_surface_integral_kernel!(backend)
+
+    kernel!(du, surface_flux_values, boundary_interpolation, equations, nnodes(dg), ndrange=nelements(cache.elements))
+    synchronize(backend)
+
+    return nothing
+end
+
+@inline function calc_surface_integral_p4est_3d_internal!(du, element, surface_flux_values, factor_1, factor_2, equations, num_nodes)
+    for m in 1:num_nodes, l in 1:num_nodes
+        for v in eachvariable(equations)
+            # surface at -x
+            du[v, 1, l, m, element] = (du[v, 1, l, m, element] +
+                                       surface_flux_values[v, l, m, 1, element] *
+                                       factor_1)
+
+            # surface at +x
+            du[v, num_nodes, l, m, element] = (du[v, num_nodes, l, m, element] +
+                                                surface_flux_values[v, l, m, 2,
+                                                                    element] *
+                                                factor_2)
+
+            # surface at -y
+            du[v, l, 1, m, element] = (du[v, l, 1, m, element] +
+                                       surface_flux_values[v, l, m, 3, element] *
+                                       factor_1)
+
+            # surface at +y
+            du[v, l, num_nodes, m, element] = (du[v, l, num_nodes, m, element] +
+                                                surface_flux_values[v, l, m, 4,
+                                                                    element] *
+                                                factor_2)
+
+            # surface at -z
+            du[v, l, m, 1, element] = (du[v, l, m, 1, element] +
+                                       surface_flux_values[v, l, m, 5, element] *
+                                       factor_1)
+
+            # surface at +z
+            du[v, l, m, num_nodes, element] = (du[v, l, m, num_nodes, element] +
+                                                surface_flux_values[v, l, m, 6,
+                                                                    element] *
+                                                factor_2)
+        end
+    end
 end
 end # @muladd

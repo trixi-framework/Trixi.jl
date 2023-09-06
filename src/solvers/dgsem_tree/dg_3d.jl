@@ -261,8 +261,8 @@ function rhs_gpu!(du, u, t,
     end
 
     # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
+    @trixi_timeit timer() "surface integral gpu" begin
+        calc_surface_integral_gpu!(du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
 
