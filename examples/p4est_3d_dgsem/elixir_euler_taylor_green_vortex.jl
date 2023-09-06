@@ -1,5 +1,6 @@
 using OrdinaryDiffEq
 using Trixi
+using KernelAbstractions
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -24,10 +25,13 @@ function initial_condition_taylor_green_vortex(x, t, equations::CompressibleEule
 
   return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
+
+backend = CPU()
+
 initial_condition = initial_condition_taylor_green_vortex
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
-               volume_integral=VolumeIntegralFluxDifferencing(flux_lax_friedrichs))
+               volume_integral=VolumeIntegralFluxDifferencing(flux_lax_friedrichs), backend=backend)
 
 coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = ( 1.0,  1.0,  1.0) .* pi
@@ -38,14 +42,14 @@ mesh = P4estMesh(trees_per_dimension, polydeg=1,
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max,
                  initial_refinement_level=1)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; backend=backend)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 5.0)
-ode = semidiscretize(semi, tspan)
+ode = semidiscretize(semi, tspan; offload=true, backend=backend)
 
 summary_callback = SummaryCallback()
 
