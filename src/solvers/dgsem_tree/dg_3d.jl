@@ -211,13 +211,13 @@ end
 function rhs_gpu!(du, u, t,
               mesh::Union{TreeMesh{3}, P4estMesh{3}}, equations,
               initial_condition, boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
+              dg::DG, cache, backend::Backend) where {Source}
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du_gpu!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t gpu" reset_du_gpu!(du, dg, cache)
 
     # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+    @trixi_timeit timer() "volume integral gpu" begin
+        calc_volume_integral_gpu!(du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end

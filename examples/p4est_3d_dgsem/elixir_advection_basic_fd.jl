@@ -24,14 +24,14 @@ mesh = P4estMesh(trees_per_dimension, polydeg=1,
                  initial_refinement_level=1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver; offload=false, backend=backend)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan)
+ode = semidiscretize(semi, tspan; offload=false, backend=backend)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers

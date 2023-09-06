@@ -15,7 +15,7 @@ function reset_du!(du, dg, cache)
     return du
 end
 
-function reset_du!_gpu(du, dg, cache)
+function reset_du_gpu!(du, dg, cache)
     fill!(du, 0)
     return du
 end
