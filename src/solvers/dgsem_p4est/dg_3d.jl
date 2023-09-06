@@ -423,6 +423,12 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
+function prolong2boundaries_gpu!(cache, u,
+                             mesh::P4estMesh{3},
+                             equations, surface_integral, dg::DG)
+    #TODO
+end
+
 function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
                              mesh::P4estMesh{3},
                              equations, surface_integral, dg::DG)
@@ -483,6 +489,12 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
             k_node += k_node_step_j
         end
     end
+end
+
+function calc_boundary_flux_gpu!(cache, t, boundary_condition, boundary_indexing,
+                             mesh::P4estMesh{3},
+                             equations, surface_integral, dg::DG)
+    #TODO
 end
 
 function prolong2mortars!(cache, u,
@@ -589,6 +601,13 @@ function prolong2mortars!(cache, u,
     return nothing
 end
 
+function prolong2mortars_gpu!(cache, u,
+                          mesh::P4estMesh{3}, equations,
+                          mortar_l2::LobattoLegendreMortarL2,
+                          surface_integral, dg::DGSEM)
+    #TODO
+end
+
 function calc_mortar_flux!(surface_flux_values,
                            mesh::P4estMesh{3},
                            nonconservative_terms, equations,
@@ -655,6 +674,14 @@ function calc_mortar_flux!(surface_flux_values,
     end
 
     return nothing
+end
+
+function calc_mortar_flux_gpu!(surface_flux_values,
+                           mesh::P4estMesh{3},
+                           nonconservative_terms, equations,
+                           mortar_l2::LobattoLegendreMortarL2,
+                           surface_integral, dg::DG, cache)
+    #TODO
 end
 
 # Inlined version of the mortar flux computation on small elements for conservation fluxes

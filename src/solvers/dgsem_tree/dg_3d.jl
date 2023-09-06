@@ -236,26 +236,26 @@ function rhs_gpu!(du, u, t,
     end
 
     # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations,
+    @trixi_timeit timer() "prolong2boundaries gpu" begin
+        prolong2boundaries_gpu!(cache, u, mesh, equations,
                             dg.surface_integral, dg)
     end
 
     # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+    @trixi_timeit timer() "boundary flux gpu" begin
+        calc_boundary_flux_gpu!(cache, t, boundary_conditions, mesh, equations,
                             dg.surface_integral, dg)
     end
 
     # Prolong solution to mortars
-    @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u, mesh, equations,
+    @trixi_timeit timer() "prolong2mortars gpu" begin
+        prolong2mortars_gpu!(cache, u, mesh, equations,
                          dg.mortar, dg.surface_integral, dg)
     end
 
     # Calculate mortar fluxes
-    @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
+    @trixi_timeit timer() "mortar flux gpu" begin
+        calc_mortar_flux_gpu!(cache.elements.surface_flux_values, mesh,
                           have_nonconservative_terms(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end

@@ -312,6 +312,12 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
     @assert isempty(eachboundary(dg, cache))
 end
 
+function calc_boundary_flux_gpu!(cache, t, boundary_condition::BoundaryConditionPeriodic,
+                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
+                             equations, surface_integral, dg::DG)
+    @assert isempty(eachboundary(dg, cache))
+end
+
 # Function barrier for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions,
                              mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
