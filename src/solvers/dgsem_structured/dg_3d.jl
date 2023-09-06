@@ -824,19 +824,45 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
     end
 end
 
+function apply_jacobian_gpu!(du,
+                         mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                         equations, dg::DG, cache)
+    @kernel function apply_jacobian_kernel!(du, inverse_jacobian, equations, num_nodes)
+        element = @index(Global)
+        apply_jacobian_structured_3d_internal!(du, element, inverse_jacobian, equations, num_nodes)
+    end
+
+    @unpack inverse_jacobian = cache.elements
+    backend = get_backend(du)
+
+    kernel! = apply_jacobian_kernel!(backend)
+
+    kernel!(du, inverse_jacobian, equations, nnodes(dg), ndrange=nelements(cache.elements))
+    synchronize(backend)
+
+    return nothing
+end
+
 function apply_jacobian!(du,
                          mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                          equations, dg::DG, cache)
-    @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            factor = -cache.elements.inverse_jacobian[i, j, k, element]
+    @unpack inverse_jacobian = cache.elements
+    num_nodes = nnodes(dg)
 
-            for v in eachvariable(equations)
-                du[v, i, j, k, element] *= factor
-            end
-        end
+    @threaded for element in eachelement(dg, cache)
+        apply_jacobian_structured_3d_internal!(du, element, inverse_jacobian, equations, num_nodes)
     end
 
     return nothing
+end
+
+@inline function apply_jacobian_structured_3d_internal!(du, element, inverse_jacobian, equations, num_nodes)
+    for k in 1:num_nodes, j in 1:num_nodes, i in 1:num_nodes
+        factor = -inverse_jacobian[i, j, k, element]
+
+        for v in eachvariable(equations)
+            du[v, i, j, k, element] *= factor
+        end
+    end
 end
 end # @muladd

@@ -267,7 +267,7 @@ function rhs_gpu!(du, u, t,
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian gpu" apply_jacobian_gpu!(du, mesh, equations, dg, cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
