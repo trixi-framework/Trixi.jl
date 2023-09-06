@@ -173,26 +173,3 @@ function cmesh_new_periodic_quad(comm, n_dims)::t8_cmesh_t
 
 	return cmesh
 end
-
-function build_forest(comm, n_dims, level, case)
-	# More information and meshes: https://github.com/DLR-AMR/t8code/blob/main/src/t8_cmesh/t8_cmesh_examples.c#L1481
-	if case == 1
-		# Periodic mesh of quads.
-		cmesh = cmesh_new_periodic_quad(comm, n_dims)
-	elseif case == 2
-		# Periodic mesh of triangles.
-		cmesh = cmesh_new_periodic_tri(comm, n_dims)
-	elseif case == 3
-		# Periodic mesh of quads and triangles.
-		# cmesh = t8_cmesh_new_periodic_hybrid(comm) # The `t8code` version does exactly the same.
-		cmesh = cmesh_new_periodic_hybrid(comm, n_dims)
-	else
-		error("case = $case not allowed.")
-	end
-	scheme = t8_scheme_new_default_cxx()
-
-	let do_face_ghost = 1
-		forest = t8_forest_new_uniform(cmesh, scheme, level, do_face_ghost, comm)
-		return forest
-	end
-end

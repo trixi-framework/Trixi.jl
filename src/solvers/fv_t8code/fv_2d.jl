@@ -123,7 +123,8 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations, initial_condition,
     @trixi_timeit timer() "reconstruction" reconstruction(u_, mesh, equations, solver,
                                                           cache)
 
-    @trixi_timeit timer() "evaluation" evaluate_interface_values!(mesh, equations, solver, cache)
+    @trixi_timeit timer() "evaluation" evaluate_interface_values!(mesh, equations,
+                                                                  solver, cache)
 
     @trixi_timeit timer() "update du" begin
         for interface in eachinterface(solver, cache)
@@ -132,8 +133,10 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations, initial_condition,
             face = interfaces.faces[1, interface]
 
             # TODO: Save normal and face_areas in interface
-            normal = Trixi.get_variable_wrapped(elements[element].face_normals, equations, face)
-            u_ll, u_rr = get_surface_node_vars(interfaces.u, equations, solver, interface)
+            normal = Trixi.get_variable_wrapped(elements[element].face_normals,
+                                                equations, face)
+            u_ll, u_rr = get_surface_node_vars(interfaces.u, equations, solver,
+                                               interface)
             @trixi_timeit timer() "surface flux" flux=solver.surface_flux(u_ll, u_rr,
                                                                           normal,
                                                                           equations)
@@ -237,21 +240,29 @@ function evaluate_interface_values!(mesh, equations, solver, cache)
             face_midpoint = Trixi.get_variable_wrapped(face_midpoints, equations, face)
             face_midpoints_neighbor = elements[neighbor].face_midpoints
             face_midpoint_neighbor = Trixi.get_variable_wrapped(face_midpoints_neighbor,
-                                                                equations, face_neighbor)
+                                                                equations,
+                                                                face_neighbor)
 
             for v in eachvariable(equations)
                 s1 = Trixi.get_variable_wrapped(u_[element].slope, equations, v)
                 s2 = Trixi.get_variable_wrapped(u_[neighbor].slope, equations, v)
 
-                s1 = dot(s1, (face_midpoint .- midpoint) ./ norm(face_midpoint .- midpoint))
-                s2 = dot(s2, (elements[neighbor].midpoint .- face_midpoint_neighbor) ./
-                                norm(elements[neighbor].midpoint .- face_midpoint_neighbor))
+                s1 = dot(s1,
+                         (face_midpoint .- midpoint) ./ norm(face_midpoint .- midpoint))
+                s2 = dot(s2,
+                         (elements[neighbor].midpoint .- face_midpoint_neighbor) ./
+                         norm(elements[neighbor].midpoint .- face_midpoint_neighbor))
                 # Is it useful to compare such slopes in different directions? Alternatively, one could use the normal vector.
                 # But this is again not useful, since u_face would use the slope in normal direction. I think it looks good the way it is.
 
                 slope_v = solver.slope_limiter(s1, s2)
-                interfaces.u[1, v, interface] = u_[element].u[v] + slope_v * norm(face_midpoint .- midpoint)
-                interfaces.u[2, v, interface] = u_[neighbor].u[v] - slope_v * norm(elements[neighbor].midpoint .- face_midpoint_neighbor)
+                interfaces.u[1, v, interface] = u_[element].u[v] +
+                                                slope_v *
+                                                norm(face_midpoint .- midpoint)
+                interfaces.u[2, v, interface] = u_[neighbor].u[v] -
+                                                slope_v *
+                                                norm(elements[neighbor].midpoint .-
+                                                     face_midpoint_neighbor)
             end
         else
             error("Order $(solver.order) is not supported.")

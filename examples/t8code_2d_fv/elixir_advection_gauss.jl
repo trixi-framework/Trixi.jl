@@ -97,19 +97,6 @@ function cmesh_new_periodic_hybrid(comm, n_dims)::t8_cmesh_t
 	return cmesh
 end
 
-function build_forest(comm, n_dims, level)
-	# Periodic mesh of quads and triangles.
-	# cmesh = t8_cmesh_new_periodic_hybrid(comm) # The `t8code` version does exactly the same.
-	cmesh = cmesh_new_periodic_hybrid(comm, n_dims)
-
-	scheme = t8_scheme_new_default_cxx()
-
-	let do_face_ghost = 1
-		forest = t8_forest_new_uniform(cmesh, scheme, level, do_face_ghost, comm)
-		return forest
-	end
-end
-
 #
 # Initialization.
 #
@@ -134,15 +121,8 @@ initial_condition = initial_condition_gauss
 
 solver = FV(order = 2, slope_limiter = Trixi.minmod, surface_flux = flux_lax_friedrichs)
 
-# Initialize an adapted forest with periodic boundaries.
-n_dims = 2
 initial_refinement_level = 4
-forest = build_forest(comm, n_dims, initial_refinement_level)
-
-number_trees = t8_forest_get_num_local_trees(forest)
-println("rank $(Trixi.mpi_rank()): #trees $number_trees, #elements $(t8_forest_get_local_num_elements(forest)), #ghost_elements $(t8_forest_get_num_ghosts(forest))")
-
-mesh = T8codeMesh{n_dims}(forest)
+mesh = T8codeMesh{2}(cmesh_new_periodic_hybrid, initial_refinement_level)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -175,6 +155,6 @@ summary_callback()
 # Clean-up
 #
 
-t8_forest_unref(Ref(forest))
+t8_forest_unref(Ref(mesh.forest))
 T8code.Libt8.sc_finalize()
 # MPI.Finalize()

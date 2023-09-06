@@ -22,9 +22,19 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, Forest} <: AbstractMesh{NDIMS}
     current_filename::String
     unsaved_changes::Bool
 
-    function T8codeMesh{NDIMS}(forest; current_filename = "",
+    function T8codeMesh{NDIMS}(mesh_function, initial_refinement_level;
+                               current_filename = "",
                                unsaved_changes = true) where {NDIMS}
         @assert NDIMS == 2
+        comm = MPI.COMM_WORLD
+
+        cmesh = mesh_function(comm, NDIMS)
+        scheme = t8_scheme_new_default_cxx()
+
+        do_face_ghost = 1
+        forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level,
+                                       do_face_ghost, comm)
+
         number_trees_global = t8_forest_get_num_global_trees(forest)
         number_trees_local = t8_forest_get_num_local_trees(forest)
 
