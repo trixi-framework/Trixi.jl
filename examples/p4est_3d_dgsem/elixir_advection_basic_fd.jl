@@ -1,9 +1,11 @@
-
 using OrdinaryDiffEq
 using Trixi
+using KernelAbstractions
 
 ###############################################################################
 # semidiscretization of the linear advection equation
+
+backend = CPU()
 
 advection_velocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advection_velocity)
@@ -22,7 +24,7 @@ mesh = P4estMesh(trees_per_dimension, polydeg=1,
                  initial_refinement_level=1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver; offload=false, backend=backend)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
