@@ -11,17 +11,19 @@ advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg=2, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
+coordinates_min = (-3.0, -1.0) # minimum coordinates (min(x), min(y))
+# coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
 coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
 
-cells_per_dimension = (16, 16)
+# cells_per_dimension = (16, 16)
+cells_per_dimension = (32, 16)
 
 # Create curved mesh with 16 x 16 elements
 # mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 parent = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
-mesh = StructuredMeshView(parent)
+mesh = StructuredMeshView(parent; index_min = (17, 1), index_max = (32, 16))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
@@ -59,6 +61,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback)
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
+
+errors_ref = (l2 = [8.312427642603623e-6], linf = [6.626865824577166e-5])
 
 # Print the timer summary
 summary_callback()

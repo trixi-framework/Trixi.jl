@@ -36,7 +36,7 @@ end
 # `mesh.mapping` is passed as an additional argument for type stability (function barrier)
 function calc_node_coordinates!(node_coordinates, element,
                                 cell_x, cell_y, mapping,
-                                mesh::Union{StructuredMesh{2},StructuredMeshView{2}},
+                                mesh::StructuredMesh{2},
                                 basis::LobattoLegendreBasis)
     @unpack nodes = basis
 
