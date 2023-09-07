@@ -35,7 +35,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_gauss
 
-solver = FV(order = 2, slope_limiter = Trixi.minmod, surface_flux = flux_lax_friedrichs)
+solver = FV(order = 1, surface_flux = flux_lax_friedrichs)
 
 initial_refinement_level = 4
 mesh = T8codeMesh{2}(Trixi.cmesh_new_periodic_hybrid, initial_refinement_level)

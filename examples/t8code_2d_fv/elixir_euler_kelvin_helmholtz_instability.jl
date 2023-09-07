@@ -58,7 +58,7 @@ function initial_condition_kelvin_helmholtz_instability(x, t, equations::Compres
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-solver = FV(order = 2, slope_limiter = Trixi.monotonized_central, surface_flux = flux_lax_friedrichs)
+solver = FV(order = 1, surface_flux = flux_lax_friedrichs)
 
 initial_refinement_level = 4
 # mesh_function = Trixi.cmesh_new_periodic_hybrid
