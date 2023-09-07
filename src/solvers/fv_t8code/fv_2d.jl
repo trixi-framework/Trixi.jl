@@ -181,6 +181,40 @@ function linear_reconstruction(u_, mesh, equations, solver, cache)
         @unpack u = u_[element]
         @unpack num_faces, face_connectivity, face_areas, face_normals, midpoint, face_midpoints, volume = cache.elements[element]
 
+        # Reconstruction from Hou et al. 2015
+        # u_faces = [zeros(length(u)) for i in 1:num_faces]
+        # distances = zeros(num_faces)
+        # for face in eachindex(u_faces)
+        #     face_midpoint = Trixi.get_variable_wrapped(face_midpoints, equations, face)
+        #     distance = norm(face_midpoint .- midpoint)
+        #     u_faces[face] .+= u ./ distance
+        #     distances[face] += 1 / distance
+        #     for (face_, neighbor) in enumerate(elements[element].face_connectivity[1:num_faces])
+        #         face_midpoint_neighbor_ = Trixi.get_variable_wrapped(face_midpoints, equations, face_)
+        #         face_neighbor = elements[element].neighbor_faces[face_]
+        #         face_midpoint_neighbor = Trixi.get_variable_wrapped(elements[neighbor].face_midpoints,
+        #                                                             equations, face_neighbor)
+        #         if face_midpoint_neighbor_ != face_midpoint_neighbor
+        #             # Periodic boundary
+        #             # - The face_midpoint must be synchronous at each side of the mesh.
+        #             #   Is it possible to have shifted faces?
+        #             # - Distance is implemented as the sum of the two distances to the face_midpoint.
+        #             #   In general, this is not the actual distance.
+        #             # distance = norm(face_midpoint .- face_midpoint_neighbor_) +
+        #             #            norm(face_midpoint_neighbor_ .- elements[neighbor].midpoint)
+        #             distance = abs(norm(elements[neighbor].midpoint .- face_midpoint) - 2)
+        #         else
+        #             distance = norm(elements[neighbor].midpoint .- face_midpoint)
+        #         end
+        #         u_faces[face] .+= u_[neighbor].u ./ distance
+        #         distances[face] += 1 / distance
+        #     end
+        # end
+        # u_faces ./= distances
+        # This version of calculating the face values results in values with less difference (expected due to the average calculation)
+        # Therefore, the slope is smaller (the slope from below is about 0.5*pi, which is good for initial_condition_convergence_test;
+        # the new one much smaller). This leads to in different results and an caculated order of convergence of about 1 :/
+
         slope .= zero(eltype(slope))
         for face in 1:num_faces
             neighbor = face_connectivity[face]
@@ -213,7 +247,8 @@ function linear_reconstruction(u_, mesh, equations, solver, cache)
             end
         end
         slope .*= 1 / volume
-        u_[element] = T8codeSolutionContainer(u, Tuple(slope))
+        s = Tuple(slope) # TODO: Allocations
+        u_[element] = T8codeSolutionContainer(u, s) # TODO: Allocations
     end
 
     exchange_ghost_data(mesh, u_)
