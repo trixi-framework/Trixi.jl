@@ -222,8 +222,8 @@ function init_interfaces(mesh::T8codeMesh, equations, elements)
 
     # Initialize container # TODO: nonperiodic
     n_interfaces = zero(Int)
-    for element in 1:mesh.number_elements
-        for face in 1:elements[element].num_faces
+    for element in 1:(mesh.number_elements)
+        for face in 1:(elements[element].num_faces)
             if elements[element].face_connectivity[face] <= mesh.number_elements
                 n_interfaces += 0.5
             elseif elements[element].face_connectivity[face] <= length(elements)
@@ -233,7 +233,7 @@ function init_interfaces(mesh::T8codeMesh, equations, elements)
             end
         end
     end
-    @assert Int(n_interfaces) == n_interfaces "Something is wrong!"
+    @assert Int(n_interfaces)==n_interfaces "Something is wrong!"
     n_interfaces = Int(n_interfaces)
 
     _u = Vector{uEltype}(undef,
@@ -259,7 +259,7 @@ function init_interfaces!(interfaces, mesh::T8codeMesh, equations, elements)
     # Note: In t8code, the routine 't8code_forest_iterate' is not implemented yet.
 
     idx = 1
-    for element in 1:mesh.number_elements
+    for element in 1:(mesh.number_elements)
         (; face_connectivity, num_faces, face_midpoints, neighbor_faces) = elements[element]
         for (face, neighbor) in enumerate(face_connectivity[1:num_faces])
             if neighbor < element
