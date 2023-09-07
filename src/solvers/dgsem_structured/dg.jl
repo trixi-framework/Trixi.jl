@@ -30,7 +30,7 @@ end
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionPeriodic,
-                                                  mesh::StructuredMesh, equations,
+                                                  mesh::Union{StructuredMesh,StructuredMeshView}, equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
@@ -40,7 +40,7 @@ end
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,
                                                   boundary_condition,
-                                                  mesh::StructuredMesh, equations,
+                                                  mesh::Union{StructuredMesh,StructureMeshView}, equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)

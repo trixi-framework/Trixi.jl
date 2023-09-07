@@ -513,7 +513,7 @@ end
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t, orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
-                                                  mesh::StructuredMesh, equations,
+                                                  mesh::Union{StructuredMesh,StructuredMeshView}, equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
@@ -544,7 +544,7 @@ end
     end
 end
 
-function get_boundary_indices(element, orientation, mesh::StructuredMesh{2})
+function get_boundary_indices(element, orientation, mesh::Union{StructuredMesh{2},StructuredMeshView{2}})
     cartesian_indices = CartesianIndices(size(mesh))
     if orientation == 1
         # Get index of element in y-direction

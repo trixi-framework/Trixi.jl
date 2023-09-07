@@ -551,7 +551,7 @@ function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionP
 end
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
-                             mesh::StructuredMesh{2}, equations, surface_integral,
+                             mesh::Union{StructuredMesh{2},StructuredMeshView{2}}, equations, surface_integral,
                              dg::DG)
     @unpack surface_flux_values = cache.elements
     linear_indices = LinearIndices(size(mesh))

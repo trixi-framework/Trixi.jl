@@ -1,8 +1,12 @@
+@muladd begin
+#! format: noindent
+
 mutable struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
     parent::StructuredMesh{NDIMS, RealT}
     mapping::Any # Not relevant for performance
     index_min::NTuple{NDIMS, Int}
     index_max::NTuple{NDIMS, Int}
+    periodicity::NTuple{NDIMS, Bool}
 end
 
 function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
@@ -11,7 +15,8 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
     @assert all(index_min .> 0)
     @assert index_max <= size(parent)
 
-    return StructuredMeshView{NDIMS, RealT}(parent, parent.mapping, index_min, index_max)
+    
+    return StructuredMeshView{NDIMS, RealT}(parent, parent.mapping, index_min, index_max, periodicity)
 end
 
 function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT}) where {NDIMS, RealT}
@@ -47,7 +52,8 @@ Base.axes(mesh::StructuredMeshView, i) = Base.OneTo(size(mesh, i))
 function calc_node_coordinates!(node_coordinates, element,
                                 cell_x, cell_y, mapping,
                                 mesh::StructuredMeshView{2},
-                                basis::LobattoLegendreBasis)
+#                                basis::LobattoLegendreBasis)
+                                basis)
     @unpack nodes = basis
     @unpack parent, index_min, index_max = mesh
 
@@ -69,3 +75,4 @@ function calc_node_coordinates!(node_coordinates, element,
                                                       cell_y_offset + dy / 2 * nodes[j])
     end
 end
+end # @muladd
