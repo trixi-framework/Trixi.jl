@@ -133,7 +133,7 @@ end
 function output_data_to_vtu(mesh::T8codeMesh, equations, solver, u_, out)
     vars = varnames(cons2cons, equations)
 
-    vtk_data = Vector{t8_vtk_data_field_t}(undef, 2 * nvariables(equations))
+    vtk_data = Vector{t8_vtk_data_field_t}(undef, nvariables(equations))
 
     for v in eachvariable(equations)
         let
@@ -146,28 +146,6 @@ function output_data_to_vtu(mesh::T8codeMesh, equations, solver, u_, out)
                                                                            8192, ' ')),
                                                   data_ptr)
             end
-        end
-    end
-    for v in eachvariable(equations)
-        data_ = Vector{eltype(u_[1].u)}(undef, 3 * mesh.number_elements)
-        for element in eachelement(mesh, solver)
-            idx = 3 * (element - 1)
-            slope_ = Trixi.get_variable_wrapped(u_[element].slope, equations, v)
-            for d in 1:ndims(equations)
-                data_[idx + d] = slope_[d]
-            end
-            for d in 1:(3 - ndims(equations))
-                data_[idx + ndims(equations) + d] = zero(eltype(u_[1].slope))
-            end
-        end
-
-        GC.@preserve data_ begin
-            vtk_data[nvariables(equations) + v] = t8_vtk_data_field_t(T8_VTK_VECTOR,
-                                                                      NTuple{8192, Cchar
-                                                                             }(rpad("slope_$(vars[v])\0",
-                                                                                    8192,
-                                                                                    ' ')),
-                                                                      pointer(data_))
         end
     end
 

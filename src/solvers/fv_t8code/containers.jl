@@ -290,7 +290,6 @@ function init_solution!(mesh::T8codeMesh, equations)
     @unpack forest = mesh
     # Check that the forest is a committed.
     @assert(t8_forest_is_committed(forest)==1)
-    n_dims = ndims(mesh)
 
     # Get the number of local elements of forest.
     num_local_elements = mesh.number_elements
@@ -300,19 +299,9 @@ function init_solution!(mesh::T8codeMesh, equations)
     # Build an array of our data that is as long as the number of elements plus
     # the number of ghosts.
     u_ = Vector{
-                T8codeSolutionContainer{nvariables(equations),
-                                        nvariables(equations) * n_dims}}(undef,
-                                                                         num_local_elements +
-                                                                         num_ghost_elements)
-
-    # The slope is not calculated before the first save_solution call.
-    # With still undefined values an errors occurs in Paraview.
-    # Therefore, overwrite the slope values in the beginning.
-    zero_slope = Tuple(zeros(eltype(u_[1].slope), length(u_[1].slope)))
-    for element in eachindex(u_)
-        u_[element] = T8codeSolutionContainer(u_[element].u,
-                                              zero_slope)
-    end
+                T8codeSolutionContainer{nvariables(equations)}}(undef,
+                                                                num_local_elements +
+                                                                num_ghost_elements)
 
     return u_
 end
@@ -336,12 +325,11 @@ function exchange_ghost_data(mesh, container)
     T8code.Libt8.sc_array_destroy(sc_array_wrapper)
 end
 
-struct T8codeSolutionContainer{NVARS, NVARS_NDIMS}
+struct T8codeSolutionContainer{NVARS}
     u::NTuple{NVARS, Cdouble}
-    slope::NTuple{NVARS_NDIMS, Cdouble}
 
-    function T8codeSolutionContainer(u, slope)
-        new{length(u), length(slope)}(u, slope)
+    function T8codeSolutionContainer(u)
+        new{length(u)}(u)
     end
 end
 
@@ -354,8 +342,7 @@ function exchange_solution!(u, mesh, equations, solver, cache)
     @unpack u_ = cache
     for element in eachelement(mesh, solver)
         u_[element] = T8codeSolutionContainer(Tuple(get_node_vars(u, equations, solver,
-                                                                  element)),
-                                              u_[element].slope)
+                                                                  element)))
     end
     exchange_ghost_data(mesh, u_)
 
