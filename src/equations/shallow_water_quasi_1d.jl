@@ -235,6 +235,14 @@ end
     return SVector(diss[1], diss[2], zero(eltype(u_ll)), zero(eltype(u_ll)))
 end
 
+@inline function max_abs_speeds(u, equations::ShallowWaterEquationsQuasi1D)
+    h = waterheight(u, equations)
+    v = velocity(u, equations)
+
+    c = equations.gravity * sqrt(h)
+    return (abs(v) + c,)
+end
+
 # Helper function to extract the velocity vector from the conservative variables
 @inline function velocity(u, equations::ShallowWaterEquationsQuasi1D)
     a_h, a_h_v, _, _ = u
@@ -292,5 +300,24 @@ end
     e = (a_h_v^2) / (2 * a * a_h) + 0.5 * equations.gravity * (a_h^2 / a) +
         equations.gravity * a_h * b
     return e
+end
+
+# Calculate the error for the "lake-at-rest" test case where H = h+b should
+# be a constant value over time. Note, assumes there is a single reference
+# water height `H0` with which to compare.
+#
+# TODO: TrixiShallowWater: where should `threshold_limiter` live? May need
+# to modify or have different versions of the `lake_at_rest_error` function
+@inline function lake_at_rest_error(u, equations::ShallowWaterEquationsQuasi1D)
+    _, _, b, _ = u
+    h = waterheight(u, equations)
+
+    # For well-balancedness testing with possible wet/dry regions the reference
+    # water height `H0` accounts for the possibility that the bottom topography
+    # can emerge out of the water as well as for the threshold offset to avoid
+    # division by a "hard" zero water heights as well.
+    H0_wet_dry = max(equations.H0, b + equations.threshold_limiter)
+
+    return abs(H0_wet_dry - (h + b))
 end
 end # @muladd
