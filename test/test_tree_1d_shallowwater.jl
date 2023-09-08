@@ -120,8 +120,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
       tspan = (0.0, 0.05))
   end
   
-  @trixi_testset "elixir_shallowwater_quasi1d_well_balanced.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_quasi1d_well_balanced.jl"),
+  @trixi_testset "elixir_shallowwater_quasi_1d_well_balanced.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_quasi_1d_well_balanced.jl"),
       l2 = [1.4250229186905198e-14, 2.495109919406496e-12, 7.408599286788738e-17, 2.7205812409138776e-16], 
       linf = [5.284661597215745e-14, 2.74056233065078e-12, 2.220446049250313e-16, 8.881784197001252e-16],
       tspan = (0.0, 100.0))
