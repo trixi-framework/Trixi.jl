@@ -18,6 +18,9 @@ function initial_condition_discontinuous_well_balancedness(x, t,
                                                            equations::ShallowWaterEquationsQuasi1D)
     H = equations.H0
     v = 0.0
+
+    # for a periodic domain, this choice of `b` and `a` mimic 
+    # discontinuity across the periodic boundary.
     b = 0.5 * (x[1] + 1)
     a = 2 + x[1]
 
