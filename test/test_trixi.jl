@@ -5,7 +5,7 @@ import Trixi
 # inside an elixir.
 """
     @test_trixi_include(elixir; l2=nothing, linf=nothing,
-                                atol=10*eps(), rtol=0.001,
+                                atol=500*eps(), rtol=sqrt(eps()),
                                 parameters...)
 
 Test Trixi by calling `trixi_include(elixir; parameters...)`.

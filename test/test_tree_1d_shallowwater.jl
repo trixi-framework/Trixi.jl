@@ -102,7 +102,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_beach.jl"),
       l2   = [0.17979210479598923, 1.2377495706611434, 6.289818963361573e-8],
       linf = [0.845938394800688, 3.3740800777086575, 4.4541473087633676e-7],
-      tspan = (0.0, 0.05))
+      tspan = (0.0, 0.05),
+      atol = 3e-10) # see https://github.com/trixi-framework/Trixi.jl/issues/1617
   end
 
   @trixi_testset "elixir_shallowwater_parabolic_bowl.jl" begin
