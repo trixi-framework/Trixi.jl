@@ -249,6 +249,13 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "TreeMesh2D: elixir_navierstokes_shearlayer_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_shearlayer_amr.jl"),
+      l2 = [0.005352707453147317, 0.4077270907626271, 0.43758381263181434, 1.1758133763041454],
+      linf = [0.034784713829601244, 1.1650897299747531, 1.484016014155391, 8.71087741820071]
+    )
+  end
+
   @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_advection_diffusion_periodic.jl"),
       trees_per_dimension = (1, 1), initial_refinement_level = 2, tspan=(0.0, 0.5),

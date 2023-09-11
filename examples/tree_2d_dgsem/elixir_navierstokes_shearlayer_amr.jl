@@ -52,7 +52,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 500
+analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval,)
@@ -63,7 +63,7 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       med_level  = 5, med_threshold=0.2,
                                       max_level  = 7, max_threshold=0.5)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=10,
+                           interval=50,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
@@ -75,7 +75,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-8
+time_int_tol = 1e-7
 sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
             ode_default_options()..., callback=callbacks)
 summary_callback() # print the timer summary
