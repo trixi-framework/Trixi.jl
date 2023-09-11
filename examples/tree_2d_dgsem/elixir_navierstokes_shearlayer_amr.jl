@@ -1,5 +1,5 @@
 
-using OrdinaryDiffEq, Plots
+using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
@@ -87,7 +87,3 @@ time_int_tol = 1e-7
 sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
             ode_default_options()..., callback=callbacks)
 summary_callback() # print the timer summary
-
-pd = PlotData2D(sol)
-Plots.plot(pd["v1"])
-Plots.plot(getmesh(pd))
