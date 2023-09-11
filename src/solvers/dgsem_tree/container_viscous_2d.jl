@@ -32,10 +32,10 @@ end
 # internal storage.
 function Base.resize!(viscous_container::ViscousContainer2D, equations, dg, cache)
   capacity = nvariables(equations) * nnodes(dg) * nnodes(dg) * nelements(dg, cache)
-  resize!(cache_viscous._u_transformed, capacity)
+  resize!(viscous_container._u_transformed, capacity)
   for dim in 1:2
-    resize!(cache_viscous._gradients[dim], capacity)
-    resize!(cache_viscous._flux_viscous[dim], capacity)
+    resize!(viscous_container._gradients[dim], capacity)
+    resize!(viscous_container._flux_viscous[dim], capacity)
   end
 
   viscous_container.u_transformed = unsafe_wrap(Array,
