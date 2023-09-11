@@ -45,17 +45,18 @@ function Base.resize!(viscous_container::ViscousContainer3D, equations, dg, cach
                                                  nnodes(dg), nnodes(dg), nnodes(dg),
                                                  nelements(dg, cache)))
 
-  viscous_container.gradients = unsafe_wrap(Array,
-                                            pointer(viscous_container._gradients),
-                                            (nvariables(equations),
-                                             nnodes(dg), nnodes(dg), nnodes(dg),
-                                             nelements(dg, cache)))
+  for dim in 1:3
+    viscous_container.gradients[dim] = unsafe_wrap(Array,
+                                                   pointer(viscous_container._gradients[dim]),
+                                                   (nvariables(equations),
+                                                    nnodes(dg), nnodes(dg), nnodes(dg),
+                                                    nelements(dg, cache)))
 
-  viscous_container.flux_viscous = unsafe_wrap(Array,
-                                               pointer(viscous_container._flux_viscous),
-                                               (nvariables(equations),
-                                                nnodes(dg), nnodes(dg), nnodes(dg),
-                                                nelements(dg, cache)))
-
+    viscous_container.flux_viscous[dim] = unsafe_wrap(Array,
+                                                      pointer(viscous_container._flux_viscous[dim]),
+                                                      (nvariables(equations),
+                                                        nnodes(dg), nnodes(dg), nnodes(dg),
+                                                        nelements(dg, cache)))
+  end
   return nothing
 end
