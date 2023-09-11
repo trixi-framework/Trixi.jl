@@ -1,4 +1,5 @@
 [compat]
+Aqua = "0.7"
 BSON = "0.3.3"
 CairoMakie = "0.6, 0.7, 0.8, 0.9, 0.10"
 Flux = "0.13 - 0.13.12" # TODO: Return to "0.13" once https://github.com/FluxML/Flux.jl/issues/2204 is resolved
@@ -8,6 +9,7 @@ OrdinaryDiffEq = "6.49.1"
 Plots = "1.16"
 
 [deps]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
