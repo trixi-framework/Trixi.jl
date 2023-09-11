@@ -151,8 +151,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, TreeMe
 
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
-        !mpi_isparallel()
-        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) * nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+       !mpi_isparallel()
+        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) *
+                                                         nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
     end
 
     return nothing
@@ -312,8 +313,9 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, TreeM
 
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
-        !mpi_isparallel()
-        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) * nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+       !mpi_isparallel()
+        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) *
+                                                         nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
     end
 
     return nothing
