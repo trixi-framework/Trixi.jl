@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEq, Plots
 using Trixi
 
 ###############################################################################
@@ -190,14 +190,24 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
-tspan = (0.0, 0.5)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+
+amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=Trixi.density),
+                                      base_level=2,
+                                      med_level=3, med_threshold=2.0,
+                                      max_level=4, max_threshold=2.25)
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval=5,
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
+
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr_callback)
 
 ###############################################################################
 # run the simulation
@@ -206,4 +216,4 @@ time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5,
             ode_default_options()..., callback=callbacks)
 summary_callback() # print the timer summary
-
+Plots.plot(sol)

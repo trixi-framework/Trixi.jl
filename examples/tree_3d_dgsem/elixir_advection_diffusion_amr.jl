@@ -11,7 +11,6 @@ equations = LinearScalarAdvectionEquation3D(advection_velocity)
 diffusivity() = 5.0e-4
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
-initial_condition = initial_condition_gauss
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-1.0, -1.0, -1.0)
