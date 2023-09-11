@@ -140,7 +140,7 @@ function integrate(func::typeof(enstrophy), u,
                    equations, equations_parabolic::CompressibleNavierStokesDiffusion3D,
                    dg::DGMulti,
                    cache, cache_parabolic; normalize = true)
-    gradients_x, gradients_y, gradients_z = cache_parabolic.gradients
+    gradients_x, gradients_y, gradients_z = cache_parabolic.viscous_container.gradients
 
     # allocate local storage for gradients.
     # TODO: can we avoid allocating here?
