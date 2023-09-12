@@ -195,7 +195,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=10)
-analysis_interval = 100
+analysis_interval = 1
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=Trixi.density),
@@ -203,9 +203,7 @@ amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=Trixi.de
                                       med_level=3, med_threshold=2.0,
                                       max_level=4, max_threshold=2.25)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=5,
-                           adapt_initial_condition=true,
-                           adapt_initial_condition_only_refine=true)
+                           interval=5)
 
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr_callback)
 
