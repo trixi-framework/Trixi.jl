@@ -288,10 +288,11 @@ function prolong2boundaries!(cache_parabolic, flux_viscous::Vector{Array{uEltype
     return nothing
 end
 
-function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed,
+function calc_viscous_fluxes!(flux_viscous::Vector{Array{uEltype, 4}}, 
+                              gradients::Vector{Array{uEltype, 4}}, u_transformed,
                               mesh::Union{TreeMesh{2}, P4estMesh{2}},
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DG, cache, cache_parabolic)
+                              dg::DG, cache, cache_parabolic) where {uEltype <: Real}
     gradients_x, gradients_y = gradients
     flux_viscous_x, flux_viscous_y = flux_viscous # output arrays
 
