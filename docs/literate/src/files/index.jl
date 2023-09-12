@@ -121,6 +121,11 @@
 # a few semidiscretizations. Moreover, we calculate an example for propagating errors with Measurement.jl
 # at the end.
 
+# ### [17 Custom semidiscretization](@ref custom_semidiscretization)
+#-
+# This tutorial describes the [semidiscretiations](@ref overview-semidiscretizations) of Trixi.jl
+# and explains how to extend them for custom tasks.
+
 
 
 # ## Examples in Trixi.jl
