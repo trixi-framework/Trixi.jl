@@ -190,23 +190,123 @@ summary_callback()
 
 # ## Setting up a custom semidiscretization
 
-# TODO
+# Using a global constant is of course not really nice from a software
+# engineering point of view. Thus, it can often be useful to collect
+# additional data in the parameters of the `ODEProblem`. Thus, it is
+# time to create our own semidiscretization. Here, we create a small
+# wrapper of a standard semidiscretization of Trixi.jl and the current
+# global time of the simulation.
 
-# Required
-# - `Trixi.rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)`
-# - `Trixi.mesh_equations_solver_cache(semi::SemidiscretizationEulerGravity)`
+struct CustomSemidiscretization{Semi, T} <: Trixi.AbstractSemidiscretization
+    semi::Semi
+    t::T
+end
 
-# Basic
-# - `Base.show(io::IO, parameters::SemidiscretizationEulerGravity)`
-# - `Base.show(io::IO, ::MIME"text/plain", parameters::SemidiscretizationEulerGravity)`
-# - `Base.ndims(semi::SemidiscretizationEulerGravity)`
-# - `Base.real(semi::SemidiscretizationEulerGravity)`
-# - `Trixi.compute_coefficients(t, semi::SemidiscretizationEulerGravity)`
-# - `Trixi.compute_coefficients!(u_ode, t, semi::SemidiscretizationEulerGravity)`
-# - `Trixi.calc_error_norms(func, u, t, analyzer, semi::SemidiscretizationEulerGravity, cache_analysis)`
+semi_custom = CustomSemidiscretization(semi, Ref(0.0))
 
-# Advanced
-# - `Trixi.nvariables(semi::SemidiscretizationHyperbolicParabolic)`
-# - `Trixi.save_solution_file(u_ode, t, dt, iter, semi::SemidiscretizationEulerGravity, solution_callback, element_variables = Dict{Symbol, Any}(); system = "")`
-# - `(amr_callback::AMRCallback)(u_ode, semi::SemidiscretizationEulerGravity, t, iter; kwargs...)`
-# - `Trixi.semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan; reset_threads = true)`
+# To get pretty printing in the REPL, you can consider specializing
+#
+# - `Base.show(io::IO, parameters::CustomSemidiscretization)`
+# - `Base.show(io::IO, ::MIME"text/plain", parameters::CustomSemidiscretization)`
+#
+# for your custom semidiscretiation.
+
+# Next, we create our own source terms that use the global time stored
+# in the custom semidiscretiation.
+
+source_terms_custom_semi = let semi_custom = semi_custom
+    function source_terms_custom_semi(u, x, t, equations)
+        t = semi_custom.t[]
+        return -initial_condition(x, t, equations)
+    end
+end
+
+# We also create a custom ODE RHS to update the current global time
+# stored in the custom semidiscretization. We unpack the standard
+# semidiscretization created by Trixi.jl and pass it to `Trixi.rhs!`.
+
+function rhs_semi_custom!(du_ode, u_ode, semi_custom, t)
+    semi_custom.t[] = t
+    Trixi.rhs!(du_ode, u_ode, semi_custom.semi, t)
+end
+
+# Finally, we set up an `ODEProblem` and solve it numerically.
+
+ode_semi_custom = ODEProblem(rhs_semi_custom!,
+                             ode.u0,
+                             ode.tspan,
+                             semi_custom)
+sol_semi_custom = solve(ode_semi_custom, RDPK3SpFSAL49();
+                        ode_default_options()...)
+
+# If we want to make use of additional functionality provided by
+# Trixi.jl, e.g., for plotting, we need to implement a few additional
+# specializations. In this case, we forward everything to the standard
+# semidiscretization provided by Trixi.jl wrapped in our custom
+# semidiscretization.
+
+Base.ndims(semi::CustomSemidiscretization) = ndims(semi.semi)
+function Trixi.mesh_equations_solver_cache(semi::CustomSemidiscretization)
+    Trixi.mesh_equations_solver_cache(semi.semi)
+end
+
+# Now, we can plot the numerical solution as usual.
+
+plot(sol_semi_custom; label = "numerical sol.")
+let
+    x = range(-1.0, 1.0; length = 200)
+    plot!(x, first.(initial_condition.(x, sol_semi_custom.t[end], equations)),
+          label = "analytical sol.", linestyle = :dash, legend = :topleft)
+end
+plot!(sol_semi_custom.u[1], semi, label = "u0", linestyle = :dot, legend = :topleft)
+
+# This also works with many callbacks as usual. However, the
+# [`AnalysisCallback`](@ref) requires some special handling since it
+# makes use of a performance counter contained in the standard
+# semidiscretizations of Trixi.jl to report some
+# [performance metrics](@ref performance-metrics).
+# Here, we forward all accesses to the performance counter to the
+# wrapped semidiscretization.
+
+function Base.getproperty(semi::CustomSemidiscretization, s::Symbol)
+    if s === :performance_counter
+        wrapped_semi = getfield(semi, :semi)
+        wrapped_semi.performance_counter
+    else
+        getfield(semi, s)
+    end
+end
+
+# Moreover, the [`AnalysisCallback`](@ref) also performs some error
+# calculations. We also need to forward them to the wrapped
+# semidiscretization.
+
+function Trixi.calc_error_norms(func, u, t, analyzer,
+                                semi::CustomSemidiscretization,
+                                cache_analysis)
+    Trixi.calc_error_norms(func, u, t, analyzer,
+                           semi.semi,
+                           cache_analysis)
+end
+
+# Now, we can work with the callbacks used before as usual.
+
+summary_callback = SummaryCallback()
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi_custom;
+                                     interval = analysis_interval)
+alive_callback = AliveCallback(; analysis_interval)
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
+                        alive_callback)
+
+sol = solve(ode_semi_custom, RDPK3SpFSAL49();
+            ode_default_options()..., callback = callbacks)
+summary_callback()
+
+# For even more advanced usage of custom semidiscretizations, you
+# may look at the source code of the ones contained in Trixi.jl, e.g.,
+# - [`SemidiscretizationHyperbolicParabolic`](@ref)
+# - [`SemidiscretizationEulerGravity`](@ref)
+# - [`SemidiscretizationEulerAcoustics`](@ref)
+# - [`SemidiscretizationCoupled`](@ref)
