@@ -56,7 +56,12 @@ function create_tutorials(files)
                     @testset "$(filename[j][2][2])" begin include(joinpath(repo_src, filename[j][2][1], filename[j][2][2])) end
                 end
             else # Single files
-                @testset "$title" begin include(joinpath(repo_src, filename)) end
+                mod = gensym(title)
+                @testset "$title" begin
+                    @eval module $mod
+                        include(joinpath(repo_src, filename))
+                    end
+                end
             end
         end
     end
