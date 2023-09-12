@@ -336,48 +336,9 @@ function prolong2boundaries!(cache_parabolic, flux_viscous::Vector{Array{uEltype
     return nothing
 end
 
-function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed,
-                              mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                              equations_parabolic::AbstractEquationsParabolic,
-                              dg::DG, cache, cache_parabolic)
-    gradients_x, gradients_y, gradients_z = gradients
-    flux_viscous_x, flux_viscous_y, flux_viscous_z = flux_viscous # output arrays
-
-    @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            # Get solution and gradients
-            u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j, k,
-                                   element)
-            gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg, i, j,
-                                             k, element)
-            gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg, i, j,
-                                             k, element)
-            gradients_3_node = get_node_vars(gradients_z, equations_parabolic, dg, i, j,
-                                             k, element)
-
-            # Calculate viscous flux and store each component for later use
-            flux_viscous_node_x = flux(u_node,
-                                       (gradients_1_node, gradients_2_node,
-                                        gradients_3_node), 1, equations_parabolic)
-            flux_viscous_node_y = flux(u_node,
-                                       (gradients_1_node, gradients_2_node,
-                                        gradients_3_node), 2, equations_parabolic)
-            flux_viscous_node_z = flux(u_node,
-                                       (gradients_1_node, gradients_2_node,
-                                        gradients_3_node), 3, equations_parabolic)
-            set_node_vars!(flux_viscous_x, flux_viscous_node_x, equations_parabolic, dg,
-                           i, j, k, element)
-            set_node_vars!(flux_viscous_y, flux_viscous_node_y, equations_parabolic, dg,
-                           i, j, k, element)
-            set_node_vars!(flux_viscous_z, flux_viscous_node_z, equations_parabolic, dg,
-                           i, j, k, element)
-        end
-    end
-end
-
 function calc_viscous_fluxes!(flux_viscous::Vector{Array{uEltype, 5}},
                               gradients::Vector{Array{uEltype, 5}}, u_transformed,
-                              mesh::TreeMesh{3},
+                              mesh::Union{TreeMesh{3}, P4estMesh{3}},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache, cache_parabolic) where {uEltype <: Real}
     gradients_x, gradients_y, gradients_z = gradients
