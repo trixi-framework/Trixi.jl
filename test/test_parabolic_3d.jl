@@ -94,9 +94,9 @@ isdir(outdir) && rm(outdir, recursive=true)
       callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
       sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5,
             ode_default_options()..., callback=callbacks)
-      ac_sol = analysis_callback(sol)
-      @test ac_sol.l2 ≈ [0.0003991794175622818; 0.0008853745163670504; 0.0010658655552066817; 0.0008785559918324284; 0.001403163458422815]
-      @test ac_sol.linf ≈ [0.0035306410538458177; 0.01505692306169911; 0.008862444161110705; 0.015065647972869856; 0.030402714743065218]
+      l2_error, linf_error = analysis_callback(sol)
+      @test l2_error ≈ [0.0003991794175622818; 0.0008853745163670504; 0.0010658655552066817; 0.0008785559918324284; 0.001403163458422815]
+      @test linf_error ≈ [0.0035306410538458177; 0.01505692306169911; 0.008862444161110705; 0.015065647972869856; 0.030402714743065218]
   end
 
   @trixi_testset "TreeMesh3D: elixir_navierstokes_taylor_green_vortex.jl" begin
@@ -127,9 +127,9 @@ isdir(outdir) && rm(outdir, recursive=true)
       sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=5e-3,
             save_everystep=false, callback=callbacks); 
-      ac_sol = analysis_callback(sol)
-      @test ac_sol.l2 ≈ [0.0013666103707729502; 0.2313581629543744; 0.2308164306264533; 0.17460246787819503; 0.28121914446544005]
-      @test ac_sol.linf ≈ [0.006938093883741336; 1.028235074139312; 1.0345438209717241; 1.0821111605203542; 1.2669636522564645]
+      l2_error, linf_error = analysis_callback(sol)
+      @test l2_error ≈ [0.0013666103707729502; 0.2313581629543744; 0.2308164306264533; 0.17460246787819503; 0.28121914446544005]
+      @test linf_error ≈ [0.006938093883741336; 1.028235074139312; 1.0345438209717241; 1.0821111605203542; 1.2669636522564645]
 
       # Ensure that we do not have excessive memory allocations 
       # (e.g., from type instabilities) 
