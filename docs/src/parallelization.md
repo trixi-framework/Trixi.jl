@@ -53,16 +53,24 @@ a system-provided MPI installation with Trixi.jl can be found in the following s
 
 ### [Using a system-provided MPI installation](@id parallel_system_MPI)
 
-When using Trixi.jl with a system-provided MPI backend the underlying [`p4est`](https://github.com/cburstedde/p4est)
-library needs to be compiled with the same MPI installation. Therefore, you also need to use
-a system-provided `p4est` installation (for notes on how to install `p4est` see e.g.
-[here](https://github.com/cburstedde/p4est/blob/master/README), use the configure option
-`--enable-mpi`). In addition, [P4est.jl](https://github.com/trixi-framework/P4est.jl) needs to
-be configured to use the custom `p4est` installation. Follow the steps described
-[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md) for the configuration.
+When using Trixi.jl with a system-provided MPI backend the underlying
+[`p4est`](https://github.com/cburstedde/p4est) and [`t8code`](https://github.com/DLR-AMR/t8code)
+libraries need to be compiled with the same MPI installation. Therefore, you also need to
+use system-provided `p4est` and `t8code` installations (for notes on how to install `p4est`
+and `t8code` see e.g. [here](https://github.com/cburstedde/p4est/blob/master/README) and
+[here](https://github.com/DLR-AMR/t8code/wiki/Installation), use the configure option
+`--enable-mpi`). Note that `t8code` already comes with a `p4est` installation, so it suffices
+to install `t8code`. In addition, [P4est.jl](https://github.com/trixi-framework/P4est.jl) and
+[T8code.jl](https://github.com/DLR-AMR/T8code.jl) need to be configured to use the custom
+installations. Follow the steps described
+[here](https://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation) and
+[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) for the
+configuration. The paths that point to `libp4est.so` (and potentially to `libsc.so`) need to be
+the same for P4est.jl and T8code.jl. This could e.g. be `libp4est.so` that usually can be found
+in `lib/` or `local/lib/` in the installation directory of `t8code`.
 In total, in your active Julia project you should have a LocalPreferences.toml file with sections
-`[MPIPreferences]` and `[P4est]` as well as an entry `MPIPreferences` in your Project.toml to
-use a custom MPI installation.
+`[MPIPreferences]`, `[T8code]` and `[P4est]` as well as an entry `MPIPreferences` in your
+Project.toml to use a custom MPI installation.
 
 
 ### [Usage](@id parallel_usage)
@@ -158,17 +166,36 @@ section, specifically at the descriptions of the performance index (PID).
 
 
 ### Using error-based step size control with MPI
-If you use error-based step size control (see also the section on [error-based adaptive step sizes](@ref adaptive_step_sizes))
-together with MPI you need to pass `internalnorm=ode_norm` and you should pass
-`unstable_check=ode_unstable_check` to OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/),
+If you use error-based step size control (see also the section on
+[error-based adaptive step sizes](@ref adaptive_step_sizes)) together with MPI you need to pass
+`internalnorm=ode_norm` and you should pass `unstable_check=ode_unstable_check` to
+OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/),
 which are both included in [`ode_default_options`](@ref).
 
 ### Using parallel input and output
-Trixi.jl allows parallel I/O using MPI by leveraging parallel HDF5.jl. To enable this, you first need
-to use a system-provided MPI library, see also [here](@ref parallel_system_MPI) and you need to tell
-[HDF5.jl](https://github.com/JuliaIO/HDF5.jl) to use this library.
-To do so, set the environment variable `JULIA_HDF5_PATH` to the local path
-that contains the `libhdf5.so` shared object file and build HDF5.jl by executing `using Pkg; Pkg.build("HDF5")`.
-For more information see also the [documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/).
+Trixi.jl allows parallel I/O using MPI by leveraging parallel HDF5.jl. On most systems, this is
+enabled by default. Additionally, you can also use a local installation of the HDF5 library
+(with MPI support). For this, you first need to use a system-provided MPI library, see also
+[here](@ref parallel_system_MPI) and you need to tell [HDF5.jl](https://github.com/JuliaIO/HDF5.jl)
+to use this library. To do so with HDF5.jl v0.17 and newer, set the preferences `libhdf5` and
+`libhdf5_hl` to the local paths of the libraries `libhdf5` and `libhdf5_hl`, which can be done by
+```julia
+julia> using Preferences, UUIDs
+julia> set_preferences!(
+           UUID("f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"), # UUID of HDF5.jl
+           "libhdf5" => "/path/to/your/libhdf5.so",
+           "libhdf5_hl" => "/path/to/your/libhdf5_hl.so", force = true)
+```
+For more information see also the
+[documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). In total, you should
+have a file called LocalPreferences.toml in the project directory that contains a section
+`[MPIPreferences]`, a section `[HDF5]` with entries `libhdf5` and `libhdf5_hl`, a section `[P4est]`
+with the entry `libp4est` as well as a section `[T8code]` with the entries `libt8`, `libp4est`
+and `libsc`.
+If you use HDF5.jl v0.16 or older, instead of setting the preferences for HDF5.jl, you need to set
+the environment variable `JULIA_HDF5_PATH` to the path, where the HDF5 binaries are located and
+then call `]build HDF5` from Julia.
 
-If you do not perform these steps to use parallel HDF5 or if the HDF5 is not MPI-enabled, Trixi.jl will fall back on a less efficient I/O mechanism. In that case, all disk I/O is performed only on rank zero and data is distributed to/gathered from the other ranks using regular MPI communication.
+If HDF5 is not MPI-enabled, Trixi.jl will fall back on a less efficient I/O mechanism. In that
+case, all disk I/O is performed only on rank zero and data is distributed to/gathered from the
+other ranks using regular MPI communication.
