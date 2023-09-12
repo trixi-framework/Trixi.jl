@@ -148,16 +148,18 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG, cache)
     @unpack interfaces = cache_parabolic
+    @unpack neighbor_ids = interfaces
+    interfaces_u = interfaces.u
 
     @threaded for interface in eachinterface(dg, cache)
-        left_element = interfaces.neighbor_ids[1, interface]
-        right_element = interfaces.neighbor_ids[2, interface]
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
 
         # interface in x-direction
         for v in eachvariable(equations_parabolic)
-            # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
-            interfaces.u[1, v, interface] = flux_viscous[v, nnodes(dg), left_element]
-            interfaces.u[2, v, interface] = flux_viscous[v, 1, right_element]
+            # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
+            interfaces_u[1, v, interface] = flux_viscous[v, nnodes(dg), left_element]
+            interfaces_u[2, v, interface] = flux_viscous[v, 1, right_element]
         end
     end
 
@@ -205,21 +207,22 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG, cache)
     @unpack boundaries = cache_parabolic
-    @unpack neighbor_sides = boundaries
+    @unpack neighbor_sides, neighbor_ids = boundaries
+    boundaries_u = boundaries.u
 
     @threaded for boundary in eachboundary(dg, cache_parabolic)
-        element = boundaries.neighbor_ids[boundary]
+        element = neighbor_ids[boundary]
 
         if neighbor_sides[boundary] == 1
             # element in -x direction of boundary
             for v in eachvariable(equations_parabolic)
-                # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
-                boundaries.u[1, v, boundary] = flux_viscous[v, nnodes(dg), element]
+                # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
+                boundaries_u[1, v, boundary] = flux_viscous[v, nnodes(dg), element]
             end
         else # Element in +x direction of boundary
             for v in eachvariable(equations_parabolic)
-                # OBS! `boundaries.u` stores the interpolated *fluxes* and *not the solution*!
-                boundaries.u[2, v, boundary] = flux_viscous[v, 1, element]
+                # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
+                boundaries_u[2, v, boundary] = flux_viscous[v, 1, element]
             end
         end
     end
@@ -553,8 +556,10 @@ end
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
 function apply_jacobian_parabolic!(du, mesh::TreeMesh{1},
                                    equations::AbstractEquationsParabolic, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+
     @threaded for element in eachelement(dg, cache)
-        factor = cache.elements.inverse_jacobian[element]
+        factor = inverse_jacobian[element]
 
         for i in eachnode(dg)
             for v in eachvariable(equations)
