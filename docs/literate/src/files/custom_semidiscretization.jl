@@ -136,7 +136,56 @@ summary_callback()
 
 # ## Using a custom ODE right-hand side function
 
-# TODO
+# Next, we will solve the same problem but use our own ODE RHS function.
+# To demonstrate this, we will artificially create a global variable
+# containing the current time of the simulation.
+
+const GLOBAL_TIME = Ref(0.0)
+
+function source_terms_custom(u, x, t, equations)
+    t = GLOBAL_TIME[]
+    return -initial_condition(x, t, equations)
+end
+
+# Next, we create our own RHS function to update the global time of
+# the simulation before calling the RHS function from Trixi.jl.
+
+function rhs_source_custom!(du_ode, u_ode, semi, t)
+    GLOBAL_TIME[] = t
+    Trixi.rhs!(du_ode, u_ode, semi, t)
+end
+
+# Next, we create an `ODEProblem` manually copying over the data from
+# the one we got from [`semidiscretize`](@ref) earlier.
+
+ode_source_custom = ODEProblem(rhs_source_custom!,
+                               ode.u0,
+                               ode.tspan,
+                               ode.p #= semi =#)
+sol_source_custom = solve(ode_source_custom, RDPK3SpFSAL49();
+                          ode_default_options()...)
+
+plot(sol_source_custom; label = "numerical sol.")
+let
+    x = range(-1.0, 1.0; length = 200)
+    plot!(x, first.(initial_condition.(x, sol_source_custom.t[end], equations)),
+          label = "analytical sol.", linestyle = :dash, legend = :topleft)
+end
+plot!(sol_source_custom.u[1], semi, label = "u0", linestyle = :dot, legend = :topleft)
+
+# This also works with callbacks as usual.
+
+summary_callback = SummaryCallback()
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi; interval = analysis_interval)
+alive_callback = AliveCallback(; analysis_interval)
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
+                        alive_callback)
+
+sol = solve(ode_source_custom, RDPK3SpFSAL49();
+            ode_default_options()..., callback = callbacks)
+summary_callback()
 
 
 # ## Setting up a custom semidiscretization
