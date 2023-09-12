@@ -106,7 +106,7 @@ will yield the following plot:
   the automated performance measurements, including an output of the recorded timers after a simulation.
 * The [`VisualizationCallback`](@ref) can be used for in-situ visualization. See
   [Visualizing results during a simulation](@ref).
-* The [`TrivialCallback`](@ref) does nothing and can be used to to easily disable some callbacks
+* The [`TrivialCallback`](@ref) does nothing and can be used to easily disable some callbacks
   via [`trixi_include`](@ref).
 
 ### Equation-specific callbacks
