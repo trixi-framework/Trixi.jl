@@ -246,7 +246,7 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG, cache)
     @unpack boundaries = cache_parabolic
-    @unpack orientations, neighbor_sides, neighbor_ids  = boundaries
+    @unpack orientations, neighbor_sides, neighbor_ids = boundaries
     boundaries_u = boundaries.u
     flux_viscous_x, flux_viscous_y = flux_viscous
 
