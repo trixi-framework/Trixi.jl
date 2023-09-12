@@ -77,8 +77,7 @@ and its time step number, e.g.:
 ```julia
 integrator = init(ode, CarpenterKennedy2N54(williamson_condition=false),
                   dt=dt, save_everystep=false, callback=callbacks);
-integrator.iter = load_timestep(restart_filename)
-integrator.stats.naccept = integrator.iter
+load_timestep!(integrator, restart_filename)
 ```
 
 Now we can compute the solution:
