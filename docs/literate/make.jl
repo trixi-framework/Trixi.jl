@@ -59,7 +59,7 @@ function create_tutorials(files)
                 mod = gensym(title)
                 @testset "$title" begin
                     @eval module $mod
-                        include(joinpath(repo_src, filename))
+                        include(joinpath($repo_src, $filename))
                     end
                 end
             end
