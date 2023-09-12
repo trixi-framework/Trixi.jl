@@ -9,7 +9,7 @@ advection_velocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 diffusivity() = 5.0e-4
-equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
+equations_parabolic = LaplaceDiffusion3D(diffusivity(), equations)
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
