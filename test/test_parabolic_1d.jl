@@ -20,6 +20,28 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl (AMR)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_advection_diffusion.jl"),
+      tspan=(0.0, 0.0), initial_refinement_level = 5)
+      tspan=(0.0, 1.0)
+      ode = semidiscretize(semi, tspan)
+      amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
+                                      base_level=4,
+                                      med_level=5, med_threshold=0.1,
+                                      max_level=6, max_threshold=0.6)
+      amr_callback = AMRCallback(semi, amr_controller,
+                                interval=5,
+                                adapt_initial_condition=true)
+
+      # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
+      callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr_callback)
+      sol = solve(ode, KenCarp4(autodiff=false), abstol=time_abs_tol, reltol=time_int_tol,
+            save_everystep=false, callback=callbacks)
+      l2_error, linf_error = analysis_callback(sol)
+      @test l2_error ≈ [6.4878111416468355e-6]
+      @test linf_error ≈ [3.258075790424364e-5]
+  end
+
   @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_periodic.jl"),
       l2 = [0.0001133835907077494, 6.226282245610444e-5, 0.0002820171699999139],
@@ -51,6 +73,25 @@ isdir(outdir) && rm(outdir, recursive=true)
                                                                 gradient_variables = GradientVariablesEntropy()),
       l2 = [0.0004608500483647771, 0.00032431091222851285, 0.0015159733360626845],
       linf = [0.002754803146635787, 0.0028567714697580906, 0.012941794048176192]
+    )
+  end
+
+  @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_walls_amr.jl"),
+      equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu=mu(),
+                                                                Prandtl=prandtl_number()),
+      l2 = [2.527877257772131e-5, 2.5539911566937718e-5, 0.0001211860451244785],
+      linf = [0.00014663867588948776, 0.00019422448348348196, 0.0009556439394007299]
+    )
+  end
+
+  @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl: GradientVariablesEntropy" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_walls_amr.jl"),
+      equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu=mu(),
+                                                                Prandtl=prandtl_number(), 
+                                                                gradient_variables = GradientVariablesEntropy()),
+      l2 = [2.4593699163175966e-5, 2.392863645712634e-5, 0.00011252526651714956],
+      linf = [0.00011850555445525046, 0.0001898777490968537, 0.0009597561467877824]
     )
   end
 end

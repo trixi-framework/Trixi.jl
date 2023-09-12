@@ -6,7 +6,7 @@ using Trixi
 include("test_trixi.jl")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
+outdir = "out"sssssssssssssssssssssssssssssssssssssssssssssssssssssssss
 isdir(outdir) && rm(outdir, recursive=true)
 
 @testset "SemidiscretizationHyperbolicParabolic (3D)" begin
