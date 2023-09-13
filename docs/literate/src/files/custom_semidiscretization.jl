@@ -21,7 +21,7 @@
 # using [`semidiscretize`](@ref), which returns an `ODEProblem`. This `ODEProblem`
 # bundles an initial condition, a right-hand side (RHS) function, the time span,
 # and possible parameters. The `ODEProblem`s created by Trixi.jl use the semidiscretization
-# passed to [`semidiscretize`](@ref) as parameter.
+# passed to [`semidiscretize`](@ref) as a parameter.
 # For a [`SemidiscretizationHyperbolic`](@ref), the `ODEProblem` wraps
 # `Trixi.rhs!` as ODE RHS.
 # For a [`SemidiscretizationHyperbolicParabolic`](@ref),  Trixi.jl
@@ -34,7 +34,7 @@
 # In this tutorial, we will consider the linear advection equation
 # with source term
 # ```math
-# \partial_t u(t,x) + \partial_x u(t,x) = -\exp(-t) sin\bigl(\pi (x - t) \bigr)
+# \partial_t u(t,x) + \partial_x u(t,x) = -\exp(-t) \sin\bigl(\pi (x - t) \bigr)
 # ```
 # with periodic boundary conditions in the domain `[-1, 1]` as a
 # model problem.
@@ -101,7 +101,7 @@ ode = semidiscretize(semi, tspan)
 
 sol = solve(ode, RDPK3SpFSAL49(); ode_default_options()...)
 
-plot(sol; label = "numerical sol.")
+plot(sol; label = "numerical sol.", legend = :topright)
 
 # We can also plot the analytical solution for comparison.
 # Since Trixi.jl uses `SVector`s for the variables, we take their `first`
@@ -110,7 +110,7 @@ plot(sol; label = "numerical sol.")
 let
    x = range(-1.0, 1.0; length = 200)
    plot!(x, first.(initial_condition.(x, sol.t[end], equations)),
-         label = "analytical sol.", linestyle = :dash, legend = :topleft)
+         label = "analytical sol.", linestyle = :dash, legend = :topright)
 end
 
 # We can also add the initial condition to the plot.
