@@ -310,3 +310,15 @@ summary_callback()
 # - [`SemidiscretizationEulerGravity`](@ref)
 # - [`SemidiscretizationEulerAcoustics`](@ref)
 # - [`SemidiscretizationCoupled`](@ref)
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)
