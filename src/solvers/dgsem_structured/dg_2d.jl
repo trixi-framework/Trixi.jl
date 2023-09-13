@@ -69,7 +69,7 @@ end
     num_elements = nelements(cache.elements)
 
     kernel!(du, u, derivative_dhat, contravariant_vectors, equations, alpha, num_nodes, ndrange=num_elements)
-    synchronize(backend)
+    #synchronize(backend)
 
     return nothing
 end
@@ -677,7 +677,7 @@ function apply_jacobian_gpu!(du,
     kernel! = apply_jacobian_kernel!(backend)
 
     kernel!(du, inverse_jacobian, equations, nnodes(dg), ndrange=nelements(cache.elements))
-    synchronize(backend)
+    #synchronize(backend)
 
     return nothing
 end

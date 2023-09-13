@@ -46,48 +46,56 @@ end
 
 function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                 constant_speed::False, equations, dg::DG, cache)
-    # to avoid a division by zero if the speed vanishes everywhere,
-    # e.g. for steady-state linear advection
-    max_scaled_speed = nextfloat(zero(t))
 
-    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    @kernel function max_dt_kernel!(u, equations, max_lambda, max_scaled_speed, contravariant_vectors, inverse_jacobian, num_nodes)
+        element = @index(Global)
 
-    tmp_u = copyto!(CPU(),
-                    allocate(CPU(), eltype(u), size(u)),
-                    u)
-    tmp_contravariant_vectors = copyto!(CPU(),
-                                   allocate(CPU(), eltype(contravariant_vectors), size(contravariant_vectors)),
-                                   contravariant_vectors)
-    tmp_inverse_jacobian = copyto!(CPU(),
-                                   allocate(CPU(), eltype(inverse_jacobian), size(inverse_jacobian)),
-                                   inverse_jacobian)
+        max_lambda1 = zero(max_scaled_speed)
+        max_lambda2 = zero(max_scaled_speed)
+        max_lambda3 = zero(max_scaled_speed)
 
-    for element in eachelement(dg, cache)
-        max_lambda1 = max_lambda2 = max_lambda3 = zero(max_scaled_speed)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            u_node = get_node_vars(tmp_u, equations, dg, i, j, k, element)
+        for k in 1:num_nodes, j in 1:num_nodes, i in 1:num_nodes
+            #u_node = get_node_vars(tmp_u, equations, dg, i, j, k, element)
+            u_node = SVector(ntuple(@inline(v->u[v, i, j, k, element]), Val(nvariables(equations))))
             lambda1, lambda2, lambda3 = max_abs_speeds(u_node, equations)
 
-            Ja11, Ja12, Ja13 = get_contravariant_vector(1, tmp_contravariant_vectors, i, j,
+            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j,
                                                         k, element)
             lambda1_transformed = abs(Ja11 * lambda1 + Ja12 * lambda2 + Ja13 * lambda3)
-            Ja21, Ja22, Ja23 = get_contravariant_vector(2, tmp_contravariant_vectors, i, j,
+            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j,
                                                         k, element)
             lambda2_transformed = abs(Ja21 * lambda1 + Ja22 * lambda2 + Ja23 * lambda3)
-            Ja31, Ja32, Ja33 = get_contravariant_vector(3, tmp_contravariant_vectors, i, j,
+            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j,
                                                         k, element)
             lambda3_transformed = abs(Ja31 * lambda1 + Ja32 * lambda2 + Ja33 * lambda3)
 
-            inv_jacobian = abs(tmp_inverse_jacobian[i, j, k, element])
+            inv_jacobian = abs(inverse_jacobian[i, j, k, element])
 
             max_lambda1 = max(max_lambda1, inv_jacobian * lambda1_transformed)
             max_lambda2 = max(max_lambda2, inv_jacobian * lambda2_transformed)
             max_lambda3 = max(max_lambda3, inv_jacobian * lambda3_transformed)
         end
-
-        max_scaled_speed = max(max_scaled_speed,
-                               max_lambda1 + max_lambda2 + max_lambda3)
+        max_lambda[element] = max_lambda1 + max_lambda2 + max_lambda3
     end
+    # to avoid a division by zero if the speed vanishes everywhere,
+    # e.g. for steady-state linear advection
+    max_scaled_speed = nextfloat(zero(t))
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    backend = get_backend(u)
+    kernel! = max_dt_kernel!(backend)
+
+    num_nodes = nnodes(dg)
+    num_elements = nelements(cache.elements)
+
+    dev_max_lambda = allocate(backend, typeof(max_scaled_speed), num_elements)
+    kernel!(u, equations, dev_max_lambda, max_scaled_speed, contravariant_vectors, inverse_jacobian, num_nodes, ndrange=num_elements)
+
+    max_lambda = Array{typeof(max_scaled_speed)}(undef, num_elements)
+    copyto!(backend, max_lambda, dev_max_lambda)
+    synchronize(backend)
+
+    max_scaled_speed = maximum(max_lambda)
 
     return 2 / (nnodes(dg) * max_scaled_speed)
 end

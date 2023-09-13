@@ -276,7 +276,7 @@ end #@muladd
 
     kernel!(du, u, equations, derivative_dhat, num_nodes, ndrange=num_elements)
     # Ensure that device is finished
-    synchronize(backend)
+    #synchronize(backend)
 
     return nothing
 end
@@ -712,7 +712,7 @@ function prolong2interfaces_gpu!(cache, u,
     
     kernel!(u, interfaces.u, interfaces.neighbor_ids, orientations, equations, num_nodes, ndrange=num_interfaces)
     # Ensure that device is finished
-    synchronize(backend)
+    #synchronize(backend)
 
     return nothing
 end
@@ -797,7 +797,7 @@ function calc_interface_flux_gpu!(surface_flux_values,
 
     kernel!(surface_flux_values, surface_flux, u, neighbor_ids, orientations, equations, num_nodes, ndrange=num_interfaces)
     # Ensure that device is finished
-    synchronize(backend)
+    #synchronize(backend)
 
     return nothing
 end
@@ -934,7 +934,7 @@ function prolong2boundaries_gpu!(cache, u,
     if (num_boundaries > 0)
         kernel!(u, boundaries.u, boundaries.orientations, boundaries.neighbor_sides, boundaries.neighbor_ids, equations, num_nodes, ndrange=num_boundaries)
         # Ensure that device is finished
-        synchronize(backend)
+        #synchronize(backend)
     end
 
     return nothing
@@ -1237,7 +1237,7 @@ function prolong2mortars_gpu!(cache, u,
     if (num_mortars > 0)
         kernel!(u, mortars.u_upper, mortars.u_lower, mortars.neighbor_ids, mortars.large_sides, mortars.orientations, mortar_l2, equations, num_nodes, ndrange=num_mortars)
         # Ensure that device is finished
-        synchronize(backend)
+        #synchronize(backend)
     end
 
     return nothing
@@ -1557,7 +1557,7 @@ function calc_surface_integral_gpu!(du, u, mesh::Union{TreeMesh{2}, StructuredMe
 
     kernel!(du, boundary_interpolation, surface_flux_values, num_nodes, ndrange=num_elements)
     # Ensure that device is finished
-    synchronize(backend)
+    #synchronize(backend)
 
     return nothing
 end
@@ -1606,7 +1606,7 @@ function apply_jacobian_gpu!(du, mesh::TreeMesh{2},
 
     kernel!(du, inverse_jacobian, equations, num_nodes, ndrange=num_elements)
 
-    synchronize(backend)
+    #synchronize(backend)
 
     return nothing
 end

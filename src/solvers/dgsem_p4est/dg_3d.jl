@@ -102,7 +102,7 @@ function prolong2interfaces_gpu!(cache, u,
     num_interfaces = ninterfaces(cache.interfaces)
 
     kernel!(u, interfaces.u, interfaces.neighbor_ids, interfaces.node_indices, equations, num_nodes, ndrange=num_interfaces)
-    synchronize(backend)
+    #synchronize(backend)
 
     return nothing
 end
@@ -219,7 +219,7 @@ function calc_interface_flux_gpu!(surface_flux_values,
             contravariant_vectors,
             equations, num_nodes,
             ndrange=num_interfaces)
-    synchronize(backend)
+    #synchronize(backend)
 
     return nothing
 end
@@ -858,7 +858,7 @@ function calc_surface_integral_gpu!(du, u,
     kernel! = calc_surface_integral_kernel!(backend)
 
     kernel!(du, surface_flux_values, boundary_interpolation, equations, nnodes(dg), ndrange=nelements(cache.elements))
-    synchronize(backend)
+    #synchronize(backend)
 
     return nothing
 end

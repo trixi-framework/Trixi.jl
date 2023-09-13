@@ -274,6 +274,8 @@ function rhs_gpu!(du, u, t,
         calc_sources_gpu!(du, u, t, source_terms, equations, dg, cache)
     end
 
+    synchronize(backend)
+
     return nothing
 end
 

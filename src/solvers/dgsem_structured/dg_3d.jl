@@ -123,7 +123,7 @@ function calc_volume_integral_gpu!(du, u,
     num_elements = nelements(cache.elements)
 
     kernel!(du, u, derivative_split, contravariant_vectors, volume_integral.volume_flux, equations, true, num_nodes, ndrange=num_elements)
-    synchronize(backend)
+    #synchronize(backend)
 end
 
 # flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
@@ -838,7 +838,7 @@ function apply_jacobian_gpu!(du,
     kernel! = apply_jacobian_kernel!(backend)
 
     kernel!(du, inverse_jacobian, equations, nnodes(dg), ndrange=nelements(cache.elements))
-    synchronize(backend)
+    #synchronize(backend)
 
     return nothing
 end
