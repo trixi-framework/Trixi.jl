@@ -15,7 +15,7 @@
 
 # ## Overview of the right-hand side evaluation
 
-# The semidiscretizations provided by Trixi.jl are set up to create `ODEProblem`s from
+# The semidiscretizations provided by Trixi.jl are set up to create `ODEProblem`s from the
 # [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/).
 # In particular, a spatial semidiscretization can be wrapped in an ODE problem
 # using [`semidiscretize`](@ref), which returns an `ODEProblem`. This `ODEProblem`
