@@ -37,8 +37,7 @@ if integrator.opts.adaptive
 end
 
 # Get the last time index and work with that.
-integrator.iter = load_timestep(restart_filename)
-integrator.stats.naccept = integrator.iter
+load_timestep!(integrator, restart_filename)
 
 ###############################################################################
 # run the simulation
