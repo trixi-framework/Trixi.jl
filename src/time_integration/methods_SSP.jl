@@ -26,12 +26,14 @@ The third-order SSP Runge-Kutta method of Shu and Osher.
 struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
     a::SVector{3, Float64}
     b::SVector{3, Float64}
+    denom::SVector{3, Float64}
     c::SVector{3, Float64}
     stage_callbacks::StageCallbacks
 
     function SimpleSSPRK33(; stage_callbacks = ())
-        a = SVector(0.0, 3 / 4, 1 / 3)
-        b = SVector(1.0, 1 / 4, 2 / 3)
+        a = SVector(0.0, 3.0, 1.0) # a = a / denom
+        b = SVector(1.0, 1.0, 2.0) # b = b / denom
+        denom = SVector(1.0, 4.0, 3.0)
         c = SVector(0.0, 1.0, 1 / 2)
 
         # Butcher tableau
@@ -42,7 +44,7 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
         # --------------------
         #   b | 1/6  1/6  2/3
 
-        new{typeof(stage_callbacks)}(a, b, c, stage_callbacks)
+        new{typeof(stage_callbacks)}(a, b, denom, c, stage_callbacks)
     end
 end
 
@@ -166,7 +168,7 @@ function solve!(integrator::SimpleIntegratorSSP)
             end
 
             # perform convex combination
-            @. integrator.u = alg.a[stage] * integrator.r0 + alg.b[stage] * integrator.u
+            @. integrator.u = (alg.a[stage] * integrator.r0 + alg.b[stage] * integrator.u) / alg.denom[stage]
         end
 
         integrator.iter += 1
