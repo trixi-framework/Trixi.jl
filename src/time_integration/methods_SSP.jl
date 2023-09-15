@@ -168,7 +168,8 @@ function solve!(integrator::SimpleIntegratorSSP)
             end
 
             # perform convex combination
-            @. integrator.u = (alg.a[stage] * integrator.r0 + alg.b[stage] * integrator.u) / alg.denom[stage]
+            @. integrator.u = (alg.a[stage] * integrator.r0 +
+                               alg.b[stage] * integrator.u) / alg.denom[stage]
         end
 
         integrator.iter += 1
