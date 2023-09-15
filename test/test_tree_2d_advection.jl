@@ -25,10 +25,22 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      # Expected errors are exactly the same as in the parallel test!
-      l2   = [7.81674284320524e-6],
-      linf = [6.314906965243505e-5])
+    using OrdinaryDiffEq: SSPRK43
+    println("═"^100)
+    println(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"))
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+      alg = SSPRK43(), tspan = (0.0, 10.0))
+    l2_expected, linf_expected = analysis_callback(sol)
+
+    println("═"^100)
+    println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
+    # Errors are exactly the same as in the elixir_advection_extended.jl
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+      alg = SSPRK43())
+    l2_actual, linf_actual = analysis_callback(sol)
+    
+    @test l2_actual == l2_expected
+    @test linf_actual == linf_expected
   end
 
   @trixi_testset "elixir_advection_mortar.jl" begin

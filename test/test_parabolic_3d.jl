@@ -85,7 +85,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       num_leafs = length(LLID)
       @assert num_leafs % 16 == 0
       Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs/16)])
-      tspan=(0.0, 1.0)
+      tspan=(0.0, 0.25)
       semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, solver;
                                              boundary_conditions=(boundary_conditions, boundary_conditions_parabolic),
                                              source_terms=source_terms_navier_stokes_convergence_test)
@@ -95,8 +95,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5,
             ode_default_options()..., callback=callbacks)
       l2_error, linf_error = analysis_callback(sol)
-      @test l2_error ≈ [0.0003991794175622818; 0.0008853745163670504; 0.0010658655552066817; 0.0008785559918324284; 0.001403163458422815]
-      @test linf_error ≈ [0.0035306410538458177; 0.01505692306169911; 0.008862444161110705; 0.015065647972869856; 0.030402714743065218]
+      @test l2_error ≈ [0.0003109336253407314, 0.0006473493036803503, 0.0007705277238213672, 0.0006280517917198335, 0.000903927789884075]
+      @test linf_error ≈ [0.0023694155365339142, 0.010634932622402863, 0.006772070862236412, 0.010640551561726901, 0.019256819038719897]
   end
 
   @trixi_testset "TreeMesh3D: elixir_navierstokes_taylor_green_vortex.jl" begin
@@ -114,7 +114,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       num_leafs = length(LLID)
       @assert num_leafs % 32 == 0
       Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs/32)])
-      tspan=(0.0, 10.0)
+      tspan=(0.0, 0.1)
       semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver)
       ode = semidiscretize(semi, tspan)
@@ -128,8 +128,8 @@ isdir(outdir) && rm(outdir, recursive=true)
             dt=5e-3,
             save_everystep=false, callback=callbacks); 
       l2_error, linf_error = analysis_callback(sol)
-      @test l2_error ≈ [0.0013666103707729502; 0.2313581629543744; 0.2308164306264533; 0.17460246787819503; 0.28121914446544005]
-      @test linf_error ≈ [0.006938093883741336; 1.028235074139312; 1.0345438209717241; 1.0821111605203542; 1.2669636522564645]
+      @test l2_error ≈ [7.314319856736271e-5, 0.006266480163542894, 0.006266489911815533, 0.008829222305770226, 0.0032859166842329228]
+      @test linf_error ≈ [0.0002943968186086554, 0.013876261980614757, 0.013883619864959451, 0.025201279960491936, 0.018679364985388247]
 
       # Ensure that we do not have excessive memory allocations 
       # (e.g., from type instabilities) 

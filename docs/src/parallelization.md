@@ -22,7 +22,7 @@ julia --threads=4
 If both the environment variable and the command line argument are specified at
 the same time, the latter takes precedence.
 
-If you use time integration methods from 
+If you use time integration methods from
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 and want to use multiple threads therein, you need to set the keyword argument
 `thread=OrdinaryDiffEq.True()` of the algorithms, as described in the
@@ -143,7 +143,7 @@ To start Trixi.jl in parallel with MPI, there are three options:
    Switching between panes can be done by `Ctrl+b` followed by `o`.
    As of March 2022, newer versions of tmpi also support mpich, which is the default
    backend of MPI.jl (via MPICH_Jll.jl). To use this setup, you need to install
-   `mpiexecjl` as described in the 
+   `mpiexecjl` as described in the
    [documentation of MPI.jl](https://juliaparallel.org/MPI.jl/v0.20/usage/#Julia-wrapper-for-mpiexec)
    and make it available as `mpirun`, e.g., via a symlink of the form
    ```bash
@@ -161,7 +161,7 @@ To start Trixi.jl in parallel with MPI, there are three options:
 
 ### [Performance](@id parallel_performance)
 For information on how to evaluate the parallel performance of Trixi.jl, please
-have a look at the [Performance metrics of the `AnalysisCallback`](@ref)
+have a look at the [Performance metrics of the `AnalysisCallback`](@ref performance-metrics)
 section, specifically at the descriptions of the performance index (PID).
 
 

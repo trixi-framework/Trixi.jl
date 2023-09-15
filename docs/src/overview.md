@@ -16,7 +16,7 @@ to solve a PDE numerically are the spatial semidiscretization and the time
 integration scheme.
 
 
-## Semidiscretizations
+## [Semidiscretizations](@id overview-semidiscretizations)
 
 Semidiscretizations are high-level descriptions of spatial discretizations
 specialized for certain PDEs. Trixi.jl's main focus is on hyperbolic conservation
