@@ -313,7 +313,7 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
 end
 
 # Function barrier for type stability
-function calc_boundary_flux!(cache, t, boundary_conditions,
+function calc_boundary_flux!(cache, t, boundary_conditions::UnstructuredSortedBoundaryTypes,
                              mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
@@ -357,9 +357,9 @@ function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{}
     nothing
 end
 
-function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
+function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
                              mesh::UnstructuredMesh2D, equations,
-                             surface_integral, dg::DG)
+                             surface_integral, dg::DG) where {BC}
     @unpack surface_flux_values = cache.elements
     @unpack element_id, element_side_id = cache.boundaries
 
@@ -383,12 +383,12 @@ end
 
 # inlined version of the boundary flux calculation along a physical interface where the
 # boundary flux values are set according to a particular `boundary_condition` function
-@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition::BC,
                                      mesh::UnstructuredMesh2D,
                                      nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index,
-                                     boundary_index)
+                                     boundary_index) where{BC}
     @unpack normal_directions = cache.elements
     @unpack u, node_coordinates = cache.boundaries
     @unpack surface_flux = surface_integral
@@ -417,12 +417,12 @@ end
 # Note, it is necessary to set and add in the nonconservative values because
 # the upper left/lower right diagonal terms have been peeled off due to the use of
 # `derivative_split` from `dg.basis` in [`flux_differencing_kernel!`](@ref)
-@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition::BC,
                                      mesh::UnstructuredMesh2D,
                                      nonconservative_terms::True, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index,
-                                     boundary_index)
+                                     boundary_index) where {BC}
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack normal_directions = cache.elements
     @unpack u, node_coordinates = cache.boundaries
