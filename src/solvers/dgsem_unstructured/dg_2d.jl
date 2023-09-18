@@ -313,7 +313,8 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
 end
 
 # Function barrier for type stability
-function calc_boundary_flux!(cache, t, boundary_conditions::UnstructuredSortedBoundaryTypes,
+function calc_boundary_flux!(cache, t,
+                             boundary_conditions::UnstructuredSortedBoundaryTypes,
                              mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
@@ -388,7 +389,7 @@ end
                                      nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index,
-                                     boundary_index) where{BC}
+                                     boundary_index) where {BC}
     @unpack normal_directions = cache.elements
     @unpack u, node_coordinates = cache.boundaries
     @unpack surface_flux = surface_integral
