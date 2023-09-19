@@ -541,67 +541,6 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-# NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
-# Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for 
-# hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
-function calc_mortar_flux!(surface_flux_values,
-                           mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                           equations::AbstractEquationsParabolic,
-                           mortar_l2::LobattoLegendreMortarL2,
-                           surface_integral, dg::DG, cache)
-    @unpack neighbor_ids, node_indices = cache.mortars
-    @unpack contravariant_vectors = cache.elements
-    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
-    index_range = eachnode(dg)
-
-    @threaded for mortar in eachmortar(dg, cache)
-        # Choose thread-specific pre-allocated container
-        fstar = (fstar_lower_threaded[Threads.threadid()],
-                 fstar_upper_threaded[Threads.threadid()])
-
-        # Get index information on the small elements
-        small_indices = node_indices[1, mortar]
-        small_direction = indices2direction(small_indices)
-
-        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
-                                                             index_range)
-        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
-                                                             index_range)
-
-        for position in 1:2
-            i_small = i_small_start
-            j_small = j_small_start
-            element = neighbor_ids[position, mortar]
-            for node in eachnode(dg)
-                # Get the normal direction on the small element.
-                # Note, contravariant vectors at interfaces in negative coordinate direction
-                # are pointing inwards. This is handled by `get_normal_direction`.
-                normal_direction = get_normal_direction(small_direction,
-                                                        contravariant_vectors,
-                                                        i_small, j_small, element)
-
-                calc_mortar_flux!(fstar, mesh, equations,
-                                  surface_integral, dg, cache,
-                                  mortar, position, normal_direction,
-                                  node)
-
-                i_small += i_small_step
-                j_small += j_small_step
-            end
-        end
-
-        # Buffer to interpolate flux values of the large element to before
-        # copying in the correct orientation
-        u_buffer = cache.u_threaded[Threads.threadid()]
-
-        mortar_fluxes_to_elements!(surface_flux_values,
-                                   mesh, equations, mortar_l2, dg, cache,
-                                   mortar, fstar, u_buffer)
-    end
-
-    return nothing
-end
-
 function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                           mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
@@ -685,11 +624,64 @@ end
 # NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
 # Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for 
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
+function calc_mortar_flux!(surface_flux_values,
+                           mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                           equations::AbstractEquationsParabolic,
+                           mortar_l2::LobattoLegendreMortarL2,
+                           surface_integral, dg::DG, cache)
+    @unpack neighbor_ids, node_indices = cache.mortars
+    @unpack contravariant_vectors = cache.elements
+    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+    index_range = eachnode(dg)
+
+    @threaded for mortar in eachmortar(dg, cache)
+        # Choose thread-specific pre-allocated container
+        fstar = (fstar_lower_threaded[Threads.threadid()],
+                 fstar_upper_threaded[Threads.threadid()])
+
+        # Get index information on the small elements
+        small_indices = node_indices[1, mortar]
+        small_direction = indices2direction(small_indices)
+
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        for position in 1:2
+            i_small = i_small_start
+            j_small = j_small_start
+            for node in eachnode(dg)
+                calc_mortar_flux!(fstar, mesh, equations,
+                                  surface_integral, dg, cache,
+                                  mortar, position,
+                                  node)
+
+                i_small += i_small_step
+                j_small += j_small_step
+            end
+        end
+
+        # Buffer to interpolate flux values of the large element to before
+        # copying in the correct orientation
+        u_buffer = cache.u_threaded[Threads.threadid()]
+
+        mortar_fluxes_to_elements!(surface_flux_values,
+                                   mesh, equations, mortar_l2, dg, cache,
+                                   mortar, fstar, u_buffer)
+    end
+
+    return nothing
+end
+
+# NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
+# Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for 
+# hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
 @inline function calc_mortar_flux!(fstar,
                                    mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                    equations::AbstractEquationsParabolic,
                                    surface_integral, dg::DG, cache,
-                                   mortar_index, position_index, normal_direction,
+                                   mortar_index, position_index,
                                    node_index)
     @unpack u = cache.mortars
     @unpack surface_flux = surface_integral

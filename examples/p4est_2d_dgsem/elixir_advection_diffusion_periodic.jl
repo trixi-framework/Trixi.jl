@@ -5,7 +5,7 @@ using Trixi
 # semidiscretization of the linear advection-diffusion equation
 
 diffusivity() = 5.0e-2
-advection_velocity = (1.0, 0.0)
+advection_velocity = (1.0, 1.0)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
@@ -20,7 +20,7 @@ end
 function initial_condition_diffusive_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
     # Store translated coordinate for easy use of exact solution
     # Assumes that advection_velocity[2] = 0 (effectively that we are solving a 1D equation)
-    x_trans = x_trans_periodic(x[1] - equation.advection_velocity[1] * t)
+    x_trans = x_trans_periodic(x[2] - equation.advection_velocity[2] * t)
     
     nu = diffusivity()
     c = 0.0
@@ -53,7 +53,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
-tspan = (0.0, 1e-4)
+tspan = (0.0, 1e-1)
 ode = semidiscretize(semi, tspan);
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
