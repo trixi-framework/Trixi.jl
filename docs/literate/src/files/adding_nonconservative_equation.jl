@@ -288,3 +288,15 @@ sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
 ## Plot the numerical solution at the final time
 using Plots: plot
 plot(sol);
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)

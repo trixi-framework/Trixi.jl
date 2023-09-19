@@ -170,7 +170,7 @@ As a rule of thumb:
 - Consider using `@nospecialize` for methods like custom implementations of `Base.show`.
 
 
-## Performance metrics of the `AnalysisCallback`
+## [Performance metrics of the `AnalysisCallback`](@id performance-metrics)
 The [`AnalysisCallback`](@ref) computes two performance indicators that you can use to
 evaluate the serial and parallel performance of Trixi.jl. They represent
 measured run times that are normalized by the number of `rhs!` evaluations and
