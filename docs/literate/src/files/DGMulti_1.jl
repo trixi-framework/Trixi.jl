@@ -194,3 +194,15 @@ plot(pd["rho"])
 plot!(getmesh(pd))
 
 # For more information, please have a look in the [StartUpDG.jl documentation](https://jlchan.github.io/StartUpDG.jl/stable/).
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "StartUpDG", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)

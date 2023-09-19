@@ -17,16 +17,6 @@
   <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
 
-***
-**Trixi.jl at JuliaCon 2023**<br/>
-At this year's JuliaCon, we will be present with an online contribution that involves Trixi.jl:
-
-* [Scaling Trixi.jl to more than 10,000 cores using MPI](https://pretalx.com/juliacon2023/talk/PC8PZ8/),
-  27th July 2023, 10:30–11:30 (US/Eastern), 32-G449 (Kiva)
-
-We are looking forward to seeing you there ♥️
-***
-
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
@@ -247,7 +237,7 @@ Schlottke-Lakemper](https://lakemper.eu)
 (RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(University of Hamburg, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
+(Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
 they are the principal developers of Trixi.jl.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
