@@ -102,7 +102,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_beach.jl"),
       l2   = [0.17979210479598923, 1.2377495706611434, 6.289818963361573e-8],
       linf = [0.845938394800688, 3.3740800777086575, 4.4541473087633676e-7],
-      tspan = (0.0, 0.05))
+      tspan = (0.0, 0.05),
+      atol = 3e-10) # see https://github.com/trixi-framework/Trixi.jl/issues/1617
   end
 
   @trixi_testset "elixir_shallowwater_parabolic_bowl.jl" begin
@@ -110,6 +111,20 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
       l2   = [8.965981683033589e-5, 1.8565707397810857e-5, 4.1043039226164336e-17],
       linf = [0.00041080213807871235, 0.00014823261488938177, 2.220446049250313e-16],
       tspan = (0.0, 0.05))
+  end
+
+  @trixi_testset "elixir_shallow_water_quasi_1d_source_terms.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallow_water_quasi_1d_source_terms.jl"),
+      l2 = [6.37048760275098e-5, 0.0002745658116815704, 4.436491725647962e-6, 8.872983451152218e-6], 
+      linf = [0.00026747526881631956, 0.0012106730729152249, 9.098379777500165e-6, 1.8196759554278685e-5],
+      tspan = (0.0, 0.05))
+  end
+  
+  @trixi_testset "elixir_shallowwater_quasi_1d_well_balanced.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_quasi_1d_well_balanced.jl"),
+      l2 = [1.4250229186905198e-14, 2.495109919406496e-12, 7.408599286788738e-17, 2.7205812409138776e-16], 
+      linf = [5.284661597215745e-14, 2.74056233065078e-12, 2.220446049250313e-16, 8.881784197001252e-16],
+      tspan = (0.0, 100.0))
   end
 end
 

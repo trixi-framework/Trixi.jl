@@ -402,6 +402,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
+    limiter_idp = SubcellLimiterIDP(true, [1], 0.1, "cache")
+    @test_nowarn show(stdout, limiter_idp)
+
     # TODO: TrixiShallowWater: move unit test
     indicator_hg_swe = IndicatorHennemannGassnerShallowWater(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg_swe)
@@ -637,7 +640,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     for normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
-    end                         
+    end
   end
 
   @timed_testset "Consistency check for HLL flux (naive): SWE" begin
@@ -674,7 +677,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                           SVector(0.0, 1.0),
                           SVector(0.5, -0.5),
                           SVector(-1.2, 0.3)]
-    orientations = [1, 2]                      
+    orientations = [1, 2]
 
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
                 SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
@@ -704,7 +707,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     for u in u_values, normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
-    end                  
+    end
   end
 
   @timed_testset "Consistency check for HLL flux with Davis wave speed estimates: CEE" begin
@@ -718,7 +721,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     for orientation in orientations
       @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
-  
+
     equations = CompressibleEulerEquations2D(1.4)
     u = SVector(1.1, -0.5, 2.34, 5.5)
 
@@ -734,7 +737,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     for normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
-    end    
+    end
 
     equations = CompressibleEulerEquations3D(1.4)
     u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
@@ -752,7 +755,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     for normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
-    end                        
+    end
   end
 
   @timed_testset "Consistency check for HLL flux with Davis wave speed estimates: LEE" begin
@@ -815,7 +818,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                           SVector(0.0, 1.0),
                           SVector(0.5, -0.5),
                           SVector(-1.2, 0.3)]
-    orientations = [1, 2]                      
+    orientations = [1, 2]
 
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
                 SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
@@ -845,7 +848,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     for u in u_values, normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
-    end                  
+    end
   end
 
   @timed_testset "Consistency check for HLLE flux: CEE" begin
@@ -873,7 +876,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     for normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
-    end                          
+    end
 
     equations = CompressibleEulerEquations3D(1.4)
     u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
@@ -891,7 +894,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     for normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
-    end                            
+    end
   end
 
   @timed_testset "Consistency check for HLLE flux: SWE" begin
@@ -907,7 +910,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                          SVector(0.0, 1.0),
                          SVector(0.5, -0.5),
                          SVector(-1.2, 0.3)]
-    orientations = [1, 2]                           
+    orientations = [1, 2]
 
     u = SVector(1, 0.5, 0.5, 0.0)
 
@@ -937,7 +940,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                           SVector(0.0, 1.0),
                           SVector(0.5, -0.5),
                           SVector(-1.2, 0.3)]
-    orientations = [1, 2]  
+    orientations = [1, 2]
 
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
                 SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
@@ -956,7 +959,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                         SVector(0.0, 0.0, 1.0),
                         SVector(0.5, -0.5, 0.2),
                         SVector(-1.2, 0.3, 1.4)]
-    orientations = [1, 2, 3]                        
+    orientations = [1, 2, 3]
 
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
                 SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
@@ -967,7 +970,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     for u in u_values, normal_direction in normal_directions
       @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
-    end                  
+    end
   end
 
   @timed_testset "Consistency check for Godunov flux" begin
@@ -1137,7 +1140,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                            SVector(-1.2, 0.3)]
       u_values = [SVector(1.0, 0.5, -0.7, 1.0),
                   SVector(1.5, -0.2, 0.1, 5.0),]
-      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber, 
+      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
                 flux_hll, FluxHLL(min_max_speed_davis)]
 
       for f_std in fluxes
@@ -1157,7 +1160,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                           SVector(-1.2, 0.3, 1.4)]
       u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
                   SVector(1.5, -0.2, 0.1, 0.2, 5.0),]
-      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber, FluxLMARS(340), 
+      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber, FluxLMARS(340),
                 flux_hll, FluxHLL(min_max_speed_davis)]
 
       for f_std in fluxes
@@ -1173,11 +1176,11 @@ isdir(outdir) && rm(outdir, recursive=true)
       normal_directions = [SVector(1.0, 0.0),
                           SVector(0.0, 1.0),
                           SVector(0.5, -0.5),
-                          SVector(-1.2, 0.3)]                       
+                          SVector(-1.2, 0.3)]
 
       u = SVector(1, 0.5, 0.5, 0.0)
 
-      fluxes = [flux_central, flux_fjordholm_etal, flux_wintermeyer_etal, 
+      fluxes = [flux_central, flux_fjordholm_etal, flux_wintermeyer_etal,
                 flux_hll, FluxHLL(min_max_speed_davis), FluxHLL(min_max_speed_einfeldt)]
 
     end
