@@ -77,7 +77,7 @@ makedocs(
     # Specify modules for which docstrings should be shown
     modules = [Trixi, Trixi2Vtk],
     # Set sitename to Trixi.jl
-    sitename="Trixi.jl",
+    sitename = "Trixi.jl",
     # Provide additional formatting options
     format = Documenter.HTML(
         # Disable pretty URLs during manual testing
@@ -85,7 +85,8 @@ makedocs(
         # Explicitly add favicon as asset
         assets = ["assets/favicon.ico"],
         # Set canonical URL to GitHub pages URL
-        canonical = "https://trixi-framework.github.io/Trixi.jl/stable"
+        canonical = "https://trixi-framework.github.io/Trixi.jl/stable",
+        size_threshold_ignore = "reference-trixi.md"
     ),
     # Explicitly specify documentation structure
     pages = [
@@ -124,7 +125,7 @@ makedocs(
         "Authors" => "authors.md",
         "Contributing" => "contributing.md",
         "Code of Conduct" => "code_of_conduct.md",
-        "License" => "license.md"
+        "License" => "license.md",
     ]
 )
 
