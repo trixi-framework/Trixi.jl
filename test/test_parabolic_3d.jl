@@ -160,8 +160,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "TreeMesh3D: elixir_advection_diffusion_amr.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_diffusion_amr.jl"),
-      l2 = [0.0001791112986201992],
-      linf = [0.0007775704284449514]
+      l2 = [0.000355780485397024],
+      linf = [0.0010810770271614256]
     )
   end
 end
