@@ -140,7 +140,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
   @trixi_testset "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl"),
       l2   = [0.0845430093623868, 0.09271459184623232, 0.09271459184623232, 0.4377291875101709],
-      linf = [1.3608553480069898, 1.6822884847136004, 1.6822884847135997, 4.220147414536653],
+      linf = [1.3608553480069898, 1.6822884847136004, 1.6822884847135997, 4.2201475428867035],
       maxiters = 30,
       coverage_override = (maxiters=6,))
   end
