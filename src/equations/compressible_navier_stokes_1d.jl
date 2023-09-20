@@ -84,7 +84,8 @@ w_2 = \frac{\rho v1}{p},\, w_3 = -\frac{\rho}{p}
     This code is experimental and may be changed or removed in any future release.
 """
 struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real,
-                                           E <: AbstractCompressibleEulerEquations{1}} <:
+                                           E <: AbstractCompressibleEulerEquations{1}
+                                           } <:
        AbstractCompressibleNavierStokesDiffusion{1, 3}
     # TODO: parabolic
     # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
@@ -116,7 +117,8 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
     CompressibleNavierStokesDiffusion1D{typeof(gradient_variables), typeof(gamma),
                                         typeof(equations)}(gamma, inv_gamma_minus_one,
                                                            μ, Pr, kappa,
-                                                           equations, gradient_variables)
+                                                           equations,
+                                                           gradient_variables)
 end
 
 # TODO: parabolic
@@ -270,7 +272,8 @@ end
                                                                                       u_inner,
                                                                                       orientation::Integer,
                                                                                       direction,
-                                                                                      x, t,
+                                                                                      x,
+                                                                                      t,
                                                                                       operator_type::Gradient,
                                                                                       equations::CompressibleNavierStokesDiffusion1D{
                                                                                                                                      GradientVariablesPrimitive
@@ -285,7 +288,8 @@ end
                                                                                       u_inner,
                                                                                       orientation::Integer,
                                                                                       direction,
-                                                                                      x, t,
+                                                                                      x,
+                                                                                      t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion1D{
                                                                                                                                      GradientVariablesPrimitive
@@ -306,7 +310,8 @@ end
                                                                                        u_inner,
                                                                                        orientation::Integer,
                                                                                        direction,
-                                                                                       x, t,
+                                                                                       x,
+                                                                                       t,
                                                                                        operator_type::Gradient,
                                                                                        equations::CompressibleNavierStokesDiffusion1D{
                                                                                                                                       GradientVariablesPrimitive
@@ -323,7 +328,8 @@ end
                                                                                        u_inner,
                                                                                        orientation::Integer,
                                                                                        direction,
-                                                                                       x, t,
+                                                                                       x,
+                                                                                       t,
                                                                                        operator_type::Divergence,
                                                                                        equations::CompressibleNavierStokesDiffusion1D{
                                                                                                                                       GradientVariablesPrimitive
@@ -344,7 +350,8 @@ end
                                                                                       w_inner,
                                                                                       orientation::Integer,
                                                                                       direction,
-                                                                                      x, t,
+                                                                                      x,
+                                                                                      t,
                                                                                       operator_type::Gradient,
                                                                                       equations::CompressibleNavierStokesDiffusion1D{
                                                                                                                                      GradientVariablesEntropy
@@ -361,7 +368,8 @@ end
                                                                                       w_inner,
                                                                                       orientation::Integer,
                                                                                       direction,
-                                                                                      x, t,
+                                                                                      x,
+                                                                                      t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion1D{
                                                                                                                                      GradientVariablesEntropy
@@ -381,7 +389,8 @@ end
                                                                                        w_inner,
                                                                                        orientation::Integer,
                                                                                        direction,
-                                                                                       x, t,
+                                                                                       x,
+                                                                                       t,
                                                                                        operator_type::Gradient,
                                                                                        equations::CompressibleNavierStokesDiffusion1D{
                                                                                                                                       GradientVariablesEntropy
@@ -401,7 +410,8 @@ end
                                                                                        w_inner,
                                                                                        orientation::Integer,
                                                                                        direction,
-                                                                                       x, t,
+                                                                                       x,
+                                                                                       t,
                                                                                        operator_type::Divergence,
                                                                                        equations::CompressibleNavierStokesDiffusion1D{
                                                                                                                                       GradientVariablesEntropy
