@@ -63,6 +63,12 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [0.18527440131928286, 0.2404798030563736, 0.23269573860381076, 0.6874012187446894])
   end
 
+  @trixi_testset "elixir_euler_shockcapturing_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_subcell.jl"),
+      l2   = [0.08508147906199143, 0.04510299017724501, 0.045103019801950375, 0.6930704343869766],
+      linf = [0.31123546471463326, 0.5616274869594462, 0.5619692712224448, 2.88670199345138])
+  end
+
   @trixi_testset "elixir_euler_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
       l2   = [0.14170569763947993, 0.11647068900798814, 0.11647072556898294, 0.3391989213659599],
@@ -134,7 +140,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
   @trixi_testset "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl"),
       l2   = [0.0845430093623868, 0.09271459184623232, 0.09271459184623232, 0.4377291875101709],
-      linf = [1.3608553480069898, 1.6822884847136004, 1.6822884847135997, 4.220147414536653],
+      linf = [1.3608553480069898, 1.6822884847136004, 1.6822884847135997, 4.2201475428867035],
       maxiters = 30,
       coverage_override = (maxiters=6,))
   end
