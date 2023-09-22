@@ -9,7 +9,7 @@ prandtl_number() = 0.72
 mu() = 4e-2
 eta() = 4e-2
 
-equations = IdealGlmMhdEquations3D(1.4)
+equations = IdealGlmMhdEquations3D(5/3)
 equations_parabolic = ViscoResistiveMhd3D(equations, mu = mu(),
                                           Prandtl = prandtl_number(),
                                           eta = eta(),
@@ -26,7 +26,7 @@ coordinates_max = (1.0, 1.0, 1.0) # maximum coordinates (max(x), max(y), max(z))
 # Create a uniformly refined mesh
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
-                n_cells_max = 50_000) # set maximum capacity of tree data structure
+                n_cells_max = 10_000) # set maximum capacity of tree data structure
 
 function initial_condition_constant_alfven(x, t, equations)
     # Homogeneous background magnetic field in the x-direction that is perturbed
@@ -57,13 +57,12 @@ end
 
 @inline function source_terms_mhd_convergence_test(u, x, t, equations)
     r_1 = 0
-    r_2 = -0.0008*pi*sin(2*pi*x[1])*cos(2*pi*x[1])
-    r_3 = -0.0032*pi^2*sin(2*pi*x[1]) + 0.04*pi*cos(2*pi*x[1])
+    r_2 = 0.000266666666666667*pi*sin(2*pi*t - 2*pi*x[1])*cos(2*pi*t - 2*pi*x[1])
+    r_3 = -0.0032*pi^2*sin(2*pi*t - 2*pi*x[1])
     r_4 = 0
-    r_5 = 0.001664*pi^2*sin(2*pi*x[1])^2 - 0.0016*pi*sin(2*pi*x[1])*cos(2*pi*x[1]) -
-          0.001664*pi^2*cos(2*pi*x[1])^2
+    r_5 = -0.000128*pi^2*sin(2*pi*t - 2*pi*x[1])^2 - 0.0016*pi*sin(2*pi*t - 2*pi*x[1])*cos(2*pi*t - 2*pi*x[1]) + 0.000128*pi^2*cos(2*pi*t - 2*pi*x[1])^2
     r_6 = 0
-    r_7 = 0.0032*pi^2*sin(2*pi*x[1]) - 0.04*pi*cos(2*pi*x[1])
+    r_7 = 0.0032*pi^2*sin(2*pi*x[1])
     r_8 = 0
     r_9 = 0
 
@@ -80,7 +79,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
-tspan = (0.0, 10.0)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -107,9 +106,11 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-5
-sol = solve(ode, RDPK3SpFSAL49(), dt = 1e-5,
-            save_everystep = false, callback = callbacks, adaptive = false)
-
+#time_int_tol = 1e-5
+#sol = solve(ode, RDPK3SpFSAL49(), dt = 1e-5,
+#            save_everystep = false, callback = callbacks, adaptive = false)
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1e-5, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep=false, callback=callbacks);
 # Print the timer summary.
 summary_callback()
