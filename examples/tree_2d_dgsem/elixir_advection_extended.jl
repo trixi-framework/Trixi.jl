@@ -54,7 +54,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 # The SaveRestartCallback allows to save a file from which a Trixi.jl simulation can be restarted
-save_restart = SaveRestartCallback(interval=100,
+save_restart = SaveRestartCallback(interval=40,
                                    save_final_restart=true)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
@@ -77,9 +77,10 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+alg = CarpenterKennedy2N54(williamson_condition=false)
+sol = solve(ode, alg,
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks; ode_default_options()...);
 
 # Print the timer summary
 summary_callback()

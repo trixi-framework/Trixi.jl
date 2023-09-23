@@ -3,7 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-
+#! format: noindent
 
 """
     ln_mean(x, y)
@@ -51,16 +51,16 @@ Given ε = 1.0e-4, we use the following algorithm.
 - Agner Fog.
   Lists of instruction latencies, throughputs and micro-operation breakdowns
   for Intel, AMD, and VIA CPUs.
-  https://www.agner.org/optimize/instruction_tables.pdf
+  [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
 """
 @inline function ln_mean(x, y)
-  epsilon_f2 = 1.0e-4
-  f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
-  if f2 < epsilon_f2
-    return (x + y) / @evalpoly(f2, 2, 2/3, 2/5, 2/7)
-  else
-    return (y - x) / log(y / x)
-  end
+    epsilon_f2 = 1.0e-4
+    f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
+    if f2 < epsilon_f2
+        return (x + y) / @evalpoly(f2, 2, 2/3, 2/5, 2/7)
+    else
+        return (y - x) / log(y / x)
+    end
 end
 
 """
@@ -74,16 +74,14 @@ logarithmic mean is needed, by replacing a (slow) division by a (fast)
 multiplication.
 """
 @inline function inv_ln_mean(x, y)
-  epsilon_f2 = 1.0e-4
-  f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
-  if f2 < epsilon_f2
-    return @evalpoly(f2, 2, 2/3, 2/5, 2/7) / (x + y)
-  else
-    return log(y / x) / (y - x)
-  end
+    epsilon_f2 = 1.0e-4
+    f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
+    if f2 < epsilon_f2
+        return @evalpoly(f2, 2, 2/3, 2/5, 2/7) / (x + y)
+    else
+        return log(y / x) / (y - x)
+    end
 end
-
-
 
 # `Base.max` and `Base.min` perform additional checks for signed zeros and `NaN`s
 # which are not present in comparable functions in Fortran/C++. For example,
@@ -168,8 +166,10 @@ checks necessary in the presence of `NaN`s (or signed zeros).
 
 # Examples
 
+```jldoctest
 julia> max(2, 5, 1)
 5
+```
 """
 @inline max(args...) = @fastmath max(args...)
 
@@ -185,12 +185,12 @@ checks necessary in the presence of `NaN`s (or signed zeros).
 
 # Examples
 
+```jldoctest
 julia> min(2, 5, 1)
 1
+```
 """
 @inline min(args...) = @fastmath min(args...)
-
-
 
 """
     positive_part(x)
@@ -199,7 +199,7 @@ Return `x` if `x` is positive, else zero. In other words, return
 `(x + abs(x)) / 2` for real numbers `x`.
 """
 @inline function positive_part(x)
-  return max(x, zero(x))
+    return max(x, zero(x))
 end
 
 """
@@ -209,8 +209,6 @@ Return `x` if `x` is negative, else zero. In other words, return
 `(x - abs(x)) / 2` for real numbers `x`.
 """
 @inline function negative_part(x)
-  return min(x, zero(x))
+    return min(x, zero(x))
 end
-
-
 end # @muladd

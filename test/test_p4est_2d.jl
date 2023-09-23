@@ -24,7 +24,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [3.198940059144588e-5],
       linf = [0.00030636069494005547])
 
-    # Ensure that we do not have excessive memory allocations 
+    # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
       t = sol.t[end]
@@ -102,6 +102,15 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [0.020291447969983396, 0.017479614254319948, 0.011387644425613437, 0.0514420126021293],
       linf = [0.3582779022370579, 0.32073537890751663, 0.221818049107692, 0.9209559420400415],
       tspan = (0.0, 0.15))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+      t = sol.t[end]
+      u_ode = sol.u[end]
+      du_ode = similar(u_ode)
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
   end
 
   @trixi_testset "elixir_euler_forward_step_amr.jl" begin
@@ -164,6 +173,11 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.02))
   end
 
+  @trixi_testset "elixir_linearizedeuler_gaussian_source.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_gaussian_source.jl"),
+      l2 = [0.006047938590548741, 0.0040953286019907035, 0.004222698522497298, 0.006269492499336128],
+      linf = [0.06386175207349379, 0.0378926444850457, 0.041759728067967065, 0.06430136016259067])
+  end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

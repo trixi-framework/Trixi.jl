@@ -12,7 +12,7 @@ provided substantial additions or modifications. Together, these two groups form
 * [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner),
   University of Cologne, Germany
 * [Hendrik Ranocha](https://ranocha.de),
-  University of Hamburg, Germany
+  Johannes Gutenberg University Mainz, Germany
 * [Andrew Winters](https://liu.se/en/employee/andwi94),
   Linköping University, Sweden
 * [Jesse Chan](https://jlchan.github.io),
@@ -24,9 +24,11 @@ are listed in alphabetical order:
 
 * Maximilian D. Bertrand
 * Benjamin Bolm
+* Simon Candelaresi
 * Jesse Chan
 * Lars Christmann
 * Christof Czernik
+* Daniel Doehring
 * Patrick Ersing
 * Erik Faulhaber
 * Gregor Gassner

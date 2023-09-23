@@ -48,7 +48,7 @@
 # with the total energy $\mathbb{E}=\max\big(\frac{m_N^2}{\sum_{j=0}^N m_j^2}, \frac{m_{N-1}^2}{\sum_{j=0}^{N-1} m_j^2}\big)$,
 # threshold $\mathbb{T}= 0.5 * 10^{-1.8*(N+1)^{1/4}}$ and parameter $s=ln\big(\frac{1-0.0001}{0.0001}\big)\approx 9.21024$.
 
-# For computational efficiency, $\alpha_{min}$ is introduced und used for
+# For computational efficiency, $\alpha_{min}$ is introduced and used for
 # ```math
 # \tilde{\alpha} = \begin{cases}
 # 0, & \text{if } \alpha<\alpha_{min}\\
@@ -224,3 +224,15 @@ sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false
 
 using Plots
 plot(sol)
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)

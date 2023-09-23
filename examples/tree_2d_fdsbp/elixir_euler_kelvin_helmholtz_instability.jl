@@ -5,7 +5,8 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear advection equation
+# semidiscretization of the compressible Euler equations
+
 equations = CompressibleEulerEquations2D(1.4)
 
 function initial_condition_kelvin_helmholtz_instability(x, t, equations::CompressibleEulerEquations2D)

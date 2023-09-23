@@ -1,3 +1,6 @@
+# Disable formatting this file since it contains highly unusual formatting for better
+# readability
+#! format: off
 
 using BenchmarkTools
 using Trixi
