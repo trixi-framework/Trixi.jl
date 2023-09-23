@@ -199,6 +199,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "length" => mesh.tree.length_level_0,
             "periodicity" => mesh.tree.periodicity,
             "current #cells" => mesh.tree.length,
+            "#leaf-cells" => count_leaf_cells(mesh.tree),
             "maximum #cells" => mesh.tree.capacity,
         ]
         summary_box(io, "TreeMesh{" * string(NDIMS) * ", " * string(TreeType) * "}",

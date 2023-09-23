@@ -51,12 +51,25 @@ function create_tutorials(files)
     # Run tests on all tutorial files
     @testset "TrixiTutorials" begin
         for (i, (title, filename)) in enumerate(files)
+            # Evaluate each tutorial in its own module to avoid leaking of
+            # function/variable names, polluting the namespace of later tutorials
+            # by stuff defined in earlier tutorials.
             if filename isa Vector # Several files of one topic
                 for j in eachindex(filename)
-                    @testset "$(filename[j][2][2])" begin include(joinpath(repo_src, filename[j][2][1], filename[j][2][2])) end
+                    mod = gensym(filename[j][2][2])
+                    @testset "$(filename[j][2][2])" begin
+                        @eval module $mod
+                            include(joinpath($repo_src, $(filename[j][2][1]), $(filename[j][2][2])))
+                        end
+                    end
                 end
             else # Single files
-                @testset "$title" begin include(joinpath(repo_src, filename)) end
+                mod = gensym(title)
+                @testset "$title" begin
+                    @eval module $mod
+                        include(joinpath($repo_src, $filename))
+                    end
+                end
             end
         end
     end

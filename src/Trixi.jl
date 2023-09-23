@@ -121,10 +121,10 @@ include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
-include("time_integration/time_integration.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
@@ -149,6 +149,7 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
        ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
+       ShallowWaterEquationsQuasi1D,
        LinearizedEulerEquations2D
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D,
@@ -164,6 +165,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
        flux_fjordholm_etal, flux_nonconservative_fjordholm_etal, flux_es_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
+       flux_chan_etal, flux_nonconservative_chan_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
 # TODO: TrixiShallowWater: move anything with "chen_noelle" to new file
        hydrostatic_reconstruction_chen_noelle, flux_nonconservative_chen_noelle,
@@ -229,6 +231,9 @@ export DG,
        SurfaceIntegralUpwind,
        MortarL2
 
+export VolumeIntegralSubcellLimiting,
+       SubcellLimiterIDP, SubcellLimiterIDPCorrection
+
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
 
@@ -250,7 +255,8 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled
 
-export load_mesh, load_time, load_timestep, load_dt
+export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
+       load_adaptive_time_integrator!
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax,
