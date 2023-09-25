@@ -7,6 +7,7 @@
 [![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
 [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
 [![Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/Trixi)](https://pkgs.genieframework.com?packages=Trixi)
@@ -16,16 +17,6 @@
 <p align="center">
   <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
-
-***
-**Trixi.jl at JuliaCon 2023**<br/>
-At this year's JuliaCon, we will be present with an online contribution that involves Trixi.jl:
-
-* [Scaling Trixi.jl to more than 10,000 cores using MPI](https://pretalx.com/juliacon2023/talk/PC8PZ8/),
-  27th July 2023, 10:30–11:30 (US/Eastern), 32-G449 (Kiva)
-
-We are looking forward to seeing you there ♥️
-***
 
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
