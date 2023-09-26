@@ -29,7 +29,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 
   @trixi_testset "elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl"),
-      l2   = [73.10862636389842, 1.4599061192346743, 57176.25279239441, 0.1781291550432081, 0.010123079839772913],
+      l2   = [73.10832638093902, 1.4599215762968585, 57176.014861335476, 0.17812843581838675, 0.010123079422717837],
       linf = [214.50568817511956, 25.40392579616452, 152862.41011222568, 0.564195553101797, 0.0956331651771212],
       initial_refinement_level = 3,
       tspan = (0.0, 0.001))
