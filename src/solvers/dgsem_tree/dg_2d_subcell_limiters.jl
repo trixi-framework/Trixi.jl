@@ -190,4 +190,16 @@ end
 
     return nothing
 end
+
+@inline function get_boundary_outer_state(u_inner, cache, t,
+                                          boundary_condition::BoundaryConditionDirichlet,
+                                          orientation_or_normal, direction, equations,
+                                          dg, indices...)
+    (; node_coordinates) = cache.elements
+
+    x = get_node_coords(node_coordinates, equations, dg, indices...)
+    u_outer = boundary_condition.boundary_value_function(x, t, equations)
+
+    return u_outer
+end
 end # @muladd
