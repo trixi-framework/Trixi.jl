@@ -6,17 +6,16 @@
 #! format: noindent
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
-function create_cache(indicator::Type{SubcellLimiterIDP},
-                      equations::AbstractEquations{2},
+function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, number_bounds)
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
                                                                       }(0,
                                                                         nnodes(basis),
                                                                         number_bounds)
 
-    cache = (; subcell_limiter_coefficients)
+    idp_bounds_delta = zeros(real(basis), number_bounds)
 
-    return cache
+    return (; subcell_limiter_coefficients, idp_bounds_delta)
 end
 
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
@@ -25,6 +24,10 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
     alpha .= zero(eltype(alpha))
 
+    if limiter.local_minmax
+        @trixi_timeit timer() "local min/max limiting" idp_local_minmax!(alpha, limiter,
+                                                                         u, t, dt, semi)
+    end
     if limiter.positivity
         @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt,
                                                            semi)
@@ -48,6 +51,175 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
     return nothing
 end
 
+@inline function calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    # Calc bounds inside elements
+    @threaded for element in eachelement(dg, cache)
+        var_min[:, :, element] .= typemax(eltype(var_min))
+        var_max[:, :, element] .= typemin(eltype(var_max))
+        # Calculate bounds at Gauss-Lobatto nodes using u
+        for j in eachnode(dg), i in eachnode(dg)
+            var = u[variable, i, j, element]
+            var_min[i, j, element] = min(var_min[i, j, element], var)
+            var_max[i, j, element] = max(var_max[i, j, element], var)
+
+            if i > 1
+                var_min[i - 1, j, element] = min(var_min[i - 1, j, element], var)
+                var_max[i - 1, j, element] = max(var_max[i - 1, j, element], var)
+            end
+            if i < nnodes(dg)
+                var_min[i + 1, j, element] = min(var_min[i + 1, j, element], var)
+                var_max[i + 1, j, element] = max(var_max[i + 1, j, element], var)
+            end
+            if j > 1
+                var_min[i, j - 1, element] = min(var_min[i, j - 1, element], var)
+                var_max[i, j - 1, element] = max(var_max[i, j - 1, element], var)
+            end
+            if j < nnodes(dg)
+                var_min[i, j + 1, element] = min(var_min[i, j + 1, element], var)
+                var_max[i, j + 1, element] = max(var_max[i, j + 1, element], var)
+            end
+        end
+    end
+
+    # Values at element boundary
+    calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi, mesh)
+end
+
+@inline function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
+                                               mesh::TreeMesh2D)
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+    @unpack boundary_conditions = semi
+    # Calc bounds at interfaces and periodic boundaries
+    for interface in eachinterface(dg, cache)
+        # Get neighboring element ids
+        left = cache.interfaces.neighbor_ids[1, interface]
+        right = cache.interfaces.neighbor_ids[2, interface]
+
+        orientation = cache.interfaces.orientations[interface]
+
+        for i in eachnode(dg)
+            index_left = (nnodes(dg), i)
+            index_right = (1, i)
+            if orientation == 2
+                index_left = reverse(index_left)
+                index_right = reverse(index_right)
+            end
+            var_left = u[variable, index_left..., left]
+            var_right = u[variable, index_right..., right]
+
+            var_min[index_right..., right] = min(var_min[index_right..., right],
+                                                 var_left)
+            var_max[index_right..., right] = max(var_max[index_right..., right],
+                                                 var_left)
+
+            var_min[index_left..., left] = min(var_min[index_left..., left], var_right)
+            var_max[index_left..., left] = max(var_max[index_left..., left], var_right)
+        end
+    end
+
+    # Calc bounds at physical boundaries
+    for boundary in eachboundary(dg, cache)
+        element = cache.boundaries.neighbor_ids[boundary]
+        orientation = cache.boundaries.orientations[boundary]
+        neighbor_side = cache.boundaries.neighbor_sides[boundary]
+
+        for i in eachnode(dg)
+            if neighbor_side == 2 # Element is on the right, boundary on the left
+                index = (1, i)
+                boundary_index = 1
+            else # Element is on the left, boundary on the right
+                index = (nnodes(dg), i)
+                boundary_index = 2
+            end
+            if orientation == 2
+                index = reverse(index)
+                boundary_index += 2
+            end
+            u_inner = get_node_vars(u, equations, dg, index..., element)
+            u_outer = get_boundary_outer_state(u_inner, cache, t,
+                                               boundary_conditions[boundary_index],
+                                               orientation, boundary_index,
+                                               equations, dg, index..., element)
+            var_outer = u_outer[variable]
+
+            var_min[index..., element] = min(var_min[index..., element], var_outer)
+            var_max[index..., element] = max(var_max[index..., element], var_outer)
+        end
+    end
+
+    return nothing
+end
+
+@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi)
+    for (index, variable) in enumerate(limiter.local_minmax_variables_cons)
+        idp_local_minmax!(alpha, limiter, u, t, dt, semi, variable, index)
+    end
+
+    return nothing
+end
+
+@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, variable, index)
+    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
+    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
+
+    var_min = variable_bounds[2 * (index - 1) + 1]
+    var_max = variable_bounds[2 * (index - 1) + 2]
+    calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
+
+    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
+    @unpack inverse_weights = dg.basis
+
+    @threaded for element in eachelement(dg, semi.cache)
+        inverse_jacobian = cache.elements.inverse_jacobian[element]
+        for j in eachnode(dg), i in eachnode(dg)
+            var = u[variable, i, j, element]
+            # Real Zalesak type limiter
+            #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
+            #   * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+            #   Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+            #         for each interface, not each node
+
+            Qp = max(0, (var_max[i, j, element] - var) / dt)
+            Qm = min(0, (var_min[i, j, element] - var) / dt)
+
+            # Calculate Pp and Pm
+            # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+            val_flux1_local = inverse_weights[i] *
+                              antidiffusive_flux1[variable, i, j, element]
+            val_flux1_local_ip1 = -inverse_weights[i] *
+                                  antidiffusive_flux1[variable, i + 1, j, element]
+            val_flux2_local = inverse_weights[j] *
+                              antidiffusive_flux2[variable, i, j, element]
+            val_flux2_local_jp1 = -inverse_weights[j] *
+                                  antidiffusive_flux2[variable, i, j + 1, element]
+
+            Pp = max(0, val_flux1_local) + max(0, val_flux1_local_ip1) +
+                 max(0, val_flux2_local) + max(0, val_flux2_local_jp1)
+            Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
+                 min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
+
+            Qp = max(0, (var_max[i, j, element] - var) / dt)
+            Qm = min(0, (var_min[i, j, element] - var) / dt)
+
+            Pp = inverse_jacobian * Pp
+            Pm = inverse_jacobian * Pm
+
+            # Compute blending coefficient avoiding division by zero
+            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+            Qp = abs(Qp) /
+                 (abs(Pp) + eps(typeof(Qp)) * 100 * abs(var_max[i, j, element]))
+            Qm = abs(Qm) /
+                 (abs(Pm) + eps(typeof(Qm)) * 100 * abs(var_max[i, j, element]))
+
+            # Calculate alpha at nodes
+            alpha[i, j, element] = max(alpha[i, j, element], 1 - min(1, Qp, Qm))
+        end
+    end
+
+    return nothing
+end
+
 @inline function idp_positivity!(alpha, limiter, u, dt, semi)
     # Conservative variables
     for (index, variable) in enumerate(limiter.positivity_variables_cons)
@@ -61,11 +233,30 @@ end
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
     @unpack inverse_weights = dg.basis
-    @unpack positivity_correction_factor = limiter
+    @unpack local_minmax, positivity_correction_factor = limiter
 
     @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
 
-    var_min = variable_bounds[index]
+    counter = 2 * length(limiter.local_minmax_variables_cons)
+    if local_minmax
+        if variable in limiter.local_minmax_variables_cons
+            for (index_, variable_) in enumerate(limiter.local_minmax_variables_cons)
+                if variable == variable_
+                    var_min = variable_bounds[2 * (index_ - 1) + 1]
+                    break
+                end
+            end
+        else
+            for variable_ in limiter.positivity_variables_cons[1:index]
+                if !(variable_ in limiter.local_minmax_variables_cons)
+                    counter += 1
+                end
+            end
+            var_min = variable_bounds[counter]
+        end
+    else
+        var_min = variable_bounds[counter + index]
+    end
 
     @threaded for element in eachelement(dg, semi.cache)
         inverse_jacobian = cache.elements.inverse_jacobian[element]
@@ -76,7 +267,12 @@ end
             end
 
             # Compute bound
-            var_min[i, j, element] = positivity_correction_factor * var
+            if limiter.local_minmax
+                var_min[i, j, element] = max(var_min[i, j, element],
+                                             positivity_correction_factor * var)
+            else
+                var_min[i, j, element] = positivity_correction_factor * var
+            end
 
             # Real one-sided Zalesak-type limiter
             # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"

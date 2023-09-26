@@ -402,7 +402,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
-    limiter_idp = SubcellLimiterIDP(true, [1], 0.1, "cache")
+    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], 0.1, "cache")
     @test_nowarn show(stdout, limiter_idp)
 
     # TODO: TrixiShallowWater: move unit test
