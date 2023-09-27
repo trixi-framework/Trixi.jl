@@ -56,11 +56,9 @@ end
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi, variable, index)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
-    @unpack inverse_weights = dg.basis
-    @unpack positivity_correction_factor = limiter
-
-    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
+    (; antidiffusive_flux1, antidiffusive_flux2) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
+    (; positivity_correction_factor) = limiter
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds["$(variable)_min"]
