@@ -103,8 +103,8 @@
                 open("$output_directory/deviations.txt", "a") do f
                     print(f, ", ", deviation_min_)
                 end
-                counter += 1
             end
+            counter += 1
         end
         for variable in limiter.positivity_variables_nonlinear
             deviation_min = zero(eltype(u))
