@@ -6,17 +6,14 @@
 #! format: noindent
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
-function create_cache(indicator::Type{SubcellLimiterIDP},
-                      equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis, number_bounds)
+function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
+                      basis::LobattoLegendreBasis, bounds_order)
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
                                                                       }(0,
                                                                         nnodes(basis),
-                                                                        number_bounds)
+                                                                        length(bounds_order))
 
-    cache = (; subcell_limiter_coefficients)
-
-    return cache
+    return (; subcell_limiter_coefficients, bounds_order)
 end
 
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
@@ -65,7 +62,9 @@ end
 
     @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
 
-    var_min = variable_bounds[index]
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    (; bounds_order) = limiter.cache
+    var_min = variable_bounds[bounds_order["$(variable)_min"]]
 
     @threaded for element in eachelement(dg, semi.cache)
         inverse_jacobian = cache.elements.inverse_jacobian[element]
