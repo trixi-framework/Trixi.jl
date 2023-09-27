@@ -53,14 +53,9 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            positivity_correction_factor = 0.1)
     positivity = (length(positivity_variables_cons) > 0)
 
-    bounds_order = Dict()
-    counter = 1
-    for index in positivity_variables_cons
-        bounds_order = Dict(bounds_order..., "$(index)_min" => counter)
-        counter += 1
-    end
+    bound_keys = Tuple("$(i)_min" for i in positivity_variables_cons)
 
-    cache = create_cache(SubcellLimiterIDP, equations, basis, bounds_order)
+    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
 
     SubcellLimiterIDP{typeof(positivity_correction_factor), typeof(cache)}(positivity,
                                                                            positivity_variables_cons,

@@ -1325,16 +1325,16 @@ mutable struct ContainerSubcellLimiterIDP2D{uEltype <: Real}
     alpha::Array{uEltype, 3}                  # [i, j, element]
     alpha1::Array{uEltype, 3}
     alpha2::Array{uEltype, 3}
-    variable_bounds::Vector{Array{uEltype, 3}}
+    variable_bounds::Dict{String, Array{uEltype, 3}}
     # internal `resize!`able storage
     _alpha::Vector{uEltype}
     _alpha1::Vector{uEltype}
     _alpha2::Vector{uEltype}
-    _variable_bounds::Vector{Vector{uEltype}}
+    _variable_bounds::Dict{String, Vector{uEltype}}
 end
 
 function ContainerSubcellLimiterIDP2D{uEltype}(capacity::Integer, n_nodes,
-                                               number_bounds) where {uEltype <: Real}
+                                               bound_keys) where {uEltype <: Real}
     nan_uEltype = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -1345,12 +1345,12 @@ function ContainerSubcellLimiterIDP2D{uEltype}(capacity::Integer, n_nodes,
     _alpha2 = fill(nan_uEltype, n_nodes * (n_nodes + 1) * capacity)
     alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes + 1, capacity))
 
-    _variable_bounds = Vector{Vector{uEltype}}(undef, number_bounds)
-    variable_bounds = Vector{Array{uEltype, 3}}(undef, number_bounds)
-    for i in 1:number_bounds
-        _variable_bounds[i] = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-        variable_bounds[i] = unsafe_wrap(Array, pointer(_variable_bounds[i]),
-                                         (n_nodes, n_nodes, capacity))
+    _variable_bounds = Dict{String, Vector{uEltype}}()
+    variable_bounds = Dict{String, Array{uEltype, 3}}()
+    for key in bound_keys
+        _variable_bounds[key] = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+        variable_bounds[key] = unsafe_wrap(Array, pointer(_variable_bounds[key]),
+                                           (n_nodes, n_nodes, capacity))
     end
 
     return ContainerSubcellLimiterIDP2D{uEltype}(alpha, alpha1, alpha2,
@@ -1380,10 +1380,11 @@ function Base.resize!(container::ContainerSubcellLimiterIDP2D, capacity)
                                    (n_nodes, n_nodes + 1, capacity))
 
     @unpack _variable_bounds = container
-    for i in 1:length(_variable_bounds)
-        resize!(_variable_bounds[i], n_nodes * n_nodes * capacity)
-        container.variable_bounds[i] = unsafe_wrap(Array, pointer(_variable_bounds[i]),
-                                                   (n_nodes, n_nodes, capacity))
+    for (key, _) in _variable_bounds
+        resize!(_variable_bounds[key], n_nodes * n_nodes * capacity)
+        container.variable_bounds[key] = unsafe_wrap(Array,
+                                                     pointer(_variable_bounds[key]),
+                                                     (n_nodes, n_nodes, capacity))
     end
 
     return nothing
