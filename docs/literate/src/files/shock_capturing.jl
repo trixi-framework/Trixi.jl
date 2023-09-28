@@ -224,3 +224,15 @@ sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false
 
 using Plots
 plot(sol)
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)

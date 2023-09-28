@@ -143,9 +143,9 @@ isdir(outdir) && rm(outdir, recursive=true)
       callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
       sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
             ode_default_options()..., callback=callbacks)
-      ac_sol = analysis_callback(sol)
-      @test ac_sol.l2[1] ≈ 1.67452550744728e-6
-      @test ac_sol.linf[1] ≈ 7.905059166368744e-6
+      l2_error, linf_error = analysis_callback(sol)
+      @test l2_error ≈ [1.67452550744728e-6]
+      @test linf_error ≈ [7.905059166368744e-6]
 
       # Ensure that we do not have excessive memory allocations 
       # (e.g., from type instabilities) 
@@ -229,9 +229,9 @@ isdir(outdir) && rm(outdir, recursive=true)
       callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
       sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5,
             ode_default_options()..., callback=callbacks)           
-      ac_sol = analysis_callback(sol)
-      @test ac_sol.l2 ≈ [0.00024296959173852447; 0.0002093263158670915; 0.0005390572390977262; 0.00026753561392341537]
-      @test ac_sol.linf ≈ [0.0016210102053424436; 0.002593287648655501; 0.002953907343823712; 0.002077119120180271]
+      l2_error, linf_error = analysis_callback(sol)
+      @test l2_error ≈ [0.00024296959173852447; 0.0002093263158670915; 0.0005390572390977262; 0.00026753561392341537]
+      @test linf_error ≈ [0.0016210102053424436; 0.002593287648655501; 0.002953907343823712; 0.002077119120180271]
   end
 
   @trixi_testset "TreeMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
