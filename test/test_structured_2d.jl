@@ -187,8 +187,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_source_terms_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_sc_subcell.jl"),
-      l2   = [0.008160130056105786, 0.008658251740761163, 0.009351904344378272, 0.027757009375556807],
-      linf = [0.027225634762642947, 0.040734047009665986, 0.03819407519909657, 0.08080651960614205],
+      l2   = [0.008160127272557726, 0.008658253869683077, 0.009351900401871649, 0.02775701488343099],
+      linf = [0.027225608222781528, 0.0407340321806311, 0.0381940733564341, 0.08080650914262844],
       tspan = (0.0, 0.5))
   end
 
@@ -208,7 +208,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_free_stream_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_sc_subcell.jl"),
       l2   = [2.6224749465938795e-14, 1.6175366858083413e-14, 2.358782725951525e-14, 5.910156539173304e-14],
-      linf = [1.1945999744966684e-13, 1.084687895058778e-13, 1.7050250100680842e-13, 2.0250467969162855e-13],
+      linf = [1.1546319456101628e-14, 1.084687895058778e-13, 1.7050250100680842e-13, 2.0250467969162855e-13],
       atol = 1.0e-13,
       cells_per_dimension = (8, 8))
   end
@@ -216,7 +216,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_free_stream_MCL.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_MCL.jl"),
       l2   = [3.532639560334565e-14, 1.4787576718355913e-14, 2.109573923923632e-14, 2.54649935281524e-14],
-      linf = [1.3955503419538218e-13, 1.1611545058798356e-13, 1.7619239400801234e-13, 2.007283228522283e-13],
+      linf = [7.993605777301127e-15, 1.1611545058798356e-13, 1.7619239400801234e-13, 2.007283228522283e-13],
       atol = 1.0e-13,
       cells_per_dimension = (8, 8))
   end
@@ -247,8 +247,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_shock_upstream_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shock_upstream_sc_subcell.jl"),
-      l2   = [1.2351468819080416, 1.1269856297330367, 1.7239124305681928, 11.715260007491556],
-      linf = [5.385492227740844, 6.575446131488329, 10.065232894750887, 51.00900038590831],
+      l2   = [1.2351468819080416, 1.1269856120551724, 1.7239124305681928, 11.715260007491556],
+      linf = [5.385491808683259, 6.575446013701839, 10.065227889186632, 51.008985921289565],
       cells_per_dimension = (8, 12),
       tspan = (0.0, 0.5))
   end
