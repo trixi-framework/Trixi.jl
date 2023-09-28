@@ -534,12 +534,11 @@ end
     @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
     @unpack bar_states1, bar_states2 = limiter.cache.container_bar_states
 
-    counter = 1
     # state variables
     if limiter.local_minmax
         for index in limiter.local_minmax_variables_cons
-            var_min = variable_bounds[counter]
-            var_max = variable_bounds[counter + 1]
+            var_min = variable_bounds[Symbol("$(index)_min")]
+            var_max = variable_bounds[Symbol("$(index)_max")]
             @threaded for element in eachelement(dg, cache)
                 var_min[:, :, element] .= typemax(eltype(var_min))
                 var_max[:, :, element] .= typemin(eltype(var_max))
@@ -571,12 +570,11 @@ end
                                                  bar_states2[index, i, j + 1, element])
                 end
             end
-            counter += 2
         end
     end
     # Specific Entropy
     if limiter.spec_entropy
-        s_min = variable_bounds[counter]
+        s_min = variable_bounds[:spec_entropy_min]
         @threaded for element in eachelement(dg, cache)
             s_min[:, :, element] .= typemax(eltype(s_min))
             for j in eachnode(dg), i in eachnode(dg)
@@ -602,11 +600,10 @@ end
                 s_min[i, j, element] = min(s_min[i, j, element], s)
             end
         end
-        counter += 1
     end
     # Mathematical entropy
     if limiter.math_entropy
-        s_max = variable_bounds[counter]
+        s_max = variable_bounds[:math_entropy_max]
         @threaded for element in eachelement(dg, cache)
             s_max[:, :, element] .= typemin(eltype(s_max))
             for j in eachnode(dg), i in eachnode(dg)

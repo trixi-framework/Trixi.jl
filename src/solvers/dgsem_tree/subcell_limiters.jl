@@ -108,17 +108,28 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         error("Only one of the two can be selected: math_entropy/spec_entropy")
     end
 
-    number_bounds = 2 * length(local_minmax_variables_cons) +
-                    length(positivity_variables_nonlinear) +
-                    spec_entropy + math_entropy
-
-    for index in positivity_variables_cons
-        if !(index in local_minmax_variables_cons)
-            number_bounds += 1
+    bound_keys = ()
+    if local_minmax
+        for i in local_minmax_variables_cons
+            bound_keys = (bound_keys..., Symbol("$(i)_min"), Symbol("$(i)_max"))
         end
     end
+    if spec_entropy
+        bound_keys = (bound_keys..., :spec_entropy_min)
+    end
+    if math_entropy
+        bound_keys = (bound_keys..., :math_entropy_max)
+    end
+    for i in positivity_variables_cons
+        if !(i in local_minmax_variables_cons)
+            bound_keys = (bound_keys..., Symbol("$(i)_min"))
+        end
+    end
+    for variable in positivity_variables_nonlinear
+        bound_keys = (bound_keys..., Symbol("$(variable)_min"))
+    end
 
-    cache = create_cache(SubcellLimiterIDP, equations, basis, number_bounds, bar_states)
+    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states)
 
     if smoothness_indicator
         IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_max = 1.0,
