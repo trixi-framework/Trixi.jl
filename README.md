@@ -7,6 +7,7 @@
 [![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
 [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
 [![Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/Trixi)](https://pkgs.genieframework.com?packages=Trixi)
@@ -64,7 +65,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi.jl works
-with Julia v1.8.
+with Julia v1.8 and newer. We recommend using the latest stable release of Julia.
 
 ### For users
 Trixi.jl and its related tools are registered Julia packages. Hence, you
@@ -237,7 +238,7 @@ Schlottke-Lakemper](https://lakemper.eu)
 (RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(University of Hamburg, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
+(Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
 they are the principal developers of Trixi.jl.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).

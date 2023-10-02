@@ -147,7 +147,7 @@ plot(sol)
 # above.
 
 error_1 = analysis_callback(sol).l2 |> first
-@test isapprox(error_1, 0.0002961027497) #src
+@test isapprox(error_1, 0.00029609575838969394) #src
 # Next, we increase the grid resolution by one refinement level and run the
 # simulation again.
 
@@ -288,3 +288,15 @@ sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
 ## Plot the numerical solution at the final time
 using Plots: plot
 plot(sol);
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)

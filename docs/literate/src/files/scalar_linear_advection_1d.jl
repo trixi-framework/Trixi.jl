@@ -44,10 +44,11 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 # ```
 # Here, $J$ is the Jacobian determinant of the transformation.
 
-# Using this transformation, we can transform our equation for all elements $Q_l$.
+# Using this transformation, we can transform our equation for each element $Q_l$.
 # ```math
 # \frac{dx}{2} u_t^{Q_l} + u_\xi^{Q_l} = 0 \text{, for }t\in\mathbb{R}^+,\; \xi\in[-1, 1]
 # ```
+# Here, $u_t^{Q_l}$ and $u_\xi^{Q_l}$ denote the time and spatial derivatives of the solution on the element $Q_l$.
 
 
 # ### ii. Polynomial approach
@@ -510,3 +511,15 @@ sol_trixi  = solve(ode_trixi, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode
 
 plot!(sol_trixi, label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)

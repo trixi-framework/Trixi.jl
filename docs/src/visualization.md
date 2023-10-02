@@ -339,7 +339,7 @@ create a [`PlotData1D`](@ref) with the keyword argument `curve` set to your list
 Let's give an example of this with the basic advection equation from above by creating
 a plot along the circle marked in green:
 
-![2d-plot-along-cirlce](https://user-images.githubusercontent.com/72009492/130951042-e1849447-8e55-4798-9361-c8badb9f3a49.png)
+![2d-plot-along-circle](https://user-images.githubusercontent.com/72009492/130951042-e1849447-8e55-4798-9361-c8badb9f3a49.png)
 
 We can write a function like this, that outputs a list of points on a circle:
 ```julia
@@ -375,7 +375,7 @@ During the simulation, the visualization callback creates and displays
 visualizations of the current solution in regular intervals. This can be useful
 to, e.g., monitor the validity of a long-running simulation or for illustrative
 purposes. An example for how to create a `VisualizationCallback` can be found in
-[examples/tree_2d_dgsem/elixir\_advection\_amr\_visualization.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_amr_visualization.jl):
+[`examples/tree_2d_dgsem/elixir_advection_amr_visualization.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_amr_visualization.jl):
 ```julia
 [...]
 

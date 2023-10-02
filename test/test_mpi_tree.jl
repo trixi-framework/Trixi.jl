@@ -23,10 +23,22 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      # Expected errors are exactly the same as in the serial test!
-      l2   = [7.81674284320524e-6],
-      linf = [6.314906965243505e-5])
+    using OrdinaryDiffEq: RDPK3SpFSAL49
+    Trixi.mpi_isroot() && println("═"^100)
+    Trixi.mpi_isroot() && println(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"))
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+      alg = RDPK3SpFSAL49(), tspan = (0.0, 10.0))
+    l2_expected, linf_expected = analysis_callback(sol)
+
+    Trixi.mpi_isroot() && println("═"^100)
+    Trixi.mpi_isroot() && println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
+    # Errors are exactly the same as in the elixir_advection_extended.jl
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+      alg = RDPK3SpFSAL49())
+    l2_actual, linf_actual = analysis_callback(sol)
+    
+    Trixi.mpi_isroot() && @test l2_actual == l2_expected
+    Trixi.mpi_isroot() && @test linf_actual == linf_expected
   end
 
   @trixi_testset "elixir_advection_mortar.jl" begin
@@ -55,10 +67,16 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
   # Linear scalar advection with AMR
   # These example files are only for testing purposes and have no practical use
   @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
+    # Here, we also test that SaveSolutionCallback prints multiple mesh files with AMR
+    # Start with a clean environment: remove Trixi.jl output directory if it exists
+    outdir = "out"
+    isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_refine_twice.jl"),
       l2   = [0.00020547512522578292],
       linf = [0.007831753383083506],
       coverage_override = (maxiters=6,))
+    meshfiles = filter(file -> endswith(file,".h5") && startswith(file,"mesh"), readdir(outdir))
+    @test length(meshfiles) > 1
   end
 
   @trixi_testset "elixir_advection_amr_coarsen_twice.jl" begin

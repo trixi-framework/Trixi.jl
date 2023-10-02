@@ -135,6 +135,12 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_advection_tensor_wedge.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
+    l2 = [2.30487910e-04] ,
+    linf = [6.31795281e-04] )
+  end
+
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

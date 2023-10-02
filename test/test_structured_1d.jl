@@ -27,8 +27,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_advection_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_shockcapturing.jl"),
-      l2   = [0.08004076716881656],
-      linf = [0.6342577638501385],
+      l2   = [0.08015029105233593],
+      linf = [0.610709468736576],
       atol = 1.0e-5)
   end
 
@@ -37,6 +37,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [3.67478226e-01, 3.49491179e-01, 8.08910759e-01],
       linf = [1.58971947e+00, 1.59812384e+00, 1.94732969e+00],
       tspan = (0.0, 0.3))
+  end
+
+  @trixi_testset "elixir_euler_sedov_hll_davis.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
+      l2   = [1.278661029299215, 0.0663853410742763, 0.9585741943783386],
+      linf = [3.1661064228547255, 0.16256363944708607, 2.667676158812806],
+      tspan = (0.0, 12.5),
+      surface_flux = FluxHLL(min_max_speed_davis))
   end
 
   @trixi_testset "elixir_euler_source_terms.jl" begin
