@@ -1325,12 +1325,12 @@ mutable struct ContainerSubcellLimiterIDP2D{uEltype <: Real}
     alpha::Array{uEltype, 3}                  # [i, j, element]
     alpha1::Array{uEltype, 3}
     alpha2::Array{uEltype, 3}
-    variable_bounds::Dict{String, Array{uEltype, 3}}
+    variable_bounds::Dict{Symbol, Array{uEltype, 3}}
     # internal `resize!`able storage
     _alpha::Vector{uEltype}
     _alpha1::Vector{uEltype}
     _alpha2::Vector{uEltype}
-    _variable_bounds::Dict{String, Vector{uEltype}}
+    _variable_bounds::Dict{Symbol, Vector{uEltype}}
 end
 
 function ContainerSubcellLimiterIDP2D{uEltype}(capacity::Integer, n_nodes,
@@ -1345,8 +1345,8 @@ function ContainerSubcellLimiterIDP2D{uEltype}(capacity::Integer, n_nodes,
     _alpha2 = fill(nan_uEltype, n_nodes * (n_nodes + 1) * capacity)
     alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes + 1, capacity))
 
-    _variable_bounds = Dict{String, Vector{uEltype}}()
-    variable_bounds = Dict{String, Array{uEltype, 3}}()
+    _variable_bounds = Dict{Symbol, Vector{uEltype}}()
+    variable_bounds = Dict{Symbol, Array{uEltype, 3}}()
     for key in bound_keys
         _variable_bounds[key] = fill(nan_uEltype, n_nodes * n_nodes * capacity)
         variable_bounds[key] = unsafe_wrap(Array, pointer(_variable_bounds[key]),
