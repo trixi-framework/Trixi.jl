@@ -145,34 +145,30 @@ end
     println("─"^100)
     println("Maximum deviation from bounds:")
     println("─"^100)
-    counter = 1
     if local_minmax
-        for index in limiter.local_minmax_variables_cons
-            println("$(variables[index]):")
-            println("-lower bound: ", idp_bounds_delta[counter])
-            println("-upper bound: ", idp_bounds_delta[counter + 1])
-            counter += 2
+        for v in limiter.local_minmax_variables_cons
+            println("$(variables[v]):")
+            println("-lower bound: ", idp_bounds_delta[Symbol("$(v)_min")])
+            println("-upper bound: ", idp_bounds_delta[Symbol("$(v)_max")])
         end
     end
     if spec_entropy
-        println("spec. entropy:\n- lower bound: ", idp_bounds_delta[counter])
-        counter += 1
+        println("spec. entropy:\n- lower bound: ", idp_bounds_delta[:spec_entropy_min])
     end
     if math_entropy
-        println("math. entropy:\n- upper bound: ", idp_bounds_delta[counter])
-        counter += 1
+        println("math. entropy:\n- upper bound: ", idp_bounds_delta[:math_entropy_max])
     end
     if positivity
-        for index in limiter.positivity_variables_cons
-            if index in limiter.local_minmax_variables_cons
+        for v in limiter.positivity_variables_cons
+            if v in limiter.local_minmax_variables_cons
                 continue
             end
-            println("$(variables[index]):\n- positivity: ", idp_bounds_delta[counter])
-            counter += 1
+            println("$(variables[v]):\n- positivity: ",
+                    idp_bounds_delta[Symbol("$(v)_min")])
         end
         for variable in limiter.positivity_variables_nonlinear
-            println("$(variable):\n- positivity: ", idp_bounds_delta[counter])
-            counter += 1
+            println("$(variable):\n- positivity: ",
+                    idp_bounds_delta[Symbol("$(variable)_min")])
         end
     end
     println("─"^100 * "\n")

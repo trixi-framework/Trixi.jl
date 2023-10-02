@@ -13,29 +13,31 @@
     @unpack idp_bounds_delta = limiter.cache
 
     save_errors_ = save_errors && (iter % interval == 0)
-    counter = 1
     if save_errors_
         open("$output_directory/deviations.txt", "a") do f
             print(f, iter, ", ", time)
         end
     end
     if local_minmax
-        for index in limiter.local_minmax_variables_cons
+        for v in limiter.local_minmax_variables_cons
+            key_min = Symbol("$(v)_min")
+            key_max = Symbol("$(v)_max")
             deviation_min = zero(eltype(u))
             deviation_max = zero(eltype(u))
             for element in eachelement(solver, cache), j in eachnode(solver),
                 i in eachnode(solver)
 
                 deviation_min = max(deviation_min,
-                                    variable_bounds[counter][i, j, element] -
-                                    u[index, i, j, element])
+                                    variable_bounds[key_min][i, j, element] -
+                                    u[v, i, j, element])
                 deviation_max = max(deviation_max,
-                                    u[index, i, j, element] -
-                                    variable_bounds[counter + 1][i, j, element])
+                                    u[v, i, j, element] -
+                                    variable_bounds[key_max][i, j, element])
             end
-            idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
-            idp_bounds_delta[counter + 1] = max(idp_bounds_delta[counter + 1],
-                                                deviation_max)
+            idp_bounds_delta[key_min] = max(idp_bounds_delta[key_min],
+                                            deviation_min)
+            idp_bounds_delta[key_max] = max(idp_bounds_delta[key_max],
+                                            deviation_max)
             if save_errors_
                 deviation_min_ = deviation_min
                 deviation_max_ = deviation_max
@@ -43,10 +45,10 @@
                     print(f, ", ", deviation_min_, ", ", deviation_max_)
                 end
             end
-            counter += 2
         end
     end
     if spec_entropy
+        key = :spec_entropy_min
         deviation_min = zero(eltype(u))
         for element in eachelement(solver, cache), j in eachnode(solver),
             i in eachnode(solver)
@@ -54,18 +56,18 @@
             s = entropy_spec(get_node_vars(u, equations, solver, i, j, element),
                              equations)
             deviation_min = max(deviation_min,
-                                variable_bounds[counter][i, j, element] - s)
+                                variable_bounds[key][i, j, element] - s)
         end
-        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
+        idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_min)
         if save_errors_
             deviation_min_ = deviation_min
             open("$output_directory/deviations.txt", "a") do f
                 print(f, ", ", deviation_min_)
             end
         end
-        counter += 1
     end
     if math_entropy
+        key = :math_entropy_max
         deviation_max = zero(eltype(u))
         for element in eachelement(solver, cache), j in eachnode(solver),
             i in eachnode(solver)
@@ -73,40 +75,40 @@
             s = entropy_math(get_node_vars(u, equations, solver, i, j, element),
                              equations)
             deviation_max = max(deviation_max,
-                                s - variable_bounds[counter][i, j, element])
+                                s - variable_bounds[key][i, j, element])
         end
-        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_max)
+        idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_max)
         if save_errors_
             deviation_max_ = deviation_max
             open("$output_directory/deviations.txt", "a") do f
                 print(f, ", ", deviation_max_)
             end
         end
-        counter += 1
     end
     if positivity
-        for index in limiter.positivity_variables_cons
-            if index in limiter.local_minmax_variables_cons
+        for v in limiter.positivity_variables_cons
+            if v in limiter.local_minmax_variables_cons
                 continue
             end
+            key = Symbol("$(v)_min")
             deviation_min = zero(eltype(u))
             for element in eachelement(solver, cache), j in eachnode(solver),
                 i in eachnode(solver)
 
-                var = u[index, i, j, element]
+                var = u[v, i, j, element]
                 deviation_min = max(deviation_min,
-                                    variable_bounds[counter][i, j, element] - var)
+                                    variable_bounds[key][i, j, element] - var)
             end
-            idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
+            idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_min)
             if save_errors_
                 deviation_min_ = deviation_min
                 open("$output_directory/deviations.txt", "a") do f
                     print(f, ", ", deviation_min_)
                 end
             end
-            counter += 1
         end
         for variable in limiter.positivity_variables_nonlinear
+            key = Symbol("$(variable)_min")
             deviation_min = zero(eltype(u))
             for element in eachelement(solver, cache), j in eachnode(solver),
                 i in eachnode(solver)
@@ -114,16 +116,15 @@
                 var = variable(get_node_vars(u, equations, solver, i, j, element),
                                equations)
                 deviation_min = max(deviation_min,
-                                    variable_bounds[counter][i, j, element] - var)
+                                    variable_bounds[key][i, j, element] - var)
             end
-            idp_bounds_delta[counter] = max(idp_bounds_delta[counter], deviation_min)
+            idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_min)
             if save_errors_
                 deviation_min_ = deviation_min
                 open("$output_directory/deviations.txt", "a") do f
                     print(f, ", ", deviation_min_)
                 end
             end
-            counter += 1
         end
     end
     if save_errors_

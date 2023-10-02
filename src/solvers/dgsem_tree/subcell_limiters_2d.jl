@@ -7,11 +7,11 @@
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis, number_bounds, bar_states)
+                      basis::LobattoLegendreBasis, bound_keys, bar_states)
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
                                                                       }(0,
                                                                         nnodes(basis),
-                                                                        number_bounds)
+                                                                        bound_keys)
 
     cache = (;)
     if bar_states
@@ -21,7 +21,10 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
         cache = (; cache..., container_bar_states)
     end
 
-    idp_bounds_delta = zeros(real(basis), number_bounds)
+    idp_bounds_delta = Dict{Symbol, real(basis)}()
+    for key in bound_keys
+        idp_bounds_delta[key] = zero(real(basis))
+    end
 
     return (; cache..., subcell_limiter_coefficients, idp_bounds_delta)
 end
@@ -318,20 +321,18 @@ end
 end
 
 @inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements)
-    for (index, variable) in enumerate(limiter.local_minmax_variables_cons)
-        idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable, index)
+    for variable in limiter.local_minmax_variables_cons
+        idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable)
     end
 
     return nothing
 end
 
-@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable,
-                                   index)
+@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
-
-    var_min = variable_bounds[2 * (index - 1) + 1]
-    var_max = variable_bounds[2 * (index - 1) + 2]
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol("$(variable)_min")]
+    var_max = variable_bounds[Symbol("$(variable)_max")]
     if !limiter.bar_states
         calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
     end
@@ -396,9 +397,8 @@ end
 
 @inline function idp_spec_entropy!(alpha, limiter, u, t, dt, semi, elements)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
-
-    s_min = variable_bounds[2 * length(limiter.local_minmax_variables_cons) + 1]
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    s_min = variable_bounds[:spec_entropy_min]
     if !limiter.bar_states
         calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u, t, semi)
     end
@@ -427,10 +427,8 @@ end
 
 @inline function idp_math_entropy!(alpha, limiter, u, t, dt, semi, elements)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack spec_entropy = limiter
-    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
-
-    s_max = variable_bounds[2 * length(limiter.local_minmax_variables_cons) + spec_entropy + 1]
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    s_max = variable_bounds[:math_entropy_max]
     if !limiter.bar_states
         calc_bounds_1sided!(s_max, max, typemin, entropy_math, u, t, semi)
     end
@@ -459,48 +457,26 @@ end
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi, elements)
     # Conservative variables
-    for (index, variable) in enumerate(limiter.positivity_variables_cons)
-        idp_positivity!(alpha, limiter, u, dt, semi, elements, variable, index)
+    for variable in limiter.positivity_variables_cons
+        idp_positivity!(alpha, limiter, u, dt, semi, elements, variable)
     end
 
     # Nonlinear variables
-    for (index, variable) in enumerate(limiter.positivity_variables_nonlinear)
-        idp_positivity_newton!(alpha, limiter, u, dt, semi, elements, variable, index)
+    for variable in limiter.positivity_variables_nonlinear
+        idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, elements, variable)
     end
 
     return nothing
 end
 
-@inline function idp_positivity!(alpha, limiter, u, dt, semi, elements, variable,
-                                 index)
+@inline function idp_positivity!(alpha, limiter, u, dt, semi, elements, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
     @unpack inverse_weights = dg.basis
-    @unpack local_minmax, spec_entropy, math_entropy, positivity_correction_factor = limiter
+    @unpack local_minmax, positivity_correction_factor = limiter
 
-    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
-
-    counter = 2 * length(limiter.local_minmax_variables_cons) + spec_entropy +
-              math_entropy
-    if local_minmax
-        if variable in limiter.local_minmax_variables_cons
-            for (index_, variable_) in enumerate(limiter.local_minmax_variables_cons)
-                if variable == variable_
-                    var_min = variable_bounds[2 * (index_ - 1) + 1]
-                    break
-                end
-            end
-        else
-            for variable_ in limiter.positivity_variables_cons[1:index]
-                if !(variable_ in limiter.local_minmax_variables_cons)
-                    counter += 1
-                end
-            end
-            var_min = variable_bounds[counter]
-        end
-    else
-        var_min = variable_bounds[counter + index]
-    end
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol("$(variable)_min")]
 
     @threaded for element in elements
         if mesh isa TreeMesh
@@ -558,20 +534,13 @@ end
     return nothing
 end
 
-@inline function idp_positivity_newton!(alpha, limiter, u, dt, semi, elements,
-                                        variable, index)
+@inline function idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, elements,
+                                           variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack spec_entropy, math_entropy, positivity_correction_factor, positivity_variables_cons = limiter
-    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
+    (; positivity_correction_factor) = limiter
 
-    index_ = 2 * length(limiter.local_minmax_variables_cons) + spec_entropy +
-             math_entropy + index
-    for variable_ in limiter.positivity_variables_cons
-        if !(variable_ in limiter.local_minmax_variables_cons)
-            index_ += 1
-        end
-    end
-    var_min = variable_bounds[index_]
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol("$(variable)_min")]
 
     @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)
