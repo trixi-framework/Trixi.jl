@@ -269,7 +269,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         #
         # This should be replaced with something more robust and secure,
         # see https://github.com/trixi-framework/Trixi.jl/issues/541).
-        expr = Meta.parse(mapping_as_string)
+        expr = Meta.parseall(mapping_as_string)
         if expr.head == :toplevel
             expr.head = :block
         end
