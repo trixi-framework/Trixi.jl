@@ -548,7 +548,7 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
-    
+
     flux_viscous_x, flux_viscous_y = flux_viscous
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -573,7 +573,19 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                 for v in eachvariable(equations)
                     flux_viscous = SVector(flux_viscous_x[v, i_small, j_small, element],
                                            flux_viscous_y[v, i_small, j_small, element])
-                    cache.mortars.u[1, v, position, i, mortar] = dot(flux_viscous, normal_direction)
+                    # Coarse on top, fine below
+                    if direction_index == 3
+                        cache.mortars.u[1, v, position, i, mortar] = -dot(flux_viscous, normal_direction)
+                    else
+                        cache.mortars.u[1, v, position, i, mortar] = dot(flux_viscous, normal_direction)
+                    end
+
+                    # Fine on top, coarse below
+                    if direction_index == 3
+                        cache.mortars.u[1, v, position, i, mortar] = dot(flux_viscous, normal_direction)
+                    else
+                        cache.mortars.u[1, v, position, i, mortar] = -dot(flux_viscous, normal_direction)
+                    end
                 end
                 i_small += i_small_step
                 j_small += j_small_step
@@ -655,7 +667,7 @@ function calc_mortar_flux!(surface_flux_values,
                 calc_mortar_flux!(fstar, mesh, equations,
                                   surface_integral, dg, cache,
                                   mortar, position,
-                                  node)
+                                  node, small_direction)
 
                 i_small += i_small_step
                 j_small += j_small_step
@@ -682,7 +694,7 @@ end
                                    equations::AbstractEquationsParabolic,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index,
-                                   node_index)
+                                   node_index, small_direction)
     @unpack u = cache.mortars
     @unpack surface_flux = surface_integral
 
@@ -693,7 +705,19 @@ end
     flux = 0.5 * (u_ll + u_rr)
 
     # Copy flux to buffer
-    set_node_vars!(fstar[position_index], flux, equations, dg, node_index)
+    # Coarse on top, fine below
+    if small_direction == 3
+        set_node_vars!(fstar[position_index], flux, equations, dg, node_index)
+    else 
+        set_node_vars!(fstar[position_index], -flux, equations, dg, node_index)
+    end
+
+    # Fine on top, coarse below
+    if small_direction == 3
+        set_node_vars!(fstar[position_index], -flux, equations, dg, node_index)
+    else 
+        set_node_vars!(fstar[position_index], flux, equations, dg, node_index)
+    end
 end
 
 # TODO: parabolic, finish implementing `calc_boundary_flux_gradients!` and `calc_boundary_flux_divergence!`
