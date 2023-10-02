@@ -102,7 +102,11 @@ function StructuredMesh(cells_per_dimension, faces::Tuple; RealT = Float64,
 
     # Include faces definition in `mapping_as_string` to allow for evaluation
     # without knowing the face functions
-    mapping_as_string = "$faces_definition\nfaces = $(string(faces))\nmapping = transfinite_mapping(faces)"
+    mapping_as_string = """
+        $faces_definition
+        faces = $(string(faces))
+        mapping = transfinite_mapping(faces)
+        """
 
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
@@ -123,13 +127,14 @@ Create a StructuredMesh that represents a uncurved structured mesh with a rectan
 """
 function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
                         periodicity = true)
-    NDIMS = length(cells_per_dimension)
     RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
 
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
-    mapping_as_string = "coordinates_min = $coordinates_min; " *
-                        "coordinates_max = $coordinates_max; " *
-                        "mapping = coordinates2mapping(coordinates_min, coordinates_max)"
+    mapping_as_string = """
+        coordinates_min = $coordinates_min
+        coordinates_max = $coordinates_max
+        mapping = coordinates2mapping(coordinates_min, coordinates_max)
+        """
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
                           mapping_as_string = mapping_as_string)
