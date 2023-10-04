@@ -24,7 +24,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [3.198940059144588e-5],
       linf = [0.00030636069494005547])
 
-    # Ensure that we do not have excessive memory allocations 
+    # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
       t = sol.t[end]
@@ -102,6 +102,15 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [0.020291447969983396, 0.017479614254319948, 0.011387644425613437, 0.0514420126021293],
       linf = [0.3582779022370579, 0.32073537890751663, 0.221818049107692, 0.9209559420400415],
       tspan = (0.0, 0.15))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+      t = sol.t[end]
+      u_ode = sol.u[end]
+      du_ode = similar(u_ode)
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
   end
 
   @trixi_testset "elixir_euler_forward_step_amr.jl" begin

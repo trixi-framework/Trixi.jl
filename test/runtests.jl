@@ -109,6 +109,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
 
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc_part2"
         include("test_special_elixirs.jl")
+        include("test_aqua.jl")
     end
 
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part1"

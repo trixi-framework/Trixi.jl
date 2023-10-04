@@ -192,6 +192,16 @@ end
     amr_callback(u_ode, mesh_equations_solver_cache(semi)..., semi, t, iter; kwargs...)
 end
 
+@inline function (amr_callback::AMRCallback)(u_ode::AbstractVector,
+                                             semi::SemidiscretizationHyperbolicParabolic,
+                                             t, iter;
+                                             kwargs...)
+    # Note that we don't `wrap_array` the vector `u_ode` to be able to `resize!`
+    # it when doing AMR while still dispatching on the `mesh` etc.
+    amr_callback(u_ode, mesh_equations_solver_cache(semi)..., semi.cache_parabolic,
+                 semi, t, iter; kwargs...)
+end
+
 # `passive_args` is currently used for Euler with self-gravity to adapt the gravity solver
 # passively without querying its indicator, based on the assumption that both solvers use
 # the same mesh. That's a hack and should be improved in the future once we have more examples
@@ -333,6 +343,154 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
     # Dynamically balance computational load by first repartitioning the mesh and then redistributing the cells/elements
     if has_changed && mpi_isparallel() && amr_callback.dynamic_load_balancing
+        @trixi_timeit timer() "dynamic load balancing" begin
+            old_mpi_ranks_per_cell = copy(mesh.tree.mpi_ranks)
+
+            partition!(mesh)
+
+            rebalance_solver!(u_ode, mesh, equations, dg, cache, old_mpi_ranks_per_cell)
+        end
+    end
+
+    # Return true if there were any cells coarsened or refined, otherwise false
+    return has_changed
+end
+
+function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
+                                     equations, dg::DG,
+                                     cache, cache_parabolic,
+                                     semi::SemidiscretizationHyperbolicParabolic,
+                                     t, iter;
+                                     only_refine = false, only_coarsen = false)
+    @unpack controller, adaptor = amr_callback
+
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
+    # Indicator kept based on hyperbolic variables
+    lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
+                                                          t = t, iter = iter)
+
+    if mpi_isparallel()
+        error("MPI has not been verified yet for parabolic AMR")
+
+        # Collect lambda for all elements
+        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(dg, cache))
+        # Use parent because n_elements_by_rank is an OffsetArray
+        recvbuf = MPI.VBuffer(lambda_global, parent(cache.mpi_cache.n_elements_by_rank))
+        MPI.Allgatherv!(lambda, recvbuf, mpi_comm())
+        lambda = lambda_global
+    end
+
+    leaf_cell_ids = leaf_cells(mesh.tree)
+    @boundscheck begin
+        @assert axes(lambda)==axes(leaf_cell_ids) ("Indicator (axes = $(axes(lambda))) and leaf cell (axes = $(axes(leaf_cell_ids))) arrays have different axes")
+    end
+
+    @unpack to_refine, to_coarsen = amr_callback.amr_cache
+    empty!(to_refine)
+    empty!(to_coarsen)
+    for element in 1:length(lambda)
+        controller_value = lambda[element]
+        if controller_value > 0
+            push!(to_refine, leaf_cell_ids[element])
+        elseif controller_value < 0
+            push!(to_coarsen, leaf_cell_ids[element])
+        end
+    end
+
+    @trixi_timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
+        # refine mesh
+        refined_original_cells = @trixi_timeit timer() "mesh" refine!(mesh.tree,
+                                                                      to_refine)
+
+        # Find all indices of elements whose cell ids are in refined_original_cells
+        # Note: This assumes same indices for hyperbolic and parabolic part.
+        elements_to_refine = findall(in(refined_original_cells),
+                                     cache.elements.cell_ids)
+
+        # refine solver
+        @trixi_timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg,
+                                               cache, cache_parabolic,
+                                               elements_to_refine)
+    else
+        # If there is nothing to refine, create empty array for later use
+        refined_original_cells = Int[]
+    end
+
+    @trixi_timeit timer() "coarsen" if !only_refine && !isempty(to_coarsen)
+        # Since the cells may have been shifted due to refinement, first we need to
+        # translate the old cell ids to the new cell ids
+        if !isempty(to_coarsen)
+            to_coarsen = original2refined(to_coarsen, refined_original_cells, mesh)
+        end
+
+        # Next, determine the parent cells from which the fine cells are to be
+        # removed, since these are needed for the coarsen! function. However, since
+        # we only want to coarsen if *all* child cells are marked for coarsening,
+        # we count the coarsening indicators for each parent cell and only coarsen
+        # if all children are marked as such (i.e., where the count is 2^ndims). At
+        # the same time, check if a cell is marked for coarsening even though it is
+        # *not* a leaf cell -> this can only happen if it was refined due to 2:1
+        # smoothing during the preceding refinement operation.
+        parents_to_coarsen = zeros(Int, length(mesh.tree))
+        for cell_id in to_coarsen
+            # If cell has no parent, it cannot be coarsened
+            if !has_parent(mesh.tree, cell_id)
+                continue
+            end
+
+            # If cell is not leaf (anymore), it cannot be coarsened
+            if !is_leaf(mesh.tree, cell_id)
+                continue
+            end
+
+            # Increase count for parent cell
+            parent_id = mesh.tree.parent_ids[cell_id]
+            parents_to_coarsen[parent_id] += 1
+        end
+
+        # Extract only those parent cells for which all children should be coarsened
+        to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
+
+        # Finally, coarsen mesh
+        coarsened_original_cells = @trixi_timeit timer() "mesh" coarsen!(mesh.tree,
+                                                                         to_coarsen)
+
+        # Convert coarsened parent cell ids to the list of child cell ids that have
+        # been removed, since this is the information that is expected by the solver
+        removed_child_cells = zeros(Int,
+                                    n_children_per_cell(mesh.tree) *
+                                    length(coarsened_original_cells))
+        for (index, coarse_cell_id) in enumerate(coarsened_original_cells)
+            for child in 1:n_children_per_cell(mesh.tree)
+                removed_child_cells[n_children_per_cell(mesh.tree) * (index - 1) + child] = coarse_cell_id +
+                                                                                            child
+            end
+        end
+
+        # Find all indices of elements whose cell ids are in removed_child_cells
+        # Note: This assumes same indices for hyperbolic and parabolic part.
+        elements_to_remove = findall(in(removed_child_cells), cache.elements.cell_ids)
+
+        # coarsen solver
+        @trixi_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg,
+                                                cache, cache_parabolic,
+                                                elements_to_remove)
+    else
+        # If there is nothing to coarsen, create empty array for later use
+        coarsened_original_cells = Int[]
+    end
+
+    # Store whether there were any cells coarsened or refined
+    has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
+    if has_changed # TODO: Taal decide, where shall we set this?
+        # don't set it to has_changed since there can be changes from earlier calls
+        mesh.unsaved_changes = true
+    end
+
+    # Dynamically balance computational load by first repartitioning the mesh and then redistributing the cells/elements
+    if has_changed && mpi_isparallel() && amr_callback.dynamic_load_balancing
+        error("MPI has not been verified yet for parabolic AMR")
+
         @trixi_timeit timer() "dynamic load balancing" begin
             old_mpi_ranks_per_cell = copy(mesh.tree.mpi_ranks)
 

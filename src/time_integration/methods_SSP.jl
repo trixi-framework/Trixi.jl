@@ -24,14 +24,16 @@ The third-order SSP Runge-Kutta method of Shu and Osher.
     This is an experimental feature and may change in future releases.
 """
 struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
-    a::SVector{3, Float64}
-    b::SVector{3, Float64}
+    numerator_a::SVector{3, Float64}
+    numerator_b::SVector{3, Float64}
+    denominator::SVector{3, Float64}
     c::SVector{3, Float64}
     stage_callbacks::StageCallbacks
 
     function SimpleSSPRK33(; stage_callbacks = ())
-        a = SVector(0.0, 3 / 4, 1 / 3)
-        b = SVector(1.0, 1 / 4, 2 / 3)
+        numerator_a = SVector(0.0, 3.0, 1.0) # a = numerator_a / denominator
+        numerator_b = SVector(1.0, 1.0, 2.0) # b = numerator_b / denominator
+        denominator = SVector(1.0, 4.0, 3.0)
         c = SVector(0.0, 1.0, 1 / 2)
 
         # Butcher tableau
@@ -42,7 +44,8 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
         # --------------------
         #   b | 1/6  1/6  2/3
 
-        new{typeof(stage_callbacks)}(a, b, c, stage_callbacks)
+        new{typeof(stage_callbacks)}(numerator_a, numerator_b, denominator, c,
+                                     stage_callbacks)
     end
 end
 
@@ -166,7 +169,9 @@ function solve!(integrator::SimpleIntegratorSSP)
             end
 
             # perform convex combination
-            @. integrator.u = alg.a[stage] * integrator.r0 + alg.b[stage] * integrator.u
+            @. integrator.u = (alg.numerator_a[stage] * integrator.r0 +
+                               alg.numerator_b[stage] * integrator.u) /
+                              alg.denominator[stage]
         end
 
         integrator.iter += 1
@@ -221,7 +226,9 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     resize!(integrator.r0, new_size)
 
     # Resize container
-    resize!(integrator.p, new_size)
+    # new_size = n_variables * n_nodes^n_dims * n_elements
+    n_elements = nelements(integrator.p.solver, integrator.p.cache)
+    resize!(integrator.p, n_elements)
 end
 
 function Base.resize!(semi::AbstractSemidiscretization, new_size)
