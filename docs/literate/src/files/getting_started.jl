@@ -261,7 +261,7 @@ advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # To solve our problem numerically using Trixi.jl, we have to define an instruction for spatial
-# discretization. To do it, we set up a mesh. The most widely supported in Trixi.jl is
+# discretization. To do it, we set up a mesh. One of the widely used meshes in Trixi.jl is
 # [`TreeMesh`](@ref). The spatial domain used is [-1.0, 1.0]⨯[-1.0, 1.0]. We also set a number of
 # elements in the mesh using `initial_refinement_level`, which describes the initial height of the
 # tree mesh. The variable `n_cells_max` is used to limit the number of elements in the mesh, which
