@@ -226,7 +226,9 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     resize!(integrator.r0, new_size)
 
     # Resize container
-    resize!(integrator.p, new_size)
+    # new_size = n_variables * n_nodes^n_dims * n_elements
+    n_elements = nelements(integrator.p.solver, integrator.p.cache)
+    resize!(integrator.p, n_elements)
 end
 
 function Base.resize!(semi::AbstractSemidiscretization, new_size)
