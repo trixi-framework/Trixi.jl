@@ -226,7 +226,7 @@ function get_node_variables!(node_variables, mesh, equations,
     # because the calculation is very integrated into the method.
     # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
     # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
-    # stored solution (initial condition) are not yet defined and were manually set to `-1`.
+    # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
     get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
                         equations)
 end
