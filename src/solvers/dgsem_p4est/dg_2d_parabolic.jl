@@ -573,7 +573,6 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                     flux_viscous = SVector(flux_viscous_x[v, i_small, j_small, element],
                                            flux_viscous_y[v, i_small, j_small, element])
                     # Coarse on top, fine below
-                    # TODO: Question maybe faces[side] to get these ifs right
                     if direction_index == 3
                         cache.mortars.u[1, v, position, i, mortar] = -dot(flux_viscous, normal_direction)
                     else
