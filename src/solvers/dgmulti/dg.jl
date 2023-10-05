@@ -302,7 +302,9 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     @threaded for e in eachelement(mesh, dg, cache)
         flux_values = local_values_threaded[Threads.threadid()]
         for i in eachdim(mesh)
+            # Here, the broadcasting operation does allocate
             #flux_values .= flux.(view(u_values, :, e), i, equations)
+            # Use loop instead
             for j in eachindex(flux_values)
                 flux_values[j] = flux(u_values[j, e], i, equations)
             end
@@ -330,10 +332,8 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
     @threaded for e in eachelement(mesh, dg, cache)
         flux_values = cache.flux_threaded[Threads.threadid()]
         for i in eachdim(mesh)
-            #flux_values .= flux.(view(u_values, :, e), i, equations)
-            for j in eachindex(flux_values)
-                flux_values[j] = flux(u_values[j, e], i, equations)
-            end
+            # Here, the broadcasting operation does not allocate
+            flux_values[i] .= flux.(view(u_values, :, e), i, equations)
         end
 
         # rotate flux with df_i/dx_i = sum_j d(x_i)/d(x̂_j) * d(f_i)/d(x̂_j).
