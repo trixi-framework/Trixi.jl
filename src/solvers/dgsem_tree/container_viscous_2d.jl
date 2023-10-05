@@ -1,6 +1,5 @@
 mutable struct ViscousContainer2D{uEltype <: Real}
     u_transformed::Array{uEltype, 4}
-    # IDEA: Use SVector for fixed sized vectors?
     gradients::Vector{Array{uEltype, 4}}
     flux_viscous::Vector{Array{uEltype, 4}}
 
