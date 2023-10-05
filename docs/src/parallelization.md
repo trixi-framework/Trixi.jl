@@ -70,7 +70,9 @@ the same for P4est.jl and T8code.jl. This could e.g. be `libp4est.so` that usual
 in `lib/` or `local/lib/` in the installation directory of `t8code`.
 In total, in your active Julia project you should have a LocalPreferences.toml file with sections
 `[MPIPreferences]`, `[T8code]` and `[P4est]` as well as an entry `MPIPreferences` in your
-Project.toml to use a custom MPI installation.
+Project.toml to use a custom MPI installation. An example LocalPreferences.toml file 
+can be found [here](https://gist.github.com/jlchan/cb5932258c1eceaa7ff34ef6bcc84d17). 
+
 
 
 ### [Usage](@id parallel_usage)
