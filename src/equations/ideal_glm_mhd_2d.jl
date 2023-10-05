@@ -23,12 +23,17 @@ mutable struct IdealGlmMhdEquations2D{RealT <: Real} <:
     end
 end
 
+struct NonConservativeLocal end
+struct NonConservativeSymmetric end
+
 function IdealGlmMhdEquations2D(gamma; initial_c_h = convert(typeof(gamma), NaN))
     # Use `promote` to ensure that `gamma` and `initial_c_h` have the same type
     IdealGlmMhdEquations2D(promote(gamma, initial_c_h)...)
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = True()
+nnoncons(::IdealGlmMhdEquations2D) = 2
+
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations2D)
     ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
 end
@@ -128,10 +133,10 @@ end
         f4 = rho_v1 * v3 - B1 * B3
         f5 = (kin_en + equations.gamma * p_over_gamma_minus_one + 2 * mag_en) * v1 -
              B1 * (v1 * B1 + v2 * B2 + v3 * B3) + equations.c_h * psi * B1
-        f6 = equations.c_h * psi
+        f6 = 0#equations.c_h * psi
         f7 = v1 * B2 - v2 * B1
         f8 = v1 * B3 - v3 * B1
-        f9 = equations.c_h * B1
+        f9 = 0#equations.c_h * B1
     else #if orientation == 2
         f1 = rho_v2
         f2 = rho_v2 * v1 - B2 * B1
@@ -140,9 +145,9 @@ end
         f5 = (kin_en + equations.gamma * p_over_gamma_minus_one + 2 * mag_en) * v2 -
              B2 * (v1 * B1 + v2 * B2 + v3 * B3) + equations.c_h * psi * B2
         f6 = v2 * B1 - v1 * B2
-        f7 = equations.c_h * psi
+        f7 = 0#equations.c_h * psi
         f8 = v2 * B3 - v3 * B2
-        f9 = equations.c_h * B2
+        f9 = 0#equations.c_h * B2
     end
 
     return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
@@ -206,7 +211,7 @@ terms.
   equations. Part I: Theory and numerical verification
   [DOI: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
 """
-@inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+#= @inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
                                              equations::IdealGlmMhdEquations2D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
@@ -238,6 +243,115 @@ terms.
                     v2_ll * B2_rr,
                     v3_ll * B2_rr,
                     v2_ll * psi_rr)
+    end
+
+    return f
+end =#
+@inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+                                             equations::IdealGlmMhdEquations2D)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    psi_avg = 0.5 * (psi_ll + psi_rr)
+    if orientation == 1
+        B1_avg = 0.5 * (B1_ll + B1_rr)
+        f = SVector(0,
+                    B1_ll * B1_avg,
+                    B2_ll * B1_avg,
+                    B3_ll * B1_avg,
+                    v_dot_B_ll * B1_avg, # + v1_ll * psi_ll * psi_rr,
+                    v1_ll * B1_avg,
+                    v2_ll * B1_avg,
+                    v3_ll * B1_avg,
+                    0)#v1_ll * psi_avg)
+    else # orientation == 2
+        B2_avg = 0.5 * (B2_ll + B2_rr)
+        f = SVector(0,
+                    B1_ll * B2_avg,
+                    B2_ll * B2_avg,
+                    B3_ll * B2_avg,
+                    v_dot_B_ll * B2_avg, # + v2_ll * psi_ll * psi_rr,
+                    v1_ll * B2_avg,
+                    v2_ll * B2_avg,
+                    v3_ll * B2_avg,
+                    0)#v2_ll * psi_avg)
+    end
+
+    return f
+end
+"""
+
+"""
+@inline function flux_nonconservative_powell(u_ll, orientation::Integer,
+                                             equations::IdealGlmMhdEquations2D, 
+                                             nonconservative_type::NonConservativeLocal)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    f = SVector(0,
+                B1_ll,
+                B2_ll,
+                B3_ll,
+                v_dot_B_ll, # The term (v1_ll * psi_ll) is missing because we need to define several non-conservative terms
+                v1_ll,
+                v2_ll,
+                v3_ll,
+                0)#v1_ll)
+
+    return f
+end
+"""
+
+"""
+@inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+                                             equations::IdealGlmMhdEquations2D, 
+                                             nonconservative_type::NonConservativeSymmetric)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    psi_avg = 0.5 * (psi_ll + psi_rr)
+    if orientation == 1
+        B1_avg = 0.5 * (B1_ll + B1_rr)
+        f = SVector(0,
+                    B1_avg,
+                    B1_avg,
+                    B1_avg,
+                    B1_avg, # The term (psi_avg) is missing because we need to define several non-conservative terms
+                    B1_avg,
+                    B1_avg,
+                    B1_avg,
+                    0)#psi_avg)
+    else # orientation == 2
+        B2_avg = 0.5 * (B2_ll + B2_rr)
+        f = SVector(0,
+                    B2_avg,
+                    B2_avg,
+                    B2_avg,
+                    B2_avg, # The term (psi_avg) is missing because we need to define several non-conservative terms
+                    B2_avg,
+                    B2_avg,
+                    B2_avg,
+                    0)#psi_avg)
     end
 
     return f

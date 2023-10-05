@@ -316,7 +316,7 @@ end
         end
 
         # The factor 0.5 cancels the factor 2 in the flux differencing form
-        multiply_add_to_node_vars!(du, alpha * 0.5, integral_contribution, equations,
+        multiply_add_to_node_vars!(du, alpha, integral_contribution, equations,
                                    dg, i, j, element)
     end
 end
@@ -493,8 +493,8 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        f1_L = f1 + 0.5 * nonconservative_flux(u_ll, u_rr, 1, equations)
-        f1_R = f1 + 0.5 * nonconservative_flux(u_rr, u_ll, 1, equations)
+        f1_L = f1 + nonconservative_flux(u_ll, u_rr, 1, equations)
+        f1_R = f1 + nonconservative_flux(u_rr, u_ll, 1, equations)
 
         # Copy to temporary storage
         set_node_vars!(fstar1_L, f1_L, equations, dg, i, j)
@@ -519,8 +519,8 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        f2_L = f2 + 0.5 * nonconservative_flux(u_ll, u_rr, 2, equations)
-        f2_R = f2 + 0.5 * nonconservative_flux(u_rr, u_ll, 2, equations)
+        f2_L = f2 + nonconservative_flux(u_ll, u_rr, 2, equations)
+        f2_R = f2 + nonconservative_flux(u_rr, u_ll, 2, equations)
 
         # Copy to temporary storage
         set_node_vars!(fstar2_L, f2_L, equations, dg, i, j)
@@ -626,10 +626,10 @@ function calc_interface_flux!(surface_flux_values,
                 # the interpretation of global SBP operators coupled discontinuously via
                 # central fluxes/SATs
                 surface_flux_values[v, i, left_direction, left_id] = flux[v] +
-                                                                     0.5 *
+                                                                     #0.5 *
                                                                      noncons_left[v]
                 surface_flux_values[v, i, right_direction, right_id] = flux[v] +
-                                                                       0.5 *
+                                                                       #0.5 *
                                                                        noncons_right[v]
             end
         end
@@ -779,7 +779,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
             # Copy flux to left and right element storage
             for v in eachvariable(equations)
                 surface_flux_values[v, i, direction, neighbor] = flux[v] +
-                                                                 0.5 * noncons_flux[v]
+                                                                 noncons_flux[v]
             end
         end
     end
