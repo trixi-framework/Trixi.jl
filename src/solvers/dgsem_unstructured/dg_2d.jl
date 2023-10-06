@@ -357,9 +357,9 @@ function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{}
     nothing
 end
 
-function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
+function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
                              mesh::UnstructuredMesh2D, equations,
-                             surface_integral, dg::DG)
+                             surface_integral, dg::DG) where {BC}
     @unpack surface_flux_values = cache.elements
     @unpack element_id, element_side_id = cache.boundaries
 

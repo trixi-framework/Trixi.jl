@@ -12,27 +12,38 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 @testset "Threaded tests" begin
   @testset "TreeMesh" begin
     @trixi_testset "elixir_advection_restart.jl" begin
-      @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_restart.jl"),
-        # Expected errors are exactly the same as in the serial test!
-        l2   = [7.81674284320524e-6],
-        linf = [6.314906965243505e-5])
+      elixir = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_extended.jl")
+      Trixi.mpi_isroot() && println("═"^100)
+      Trixi.mpi_isroot() && println(elixir)
+      trixi_include(@__MODULE__, elixir, tspan = (0.0, 10.0))
+      l2_expected, linf_expected = analysis_callback(sol)
 
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-          t = sol.t[end]
-          u_ode = sol.u[end]
-          du_ode = similar(u_ode)
-          @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+      elixir = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_restart.jl")
+      Trixi.mpi_isroot() && println("═"^100)
+      Trixi.mpi_isroot() && println(elixir)
+      # Errors are exactly the same as in the elixir_advection_extended.jl
+      trixi_include(@__MODULE__, elixir)
+      l2_actual, linf_actual = analysis_callback(sol)
+      
+      Trixi.mpi_isroot() && @test l2_actual == l2_expected
+      Trixi.mpi_isroot() && @test linf_actual == linf_expected
+
+      # Ensure that we do not have excessive memory allocations
+      # (e.g., from type instabilities)
+      let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+      end
     end
 
     @trixi_testset "elixir_advection_restart.jl with threaded time integration" begin
       @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_restart.jl"),
         alg = CarpenterKennedy2N54(williamson_condition = false, thread = OrdinaryDiffEq.True()),
         # Expected errors are exactly the same as in the serial test!
-        l2   = [7.81674284320524e-6],
-        linf = [6.314906965243505e-5])
+        l2   = [8.005068880114254e-6],
+        linf = [6.39093577996519e-5])
     end
 
     @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
@@ -301,11 +312,7 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        if (Threads.nthreads() < 2) || (VERSION < v"1.9")
-          @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        else
-          @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
       end
     end
 
