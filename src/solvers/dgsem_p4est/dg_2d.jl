@@ -569,7 +569,6 @@ end
                                             mortar_l2::LobattoLegendreMortarL2,
                                             dg::DGSEM, cache, mortar, fstar, u_buffer)
     @unpack neighbor_ids, node_indices = cache.mortars
-
     # Copy solution small to small
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
