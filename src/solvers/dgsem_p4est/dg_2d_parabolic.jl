@@ -572,19 +572,8 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                 for v in eachvariable(equations)
                     flux_viscous = SVector(flux_viscous_x[v, i_small, j_small, element],
                                            flux_viscous_y[v, i_small, j_small, element])
-                    # Coarse on top, fine below
-                    if direction_index == 3
-                        cache.mortars.u[1, v, position, i, mortar] = -dot(flux_viscous, normal_direction)
-                    else
-                        cache.mortars.u[1, v, position, i, mortar] = dot(flux_viscous, normal_direction)
-                    end
 
-                    # Fine on top, coarse below
-                    if direction_index == 3
-                        cache.mortars.u[1, v, position, i, mortar] = dot(flux_viscous, normal_direction)
-                    else
-                        cache.mortars.u[1, v, position, i, mortar] = -dot(flux_viscous, normal_direction)
-                    end
+                    cache.mortars.u[1, v, position, i, mortar] = dot(flux_viscous, normal_direction)
                 end
                 i_small += i_small_step
                 j_small += j_small_step
@@ -704,19 +693,7 @@ end
     flux = 0.5 * (u_ll + u_rr)
 
     # Copy flux to buffer
-    # Coarse on top, fine below
-    if small_direction == 3
-        set_node_vars!(fstar[position_index], flux, equations, dg, node_index)
-    else 
-        set_node_vars!(fstar[position_index], -flux, equations, dg, node_index)
-    end
-
-    # Fine on top, coarse below
-    if small_direction == 3
-        set_node_vars!(fstar[position_index], -flux, equations, dg, node_index)
-    else 
-        set_node_vars!(fstar[position_index], flux, equations, dg, node_index)
-    end
+    set_node_vars!(fstar[position_index], flux, equations, dg, node_index)
 end
 
 # TODO: parabolic, finish implementing `calc_boundary_flux_gradients!` and `calc_boundary_flux_divergence!`
