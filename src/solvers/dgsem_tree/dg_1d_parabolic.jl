@@ -535,13 +535,13 @@ function create_cache_parabolic(mesh::TreeMesh{1},
     elements = init_elements(leaf_cell_ids, mesh, equations_hyperbolic, dg.basis, RealT,
                              uEltype)
 
-    viscous_container = init_viscous_container(nvariables(equations_hyperbolic),
-                                               nnodes(elements), nelements(elements),
-                                               uEltype)
-
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
     boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
+
+    viscous_container = init_viscous_container_1d(nvariables(equations_hyperbolic),
+                                                  nnodes(elements), nelements(elements),
+                                                  uEltype)
 
     cache = (; elements, interfaces, boundaries, viscous_container)
 

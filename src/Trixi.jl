@@ -152,7 +152,7 @@ export AcousticPerturbationEquations2D,
        ShallowWaterEquationsQuasi1D,
        LinearizedEulerEquations2D
 
-export LaplaceDiffusion1D, LaplaceDiffusion2D,
+export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
        CompressibleNavierStokesDiffusion3D
 
@@ -207,7 +207,7 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
-export density, pressure, density_pressure, velocity, global_mean_vars,
+export density, pressure, density_pressure, velocity, v1, v2, v3, global_mean_vars,
        equilibrium_distribution, waterheight_pressure
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
        cross_helicity,
