@@ -222,7 +222,8 @@ end
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[ii, i], flux1,
                                        equations, dg, ii, j)
-            flux1_noncons = volume_flux_noncons(u_node, u_node_ii, 1, equations, NonConservativeSymmetric())
+            # We multiply by 0.5 because that is done in other parts of Trixi
+            flux1_noncons = 0.5 * volume_flux_noncons(u_node, u_node_ii, 1, equations, NonConservativeSymmetric())
             multiply_add_to_node_vars!(flux_temp_noncons, derivative_split[i, ii], flux1_noncons,
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp_noncons, derivative_split[ii, i], flux1_noncons,
@@ -272,7 +273,8 @@ end
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[jj, j], flux2,
                                        equations, dg, i, jj)
-            flux2_noncons = volume_flux_noncons(u_node, u_node_jj, 2, equations, NonConservativeSymmetric())
+            # We multiply by 0.5 because that is done in other parts of Trixi
+            flux2_noncons = 0.5 * volume_flux_noncons(u_node, u_node_jj, 2, equations, NonConservativeSymmetric())
             multiply_add_to_node_vars!(flux_temp_noncons, derivative_split[j, jj], flux2_noncons,
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp_noncons, derivative_split[jj, j], flux2_noncons,

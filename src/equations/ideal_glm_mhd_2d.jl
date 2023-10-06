@@ -259,9 +259,9 @@ end =#
 
     # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
     # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
-    psi_avg = 0.5 * (psi_ll + psi_rr)
+    psi_avg = (psi_ll + psi_rr) #* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
     if orientation == 1
-        B1_avg = 0.5 * (B1_ll + B1_rr)
+        B1_avg = (B1_ll + B1_rr) #* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
         f = SVector(0,
                     B1_ll * B1_avg,
                     B2_ll * B1_avg,
@@ -272,7 +272,7 @@ end =#
                     v3_ll * B1_avg,
                     0)#v1_ll * psi_avg)
     else # orientation == 2
-        B2_avg = 0.5 * (B2_ll + B2_rr)
+        B2_avg = (B2_ll + B2_rr) #* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
         f = SVector(0,
                     B1_ll * B2_avg,
                     B2_ll * B2_avg,
@@ -329,9 +329,9 @@ end
 
     # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
     # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
-    psi_avg = 0.5 * (psi_ll + psi_rr)
+    psi_avg = (psi_ll + psi_rr)#* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
     if orientation == 1
-        B1_avg = 0.5 * (B1_ll + B1_rr)
+        B1_avg = (B1_ll + B1_rr)#* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
         f = SVector(0,
                     B1_avg,
                     B1_avg,
@@ -342,7 +342,7 @@ end
                     B1_avg,
                     0)#psi_avg)
     else # orientation == 2
-        B2_avg = 0.5 * (B2_ll + B2_rr)
+        B2_avg = (B2_ll + B2_rr)#* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
         f = SVector(0,
                     B2_avg,
                     B2_avg,
