@@ -500,7 +500,7 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         j_node = j_node_start
 
         for i in eachnode(solver)
-            for v in 1:size(u, 1)
+            for v in 1:size(boundary_condition.u_boundary, 1)
                 x = cache.elements.node_coordinates[:, i_node, j_node,
                                                     linear_indices[i_cell, j_cell]]
                 converted_u = boundary_condition.coupling_converter(x,
