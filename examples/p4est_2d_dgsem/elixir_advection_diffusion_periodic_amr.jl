@@ -107,7 +107,3 @@ plot(sol)
 pd = PlotData2D(sol)
 plot!(getmesh(pd))
 
-
-# u = sol.u[end]
-# du = similar(u)
-# Trixi.rhs_parabolic!(du, u, semi, 0.0)
