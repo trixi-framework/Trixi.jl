@@ -9,12 +9,13 @@ function create_cache_parabolic(mesh::P4estMesh{2}, equations_hyperbolic::Abstra
     elements = init_elements(mesh, equations_hyperbolic, dg.basis, uEltype)
     interfaces = init_interfaces(mesh, equations_hyperbolic, dg.basis, elements)
     boundaries = init_boundaries(mesh, equations_hyperbolic, dg.basis, elements)
+    mortars = init_mortars(mesh, equations_hyperbolic, dg.basis, elements)
 
     viscous_container = init_viscous_container_2d(nvariables(equations_hyperbolic),
                                                   nnodes(dg.basis), nelements(elements),
                                                   uEltype)
 
-    cache = (; elements, interfaces, boundaries, viscous_container)
+    cache = (; elements, interfaces, boundaries, mortars, viscous_container)
 
     return cache
 end
@@ -94,17 +95,19 @@ function rhs_parabolic!(du, u, t, mesh::P4estMesh{2},
                                        dg.surface_integral, dg)
     end
 
-    # Prolong solution to mortars
+    # Prolong solution to mortars (specialized for AbstractEquationsParabolic)
+    # !!! NOTE: we reuse the hyperbolic cache here since it contains "mortars" and "u_threaded"
+    # !!! Is this OK?
     @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, flux_viscous, mesh, equations_parabolic,
-                         dg.mortar, dg.surface_integral, dg)
+        prolong2mortars_divergence!(cache, flux_viscous, mesh, equations_parabolic,
+                                    dg.mortar, dg.surface_integral, dg)
     end
 
-    # Calculate mortar fluxes
+    # Calculate mortar fluxes (specialized for AbstractEquationsParabolic)
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-                          equations_parabolic,
-                          dg.mortar, dg.surface_integral, dg, cache)
+        calc_mortar_flux_divergence!(cache_parabolic.elements.surface_flux_values, 
+                                     mesh, equations_parabolic, dg.mortar, 
+                                     dg.surface_integral, dg, cache)
     end
 
 
@@ -214,6 +217,8 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Prolong solution to mortars. These should reuse the hyperbolic version of `prolong2mortars`
+    # !!! NOTE: we reuse the hyperbolic cache here, since it contains both `mortars` and `u_threaded`. 
+    # !!! should we have a separate mortars/u_threaded in cache_parabolic?
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
                          dg.mortar, dg.surface_integral, dg)
@@ -608,10 +613,10 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
-                          mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
-                          mortar_l2::LobattoLegendreMortarL2,
-                          surface_integral, dg::DGSEM) where {uEltype <: Real}
+function prolong2mortars_divergence!(cache, flux_viscous::Vector{Array{uEltype, 4}},
+                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
+                                     mortar_l2::LobattoLegendreMortarL2,
+                                     surface_integral, dg::DGSEM) where {uEltype <: Real}
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
@@ -636,10 +641,7 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
             for i in eachnode(dg)
                 normal_direction = get_normal_direction(direction_index, contravariant_vectors,
                                                         i_small, j_small, element)
-                # if mortar==1 && position == 1 && i == 1
-                #     println(" on small sides")
-                #     @show normal_direction
-                # end                                                        
+                                              
                 for v in eachvariable(equations)
                     flux_viscous = SVector(flux_viscous_x[v, i_small, j_small, element],
                                            flux_viscous_y[v, i_small, j_small, element])
@@ -671,13 +673,15 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
         for i in eachnode(dg)
             normal_direction = get_normal_direction(direction_index, contravariant_vectors,
                                                     i_large, j_large, element)
-            # if mortar==1 && i == 1
-            #     println(" on large sides")
-            #     @show -0.5 * normal_direction
-            # end                                                      
+
             for v in eachvariable(equations)
                 flux_viscous = SVector(flux_viscous_x[v, i_large, j_large, element],
                                        flux_viscous_y[v, i_large, j_large, element])
+
+                # We prolong the viscous flux dotted with respect the outward normal 
+                # on the small element. We scale by -1/2 here because the normal 
+                # direction on the large element is negative 2x that of the small 
+                # element (these normal directions are "scaled" by the surface Jacobian)
                 u_buffer[v, i] = -0.5 * dot(flux_viscous, normal_direction)
             end
             i_large += i_large_step
@@ -696,12 +700,13 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
     return nothing
 end
 
-# THIS IS FOR THE DIVERGENCE????
-function calc_mortar_flux!(surface_flux_values,
-                           mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                           equations::AbstractEquationsParabolic,
-                           mortar_l2::LobattoLegendreMortarL2,
-                           surface_integral, dg::DG, cache)
+# We specialize `calc_mortar_flux!` for the divergence part of 
+# the parabolic terms. 
+function calc_mortar_flux_divergence!(surface_flux_values,
+                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                      equations::AbstractEquationsParabolic,
+                                      mortar_l2::LobattoLegendreMortarL2,
+                                      surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack contravariant_vectors = cache.elements
     @unpack fstar_upper_threaded, fstar_lower_threaded = cache
@@ -725,18 +730,14 @@ function calc_mortar_flux!(surface_flux_values,
             i_small = i_small_start
             j_small = j_small_start
             for node in eachnode(dg)
-                
-                # calc_mortar_flux!(fstar, mesh, equations, 
-                #                   surface_integral, dg, cache,
-                #                   mortar, position,
-                #                   node, small_direction)
+                                
+                for v in eachvariable(equations)
+                    viscous_flux_normal_ll = cache.mortars.u[1, v, position, node, mortar]
+                    viscous_flux_normal_rr = cache.mortars.u[1, v, position, node, mortar]
 
-                # !!! TODO: replace this with manual calculation of avg(fstar)
-                # reason: when we specialize calc_mortar_flux / calc_interface_flux, we
-                # do so to reuse existing routines for hyperbolic problems for gradient 
-                # computations. However, calc_interface_flux for divergence doesn't call a 
-                # second specialization of calc_interface_flux, so calc_mortar_flux for div 
-                # probably shouldn't either
+                    # TODO: parabolic; only BR1 at the moment
+                    fstar[position][v, node] = 0.5 * (viscous_flux_normal_ll + viscous_flux_normal_rr)
+                end
 
                 i_small += i_small_step
                 j_small += j_small_step
