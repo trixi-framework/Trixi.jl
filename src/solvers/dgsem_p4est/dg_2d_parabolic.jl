@@ -733,7 +733,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                                 
                 for v in eachvariable(equations)
                     viscous_flux_normal_ll = cache.mortars.u[1, v, position, node, mortar]
-                    viscous_flux_normal_rr = cache.mortars.u[1, v, position, node, mortar]
+                    viscous_flux_normal_rr = cache.mortars.u[2, v, position, node, mortar]
 
                     # TODO: parabolic; only BR1 at the moment
                     fstar[position][v, node] = 0.5 * (viscous_flux_normal_ll + viscous_flux_normal_rr)
