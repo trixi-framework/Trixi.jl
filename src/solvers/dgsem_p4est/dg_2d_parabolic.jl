@@ -107,19 +107,6 @@ function rhs_parabolic!(du, u, t, mesh::P4estMesh{2},
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 
-    # # Prolong solution to mortars
-    #     @trixi_timeit timer() "prolong2mortars" begin
-    #     prolong2mortars!(cache, flux_viscous, mesh, equations_parabolic,
-    #                      dg.mortar, dg.surface_integral, dg)
-    # end
-
-    # # Calculate mortar fluxes
-    # @trixi_timeit timer() "mortar flux" begin
-    #     calc_mortar_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-    #                       equations_parabolic,
-    #                       dg.mortar, dg.surface_integral, dg, cache)
-    # end
-
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
@@ -226,13 +213,14 @@ function calc_gradient!(gradients, u_transformed, t,
                                       mesh, equations_parabolic, dg.surface_integral, dg)
     end
 
-    # Prolong solution to mortars
+    # Prolong solution to mortars. These should reuse the hyperbolic version of `prolong2mortars`
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
                          dg.mortar, dg.surface_integral, dg)
     end
 
-    # Calculate mortar fluxes
+    # Calculate mortar fluxes. These should reuse the hyperbolic version of `calc_mortar_flux`,
+    # along with a specialization on `calc_mortar_flux`
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache_parabolic.elements.surface_flux_values,
                           mesh, False(), # False() = no nonconservative terms
@@ -625,7 +613,7 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
             for v in eachvariable(equations)
                 flux_viscous = SVector(flux_viscous_x[v, i_large, j_large, element],
                                        flux_viscous_y[v, i_large, j_large, element])
-                u_buffer[v, i] = 0.5 * dot(flux_viscous, normal_direction)
+                u_buffer[v, i] = -0.5 * dot(flux_viscous, normal_direction)
             end
             i_large += i_large_step
             j_large += j_large_step
@@ -675,8 +663,7 @@ end
     # vectors of the large element as well) are twice as large as the
     # contravariant vectors of the small elements. Therefore, the flux needs
     # to be scaled by a factor of 2 to obtain the flux of the large element.
-    u_buffer .*= 2
-    # u_buffer .*= -1
+    u_buffer .*= -2
 
     # Copy interpolated flux values from buffer to large element face in the
     # correct orientation.
@@ -734,12 +721,13 @@ function calc_mortar_flux!(surface_flux_values,
             i_small = i_small_start
             j_small = j_small_start
             for node in eachnode(dg)
-                calc_mortar_flux!(fstar, mesh, equations, 
-                                  surface_integral, dg, cache,
-                                  mortar, position,
-                                  node, small_direction)
+                
+                # calc_mortar_flux!(fstar, mesh, equations, 
+                #                   surface_integral, dg, cache,
+                #                   mortar, position,
+                #                   node, small_direction)
 
-                # !!! TODO: replace this with manual calculation of {fstar}
+                # !!! TODO: replace this with manual calculation of avg(fstar)
                 # reason: when we specialize calc_mortar_flux / calc_interface_flux, we
                 # do so to reuse existing routines for hyperbolic problems for gradient 
                 # computations. However, calc_interface_flux for divergence doesn't call a 
@@ -780,10 +768,10 @@ end
                                        mortar_index)
 
     # TODO: parabolic; only BR1 at the moment
-    flux = 0.5 * (u_ll + u_rr)
+    flux_ = 0.5 * (u_ll + u_rr)
 
     # Copy flux to buffer
-    set_node_vars!(fstar[position_index], flux, equations, dg, node_index)
+    set_node_vars!(fstar[position_index], flux_, equations, dg, node_index)
 end
 
 # TODO: parabolic, finish implementing `calc_boundary_flux_gradients!` and `calc_boundary_flux_divergence!`
