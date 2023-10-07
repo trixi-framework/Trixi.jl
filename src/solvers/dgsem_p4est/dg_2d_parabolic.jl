@@ -220,7 +220,8 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Calculate mortar fluxes. These should reuse the hyperbolic version of `calc_mortar_flux`,
-    # along with a specialization on `calc_mortar_flux`
+    # along with a specialization on `calc_mortar_flux!` and `mortar_fluxes_to_elements!` for 
+    # AbstractEquationsParabolic. 
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache_parabolic.elements.surface_flux_values,
                           mesh, False(), # False() = no nonconservative terms
@@ -321,6 +322,70 @@ function calc_gradient!(gradients, u_transformed, t,
                                   cache_parabolic)
         apply_jacobian_parabolic!(gradients_y, mesh, equations_parabolic, dg,
                                   cache_parabolic)
+    end
+
+    return nothing
+end
+
+# This version is called during `calc_gradients!` and must be specialized because the flux
+# in the gradient is {u} which doesn't depend on normals. Thus, you don't need to scale by 
+# 2 and flip the sign when storing the mortar fluxes back into surface_flux_values
+@inline function mortar_fluxes_to_elements!(surface_flux_values,
+                                            mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                            equations::AbstractEquationsParabolic,
+                                            mortar_l2::LobattoLegendreMortarL2,
+                                            dg::DGSEM, cache, mortar, fstar, u_buffer)
+    @unpack neighbor_ids, node_indices = cache.mortars
+    # Copy solution small to small
+    small_indices = node_indices[1, mortar]
+    small_direction = indices2direction(small_indices)
+
+    for position in 1:2
+        element = neighbor_ids[position, mortar]
+        for i in eachnode(dg)
+            for v in eachvariable(equations)
+                surface_flux_values[v, i, small_direction, element] = fstar[position][v,
+                                                                                      i]
+            end
+        end
+    end
+
+    # Project small fluxes to large element.
+    multiply_dimensionwise!(u_buffer,
+                            mortar_l2.reverse_upper, fstar[2],
+                            mortar_l2.reverse_lower, fstar[1])
+
+    # The flux is calculated in the outward direction of the small elements,
+    # so the sign must be switched to get the flux in outward direction
+    # of the large element.
+    # The contravariant vectors of the large element (and therefore the normal
+    # vectors of the large element as well) are twice as large as the
+    # contravariant vectors of the small elements. Therefore, the flux needs
+    # to be scaled by a factor of 2 to obtain the flux of the large element.
+    # u_buffer .*= 0.5
+
+    # Copy interpolated flux values from buffer to large element face in the
+    # correct orientation.
+    # Note that the index of the small sides will always run forward but
+    # the index of the large side might need to run backwards for flipped sides.
+    large_element = neighbor_ids[3, mortar]
+    large_indices = node_indices[2, mortar]
+    large_direction = indices2direction(large_indices)
+
+    if :i_backward in large_indices
+        for i in eachnode(dg)
+            for v in eachvariable(equations)
+                surface_flux_values[v, end + 1 - i, large_direction, large_element] = u_buffer[v,
+                                                                                               i]
+            end
+        end
+    else
+        for i in eachnode(dg)
+            for v in eachvariable(equations)
+                surface_flux_values[v, i, large_direction, large_element] = u_buffer[v,
+                                                                                     i]
+            end
+        end
     end
 
     return nothing
@@ -626,67 +691,6 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
         multiply_dimensionwise!(view(cache.mortars.u, 2, :, 2, :, mortar),
                                 mortar_l2.forward_upper,
                                 u_buffer)
-    end
-
-    return nothing
-end
-
-@inline function mortar_fluxes_to_elements!(surface_flux_values,
-                                            mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                                            equations::AbstractEquationsParabolic,
-                                            mortar_l2::LobattoLegendreMortarL2,
-                                            dg::DGSEM, cache, mortar, fstar, u_buffer)
-    @unpack neighbor_ids, node_indices = cache.mortars
-    # Copy solution small to small
-    small_indices = node_indices[1, mortar]
-    small_direction = indices2direction(small_indices)
-
-    for position in 1:2
-        element = neighbor_ids[position, mortar]
-        for i in eachnode(dg)
-            for v in eachvariable(equations)
-                surface_flux_values[v, i, small_direction, element] = fstar[position][v,
-                                                                                      i]
-            end
-        end
-    end
-
-    # Project small fluxes to large element.
-    multiply_dimensionwise!(u_buffer,
-                            mortar_l2.reverse_upper, fstar[2],
-                            mortar_l2.reverse_lower, fstar[1])
-
-    # The flux is calculated in the outward direction of the small elements,
-    # so the sign must be switched to get the flux in outward direction
-    # of the large element.
-    # The contravariant vectors of the large element (and therefore the normal
-    # vectors of the large element as well) are twice as large as the
-    # contravariant vectors of the small elements. Therefore, the flux needs
-    # to be scaled by a factor of 2 to obtain the flux of the large element.
-    u_buffer .*= -2
-
-    # Copy interpolated flux values from buffer to large element face in the
-    # correct orientation.
-    # Note that the index of the small sides will always run forward but
-    # the index of the large side might need to run backwards for flipped sides.
-    large_element = neighbor_ids[3, mortar]
-    large_indices = node_indices[2, mortar]
-    large_direction = indices2direction(large_indices)
-
-    if :i_backward in large_indices
-        for i in eachnode(dg)
-            for v in eachvariable(equations)
-                surface_flux_values[v, end + 1 - i, large_direction, large_element] = u_buffer[v,
-                                                                                               i]
-            end
-        end
-    else
-        for i in eachnode(dg)
-            for v in eachvariable(equations)
-                surface_flux_values[v, i, large_direction, large_element] = u_buffer[v,
-                                                                                     i]
-            end
-        end
     end
 
     return nothing
