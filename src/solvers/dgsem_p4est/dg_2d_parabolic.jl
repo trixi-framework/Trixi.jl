@@ -705,9 +705,7 @@ end
     return nothing
 end
 
-# NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
-# Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for 
-# hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
+# THIS IS FOR THE DIVERGENCE????
 function calc_mortar_flux!(surface_flux_values,
                            mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                            equations::AbstractEquationsParabolic,
@@ -736,10 +734,17 @@ function calc_mortar_flux!(surface_flux_values,
             i_small = i_small_start
             j_small = j_small_start
             for node in eachnode(dg)
-                calc_mortar_flux!(fstar, mesh, equations,
+                calc_mortar_flux!(fstar, mesh, equations, 
                                   surface_integral, dg, cache,
                                   mortar, position,
                                   node, small_direction)
+
+                # !!! TODO: replace this with manual calculation of {fstar}
+                # reason: when we specialize calc_mortar_flux / calc_interface_flux, we
+                # do so to reuse existing routines for hyperbolic problems for gradient 
+                # computations. However, calc_interface_flux for divergence doesn't call a 
+                # second specialization of calc_interface_flux, so calc_mortar_flux for div 
+                # probably shouldn't either
 
                 i_small += i_small_step
                 j_small += j_small_step
