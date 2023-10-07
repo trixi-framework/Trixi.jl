@@ -200,7 +200,7 @@ function calc_gradient!(gradients, u_transformed, t,
         end
     end
 
-    # Prolong solution to interfaces
+    # Prolong solution to interfaces. This reuses P4est `prolong2interfaces`. 
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache_parabolic, u_transformed, mesh,
                             equations_parabolic, dg.surface_integral, dg)
@@ -370,7 +370,7 @@ end
 
     flux_ = 0.5 * (u_ll + u_rr) # we assume that the gradient computations utilize a central flux
 
-    # Note that we don't flip the sign on the secondondary flux. This is because for parabolic terms,
+    # Note that we don't flip the sign on the secondary flux. This is because for parabolic terms,
     # the normals are not embedded in `flux_` for the parabolic gradient computations.
     for v in eachvariable(equations)
         surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_[v]
