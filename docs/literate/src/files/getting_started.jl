@@ -452,7 +452,9 @@ trixi2vtk(joinpath("out", "solution_000018.h5"), output_directory="out")
 # - In the lower-left corner in the Properties window, change the Representation from the Surface
 #   to the Wireframe. Then a white grid should appear on the visualization.
 # Now, if you followed the instructions exactly, you should get an analog image, as shown in the
-# section [Using Plots.jl](@ref Using-Plots.jl).
+# section [Using Plots.jl](@ref Using-Plots.jl):
+
+# ![paraview_trixi2vtk_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/0c29139b-6c5d-4d5c-86e1-f4ebc95aca7e)
 
 # ## Next steps: changing Trixi.jl itself
 
