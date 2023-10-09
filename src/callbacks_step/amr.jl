@@ -613,6 +613,9 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         end
 
         reinitialize_boundaries!(semi.boundary_conditions, cache)
+        if hasproperty(semi, :boundary_conditions_parabolic)
+            reinitialize_boundaries!(semi.boundary_conditions_parabolic, cache)
+        end
     end
 
     # Return true if there were any cells coarsened or refined, otherwise false
