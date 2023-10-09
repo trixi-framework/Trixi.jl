@@ -43,9 +43,6 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
                                              initial_condition, solver, 
                                              boundary_conditions = (boundary_conditions, 
                                                                     boundary_conditions_parabolic))
-                                                                
-# semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, 
-#                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
