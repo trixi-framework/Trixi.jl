@@ -450,4 +450,9 @@ include("linearized_euler_2d.jl")
 
 abstract type AbstractEquationsParabolic{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
+
+# Jin Xin Relaxation type equation (Compressible Euler variant)
+abstract type AbstractJinXinEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("jin_xin_compressible_euler_2d.jl")
 end # @muladd

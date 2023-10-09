@@ -48,14 +48,14 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-1.0, -1.0)
 coordinates_max = ( 1.0,  1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=5,
+                initial_refinement_level=4,
                 n_cells_max=100_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 3.0)
+tspan = (0.0, 3.7)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -70,7 +70,7 @@ save_solution = SaveSolutionCallback(interval=20,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=1.3)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
