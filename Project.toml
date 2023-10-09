@@ -1,7 +1,7 @@
 name = "Trixi"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 authors = ["Michael Schlottke-Lakemper <m.schlottke-lakemper@hlrs.de>", "Gregor Gassner <ggassner@uni-koeln.de>", "Hendrik Ranocha <mail@ranocha.de>", "Andrew R. Winters <andrew.ross.winters@liu.se>", "Jesse Chan <jesse.chan@rice.edu>"]
-version = "0.5.45-pre"
+version = "0.5.46-pre"
 
 [deps]
 CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
