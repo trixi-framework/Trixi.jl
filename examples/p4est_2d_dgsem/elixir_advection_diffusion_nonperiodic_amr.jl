@@ -4,39 +4,17 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection-diffusion equation
 
-diffusivity() = 1.0e-2
+diffusivity() = 1.0e-3
 advection_velocity = (1.0, 0.0)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
-function x_trans_periodic(x, domain_length=SVector(2 * pi), center=SVector(0.0))
-    x_normalized = x .- center
-    x_shifted = x_normalized .% domain_length
-    x_offset = ((x_shifted .< -0.5 * domain_length) - (x_shifted .> 0.5 * domain_length)) .* domain_length
-    return center + x_shifted + x_offset
+# Define initial condition (copied from "examples/tree_1d_dgsem/elixir_advection_diffusion.jl")
+function initial_condition_bubble(x, t, equation)
+    return SVector((x[1]-pi) * (x[2]-pi) * (x[1]+pi) * (x[2]+pi))
 end
 
-# Define initial condition (copied from "examples/tree_1d_dgsem/elixir_advection_diffusion.jl")
-function initial_condition_diffusive_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
-    # Store translated coordinate for easy use of exact solution
-    # Assumes that advection_velocity[2] = 0 (effectively that we are solving a 1D equation)
-    x_trans = x_trans_periodic(x[2] - equation.advection_velocity[2] * t)
-    # y_trans = x_trans_periodic(x[1] - equation.advection_velocity[1] * t)
-    
-    nu = diffusivity()
-    c = 0.0
-    A = 1.0
-    omega = 1.0
-    scalar = c + A * sin(omega * (sum(x_trans))) * exp(-nu * omega^2 * t)
-    return SVector(scalar)
-end
-
-# Define initial condition (copied from "examples/tree_1d_dgsem/elixir_advection_diffusion.jl")
-function initial_condition_new_test(x, t, equation)
-    return SVector((x[1]-pi)*(x[2]-pi)+(x[1]+pi)*(x[2]+pi))
-end
-# initial_condition = initial_condition_diffusive_convergence_test
-initial_condition = initial_condition_new_test
+initial_condition = initial_condition_bubble
 
 boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
                            :y_neg => BoundaryConditionDirichlet(initial_condition),
@@ -58,18 +36,51 @@ trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
                  polydeg=2, initial_refinement_level=2,
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max,
-                 periodicity=(false,false))
+                 periodicity=false)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, solver, 
-                                             boundary_conditions = (boundary_conditions, boundary_conditions_parabolic))
+semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), 
+                                             initial_condition, solver, 
+                                             boundary_conditions = (boundary_conditions, 
+                                                                    boundary_conditions_parabolic))
+                                                                
+# semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, 
+#                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
-tspan = (0.0, 0.1)
-ode = semidiscretize(semi, tspan);
+tspan = (0.0, .5)
+ode = semidiscretize(semi, tspan)
+
+# u = sol.u[end]
+
+# du = similar(u)
+# Trixi.rhs_parabolic!(du, u, semi, 0.0)
+
+# x, y = [semi.cache.elements.node_coordinates[i, :, :, :] for i in 1:2]
+# for i in eachindex(x)
+#     u[i] = initial_condition_bubble((x[i], y[i]), 0.0, equations)[1]
+# end
+# u = Trixi.wrap_array(u, semi)
+# fill!(cache_parabolic.elements.surface_flux_values, NaN);
+# dg = solver
+# parabolic_scheme = semi.solver_parabolic
+# t = 0.0
+# (; cache, cache_parabolic, boundary_conditions_parabolic) = semi
+# @unpack viscous_container = cache_parabolic
+# @unpack u_transformed, gradients, flux_viscous = viscous_container
+
+# Trixi.transform_variables!(u_transformed, u, mesh, equations_parabolic,
+#                            dg, parabolic_scheme, cache, cache_parabolic)
+
+# Trixi.calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
+#                      boundary_conditions_parabolic, dg, cache, cache_parabolic)
+
+# grad_x, grad_y = gradients
+# @show any(isnan.(grad_x))
+# @show any(isnan.(grad_y))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -83,9 +94,9 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
-                                      base_level=2,
-                                      med_level=3, med_threshold=0.5,
-                                      max_level=4, max_threshold=0.75)
+                                      base_level=1,
+                                      med_level=2, med_threshold=0.5,
+                                      max_level=3, max_threshold=0.75)
 
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5)
@@ -98,13 +109,12 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-11
-sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
+sol = solve(ode, dt = 1e-7, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
             ode_default_options()..., callback=callbacks)
-# sol = solve(ode, ROCK4(eigen_est=eigen_est); abstol=time_int_tol, reltol=time_int_tol,
-#             ode_default_options()..., callback=callbacks)
+
 # Print the timer summary
 summary_callback()
 plot(sol)
-pd = PlotData2D(sol)
-plot!(getmesh(pd))
+# pd = PlotData2D(sol)
+# plot!(getmesh(pd))
 
