@@ -73,6 +73,12 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       # of this IC to have negative density/pressure values, crashing the simulation.
       coverage_override = (maxiters=9,))
   end
+
+  @trixi_testset "elixir_mhd_shockcapturing_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_subcell.jl"),
+      l2   = [1.72786992e-01, 6.33650587e-02, 6.86872255e-02, 0.00000000e+00, 4.31337885e+00, 1.67036008e-01, 1.06316839e-01, 0.00000000e+00, 4.67098356e-03],
+      linf = [9.80256401e-01, 9.20713091e-01, 5.55986508e-01, 0.00000000e+00, 2.49132899e+01, 6.39041960e-01, 6.08144670e-01, 0.00000000e+00, 5.83546136e-02])
+  end
 end
 
 end # module
