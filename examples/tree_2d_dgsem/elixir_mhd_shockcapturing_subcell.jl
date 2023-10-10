@@ -10,10 +10,11 @@ equations = IdealGlmMhdEquations2D(1.4)
 """
     initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
 
-An MHD blast wave taken from
+An MHD blast wave modified from:
 - Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
   Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
   [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
+This setup needs a positivity limiter for the density.
 """
 function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
   # setup taken from Derigs et al. DMV article (2018)
@@ -85,7 +86,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-cfl = 0.3
+cfl = 0.5
 stepsize_callback = StepsizeCallback(cfl=cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)

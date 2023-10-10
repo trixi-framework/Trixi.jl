@@ -251,10 +251,18 @@ terms.
     return f
 end
 """
+    flux_nonconservative_powell(u_ll, orientation::Integer,
+                                equations::IdealGlmMhdEquations2D, 
+                                nonconservative_type::NonConservativeLocal,
+                                noncons_term::Integer)
 
+Local part of the Powell and GLM non-conservative terms. Needed for the calculation of 
+the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
+- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 """
 @inline function flux_nonconservative_powell(u_ll, orientation::Integer,
-                                             equations::IdealGlmMhdEquations2D, 
+                                             equations::IdealGlmMhdEquations2D,
                                              nonconservative_type::NonConservativeLocal,
                                              noncons_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
@@ -264,7 +272,7 @@ end
     v3_ll = rho_v3_ll / rho_ll
     v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
 
-    if noncons_term ==1
+    if noncons_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
         f = SVector(0,
                     B1_ll,
@@ -302,10 +310,18 @@ end
     return f
 end
 """
+    flux_nonconservative_powell(u_ll, orientation::Integer,
+                                equations::IdealGlmMhdEquations2D, 
+                                nonconservative_type::NonConservativeSymmetric,
+                                noncons_term::Integer)
 
+Symmetric part of the Powell and GLM non-conservative terms. Needed for the calculation of 
+the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
+- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 """
 @inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
-                                             equations::IdealGlmMhdEquations2D, 
+                                             equations::IdealGlmMhdEquations2D,
                                              nonconservative_type::NonConservativeSymmetric,
                                              noncons_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
@@ -316,7 +332,7 @@ end
     v3_ll = rho_v3_ll / rho_ll
     v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
 
-    if noncons_term ==1
+    if noncons_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
         if orientation == 1
             B1_avg = (B1_ll + B1_rr)#* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5

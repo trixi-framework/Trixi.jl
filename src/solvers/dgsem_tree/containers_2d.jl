@@ -1283,22 +1283,22 @@ function ContainerAntidiffusiveFlux2D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _antidiffusive_flux1_L = fill(nan_uEltype,
-                                n_variables * (n_nodes + 1) * n_nodes * capacity)
+                                  n_variables * (n_nodes + 1) * n_nodes * capacity)
     antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
-                                      (n_variables, n_nodes + 1, n_nodes, capacity))
+                                        (n_variables, n_nodes + 1, n_nodes, capacity))
     _antidiffusive_flux1_R = fill(nan_uEltype,
-                                n_variables * (n_nodes + 1) * n_nodes * capacity)
+                                  n_variables * (n_nodes + 1) * n_nodes * capacity)
     antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
-                                      (n_variables, n_nodes + 1, n_nodes, capacity))
+                                        (n_variables, n_nodes + 1, n_nodes, capacity))
 
     _antidiffusive_flux2_L = fill(nan_uEltype,
-                                n_variables * n_nodes * (n_nodes + 1) * capacity)
+                                  n_variables * n_nodes * (n_nodes + 1) * capacity)
     antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
-                                      (n_variables, n_nodes, n_nodes + 1, capacity))
+                                        (n_variables, n_nodes, n_nodes + 1, capacity))
     _antidiffusive_flux2_R = fill(nan_uEltype,
-                                n_variables * n_nodes * (n_nodes + 1) * capacity)
+                                  n_variables * n_nodes * (n_nodes + 1) * capacity)
     antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
-                                      (n_variables, n_nodes, n_nodes + 1, capacity))
+                                        (n_variables, n_nodes, n_nodes + 1, capacity))
 
     return ContainerAntidiffusiveFlux2D{uEltype}(antidiffusive_flux1_L,
                                                  antidiffusive_flux1_R,
@@ -1326,20 +1326,20 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
 
     resize!(_antidiffusive_flux1_L, n_variables * (n_nodes + 1) * n_nodes * capacity)
     fluxes.antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
-                                             (n_variables, n_nodes + 1, n_nodes,
-                                              capacity))
+                                               (n_variables, n_nodes + 1, n_nodes,
+                                                capacity))
     resize!(_antidiffusive_flux1_R, n_variables * (n_nodes + 1) * n_nodes * capacity)
     fluxes.antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
-                                             (n_variables, n_nodes + 1, n_nodes,
-                                              capacity))
+                                               (n_variables, n_nodes + 1, n_nodes,
+                                                capacity))
     resize!(_antidiffusive_flux2_L, n_variables * n_nodes * (n_nodes + 1) * capacity)
     fluxes.antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
-                                             (n_variables, n_nodes, n_nodes + 1,
-                                              capacity))
+                                               (n_variables, n_nodes, n_nodes + 1,
+                                                capacity))
     resize!(_antidiffusive_flux2_R, n_variables * n_nodes * (n_nodes + 1) * capacity)
     fluxes.antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
-                                             (n_variables, n_nodes, n_nodes + 1,
-                                              capacity))
+                                               (n_variables, n_nodes, n_nodes + 1,
+                                                capacity))
 
     return nothing
 end
