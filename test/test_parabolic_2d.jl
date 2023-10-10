@@ -296,6 +296,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "P4estMesh2D: elixir_navierstokes_convergence_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_convergence_nonperiodic.jl"),
+      initial_refinement_level = 1, tspan=(0.0, 0.2), 
+      l2 = [0.00040364962558511795, 0.0005869762481506936, 0.00091488537427274, 0.0011984191566376762], 
+      linf = [0.0024993634941723464, 0.009487866203944725, 0.004505829506628117, 0.011634902776245681]
+    )
+  end
+
   @trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_lid_driven_cavity.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.5),
