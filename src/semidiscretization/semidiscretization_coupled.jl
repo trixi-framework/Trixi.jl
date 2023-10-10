@@ -71,7 +71,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
             summary_line(increment_indent(io), "source terms", semi.semis[i].source_terms)
             summary_line(increment_indent(io), "solver", solver |> typeof |> nameof)
         end
-        summary_line(io, "total #DOFs", ndofs(semi))
+        summary_line(io, "total #DOFs per field", ndofs(semi))
         summary_footer(io)
     end
 end
