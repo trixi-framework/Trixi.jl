@@ -231,7 +231,7 @@ terms.
                     v_dot_B_ll * B1_rr + v1_ll * psi_ll * psi_rr,
                     v1_ll * B1_rr,
                     v2_ll * B1_rr,
-                    v3_ll * B1_B1_rravg,
+                    v3_ll * B1_rr,
                     v1_ll * psi_rr)
     else # orientation == 2
         f = SVector(0,
