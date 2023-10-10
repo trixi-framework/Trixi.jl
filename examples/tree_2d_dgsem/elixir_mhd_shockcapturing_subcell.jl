@@ -19,11 +19,11 @@ function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
   # setup taken from Derigs et al. DMV article (2018)
   # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
   r = sqrt(x[1]^2 + x[2]^2)
+
   pmax = 10.0
-  pmin = 10.0
-  
-  rhomin = 0.5
+  pmin = 1.0
   rhomax = 1.0
+  rhomin = 0.01
   if r <= 0.09
     p = pmax
     rho = rhomax
@@ -46,13 +46,12 @@ end
 initial_condition = initial_condition_blast_wave
 
 surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
-volume_flux  = (flux_derigs_etal, flux_nonconservative_powell) #central
+volume_flux  = (flux_derigs_etal, flux_nonconservative_powell)
 basis = LobattoLegendreBasis(3)
 
-#volume_integral=VolumeIntegralFluxDifferencing(volume_flux)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons=[1],
-                                positivity_correction_factor=0.8)
+                                positivity_correction_factor=0.5)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg=volume_flux,
                                                 volume_flux_fv=surface_flux)
@@ -76,10 +75,10 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 30
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
-alive_callback = AliveCallback(analysis_interval=10) #analysis_interval
+alive_callback = AliveCallback(analysis_interval=analysis_interval) 
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
@@ -102,7 +101,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 stage_callbacks = (SubcellLimiterIDPCorrection(),)
 
-sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks); #
+sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks);
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
