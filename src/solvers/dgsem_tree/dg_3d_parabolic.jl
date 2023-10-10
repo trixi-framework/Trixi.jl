@@ -1126,7 +1126,7 @@ end
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
 function apply_jacobian_parabolic!(du, mesh::TreeMesh{3},
-                                   equations::AbstractEquationsParabolic, 
+                                   equations::AbstractEquationsParabolic,
                                    dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
@@ -1144,13 +1144,12 @@ function apply_jacobian_parabolic!(du, mesh::TreeMesh{3},
 end
 
 function apply_jacobian_parabolic!(du, mesh::P4estMesh{3},
-                                   equations::AbstractEquationsParabolic, 
+                                   equations::AbstractEquationsParabolic,
                                    dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-
             factor = inverse_jacobian[i, j, k, element]
 
             for v in eachvariable(equations)
@@ -1161,5 +1160,4 @@ function apply_jacobian_parabolic!(du, mesh::P4estMesh{3},
 
     return nothing
 end
-
 end # @muladd
