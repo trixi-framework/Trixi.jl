@@ -6,8 +6,8 @@ using Trixi
 # semidiscretization of the compressible Euler equations
 
 epsilon_relaxation = 1.0e-5
-a1 = a2 = a3 = a4 = 15.0
-b1 = b2 = b3 = b4 = 15.0
+a1 = a2 = a3 = a4 = 30.0
+b1 = b2 = b3 = b4 = 30.0
 
 equations_relaxation = CompressibleEulerEquations2D(1.4)
 equations = JinXinCompressibleEulerEquations2D(epsilon_relaxation, a1, a2, a3, a4, b1, b2, b3, b4,equations_relaxation)
@@ -28,6 +28,7 @@ end
 
 #initial_condition = initial_condition_constant
 initial_condition = Trixi.InitialConditionJinXin(initial_condition_kelvin_helmholtz_instability)
+#initial_condition = Trixi.InitialConditionJinXin(initial_condition_density_wave)
 solver = DGSEM(polydeg=3, surface_flux=Trixi.flux_upwind)
 
 #surface_flux = Trixi.flux_upwind
@@ -45,7 +46,7 @@ coordinates_min = (-1.0, -1.0)
 coordinates_max = ( 1.0,  1.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=6,
+                initial_refinement_level=5,
                 n_cells_max=1_000_000)
 
 
@@ -56,6 +57,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)#
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 3.7)
+#tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
