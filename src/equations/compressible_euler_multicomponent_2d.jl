@@ -522,7 +522,8 @@ end
     inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
 
     f_rho_sum = zero(T_rr)
-    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * 0.5 * (v_dot_n_ll + v_dot_n_rr)
+    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * 0.5 *
+                                                             (v_dot_n_ll + v_dot_n_rr)
                                                              for i in eachcomponent(equations))
     for i in eachcomponent(equations)
         f_rho_sum += f_rho[i]
@@ -537,7 +538,6 @@ end
 
     return vcat(f_other, f_rho)
 end
-
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
@@ -581,8 +581,10 @@ end
     gamma_rr = totalgamma(u_rr, equations)
 
     # Get the velocities based on direction
-    v_ll = rho_v1_ll / rho_ll * normal_direction[1] + rho_v1_ll / rho_ll * normal_direction[2]
-    v_rr = rho_v1_rr / rho_rr * normal_direction[1] + rho_v1_rr / rho_rr * normal_direction[2]
+    v_ll = rho_v1_ll / rho_ll * normal_direction[1] +
+           rho_v1_ll / rho_ll * normal_direction[2]
+    v_rr = rho_v1_rr / rho_rr * normal_direction[1] +
+           rho_v1_rr / rho_rr * normal_direction[2]
 
     # Compute the sound speeds on the left and right
     p_ll = (gamma_ll - 1) * (rho_e_ll - 1 / 2 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
@@ -643,7 +645,7 @@ end
 
     rho_ll = density(u_ll, equations)
     rho_rr = density(u_rr, equations)
-    
+
     v1_ll = rho_v1_ll / rho_ll
     v2_ll = rho_v2_ll / rho_ll
     v1_rr = rho_v1_rr / rho_rr
@@ -652,7 +654,7 @@ end
     gamma = totalgamma(u_ll, equations)
     p_ll = (gamma - 1) * (rho_e_ll - 1 / 2 * rho_ll * (v1_ll^2 + v2_ll^2))
     p_rr = (gamma - 1) * (rho_e_rr - 1 / 2 * rho_rr * (v1_rr^2 + v2_rr^2))
-    
+
     v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
     v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
 
