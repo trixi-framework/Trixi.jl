@@ -37,13 +37,19 @@ function create_cache(mesh::TreeMesh{2}, equations,
                                                  nnoncons(equations),
                                                  nnodes(dg), nnodes(dg))
                                              for _ in 1:Threads.nthreads()]
+
+    phi_threaded = A4d[A4d(undef, nvariables(equations),
+                           nnoncons(equations),
+                           nnodes(dg), nnodes(dg))
+                       for _ in 1:Threads.nthreads()]
+
     antidiffusive_fluxes = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0,
                                                                        nvariables(equations),
                                                                        nnodes(dg))
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat2_L_threaded, fhat1_R_threaded, fhat2_R_threaded,
             flux_temp_threaded, flux_temp_nonconservative_threaded, fhat_temp_threaded,
-            fhat_nonconservative_temp_threaded)
+            fhat_nonconservative_temp_threaded, phi_threaded)
 end
 
 function calc_volume_integral!(du, u,
@@ -206,7 +212,8 @@ end
                                 equations,
                                 volume_flux, dg::DGSEM, element, cache)
     @unpack weights, derivative_split = dg.basis
-    @unpack flux_temp_threaded, flux_temp_nonconservative_threaded, fhat_temp_threaded, fhat_nonconservative_temp_threaded = cache
+    @unpack flux_temp_threaded, flux_temp_nonconservative_threaded = cache
+    @unpack fhat_temp_threaded, fhat_nonconservative_temp_threaded, phi_threaded = cache
 
     volume_flux_cons, volume_flux_noncons = volume_flux
 
@@ -215,6 +222,7 @@ end
 
     fhat_temp = fhat_temp_threaded[Threads.threadid()]
     fhat_noncons_temp = fhat_nonconservative_temp_threaded[Threads.threadid()]
+    phi = phi_threaded[Threads.threadid()]
 
     # The FV-form fluxes are calculated in a recursive manner, i.e.:
     # fhat_(0,1)   = w_0 * FVol_0,
@@ -267,6 +275,15 @@ end
     fhat_temp .= zero(eltype(fhat1_L))
     fhat_noncons_temp .= zero(eltype(fhat1_L))
 
+    # Compute local contribution to non-conservative flux
+    for j in eachnode(dg), i in eachnode(dg), noncons in 1:nnoncons(equations)
+        u_local = get_node_vars(u, equations, dg, i, j, element)
+        set_node_vars!(phi,
+                       volume_flux_noncons(u_local, 1, equations,
+                                           NonConservativeLocal(), noncons),
+                       equations, dg, noncons, i, j)
+    end
+
     @trixi_timeit timer() "subcell volume integral (x)" for j in eachnode(dg)
         for i in 1:(nnodes(dg) - 1)
             # Conservative part
@@ -277,14 +294,7 @@ end
                 fhat1_R[v, i + 1, j] = fhat_temp[v, i + 1, j]
             end
             # Nonconservative part
-            u_node_L = get_node_vars(u, equations, dg, i, j, element)
-            u_node_R = get_node_vars(u, equations, dg, i + 1, j, element)
             for noncons in 1:nnoncons(equations)
-                # Get the local contribution to the nonconservative flux
-                phi_L = volume_flux_noncons(u_node_L, 1, equations,
-                                            NonConservativeLocal(), noncons)
-                phi_R = volume_flux_noncons(u_node_R, 1, equations,
-                                            NonConservativeLocal(), noncons)
                 for v in eachvariable(equations)
                     fhat_noncons_temp[v, noncons, i + 1, j] = fhat_noncons_temp[v,
                                                                                 noncons,
@@ -294,9 +304,9 @@ end
                                                                                 noncons,
                                                                                 i, j]
 
-                    fhat1_L[v, i + 1, j] += phi_L[v] *
+                    fhat1_L[v, i + 1, j] += phi[v, noncons, i, j] *
                                             fhat_noncons_temp[v, noncons, i + 1, j]
-                    fhat1_R[v, i + 1, j] += phi_R[v] *
+                    fhat1_R[v, i + 1, j] += phi[v, noncons, i + 1, j] *
                                             fhat_noncons_temp[v, noncons, i + 1, j]
                 end
             end
@@ -340,6 +350,15 @@ end
     fhat_temp .= zero(eltype(fhat1_L))
     fhat_noncons_temp .= zero(eltype(fhat1_L))
 
+    # Compute local contribution to non-conservative flux
+    for j in eachnode(dg), i in eachnode(dg), noncons in 1:nnoncons(equations)
+        u_local = get_node_vars(u, equations, dg, i, j, element)
+        set_node_vars!(phi,
+                       volume_flux_noncons(u_local, 2, equations,
+                                           NonConservativeLocal(), noncons),
+                       equations, dg, noncons, i, j)
+    end
+
     @trixi_timeit timer() "subcell volume integral (y)" for i in eachnode(dg)
         for j in 1:(nnodes(dg) - 1)
             # Conservative part
@@ -350,14 +369,7 @@ end
                 fhat2_R[v, i, j + 1] = fhat_temp[v, i, j + 1]
             end
             # Nonconservative part
-            u_node_L = get_node_vars(u, equations, dg, i, j, element)
-            u_node_R = get_node_vars(u, equations, dg, i, j + 1, element)
             for noncons in 1:nnoncons(equations)
-                # Get the local contribution to the nonconservative flux
-                phi_L = volume_flux_noncons(u_node_L, 2, equations,
-                                            NonConservativeLocal(), noncons)
-                phi_R = volume_flux_noncons(u_node_R, 2, equations,
-                                            NonConservativeLocal(), noncons)
                 for v in eachvariable(equations)
                     fhat_noncons_temp[v, noncons, i, j + 1] = fhat_noncons_temp[v,
                                                                                 noncons,
@@ -367,9 +379,9 @@ end
                                                                                 noncons,
                                                                                 i, j]
 
-                    fhat2_L[v, i, j + 1] += phi_L[v] *
+                    fhat2_L[v, i, j + 1] += phi[v, noncons, i, j] *
                                             fhat_noncons_temp[v, noncons, i, j + 1]
-                    fhat2_R[v, i, j + 1] += phi_R[v] *
+                    fhat2_R[v, i, j + 1] += phi[v, noncons, i, j + 1] *
                                             fhat_noncons_temp[v, noncons, i, j + 1]
                 end
             end
