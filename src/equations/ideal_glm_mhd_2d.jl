@@ -23,9 +23,6 @@ mutable struct IdealGlmMhdEquations2D{RealT <: Real} <:
     end
 end
 
-struct NonConservativeLocal end
-struct NonConservativeSymmetric end
-
 function IdealGlmMhdEquations2D(gamma; initial_c_h = convert(typeof(gamma), NaN))
     # Use `promote` to ensure that `gamma` and `initial_c_h` have the same type
     IdealGlmMhdEquations2D(promote(gamma, initial_c_h)...)
