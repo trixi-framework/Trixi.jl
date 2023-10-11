@@ -65,6 +65,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval,)
 
+# This uses velocity-based AMR
 amr_indicator = IndicatorLöhner(semi, variable=v1)                                          
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 3,

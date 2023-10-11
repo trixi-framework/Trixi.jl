@@ -515,6 +515,8 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
     return nothing
 end
 
+# `cache` is the hyperbolic cache, i.e., in particular not `cache_parabolic`.
+# This is because mortar handling is done in the (hyperbolic) `cache`.
 function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                           mesh::TreeMesh{2},
                           equations_parabolic::AbstractEquationsParabolic,
