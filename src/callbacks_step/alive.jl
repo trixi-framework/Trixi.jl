@@ -87,8 +87,9 @@ function (alive_callback::AliveCallback)(integrator)
         println()
     elseif mpi_isroot()
         t = integrator.t
+        t_initial = first(integrator.sol.prob.tspan)
         t_final = last(integrator.sol.prob.tspan)
-        sim_time_percentage = t / t_final * 100
+        sim_time_percentage = (t - t_initial) / (t_final - t_initial) * 100
         runtime_absolute = 1.0e-9 * (time_ns() - alive_callback.start_time)
         println(rpad(@sprintf("#timesteps: %6d │ Δt: %.4e │ sim. time: %.4e (%5.3f%%)",
                               integrator.stats.naccept, integrator.dt, t,

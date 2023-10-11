@@ -233,8 +233,10 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     iter = integrator.stats.naccept
 
     # Compute the percentage of the simulation that is done
+    t = integrator.t
+    t_initial = first(integrator.sol.prob.tspan)
     t_final = last(integrator.sol.prob.tspan)
-    sim_time_percentage = t / t_final * 100
+    sim_time_percentage = (t - t_initial) / (t_final - t_initial) * 100
 
     # Record performance measurements and compute performance index (PID)
     runtime_since_last_analysis = 1.0e-9 * (time_ns() -
