@@ -517,6 +517,9 @@ end
 
 # `cache` is the hyperbolic cache, i.e., in particular not `cache_parabolic`.
 # This is because mortar handling is done in the (hyperbolic) `cache`.
+# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed since 
+#`prolong2mortars!` in dg_2d.jl is used for both purely hyperbolic and 
+# hyperbolic-parabolic systems.
 function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                           mesh::TreeMesh{2},
                           equations_parabolic::AbstractEquationsParabolic,
