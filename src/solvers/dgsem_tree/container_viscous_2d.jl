@@ -20,7 +20,7 @@ mutable struct ViscousContainer2D{uEltype <: Real}
             (Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements),
              Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements)),
             (Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements),
-             Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements)),)
+             Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements)))
     end
 end
 
