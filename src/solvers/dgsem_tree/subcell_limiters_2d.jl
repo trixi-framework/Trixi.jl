@@ -605,7 +605,7 @@ end
     u_curr = u + beta * dt * antidiffusive_flux
 
     # If state is valid, perform initial check and return if correction is not needed
-    if isValidState(u_curr, equations)
+    if is_valid_state(u_curr, equations)
         as = goal_function(variable, bound, u_curr, equations)
 
         initial_check(bound, as, newton_abstol) && return nothing
@@ -616,7 +616,7 @@ end
         beta_old = beta
 
         # If the state is valid, evaluate d(goal)/d(beta)
-        if isValidState(u_curr, equations)
+        if is_valid_state(u_curr, equations)
             dSdbeta = dgoal_function(variable, u_curr, dt, antidiffusive_flux,
                                      equations)
         else # Otherwise, perform a bisection step
@@ -636,7 +636,7 @@ end
             u_curr = u + beta * dt * antidiffusive_flux
 
             # If the state is invalid, finish bisection step without checking tolerance and iterate further
-            if !isValidState(u_curr, equations)
+            if !is_valid_state(u_curr, equations)
                 beta_R = beta
                 continue
             end
@@ -655,7 +655,7 @@ end
             u_curr = u + beta * dt * antidiffusive_flux
 
             # If the state is invalid, redefine right bound without checking tolerance and iterate further
-            if !isValidState(u_curr, equations)
+            if !is_valid_state(u_curr, equations)
                 beta_R = beta
                 continue
             end
