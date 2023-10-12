@@ -150,7 +150,8 @@ export AcousticPerturbationEquations2D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
        ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
        ShallowWaterEquationsQuasi1D,
-       LinearizedEulerEquations2D
+       LinearizedEulerEquations2D,
+       JinXinCompressibleEulerEquations2D
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
@@ -199,7 +200,7 @@ export boundary_condition_do_nothing,
        BoundaryConditionCoupled
 
 export initial_condition_convergence_test, source_terms_convergence_test
-export source_terms_harmonic
+export source_terms_harmonic, source_terms_JinXin_Relaxation
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic,
        boundary_condition_poisson_nonperiodic
 export initial_condition_eoc_test_coupled_euler_gravity,
