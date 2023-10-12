@@ -554,27 +554,25 @@ end
 
             # Perform Newton's bisection method to find new alpha
             newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j, element,
-                                pressure_goal, pressure_dgoal_dbeta,
-                                pressure_initialCheck, pressure_finalCheck,
-                                dt, mesh, equations, dg, cache, limiter)
+                                variable, dt, mesh, equations, dg, cache, limiter)
         end
     end
 
     return nothing
 end
 
-pressure_goal(bound, u, equations) = bound - pressure(u, equations)
-function pressure_dgoal_dbeta(u, dt, antidiffusive_flux, equations)
-    -dot(dpdu(u, equations), dt * antidiffusive_flux)
+goal_function(variable, bound, u, equations) = bound - variable(u, equations)
+function dgoal_function(variable, u, dt, antidiffusive_flux, equations)
+    -dot(variable(u, equations, true), dt * antidiffusive_flux)
 end
-pressure_initialCheck(bound, goal, newton_abstol) = goal <= 0
-function pressure_finalCheck(bound, goal, newton_abstol)
+
+initialCheck(bound, goal, newton_abstol) = goal <= 0
+function finalCheck(bound, goal, newton_abstol)
     (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 end
 
 @inline function newton_loops_alpha!(alpha, bound, u, i, j, element,
-                                     goal_fct, dgoal_fct, initialCheck, finalCheck,
-                                     dt, mesh, equations, dg, cache, limiter)
+                                     variable, dt, mesh, equations, dg, cache, limiter)
     @unpack inverse_weights = dg.basis
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
     if mesh isa TreeMesh
@@ -589,37 +587,36 @@ end
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[i] *
                          get_node_vars(antidiffusive_flux1, equations, dg, i, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
-                 finalCheck, equations, dt, limiter, antidiffusive_flux)
+    newton_loop!(alpha, bound, u, i, j, element, variable, equations, dt, limiter,
+                 antidiffusive_flux)
 
     # positive xi direction
     antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
                          inverse_weights[i] *
                          get_node_vars(antidiffusive_flux1, equations, dg, i + 1, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
-                 finalCheck, equations, dt, limiter, antidiffusive_flux)
+    newton_loop!(alpha, bound, u, i, j, element, variable, equations, dt, limiter,
+                 antidiffusive_flux)
 
     # negative eta direction
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[j] *
                          get_node_vars(antidiffusive_flux2, equations, dg, i, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
-                 finalCheck, equations, dt, limiter, antidiffusive_flux)
+    newton_loop!(alpha, bound, u, i, j, element, variable, equations, dt, limiter,
+                 antidiffusive_flux)
 
     # positive eta direction
     antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
                          inverse_weights[j] *
                          get_node_vars(antidiffusive_flux2, equations, dg, i, j + 1,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
-                 finalCheck, equations, dt, limiter, antidiffusive_flux)
+    newton_loop!(alpha, bound, u, i, j, element, variable, equations, dt, limiter,
+                 antidiffusive_flux)
 
     return nothing
 end
 
-@inline function newton_loop!(alpha, bound, u, i, j, element,
-                              goal_fct, dgoal_fct, initialCheck, finalCheck,
+@inline function newton_loop!(alpha, bound, u, i, j, element, variable,
                               equations, dt, limiter, antidiffusive_flux)
     newton_reltol, newton_abstol = limiter.newton_tolerances
 
@@ -632,7 +629,7 @@ end
 
     # If state is valid, perform initial check and return if correction is not needed
     if isValidState(u_curr, equations)
-        as = goal_fct(bound, u_curr, equations)
+        as = goal_function(variable, bound, u_curr, equations)
 
         initialCheck(bound, as, newton_abstol) && return nothing
     end
@@ -643,7 +640,8 @@ end
 
         # If the state is valid, evaluate d(goal)/d(beta)
         if isValidState(u_curr, equations)
-            dSdbeta = dgoal_fct(u_curr, dt, antidiffusive_flux, equations)
+            dSdbeta = dgoal_function(variable, u_curr, dt, antidiffusive_flux,
+                                     equations)
         else # Otherwise, perform a bisection step
             dSdbeta = 0
         end
@@ -667,7 +665,7 @@ end
             end
 
             # Check new beta for condition and update bounds
-            as = goal_fct(bound, u_curr, equations)
+            as = goal_function(variable, bound, u_curr, equations)
             if initialCheck(bound, as, newton_abstol)
                 # New beta fulfills condition
                 beta_L = beta
@@ -686,7 +684,7 @@ end
             end
 
             # Evaluate goal function
-            as = goal_fct(bound, u_curr, equations)
+            as = goal_function(variable, bound, u_curr, equations)
         end
 
         # Check relative tolerance
