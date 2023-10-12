@@ -7,15 +7,13 @@
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis, number_bounds)
+                      basis::LobattoLegendreBasis, bound_keys)
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
                                                                       }(0,
                                                                         nnodes(basis),
-                                                                        number_bounds)
+                                                                        bound_keys)
 
-    idp_bounds_delta = zeros(real(basis), number_bounds)
-
-    return (; subcell_limiter_coefficients, idp_bounds_delta)
+    return (; subcell_limiter_coefficients)
 end
 
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
@@ -29,8 +27,7 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
                                                                          u, t, dt, semi)
     end
     if limiter.positivity
-        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt,
-                                                           semi)
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
     end
 
     # Calculate alpha1 and alpha2
@@ -152,19 +149,19 @@ end
 end
 
 @inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi)
-    for (index, variable) in enumerate(limiter.local_minmax_variables_cons)
-        idp_local_minmax!(alpha, limiter, u, t, dt, semi, variable, index)
+    for variable in limiter.local_minmax_variables_cons
+        idp_local_minmax!(alpha, limiter, u, t, dt, semi, variable)
     end
 
     return nothing
 end
 
-@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, variable, index)
-    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
+@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, variable)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
     @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
 
-    var_min = variable_bounds[2 * (index - 1) + 1]
-    var_max = variable_bounds[2 * (index - 1) + 2]
+    var_min = variable_bounds[Symbol("$(variable)_min")]
+    var_max = variable_bounds[Symbol("$(variable)_max")]
     calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
 
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
@@ -222,41 +219,21 @@ end
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi)
     # Conservative variables
-    for (index, variable) in enumerate(limiter.positivity_variables_cons)
-        idp_positivity!(alpha, limiter, u, dt, semi, variable, index)
+    for variable in limiter.positivity_variables_cons
+        idp_positivity!(alpha, limiter, u, dt, semi, variable)
     end
 
     return nothing
 end
 
-@inline function idp_positivity!(alpha, limiter, u, dt, semi, variable, index)
-    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
-    @unpack inverse_weights = dg.basis
-    @unpack local_minmax, positivity_correction_factor = limiter
+@inline function idp_positivity!(alpha, limiter, u, dt, semi, variable)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+    (; antidiffusive_flux1, antidiffusive_flux2) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
+    (; positivity_correction_factor) = limiter
 
-    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
-
-    counter = 2 * length(limiter.local_minmax_variables_cons)
-    if local_minmax
-        if variable in limiter.local_minmax_variables_cons
-            for (index_, variable_) in enumerate(limiter.local_minmax_variables_cons)
-                if variable == variable_
-                    var_min = variable_bounds[2 * (index_ - 1) + 1]
-                    break
-                end
-            end
-        else
-            for variable_ in limiter.positivity_variables_cons[1:index]
-                if !(variable_ in limiter.local_minmax_variables_cons)
-                    counter += 1
-                end
-            end
-            var_min = variable_bounds[counter]
-        end
-    else
-        var_min = variable_bounds[counter + index]
-    end
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol("$(variable)_min")]
 
     @threaded for element in eachelement(dg, semi.cache)
         inverse_jacobian = cache.elements.inverse_jacobian[element]

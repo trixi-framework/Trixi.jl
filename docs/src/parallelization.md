@@ -186,6 +186,11 @@ julia> set_preferences!(
            "libhdf5" => "/path/to/your/libhdf5.so",
            "libhdf5_hl" => "/path/to/your/libhdf5_hl.so", force = true)
 ```
+Alternatively, with HDF5.jl v0.17.1 or higher you can use
+```julia
+julia> using HDF5
+julia> HDF5.API.set_libraries!("/path/to/your/libhdf5.so", "/path/to/your/libhdf5_hl.so")
+```
 For more information see also the
 [documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). In total, you should
 have a file called LocalPreferences.toml in the project directory that contains a section

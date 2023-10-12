@@ -59,15 +59,19 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     local_minmax = (length(local_minmax_variables_cons) > 0)
     positivity = (length(positivity_variables_cons) > 0)
 
-    number_bounds = 2 * length(local_minmax_variables_cons)
-
-    for index in positivity_variables_cons
-        if !(index in local_minmax_variables_cons)
-            number_bounds += 1
+    bound_keys = ()
+    if local_minmax
+        for i in local_minmax_variables_cons
+            bound_keys = (bound_keys..., Symbol("$(i)_min"), Symbol("$(i)_max"))
+        end
+    end
+    for i in positivity_variables_cons
+        if !(i in local_minmax_variables_cons)
+            bound_keys = (bound_keys..., Symbol("$(i)_min"))
         end
     end
 
-    cache = create_cache(SubcellLimiterIDP, equations, basis, number_bounds)
+    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
 
     SubcellLimiterIDP{typeof(positivity_correction_factor),
                       typeof(cache)}(local_minmax, local_minmax_variables_cons,
