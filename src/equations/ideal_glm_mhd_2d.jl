@@ -337,7 +337,7 @@ results on non-conforming meshes(!).
     return f
 end
 """
-    flux_nonconservative_powell(u_ll, orientation::Integer,
+    flux_nonconservative_powell2(u_ll, orientation::Integer,
                                 equations::IdealGlmMhdEquations2D, 
                                 nonconservative_type::NonConservativeLocal,
                                 noncons_term::Integer)
@@ -396,7 +396,7 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
     return f
 end
 """
-    flux_nonconservative_powell(u_ll, orientation::Integer,
+    flux_nonconservative_powell2(u_ll, orientation::Integer,
                                 equations::IdealGlmMhdEquations2D, 
                                 nonconservative_type::NonConservativeSymmetric,
                                 noncons_term::Integer)
