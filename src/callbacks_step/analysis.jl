@@ -232,6 +232,12 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     @unpack dt, t = integrator
     iter = integrator.stats.naccept
 
+    # Compute the percentage of the simulation that is done
+    t = integrator.t
+    t_initial = first(integrator.sol.prob.tspan)
+    t_final = last(integrator.sol.prob.tspan)
+    sim_time_percentage = (t - t_initial) / (t_final - t_initial) * 100
+
     # Record performance measurements and compute performance index (PID)
     runtime_since_last_analysis = 1.0e-9 * (time_ns() -
                                    analysis_callback.start_time_last_analysis)
@@ -291,13 +297,13 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
                     "               " *
                     " └── GC time:    " *
                     @sprintf("%10.8e s (%5.3f%%)", gc_time_absolute, gc_time_percentage))
-        mpi_println(" sim. time:      " * @sprintf("%10.8e", t) *
-                    "               " *
+        mpi_println(rpad(" sim. time:      " *
+                         @sprintf("%10.8e (%5.3f%%)", t, sim_time_percentage), 46) *
                     " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
         mpi_println("                 " * "              " *
                     "               " *
                     " PID:            " * @sprintf("%10.8e s", performance_index))
-        mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)) *
+        mpi_println(" #DOFs per field:" * @sprintf("% 14d", ndofs(semi)) *
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
         mpi_println(" #elements:      " *
