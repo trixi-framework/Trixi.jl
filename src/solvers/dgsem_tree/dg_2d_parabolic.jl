@@ -952,7 +952,7 @@ function apply_jacobian_parabolic!(du, mesh::TreeMesh{2},
 end
 
 function apply_jacobian_parabolic!(du, mesh::P4estMesh{2},
-                                   equations::AbstractEquationsParabolic, 
+                                   equations::AbstractEquationsParabolic,
                                    dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
@@ -968,5 +968,4 @@ function apply_jacobian_parabolic!(du, mesh::P4estMesh{2},
 
     return nothing
 end
-
 end # @muladd
