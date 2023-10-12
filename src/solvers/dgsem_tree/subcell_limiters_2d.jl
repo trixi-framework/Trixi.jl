@@ -417,10 +417,6 @@ end
     return nothing
 end
 
-function initial_check_entropy_spec(bound, goal, newton_abstol)
-    goal <= max(newton_abstol, abs(bound) * newton_abstol)
-end
-
 @inline function idp_math_entropy!(alpha, limiter, u, t, dt, semi, elements)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
@@ -441,10 +437,6 @@ end
     end
 
     return nothing
-end
-
-function initial_check_entropy_math(bound, goal, newton_abstol)
-    goal >= -max(newton_abstol, abs(bound) * newton_abstol)
 end
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi, elements)
@@ -553,16 +545,6 @@ end
     end
 
     return nothing
-end
-
-goal_function(variable, bound, u, equations) = bound - variable(u, equations)
-function dgoal_function(variable, u, dt, antidiffusive_flux, equations)
-    -dot(variable(u, equations, True()), dt * antidiffusive_flux)
-end
-
-initial_check_nonnegative(bound, goal, newton_abstol) = goal <= 0
-function final_check_nonnegative(bound, goal, newton_abstol)
-    (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 end
 
 @inline function newton_loops_alpha!(alpha, bound, u, i, j, element, variable,
@@ -703,6 +685,27 @@ end
     return nothing
 end
 
+# Initial checks
+function initial_check_entropy_spec(bound, goal, newton_abstol)
+    goal <= max(newton_abstol, abs(bound) * newton_abstol)
+end
+
+function initial_check_entropy_math(bound, goal, newton_abstol)
+    goal >= -max(newton_abstol, abs(bound) * newton_abstol)
+end
+
+initial_check_nonnegative(bound, goal, newton_abstol) = goal <= 0
+function final_check_nonnegative(bound, goal, newton_abstol)
+    (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
+end
+
+# Goal and d(Goal)d(u) function
+goal_function(variable, bound, u, equations) = bound - variable(u, equations)
+function dgoal_function(variable, u, dt, antidiffusive_flux, equations)
+    -dot(variable(u, equations, True()), dt * antidiffusive_flux)
+end
+
+# Final check
 function final_check_standard(bound, goal, newton_abstol)
     abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
 end
