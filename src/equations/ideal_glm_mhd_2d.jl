@@ -1012,7 +1012,8 @@ end
     v3 = rho_v3 / rho
     v_square = v1^2 + v2^2 + v3^2
 
-    return (equations.gamma - 1.0) * SVector(0.5 * v_square, -v1, -v2, -v3, 1.0, -B1, -B2, -B3, -psi)
+    return (equations.gamma - 1.0) *
+           SVector(0.5 * v_square, -v1, -v2, -v3, 1.0, -B1, -B2, -B3, -psi)
 end
 
 # Convert entropy variables to conservative variables
