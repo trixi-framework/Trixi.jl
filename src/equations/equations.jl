@@ -245,7 +245,22 @@ where `x` specifies the coordinates, `t` is the current time, and `equation` is 
 struct BoundaryConditionNeumann{B}
     boundary_normal_flux_function::B
 end
+"""
+    NonConservativeLocal()
 
+Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric". 
+When the argument `nonconservative_type` is of type `NonConservativeLocal`, 
+the function returns the local part of the non-conservative term.
+"""
+struct NonConservativeLocal end
+"""
+    NonConservativeSymmetric()
+
+Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric". 
+When the argument `nonconservative_type` is of type `NonConservativeSymmetric`, 
+the function returns the symmetric part of the non-conservative term.
+"""
+struct NonConservativeSymmetric end
 # set sensible default values that may be overwritten by specific equations
 """
     have_nonconservative_terms(equations)
@@ -258,6 +273,12 @@ example of equations with nonconservative terms.
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
 have_nonconservative_terms(::AbstractEquations) = False()
+"""
+    nnoncons(equations)
+Number of nonconservative terms for a particular equation. The default is 0 and 
+it must be defined for each nonconservative equation independently.
+"""
+nnoncons(::AbstractEquations) = 0
 have_constant_speed(::AbstractEquations) = False()
 
 default_analysis_errors(::AbstractEquations) = (:l2_error, :linf_error)

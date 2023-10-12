@@ -29,6 +29,8 @@ function IdealGlmMhdEquations2D(gamma; initial_c_h = convert(typeof(gamma), NaN)
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = True()
+nnoncons(::IdealGlmMhdEquations2D) = 2
+
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations2D)
     ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
 end
@@ -275,6 +277,185 @@ end
                 v2_ll * B_dot_n_rr,
                 v3_ll * B_dot_n_rr,
                 v_dot_n_ll * psi_rr)
+
+    return f
+end
+
+"""
+    flux_nonconservative_powell2(u_ll, u_rr, orientation::Integer,
+                                equations::IdealGlmMhdEquations2D)
+
+Non-symmetric two-point flux discretizing the nonconservative (source) term of
+Powell and the Galilean nonconservative term associated with the GLM multiplier
+of the [`IdealGlmMhdEquations2D`](@ref).
+
+This implementation uses a non-conservative term that can be written as the product
+of local and symmetric parts. It is equivalent to the non-conservative flux of Bohm 
+et al. (`flux_nonconservative_powell`) for conforming meshes but it yields different 
+results on non-conforming meshes(!).
+## References
+- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+"""
+@inline function flux_nonconservative_powell2(u_ll, u_rr, orientation::Integer,
+                                              equations::IdealGlmMhdEquations2D)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    psi_avg = (psi_ll + psi_rr) #* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
+    if orientation == 1
+        B1_avg = (B1_ll + B1_rr) #* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
+        f = SVector(0,
+                    B1_ll * B1_avg,
+                    B2_ll * B1_avg,
+                    B3_ll * B1_avg,
+                    v_dot_B_ll * B1_avg + v1_ll * psi_ll * psi_avg,
+                    v1_ll * B1_avg,
+                    v2_ll * B1_avg,
+                    v3_ll * B1_avg,
+                    v1_ll * psi_avg)
+    else # orientation == 2
+        B2_avg = (B2_ll + B2_rr) #* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
+        f = SVector(0,
+                    B1_ll * B2_avg,
+                    B2_ll * B2_avg,
+                    B3_ll * B2_avg,
+                    v_dot_B_ll * B2_avg + v2_ll * psi_ll * psi_avg,
+                    v1_ll * B2_avg,
+                    v2_ll * B2_avg,
+                    v3_ll * B2_avg,
+                    v2_ll * psi_avg)
+    end
+
+    return f
+end
+"""
+    flux_nonconservative_powell2(u_ll, orientation::Integer,
+                                equations::IdealGlmMhdEquations2D, 
+                                nonconservative_type::NonConservativeLocal,
+                                noncons_term::Integer)
+
+Local part of the Powell and GLM non-conservative terms. Needed for the calculation of 
+the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
+- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+"""
+@inline function flux_nonconservative_powell2(u_ll, orientation::Integer,
+                                              equations::IdealGlmMhdEquations2D,
+                                              nonconservative_type::NonConservativeLocal,
+                                              noncons_term::Integer)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    if noncons_term == 1
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        f = SVector(0,
+                    B1_ll,
+                    B2_ll,
+                    B3_ll,
+                    v_dot_B_ll,
+                    v1_ll,
+                    v2_ll,
+                    v3_ll,
+                    0)
+    else #noncons_term ==2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        if orientation == 1
+            f = SVector(0,
+                        0,
+                        0,
+                        0,
+                        v1_ll * psi_ll,
+                        0,
+                        0,
+                        0,
+                        v1_ll)
+        else #orientation == 2
+            f = SVector(0,
+                        0,
+                        0,
+                        0,
+                        v2_ll * psi_ll,
+                        0,
+                        0,
+                        0,
+                        v2_ll)
+        end
+    end
+    return f
+end
+"""
+    flux_nonconservative_powell2(u_ll, orientation::Integer,
+                                equations::IdealGlmMhdEquations2D, 
+                                nonconservative_type::NonConservativeSymmetric,
+                                noncons_term::Integer)
+
+Symmetric part of the Powell and GLM non-conservative terms. Needed for the calculation of 
+the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
+- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+"""
+@inline function flux_nonconservative_powell2(u_ll, u_rr, orientation::Integer,
+                                              equations::IdealGlmMhdEquations2D,
+                                              nonconservative_type::NonConservativeSymmetric,
+                                              noncons_term::Integer)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    if noncons_term == 1
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        if orientation == 1
+            B1_avg = (B1_ll + B1_rr)#* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
+            f = SVector(0,
+                        B1_avg,
+                        B1_avg,
+                        B1_avg,
+                        B1_avg,
+                        B1_avg,
+                        B1_avg,
+                        B1_avg,
+                        0)
+        else # orientation == 2
+            B2_avg = (B2_ll + B2_rr)#* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
+            f = SVector(0,
+                        B2_avg,
+                        B2_avg,
+                        B2_avg,
+                        B2_avg,
+                        B2_avg,
+                        B2_avg,
+                        B2_avg,
+                        0)
+        end
+    else #noncons_term == 2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        psi_avg = (psi_ll + psi_rr)#* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
+        f = SVector(0,
+                    0,
+                    0,
+                    0,
+                    psi_avg,
+                    0,
+                    0,
+                    0,
+                    psi_avg)
+    end
 
     return f
 end

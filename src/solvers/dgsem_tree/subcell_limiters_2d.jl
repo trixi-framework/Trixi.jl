@@ -337,7 +337,7 @@ end
         calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
     end
 
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
+    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
     @unpack inverse_weights = dg.basis
 
     @threaded for element in elements
@@ -361,13 +361,13 @@ end
             # Calculate Pp and Pm
             # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
             val_flux1_local = inverse_weights[i] *
-                              antidiffusive_flux1[variable, i, j, element]
+                              antidiffusive_flux1_R[variable, i, j, element]
             val_flux1_local_ip1 = -inverse_weights[i] *
-                                  antidiffusive_flux1[variable, i + 1, j, element]
+                                  antidiffusive_flux1_L[variable, i + 1, j, element]
             val_flux2_local = inverse_weights[j] *
-                              antidiffusive_flux2[variable, i, j, element]
+                              antidiffusive_flux2_R[variable, i, j, element]
             val_flux2_local_jp1 = -inverse_weights[j] *
-                                  antidiffusive_flux2[variable, i, j + 1, element]
+                                  antidiffusive_flux2_L[variable, i, j + 1, element]
 
             Pp = max(0, val_flux1_local) + max(0, val_flux1_local_ip1) +
                  max(0, val_flux2_local) + max(0, val_flux2_local_jp1)
@@ -471,7 +471,7 @@ end
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi, elements, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
+    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
     @unpack inverse_weights = dg.basis
     @unpack local_minmax, positivity_correction_factor = limiter
 
@@ -510,13 +510,13 @@ end
             # Calculate Pm
             # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
             val_flux1_local = inverse_weights[i] *
-                              antidiffusive_flux1[variable, i, j, element]
+                              antidiffusive_flux1_R[variable, i, j, element]
             val_flux1_local_ip1 = -inverse_weights[i] *
-                                  antidiffusive_flux1[variable, i + 1, j, element]
+                                  antidiffusive_flux1_L[variable, i + 1, j, element]
             val_flux2_local = inverse_weights[j] *
-                              antidiffusive_flux2[variable, i, j, element]
+                              antidiffusive_flux2_R[variable, i, j, element]
             val_flux2_local_jp1 = -inverse_weights[j] *
-                                  antidiffusive_flux2[variable, i, j + 1, element]
+                                  antidiffusive_flux2_L[variable, i, j + 1, element]
 
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
@@ -576,7 +576,7 @@ end
                                      goal_fct, dgoal_fct, initialCheck, finalCheck,
                                      dt, mesh, equations, dg, cache, limiter)
     @unpack inverse_weights = dg.basis
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
+    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
     if mesh isa TreeMesh
         inverse_jacobian = cache.elements.inverse_jacobian[element]
     else # mesh isa StructuredMesh
@@ -587,7 +587,7 @@ end
 
     # negative xi direction
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[i] *
-                         get_node_vars(antidiffusive_flux1, equations, dg, i, j,
+                         get_node_vars(antidiffusive_flux1_R, equations, dg, i, j,
                                        element)
     newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
                  finalCheck, equations, dt, limiter, antidiffusive_flux)
@@ -595,14 +595,14 @@ end
     # positive xi direction
     antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
                          inverse_weights[i] *
-                         get_node_vars(antidiffusive_flux1, equations, dg, i + 1, j,
+                         get_node_vars(antidiffusive_flux1_L, equations, dg, i + 1, j,
                                        element)
     newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
                  finalCheck, equations, dt, limiter, antidiffusive_flux)
 
     # negative eta direction
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[j] *
-                         get_node_vars(antidiffusive_flux2, equations, dg, i, j,
+                         get_node_vars(antidiffusive_flux2_R, equations, dg, i, j,
                                        element)
     newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
                  finalCheck, equations, dt, limiter, antidiffusive_flux)
@@ -610,7 +610,7 @@ end
     # positive eta direction
     antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
                          inverse_weights[j] *
-                         get_node_vars(antidiffusive_flux2, equations, dg, i, j + 1,
+                         get_node_vars(antidiffusive_flux2_L, equations, dg, i, j + 1,
                                        element)
     newton_loop!(alpha, bound, u, i, j, element, goal_fct, dgoal_fct, initialCheck,
                  finalCheck, equations, dt, limiter, antidiffusive_flux)
