@@ -208,17 +208,19 @@ struct BoundaryConditionNeumann{B}
     boundary_normal_flux_function::B
 end
 """
-    NonConservativeLocal
+    NonConservativeLocal()
 
 Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric". 
-When the argument nonconservative_type is of type `NonConservativeLocal`, the function returns the local part of the non-conservative term.
+When the argument `nonconservative_type` is of type `NonConservativeLocal`, 
+the function returns the local part of the non-conservative term.
 """
 struct NonConservativeLocal end
 """
-    NonConservativeSymmetric
+    NonConservativeSymmetric()
 
 Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric". 
-When the argument nonconservative_type is of type `NonConservativeSymmetric`, the function returns the symmetric part of the non-conservative term.
+When the argument `nonconservative_type` is of type `NonConservativeSymmetric`, 
+the function returns the symmetric part of the non-conservative term.
 """
 struct NonConservativeSymmetric end
 # set sensible default values that may be overwritten by specific equations
