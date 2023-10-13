@@ -695,9 +695,6 @@ function initial_check_entropy_math(bound, goal, newton_abstol)
 end
 
 initial_check_nonnegative(bound, goal, newton_abstol) = goal <= 0
-function final_check_nonnegative(bound, goal, newton_abstol)
-    (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
-end
 
 # Goal and d(Goal)d(u) function
 goal_function(variable, bound, u, equations) = bound - variable(u, equations)
@@ -708,6 +705,10 @@ end
 # Final check
 function final_check_standard(bound, goal, newton_abstol)
     abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
+end
+
+function final_check_nonnegative(bound, goal, newton_abstol)
+    (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 end
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
