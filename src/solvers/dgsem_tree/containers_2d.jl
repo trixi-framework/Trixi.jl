@@ -1393,7 +1393,7 @@ nnodes(container::ContainerSubcellLimiterIDP2D) = size(container.alpha, 1)
 function Base.resize!(container::ContainerSubcellLimiterIDP2D, capacity)
     n_nodes = nnodes(container)
 
-    @unpack _alpha, _alpha1, _alpha2 = container
+    (; _alpha, _alpha1, _alpha2) = container
     resize!(_alpha, n_nodes * n_nodes * capacity)
     container.alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
     resize!(_alpha1, (n_nodes + 1) * n_nodes * capacity)
@@ -1403,7 +1403,7 @@ function Base.resize!(container::ContainerSubcellLimiterIDP2D, capacity)
     container.alpha2 = unsafe_wrap(Array, pointer(_alpha2),
                                    (n_nodes, n_nodes + 1, capacity))
 
-    @unpack _variable_bounds = container
+    (; _variable_bounds) = container
     for (key, _) in _variable_bounds
         resize!(_variable_bounds[key], n_nodes * n_nodes * capacity)
         container.variable_bounds[key] = unsafe_wrap(Array,
