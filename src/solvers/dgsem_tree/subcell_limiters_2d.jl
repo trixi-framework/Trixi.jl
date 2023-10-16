@@ -13,7 +13,12 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
                                                                         nnodes(basis),
                                                                         bound_keys)
 
-    return (; subcell_limiter_coefficients)
+    idp_bounds_delta = Dict{Symbol, real(basis)}()
+    for key in bound_keys
+        idp_bounds_delta[key] = zero(real(basis))
+    end
+
+    return (; subcell_limiter_coefficients, idp_bounds_delta)
 end
 
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
