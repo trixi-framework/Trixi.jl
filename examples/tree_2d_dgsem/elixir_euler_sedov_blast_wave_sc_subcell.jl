@@ -11,7 +11,7 @@ equations = CompressibleEulerEquations2D(gamma)
     initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
 
 The Sedov blast wave setup based on Flash
-- http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
 """
 function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
   # Set up polar coordinates
@@ -20,7 +20,7 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
   y_norm = x[2] - inicenter[2]
   r = sqrt(x_norm^2 + y_norm^2)
 
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+  # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
   r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
   # r0 = 0.5 # = more reasonable setup
   E = 1.0
@@ -53,7 +53,6 @@ coordinates_max = ( 2.0,  2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 n_cells_max=100_000)
-
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
