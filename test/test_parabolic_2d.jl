@@ -260,24 +260,16 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_curved.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_advection_diffusion_periodic_curved.jl"),
       trees_per_dimension = (1, 1), initial_refinement_level = 2, tspan=(0.0, 0.5),
-      l2 = [0.012380458938507371], 
-      linf = [0.10860506906472567]
-    )
-  end
-
-  @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_curved.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_advection_diffusion_periodic_curved.jl"),
-      trees_per_dimension = (1, 1), initial_refinement_level = 2, tspan=(0.0, 0.5),
-      l2 = [0.012380458938507371], 
-      linf = [0.10860506906472567]
+      l2 = [0.006708147442490916], 
+      linf = [0.04807038397976693]
     )
   end
 
   @trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_advection_diffusion_nonperiodic_curved.jl"),
       trees_per_dimension = (1, 1), initial_refinement_level = 2, tspan=(0.0, 0.5),
-      l2 = [0.04933902988507035], 
-      linf = [0.2550261714590271]
+      l2 = [0.00919917034843865], 
+      linf = [0.14186297438393505]
     )
   end
 
@@ -286,6 +278,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       initial_refinement_level = 1, tspan=(0.0, 0.2), 
       l2 = [0.0003811978985836709, 0.0005874314969169538, 0.0009142898787923481, 0.0011613918899727263], 
       linf = [0.0021633623982135752, 0.009484348274135372, 0.004231572066492217, 0.011661660275365193]
+    )
+  end
+
+  @trixi_testset "P4estMesh2D: elixir_navierstokes_convergence_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_convergence_nonperiodic.jl"),
+      initial_refinement_level = 1, tspan=(0.0, 0.2), 
+      l2 = [0.00040364962558511795, 0.0005869762481506936, 0.00091488537427274, 0.0011984191566376762], 
+      linf = [0.0024993634941723464, 0.009487866203944725, 0.004505829506628117, 0.011634902776245681]
     )
   end
 
