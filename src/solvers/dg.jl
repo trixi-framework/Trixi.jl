@@ -12,11 +12,6 @@ function get_element_variables!(element_variables, u, mesh, equations,
     nothing
 end
 
-function get_node_variables!(node_variables, mesh, equations,
-                             volume_integral::AbstractVolumeIntegral, dg, cache)
-    nothing
-end
-
 """
     VolumeIntegralStrongForm()
 
@@ -225,12 +220,6 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
-function get_node_variables!(node_variables, mesh, equations,
-                             volume_integral::VolumeIntegralSubcellLimiting, dg, cache)
-    get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
-                        equations)
-end
-
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
 """
@@ -418,10 +407,6 @@ Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
     get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral,
                            dg, cache)
-end
-
-function get_node_variables!(node_variables, mesh, equations, dg::DG, cache)
-    get_node_variables!(node_variables, mesh, equations, dg.volume_integral, dg, cache)
 end
 
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh,
