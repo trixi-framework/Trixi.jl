@@ -20,7 +20,7 @@ function initial_condition_shock_bubble(x, t, equations::CompressibleEulerMultic
   # bubble test case, see Gouasmi et al. https://arxiv.org/pdf/1904.00972
   # other reference: https://www.researchgate.net/profile/Pep_Mulet/publication/222675930_A_flux-split_algorithm_applied_to_conservative_models_for_multicomponent_compressible_flows/links/568da54508aeaa1481ae7af0.pdf
   # typical domain is rectangular, we change it to a square, as Trixi can only do squares
-  @unpack gas_constants = equations
+  (; gas_constants) = equations
 
   # Positivity Preserving Parameter, can be set to zero if scheme is positivity preserving
   delta   = 0.03

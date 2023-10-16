@@ -19,7 +19,7 @@ end
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
                                       dt;
                                       kwargs...)
-    @unpack alpha = limiter.cache.subcell_limiter_coefficients
+    (; alpha) = limiter.cache.subcell_limiter_coefficients
     alpha .= zero(eltype(alpha))
 
     if limiter.local_minmax
@@ -31,7 +31,7 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
     end
 
     # Calculate alpha1 and alpha2
-    @unpack alpha1, alpha2 = limiter.cache.subcell_limiter_coefficients
+    (; alpha1, alpha2) = limiter.cache.subcell_limiter_coefficients
     @threaded for element in eachelement(dg, semi.cache)
         for j in eachnode(dg), i in 2:nnodes(dg)
             alpha1[i, j, element] = max(alpha[i - 1, j, element], alpha[i, j, element])
@@ -86,7 +86,7 @@ end
 @inline function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
                                                mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack boundary_conditions = semi
+    (; boundary_conditions) = semi
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
@@ -158,14 +158,13 @@ end
 
 @inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, variable)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
+    (; antidiffusive_flux1, antidiffusive_flux2) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
 
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol("$(variable)_min")]
     var_max = variable_bounds[Symbol("$(variable)_max")]
     calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
-
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
-    @unpack inverse_weights = dg.basis
 
     @threaded for element in eachelement(dg, semi.cache)
         inverse_jacobian = cache.elements.inverse_jacobian[element]

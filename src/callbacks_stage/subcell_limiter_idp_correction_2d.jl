@@ -6,9 +6,9 @@
 #! format: noindent
 
 function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations, dg, cache)
-    @unpack inverse_weights = dg.basis
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
-    @unpack alpha1, alpha2 = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
+    (; antidiffusive_flux1, antidiffusive_flux2) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
+    (; alpha1, alpha2) = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
 
     @threaded for element in eachelement(dg, cache)
         # Sign switch as in apply_jacobian!
