@@ -224,6 +224,7 @@ end
 
     @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi,
                                                              solution_callback,
+                                                             element_variables,
                                                              system = system)
 end
 
