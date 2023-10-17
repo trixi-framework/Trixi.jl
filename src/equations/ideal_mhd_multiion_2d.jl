@@ -10,20 +10,23 @@
 
 The ideal compressible multi-ion MHD equations in two space dimensions.
 """
-mutable struct IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT<:Real} <: AbstractIdealMhdMultiIonEquations{2, NVARS, NCOMP}
+mutable struct IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT<:Real, ElectronPressure} <: AbstractIdealMhdMultiIonEquations{2, NVARS, NCOMP}
   gammas            ::SVector{NCOMP, RealT} # Heat capacity ratios
   charge_to_mass    ::SVector{NCOMP, RealT} # Charge to mass ratios
+  electron_pressure::ElectronPressure       # Function to compute the electron pressure
 
-  function IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{NCOMP, RealT},
-                                                            charge_to_mass::SVector{NCOMP, RealT}) where {NVARS, NCOMP, RealT<:Real}
+  function IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT, ElectronPressure}(
+                                        gammas::SVector{NCOMP, RealT},
+                                        charge_to_mass::SVector{NCOMP, RealT},
+                                        electron_pressure::ElectronPressure) where {NVARS, NCOMP, RealT<:Real, ElectronPressure}
 
     NCOMP >= 1 || throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 
-    new(gammas, charge_to_mass)
+    new(gammas, charge_to_mass, electron_pressure)
   end
 end
 
-function IdealMhdMultiIonEquations2D(; gammas, charge_to_mass)
+function IdealMhdMultiIonEquations2D(; gammas, charge_to_mass, electron_pressure = electron_pressure_zero)
   _gammas         = promote(gammas...)
   _charge_to_mass = promote(charge_to_mass...)
   RealT           = promote_type(eltype(_gammas), eltype(_charge_to_mass))
@@ -34,7 +37,7 @@ function IdealMhdMultiIonEquations2D(; gammas, charge_to_mass)
   __gammas        = SVector(map(RealT, _gammas))
   __charge_to_mass = SVector(map(RealT, _charge_to_mass))
 
-  return IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT}(__gammas, __charge_to_mass)
+  return IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT, typeof(electron_pressure)}(__gammas, __charge_to_mass, electron_pressure)
 end
 
 @inline Base.real(::IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT}) where {NVARS, NCOMP, RealT} = RealT
@@ -222,11 +225,19 @@ function source_terms_standard(u, x, t, equations::IdealMhdMultiIonEquations2D)
 end
 
 """
+  electron_pressure_zero(u, equations::IdealMhdMultiIonEquations2D)
+Returns the value of zero for the electron pressure. Consistent with the single-fluid MHD equations.
+"""
+function electron_pressure_zero(u, equations::IdealMhdMultiIonEquations2D)
+  return zero(u[1])
+end
+
+"""
 Total entropy-conserving non-conservative two-point "flux"" as described in 
 - Rueda-Ramírez et al. (2023)
 The term is composed of three parts
 * The Powell term: Implemented
-* The MHD term: Implemented without the electron pressure (TODO).
+* The MHD term: Implemented
 * The "term 3": Implemented
 """
 @inline function flux_nonconservative_ruedaramirez_etal(u_ll, u_rr, orientation::Integer, equations::IdealMhdMultiIonEquations2D)
@@ -242,6 +253,10 @@ The term is composed of three parts
   mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
   mag_norm_avg = 0.5 * (mag_norm_ll + mag_norm_rr)
+
+  # Mean electron pressure
+  pe_mean = 0.5 * (equations.electron_pressure(u_ll, equations) + 
+                   equations.electron_pressure(u_rr, equations))
 
   # Compute charge ratio of u_ll
   charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
@@ -267,11 +282,10 @@ The term is composed of three parts
 
     for k in eachcomponent(equations)
       # Compute term 2 (MHD)
-      # TODO: Add electron pressure term
-      f2 = charge_ratio_ll[k] * (0.5 * mag_norm_avg - B1_avg * B1_avg) # + pe_mean)
+      f2 = charge_ratio_ll[k] * (0.5 * mag_norm_avg - B1_avg * B1_avg + pe_mean)
       f3 = charge_ratio_ll[k] * (- B1_avg * B2_avg)
       f4 = charge_ratio_ll[k] * (- B1_avg * B3_avg)
-      f5 = 0 # TODO: Add "average" of electron pressure! charge_ratio_ll[k] * pe_mean
+      f5 = vk1_plus_ll[k] * pe_mean 
 
       # Compute term 3 (only needed for NCOMP>1)
       vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
@@ -311,11 +325,10 @@ The term is composed of three parts
 
     for k in eachcomponent(equations)
       # Compute term 2 (MHD)
-      # TODO: Add electron pressure term
       f2 = charge_ratio_ll[k] * (- B2_avg * B1_avg) 
-      f3 = charge_ratio_ll[k] * (- B2_avg * B2_avg + 0.5 * mag_norm_avg) # + pe_mean)
+      f3 = charge_ratio_ll[k] * (- B2_avg * B2_avg + 0.5 * mag_norm_avg + pe_mean)
       f4 = charge_ratio_ll[k] * (- B2_avg * B3_avg)
-      f5 = 0 # TODO: Add average of electron pressure! charge_ratio_ll[k] * pe_mean
+      f5 = vk2_plus_ll[k] * pe_mean 
 
       # Compute term 3 (only needed for NCOMP>1)
       vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
@@ -354,8 +367,8 @@ end
 """
 Total central non-conservative two-point "flux"", where the symmetric parts are computed with standard averages
 The term is composed of three parts
-* The Powell term: Only needed in 1D for non-constant B1 (TODO). The central Powell "flux" is equivalent to the EC Powell "flux".
-* The MHD term: Implemented without the electron pressure (TODO).
+* The Powell term: Implemented. The central Powell "flux" is equivalent to the EC Powell "flux".
+* The MHD term: Implemented
 * The "term 3": Implemented
 """
 @inline function flux_nonconservative_central(u_ll, u_rr, orientation::Integer, equations::IdealMhdMultiIonEquations2D)
@@ -366,6 +379,9 @@ The term is composed of three parts
 
   # Compute important averages
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
+
+  # Electron pressure 
+  pe_rr = equations.electron_pressure(u_rr, equations)
 
   # Compute charge ratio of u_ll
   charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
@@ -390,11 +406,10 @@ The term is composed of three parts
     f[3] = v3_plus_ll * B1_rr
     for k in eachcomponent(equations)
       # Compute term 2 (MHD)
-      # TODO: Add electron pressure term
-      f2 = charge_ratio_ll[k] * (0.5 * mag_norm_rr - B1_rr * B1_rr) # + pe_mean)
+      f2 = charge_ratio_ll[k] * (0.5 * mag_norm_rr - B1_rr * B1_rr + pe_rr)
       f3 = charge_ratio_ll[k] * (- B1_rr * B2_rr)
       f4 = charge_ratio_ll[k] * (- B1_rr * B3_rr)
-      f5 = 0 # TODO! charge_ratio_ll[k] * pe_mean
+      f5 = vk1_plus_ll[k] * pe_rr
 
       # Compute term 3 (only needed for NCOMP>1)
       vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
@@ -422,11 +437,10 @@ The term is composed of three parts
 
     for k in eachcomponent(equations)
       # Compute term 2 (MHD)
-      # TODO: Add electron pressure term
       f2 = charge_ratio_ll[k] * (- B2_rr * B1_rr) 
-      f3 = charge_ratio_ll[k] * (- B2_rr * B2_rr + 0.5 * mag_norm_rr) # + pe_mean)
+      f3 = charge_ratio_ll[k] * (- B2_rr * B2_rr + 0.5 * mag_norm_rr + pe_rr)
       f4 = charge_ratio_ll[k] * (- B2_rr * B3_rr)
-      f5 = 0 # TODO! charge_ratio_ll[k] * pe_mean
+      f5 = vk2_plus_ll[k] * pe_rr
 
       # Compute term 3 (only needed for NCOMP>1)
       vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
