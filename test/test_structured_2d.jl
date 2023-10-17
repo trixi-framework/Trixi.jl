@@ -187,8 +187,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_source_terms_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_sc_subcell.jl"),
-      l2   = [0.008160127272557726, 0.008658253869683077, 0.009351900401871649, 0.02775701488343099],
-      linf = [0.027225608222781528, 0.0407340321806311, 0.0381940733564341, 0.08080650914262844],
+      l2   = [0.00816013114351954, 0.008658251709937477, 0.009351905651482216, 0.027757012781694318],
+      linf = [0.027225615981281148, 0.040734036539016305, 0.0381940733564341, 0.08080650914262844],
       tspan = (0.0, 0.5))
   end
 
@@ -248,7 +248,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_shock_upstream_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shock_upstream_sc_subcell.jl"),
       l2   = [1.2351468819080416, 1.1269856120551724, 1.7239124305681928, 11.715260007491556],
-      linf = [5.385491808683259, 6.575446013701839, 10.065227889186632, 51.008985921289565],
+      linf = [5.385492532917423, 6.575446146030286, 10.0652310822613, 51.00901293102744],
       cells_per_dimension = (8, 12),
       tspan = (0.0, 0.5))
   end

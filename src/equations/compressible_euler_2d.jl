@@ -1544,6 +1544,7 @@ end
 
     return SVector(w1, w2, w3, w4)
 end
+@inline entropy_math(u, equations, derivative::True) = cons2entropy(u, equations)
 
 # Transformation from conservative variables u to entropy vector dSdu, S = -rho*s/(gamma-1), s=ln(p)-gamma*ln(rho)
 @inline function cons2entropy_spec(u, equations::CompressibleEulerEquations2D)
@@ -1570,6 +1571,7 @@ end
 
     return SVector(w1, w2, w3, w4)
 end
+@inline entropy_spec(u, equations, derivative::True) = cons2entropy_spec(u, equations)
 
 # Transformation from conservative variables u to d(p)/d(u)
 @inline function dpdu(u, equations::CompressibleEulerEquations2D)
@@ -1580,6 +1582,9 @@ end
     v_square = v1^2 + v2^2
 
     return (equations.gamma - 1.0) * SVector(0.5 * v_square, -v1, -v2, 1.0)
+end
+@inline function pressure(u, equations::CompressibleEulerEquations2D, derivative::True)
+    return dpdu(u, equations)
 end
 
 @inline function entropy2cons(w, equations::CompressibleEulerEquations2D)
@@ -1606,7 +1611,7 @@ end
     return SVector(rho, rho_v1, rho_v2, rho_e)
 end
 
-@inline function isValidState(cons, equations::CompressibleEulerEquations2D)
+@inline function is_valid_state(cons, equations::CompressibleEulerEquations2D)
     p = pressure(cons, equations)
     if cons[1] <= 0.0 || p <= 0.0
         return false
