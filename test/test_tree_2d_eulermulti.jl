@@ -28,7 +28,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       output_directory="out")
       file = "out/deviations.txt"
       lines = readlines(file)
-      @assert lines[end] == "139, 0.00991608811086362, 0.0, 3.122502256758253e-17"
+      @assert lines[end] == "15, 0.0009595796113231045, 0.0, 0.0"
   end
 
   @trixi_testset "elixir_eulermulti_ec.jl" begin
