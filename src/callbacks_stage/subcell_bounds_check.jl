@@ -11,6 +11,11 @@
 Bounds checking routine for [`SubcellLimiterIDP`](@ref). Applied as a stage callback for SSPRK
 methods. If `save_errors` is `true`, the resulting deviations are saved in
 `output_directory/deviations.txt` for every `interval` time steps.
+
+!!! note
+    For `SubcellLimiterIDP`, the solution is corrected in the a posteriori correction stage
+    [`SubcellLimiterIDPCorrection`](@ref). So, to check the final solution, this bounds check
+    callback must be called after the correction stage.
 """
 struct BoundsCheckCallback
     output_directory::String
