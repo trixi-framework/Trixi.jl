@@ -7,13 +7,12 @@
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
                               limiter::SubcellLimiterIDP,
-                              time, iter, output_directory, save_errors, interval)
+                              time, iter, output_directory, save_errors)
     (; positivity) = solver.volume_integral.limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta) = limiter.cache
 
-    save_errors_ = save_errors && (iter % interval == 0)
-    if save_errors_
+    if save_errors
         open("$output_directory/deviations.txt", "a") do f
             print(f, iter, ", ", time)
         end
@@ -30,7 +29,7 @@
                                     variable_bounds[key][i, j, element] - var)
             end
             idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_min)
-            if save_errors_
+            if save_errors
                 deviation_min_ = deviation_min
                 open("$output_directory/deviations.txt", "a") do f
                     print(f, ", ", deviation_min_)
@@ -38,7 +37,7 @@
             end
         end
     end
-    if save_errors_
+    if save_errors
         open("$output_directory/deviations.txt", "a") do f
             println(f)
         end
