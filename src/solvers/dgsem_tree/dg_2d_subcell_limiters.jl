@@ -31,7 +31,7 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
                                        nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
     flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.nthreads()]
-    flux_temp_nonconservative_threaded = A4d[A4d(undef, nvariables(equations),
+    flux_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
                                                  nnoncons(equations),
                                                  nnodes(dg), nnodes(dg))
                                              for _ in 1:Threads.nthreads()]
@@ -53,7 +53,7 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
                                                                        nnodes(dg))
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat2_L_threaded, fhat1_R_threaded, fhat2_R_threaded,
-            flux_temp_threaded, flux_temp_nonconservative_threaded, fhat_temp_threaded,
+            flux_temp_threaded, flux_nonconservative_temp_threaded, fhat_temp_threaded,
             fhat_nonconservative_temp_threaded, phi_threaded)
 end
 
@@ -338,13 +338,13 @@ end
                                 equations,
                                 volume_flux, dg::DGSEM, element, cache)
     @unpack weights, derivative_split = dg.basis
-    @unpack flux_temp_threaded, flux_temp_nonconservative_threaded = cache
+    @unpack flux_temp_threaded, flux_nonconservative_temp_threaded = cache
     @unpack fhat_temp_threaded, fhat_nonconservative_temp_threaded, phi_threaded = cache
 
     volume_flux_cons, volume_flux_noncons = volume_flux
 
     flux_temp = flux_temp_threaded[Threads.threadid()]
-    flux_temp_noncons = flux_temp_nonconservative_threaded[Threads.threadid()]
+    flux_noncons_temp = flux_nonconservative_temp_threaded[Threads.threadid()]
 
     fhat_temp = fhat_temp_threaded[Threads.threadid()]
     fhat_noncons_temp = fhat_nonconservative_temp_threaded[Threads.threadid()]
@@ -361,7 +361,7 @@ end
 
     # Split form volume flux in orientation 1: x direction
     flux_temp .= zero(eltype(flux_temp))
-    flux_temp_noncons .= zero(eltype(flux_temp_noncons))
+    flux_noncons_temp .= zero(eltype(flux_noncons_temp))
 
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -382,10 +382,10 @@ end
                 flux1_noncons = 0.5 *
                                 volume_flux_noncons(u_node, u_node_ii, 1, equations,
                                                     NonConservativeSymmetric(), noncons)
-                multiply_add_to_node_vars!(flux_temp_noncons, derivative_split[i, ii],
+                multiply_add_to_node_vars!(flux_noncons_temp, derivative_split[i, ii],
                                            flux1_noncons,
                                            equations, dg, noncons, i, j)
-                multiply_add_to_node_vars!(flux_temp_noncons, derivative_split[ii, i],
+                multiply_add_to_node_vars!(flux_noncons_temp, derivative_split[ii, i],
                                            flux1_noncons,
                                            equations, dg, noncons, ii, j)
             end
@@ -423,7 +423,7 @@ end
             fhat_noncons_temp[v, noncons, i + 1, j] = fhat_noncons_temp[v, noncons, i,
                                                                         j] +
                                                       weights[i] *
-                                                      flux_temp_noncons[v, noncons, i,
+                                                      flux_noncons_temp[v, noncons, i,
                                                                         j]
 
             fhat1_L[v, i + 1, j] += phi[v, noncons, i, j] *
@@ -435,7 +435,7 @@ end
 
     # Split form volume flux in orientation 2: y direction
     flux_temp .= zero(eltype(flux_temp))
-    flux_temp_noncons .= zero(eltype(flux_temp_noncons))
+    flux_noncons_temp .= zero(eltype(flux_noncons_temp))
 
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -451,10 +451,10 @@ end
                 flux2_noncons = 0.5 *
                                 volume_flux_noncons(u_node, u_node_jj, 2, equations,
                                                     NonConservativeSymmetric(), noncons)
-                multiply_add_to_node_vars!(flux_temp_noncons, derivative_split[j, jj],
+                multiply_add_to_node_vars!(flux_noncons_temp, derivative_split[j, jj],
                                            flux2_noncons,
                                            equations, dg, noncons, i, j)
-                multiply_add_to_node_vars!(flux_temp_noncons, derivative_split[jj, j],
+                multiply_add_to_node_vars!(flux_noncons_temp, derivative_split[jj, j],
                                            flux2_noncons,
                                            equations, dg, noncons, i, jj)
             end
@@ -492,7 +492,7 @@ end
             fhat_noncons_temp[v, noncons, i, j + 1] = fhat_noncons_temp[v, noncons, i,
                                                                         j] +
                                                       weights[j] *
-                                                      flux_temp_noncons[v, noncons, i,
+                                                      flux_noncons_temp[v, noncons, i,
                                                                         j]
 
             fhat2_L[v, i, j + 1] += phi[v, noncons, i, j] *

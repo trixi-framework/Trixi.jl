@@ -353,13 +353,12 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
                                               noncons_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
 
-    v1_ll = rho_v1_ll / rho_ll
-    v2_ll = rho_v2_ll / rho_ll
-    v3_ll = rho_v3_ll / rho_ll
-    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
-
     if noncons_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        v1_ll = rho_v1_ll / rho_ll
+        v2_ll = rho_v2_ll / rho_ll
+        v3_ll = rho_v3_ll / rho_ll
+        v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
         f = SVector(0,
                     B1_ll,
                     B2_ll,
@@ -372,6 +371,7 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
     else #noncons_term ==2
         # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
         if orientation == 1
+            v1_ll = rho_v1_ll / rho_ll
             f = SVector(0,
                         0,
                         0,
@@ -382,6 +382,7 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
                         0,
                         v1_ll)
         else #orientation == 2
+            v2_ll = rho_v2_ll / rho_ll
             f = SVector(0,
                         0,
                         0,
@@ -412,11 +413,6 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
                                               noncons_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
-
-    v1_ll = rho_v1_ll / rho_ll
-    v2_ll = rho_v2_ll / rho_ll
-    v3_ll = rho_v3_ll / rho_ll
-    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
 
     if noncons_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
