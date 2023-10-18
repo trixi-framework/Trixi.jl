@@ -33,14 +33,14 @@ function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
     (; t, iter, alg) = integrator
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    save_errors_ = callback.save_errors && (callback.interval > 0) &&
-                   (stage == length(alg.c)) &&
-                   (iter % callback.interval == 0 || integrator.finalstep)
+    save_errors = callback.save_errors && (callback.interval > 0) &&
+                  (stage == length(alg.c)) &&
+                  (iter % callback.interval == 0 || integrator.finalstep)
     @trixi_timeit timer() "check_bounds" check_bounds(u, mesh, equations, solver, cache,
                                                       solver.volume_integral, t,
                                                       iter + 1,
                                                       callback.output_directory,
-                                                      save_errors_)
+                                                      save_errors)
 end
 
 function check_bounds(u, mesh, equations, solver, cache,
