@@ -35,6 +35,11 @@ standard textbooks.
   Nodal Discontinuous Galerkin Methods: Algorithms, Analysis, and
   Applications
   [doi: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
+
+`VolumeIntegralWeakForm()` is only implemented for conserved terms as 
+non-conserved terms are supposed to be always applied in conjunction with a flux-splitting scheme, 
+see `VolumeIntegralFluxDifferencing(volume_flux)`.
+This treatment is required to achieve e.g. entropy-stability and well-balancedness.
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 

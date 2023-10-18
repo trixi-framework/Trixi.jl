@@ -49,6 +49,13 @@ function rhs!(du, u, t,
     return nothing
 end
 
+#=
+`weak_form_kernel!` is only implemented for conserved terms as 
+non-conserved terms are supposed to be always applied in conjunction with a flux-splitting scheme, 
+see `flux_differencing_kernel!`.
+This treatment is required to achieve e.g. entropy-stability and well-balancedness.
+See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
+=#
 @inline function weak_form_kernel!(du, u,
                                    element,
                                    mesh::Union{StructuredMesh{3}, P4estMesh{3}},
