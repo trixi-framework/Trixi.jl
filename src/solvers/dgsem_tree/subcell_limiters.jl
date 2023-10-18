@@ -52,9 +52,10 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            positivity_variables_cons = [],
                            positivity_correction_factor = 0.1)
     positivity = (length(positivity_variables_cons) > 0)
-    number_bounds = length(positivity_variables_cons)
 
-    cache = create_cache(SubcellLimiterIDP, equations, basis, number_bounds)
+    bound_keys = Tuple(Symbol("$(i)_min") for i in positivity_variables_cons)
+
+    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
 
     SubcellLimiterIDP{typeof(positivity_correction_factor), typeof(cache)}(positivity,
                                                                            positivity_variables_cons,
@@ -99,5 +100,12 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
         end
         summary_box(io, "SubcellLimiterIDP", setup)
     end
+end
+
+function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
+                             ::VolumeIntegralSubcellLimiting, equations)
+    node_variables[:limiting_coefficient] = limiter.cache.subcell_limiter_coefficients.alpha
+
+    return nothing
 end
 end # @muladd
