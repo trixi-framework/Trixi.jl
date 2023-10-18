@@ -27,9 +27,13 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       initial_refinement_level = 3,
       tspan = (0.0, 0.001),
       output_directory="out")
-      file = "out/deviations.txt"
-      lines = readlines(file)
-      @assert startswith(lines[end], "15")
+      cmd = string(Base.julia_cmd())
+      coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none", cmd)
+      if !coverage
+        lines = readlines("out/deviations.txt")
+        @test lines[1] == "# iter, simu_time, rho1_min, rho2_min"
+        @test startswith(lines[end], "15")
+      end
   end
 
   @trixi_testset "elixir_eulermulti_ec.jl" begin
