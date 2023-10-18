@@ -6,17 +6,14 @@
 #! format: noindent
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
-function create_cache(indicator::Type{SubcellLimiterIDP},
-                      equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis, number_bounds)
+function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
+                      basis::LobattoLegendreBasis, bound_keys)
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
                                                                       }(0,
                                                                         nnodes(basis),
-                                                                        number_bounds)
+                                                                        bound_keys)
 
-    cache = (; subcell_limiter_coefficients)
-
-    return cache
+    return (; subcell_limiter_coefficients)
 end
 
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
@@ -26,8 +23,7 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
     alpha .= zero(eltype(alpha))
 
     if limiter.positivity
-        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt,
-                                                           semi)
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
     end
 
     # Calculate alpha1 and alpha2
@@ -50,22 +46,21 @@ end
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi)
     # Conservative variables
-    for (index, variable) in enumerate(limiter.positivity_variables_cons)
-        idp_positivity!(alpha, limiter, u, dt, semi, variable, index)
+    for variable in limiter.positivity_variables_cons
+        idp_positivity!(alpha, limiter, u, dt, semi, variable)
     end
 
     return nothing
 end
 
-@inline function idp_positivity!(alpha, limiter, u, dt, semi, variable, index)
+@inline function idp_positivity!(alpha, limiter, u, dt, semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
-    @unpack inverse_weights = dg.basis
-    @unpack positivity_correction_factor = limiter
+    (; antidiffusive_flux1, antidiffusive_flux2) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
+    (; positivity_correction_factor) = limiter
 
-    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
-
-    var_min = variable_bounds[index]
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol("$(variable)_min")]
 
     @threaded for element in eachelement(dg, semi.cache)
         inverse_jacobian = cache.elements.inverse_jacobian[element]

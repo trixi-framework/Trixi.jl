@@ -228,7 +228,7 @@ function Base.show(io::IO, ::MIME"text/plain",
         summary_line(io, "source terms", semi.source_terms)
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "parabolic solver", semi.solver_parabolic |> typeof |> nameof)
-        summary_line(io, "total #DOFs", ndofs(semi))
+        summary_line(io, "total #DOFs per field", ndofs(semi))
         summary_footer(io)
     end
 end
