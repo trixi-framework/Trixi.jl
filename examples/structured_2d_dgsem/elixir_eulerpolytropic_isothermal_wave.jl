@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the polytropic Euler equations
 
-gamma = 1.0
+gamma = 1.0     # With gamma = 1 the system is isothermal.
 kappa = 1.0     # Scaling factor for the pressure.
 equations = PolytropicEulerEquations2D(gamma, kappa)
 
