@@ -70,6 +70,7 @@ using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 @reexport using SimpleUnPack: @unpack
 using SimpleUnPack: @pack!
+using DataStructures: BinaryHeap, FasterForward
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,

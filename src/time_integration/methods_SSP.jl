@@ -50,17 +50,19 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
-mutable struct SimpleIntegratorSSPOptions{Callback}
+mutable struct SimpleIntegratorSSPOptions{Callback, TStops}
     callback::Callback # callbacks; used in Trixi
     adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
     maxiters::Int # maximal number of time steps
-    tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
+    tstops::TStops # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
 function SimpleIntegratorSSPOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
-    SimpleIntegratorSSPOptions{typeof(callback)}(callback, false, Inf, maxiters,
-                                                 [last(tspan)])
+    tstops_internal = BinaryHeap{eltype(tspan)}(FasterForward())
+    push!(tstops_internal, last(tspan))
+    SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback, false, Inf, maxiters,
+                                                 tstops_internal)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
@@ -73,6 +75,7 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
     du::uType
     r0::uType
     t::RealT
+    tdir::RealT
     dt::RealT # current time step
     dtcache::RealT # ignored
     iter::Int # current number of time steps (iteration)
@@ -82,6 +85,16 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
     alg::Alg
     opts::SimpleIntegratorSSPOptions
     finalstep::Bool # added for convenience
+end
+
+"""
+    add_tstop!(integrator::SimpleIntegratorSSP, t)
+Add
+"""
+function add_tstop!(integrator::SimpleIntegratorSSP, t)
+    integrator.tdir * (t - integrator.t) < zero(integrator.t) &&
+        error("Tried to add a tstop that is behind the current time. This is strictly forbidden")
+    push!(integrator.opts.tstops, integrator.tdir * t)
 end
 
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
@@ -108,8 +121,9 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
     du = similar(u)
     r0 = similar(u)
     t = first(ode.tspan)
+    tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
-    integrator = SimpleIntegratorSSP(u, du, r0, t, dt, zero(dt), iter, ode.p,
+    integrator = SimpleIntegratorSSP(u, du, r0, t, tdir, dt, zero(dt), iter, ode.p,
                                      (prob = ode,), ode.f, alg,
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
                                                                 kwargs...), false)
@@ -216,7 +230,7 @@ end
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
     integrator.finalstep = true
-    empty!(integrator.opts.tstops)
+    #empty!(integrator.opts.tstops)
 end
 
 # used for AMR
