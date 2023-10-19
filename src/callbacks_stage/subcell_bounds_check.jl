@@ -56,13 +56,14 @@ function check_bounds(u, mesh, equations, solver, cache,
                  output_directory, save_errors)
 end
 
-function init_callback(callback, semi)
+function init_callback(callback::BoundsCheckCallback, semi)
     init_callback(callback, semi, semi.solver.volume_integral)
 end
 
-init_callback(callback, semi, volume_integral::AbstractVolumeIntegral) = nothing
+init_callback(callback::BoundsCheckCallback, semi, volume_integral::AbstractVolumeIntegral) = nothing
 
-function init_callback(callback, semi, volume_integral::VolumeIntegralSubcellLimiting)
+function init_callback(callback::BoundsCheckCallback, semi,
+                       volume_integral::VolumeIntegralSubcellLimiting)
     init_callback(callback, semi, volume_integral.limiter)
 end
 
@@ -89,13 +90,13 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
     return nothing
 end
 
-function finalize_callback(callback, semi)
+function finalize_callback(callback::BoundsCheckCallback, semi)
     finalize_callback(callback, semi, semi.solver.volume_integral)
 end
 
-finalize_callback(callback, semi, volume_integral::AbstractVolumeIntegral) = nothing
+finalize_callback(callback::BoundsCheckCallback, semi, volume_integral::AbstractVolumeIntegral) = nothing
 
-function finalize_callback(callback, semi,
+function finalize_callback(callback::BoundsCheckCallback, semi,
                            volume_integral::VolumeIntegralSubcellLimiting)
     finalize_callback(callback, semi, volume_integral.limiter)
 end
