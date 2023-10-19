@@ -61,8 +61,10 @@ end
 function SimpleIntegratorSSPOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
     tstops_internal = BinaryHeap{eltype(tspan)}(FasterForward())
     push!(tstops_internal, 2 * last(tspan))
-    SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback, false, Inf, maxiters,
-                                                 tstops_internal)
+    SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback,
+                                                                          false, Inf,
+                                                                          maxiters,
+                                                                          tstops_internal)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
@@ -96,7 +98,7 @@ Add
 function add_tstop!(integrator::SimpleIntegratorSSP, t)
     integrator.tdir * (t - integrator.t) < zero(integrator.t) &&
         error("Tried to add a tstop that is behind the current time. This is strictly forbidden")
-    if length(integrator.opts.tstops) > 1 
+    if length(integrator.opts.tstops) > 1
         pop!(integrator.opts.tstops)
     end
     push!(integrator.opts.tstops, integrator.tdir * t)
@@ -134,7 +136,8 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
     integrator = SimpleIntegratorSSP(u, du, r0, t, tdir, dt, zero(dt), iter, ode.p,
                                      (prob = ode,), ode.f, alg,
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
-                                                                kwargs...), false, true, false)
+                                                                kwargs...),
+                                     false, true, false)
 
     # resize container
     resize!(integrator.p, nelements(integrator.p.solver, integrator.p.cache))
@@ -200,7 +203,7 @@ function solve!(integrator::SimpleIntegratorSSP)
 
         integrator.iter += 1
         integrator.t += integrator.dt
-        
+
         # handle callbacks
         if callbacks isa CallbackSet
             for cb in callbacks.discrete_callbacks
