@@ -8,9 +8,14 @@
 """
     BoundsCheckCallback(; output_directory="out", save_errors=false, interval=1)
 
-Bounds checking routine for [`SubcellLimiterIDP`](@ref). Applied as a stage callback for SSPRK
-methods. If `save_errors` is `true`, the resulting deviations are saved in
-`output_directory/deviations.txt` for every `interval` time steps.
+Subcell limiting techniques with [`SubcellLimiterIDP`](@ref) are constructed to adhere certain
+local or global bounds. To make sure that these bounds are actually met, this callback calculates
+the maximum deviation from the bounds. The maximum deviation per applied bound is printed to
+the screen at the end of the simulation.
+Additionally, for more insights, the occuring errors can be exported with `save_errors==true`
+every `interval` time steps during the simulation. Then, the maximum deviations since the last
+export are saved in "`output_directory`/deviations.txt".
+It has to be implied as a stage callback for SSPRK.
 
 !!! note
     For `SubcellLimiterIDP`, the solution is corrected in the a posteriori correction stage
@@ -80,8 +85,8 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
     open("$output_directory/deviations.txt", "a") do f
         print(f, "# iter, simu_time")
         if positivity
-            for index in limiter.positivity_variables_cons
-                print(f, ", $(variables[index])_min")
+            for v in limiter.positivity_variables_cons
+                print(f, ", $(variables[v])_min")
             end
         end
         println(f)
