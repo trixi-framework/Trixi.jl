@@ -12,7 +12,7 @@ Subcell limiting techniques with [`SubcellLimiterIDP`](@ref) are constructed to 
 local or global bounds. To make sure that these bounds are actually met, this callback calculates
 the maximum deviation from the bounds. The maximum deviation per applied bound is printed to
 the screen at the end of the simulation.
-Additionally, for more insights, the occuring errors can be exported with `save_errors==true`
+Additionally, for more insights, the occurring errors can be exported with `save_errors==true`
 every `interval` time steps during the simulation. Then, the maximum deviations since the last
 export are saved in "`output_directory`/deviations.txt".
 It has to be implied as a stage callback for SSPRK.
