@@ -60,7 +60,7 @@ end
 
 function SimpleIntegratorSSPOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
     tstops_internal = BinaryHeap{eltype(tspan)}(FasterForward())
-    push!(tstops_internal, last(tspan))
+    push!(tstops_internal, 2 * last(tspan))
     SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback, false, Inf, maxiters,
                                                  tstops_internal)
 end
@@ -85,6 +85,8 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
     alg::Alg
     opts::SimpleIntegratorSSPOptions
     finalstep::Bool # added for convenience
+    dtchangeable::Bool
+    force_stepfail::Bool
 end
 
 """
@@ -94,8 +96,14 @@ Add
 function add_tstop!(integrator::SimpleIntegratorSSP, t)
     integrator.tdir * (t - integrator.t) < zero(integrator.t) &&
         error("Tried to add a tstop that is behind the current time. This is strictly forbidden")
+    if length(integrator.opts.tstops) > 1 
+        pop!(integrator.opts.tstops)
+    end
     push!(integrator.opts.tstops, integrator.tdir * t)
 end
+
+has_tstop(integrator::SimpleIntegratorSSP) = !isempty(integrator.opts.tstops)
+first_tstop(integrator::SimpleIntegratorSSP) = first(integrator.opts.tstops)
 
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
 function Base.getproperty(integrator::SimpleIntegratorSSP, field::Symbol)
@@ -126,7 +134,7 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
     integrator = SimpleIntegratorSSP(u, du, r0, t, tdir, dt, zero(dt), iter, ode.p,
                                      (prob = ode,), ode.f, alg,
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
-                                                                kwargs...), false)
+                                                                kwargs...), false, true, false)
 
     # resize container
     resize!(integrator.p, nelements(integrator.p.solver, integrator.p.cache))
@@ -169,6 +177,8 @@ function solve!(integrator::SimpleIntegratorSSP)
             terminate!(integrator)
         end
 
+        modify_dt_for_tstops!(integrator)
+
         @. integrator.r0 = integrator.u
         for stage in eachindex(alg.c)
             t_stage = integrator.t + integrator.dt * alg.c[stage]
@@ -190,7 +200,7 @@ function solve!(integrator::SimpleIntegratorSSP)
 
         integrator.iter += 1
         integrator.t += integrator.dt
-
+        
         # handle callbacks
         if callbacks isa CallbackSet
             for cb in callbacks.discrete_callbacks

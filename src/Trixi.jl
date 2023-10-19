@@ -37,7 +37,8 @@ using SciMLBase: CallbackSet, DiscreteCallback,
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
                   AbstractODEIntegrator, init, step!, check_error,
                   get_proposed_dt, set_proposed_dt!,
-                  terminate!, remake, add_tstop!
+                  terminate!, remake, add_tstop!, has_tstop, first_tstop
+using OrdinaryDiffEq: modify_dt_for_tstops!
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
