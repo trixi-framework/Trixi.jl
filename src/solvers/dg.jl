@@ -44,7 +44,7 @@ standard textbooks.
 `VolumeIntegralWeakForm()` is only implemented for conserved terms as 
 non-conserved terms are supposed to be always applied in conjunction with a flux-splitting scheme, 
 see `VolumeIntegralFluxDifferencing(volume_flux)`.
-This treatment is required to achieve e.g. entropy-stability and well-balancedness.
+This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
