@@ -1125,14 +1125,33 @@ end
 # This is because the parabolic fluxes are assumed to be of the form
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
-function apply_jacobian_parabolic!(du, mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                                   equations::AbstractEquationsParabolic, dg::DG, cache)
+function apply_jacobian_parabolic!(du, mesh::TreeMesh{3},
+                                   equations::AbstractEquationsParabolic,
+                                   dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in eachelement(dg, cache)
         factor = inverse_jacobian[element]
 
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            for v in eachvariable(equations)
+                du[v, i, j, k, element] *= factor
+            end
+        end
+    end
+
+    return nothing
+end
+
+function apply_jacobian_parabolic!(du, mesh::P4estMesh{3},
+                                   equations::AbstractEquationsParabolic,
+                                   dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+
+    @threaded for element in eachelement(dg, cache)
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            factor = inverse_jacobian[i, j, k, element]
+
             for v in eachvariable(equations)
                 du[v, i, j, k, element] *= factor
             end
