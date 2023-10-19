@@ -60,6 +60,7 @@ end
 
 function SimpleIntegratorSSPOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
     tstops_internal = BinaryHeap{eltype(tspan)}(FasterForward())
+    push!(tstops_internal, last(tspan))
     push!(tstops_internal, 2 * last(tspan))
     SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback,
                                                                           false, Inf,
