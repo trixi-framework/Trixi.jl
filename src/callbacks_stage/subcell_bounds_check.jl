@@ -118,7 +118,7 @@ end
     if positivity
         for v in limiter.positivity_variables_cons
             println("$(variables[v]):\n- positivity: ",
-                    idp_bounds_delta[Symbol("$(v)_min")])
+                    idp_bounds_delta[Symbol("$(v)_min")][2])
         end
     end
     println("─"^100 * "\n")

@@ -13,9 +13,9 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
                                                                         nnodes(basis),
                                                                         bound_keys)
 
-    idp_bounds_delta = Dict{Symbol, real(basis)}()
+    idp_bounds_delta = Dict{Symbol, Vector{real(basis)}}()
     for key in bound_keys
-        idp_bounds_delta[key] = zero(real(basis))
+        idp_bounds_delta[key] = zeros(real(basis), 2)
     end
 
     return (; subcell_limiter_coefficients, idp_bounds_delta)

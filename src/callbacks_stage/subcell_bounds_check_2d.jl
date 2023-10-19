@@ -12,34 +12,35 @@
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta) = limiter.cache
 
-    if save_errors
-        open("$output_directory/deviations.txt", "a") do f
-            print(f, iter, ", ", time)
-        end
-    end
     if positivity
         for v in limiter.positivity_variables_cons
             key = Symbol("$(v)_min")
-            deviation_min = zero(eltype(u))
+            deviation = idp_bounds_delta[key]
             for element in eachelement(solver, cache), j in eachnode(solver),
                 i in eachnode(solver)
 
                 var = u[v, i, j, element]
-                deviation_min = max(deviation_min,
-                                    variable_bounds[key][i, j, element] - var)
+                deviation[1] = max(deviation[1],
+                                   variable_bounds[key][i, j, element] - var)
             end
-            idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_min)
-            if save_errors
-                deviation_min_ = deviation_min
-                open("$output_directory/deviations.txt", "a") do f
-                    print(f, ", ", deviation_min_)
-                end
-            end
+            deviation[2] = max(deviation[2], deviation[1])
         end
     end
     if save_errors
+        # Print to output file
         open("$output_directory/deviations.txt", "a") do f
+            print(f, iter, ", ", time)
+            if positivity
+                for v in limiter.positivity_variables_cons
+                    key = Symbol("$(v)_min")
+                    print(f, ", ", idp_bounds_delta[key][1])
+                end
+            end
             println(f)
+        end
+        # Reset first entries of idp_bounds_delta
+        for (key, _) in idp_bounds_delta
+            idp_bounds_delta[key][1] = zero(eltype(idp_bounds_delta[key][1]))
         end
     end
 
