@@ -43,7 +43,7 @@ standard textbooks.
 
 `VolumeIntegralWeakForm()` is only implemented for conserved terms as 
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
-see `VolumeIntegralFluxDifferencing(volume_flux)`.
+see [`VolumeIntegralFluxDifferencing`](@ref).
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
