@@ -16,6 +16,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [5.551115123125783e-15, 5.662137425588298e-15, 1.2212453270876722e-15,
               1.27675647831893e-15, 2.4980018054066022e-15, 7.494005416219807e-16,
               4.3021142204224816e-16, 8.881784197001252e-16, 1.0436096431476471e-14])
+        # Ensure that we do not have excessive memory allocations 
+        # (e.g., from type instabilities) 
+        let 
+                t = sol.t[end] 
+                u_ode = sol.u[end] 
+                du_ode = similar(u_ode) 
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+        end
   end
 
   @trixi_testset "elixir_lbm_couette.jl" begin
@@ -27,6 +35,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
               0.00011747787108790098, 0.00084326349695725, 0.000795551892211168,
               0.001956482118303543, 0.0020739599893902436, 0.00032606270109525326],
       tspan = (0.0, 1.0))
+        # Ensure that we do not have excessive memory allocations 
+        # (e.g., from type instabilities) 
+        let 
+                t = sol.t[end] 
+                u_ode = sol.u[end] 
+                du_ode = similar(u_ode) 
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+        end
   end
 
   @trixi_testset "elixir_lbm_lid_driven_cavity.jl" begin
@@ -38,6 +54,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
               0.004031686575556803, 0.0038728927083346437, 0.020038695575169005,
               0.02061789496737146, 0.05568236920459335],
       tspan = (0.0, 1.0))
+        # Ensure that we do not have excessive memory allocations 
+        # (e.g., from type instabilities) 
+        let 
+                t = sol.t[end] 
+                u_ode = sol.u[end] 
+                du_ode = similar(u_ode) 
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+        end
   end
 
   @trixi_testset "elixir_lbm_couette.jl with initial_condition_couette_steady" begin
@@ -58,8 +82,24 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
         v2 = 0
 
         return equilibrium_distribution(rho, v1, v2, equations)
-        end,
+          # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
+  end,
       tspan = (0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_lbm_lid_driven_cavity.jl with stationary walls" begin
@@ -72,6 +112,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
               2.185751579730777e-16, 2.393918396847994e-16, 1.887379141862766e-15],
       boundary_conditions=boundary_condition_noslip_wall,
       tspan = (0, 0.1))
+
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 end
 
