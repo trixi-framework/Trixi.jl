@@ -53,7 +53,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            positivity_correction_factor = 0.1)
     positivity = (length(positivity_variables_cons) > 0)
 
-    bound_keys = Tuple(Symbol("$(i)_min") for i in positivity_variables_cons)
+    bound_keys = Tuple(Symbol(string(v), "_min") for v in positivity_variables_cons)
 
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
 

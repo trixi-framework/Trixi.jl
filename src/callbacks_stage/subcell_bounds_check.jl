@@ -86,7 +86,7 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
         print(f, "# iter, simu_time")
         if positivity
             for v in limiter.positivity_variables_cons
-                print(f, ", $(variables[v])_min")
+                print(f, ", " * string(variables[v]) * "_min")
             end
         end
         println(f)
@@ -117,8 +117,8 @@ end
     println("─"^100)
     if positivity
         for v in limiter.positivity_variables_cons
-            println("$(variables[v]):\n- positivity: ",
-                    idp_bounds_delta[Symbol("$(v)_min")])
+            println(string(variables[v]) * ":\n- positivity: ",
+                    idp_bounds_delta[Symbol(string(v), "_min")][2])
         end
     end
     println("─"^100 * "\n")
