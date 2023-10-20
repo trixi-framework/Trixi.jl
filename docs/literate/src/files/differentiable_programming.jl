@@ -446,3 +446,15 @@ scatter(real.(λ), imag.(λ))
 λ = eigvals(Matrix(A))
 relative_maximum = maximum(real, λ) / maximum(abs, λ)
 @test relative_maximum < 1.0e-15 #src
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots", "ForwardDiff"],
+           mode=PKGMODE_MANIFEST)

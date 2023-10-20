@@ -75,8 +75,14 @@ end
 
 @inline Base.ndims(::AbstractEquations{NDIMS}) where {NDIMS} = NDIMS
 
-# equations act like scalars in broadcasting
-Base.broadcastable(equations::AbstractEquations) = Ref(equations)
+# Equations act like scalars in broadcasting.
+# Using `Ref(equations)` would be more convenient in some circumstances.
+# However, this does not work with Julia v1.9.3 correctly due to a (performance)
+# bug in Julia, see
+# - https://github.com/trixi-framework/Trixi.jl/pull/1618
+# - https://github.com/JuliaLang/julia/issues/51118
+# Thus, we use the workaround below.
+Base.broadcastable(equations::AbstractEquations) = (equations,)
 
 """
     flux(u, orientation_or_normal, equations)
@@ -350,6 +356,7 @@ include("shallow_water_1d.jl")
 include("shallow_water_2d.jl")
 include("shallow_water_two_layer_1d.jl")
 include("shallow_water_two_layer_2d.jl")
+include("shallow_water_quasi_1d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <:
@@ -363,6 +370,11 @@ abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCO
               AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_multicomponent_1d.jl")
 include("compressible_euler_multicomponent_2d.jl")
+
+# PolytropicEulerEquations
+abstract type AbstractPolytropicEulerEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("polytropic_euler_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS,
