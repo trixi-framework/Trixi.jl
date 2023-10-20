@@ -101,4 +101,11 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
         summary_box(io, "SubcellLimiterIDP", setup)
     end
 end
+
+function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
+                             ::VolumeIntegralSubcellLimiting, equations)
+    node_variables[:limiting_coefficient] = limiter.cache.subcell_limiter_coefficients.alpha
+
+    return nothing
+end
 end # @muladd

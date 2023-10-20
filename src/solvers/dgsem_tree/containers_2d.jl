@@ -1396,6 +1396,7 @@ function Base.resize!(container::ContainerSubcellLimiterIDP2D, capacity)
     (; _alpha, _alpha1, _alpha2) = container
     resize!(_alpha, n_nodes * n_nodes * capacity)
     container.alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
+    container.alpha .= convert(eltype(container.alpha), NaN)
     resize!(_alpha1, (n_nodes + 1) * n_nodes * capacity)
     container.alpha1 = unsafe_wrap(Array, pointer(_alpha1),
                                    (n_nodes + 1, n_nodes, capacity))
