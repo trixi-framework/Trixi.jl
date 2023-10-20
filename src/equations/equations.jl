@@ -207,6 +207,7 @@ where `x` specifies the coordinates, `t` is the current time, and `equation` is 
 struct BoundaryConditionNeumann{B}
     boundary_normal_flux_function::B
 end
+
 """
     NonConservativeLocal()
 
@@ -215,6 +216,7 @@ When the argument `nonconservative_type` is of type `NonConservativeLocal`,
 the function returns the local part of the non-conservative term.
 """
 struct NonConservativeLocal end
+
 """
     NonConservativeSymmetric()
 
@@ -223,6 +225,7 @@ When the argument `nonconservative_type` is of type `NonConservativeSymmetric`,
 the function returns the symmetric part of the non-conservative term.
 """
 struct NonConservativeSymmetric end
+
 # set sensible default values that may be overwritten by specific equations
 """
     have_nonconservative_terms(equations)

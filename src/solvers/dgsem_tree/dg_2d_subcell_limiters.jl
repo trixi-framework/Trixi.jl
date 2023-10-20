@@ -197,6 +197,7 @@ end
 
     return nothing
 end
+
 # Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
 # (**with non-conservative terms**).
 #
@@ -376,6 +377,7 @@ end
                                    phi[v, noncons, i, j + 1] * value
         end
     end
+
     return nothing
 end
 
@@ -416,6 +418,7 @@ end
 
     return nothing
 end
+
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R,
