@@ -302,11 +302,13 @@ end
         end
         # Nonconservative part
         for noncons in 1:nnoncons(equations), v in eachvariable(equations)
-            value = fhat_noncons_temp[v, noncons, i, j] + weights[i] * flux_noncons_temp[v, noncons, i, j]
+            value = fhat_noncons_temp[v, noncons, i, j] +
+                    weights[i] * flux_noncons_temp[v, noncons, i, j]
             fhat_noncons_temp[v, noncons, i + 1, j] = value
 
             fhat1_L[v, i + 1, j] = fhat1_L[v, i + 1, j] + phi[v, noncons, i, j] * value
-            fhat1_R[v, i + 1, j] = fhat1_R[v, i + 1, j] + phi[v, noncons, i + 1, j] * value
+            fhat1_R[v, i + 1, j] = fhat1_R[v, i + 1, j] +
+                                   phi[v, noncons, i + 1, j] * value
         end
     end
 
@@ -368,11 +370,13 @@ end
         end
         # Nonconservative part
         for noncons in 1:nnoncons(equations), v in eachvariable(equations)
-            value = fhat_noncons_temp[v, noncons, i, j] + weights[j] * flux_noncons_temp[v, noncons, i, j]
+            value = fhat_noncons_temp[v, noncons, i, j] +
+                    weights[j] * flux_noncons_temp[v, noncons, i, j]
             fhat_noncons_temp[v, noncons, i, j + 1] = value
 
             fhat2_L[v, i, j + 1] = fhat2_L[v, i, j + 1] + phi[v, noncons, i, j] * value
-            fhat2_R[v, i, j + 1] = fhat2_R[v, i, j + 1] + phi[v, noncons, i, j + 1] * value
+            fhat2_R[v, i, j + 1] = fhat2_R[v, i, j + 1] +
+                                   phi[v, noncons, i, j + 1] * value
         end
     end
     return nothing
