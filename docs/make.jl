@@ -49,7 +49,10 @@ end
 #               "subtitle 2" => ("folder 2", "filename 2.jl")]
 files = [
     # Topic: introduction
-    "Getting started" => "getting_started.jl",
+    "First steps in Trixi.jl" => [
+        "Getting started" => (".", "getting_started.jl"),
+        "Create first setup" => (".", "create_first_setup.jl"),
+    ],
     # Topic: DG semidiscretizations
     "Introduction to DG methods" => "scalar_linear_advection_1d.jl",
     "DGSEM with flux differencing" => "DGSEM_FluxDiff.jl",
