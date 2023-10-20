@@ -162,8 +162,8 @@ end
     (; inverse_weights) = dg.basis
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
-    var_min = variable_bounds[Symbol(string(variable) * "_min")]
-    var_max = variable_bounds[Symbol(string(variable) * "_max")]
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
+    var_max = variable_bounds[Symbol(string(variable), "_max")]
     calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
 
     @threaded for element in eachelement(dg, semi.cache)
@@ -232,7 +232,7 @@ end
     (; positivity_correction_factor) = limiter
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
-    var_min = variable_bounds[Symbol(string(variable) * "_min")]
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in eachelement(dg, semi.cache)
         inverse_jacobian = cache.elements.inverse_jacobian[element]
