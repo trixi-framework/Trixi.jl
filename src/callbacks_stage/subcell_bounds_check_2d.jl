@@ -7,13 +7,12 @@
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
                               limiter::SubcellLimiterIDP,
-                              time, iter, output_directory, save_errors, interval)
+                              time, iter, output_directory, save_errors)
     @unpack local_minmax, positivity, spec_entropy, math_entropy = solver.volume_integral.limiter
     @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
     @unpack idp_bounds_delta = limiter.cache
 
-    save_errors_ = save_errors && (iter % interval == 0)
-    if save_errors_
+    if save_errors
         open("$output_directory/deviations.txt", "a") do f
             print(f, iter, ", ", time)
         end
@@ -38,7 +37,7 @@
                                             deviation_min)
             idp_bounds_delta[key_max] = max(idp_bounds_delta[key_max],
                                             deviation_max)
-            if save_errors_
+            if save_errors
                 deviation_min_ = deviation_min
                 deviation_max_ = deviation_max
                 open("$output_directory/deviations.txt", "a") do f
@@ -59,7 +58,7 @@
                                 variable_bounds[key][i, j, element] - s)
         end
         idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_min)
-        if save_errors_
+        if save_errors
             deviation_min_ = deviation_min
             open("$output_directory/deviations.txt", "a") do f
                 print(f, ", ", deviation_min_)
@@ -78,7 +77,7 @@
                                 s - variable_bounds[key][i, j, element])
         end
         idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_max)
-        if save_errors_
+        if save_errors
             deviation_max_ = deviation_max
             open("$output_directory/deviations.txt", "a") do f
                 print(f, ", ", deviation_max_)
@@ -100,7 +99,7 @@
                                     variable_bounds[key][i, j, element] - var)
             end
             idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_min)
-            if save_errors_
+            if save_errors
                 deviation_min_ = deviation_min
                 open("$output_directory/deviations.txt", "a") do f
                     print(f, ", ", deviation_min_)
@@ -119,7 +118,7 @@
                                     variable_bounds[key][i, j, element] - var)
             end
             idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_min)
-            if save_errors_
+            if save_errors
                 deviation_min_ = deviation_min
                 open("$output_directory/deviations.txt", "a") do f
                     print(f, ", ", deviation_min_)
@@ -127,7 +126,7 @@
             end
         end
     end
-    if save_errors_
+    if save_errors
         open("$output_directory/deviations.txt", "a") do f
             println(f)
         end
