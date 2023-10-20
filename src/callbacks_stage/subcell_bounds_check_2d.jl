@@ -138,7 +138,7 @@ end
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
                               limiter::SubcellLimiterMCL,
-                              time, iter, output_directory, save_errors, interval)
+                              time, iter, output_directory, save_errors)
     @unpack var_min, var_max = limiter.cache.subcell_limiter_coefficients
     @unpack bar_states1, bar_states2, lambda1, lambda2 = limiter.cache.container_bar_states
     @unpack idp_bounds_delta = limiter.cache
@@ -590,7 +590,7 @@ end
                                               deviation_min[n_vars + 1])
     end
 
-    if !save_errors || (iter % interval != 0)
+    if !save_errors
         return nothing
     end
     open("$output_directory/deviations.txt", "a") do f

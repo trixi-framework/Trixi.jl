@@ -112,7 +112,8 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     if local_minmax
         for v in local_minmax_variables_cons
             v_string = string(v)
-            bound_keys = (bound_keys..., Symbol(v_string, "_min"), Symbol(v_string, "_max"))
+            bound_keys = (bound_keys..., Symbol(v_string, "_min"),
+                          Symbol(v_string, "_max"))
         end
     end
     if spec_entropy

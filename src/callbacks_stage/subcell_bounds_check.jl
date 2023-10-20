@@ -138,8 +138,8 @@ end
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    limiter::SubcellLimiterIDP)
-    @unpack local_minmax, positivity, spec_entropy, math_entropy = limiter
-    @unpack idp_bounds_delta = limiter.cache
+    (; local_minmax, positivity, spec_entropy, math_entropy) = limiter
+    (; idp_bounds_delta) = limiter.cache
     variables = varnames(cons2cons, semi.equations)
 
     println("─"^100)
