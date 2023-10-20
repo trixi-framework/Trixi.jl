@@ -1,4 +1,4 @@
-# [Coupling](@id coupling-id)
+# [Multi-physics coupling](@id multi-physics-coupling)
 A complex simulation can consist of different spatial domains in which
 different equations are being solved, different numerical methods being used
 or the grid structure is different.
