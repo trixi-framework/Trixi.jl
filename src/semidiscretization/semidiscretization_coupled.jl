@@ -365,7 +365,7 @@ BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64)
     This is an experimental feature and can change any time.
 """
 mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indices,
-                                        CouplingFunction}
+                                        CouplingConverter}
     # NDIMST2M1 == NDIMS * 2 - 1
     # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
     u_boundary::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
