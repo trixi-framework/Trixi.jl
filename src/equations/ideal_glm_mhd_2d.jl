@@ -290,8 +290,8 @@ Powell and the Galilean nonconservative term associated with the GLM multiplier
 of the [`IdealGlmMhdEquations2D`](@ref).
 
 This implementation uses a non-conservative term that can be written as the product
-of local and symmetric parts. It is equivalent to the non-conservative flux of Bohm 
-et al. (`flux_nonconservative_powell`) for conforming meshes but it yields different 
+of local and symmetric parts. It is equivalent to the non-conservative flux of Bohm
+et al. (`flux_nonconservative_powell`) for conforming meshes but it yields different
 results on non-conforming meshes(!).
 ## References
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
@@ -338,11 +338,11 @@ results on non-conforming meshes(!).
 end
 """
     flux_nonconservative_powell2(u_ll, orientation::Integer,
-                                equations::IdealGlmMhdEquations2D, 
+                                equations::IdealGlmMhdEquations2D,
                                 nonconservative_type::NonConservativeLocal,
                                 noncons_term::Integer)
 
-Local part of the Powell and GLM non-conservative terms. Needed for the calculation of 
+Local part of the Powell and GLM non-conservative terms. Needed for the calculation of
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
@@ -398,11 +398,11 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 end
 """
     flux_nonconservative_powell2(u_ll, orientation::Integer,
-                                equations::IdealGlmMhdEquations2D, 
+                                equations::IdealGlmMhdEquations2D,
                                 nonconservative_type::NonConservativeSymmetric,
                                 noncons_term::Integer)
 
-Symmetric part of the Powell and GLM non-conservative terms. Needed for the calculation of 
+Symmetric part of the Powell and GLM non-conservative terms. Needed for the calculation of
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
