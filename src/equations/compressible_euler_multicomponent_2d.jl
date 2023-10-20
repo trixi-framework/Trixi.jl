@@ -270,6 +270,29 @@ end
     return vcat(f_other, f_rho)
 end
 
+# Calculate 1D flux for a single point
+@inline function flux(u, normal_direction::AbstractVector,
+                      equations::CompressibleEulerMulticomponentEquations2D)
+    rho_v1, rho_v2, rho_e = u
+
+    rho = density(u, equations)
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
+    gamma = totalgamma(u, equations)
+    p = (gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
+
+    f_rho = densities(u, v_normal, equations)
+    f1 = rho_v1 * v_normal + p * normal_direction[1]
+    f2 = rho_v2 * v_normal + p * normal_direction[2]
+    f3 = (rho_e + p) * v_normal
+
+    f_other = SVector{3, real(equations)}(f1, f2, f3)
+
+    return vcat(f_other, f_rho)
+end
+
 """
     flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
 
@@ -446,6 +469,76 @@ See also
     return vcat(f_other, f_rho)
 end
 
+@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector,
+                              equations::CompressibleEulerMulticomponentEquations2D)
+    # Unpack left and right state
+    @unpack gammas, gas_constants, cv = equations
+    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+    rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
+                                                                         u_rr[i + 3])
+                                                                 for i in eachcomponent(equations))
+    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5 * (u_ll[i + 3] +
+                                                                 u_rr[i + 3])
+                                                                for i in eachcomponent(equations))
+
+    # Iterating over all partial densities
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+
+    # Calculating gamma
+    gamma = totalgamma(0.5 * (u_ll + u_rr), equations)
+    inv_gamma_minus_one = 1 / (gamma - 1)
+
+    # extract velocities
+    v1_ll = rho_v1_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+    v1_avg = 0.5 * (v1_ll + v1_rr)
+    v2_ll = rho_v2_ll / rho_ll
+    v2_rr = rho_v2_rr / rho_rr
+    v2_avg = 0.5 * (v2_ll + v2_rr)
+    velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    # helpful variables
+    help1_ll = zero(v1_ll)
+    help1_rr = zero(v1_rr)
+    enth_ll = zero(v1_ll)
+    enth_rr = zero(v1_rr)
+    for i in eachcomponent(equations)
+        enth_ll += u_ll[i + 3] * gas_constants[i]
+        enth_rr += u_rr[i + 3] * gas_constants[i]
+        help1_ll += u_ll[i + 3] * cv[i]
+        help1_rr += u_rr[i + 3] * cv[i]
+    end
+
+    # temperature and pressure
+    T_ll = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
+    T_rr = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
+    p_ll = T_ll * enth_ll
+    p_rr = T_rr * enth_rr
+    p_avg = 0.5 * (p_ll + p_rr)
+    inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+
+    f_rho_sum = zero(T_rr)
+    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * 0.5 *
+                                                             (v_dot_n_ll + v_dot_n_rr)
+                                                             for i in eachcomponent(equations))
+    for i in eachcomponent(equations)
+        f_rho_sum += f_rho[i]
+    end
+    f1 = f_rho_sum * v1_avg + p_avg * normal_direction[1]
+    f2 = f_rho_sum * v2_avg + p_avg * normal_direction[2]
+    f3 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) +
+         0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
+
+    # momentum and energy flux
+    f_other = SVector{3, real(equations)}(f1, f2, f3)
+
+    return vcat(f_other, f_rho)
+end
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerMulticomponentEquations2D)
@@ -476,6 +569,32 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::CompressibleEulerMulticomponentEquations2D)
+    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+    # Get the density and gas gamma
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+    gamma_ll = totalgamma(u_ll, equations)
+    gamma_rr = totalgamma(u_rr, equations)
+
+    # Get the velocities based on direction
+    v_ll = rho_v1_ll / rho_ll * normal_direction[1] +
+           rho_v1_ll / rho_ll * normal_direction[2]
+    v_rr = rho_v1_rr / rho_rr * normal_direction[1] +
+           rho_v1_rr / rho_rr * normal_direction[2]
+
+    # Compute the sound speeds on the left and right
+    p_ll = (gamma_ll - 1) * (rho_e_ll - 1 / 2 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
+    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+    p_rr = (gamma_rr - 1) * (rho_e_rr - 1 / 2 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+
+    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+end
+
 @inline function max_abs_speeds(u,
                                 equations::CompressibleEulerMulticomponentEquations2D)
     rho_v1, rho_v2, rho_e = u
@@ -489,6 +608,62 @@ end
     c = sqrt(gamma * p / rho)
 
     return (abs(v1) + c, abs(v2) + c)
+end
+
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::CompressibleEulerMulticomponentEquations2D)
+    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+    v2_rr = rho_v2_rr / rho_rr
+
+    gamma = totalgamma(u_ll, equations)
+    p_ll = (gamma - 1) * (rho_e_ll - 1 / 2 * rho_ll * (v1_ll^2 + v2_ll^2))
+    p_rr = (gamma - 1) * (rho_e_rr - 1 / 2 * rho_rr * (v1_rr^2 + v2_rr^2))
+
+    if orientation == 1 # x-direction
+        λ_min = v1_ll - sqrt(gamma * p_ll / rho_ll)
+        λ_max = v1_rr + sqrt(gamma * p_rr / rho_rr)
+    else # y-direction
+        λ_min = v2_ll - sqrt(gamma * p_ll / rho_ll)
+        λ_max = v2_rr + sqrt(gamma * p_rr / rho_rr)
+    end
+
+    return λ_min, λ_max
+end
+
+@inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::CompressibleEulerMulticomponentEquations2D)
+    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+    v2_rr = rho_v2_rr / rho_rr
+
+    gamma = totalgamma(u_ll, equations)
+    p_ll = (gamma - 1) * (rho_e_ll - 1 / 2 * rho_ll * (v1_ll^2 + v2_ll^2))
+    p_rr = (gamma - 1) * (rho_e_rr - 1 / 2 * rho_rr * (v1_rr^2 + v2_rr^2))
+
+    v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    norm_ = norm(normal_direction)
+    # The v_normals are already scaled by the norm
+    λ_min = v_normal_ll - sqrt(gamma * p_ll / rho_ll) * norm_
+    λ_max = v_normal_rr + sqrt(gamma * p_rr / rho_rr) * norm_
+
+    return λ_min, λ_max
 end
 
 # Convert conservative variables to primitive
