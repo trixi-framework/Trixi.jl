@@ -20,11 +20,16 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
   end
 
   @trixi_testset "elixir_eulermulti_shock_bubble_shockcapturing_subcell_positivity.jl" begin
+    rm("out/deviations.txt", force=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble_shockcapturing_subcell_positivity.jl"),
       l2   = [81.52845664909304, 2.5455678559421346, 63229.190712645846, 0.19929478404550321, 0.011068604228443425],
       linf = [249.21708417382013, 40.33299887640794, 174205.0118831558, 0.6881458768113586, 0.11274401158173972],
       initial_refinement_level = 3,
-      tspan = (0.0, 0.001))
+      tspan = (0.0, 0.001),
+      output_directory="out")
+      lines = readlines("out/deviations.txt")
+      @test lines[1] == "# iter, simu_time, rho1_min, rho2_min"
+      @test startswith(lines[end], "1")
   end
 
   @trixi_testset "elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl" begin
