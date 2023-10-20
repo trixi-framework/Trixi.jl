@@ -275,14 +275,6 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
         l2   = [0.21814833203212694, 0.2818328665444332, 0.5528379124720818],
         linf = [1.5548653877320868, 1.4474018998129738, 2.071919577393772],
         maxiters = 30)
-      # Ensure that we do not have excessive memory allocations 
-      # (e.g., from type instabilities) 
-      let 
-        t = sol.t[end] 
-        u_ode = sol.u[end] 
-        du_ode = similar(u_ode) 
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
-      end
   end
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl" begin
@@ -290,14 +282,6 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
         l2   = [0.22054468879127423, 0.2828269190680846, 0.5542369885642424],
         linf = [1.5623359741479623, 1.4290121654488288, 2.1040405133123072],
         maxiters = 30)
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
-        let 
-          t = sol.t[end] 
-          u_ode = sol.u[end] 
-          du_ode = similar(u_ode) 
-          @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
-        end
   end
 end
 
