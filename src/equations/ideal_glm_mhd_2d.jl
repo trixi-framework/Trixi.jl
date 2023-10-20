@@ -1039,7 +1039,7 @@ end
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
 
-@inline function isValidState(cons, equations::IdealGlmMhdEquations2D)
+@inline function is_valid_state(cons, equations::IdealGlmMhdEquations2D)
     p = pressure(cons, equations)
     if cons[1] <= 0.0 || p <= 0.0
         return false

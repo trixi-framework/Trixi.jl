@@ -136,11 +136,9 @@ end
     fhat1_R = fhat1_R_threaded[Threads.threadid()]
     fhat2_L = fhat2_L_threaded[Threads.threadid()]
     fhat2_R = fhat2_R_threaded[Threads.threadid()]
-    @trixi_timeit timer() "calcflux_fhat!" begin
-        calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u, mesh,
-                       nonconservative_terms, equations, volume_flux_dg, dg, element,
-                       cache)
-    end
+calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u, mesh,
+               nonconservative_terms, equations, volume_flux_dg, dg, element,
+               cache)
     # low-order FV fluxes
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
 
@@ -148,19 +146,15 @@ end
     fstar2_L = fstar2_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
-    @trixi_timeit timer() "calcflux_fv!" begin
-        calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
-                     nonconservative_terms, equations, volume_flux_fv, dg, element,
-                     cache)
-    end
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
+                 nonconservative_terms, equations, volume_flux_fv, dg, element,
+                 cache)
 
     # antidiffusive flux
-    @trixi_timeit timer() "calcflux_antidiffusive!" begin
-        calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
-                                fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                u, mesh, nonconservative_terms, equations, limiter, dg,
-                                element, cache)
-    end
+    calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
+                            fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                            u, mesh, nonconservative_terms, equations, limiter, dg,
+                            element, cache)
 
     # Calculate volume integral contribution of low-order FV flux
     for j in eachnode(dg), i in eachnode(dg)
@@ -322,6 +316,7 @@ end
 
     return nothing
 end
+
 # Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
 # (**with non-conservative terms**).
 #
@@ -501,6 +496,7 @@ end
                                     fhat_noncons_temp[v, noncons, i, j + 1]
         end
     end
+    
     return nothing
 end
 
@@ -541,6 +537,7 @@ end
 
     return nothing
 end
+
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R,
