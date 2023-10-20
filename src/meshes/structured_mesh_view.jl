@@ -15,7 +15,6 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
     @assert all(index_min .> 0)
     @assert index_max <= size(parent)
 
-    
     return StructuredMeshView{NDIMS, RealT}(parent, parent.mapping, index_min, index_max, periodicity)
 end
 
