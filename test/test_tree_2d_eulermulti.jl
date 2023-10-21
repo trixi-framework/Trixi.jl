@@ -16,11 +16,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble.jl"),
       l2   = [73.78467629094177, 0.9174752929795251, 57942.83587826468, 0.1828847253029943, 0.011127037850925347],
       linf = [196.81051991521073, 7.8456811648529605, 158891.88930113698, 0.811379581519794, 0.08011973559187913],
-      tspan = (0.0, 0.001),
-      output_directory="out")
-      lines = readlines("out/deviations.txt")
-      @test lines[1] == "# iter, simu_time, rho1_min, rho2_min"
-      @test startswith(lines[end], "1")
+      tspan = (0.0, 0.001))
       # Ensure that we do not have excessive memory allocations 
       # (e.g., from type instabilities) 
       let 
@@ -37,7 +33,11 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       l2   = [81.52845664909304, 2.5455678559421346, 63229.190712645846, 0.19929478404550321, 0.011068604228443425],
       linf = [249.21708417382013, 40.33299887640794, 174205.0118831558, 0.6881458768113586, 0.11274401158173972],
       initial_refinement_level = 3,
-      tspan = (0.0, 0.001))
+      tspan = (0.0, 0.001),
+      output_directory="out")
+      lines = readlines("out/deviations.txt")
+      @test lines[1] == "# iter, simu_time, rho1_min, rho2_min"
+      @test startswith(lines[end], "1")
       # Ensure that we do not have excessive memory allocations 
       # (e.g., from type instabilities) 
       let 
