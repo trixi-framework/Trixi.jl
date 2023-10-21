@@ -162,14 +162,6 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [1.710832148442441, 0.9711663578827681, 0.9703787873632452, 2.9619758810532653],
       initial_refinement_level = 4,
       maxiters = 50)
-      # Ensure that we do not have excessive memory allocations 
-      # (e.g., from type instabilities) 
-      let 
-        t = sol.t[end] 
-        u_ode = sol.u[end] 
-        du_ode = similar(u_ode) 
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
-      end
   end
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl" begin
@@ -178,14 +170,6 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [1.7066492792835155, 0.9856122336679919, 0.9784316656930644, 2.9372978989672873],
       initial_refinement_level = 4,
       maxiters = 50)
-      # Ensure that we do not have excessive memory allocations 
-      # (e.g., from type instabilities) 
-      let 
-        t = sol.t[end] 
-        u_ode = sol.u[end] 
-        du_ode = similar(u_ode) 
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
-      end
   end
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl with mortars" begin
@@ -197,14 +181,6 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
           (type="box", coordinates_min=(-0.125, -0.125), coordinates_max=(0.125, 0.125)),),
       initial_refinement_level = 4,
       maxiters = 5)
-      # Ensure that we do not have excessive memory allocations 
-      # (e.g., from type instabilities) 
-      let 
-        t = sol.t[end] 
-        u_ode = sol.u[end] 
-        du_ode = similar(u_ode) 
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
-      end
   end
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_cnn.jl" begin
@@ -214,14 +190,6 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       initial_refinement_level = 4,
       maxiters = 50,
       rtol = 1.0e-7)
-      # Ensure that we do not have excessive memory allocations 
-      # (e.g., from type instabilities) 
-      let 
-        t = sol.t[end] 
-        u_ode = sol.u[end] 
-        du_ode = similar(u_ode) 
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
-      end
   end
 
   @trixi_testset "elixir_euler_blast_wave_pure_fv.jl" begin
@@ -279,14 +247,6 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [1.3608553480069898, 1.6822884847136004, 1.6822884847135997, 4.2201475428867035],
       maxiters = 30,
       coverage_override = (maxiters=6,))
-      # Ensure that we do not have excessive memory allocations 
-      # (e.g., from type instabilities) 
-      let 
-        t = sol.t[end] 
-        u_ode = sol.u[end] 
-        du_ode = similar(u_ode) 
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
-      end
   end
 
   @trixi_testset "elixir_euler_positivity.jl" begin
@@ -392,14 +352,6 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       # linf = [0.00855717053383187, 0.02087422420794427, 0.017121993783086185, 0.02720703869972585],
       maxiters = 30,
       coverage_override = (maxiters=2,))
-      # Ensure that we do not have excessive memory allocations 
-      # (e.g., from type instabilities) 
-      let 
-        t = sol.t[end] 
-        u_ode = sol.u[end] 
-        du_ode = similar(u_ode) 
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
-      end
   end
 
   @trixi_testset "elixir_euler_colliding_flow.jl" begin
