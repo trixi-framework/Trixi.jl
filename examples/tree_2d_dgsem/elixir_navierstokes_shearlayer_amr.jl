@@ -55,7 +55,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.7)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -66,6 +66,10 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 alive_callback = AliveCallback(analysis_interval=analysis_interval,)
 
 # This uses velocity-based AMR
+@inline function v1(u, equations::CompressibleEulerEquations2D)
+  rho, rho_v1, _, _ = u
+  return rho_v1 / rho
+end
 amr_indicator = IndicatorLöhner(semi, variable=v1)                                          
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 3,
