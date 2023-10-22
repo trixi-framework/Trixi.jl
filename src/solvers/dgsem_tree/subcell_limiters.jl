@@ -26,7 +26,7 @@ The bounds are calculated using the low-order FV solution. The positivity limite
 
 !!! note
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
-    Without the callback, no limiting takes place, leading to a standard flux-differencing DGSEM scheme.
+    Without the callback, no correction takes place, leading to a standard low-order FV scheme.
 
 ## References
 
@@ -53,7 +53,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            positivity_correction_factor = 0.1)
     positivity = (length(positivity_variables_cons) > 0)
 
-    bound_keys = Tuple(Symbol("$(i)_min") for i in positivity_variables_cons)
+    bound_keys = Tuple(Symbol(string(v), "_min") for v in positivity_variables_cons)
 
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
 
@@ -100,5 +100,12 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
         end
         summary_box(io, "SubcellLimiterIDP", setup)
     end
+end
+
+function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
+                             ::VolumeIntegralSubcellLimiting, equations)
+    node_variables[:limiting_coefficient] = limiter.cache.subcell_limiter_coefficients.alpha
+
+    return nothing
 end
 end # @muladd

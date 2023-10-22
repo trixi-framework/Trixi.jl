@@ -72,6 +72,15 @@ end
       l2   = [0.9999995642691271],
       linf = [1.824702804788453],
       tspan = (0.0, 0.25))
+
+      # Ensure that we do not have excessive memory allocations
+      # (e.g., from type instabilities)
+      let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+      end
   end
 end
 
@@ -98,6 +107,15 @@ end
       linf = [1.4228079689537765e-5, 1.3249887941046978e-5, 3.201552933251861e-5],
       tspan = (0.0, 0.5),
       flux_splitting = splitting_vanleer_haenel)
+
+      # Ensure that we do not have excessive memory allocations
+      # (e.g., from type instabilities)
+      let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+      end
   end
 
   @trixi_testset "elixir_euler_convergence.jl with VolumeIntegralStrongForm" begin
@@ -106,6 +124,15 @@ end
       linf = [6.707982777909294e-5, 3.487256699541419e-5, 0.00010170331350556339],
       tspan = (0.0, 0.5),
       solver = DG(D_upw.central, nothing, SurfaceIntegralStrongForm(), VolumeIntegralStrongForm()))
+
+      # Ensure that we do not have excessive memory allocations
+      # (e.g., from type instabilities)
+      let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+      end
   end
 
   @trixi_testset "elixir_euler_density_wave.jl" begin
@@ -113,6 +140,15 @@ end
       l2   = [1.5894925236031034e-5, 9.428412101106044e-6, 0.0008986477358789918],
       linf = [4.969438024382544e-5, 2.393091812063694e-5, 0.003271817388146303],
       tspan = (0.0, 0.005), abstol = 1.0e-9, reltol = 1.0e-9)
+      
+      # Ensure that we do not have excessive memory allocations
+      # (e.g., from type instabilities)
+      let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+      end
   end
 end
 

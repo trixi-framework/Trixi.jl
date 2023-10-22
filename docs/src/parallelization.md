@@ -70,7 +70,32 @@ the same for P4est.jl and T8code.jl. This could e.g. be `libp4est.so` that usual
 in `lib/` or `local/lib/` in the installation directory of `t8code`.
 In total, in your active Julia project you should have a LocalPreferences.toml file with sections
 `[MPIPreferences]`, `[T8code]` and `[P4est]` as well as an entry `MPIPreferences` in your
-Project.toml to use a custom MPI installation.
+Project.toml to use a custom MPI installation. A `LocalPreferences.toml` file 
+created as described above might look something like the following:
+```toml
+[HDF5]
+libhdf5 = "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so"
+libhdf5_hl = "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so"
+
+[MPIPreferences]
+__clear__ = ["preloads_env_switch"]
+_format = "1.0"
+abi = "OpenMPI"
+binary = "system"
+cclibs = []
+libmpi = "/lib/x86_64-linux-gnu/libmpi.so"
+mpiexec = "mpiexec"
+preloads = []
+
+[P4est]
+libp4est = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libp4est.so"
+libsc = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libsc.so"
+
+[T8code]
+libp4est = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libp4est.so"
+libsc = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libsc.so"
+libt8 = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libt8.so"
+```
 
 
 ### [Usage](@id parallel_usage)
