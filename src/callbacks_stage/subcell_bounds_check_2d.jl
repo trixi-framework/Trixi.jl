@@ -69,6 +69,19 @@
             end
             deviation[2] = max(deviation[2], deviation[1])
         end
+        for variable in limiter.positivity_variables_nonlinear
+            key = Symbol(string(variable), "_min")
+            deviation = idp_bounds_delta[key]
+            for element in eachelement(solver, cache), j in eachnode(solver),
+                i in eachnode(solver)
+
+                var = variable(get_node_vars(u, equations, solver, i, j, element),
+                               equations)
+                deviation[1] = max(deviation[1],
+                                   variable_bounds[key][i, j, element] - var)
+            end
+            deviation[2] = max(deviation[2], deviation[1])
+        end
     end
     if save_errors
         # Print to output file
@@ -77,24 +90,23 @@
             if local_minmax
                 for v in limiter.local_minmax_variables_cons
                     v_string = string(v)
-                    key_min = Symbol(v_string, "_min")
-                    key_max = Symbol(v_string, "_max")
-                    print(f, ", ", idp_bounds_delta[key_min][1],
-                          idp_bounds_delta[key_max][1])
+                    print(f, ", ", idp_bounds_delta[Symbol(v_string, "_min")][1],
+                          idp_bounds_delta[Symbol(v_string, "_max")][1])
                 end
             end
-            if math_entropy
-                key = :math_entropy_max
-                print(f, ", ", idp_bounds_delta[key][1])
+            if spec_entropy
+                print(f, ", ", idp_bounds_delta[:spec_entropy_min][1])
             end
             if math_entropy
-                key = :math_entropy_max
-                print(f, ", ", idp_bounds_delta[key][1])
+                print(f, ", ", idp_bounds_delta[:math_entropy_max][1])
             end
             if positivity
                 for v in limiter.positivity_variables_cons
-                    key = Symbol(string(v), "_min")
-                    print(f, ", ", idp_bounds_delta[key][1])
+                    print(f, ", ", idp_bounds_delta[Symbol(string(v), "_min")][1])
+                end
+                for variable in limiter.positivity_variables_nonlinear
+                    print(f, ", ",
+                          idp_bounds_delta[Symbol(string(variable), "_min")][1])
                 end
             end
             println(f)
@@ -111,10 +123,10 @@ end
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
                               limiter::SubcellLimiterMCL,
                               time, iter, output_directory, save_errors)
-    @unpack var_min, var_max = limiter.cache.subcell_limiter_coefficients
-    @unpack bar_states1, bar_states2, lambda1, lambda2 = limiter.cache.container_bar_states
-    @unpack idp_bounds_delta = limiter.cache
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
+    (; var_min, var_max) = limiter.cache.subcell_limiter_coefficients
+    (; bar_states1, bar_states2, lambda1, lambda2) = limiter.cache.container_bar_states
+    (; idp_bounds_delta) = limiter.cache
+    (; antidiffusive_flux1, antidiffusive_flux2) = cache.antidiffusive_fluxes
 
     # TODO: Revise Bounds Check for MCL
 

@@ -180,8 +180,9 @@ end
                     idp_bounds_delta[Symbol(string(v), "_min")][2])
         end
         for variable in limiter.positivity_variables_nonlinear
-            println("$(variable):\n- positivity: ",
-                    idp_bounds_delta[Symbol("$(variable)_min")])
+            variable_string = string(variable)
+            println(variable_string * ":\n- positivity: ",
+                    idp_bounds_delta[Symbol(variable_string, "_min")][2])
         end
     end
     println("─"^100 * "\n")
