@@ -24,9 +24,9 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # The first entry of each vector contains the maximum deviation since the last export.
     # The second one contains the total maximum deviation.
-    idp_bounds_delta = Dict{Symbol, real(basis)}()
+    idp_bounds_delta = Dict{Symbol, Vector{real(basis)}}()
     for key in bound_keys
-        idp_bounds_delta[key] = zero(real(basis))
+        idp_bounds_delta[key] = zeros(real(basis), 2)
     end
 
     return (; cache..., subcell_limiter_coefficients, idp_bounds_delta)

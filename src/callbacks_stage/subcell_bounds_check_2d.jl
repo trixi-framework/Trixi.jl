@@ -8,127 +8,100 @@
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
                               limiter::SubcellLimiterIDP,
                               time, iter, output_directory, save_errors)
-    @unpack local_minmax, positivity, spec_entropy, math_entropy = solver.volume_integral.limiter
-    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
-    @unpack idp_bounds_delta = limiter.cache
+    (; local_minmax, positivity, spec_entropy, math_entropy) = solver.volume_integral.limiter
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    (; idp_bounds_delta) = limiter.cache
 
-    if save_errors
-        open("$output_directory/deviations.txt", "a") do f
-            print(f, iter, ", ", time)
-        end
-    end
     if local_minmax
         for v in limiter.local_minmax_variables_cons
-            key_min = Symbol("$(v)_min")
-            key_max = Symbol("$(v)_max")
-            deviation_min = zero(eltype(u))
-            deviation_max = zero(eltype(u))
+            v_string = string(v)
+            key_min = Symbol(v_string, "_min")
+            key_max = Symbol(v_string, "_max")
+            deviation_min = idp_bounds_delta[key_min]
+            deviation_max = idp_bounds_delta[key_max]
             for element in eachelement(solver, cache), j in eachnode(solver),
                 i in eachnode(solver)
 
-                deviation_min = max(deviation_min,
-                                    variable_bounds[key_min][i, j, element] -
-                                    u[v, i, j, element])
-                deviation_max = max(deviation_max,
-                                    u[v, i, j, element] -
-                                    variable_bounds[key_max][i, j, element])
+                var = u[v, i, j, element]
+                deviation_min[1] = max(deviation_min[1],
+                                       variable_bounds[key_min][i, j, element] - var)
+                deviation_max[1] = max(deviation_max[1],
+                                       var - variable_bounds[key_max][i, j, element])
             end
-            idp_bounds_delta[key_min] = max(idp_bounds_delta[key_min],
-                                            deviation_min)
-            idp_bounds_delta[key_max] = max(idp_bounds_delta[key_max],
-                                            deviation_max)
-            if save_errors
-                deviation_min_ = deviation_min
-                deviation_max_ = deviation_max
-                open("$output_directory/deviations.txt", "a") do f
-                    print(f, ", ", deviation_min_, ", ", deviation_max_)
-                end
-            end
+            deviation_min[2] = max(deviation_min[2], deviation_min[1])
+            deviation_max[2] = max(deviation_max[2], deviation_max[1])
         end
     end
     if spec_entropy
         key = :spec_entropy_min
-        deviation_min = zero(eltype(u))
+        deviation = idp_bounds_delta[key]
         for element in eachelement(solver, cache), j in eachnode(solver),
             i in eachnode(solver)
 
             s = entropy_spec(get_node_vars(u, equations, solver, i, j, element),
                              equations)
-            deviation_min = max(deviation_min,
-                                variable_bounds[key][i, j, element] - s)
+            deviation[1] = max(deviation[1], variable_bounds[key][i, j, element] - s)
         end
-        idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_min)
-        if save_errors
-            deviation_min_ = deviation_min
-            open("$output_directory/deviations.txt", "a") do f
-                print(f, ", ", deviation_min_)
-            end
-        end
+        deviation[2] = max(deviation[2], deviation[1])
     end
     if math_entropy
         key = :math_entropy_max
-        deviation_max = zero(eltype(u))
+        deviation = idp_bounds_delta[key]
         for element in eachelement(solver, cache), j in eachnode(solver),
             i in eachnode(solver)
 
             s = entropy_math(get_node_vars(u, equations, solver, i, j, element),
                              equations)
-            deviation_max = max(deviation_max,
-                                s - variable_bounds[key][i, j, element])
+            deviation[1] = max(deviation[1], s - variable_bounds[key][i, j, element])
         end
-        idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_max)
-        if save_errors
-            deviation_max_ = deviation_max
-            open("$output_directory/deviations.txt", "a") do f
-                print(f, ", ", deviation_max_)
-            end
-        end
+        deviation[2] = max(deviation[2], deviation[1])
     end
     if positivity
         for v in limiter.positivity_variables_cons
-            if v in limiter.local_minmax_variables_cons
-                continue
-            end
-            key = Symbol("$(v)_min")
-            deviation_min = zero(eltype(u))
+            key = Symbol(string(v), "_min")
+            deviation = idp_bounds_delta[key]
             for element in eachelement(solver, cache), j in eachnode(solver),
                 i in eachnode(solver)
 
                 var = u[v, i, j, element]
-                deviation_min = max(deviation_min,
-                                    variable_bounds[key][i, j, element] - var)
+                deviation[1] = max(deviation[1],
+                                   variable_bounds[key][i, j, element] - var)
             end
-            idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_min)
-            if save_errors
-                deviation_min_ = deviation_min
-                open("$output_directory/deviations.txt", "a") do f
-                    print(f, ", ", deviation_min_)
-                end
-            end
-        end
-        for variable in limiter.positivity_variables_nonlinear
-            key = Symbol("$(variable)_min")
-            deviation_min = zero(eltype(u))
-            for element in eachelement(solver, cache), j in eachnode(solver),
-                i in eachnode(solver)
-
-                var = variable(get_node_vars(u, equations, solver, i, j, element),
-                               equations)
-                deviation_min = max(deviation_min,
-                                    variable_bounds[key][i, j, element] - var)
-            end
-            idp_bounds_delta[key] = max(idp_bounds_delta[key], deviation_min)
-            if save_errors
-                deviation_min_ = deviation_min
-                open("$output_directory/deviations.txt", "a") do f
-                    print(f, ", ", deviation_min_)
-                end
-            end
+            deviation[2] = max(deviation[2], deviation[1])
         end
     end
     if save_errors
+        # Print to output file
         open("$output_directory/deviations.txt", "a") do f
+            print(f, iter, ", ", time)
+            if local_minmax
+                for v in limiter.local_minmax_variables_cons
+                    v_string = string(v)
+                    key_min = Symbol(v_string, "_min")
+                    key_max = Symbol(v_string, "_max")
+                    print(f, ", ", idp_bounds_delta[key_min][1],
+                          idp_bounds_delta[key_max][1])
+                end
+            end
+            if math_entropy
+                key = :math_entropy_max
+                print(f, ", ", idp_bounds_delta[key][1])
+            end
+            if math_entropy
+                key = :math_entropy_max
+                print(f, ", ", idp_bounds_delta[key][1])
+            end
+            if positivity
+                for v in limiter.positivity_variables_cons
+                    key = Symbol(string(v), "_min")
+                    print(f, ", ", idp_bounds_delta[key][1])
+                end
+            end
             println(f)
+        end
+        # Reset first entries of idp_bounds_delta
+        for (key, _) in idp_bounds_delta
+            idp_bounds_delta[key][1] = zero(eltype(idp_bounds_delta[key][1]))
         end
     end
 
@@ -142,6 +115,8 @@ end
     @unpack bar_states1, bar_states2, lambda1, lambda2 = limiter.cache.container_bar_states
     @unpack idp_bounds_delta = limiter.cache
     @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
+
+    # TODO: Revise Bounds Check for MCL
 
     n_vars = nvariables(equations)
 
