@@ -62,8 +62,9 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     bound_keys = ()
     if local_minmax
         for v in local_minmax_variables_cons
-            bound_keys = (bound_keys..., Symbol(string(v), "_min"),
-                          Symbol(string(v), "_max"))
+            v_string = string(v)
+            bound_keys = (bound_keys..., Symbol(v_string, "_min"),
+                          Symbol(v_string, "_max"))
         end
     end
     for v in positivity_variables_cons
