@@ -283,7 +283,7 @@ end
 
 """
     flux_nonconservative_powell2(u_ll, u_rr, orientation::Integer,
-                                equations::IdealGlmMhdEquations2D)
+                                 equations::IdealGlmMhdEquations2D)
 
 Non-symmetric two-point flux discretizing the nonconservative (source) term of
 Powell and the Galilean nonconservative term associated with the GLM multiplier
@@ -336,11 +336,12 @@ results on non-conforming meshes(!).
 
     return f
 end
+
 """
     flux_nonconservative_powell2(u_ll, orientation::Integer,
-                                equations::IdealGlmMhdEquations2D,
-                                nonconservative_type::NonConservativeLocal,
-                                noncons_term::Integer)
+                                 equations::IdealGlmMhdEquations2D,
+                                 nonconservative_type::NonConservativeLocal,
+                                 noncons_term::Integer)
 
 Local part of the Powell and GLM non-conservative terms. Needed for the calculation of
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
@@ -396,11 +397,12 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
     end
     return f
 end
+
 """
     flux_nonconservative_powell2(u_ll, orientation::Integer,
-                                equations::IdealGlmMhdEquations2D,
-                                nonconservative_type::NonConservativeSymmetric,
-                                noncons_term::Integer)
+                                 equations::IdealGlmMhdEquations2D,
+                                 nonconservative_type::NonConservativeSymmetric,
+                                 noncons_term::Integer)
 
 Symmetric part of the Powell and GLM non-conservative terms. Needed for the calculation of
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
