@@ -248,10 +248,11 @@ function solve!(integrator::SimpleIntegrator3Sstar)
 
         # handle callbacks
         if callbacks isa CallbackSet
-            for cb in callbacks.discrete_callbacks
+            foreach(callbacks.discrete_callbacks) do cb
                 if cb.condition(integrator.u, integrator.t, integrator)
                     cb.affect!(integrator)
                 end
+                return nothing
             end
         end
 
