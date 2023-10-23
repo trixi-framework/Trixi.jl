@@ -65,7 +65,10 @@ end
 
 function SimpleIntegratorSSPOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
     tstops_internal = BinaryHeap{eltype(tspan)}(FasterForward())
+    # We add last(tspan) to make sure that the time integration stops at the end time
     push!(tstops_internal, last(tspan))
+    # We add 2 * last(tspan) because add_tstop!(integrator, t) is only called by DiffEqCallbacks.jl if tstops contains a time that is larger than t
+    # (https://github.com/SciML/DiffEqCallbacks.jl/blob/025dfe99029bd0f30a2e027582744528eb92cd24/src/iterative_and_periodic.jl#L92)
     push!(tstops_internal, 2 * last(tspan))
     SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback,
                                                                           false, Inf,
@@ -99,11 +102,14 @@ end
 
 """
     add_tstop!(integrator::SimpleIntegratorSSP, t)
-Add a time stop during the time integration process.
+Add a time stop during the time integration process. 
+This function is called after the periodic SaveSolutionCallback to specify the next stop to save the solution.
 """
 function add_tstop!(integrator::SimpleIntegratorSSP, t)
     integrator.tdir * (t - integrator.t) < zero(integrator.t) &&
         error("Tried to add a tstop that is behind the current time. This is strictly forbidden")
+    # We need to remove the first entry of tstops when a new entry is added.
+    # Otherwise, the simulation gets stuck at the previous tstop and dt is adjusted to zero.
     if length(integrator.opts.tstops) > 1
         pop!(integrator.opts.tstops)
     end
@@ -226,6 +232,10 @@ function solve!(integrator::SimpleIntegratorSSP)
         end
     end
 
+    # Empty the tstops array. 
+    # This cannot be done in terminate!(integrator::SimpleIntegratorSSP) because DiffEqCallbacks.PeriodicCallbackAffect would return at error.
+    extract_all!(integrator.opts.tstops)
+
     for stage_callback in alg.stage_callbacks
         finalize_callback(stage_callback, integrator.p)
     end
@@ -249,7 +259,6 @@ end
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
     integrator.finalstep = true
-    extract_all!(tstops_internal)
 end
 
 """
