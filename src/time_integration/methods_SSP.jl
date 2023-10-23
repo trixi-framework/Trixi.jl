@@ -94,7 +94,7 @@ end
 
 """
     add_tstop!(integrator::SimpleIntegratorSSP, t)
-Add
+Add a time stop during the time integration process.
 """
 function add_tstop!(integrator::SimpleIntegratorSSP, t)
     integrator.tdir * (t - integrator.t) < zero(integrator.t) &&
