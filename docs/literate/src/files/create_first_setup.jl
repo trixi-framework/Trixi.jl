@@ -46,7 +46,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 # [`TreeMesh`](@ref). The spatial domain used is [-1.0, 1.0]⨯[-1.0, 1.0]. We set an initial number
 # of elements in the mesh using `initial_refinement_level`, which describes the initial height of
 # the tree mesh. The variable `n_cells_max` is used to limit the number of elements in the mesh,
-# which cannot be exceeded due to [adaptive mesh refinement](@ref Adaptive-mesh-refinement).
+# which cannot be exceeded in the [adaptive mesh refinement](@ref Adaptive-mesh-refinement).
 
 # All minimum and all maximum coordinates must be combined into `Tuples`.
 
@@ -79,11 +79,11 @@ solver = DGSEM(polydeg=3)
 # and return an initial conditions as a static vector `SVector`. Following the same structure, you
 # can define your own initial conditions.
 
-function initial_condition_sin(x, t, equations::LinearScalarAdvectionEquation2D)
+function initial_condition_sinpi(x, t, equations::LinearScalarAdvectionEquation2D)
     scalar = sinpi(x[1]) * sinpi(x[2])
     return SVector(scalar)
 end
-initial_condition = initial_condition_sin
+initial_condition = initial_condition_sinpi
 
 # The next step is to define a function of the source term corresponding to our problem.
 # ```math
@@ -92,16 +92,16 @@ initial_condition = initial_condition_sin
 # This function must take the target variable, coordinates, time and the
 # equation itself as arguments and return the source term as a static vector `SVector`.
 
-function source_term_exp_sin(u, x, t, equations::LinearScalarAdvectionEquation2D)
+function source_term_exp_sinpi(u, x, t, equations::LinearScalarAdvectionEquation2D)
     scalar = - 2 * exp(-t) * sinpi(2*(x[1] - t)) * sinpi(2*(x[2] - t))
     return SVector(scalar)
 end
 
 # Now we are collecting all the information that will be needed to define spatial discretization
-# and to create an ODE problem with a time span from 0.0 s to 1.0 s.
+# and to create an ODE problem with a time span from 0.0 s to 1.0.
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                    source_terms = source_term_exp_sin)
+                                    source_terms = source_term_exp_sinpi)
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
 
@@ -157,9 +157,9 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback, 
 # [ODE solvers](https://docs.sciml.ai/DiffEqDocs/latest/solvers/ode_solve/), e.g.
 # `CarpenterKennedy2N54(williamson_condition = false)`. We will pass the ODE
 # problem, the ODE solver and the callbacks to the `solve` function. Also, to use
-# `StepsizeCallback`, we must explicitly specify the time step `dt`, the selected value is not
-# important, because it will be overwritten by `StepsizeCallback`. And there is no need to save
-# every step of the solution, we are only interested in the final result.
+# `StepsizeCallback`, we must explicitly specify the initial trial time step `dt`, the selected
+# value is not important, because it will be overwritten by `StepsizeCallback`. And there is no
+# need to save every step of the solution, we are only interested in the final result.
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 1.0,
             save_everystep = false, callback = callbacks);
@@ -168,7 +168,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 1.0,
 
 summary_callback()
 
-# Now you can plot the solution as shown below, analyse it and improve the stability, accuracy or
+# Now you can plot the solution as shown below, analyze it and improve the stability, accuracy or
 # efficiency of your setup modifying it.
 
 
@@ -182,7 +182,7 @@ summary_callback()
 # ### Using Plots.jl
 
 # The first option is to use the [Plots.jl](https://github.com/JuliaPlots/Plots.jl) package
-# directly after calculations, when solution is saved in the `sol` variable. We connect the
+# directly after calculations, when the solution is saved in the `sol` variable. We connect the
 # package and use the `plot` function.
 
 using Plots
@@ -236,7 +236,7 @@ trixi2vtk(joinpath("out", "solution_000018.h5"), output_directory="out")
 #   Pipeline Browser window, left-click on the eye-icon near `solution_000018_celldata.vtu`.
 # - In the lower-left corner in the Properties window, change the Representation from the Surface
 #   to the Wireframe. Then a white grid should appear on the visualization.
-# Now, if you followed the instructions exactly, you should get an analog image, as shown in the
+# Now, if you followed the instructions exactly, you should get a similar image as shown in the
 # section [Using Plots.jl](@ref Using-Plots.jl):
 
 # ![paraview_trixi2vtk_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/0c29139b-6c5d-4d5c-86e1-f4ebc95aca7e)

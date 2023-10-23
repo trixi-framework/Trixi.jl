@@ -13,7 +13,6 @@
 # - [Running a simulation](@ref Running-a-simulation)
 # - [Getting an existing setup file](@ref Getting-an-existing-setup-file)
 # - [Modifying an existing setup](@ref Modifying-an-existing-setup)
-# - [Cloning Trixi.jl](@ref Cloning-Trixi.jl)
 
 
 # ## Julia installation
@@ -28,8 +27,8 @@
 # ### Windows
 
 # - Download Julia installer for Windows from [https://julialang.org/downloads/](https://julialang.org/downloads/).
-#   Make sure that you choose the right version of installer (64-bit or 32-bit) according to your
-#   computer.
+#   Make sure that you choose the right version of the installer (64-bit or 32-bit) according to
+#   your computer.
 # - Open the downloaded installer.
 # - Paste an installation directory path or find it using a file manager (select `Browse`).
 # - Select `Next`.
@@ -42,7 +41,7 @@
 # - Enter `cmd` in opened window.
 # - Enter in a terminal `julia`. 
 
-# Then Julia will be invoked. To close Julia enter `exit()` or press `Ctrl+d`. 
+# Then Julia will be started. To close Julia enter `exit()` or press `Ctrl+d`. 
 
 
 # ### Linux
@@ -61,9 +60,9 @@
 # Now you can verify that Julia is installed entering `<Julia directory>/bin/julia`
 # (e.g. `julia-1.8.5/bin/julia`) command in a terminal. `<Julia directory>` is the directory where
 # Julia is installed.
-# Then Julia will be invoked. To close Julia, enter `exit()` or press `Ctrl+d`.
+# Then Julia will be started. To close Julia, enter `exit()` or press `Ctrl+d`.
 
-# Note, that further in the tutorial Julia will be invoked only typing `julia` in a terminal.
+# Note, that further in the tutorial Julia will be started only typing `julia` in a terminal.
 # To enable that, you have to add
 # [Julia to the PATH](https://julialang.org/downloads/platform/#linux_and_freebsd).
 
@@ -77,7 +76,7 @@
 # [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and 
 # [Plots.jl](https://github.com/JuliaPlots/Plots.jl).
 
-# - Open a terminal and invoke Julia (Windows and Linux: type `julia`).
+# - Open a terminal and start Julia (Windows and Linux: type `julia`).
 # - Execute following commands:
 #   ```julia
 #   import Pkg
@@ -235,88 +234,6 @@ plot(p1, p2, p3, p4) #hide #md
 # Feel free to make further changes to the initial condition to observe different solutions.
 
 # Now you are able to download, modify and execute simulation setups for Trixi.jl.
-
-
-# ## Next steps: changing Trixi.jl itself
-
-# If you plan on editing Trixi.jl itself, you can download Trixi.jl locally and run it from
-# the cloned directory:
-
-
-# ### Cloning Trixi.jl
-
-
-# #### Windows
-
-# If you are using Windows, you can clone Trixi.jl by using the GitHub Desktop tool:
-# - If you do not have a GitHub account yet, create it on
-#   the [GitHub website](https://github.com/join).
-# - Download and install [GitHub Desktop](https://desktop.github.com/) and then log in into
-#   your account.
-# - Open GitHub Desktop, press `Ctrl+Shift+O`.
-# - In the opened window, paste `trixi-framework/Trixi.jl` and choose the path to the folder where
-#   you want to save Trixi.jl. Then click `Clone` and Trixi.jl will be cloned to your computer. 
-
-# Now you cloned Trixi.jl and only need to tell Julia to use the local clone as the package sources:
-# - Open a terminal using `Win+R` and `cmd`. Navigate to the folder with cloned Trixi.jl using `cd`.
-# - Create new directory `run`, enter it, and start Julia with the `--project=.` flag:
-#   ```shell
-#   mkdir run 
-#   cd run
-#   julia --project=.
-#   ```
-# - Now run the following commands to install all relevant packages:
-#   ```julia
-#   using Pkg; Pkg.develop(PackageSpec(path="..")) # Install local Trixi.jl clone
-#   Pkg.add(["OrdinaryDiffEq", "Plots"])  # Install additional packages
-#   ```
-
-# Now you already installed Trixi.jl from your local clone. Note that if you installed Trixi.jl
-# this way, you always have to start Julia with the `--project` flag set to your `run` directory,
-# e.g.,
-# ```shell
-# julia --project=.
-# ```
-# if already inside the `run` directory.
-
-
-# #### Linux
-
-# You can clone Trixi.jl to your computer executing following commands:
-# ```shell
-# git clone git@github.com:trixi-framework/Trixi.jl.git 
-# # In case of an error, try the following:
-# # git clone https://github.com/trixi-framework/Trixi.jl
-# cd Trixi.jl
-# mkdir run 
-# cd run
-# julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi.jl clone
-# julia -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Plots"])' # Install additional packages'
-# ```
-# Note that if you installed Trixi.jl this way,
-# you always have to start Julia with the `--project` flag set to your `run` directory, e.g.,
-# ```shell
-# julia --project=.
-# ```
-# if already inside the `run` directory.
-
-
-# ### For further reading
-
-# To further delve into Trixi.jl, you may have a look at following tutorials.
-# - [Create first setup](@ref create_first_setup) is an extension of Trixi.jl introductory guide,
-#   that explains what are the main parts of Trixi.jl elixirs and how to use them to construct your
-#   own setup.
-# - [Introduction to DG methods](@ref scalar_linear_advection_1d) will teach you how to set up a
-#   simple way to approximate the solution of a hyperbolic partial differential equation. It will
-#   be especially useful to learn about the 
-#   [Discontinuous Galerkin method](https://en.wikipedia.org/wiki/Discontinuous_Galerkin_method)
-#   and the way it is implemented in Trixi.jl.
-# - [Adding a new scalar conservation law](@ref adding_new_scalar_equations) and
-#   [Adding a non-conservative equation](@ref adding_nonconservative_equation)
-#   describe how to add new physics models that are not yet included in Trixi.jl.
-# - [Callbacks](@ref callbacks-id) gives an overview of how to regularly execute specific actions
-#   during a simulation, e.g., to store the solution or adapt the mesh.
 
 
 # ## Package versions
