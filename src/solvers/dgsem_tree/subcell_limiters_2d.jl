@@ -21,9 +21,12 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
         cache = (; cache..., container_bar_states)
     end
 
-    idp_bounds_delta = Dict{Symbol, real(basis)}()
+    # Memory for bounds checking routine with `BoundsCheckCallback`.
+    # The first entry of each vector contains the maximum deviation since the last export.
+    # The second one contains the total maximum deviation.
+    idp_bounds_delta = Dict{Symbol, Vector{real(basis)}}()
     for key in bound_keys
-        idp_bounds_delta[key] = zero(real(basis))
+        idp_bounds_delta[key] = zeros(real(basis), 2)
     end
 
     return (; cache..., subcell_limiter_coefficients, idp_bounds_delta)
@@ -331,8 +334,8 @@ end
 @inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
-    var_min = variable_bounds[Symbol("$(variable)_min")]
-    var_max = variable_bounds[Symbol("$(variable)_max")]
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
+    var_max = variable_bounds[Symbol(string(variable), "_max")]
     if !limiter.bar_states
         calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
     end
@@ -460,7 +463,7 @@ end
     (; positivity_correction_factor) = limiter
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
-    var_min = variable_bounds[Symbol("$(variable)_min")]
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in elements
         if mesh isa TreeMesh
@@ -524,7 +527,7 @@ end
     (; positivity_correction_factor) = limiter
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
-    var_min = variable_bounds[Symbol("$(variable)_min")]
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)

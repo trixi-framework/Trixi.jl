@@ -52,7 +52,7 @@ indicator values <= `threshold_smoothness_indicator`.
 
 !!! note
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
-    Without the callback, no limiting takes place, leading to a standard flux-differencing DGSEM scheme.
+    Without the callback, no correction takes place, leading to a standard low-order FV scheme.
 
 ## References
 
@@ -110,8 +110,10 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
 
     bound_keys = ()
     if local_minmax
-        for i in local_minmax_variables_cons
-            bound_keys = (bound_keys..., Symbol("$(i)_min"), Symbol("$(i)_max"))
+        for v in local_minmax_variables_cons
+            v_string = string(v)
+            bound_keys = (bound_keys..., Symbol(v_string, "_min"),
+                          Symbol(v_string, "_max"))
         end
     end
     if spec_entropy
@@ -120,13 +122,13 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     if math_entropy
         bound_keys = (bound_keys..., :math_entropy_max)
     end
-    for i in positivity_variables_cons
-        if !(i in local_minmax_variables_cons)
-            bound_keys = (bound_keys..., Symbol("$(i)_min"))
+    for v in positivity_variables_cons
+        if !(v in local_minmax_variables_cons)
+            bound_keys = (bound_keys..., Symbol(string(v), "_min"))
         end
     end
     for variable in positivity_variables_nonlinear
-        bound_keys = (bound_keys..., Symbol("$(variable)_min"))
+        bound_keys = (bound_keys..., Symbol(string(variable), "_min"))
     end
 
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states)
@@ -230,7 +232,7 @@ end
 function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
                              ::VolumeIntegralSubcellLimiting, equations)
     node_variables[:alpha_limiter] = limiter.cache.subcell_limiter_coefficients.alpha
-    # TODO: alpha is not filled before the first timestep.
+
     return nothing
 end
 
