@@ -17,27 +17,42 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [8.311947673061856e-6],
       linf = [6.627000273229378e-5])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_advection_nonconforming_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming_flag.jl"),
       l2   = [3.198940059144588e-5],
       linf = [0.00030636069494005547])
-
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-      t = sol.t[end]
-      u_ode = sol.u[end]
-      du_ode = similar(u_ode)
-      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_advection_unstructured_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
       l2   = [0.0005379687442422346],
       linf = [0.007438525029884735])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
@@ -46,6 +61,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [4.949660644033807e-5],
       linf = [0.0004867846262313763],
       coverage_override = (maxiters=6,))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
@@ -53,18 +76,42 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [0.0012766060609964525],
       linf = [0.01750280631586159],
       coverage_override = (maxiters=6,))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       l2   = [4.507575525876275e-6],
       linf = [6.21489667023134e-5])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
     l2   = [0.0034516244508588046, 0.0023420334036925493, 0.0024261923964557187, 0.004731710454271893],
     linf = [0.04155789011775046, 0.024772109862748914, 0.03759938693042297, 0.08039824959535657])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_euler_free_stream.jl" begin
@@ -73,6 +120,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [1.9539925233402755e-14, 2e-12, 4.8e-12, 4e-12],
       atol = 2.0e-12, # required to make CI tests pass on macOS
     )
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_euler_shockcapturing_ec.jl" begin
@@ -80,6 +135,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [9.53984675e-02, 1.05633455e-01, 1.05636158e-01, 3.50747237e-01],
       linf = [2.94357464e-01, 4.07893014e-01, 3.97334516e-01, 1.08142520e+00],
       tspan = (0.0, 1.0))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_euler_sedov.jl" begin
@@ -87,6 +150,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [3.76149952e-01, 2.46970327e-01, 2.46970327e-01, 1.28889042e+00],
       linf = [1.22139001e+00, 1.17742626e+00, 1.17742626e+00, 6.20638482e+00],
       tspan = (0.0, 0.3))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_euler_blast_wave_amr.jl" begin
@@ -95,6 +166,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [2.76020890e+00, 2.32659890e+00, 2.32580837e+00, 2.15778188e+00],
       tspan = (0.0, 0.3),
       coverage_override = (maxiters=6,))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_euler_wall_bc_amr.jl" begin
@@ -102,15 +181,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [0.020291447969983396, 0.017479614254319948, 0.011387644425613437, 0.0514420126021293],
       linf = [0.3582779022370579, 0.32073537890751663, 0.221818049107692, 0.9209559420400415],
       tspan = (0.0, 0.15))
-
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-      t = sol.t[end]
-      u_ode = sol.u[end]
-      du_ode = similar(u_ode)
-      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_euler_forward_step_amr.jl" begin
@@ -120,6 +198,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.0001),
       rtol = 1.0e-7,
       skip_coverage=true)
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_euler_double_mach_amr.jl" begin
@@ -128,6 +214,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [6.902000373057003, 53.95714139820832, 24.241610279839758, 561.0630401858057],
       tspan = (0.0, 0.0001),
       skip_coverage=true)
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_euler_supersonic_cylinder.jl" begin
@@ -136,6 +230,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [3.653905721692421, 4.285035711361009, 6.8544353186357645, 31.748244912257533],
       tspan = (0.0, 0.001),
       skip_coverage=true)
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_eulergravity_convergence.jl" begin
@@ -143,6 +245,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [0.00024871265138964204, 0.0003370077102132591, 0.0003370077102131964, 0.0007231525513793697],
       linf = [0.0015813032944647087, 0.0020494288423820173, 0.0020494288423824614, 0.004793821195083758],
       tspan = (0.0, 0.1))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_shallowwater_source_terms.jl" begin
@@ -150,6 +260,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [9.168126407325352e-5, 0.0009795410115453788, 0.002546408320320785, 3.941189812642317e-6],
       linf = [0.0009903782521019089, 0.0059752684687262025, 0.010941106525454103, 1.2129488214718265e-5],
       tspan = (0.0, 0.1))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_mhd_alfven_wave.jl" begin
@@ -160,6 +278,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [4.255466285174592e-5, 1.0029706745823264e-5, 1.0029706747467781e-5, 1.2122265939010224e-5,
               5.4791097160444835e-6, 5.18922042269665e-6, 5.189220422141538e-6, 9.552667261422676e-6,
               1.4237578427628152e-6])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_mhd_rotor.jl" begin
@@ -171,12 +297,28 @@ isdir(outdir) && rm(outdir, recursive=true)
               19.647239392277378, 1.3938810140985936, 1.8724965294853084, 0.0,
               0.0016290067532561904],
       tspan = (0.0, 0.02))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_linearizedeuler_gaussian_source.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_gaussian_source.jl"),
       l2 = [0.006047938590548741, 0.0040953286019907035, 0.004222698522497298, 0.006269492499336128],
       linf = [0.06386175207349379, 0.0378926444850457, 0.041759728067967065, 0.06430136016259067])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 end
 
