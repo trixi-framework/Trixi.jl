@@ -259,13 +259,12 @@ end
                                        equations, dg, ii, j)
             for noncons in 1:nnoncons(equations)
                 # We multiply by 0.5 because that is done in other parts of Trixi
-                flux1_noncons = 0.5 *
-                                volume_flux_noncons(u_node, u_node_ii, 1, equations,
+                flux1_noncons = volume_flux_noncons(u_node, u_node_ii, 1, equations,
                                                     NonConservativeSymmetric(), noncons)
-                multiply_add_to_node_vars!(flux_noncons_temp, derivative_split[i, ii],
+                multiply_add_to_node_vars!(flux_noncons_temp, 0.5 * derivative_split[i, ii],
                                            flux1_noncons,
                                            equations, dg, noncons, i, j)
-                multiply_add_to_node_vars!(flux_noncons_temp, derivative_split[ii, i],
+                multiply_add_to_node_vars!(flux_noncons_temp, 0.5 * derivative_split[ii, i],
                                            flux1_noncons,
                                            equations, dg, noncons, ii, j)
             end
@@ -327,13 +326,12 @@ end
                                        equations, dg, i, jj)
             for noncons in 1:nnoncons(equations)
                 # We multiply by 0.5 because that is done in other parts of Trixi
-                flux2_noncons = 0.5 *
-                                volume_flux_noncons(u_node, u_node_jj, 2, equations,
+                flux2_noncons = volume_flux_noncons(u_node, u_node_jj, 2, equations,
                                                     NonConservativeSymmetric(), noncons)
-                multiply_add_to_node_vars!(flux_noncons_temp, derivative_split[j, jj],
+                multiply_add_to_node_vars!(flux_noncons_temp, 0.5 * derivative_split[j, jj],
                                            flux2_noncons,
                                            equations, dg, noncons, i, j)
-                multiply_add_to_node_vars!(flux_noncons_temp, derivative_split[jj, j],
+                multiply_add_to_node_vars!(flux_noncons_temp, 0.5 * derivative_split[jj, j],
                                            flux2_noncons,
                                            equations, dg, noncons, i, jj)
             end
