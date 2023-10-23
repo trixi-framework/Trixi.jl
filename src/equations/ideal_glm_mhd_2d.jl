@@ -1000,7 +1000,7 @@ end
 end
 
 # Transformation from conservative variables u to d(p)/d(u)
-@inline function dpdu(u, equations::IdealGlmMhdEquations2D)
+@inline function pressure(u, equations::IdealGlmMhdEquations2D, derivative::True)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
 
     v1 = rho_v1 / rho
