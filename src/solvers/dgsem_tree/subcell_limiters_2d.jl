@@ -13,7 +13,15 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
                                                                         nnodes(basis),
                                                                         bound_keys)
 
-    return (; subcell_limiter_coefficients)
+    # Memory for bounds checking routine with `BoundsCheckCallback`.
+    # The first entry of each vector contains the maximum deviation since the last export.
+    # The second one contains the total maximum deviation.
+    idp_bounds_delta = Dict{Symbol, Vector{real(basis)}}()
+    for key in bound_keys
+        idp_bounds_delta[key] = zeros(real(basis), 2)
+    end
+
+    return (; subcell_limiter_coefficients, idp_bounds_delta)
 end
 
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
@@ -60,7 +68,7 @@ end
     (; positivity_correction_factor) = limiter
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
-    var_min = variable_bounds[Symbol("$(variable)_min")]
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in eachelement(dg, semi.cache)
         inverse_jacobian = cache.elements.inverse_jacobian[element]
