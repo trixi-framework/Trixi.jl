@@ -249,7 +249,7 @@ end
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
     integrator.finalstep = true
-    #empty!(integrator.opts.tstops)
+    extract_all!(tstops_internal)
 end
 
 """
