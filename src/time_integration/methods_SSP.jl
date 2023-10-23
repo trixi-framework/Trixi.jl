@@ -31,6 +31,11 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
     stage_callbacks::StageCallbacks
 
     function SimpleSSPRK33(; stage_callbacks = ())
+        # Mathematically speaking, it is not necessary for the algorithm to split the factors
+        # into numerator and denominator. Otherwise, however, rounding errors of the order of
+        # the machine accuracy will occur, which will add up over time and thus endanger the
+        # conservation of the simulation.
+        # See also https://github.com/trixi-framework/Trixi.jl/pull/1640.
         numerator_a = SVector(0.0, 3.0, 1.0) # a = numerator_a / denominator
         numerator_b = SVector(1.0, 1.0, 2.0) # b = numerator_b / denominator
         denominator = SVector(1.0, 4.0, 3.0)
@@ -278,7 +283,9 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     resize!(integrator.r0, new_size)
 
     # Resize container
-    resize!(integrator.p, new_size)
+    # new_size = n_variables * n_nodes^n_dims * n_elements
+    n_elements = nelements(integrator.p.solver, integrator.p.cache)
+    resize!(integrator.p, n_elements)
 end
 
 function Base.resize!(semi::AbstractSemidiscretization, new_size)

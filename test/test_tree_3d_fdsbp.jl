@@ -66,6 +66,15 @@ end
       linf = [0.0001963934848161486, 0.00020239883896255861, 0.0002023988389729947, 0.00020239883896766564, 0.00052605624510349],
       tspan = (0.0, 0.2),
       solver = DG(D_upw.central, nothing, SurfaceIntegralStrongForm(), VolumeIntegralStrongForm()))
+
+      # Ensure that we do not have excessive memory allocations
+      # (e.g., from type instabilities)
+      let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+      end
   end
 
   @trixi_testset "elixir_euler_taylor_green_vortex.jl" begin
@@ -73,6 +82,15 @@ end
       l2   = [3.529693407280806e-6, 0.0004691301922633193, 0.00046913019226332234, 0.0006630180220973541, 0.0015732759680929076],
       linf = [3.4253965106145756e-5, 0.0010033197685090707, 0.0010033197685091054, 0.0018655642702542635, 0.008479800046757191],
       tspan = (0.0, 0.0075), abstol = 1.0e-9, reltol = 1.0e-9)
+
+      # Ensure that we do not have excessive memory allocations
+      # (e.g., from type instabilities)
+      let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+      end
   end
 end
 

@@ -15,18 +15,42 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
               0.06755404204112954],
       linf = [0.29130548795961864, 0.8847009003152357, 0.034686525099975274, 0.06937305019995055,
               0.1387461003999011])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_eulermulti_es.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_es.jl"),
       l2   = [0.1522380497572071, 0.43830846465313206, 0.03907262116499431, 0.07814524232998862],
       linf = [0.24939193075537294, 0.7139395740052739, 0.06324208768391237, 0.12648417536782475])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_eulermulti_convergence_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_ec.jl"),
       l2   = [8.575236038539227e-5, 0.00016387804318585358, 1.9412699303977585e-5, 3.882539860795517e-5],
       linf = [0.00030593277277124464, 0.0006244803933350696, 7.253121435135679e-5, 0.00014506242870271358])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_eulermulti_convergence_es.jl" begin
@@ -35,6 +59,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
               6.186482304747219e-6, 1.2372964609494437e-5],
       linf = [0.00012014372605895218, 0.0003313207215800418, 6.50836791016296e-6, 1.301673582032592e-5,
               2.603347164065184e-5, 5.206694328130368e-5])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_eulermulti_convergence_es.jl with flux_chandrashekar" begin
@@ -44,6 +76,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
       linf = [0.00011622351152063004, 0.0003079221967086099, 3.2177423254231563e-6, 6.435484650846313e-6,
               1.2870969301692625e-5, 2.574193860338525e-5],
       volume_flux = flux_chandrashekar)
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_eulermulti_two_interacting_blast_waves.jl" begin
@@ -53,11 +93,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
       linf = [29.6413044707026, 1322.5844802186496, 0.09191919374782143, 0.31092970966717925,
               0.4417989757182038],
       tspan = (0.0, 0.0001))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
-
-
 end
-
-
 
 end # module
