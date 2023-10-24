@@ -81,7 +81,6 @@ isdir(outdir) && rm(outdir, recursive=true)
         du_ode = similar(u_ode) 
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
       end
-    end
   end
 
   @testset "elixir_advection_rotated.jl" begin
@@ -655,6 +654,7 @@ isdir(outdir) && rm(outdir, recursive=true)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
       end
   end
+end
 
 # Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn rm(outdir, recursive=true)
