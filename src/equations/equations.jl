@@ -239,11 +239,10 @@ The return value will be `True()` or `False()` to allow dispatching on the retur
 """
 have_nonconservative_terms(::AbstractEquations) = False()
 """
-    nnoncons(equations)
-Number of nonconservative terms for a particular equation. The default is 0 and 
-it must be defined for each nonconservative equation independently.
+    n_nonconservative_terms(equations)
+Number of nonconservative terms in the form local * symmetric for a particular equation.
 """
-nnoncons(::AbstractEquations) = 0
+function n_nonconservative_terms(::AbstractEquations) end
 have_constant_speed(::AbstractEquations) = False()
 
 default_analysis_errors(::AbstractEquations) = (:l2_error, :linf_error)

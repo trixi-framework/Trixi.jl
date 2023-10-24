@@ -29,7 +29,7 @@ function IdealGlmMhdEquations2D(gamma; initial_c_h = convert(typeof(gamma), NaN)
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = True()
-nnoncons(::IdealGlmMhdEquations2D) = 2
+n_nonconservative_terms(::IdealGlmMhdEquations2D) = 2
 
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations2D)
     ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
