@@ -26,30 +26,33 @@ function create_cache(mesh::TreeMesh{2}, equations,
                                        nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
     flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.nthreads()]
-    flux_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
-                                                 n_nonconservative_terms(equations),
-                                                 nnodes(dg), nnodes(dg))
-                                             for _ in 1:Threads.nthreads()]
     fhat_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg),
                                  nnodes(dg))
                              for _ in 1:Threads.nthreads()]
-    fhat_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
-                                                 n_nonconservative_terms(equations),
-                                                 nnodes(dg), nnodes(dg))
-                                             for _ in 1:Threads.nthreads()]
-
-    phi_threaded = A4d[A4d(undef, nvariables(equations),
-                           n_nonconservative_terms(equations),
-                           nnodes(dg), nnodes(dg))
-                       for _ in 1:Threads.nthreads()]
-
     antidiffusive_fluxes = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0,
                                                                        nvariables(equations),
                                                                        nnodes(dg))
+
+    if typeof(have_nonconservative_terms(equations)) == True
+        flux_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
+                                                     n_nonconservative_terms(equations),
+                                                     nnodes(dg), nnodes(dg))
+                                                 for _ in 1:Threads.nthreads()]
+        fhat_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
+                                                     n_nonconservative_terms(equations),
+                                                     nnodes(dg), nnodes(dg))
+                                                 for _ in 1:Threads.nthreads()]
+        phi_threaded = A4d[A4d(undef, nvariables(equations),
+                               n_nonconservative_terms(equations),
+                               nnodes(dg), nnodes(dg))
+                           for _ in 1:Threads.nthreads()]
+        cache = (; cache..., flux_nonconservative_temp_threaded,
+                 fhat_nonconservative_temp_threaded, phi_threaded)
+    end
+
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat2_L_threaded, fhat1_R_threaded, fhat2_R_threaded,
-            flux_temp_threaded, flux_nonconservative_temp_threaded, fhat_temp_threaded,
-            fhat_nonconservative_temp_threaded, phi_threaded)
+            flux_temp_threaded, fhat_temp_threaded)
 end
 
 function calc_volume_integral!(du, u,
