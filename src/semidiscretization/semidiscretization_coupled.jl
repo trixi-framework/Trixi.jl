@@ -372,7 +372,7 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indic
     other_semi_index::Int
     other_orientation::Int
     indices::Indices
-    coupling_converter::CouplingFunction
+    coupling_converter::CouplingConverter
 
     function BoundaryConditionCoupled(other_semi_index, indices, uEltype,
                                       coupling_converter)
