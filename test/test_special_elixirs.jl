@@ -30,6 +30,12 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
         @test isapprox(mean_convergence[:l2], [4.0], rtol=0.05)
       end
 
+      @timed_testset "structured_2d_dgsem coupled" begin
+        mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_coupled.jl"), 3)
+        @test isapprox(mean_convergence[1][:l2], [4.0], rtol=0.05)
+        @test isapprox(mean_convergence[2][:l2], [4.0], rtol=0.05)
+      end
+
       @timed_testset "p4est_2d_dgsem" begin
         # Run convergence test on unrefined mesh
         no_refine = @cfunction((p4est, which_tree, quadrant) -> Cint(0), Cint, (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p4est_quadrant_t}))
