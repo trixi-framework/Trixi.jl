@@ -17,7 +17,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
       atol = 1e-6,
       rtol = 1e-6,
       skip_coverage = true)
-      if @isdefined sol
+      if @isdefined sol # Skipped in coverage run
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let

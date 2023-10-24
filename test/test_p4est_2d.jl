@@ -198,7 +198,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.0001),
       rtol = 1.0e-7,
       skip_coverage=true)
-      if @isdefined sol
+      if @isdefined sol # Skipped in coverage run
         # Ensure that we do not have excessive memory allocations 
         # (e.g., from type instabilities) 
         let 
@@ -216,7 +216,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [6.902000373057003, 53.95714139820832, 24.241610279839758, 561.0630401858057],
       tspan = (0.0, 0.0001),
       skip_coverage=true)
-      if @isdefined sol
+      if @isdefined sol # Skipped in coverage run
         # Ensure that we do not have excessive memory allocations 
         # (e.g., from type instabilities) 
         let 
@@ -234,7 +234,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [3.653905721692421, 4.285035711361009, 6.8544353186357645, 31.748244912257533],
       tspan = (0.0, 0.001),
       skip_coverage=true)
-      if @isdefined sol
+      if @isdefined sol # Skipped in coverage run
         # Ensure that we do not have excessive memory allocations 
         # (e.g., from type instabilities) 
         let 
