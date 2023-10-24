@@ -148,7 +148,7 @@ function solve!(integrator::SimpleIntegratorSSP)
     callbacks = integrator.opts.callback
 
     integrator.finalstep = false
-    while !integrator.finalstep
+    @trixi_timeit timer() "main loop" while !integrator.finalstep
         if isnan(integrator.dt)
             error("time step size `dt` is NaN")
         end
