@@ -298,7 +298,9 @@ end
             fhat1_R[v, i + 1, j] = value
         end
         # Nonconservative part
-        for noncons in 1:n_nonconservative_terms(equations), v in eachvariable(equations)
+        for noncons in 1:n_nonconservative_terms(equations),
+            v in eachvariable(equations)
+
             value = fhat_noncons_temp[v, noncons, i, j] +
                     weights[i] * flux_noncons_temp[v, noncons, i, j]
             fhat_noncons_temp[v, noncons, i + 1, j] = value
@@ -367,7 +369,9 @@ end
             fhat2_R[v, i, j + 1] = value
         end
         # Nonconservative part
-        for noncons in 1:n_nonconservative_terms(equations), v in eachvariable(equations)
+        for noncons in 1:n_nonconservative_terms(equations),
+            v in eachvariable(equations)
+
             value = fhat_noncons_temp[v, noncons, i, j] +
                     weights[j] * flux_noncons_temp[v, noncons, i, j]
             fhat_noncons_temp[v, noncons, i, j + 1] = value
