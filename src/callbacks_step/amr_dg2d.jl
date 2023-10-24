@@ -136,6 +136,29 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     return nothing
 end
 
+# AMR for hyperbolic-parabolic equations currently only supported on TreeMeshes
+function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}},
+                 equations, dg::DGSEM, cache, cache_parabolic,
+                 elements_to_refine)
+    # Call `refine!` for the hyperbolic part, which does the heavy lifting of
+    # actually transferring the solution to the refined cells
+    refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine)
+
+    # Resize parabolic helper variables
+    @unpack viscous_container = cache_parabolic
+    resize!(viscous_container, equations, dg, cache)
+    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
+
+    # Sanity check
+    if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
+       !mpi_isparallel()
+        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) *
+                                                         nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    end
+
+    return nothing
+end
+
 # TODO: Taal compare performance of different implementations
 # Refine solution data u for an element, using L2 projection (interpolation)
 function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
@@ -270,6 +293,29 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
        !mpi_isparallel()
         @assert ninterfaces(cache.interfaces)==ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    end
+
+    return nothing
+end
+
+# AMR for hyperbolic-parabolic equations currently only supported on TreeMeshes
+function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2},P4estMesh{2}, TreeMesh{3}},
+                  equations, dg::DGSEM, cache, cache_parabolic,
+                  elements_to_remove)
+    # Call `coarsen!` for the hyperbolic part, which does the heavy lifting of
+    # actually transferring the solution to the coarsened cells
+    coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove)
+
+    # Resize parabolic helper variables
+    @unpack viscous_container = cache_parabolic
+    resize!(viscous_container, equations, dg, cache)
+    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
+
+    # Sanity check
+    if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
+       !mpi_isparallel()
+        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) *
+                                                         nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
     end
 
     return nothing

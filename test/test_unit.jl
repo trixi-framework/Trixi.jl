@@ -528,6 +528,28 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @timed_testset "Euler test velocity functions" begin
+    rho, v1, v2, v3, p = 1.0, 0.1, 0.2, 0.3, 2.0
+
+    let equations = CompressibleEulerEquations1D(1.4)
+      cons_vars = prim2cons(SVector(rho,v1,p),equations)
+      @test v1 ≈ Trixi.v1(cons_vars, equations)
+    end
+
+    let equations = CompressibleEulerEquations2D(1.4)
+      cons_vars = prim2cons(SVector(rho,v1,v2,p),equations)
+      @test v1 ≈ Trixi.v1(cons_vars, equations)
+      @test v2 ≈ Trixi.v2(cons_vars, equations)
+    end
+
+    let equations = CompressibleEulerEquations3D(1.4)
+      cons_vars = prim2cons(SVector(rho,v1,v2,v3,p),equations)
+      @test v1 ≈ Trixi.v1(cons_vars, equations)
+      @test v2 ≈ Trixi.v2(cons_vars, equations)
+      @test v3 ≈ Trixi.v3(cons_vars, equations)
+    end
+  end
+
   @timed_testset "Shallow water conversion between conservative/entropy variables" begin
     H, v1, v2, b = 3.5, 0.25, 0.1, 0.4
 

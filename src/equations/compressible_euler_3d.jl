@@ -1514,6 +1514,21 @@ end
     return rho_times_p
 end
 
+@inline function v1(u, equations::CompressibleEulerEquations3D)
+    rho, rho_v1, _, _, _ = u
+    return rho_v1 / rho
+end
+
+@inline function v2(u, equations::CompressibleEulerEquations3D)
+    rho, _, rho_v2, _, _ = u
+    return rho_v2 / rho
+end
+
+@inline function v3(u, equations::CompressibleEulerEquations3D)
+    rho, _, _, rho_v3, _ = u
+    return rho_v3 / rho
+end
+
 # Calculate thermodynamic entropy for a conservative state `u`
 @inline function entropy_thermodynamic(u, equations::CompressibleEulerEquations3D)
     rho, _ = u

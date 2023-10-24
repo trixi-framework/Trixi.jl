@@ -10,14 +10,11 @@ function create_cache_parabolic(mesh::P4estMesh{3}, equations_hyperbolic::Abstra
     interfaces = init_interfaces(mesh, equations_hyperbolic, dg.basis, elements)
     boundaries = init_boundaries(mesh, equations_hyperbolic, dg.basis, elements)
 
-    n_vars = nvariables(equations_hyperbolic)
-    n_elements = nelements(elements)
-    n_nodes = nnodes(dg.basis) # nodes in one direction
-    u_transformed = Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)
-    gradients = ntuple(_ -> similar(u_transformed), ndims(mesh))
-    flux_viscous = ntuple(_ -> similar(u_transformed), ndims(mesh))
+    viscous_container = init_viscous_container_3d(nvariables(equations_hyperbolic),
+                                                  nnodes(dg.basis), nelements(elements),
+                                                  uEltype)
 
-    cache = (; elements, interfaces, boundaries, gradients, flux_viscous, u_transformed)
+    cache = (; elements, interfaces, boundaries, viscous_container)
 
     return cache
 end
@@ -36,7 +33,8 @@ function rhs_parabolic!(du, u, t, mesh::P4estMesh{3},
                         equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
-    @unpack u_transformed, gradients, flux_viscous = cache_parabolic
+    @unpack viscous_container = cache_parabolic
+    @unpack u_transformed, gradients, flux_viscous = viscous_container
 
     # Convert conservative variables to a form more suitable for viscous flux calculations
     @trixi_timeit timer() "transform variables" begin

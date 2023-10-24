@@ -528,6 +528,100 @@ function copy_to_quad_iter_volume(info, user_data)
     return nothing
 end
 
+function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
+                                     equations, dg::DG, cache, cache_parabolic,
+                                     semi,
+                                     t, iter;
+                                     only_refine = false, only_coarsen = false,
+                                     passive_args = ())
+    @unpack controller, adaptor = amr_callback
+
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
+    lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
+                                                          t = t, iter = iter)
+
+    @boundscheck begin
+        @assert axes(lambda)==(Base.OneTo(ncells(mesh)),) ("Indicator array (axes = $(axes(lambda))) and mesh cells (axes = $(Base.OneTo(ncells(mesh)))) have different axes")
+    end
+
+    # Copy controller value of each quad to the quad's user data storage
+    iter_volume_c = cfunction(copy_to_quad_iter_volume, Val(ndims(mesh)))
+
+    # The pointer to lambda will be interpreted as Ptr{Int} above
+    @assert lambda isa Vector{Int}
+    iterate_p4est(mesh.p4est, lambda; iter_volume_c = iter_volume_c)
+
+    @trixi_timeit timer() "refine" if !only_coarsen
+        # Refine mesh
+        refined_original_cells = @trixi_timeit timer() "mesh" refine!(mesh)
+
+        # Refine solver
+        @trixi_timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg,
+                                               cache, cache_parabolic,
+                                               refined_original_cells)
+        for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
+            @trixi_timeit timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh,
+                                                           p_equations,
+                                                           p_dg, p_cache,
+                                                           refined_original_cells)
+        end
+    else
+        # If there is nothing to refine, create empty array for later use
+        refined_original_cells = Int[]
+    end
+
+    @trixi_timeit timer() "coarsen" if !only_refine
+        # Coarsen mesh
+        coarsened_original_cells = @trixi_timeit timer() "mesh" coarsen!(mesh)
+
+        # coarsen solver
+        @trixi_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg,
+                                                cache, cache_parabolic,
+                                                coarsened_original_cells)
+        for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
+            @trixi_timeit timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh,
+                                                            p_equations,
+                                                            p_dg, p_cache,
+                                                            coarsened_original_cells)
+        end
+    else
+        # If there is nothing to coarsen, create empty array for later use
+        coarsened_original_cells = Int[]
+    end
+
+    # Store whether there were any cells coarsened or refined and perform load balancing
+    has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
+    # Check if mesh changed on other processes
+    if mpi_isparallel()
+        has_changed = MPI.Allreduce!(Ref(has_changed), |, mpi_comm())[]
+    end
+
+    if has_changed # TODO: Taal decide, where shall we set this?
+        # don't set it to has_changed since there can be changes from earlier calls
+        mesh.unsaved_changes = true
+
+        if mpi_isparallel() && amr_callback.dynamic_load_balancing
+            @trixi_timeit timer() "dynamic load balancing" begin
+                global_first_quadrant = unsafe_wrap(Array,
+                                                    unsafe_load(mesh.p4est).global_first_quadrant,
+                                                    mpi_nranks() + 1)
+                old_global_first_quadrant = copy(global_first_quadrant)
+                partition!(mesh)
+                rebalance_solver!(u_ode, mesh, equations, dg, cache,
+                                  old_global_first_quadrant)
+            end
+        end
+
+        reinitialize_boundaries!(semi.boundary_conditions, cache)
+        if hasproperty(semi, :boundary_conditions_parabolic)
+            reinitialize_boundaries!(semi.boundary_conditions_parabolic, cache)
+        end
+    end
+
+    # Return true if there were any cells coarsened or refined, otherwise false
+    return has_changed
+end
+
 # 2D
 function cfunction(::typeof(copy_to_quad_iter_volume), ::Val{2})
     @cfunction(copy_to_quad_iter_volume, Cvoid,

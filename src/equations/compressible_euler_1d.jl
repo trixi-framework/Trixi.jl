@@ -973,6 +973,11 @@ end
     return rho_times_p
 end
 
+@inline function v1(u, equations::CompressibleEulerEquations1D)
+    rho, rho_v1, _ = u
+    return rho_v1 / rho
+end
+
 # Calculate thermodynamic entropy for a conservative state `cons`
 @inline function entropy_thermodynamic(cons, equations::CompressibleEulerEquations1D)
     # Pressure
