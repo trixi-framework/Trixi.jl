@@ -141,8 +141,9 @@ end
                 index = reverse(index)
                 boundary_index += 2
             end
-            u_outer = get_boundary_outer_state(boundary_conditions[boundary_index], cache,
-                                               t, equations, dg, index..., element)
+            u_outer = get_boundary_outer_state(boundary_conditions[boundary_index],
+                                               cache, t, equations, dg,
+                                               index..., element)
             var_outer = u_outer[variable]
 
             var_min[index..., element] = min(var_min[index..., element], var_outer)
