@@ -18,6 +18,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [8.389498188525518e-06],
       linf = [2.847421658558336e-05]
     )
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl (AMR)" begin
@@ -40,6 +48,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2_error, linf_error = analysis_callback(sol)
       @test l2_error ≈ [6.4878111416468355e-6]
       @test linf_error ≈ [3.258075790424364e-5]
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl" begin
@@ -47,6 +63,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [0.0001133835907077494, 6.226282245610444e-5, 0.0002820171699999139],
       linf = [0.0006255102377159538, 0.00036195501456059986, 0.0016147729485886941]
     )
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl: GradientVariablesEntropy" begin
@@ -57,6 +81,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [0.00011310615871043463, 6.216495207074201e-5, 0.00028195843110817814],
       linf = [0.0006240837363233886, 0.0003616694320713876, 0.0016147339542413874]
     )
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls.jl" begin
@@ -64,6 +96,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [0.00047023310868269237, 0.00032181736027057234, 0.0014966266486095025],
       linf = [0.002996375101363302, 0.002863904256059634, 0.012691132946258676]
     )
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls.jl: GradientVariablesEntropy" begin
@@ -74,6 +114,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [0.0004608500483647771, 0.00032431091222851285, 0.0015159733360626845],
       linf = [0.002754803146635787, 0.0028567714697580906, 0.012941794048176192]
     )
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl" begin
@@ -83,6 +131,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [2.5278824700860636e-5, 2.5540078777006958e-5, 0.00012118655083858043],
       linf = [0.0001466387075579334, 0.00019422427462629705, 0.0009556446847707178]
     )
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl: GradientVariablesEntropy" begin
@@ -93,6 +149,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [2.459359632523962e-5, 2.3928390718460263e-5, 0.00011252414117082376],
       linf = [0.0001185052018830568, 0.00018987717854305393, 0.0009597503607920999]
     )
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 end
 

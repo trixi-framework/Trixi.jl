@@ -29,6 +29,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_dgsem")
               1.4224732503009818e-16, 1.214306433183765e-16, 1.3877787807814457e-16,
               8.673617379884035e-17, 9.71445146547012e-17, 2.7755575615628914e-15],
       tspan=(0.0, 0.5))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_lbm_taylor_green_vortex.jl" begin
@@ -53,6 +61,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_dgsem")
               1.3570400471224833e-5, 1.4249297322244114e-5],
       tspan=(0.0, 0.1),
       initial_refinement_level=3)
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 end
 
