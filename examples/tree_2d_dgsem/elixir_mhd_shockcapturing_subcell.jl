@@ -46,8 +46,8 @@ function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
 end
 initial_condition = initial_condition_blast_wave
 
-surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell2)
-volume_flux  = (flux_derigs_etal, flux_nonconservative_powell2)
+surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell_local_symmetric)
+volume_flux  = (flux_derigs_etal, flux_nonconservative_powell_local_symmetric)
 basis = LobattoLegendreBasis(3)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;

@@ -158,7 +158,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
         u_ode = sol.u[end] 
         du_ode = similar(u_ode) 
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
-end
+      end
   end
 end
 

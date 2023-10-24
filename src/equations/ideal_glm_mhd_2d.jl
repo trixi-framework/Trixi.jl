@@ -282,8 +282,9 @@ end
 end
 
 """
-    flux_nonconservative_powell2(u_ll, u_rr, orientation::Integer,
-                                 equations::IdealGlmMhdEquations2D)
+    flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
+                                                orientation::Integer,
+                                                equations::IdealGlmMhdEquations2D)
 
 Non-symmetric two-point flux discretizing the nonconservative (source) term of
 Powell and the Galilean nonconservative term associated with the GLM multiplier
@@ -297,8 +298,9 @@ results on non-conforming meshes(!).
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 """
-@inline function flux_nonconservative_powell2(u_ll, u_rr, orientation::Integer,
-                                              equations::IdealGlmMhdEquations2D)
+@inline function flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
+                                                             orientation::Integer,
+                                                             equations::IdealGlmMhdEquations2D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -338,20 +340,20 @@ results on non-conforming meshes(!).
 end
 
 """
-    flux_nonconservative_powell2(u_ll, orientation::Integer,
-                                 equations::IdealGlmMhdEquations2D,
-                                 nonconservative_type::NonConservativeLocal,
-                                 noncons_term::Integer)
+    flux_nonconservative_powell_local_symmetric(u_ll, orientation::Integer,
+                                                equations::IdealGlmMhdEquations2D,
+                                                nonconservative_type::NonConservativeLocal,
+                                                noncons_term::Integer)
 
 Local part of the Powell and GLM non-conservative terms. Needed for the calculation of
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 """
-@inline function flux_nonconservative_powell2(u_ll, orientation::Integer,
-                                              equations::IdealGlmMhdEquations2D,
-                                              nonconservative_type::NonConservativeLocal,
-                                              noncons_term::Integer)
+@inline function flux_nonconservative_powell_local_symmetric(u_ll, orientation::Integer,
+                                                             equations::IdealGlmMhdEquations2D,
+                                                             nonconservative_type::NonConservativeLocal,
+                                                             noncons_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
 
     if noncons_term == 1
@@ -399,20 +401,21 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 end
 
 """
-    flux_nonconservative_powell2(u_ll, orientation::Integer,
-                                 equations::IdealGlmMhdEquations2D,
-                                 nonconservative_type::NonConservativeSymmetric,
-                                 noncons_term::Integer)
+    flux_nonconservative_powell_local_symmetric(u_ll, orientation::Integer,
+                                                equations::IdealGlmMhdEquations2D,
+                                                nonconservative_type::NonConservativeSymmetric,
+                                                noncons_term::Integer)
 
 Symmetric part of the Powell and GLM non-conservative terms. Needed for the calculation of
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 """
-@inline function flux_nonconservative_powell2(u_ll, u_rr, orientation::Integer,
-                                              equations::IdealGlmMhdEquations2D,
-                                              nonconservative_type::NonConservativeSymmetric,
-                                              noncons_term::Integer)
+@inline function flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
+                                                             orientation::Integer,
+                                                             equations::IdealGlmMhdEquations2D,
+                                                             nonconservative_type::NonConservativeSymmetric,
+                                                             noncons_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
