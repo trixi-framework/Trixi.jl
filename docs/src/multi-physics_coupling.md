@@ -17,9 +17,9 @@ This is the case for a fluid system on one side and a Vlasov system on the other
 To translate the fields from one description to the other one needs to use
 converter functions.
 
-In the general case we have one system with `m` variables `u_i` and another
-system with `n` variables `v_j`.
-We then define two coupling functions, one that transforms `u_i` into `v_i`
+In the general case, we have a system A with $m$ variables $u_{A,i}$ and another
+system B with $n$ variables $u_{B,j}$.
+We then define two coupling functions, one that transforms $u_A$ into $u_B$
 and one that goes the other way.
 
 In their minimal form they take the position vector `x` and state vector `u`
