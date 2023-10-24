@@ -317,9 +317,9 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 
     # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
     # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
-    psi_avg = (psi_ll + psi_rr) #* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
+    psi_avg = (psi_ll + psi_rr) #* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
     if orientation == 1
-        B1_avg = (B1_ll + B1_rr) #* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
+        B1_avg = (B1_ll + B1_rr) #* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
         f = SVector(0,
                     B1_ll * B1_avg,
                     B2_ll * B1_avg,
@@ -330,7 +330,7 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
                     v3_ll * B1_avg,
                     v1_ll * psi_avg)
     else # orientation == 2
-        B2_avg = (B2_ll + B2_rr) #* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
+        B2_avg = (B2_ll + B2_rr) #* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
         f = SVector(0,
                     B1_ll * B2_avg,
                     B2_ll * B2_avg,
@@ -430,7 +430,7 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
     if nonconservative_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
         if orientation == 1
-            B1_avg = (B1_ll + B1_rr)#* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
+            B1_avg = (B1_ll + B1_rr)#* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
             f = SVector(0,
                         B1_avg,
                         B1_avg,
@@ -441,7 +441,7 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
                         B1_avg,
                         0)
         else # orientation == 2
-            B2_avg = (B2_ll + B2_rr)#* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
+            B2_avg = (B2_ll + B2_rr)#* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
             f = SVector(0,
                         B2_avg,
                         B2_avg,
@@ -454,7 +454,7 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
         end
     else #nonconservative_term == 2
         # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
-        psi_avg = (psi_ll + psi_rr)#* 0.5 # We remove the 0.5 because the flux is always multiplied by 0.5
+        psi_avg = (psi_ll + psi_rr)#* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
         f = SVector(0,
                     0,
                     0,
