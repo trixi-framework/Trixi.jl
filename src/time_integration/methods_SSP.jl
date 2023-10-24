@@ -57,15 +57,17 @@ end
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
 mutable struct SimpleIntegratorSSPOptions{Callback}
     callback::Callback # callbacks; used in Trixi
+    save_everystep::Bool # whether solution and time are saved every time step
     adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
     maxiters::Int # maximal number of time steps
     tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
-function SimpleIntegratorSSPOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
-    SimpleIntegratorSSPOptions{typeof(callback)}(callback, false, Inf, maxiters,
-                                                 [last(tspan)])
+function SimpleIntegratorSSPOptions(callback, tspan; save_everystep = false,
+                                    maxiters = typemax(Int), kwargs...)
+    SimpleIntegratorSSPOptions{typeof(callback)}(callback, save_everystep, false, Inf,
+                                                 maxiters, [last(tspan)])
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
@@ -75,9 +77,11 @@ end
 mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
                                    SimpleIntegratorSSPOptions}
     u::uType
+    u_everystep::Vector{uType}
     du::uType
     r0::uType
     t::RealT
+    t_everystep::Vector{RealT}
     dt::RealT # current time step
     dtcache::RealT # ignored
     iter::Int # current number of time steps (iteration)
@@ -114,7 +118,7 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
     r0 = similar(u)
     t = first(ode.tspan)
     iter = 0
-    integrator = SimpleIntegratorSSP(u, du, r0, t, dt, zero(dt), iter, ode.p,
+    integrator = SimpleIntegratorSSP(u, [u], du, r0, t, [t], dt, zero(dt), iter, ode.p,
                                      (prob = ode,), ode.f, alg,
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
                                                                 kwargs...), false)
@@ -196,14 +200,18 @@ function solve!(integrator::SimpleIntegratorSSP)
             @warn "Interrupted. Larger maxiters is needed."
             terminate!(integrator)
         end
+
+        if integrator.opts.save_everystep || integrator.finalstep
+            push!(integrator.u_everystep, integrator.u)
+            push!(integrator.t_everystep, integrator.t)
+        end
     end
 
     for stage_callback in alg.stage_callbacks
         finalize_callback(stage_callback, integrator.p)
     end
 
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u), prob)
+    return TimeIntegratorSolution(integrator.t_everystep, integrator.u_everystep, prob)
 end
 
 # get a cache where the RHS can be stored
