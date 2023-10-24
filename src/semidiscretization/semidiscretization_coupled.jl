@@ -500,6 +500,7 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     for cell in cells
         i_node = i_node_start
         j_node = j_node_start
+        element_id = linear_indices[i_cell, j_cell]
 
         for element_id in eachnode(solver)
             x = get_node_vars(node_coordinates, equations, solver, i_node, j_node,
