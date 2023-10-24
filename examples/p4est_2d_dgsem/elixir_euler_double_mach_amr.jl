@@ -27,15 +27,15 @@ See Section IV c on the paper below for details.
     phi = pi / 6
     sin_phi, cos_phi = sincos(phi)
 
-    rho =  8
+    rho =  8.0
     v1  =  8.25 * cos_phi
     v2  = -8.25 * sin_phi
     p   =  116.5
   else
     rho = 1.4
-    v1  = 0
-    v2  = 0
-    p   = 1
+    v1  = 0.0
+    v2  = 0.0
+    p   = 1.0
   end
 
   prim = SVector(rho, v1, v2, p)

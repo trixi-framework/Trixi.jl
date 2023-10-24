@@ -124,10 +124,10 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
 
     # initialize callbacks
     if callback isa CallbackSet
-        for cb in callback.continuous_callbacks
+        foreach(callback.continuous_callbacks) do cb
             error("unsupported")
         end
-        for cb in callback.discrete_callbacks
+        foreach(callback.discrete_callbacks) do cb
             cb.initialize(cb, integrator.u, integrator.t, integrator)
         end
     elseif !isnothing(callback)
@@ -148,7 +148,7 @@ function solve!(integrator::SimpleIntegratorSSP)
     callbacks = integrator.opts.callback
 
     integrator.finalstep = false
-    while !integrator.finalstep
+    @trixi_timeit timer() "main loop" while !integrator.finalstep
         if isnan(integrator.dt)
             error("time step size `dt` is NaN")
         end
@@ -184,7 +184,7 @@ function solve!(integrator::SimpleIntegratorSSP)
 
         # handle callbacks
         if callbacks isa CallbackSet
-            for cb in callbacks.discrete_callbacks
+            foreach(callbacks.discrete_callbacks) do cb
                 if cb.condition(integrator.u, integrator.t, integrator)
                     cb.affect!(integrator)
                 end
