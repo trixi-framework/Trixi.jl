@@ -294,6 +294,12 @@ This implementation uses a non-conservative term that can be written as the prod
 of local and symmetric parts. It is equivalent to the non-conservative flux of Bohm
 et al. (`flux_nonconservative_powell`) for conforming meshes but it yields different
 results on non-conforming meshes(!).
+
+The two functions below, which share the same name, return yield either the local 
+or symmetric portion of the non-conservative flux based on the type of the 
+nonconservative_type argument, employing multiple dispatch. They are used to
+compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+
 ## References
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
@@ -349,6 +355,7 @@ Local part of the Powell and GLM non-conservative terms. Needed for the calculat
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
 @inline function flux_nonconservative_powell_local_symmetric(u_ll, orientation::Integer,
                                                              equations::IdealGlmMhdEquations2D,
@@ -410,6 +417,7 @@ Symmetric part of the Powell and GLM non-conservative terms. Needed for the calc
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
 @inline function flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
                                                              orientation::Integer,
