@@ -1371,7 +1371,7 @@ end
             delta_v = v_local - v_local_m1
             delta_psi = psi_local - psi_local_m1
 
-            entProd_FV = dot(delta_v, fstar1[:, i, j]) - delta_psi
+            entProd_FV = dot(delta_v, view(fstar1, :, i, j)) - delta_psi
             delta_entProd = dot(delta_v, antidiffusive_flux_local)
 
             alpha = 1 # Initialize alpha for plotting
@@ -1416,7 +1416,7 @@ end
             delta_v = v_local - v_local_m1
             delta_psi = psi_local - psi_local_m1
 
-            entProd_FV = dot(delta_v, fstar2[:, i, j]) - delta_psi
+            entProd_FV = dot(delta_v, view(fstar2, :, i, j)) - delta_psi
             delta_entProd = dot(delta_v, antidiffusive_flux_local)
 
             alpha = 1 # Initialize alpha for plotting
