@@ -17,8 +17,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                             cells_per_dimension=(8,),
                             l2=[2.9953644500009865e-5],
                             linf=[4.467840577382365e-5])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -41,8 +41,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 1.802998748523521e-6,
                                 4.83599270806323e-6,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -58,8 +58,8 @@ isdir(outdir) && rm(outdir, recursive = true)
         @test isapprox(mean_convergence[:l2],
                        [4.1558759698638434, 3.977911306037128, 4.041421206468769],
                        rtol = 0.05)
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -82,8 +82,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 8.519520630301258e-6,
                                 4.2642194098885255e-5,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -93,13 +93,14 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @trixi_testset "elixir_euler_flux_diff.jl (FD SBP)" begin
+        D_SBP = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
+                                    derivative_order = 1,
+                                    accuracy_order = 4,
+                                    xmin = 0.0, xmax = 1.0,
+                                    N = 16)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"),
                             cells_per_dimension=(4,),
-                            approximation_type=derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
-                                                                   derivative_order = 1,
-                                                                   accuracy_order = 4,
-                                                                   xmin = 0.0, xmax = 1.0,
-                                                                   N = 16),
+                            approximation_type=D_SBP,
                             l2=[
                                 1.8684509287853788e-5,
                                 1.0641411823379635e-5,
@@ -112,8 +113,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                             ])
         show(stdout, semi.solver.basis)
         show(stdout, MIME"text/plain"(), semi.solver.basis)
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -136,8 +137,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                             ])
         show(stdout, semi.solver.basis)
         show(stdout, MIME"text/plain"(), semi.solver.basis)
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -148,11 +149,11 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     @trixi_testset "DGMulti with periodic SBP unit test" begin
         # see https://github.com/trixi-framework/Trixi.jl/pull/1013
-        dg = DGMulti(element_type = Line(),
-                     approximation_type = periodic_derivative_operator(derivative_order = 1,
-                                                                       accuracy_order = 4,
-                                                                       xmin = -5.0,
-                                                                       xmax = 10.0, N = 50))
+        D_SBP = periodic_derivative_operator(derivative_order = 1,
+                                             accuracy_order = 4,
+                                             xmin = -5.0,
+                                             xmax = 10.0, N = 50)
+        dg = DGMulti(element_type = Line(), approximation_type = D_SBP)
         mesh = DGMultiMesh(dg)
         @test mapreduce(isapprox, &, mesh.md.xyz, dg.basis.rst)
         # check to make sure nodes are rescaled to [-1, 1]

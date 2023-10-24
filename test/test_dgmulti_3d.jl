@@ -30,8 +30,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.0041580358824311325,
                                 0.019326660236036464,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -59,8 +59,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.06913016119820181,
                                 0.19161418499621874,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -87,8 +87,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.00042659774250686233,
                                 0.00143803344597071,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -113,8 +113,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.1456603133854122,
                                 0.3315354586775472,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -140,8 +140,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.020273381695435244,
                                 0.052598740390024545,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -167,8 +167,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.003987027618439498,
                                 0.019282224709831652,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -195,8 +195,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.0004253921340831024,
                                 0.0014333414071048267,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -226,8 +226,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.0049987786444081195,
                                 0.016455044373650196,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -253,8 +253,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.14847291108358926,
                                 0.21313533492212855,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -281,8 +281,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.14847291107658706,
                                 0.21313533492059378,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -292,14 +292,15 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @trixi_testset "elixir_euler_weakform_periodic.jl (FD SBP)" begin
+        D_SBP = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
+                                    derivative_order = 1,
+                                    accuracy_order = 2,
+                                    xmin = 0.0, xmax = 1.0,
+                                    N = 8)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                             element_type=Hex(),
                             cells_per_dimension=(2, 2, 2),
-                            approximation_type=derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
-                                                                   derivative_order = 1,
-                                                                   accuracy_order = 2,
-                                                                   xmin = 0.0, xmax = 1.0,
-                                                                   N = 8),
+                            approximation_type=D_SBP,
                             l2=[
                                 0.0024092707138829925,
                                 0.003318758964118284,
@@ -314,8 +315,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.008486456080185611,
                                 0.035113544599208346,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -325,14 +326,15 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @trixi_testset "elixir_euler_weakform_periodic.jl (FD SBP, EC)" begin
+        D_SBP = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
+                                    derivative_order = 1,
+                                    accuracy_order = 2,
+                                    xmin = 0.0, xmax = 1.0,
+                                    N = 8)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                             element_type=Hex(),
                             cells_per_dimension=(2, 2, 2),
-                            approximation_type=derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
-                                                                   derivative_order = 1,
-                                                                   accuracy_order = 2,
-                                                                   xmin = 0.0, xmax = 1.0,
-                                                                   N = 8),
+                            approximation_type=D_SBP,
                             volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha),
                             surface_integral=SurfaceIntegralWeakForm(flux_ranocha),
                             l2=[
@@ -349,8 +351,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.021265721066210386,
                                 0.0771455289446683,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -375,8 +377,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 0.00011571467799376123,
                                 0.0003446082308800058,
                             ])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]
@@ -389,8 +391,8 @@ isdir(outdir) && rm(outdir, recursive = true)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
                             l2=[2.30487910e-04],
                             linf=[6.31795281e-04])
-        # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities) 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
         let
             t = sol.t[end]
             u_ode = sol.u[end]

@@ -1317,12 +1317,12 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @testset "SummationByPartsOperators + StartUpDG" begin
-        dg = DGMulti(polydeg = 3, element_type = Quad(),
-                     approximation_type = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
-                                                              derivative_order = 1,
-                                                              accuracy_order = 4,
-                                                              xmin = 0.0, xmax = 1.0,
-                                                              N = 10))
+        D_SBP = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
+                                    derivative_order = 1,
+                                    accuracy_order = 4,
+                                    xmin = 0.0, xmax = 1.0,
+                                    N = 10)
+        dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = D_SBP)
 
         @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
     end
