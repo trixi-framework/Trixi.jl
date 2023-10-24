@@ -470,8 +470,10 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
                                    semi)
     @unpack u_indices = semi
     @unpack other_semi_index, other_orientation, indices = boundary_condition
+    @unpack coupling_converter, u_boundary = boundary_condition
 
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
+    @unpack node_coordinates = cache.elements
     u = wrap_array(get_system_u_ode(u_ode, other_semi_index, semi), mesh, equations, solver,
                    cache)
 
@@ -499,15 +501,12 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         i_node = i_node_start
         j_node = j_node_start
 
-        for i in eachnode(solver)
+        for element_id in eachnode(solver)
             for v in 1:size(boundary_condition.u_boundary, 1)
-                x = cache.elements.node_coordinates[:, i_node, j_node,
-                                                    linear_indices[i_cell, j_cell]]
-                converted_u = boundary_condition.coupling_converter(x,
-                                                                    u[:, i_node, j_node,
-                                                                      linear_indices[i_cell,
-                                                                                     j_cell]])
-                boundary_condition.u_boundary[v, i, cell] = converted_u[v]
+		x = get_node_vars(node_coordinates, equations, solver, i_node, j_node, element_id)
+		u_node = get_node_vars(u, equations, solver, i_node, j_node, element_id)
+		converted_u = coupling_converter(x, u_node)
+                boundary_condition.u_boundary[:, element_id, cell] = converted_u
             end
             i_node += i_node_step
             j_node += j_node_step
