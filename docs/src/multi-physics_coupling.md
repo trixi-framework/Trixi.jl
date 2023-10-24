@@ -27,7 +27,7 @@ and return the transformed variables.
 Examples can be seen in `examples/structured_2d_dgsem/elixir_advection_coupled.jl`.
 
 
-## Warning about Binary Compatibility
+## Warning about binary compatibility
 Currently the coordinate values on the nodes can differ by machine precision when
 simulating the mesh and when splitting the mesh in multiple domains.
 This is an issue coming from the coordinate interpolation on the nodes.
