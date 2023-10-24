@@ -20,8 +20,8 @@ end
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
-- maximum/minimum Zalesak-type limiting for conservative variables (`local_minmax_variables_cons`)
-- positivity limiting for conservative variables (`positivity_variables_cons`)
+- Local maximum/minimum Zalesak-type limiting for conservative variables (`local_minmax_variables_cons`)
+- Positivity limiting for conservative variables (`positivity_variables_cons`)
 
 The bounds are calculated using the low-order FV solution. The positivity limiter uses
 `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
