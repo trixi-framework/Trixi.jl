@@ -502,9 +502,10 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         j_node = j_node_start
 
         for element_id in eachnode(solver)
-            x = get_node_vars(node_coordinates, equations, solver, i_node, j_node, element_id)
-	    u_node = get_node_vars(u, equations, solver, i_node, j_node, element_id)
-	    converted_u = coupling_converter(x, u_node)
+            x = get_node_vars(node_coordinates, equations, solver, i_node, j_node,
+                              element_id)
+            u_node = get_node_vars(u, equations, solver, i_node, j_node, element_id)
+            converted_u = coupling_converter(x, u_node)
             boundary_condition.u_boundary[:, element_id, cell] = converted_u
             i_node += i_node_step
             j_node += j_node_step
