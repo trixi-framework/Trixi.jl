@@ -50,7 +50,7 @@ cells_per_dimension1 = cells_per_dimension
 mesh1 = StructuredMesh(cells_per_dimension1, coordinates_min1, coordinates_max1)
 
 # The user can define their own coupling functions.
-coupling_function1 = coupling_converter_identity(equations)
+coupling_function1 = (x, u) -> u
 
 boundary_conditions_x_neg1 = BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
                                                       coupling_function1)
@@ -76,7 +76,7 @@ cells_per_dimension2 = cells_per_dimension
 
 mesh2 = StructuredMesh(cells_per_dimension2, coordinates_min2, coordinates_max2)
 
-coupling_function2 = coupling_converter_identity(equations)
+coupling_function2 = (x, u) -> u
 
 boundary_conditions_x_neg2 = BoundaryConditionCoupled(1, (:end, :i_forward), Float64,
                                                       coupling_function2)
