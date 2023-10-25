@@ -7,80 +7,9 @@ using Trixi
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
-"""
-    initial_condition_double_mach_reflection(x, t, equations::CompressibleEulerEquations2D)
-
-Compressible Euler setup for a double Mach reflection problem.
-Involves strong shock interactions as well as steady / unsteady flow structures.
-Also exercises special boundary conditions along the bottom of the domain that is a mixture of
-Dirichlet and slip wall.
-See Section IV c on the paper below for details.
-
-- Paul Woodward and Phillip Colella (1984)
-  The Numerical Simulation of Two-Dimensional Fluid Flows with Strong Shocks.
-  [DOI: 10.1016/0021-9991(84)90142-6](https://doi.org/10.1016/0021-9991(84)90142-6)
-"""
-# @inline function initial_condition_double_mach_reflection(x, t, equations::CompressibleEulerEquations2D)
-
-#   if x[1] < 1 / 6 + (x[2] + 20 * t) / sqrt(3)
-#     phi = pi / 6
-#     sin_phi, cos_phi = sincos(phi)
-
-#     rho =  8
-#     v1  =  8.25 * cos_phi
-#     v2  = -8.25 * sin_phi
-#     p   =  116.5
-#   else
-#     rho = 1.4
-#     v1  = 0
-#     v2  = 0
-#     p   = 1
-#   end
-
-#   prim = SVector(rho, v1, v2, p)
-#   return prim2cons(prim, equations)
-# end
 initial_condition = Trixi.initial_condition_double_mach_reflection
 
-
-# boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition_double_mach_reflection)
 boundary_condition_inflow_outflow = BoundaryConditionCharacteristic(initial_condition)
-
-
-# Supersonic outflow boundary condition. Solution is taken entirely from the internal state.
-# See `examples/p4est_2d_dgsem/elixir_euler_forward_step_amr.jl` for complete documentation.
-# @inline function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, direction, x, t,
-#                                             surface_flux_function, equations::CompressibleEulerEquations2D)
-#   # NOTE: Only for the supersonic outflow is this strategy valid
-#   # Calculate the boundary flux entirely from the internal solution state
-#   return flux(u_inner, normal_direction, equations)
-# end
-
-# Special mixed boundary condition type for the :Bottom of the domain.
-# It is Dirichlet when x < 1/6 and a slip wall when x >= 1/6
-# @inline function boundary_condition_mixed_dirichlet_wall(u_inner, normal_direction::AbstractVector, direction,
-#                                                          x, t, surface_flux_function,
-#                                                          equations::CompressibleEulerEquations2D)
-#   if x[1] < 1 / 6
-#     # # From the BoundaryConditionDirichlet
-#     # # get the external value of the solution
-#     # u_boundary = initial_condition_double_mach_reflection(x, t, equations)
-#     # # Calculate boundary flux
-#     # flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
-
-#     # From the BoundaryConditionCharacteristic
-#     # get the external state of the solution
-#     u_boundary = Trixi.characteristic_boundary_value_function(initial_condition,
-#                                                               u_inner, normal_direction, direction, x, t, equations)
-#     # Calculate boundary flux
-#     flux = surface_flux_function(u_boundary, u_inner, normal_direction, equations)
-#   else # x[1] >= 1 / 6
-#     # Use the free slip wall BC otherwise
-#     flux = boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t, surface_flux_function, equations)
-#   end
-
-#   return flux
-# end
 
 boundary_conditions = (y_neg=Trixi.boundary_condition_mixed_dirichlet_wall,
                        y_pos=boundary_condition_inflow_outflow,

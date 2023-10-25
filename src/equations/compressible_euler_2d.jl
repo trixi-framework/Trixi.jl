@@ -497,33 +497,53 @@ end
     return cons
 end
 
+"""
+    initial_condition_double_mach_reflection(x, t, equations::CompressibleEulerEquations2D)
+
+Compressible Euler setup for a double Mach reflection problem.
+Involves strong shock interactions as well as steady / unsteady flow structures.
+Also exercises special boundary conditions along the bottom of the domain that is a mixture of
+Dirichlet and slip wall.
+See Section IV c on the paper below for details.
+
+- Paul Woodward and Phillip Colella (1984)
+  The Numerical Simulation of Two-Dimensional Fluid Flows with Strong Shocks.
+  [DOI: 10.1016/0021-9991(84)90142-6](https://doi.org/10.1016/0021-9991(84)90142-6)
+"""
 @inline function initial_condition_double_mach_reflection(x, t,
                                                           equations::CompressibleEulerEquations2D)
     if x[1] < 1 / 6 + (x[2] + 20 * t) / sqrt(3)
         phi = pi / 6
         sin_phi, cos_phi = sincos(phi)
 
-        rho = 8
+        rho = 8.0
         v1 = 8.25 * cos_phi
         v2 = -8.25 * sin_phi
         p = 116.5
     else
         rho = 1.4
-        v1 = 0
-        v2 = 0
-        p = 1
+        v1 = 0.0
+        v2 = 0.0
+        p = 1.0
     end
 
     prim = SVector(rho, v1, v2, p)
     return prim2cons(prim, equations)
 end
 
+# Special mixed boundary condition type for the :Bottom of the domain.
+# It is charachteristic when x < 1/6 and a slip wall when x >= 1/6
 @inline function boundary_condition_mixed_dirichlet_wall(u_inner,
                                                          normal_direction::AbstractVector,
                                                          direction,
                                                          x, t, surface_flux_function,
                                                          equations::CompressibleEulerEquations2D)
+    # Note: Only for StructuredMesh
     if x[1] < 1 / 6
+        # # From the BoundaryConditionDirichlet
+        # # get the external value of the solution
+        # u_boundary = initial_condition_double_mach_reflection(x, t, equations)
+
         # From the BoundaryConditionCharacteristic
         # get the external state of the solution
         u_boundary = Trixi.characteristic_boundary_value_function(initial_condition_double_mach_reflection,
