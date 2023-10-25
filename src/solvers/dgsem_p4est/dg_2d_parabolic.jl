@@ -781,10 +781,10 @@ end
 end
 
 # TODO: parabolic, finish implementing `calc_boundary_flux_gradients!` and `calc_boundary_flux_divergence!`
-function prolong2boundaries!(cache_parabolic, flux_viscous::Vector{Array{uEltype, 4}},
+function prolong2boundaries!(cache_parabolic, flux_viscous,
                              mesh::P4estMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache) where {uEltype <: Real}
+                             surface_integral, dg::DG, cache)
     (; boundaries) = cache_parabolic
     (; contravariant_vectors) = cache_parabolic.elements
     index_range = eachnode(dg)
