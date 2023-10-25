@@ -33,7 +33,7 @@ function create_cache(mesh::TreeMesh{2}, equations,
                                                                        nvariables(equations),
                                                                        nnodes(dg))
 
-    if typeof(have_nonconservative_terms(equations)) == True
+    if have_nonconservative_terms(equations) == true
         flux_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
                                                      n_nonconservative_terms(equations),
                                                      nnodes(dg), nnodes(dg))
