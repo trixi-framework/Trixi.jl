@@ -14,6 +14,7 @@ for human readability.
 - Wetting and drying feature and examples for 1D and 2D shallow water equations
 - Implementation of the polytropic Euler equations in 2D
 - Subcell positivity limiting support for conservative variables in 2D for `TreeMesh`
+- AMR for hyperbolic-parabolic equations on 2D/3D `TreeMesh`
 
 #### Changed
 
