@@ -133,10 +133,10 @@ function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{2}, P4estMe
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function calc_volume_integral!(du, flux_viscous::Vector{Array{uEltype, 4}},
+function calc_volume_integral!(du, flux_viscous,
                                mesh::TreeMesh{2},
                                equations_parabolic::AbstractEquationsParabolic,
-                               dg::DGSEM, cache) where {uEltype <: Real}
+                               dg::DGSEM, cache)
     @unpack derivative_dhat = dg.basis
     flux_viscous_x, flux_viscous_y = flux_viscous
 
@@ -165,10 +165,10 @@ end
 
 # This is the version used when calculating the divergence of the viscous fluxes
 # We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(cache_parabolic, flux_viscous::Vector{Array{uEltype, 4}},
+function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache) where {uEltype <: Real}
+                             surface_integral, dg::DG, cache)
     @unpack interfaces = cache_parabolic
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -242,10 +242,10 @@ function calc_interface_flux!(surface_flux_values,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2boundaries!(cache_parabolic, flux_viscous::Vector{Array{uEltype, 4}},
+function prolong2boundaries!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache) where {uEltype <: Real}
+                             surface_integral, dg::DG, cache)
     @unpack boundaries = cache_parabolic
     @unpack orientations, neighbor_sides, neighbor_ids = boundaries
     boundaries_u = boundaries.u
@@ -291,42 +291,11 @@ function prolong2boundaries!(cache_parabolic, flux_viscous::Vector{Array{uEltype
     return nothing
 end
 
-function calc_viscous_fluxes!(flux_viscous::Vector{Array{uEltype, 4}}, 
-                              gradients::Vector{Array{uEltype, 4}}, u_transformed,
+function calc_viscous_fluxes!(flux_viscous,
+                              gradients, u_transformed,
                               mesh::Union{TreeMesh{2}, P4estMesh{2}},
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DG, cache, cache_parabolic) where {uEltype <: Real}
-    gradients_x, gradients_y = gradients
-    flux_viscous_x, flux_viscous_y = flux_viscous # output arrays
-
-    @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
-            # Get solution and gradients
-            u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j,
-                                   element)
-            gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg, i, j,
-                                             element)
-            gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg, i, j,
-                                             element)
-
-            # Calculate viscous flux and store each component for later use
-            flux_viscous_node_x = flux(u_node, (gradients_1_node, gradients_2_node), 1,
-                                       equations_parabolic)
-            flux_viscous_node_y = flux(u_node, (gradients_1_node, gradients_2_node), 2,
-                                       equations_parabolic)
-            set_node_vars!(flux_viscous_x, flux_viscous_node_x, equations_parabolic, dg,
-                           i, j, element)
-            set_node_vars!(flux_viscous_y, flux_viscous_node_y, equations_parabolic, dg,
-                           i, j, element)
-        end
-    end
-end
-
-function calc_viscous_fluxes!(flux_viscous::Vector{Array{uEltype, 4}},
-                              gradients::Vector{Array{uEltype, 4}}, u_transformed,
-                              mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                              equations_parabolic::AbstractEquationsParabolic,
-                              dg::DG, cache, cache_parabolic) where {uEltype <: Real}
+                              dg::DG, cache, cache_parabolic)
     gradients_x, gradients_y = gradients
     flux_viscous_x, flux_viscous_y = flux_viscous # output arrays
 
@@ -546,6 +515,11 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
     return nothing
 end
 
+# `cache` is the hyperbolic cache, i.e., in particular not `cache_parabolic`.
+# This is because mortar handling is done in the (hyperbolic) `cache`.
+# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed since 
+#`prolong2mortars!` in dg_2d.jl is used for both purely hyperbolic and 
+# hyperbolic-parabolic systems.
 function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                           mesh::TreeMesh{2},
                           equations_parabolic::AbstractEquationsParabolic,

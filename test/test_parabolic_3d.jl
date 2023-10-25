@@ -161,6 +161,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2_error, linf_error = analysis_callback(sol)
       @test l2_error ≈ [0.0003109336253407314, 0.0006473493036803503, 0.0007705277238213672, 0.0006280517917198335, 0.000903927789884075]
       @test linf_error ≈ [0.0023694155365339142, 0.010634932622402863, 0.006772070862236412, 0.010640551561726901, 0.019256819038719897]
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "TreeMesh3D: elixir_navierstokes_taylor_green_vortex.jl" begin
