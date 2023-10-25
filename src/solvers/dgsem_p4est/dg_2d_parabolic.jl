@@ -105,11 +105,10 @@ function rhs_parabolic!(du, u, t, mesh::P4estMesh{2},
 
     # Calculate mortar fluxes (specialized for AbstractEquationsParabolic)
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux_divergence!(cache_parabolic.elements.surface_flux_values, 
-                                     mesh, equations_parabolic, dg.mortar, 
+        calc_mortar_flux_divergence!(cache_parabolic.elements.surface_flux_values,
+                                     mesh, equations_parabolic, dg.mortar,
                                      dg.surface_integral, dg, cache)
     end
-
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
@@ -639,14 +638,16 @@ function prolong2mortars_divergence!(cache, flux_viscous::Vector{Array{uEltype, 
             j_small = j_small_start
             element = neighbor_ids[position, mortar]
             for i in eachnode(dg)
-                normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                normal_direction = get_normal_direction(direction_index,
+                                                        contravariant_vectors,
                                                         i_small, j_small, element)
-                                              
+
                 for v in eachvariable(equations)
                     flux_viscous = SVector(flux_viscous_x[v, i_small, j_small, element],
                                            flux_viscous_y[v, i_small, j_small, element])
 
-                    cache.mortars.u[1, v, position, i, mortar] = dot(flux_viscous, normal_direction)
+                    cache.mortars.u[1, v, position, i, mortar] = dot(flux_viscous,
+                                                                     normal_direction)
                 end
                 i_small += i_small_step
                 j_small += j_small_step
@@ -719,13 +720,13 @@ function calc_mortar_flux_divergence!(surface_flux_values,
 
         for position in 1:2
             for node in eachnode(dg)
-                                
                 for v in eachvariable(equations)
                     viscous_flux_normal_ll = cache.mortars.u[1, v, position, node, mortar]
                     viscous_flux_normal_rr = cache.mortars.u[2, v, position, node, mortar]
 
                     # TODO: parabolic; only BR1 at the moment
-                    fstar[position][v, node] = 0.5 * (viscous_flux_normal_ll + viscous_flux_normal_rr)
+                    fstar[position][v, node] = 0.5 * (viscous_flux_normal_ll +
+                                                viscous_flux_normal_rr)
                 end
             end
         end
@@ -748,7 +749,7 @@ end
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
 @inline function calc_mortar_flux!(fstar,
                                    mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                                   nonconservative_terms::False, 
+                                   nonconservative_terms::False,
                                    equations::AbstractEquationsParabolic,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,

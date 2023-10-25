@@ -136,7 +136,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     return nothing
 end
 
-function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}},
+function refine!(u_ode::AbstractVector, adaptor,
+                 mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}},
                  equations, dg::DGSEM, cache, cache_parabolic,
                  elements_to_refine)
     # Call `refine!` for the hyperbolic part, which does the heavy lifting of
@@ -297,7 +298,8 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     return nothing
 end
 
-function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}},
+function coarsen!(u_ode::AbstractVector, adaptor,
+                  mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}},
                   equations, dg::DGSEM, cache, cache_parabolic,
                   elements_to_remove)
     # Call `coarsen!` for the hyperbolic part, which does the heavy lifting of

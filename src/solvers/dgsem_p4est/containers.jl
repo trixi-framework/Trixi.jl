@@ -440,8 +440,6 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     else
         init_surfaces!(interfaces, nothing, boundaries, mesh)
     end
-
-
 end
 
 # A helper struct used in initialization methods below
