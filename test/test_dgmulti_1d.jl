@@ -155,7 +155,7 @@ end
                                             accuracy_order = 4,
                                             xmin = -5.0,
                                             xmax = 10.0, N = 50)
-    dg = DGMulti(element_type = Line(), approximation_type = D_SBP)
+    dg = DGMulti(element_type = Line(), approximation_type = D)
     mesh = DGMultiMesh(dg)
     @test mapreduce(isapprox, &, mesh.md.xyz, dg.basis.rst)
     # check to make sure nodes are rescaled to [-1, 1]

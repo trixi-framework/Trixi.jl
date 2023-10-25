@@ -1324,7 +1324,7 @@ end
                                    accuracy_order = 4,
                                    xmin = 0.0, xmax = 1.0,
                                    N = 10)
-    dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = D_SBP)
+    dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = D)
 
     @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
 end
