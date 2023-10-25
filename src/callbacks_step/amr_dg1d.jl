@@ -83,30 +83,13 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # actually transferring the solution to the refined cells
     refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine)
 
-    # The remaining function only handles the necessary adaptation of the data structures
-    # for the parabolic part of the semidiscretization
-
-    # Get new list of leaf cells
-    leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-    @unpack elements, viscous_container = cache_parabolic
-    resize!(elements, length(leaf_cell_ids))
-    init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
-
     # Resize parabolic helper variables
+    @unpack viscous_container = cache_parabolic
     resize!(viscous_container, equations, dg, cache)
-
-    # re-initialize interfaces container
-    @unpack interfaces = cache_parabolic
-    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
-    init_interfaces!(interfaces, elements, mesh)
-
-    # re-initialize boundaries container
-    @unpack boundaries = cache_parabolic
-    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-    init_boundaries!(boundaries, elements, mesh)
+    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
 
     # Sanity check
+    @unpack interfaces = cache_parabolic
     if isperiodic(mesh.tree)
         @assert ninterfaces(interfaces)==1 * nelements(dg, cache_parabolic) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
     end
@@ -246,27 +229,13 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # actually transferring the solution to the coarsened cells
     coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove)
 
-    # Get new list of leaf cells
-    leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-    @unpack elements, viscous_container = cache_parabolic
-    resize!(elements, length(leaf_cell_ids))
-    init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
-
     # Resize parabolic helper variables
+    @unpack viscous_container = cache_parabolic
     resize!(viscous_container, equations, dg, cache)
-
-    # re-initialize interfaces container
-    @unpack interfaces = cache_parabolic
-    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
-    init_interfaces!(interfaces, elements, mesh)
-
-    # re-initialize boundaries container
-    @unpack boundaries = cache_parabolic
-    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-    init_boundaries!(boundaries, elements, mesh)
+    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
 
     # Sanity check
+    @unpack interfaces = cache_parabolic
     if isperiodic(mesh.tree)
         @assert ninterfaces(interfaces)==1 * nelements(dg, cache_parabolic) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
     end
