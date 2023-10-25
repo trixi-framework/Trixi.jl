@@ -1,11 +1,11 @@
-using OrdinaryDiffEq, Plots
+using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
 # semidiscretization of the linear advection-diffusion equation
 
 diffusivity() = 5.0e-2
-advection_velocity = (1.0, 1.0)
+advection_velocity = (1.0, 0.0)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
@@ -20,7 +20,7 @@ end
 function initial_condition_diffusive_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
     # Store translated coordinate for easy use of exact solution
     # Assumes that advection_velocity[2] = 0 (effectively that we are solving a 1D equation)
-    x_trans = x_trans_periodic(x[2] - equation.advection_velocity[2] * t)
+    x_trans = x_trans_periodic(x[1] - equation.advection_velocity[1] * t)
     
     nu = diffusivity()
     c = 0.0
@@ -53,7 +53,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
-tspan = (0.0, 1e-2)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
@@ -67,15 +67,8 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 # The AliveCallback prints short status information in regular intervals
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
-                                      base_level=2,
-                                      med_level=3, med_threshold=0.5,
-                                      max_level=4, max_threshold=0.75)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval=5)
-
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 
 ###############################################################################
@@ -88,6 +81,3 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
 
 # Print the timer summary
 summary_callback()
-plot(sol)
-pd = PlotData2D(sol)
-plot!(getmesh(pd))
