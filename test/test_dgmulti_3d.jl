@@ -292,15 +292,15 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @trixi_testset "elixir_euler_weakform_periodic.jl (FD SBP)" begin
-        D_SBP = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
-                                    derivative_order = 1,
-                                    accuracy_order = 2,
-                                    xmin = 0.0, xmax = 1.0,
-                                    N = 8)
+        global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
+                                       derivative_order = 1,
+                                       accuracy_order = 2,
+                                       xmin = 0.0, xmax = 1.0,
+                                       N = 8)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                             element_type=Hex(),
                             cells_per_dimension=(2, 2, 2),
-                            approximation_type=D_SBP,
+                            approximation_type=D,
                             l2=[
                                 0.0024092707138829925,
                                 0.003318758964118284,
@@ -326,15 +326,15 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @trixi_testset "elixir_euler_weakform_periodic.jl (FD SBP, EC)" begin
-        D_SBP = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
-                                    derivative_order = 1,
-                                    accuracy_order = 2,
-                                    xmin = 0.0, xmax = 1.0,
-                                    N = 8)
+        global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
+                                       derivative_order = 1,
+                                       accuracy_order = 2,
+                                       xmin = 0.0, xmax = 1.0,
+                                       N = 8)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                             element_type=Hex(),
                             cells_per_dimension=(2, 2, 2),
-                            approximation_type=D_SBP,
+                            approximation_type=D,
                             volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha),
                             surface_integral=SurfaceIntegralWeakForm(flux_ranocha),
                             l2=[

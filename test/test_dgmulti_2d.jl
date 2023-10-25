@@ -370,16 +370,16 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @trixi_testset "elixir_euler_weakform.jl (FD SBP)" begin
-        D_SBP = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
-                                    derivative_order = 1,
-                                    accuracy_order = 4,
-                                    xmin = 0.0, xmax = 1.0,
-                                    N = 12)
+        global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
+                                       derivative_order = 1,
+                                       accuracy_order = 4,
+                                       xmin = 0.0, xmax = 1.0,
+                                       N = 12)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                             cells_per_dimension=(2, 2),
                             element_type=Quad(),
                             cfl=1.0,
-                            approximation_type=D_SBP,
+                            approximation_type=D,
                             # division by 2.0 corresponds to normalization by the square root of the size of the domain
                             l2=[
                                 0.0008966318978421226,
@@ -396,16 +396,16 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @trixi_testset "elixir_euler_weakform.jl (FD SBP, EC)" begin
-        D_SBP = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
-                                    derivative_order = 1,
-                                    accuracy_order = 4,
-                                    xmin = 0.0, xmax = 1.0,
-                                    N = 12)
+        global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
+                                       derivative_order = 1,
+                                       accuracy_order = 4,
+                                       xmin = 0.0, xmax = 1.0,
+                                       N = 12)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                             cells_per_dimension=(2, 2),
                             element_type=Quad(),
                             cfl=1.0,
-                            approximation_type=D_SBP,
+                            approximation_type=D,
                             volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha),
                             surface_integral=SurfaceIntegralWeakForm(flux_ranocha),
                             # division by 2.0 corresponds to normalization by the square root of the size of the domain
@@ -457,13 +457,13 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference and physical domains)" begin
-        D_SBP = periodic_derivative_operator(derivative_order = 1,
-                                             accuracy_order = 4,
-                                             xmin = -200.0,
-                                             xmax = 100.0,
-                                             N = 100)
+        global D = periodic_derivative_operator(derivative_order = 1,
+                                                accuracy_order = 4,
+                                                xmin = -200.0,
+                                                xmax = 100.0,
+                                                N = 100)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
-                            approximation_type=D_SBP,
+                            approximation_type=D,
                             coordinates_min=(-3.0, -4.0), coordinates_max=(0.0, -1.0),
                             l2=[
                                 0.07318831033918516,
@@ -486,9 +486,9 @@ isdir(outdir) && rm(outdir, recursive = true)
         mesh_local = SummationByPartsOperators.UniformPeriodicMesh1D(xmin = -1.0,
                                                                      xmax = 1.0,
                                                                      Nx = 10)
-        D_SBP = SummationByPartsOperators.couple_continuously(D_local, mesh_local)
+        global D = SummationByPartsOperators.couple_continuously(D_local, mesh_local)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
-                            approximation_type=D_SBP,
+                            approximation_type=D,
                             l2=[
                                 1.5440402410017893e-5,
                                 1.4913189903083485e-5,

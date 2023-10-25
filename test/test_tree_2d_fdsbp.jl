@@ -25,15 +25,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_fdsbp")
     end
 
     @trixi_testset "elixir_advection_extended.jl with periodic operators" begin
-        D_SBP = SummationByPartsOperators.periodic_derivative_operator(derivative_order = 1,
-                                                                       accuracy_order = 4,
-                                                                       xmin = 0.0,
-                                                                       xmax = 1.0,
-                                                                       N = 40)
+        global D = SummationByPartsOperators.periodic_derivative_operator(derivative_order = 1,
+                                                                          accuracy_order = 4,
+                                                                          xmin = 0.0,
+                                                                          xmax = 1.0,
+                                                                          N = 40)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                             l2=[1.1239649404463432e-5],
                             linf=[1.5895264629195438e-5],
-                            D_SBP=D_SBP,
+                            D_SBP=D,
                             initial_refinement_level=0)
 
         # Ensure that we do not have excessive memory allocations
