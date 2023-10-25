@@ -17,6 +17,17 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
       atol = 1e-6,
       rtol = 1e-6,
       skip_coverage = true)
+
+      #= Does fail in coverage run (since it is not executed)
+      # Ensure that we do not have excessive memory allocations
+      # (e.g., from type instabilities)
+      let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+      end
+      =#
   end
 end
 
