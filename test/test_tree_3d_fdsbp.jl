@@ -8,43 +8,45 @@ include("test_trixi.jl")
 EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_fdsbp")
 
 @testset "Linear scalar advection" begin
-    @trixi_testset "elixir_advection_extended.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                            l2=[0.005355755365412444],
-                            linf=[0.01856044696350767])
+#! format: noindent
 
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+@trixi_testset "elixir_advection_extended.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[0.005355755365412444],
+                        linf=[0.01856044696350767])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+end
 
-    @trixi_testset "elixir_advection_extended.jl with periodic operators" begin
-        global D = SummationByPartsOperators.periodic_derivative_operator(derivative_order = 1,
-                                                                          accuracy_order = 4,
-                                                                          xmin = 0.0,
-                                                                          xmax = 1.0,
-                                                                          N = 10)
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                            l2=[1.3819894522373702e-8],
-                            linf=[3.381866298113323e-8],
-                            D_SBP=D,
-                            initial_refinement_level=0,
-                            tspan=(0.0, 5.0))
+@trixi_testset "elixir_advection_extended.jl with periodic operators" begin
+    global D = SummationByPartsOperators.periodic_derivative_operator(derivative_order = 1,
+                                                                      accuracy_order = 4,
+                                                                      xmin = 0.0,
+                                                                      xmax = 1.0,
+                                                                      N = 10)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[1.3819894522373702e-8],
+                        linf=[3.381866298113323e-8],
+                        D_SBP=D,
+                        initial_refinement_level=0,
+                        tspan=(0.0, 5.0))
 
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+end
 end
 
 @testset "Compressible Euler" begin
