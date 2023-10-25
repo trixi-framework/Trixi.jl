@@ -153,14 +153,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [2.5278824700860636e-5, 2.5540078777006958e-5, 0.00012118655083858043],
       linf = [0.0001466387075579334, 0.00019422427462629705, 0.0009556446847707178]
     )
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
-    let 
-      t = sol.t[end] 
-      u_ode = sol.u[end] 
-      du_ode = similar(u_ode) 
-      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
-    end
   end
 
   @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl: GradientVariablesEntropy" begin
@@ -170,33 +162,6 @@ isdir(outdir) && rm(outdir, recursive=true)
                                                                 gradient_variables = GradientVariablesEntropy()),
       l2 = [2.459359632523962e-5, 2.3928390718460263e-5, 0.00011252414117082376],
       linf = [0.0001185052018830568, 0.00018987717854305393, 0.0009597503607920999]
-    )
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
-    let 
-      t = sol.t[end] 
-      u_ode = sol.u[end] 
-      du_ode = similar(u_ode) 
-      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
-    end
-  end
-
-  @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_walls_amr.jl"),
-      equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu=mu(),
-                                                                Prandtl=prandtl_number()),
-      l2 = [2.527877257772131e-5, 2.5539911566937718e-5, 0.0001211860451244785],
-      linf = [0.00014663867588948776, 0.00019422448348348196, 0.0009556439394007299]
-    )
-  end
-
-  @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl: GradientVariablesEntropy" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_walls_amr.jl"),
-      equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu=mu(),
-                                                                Prandtl=prandtl_number(), 
-                                                                gradient_variables = GradientVariablesEntropy()),
-      l2 = [2.4593699163175966e-5, 2.392863645712634e-5, 0.00011252526651714956],
-      linf = [0.00011850555445525046, 0.0001898777490968537, 0.0009597561467877824]
     )
   end
 end

@@ -324,7 +324,7 @@ end
 
 function calc_viscous_fluxes!(flux_viscous::Vector{Array{uEltype, 4}},
                               gradients::Vector{Array{uEltype, 4}}, u_transformed,
-                              mesh::TreeMesh{2},
+                              mesh::Union{TreeMesh{2}, P4estMesh{2}},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache, cache_parabolic) where {uEltype <: Real}
     gradients_x, gradients_y = gradients

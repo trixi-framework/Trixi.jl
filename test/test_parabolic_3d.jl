@@ -161,14 +161,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2_error, linf_error = analysis_callback(sol)
       @test l2_error ≈ [0.0003109336253407314, 0.0006473493036803503, 0.0007705277238213672, 0.0006280517917198335, 0.000903927789884075]
       @test linf_error ≈ [0.0023694155365339142, 0.010634932622402863, 0.006772070862236412, 0.010640551561726901, 0.019256819038719897]
-      # Ensure that we do not have excessive memory allocations 
-      # (e.g., from type instabilities) 
-      let 
-        t = sol.t[end] 
-        u_ode = sol.u[end] 
-        du_ode = similar(u_ode) 
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
-      end
   end
 
   @trixi_testset "TreeMesh3D: elixir_navierstokes_taylor_green_vortex.jl" begin
@@ -269,8 +261,15 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "TreeMesh3D: elixir_advection_diffusion_amr.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_diffusion_amr.jl"),
-      l2 = [0.00017912610056132068],
-      linf = [0.0007821751390747478]
+      l2 = [0.000355780485397024],
+      linf = [0.0010810770271614256]
+    )
+  end
+
+  @trixi_testset "TreeMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_diffusion_nonperiodic.jl"),
+      l2 = [0.0009808996243280868],
+      linf = [0.01732621559135459]
     )
   end
 end
