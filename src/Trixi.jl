@@ -235,7 +235,7 @@ export DG,
        SurfaceIntegralUpwind,
        MortarL2
 
-export VolumeIntegralSubcellLimiting,
+export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
 export nelements, nnodes, nvariables,

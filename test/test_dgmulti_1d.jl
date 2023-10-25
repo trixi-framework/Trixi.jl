@@ -19,6 +19,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [2.9953644500009865e-5],
       linf = [4.467840577382365e-5]
     )
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_euler_flux_diff.jl " begin
@@ -28,11 +36,27 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [7.853842541289665e-7, 9.609905503440606e-7, 2.832322219966481e-6] ./ sqrt(2.0),
       linf = [1.5003758788711963e-6, 1.802998748523521e-6, 4.83599270806323e-6]
     )
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_euler_flux_diff.jl (convergence)" begin
     mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"), 3)
     @test isapprox(mean_convergence[:l2], [4.1558759698638434, 3.977911306037128, 4.041421206468769], rtol=0.05)
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_euler_flux_diff.jl (SBP) " begin
@@ -42,6 +66,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [6.437827414849647e-6, 2.1840558851820947e-6, 1.3245669629438228e-5],
       linf = [2.0715843751295537e-5, 8.519520630301258e-6, 4.2642194098885255e-5]
     )
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_euler_flux_diff.jl (FD SBP)" begin
@@ -56,6 +88,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
     show(stdout, semi.solver.basis)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
@@ -65,6 +105,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
     show(stdout, semi.solver.basis)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "DGMulti with periodic SBP unit test" begin
