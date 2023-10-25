@@ -7,7 +7,7 @@ using Trixi
 
 # TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
-mu() = 1.0/3.0 * 10^(-5)
+mu() = 1.0/3.0 * 10^(-5) # equivalent to Re = 30,000
 
 equations = CompressibleEulerEquations2D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu=mu(),
@@ -55,16 +55,21 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.7)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 1000
+analysis_interval = 2000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval,)
 
+# This uses velocity-based AMR
+@inline function v1(u, equations::CompressibleEulerEquations2D)
+  rho, rho_v1, _, _ = u
+  return rho_v1 / rho
+end
 amr_indicator = IndicatorLöhner(semi, variable=v1)                                          
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 3,
@@ -75,15 +80,18 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
+stepsize_callback = StepsizeCallback(cfl=1.3)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
-                        amr_callback)
+                        amr_callback,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-7
-sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
-            ode_default_options()..., callback=callbacks)
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

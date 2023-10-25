@@ -22,7 +22,7 @@ julia --threads=4
 If both the environment variable and the command line argument are specified at
 the same time, the latter takes precedence.
 
-If you use time integration methods from 
+If you use time integration methods from
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 and want to use multiple threads therein, you need to set the keyword argument
 `thread=OrdinaryDiffEq.True()` of the algorithms, as described in the
@@ -70,7 +70,32 @@ the same for P4est.jl and T8code.jl. This could e.g. be `libp4est.so` that usual
 in `lib/` or `local/lib/` in the installation directory of `t8code`.
 In total, in your active Julia project you should have a LocalPreferences.toml file with sections
 `[MPIPreferences]`, `[T8code]` and `[P4est]` as well as an entry `MPIPreferences` in your
-Project.toml to use a custom MPI installation.
+Project.toml to use a custom MPI installation. A `LocalPreferences.toml` file 
+created as described above might look something like the following:
+```toml
+[HDF5]
+libhdf5 = "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so"
+libhdf5_hl = "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so"
+
+[MPIPreferences]
+__clear__ = ["preloads_env_switch"]
+_format = "1.0"
+abi = "OpenMPI"
+binary = "system"
+cclibs = []
+libmpi = "/lib/x86_64-linux-gnu/libmpi.so"
+mpiexec = "mpiexec"
+preloads = []
+
+[P4est]
+libp4est = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libp4est.so"
+libsc = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libsc.so"
+
+[T8code]
+libp4est = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libp4est.so"
+libsc = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libsc.so"
+libt8 = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libt8.so"
+```
 
 
 ### [Usage](@id parallel_usage)
@@ -143,7 +168,7 @@ To start Trixi.jl in parallel with MPI, there are three options:
    Switching between panes can be done by `Ctrl+b` followed by `o`.
    As of March 2022, newer versions of tmpi also support mpich, which is the default
    backend of MPI.jl (via MPICH_Jll.jl). To use this setup, you need to install
-   `mpiexecjl` as described in the 
+   `mpiexecjl` as described in the
    [documentation of MPI.jl](https://juliaparallel.org/MPI.jl/v0.20/usage/#Julia-wrapper-for-mpiexec)
    and make it available as `mpirun`, e.g., via a symlink of the form
    ```bash
@@ -161,7 +186,7 @@ To start Trixi.jl in parallel with MPI, there are three options:
 
 ### [Performance](@id parallel_performance)
 For information on how to evaluate the parallel performance of Trixi.jl, please
-have a look at the [Performance metrics of the `AnalysisCallback`](@ref)
+have a look at the [Performance metrics of the `AnalysisCallback`](@ref performance-metrics)
 section, specifically at the descriptions of the performance index (PID).
 
 
@@ -185,6 +210,11 @@ julia> set_preferences!(
            UUID("f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"), # UUID of HDF5.jl
            "libhdf5" => "/path/to/your/libhdf5.so",
            "libhdf5_hl" => "/path/to/your/libhdf5_hl.so", force = true)
+```
+Alternatively, with HDF5.jl v0.17.1 or higher you can use
+```julia
+julia> using HDF5
+julia> HDF5.API.set_libraries!("/path/to/your/libhdf5.so", "/path/to/your/libhdf5_hl.so")
 ```
 For more information see also the
 [documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). In total, you should

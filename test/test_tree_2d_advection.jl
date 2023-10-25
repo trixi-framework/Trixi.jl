@@ -15,6 +15,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [6.627000273229378e-5],
       # Let the small basic test run to the end
       coverage_override = (maxiters=10^5,))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_advection_extended.jl with polydeg=1" begin
@@ -22,13 +30,33 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       l2   = [0.02134571266411136],
       linf = [0.04347734797775926],
       polydeg=1)
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      # Expected errors are exactly the same as in the parallel test!
-      l2   = [7.81674284320524e-6],
-      linf = [6.314906965243505e-5])
+    using OrdinaryDiffEq: SSPRK43
+    println("═"^100)
+    println(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"))
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+      alg = SSPRK43(), tspan = (0.0, 10.0))
+    l2_expected, linf_expected = analysis_callback(sol)
+
+    println("═"^100)
+    println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
+    # Errors are exactly the same as in the elixir_advection_extended.jl
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+      alg = SSPRK43())
+    l2_actual, linf_actual = analysis_callback(sol)
+    
+    @test l2_actual == l2_expected
+    @test linf_actual == linf_expected
   end
 
   @trixi_testset "elixir_advection_mortar.jl" begin
@@ -37,14 +65,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       l2   = [0.0015188466707237375],
       linf = [0.008446655719187679])
 
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-      t = sol.t[end]
-      u_ode = sol.u[end]
-      du_ode = similar(u_ode)
-      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_advection_amr.jl" begin
@@ -54,6 +82,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [0.00045263895394385967],
       # Let this test run to the end to cover some AMR code
       coverage_override = (maxiters=10^5,))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_advection_amr_nonperiodic.jl" begin
@@ -62,6 +98,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       l2   = [3.2207388565869075e-5],
       linf = [0.0007508059772436404],
       coverage_override = (maxiters=6,))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
@@ -69,6 +113,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       l2   = [4.949660644033807e-5],
       linf = [0.0004867846262313763],
       coverage_override = (maxiters=6,))
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_advection_amr_visualization.jl" begin
@@ -102,6 +154,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       # Let this test terminate by time instead of maxiters to cover some lines
       # in time_integration/methods_2N.jl
       coverage_override = (maxiters=10^5, tspan=(0.0, 0.1)))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000 
+      end
+    end
   end
 
   @trixi_testset "elixir_advection_timeintegration.jl with carpenter_kennedy_erk43" begin
@@ -110,6 +171,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [0.0005437136621948904],
       ode_algorithm=Trixi.CarpenterKennedy2N43(),
       cfl = 1.0)
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000 
+      end
   end
 
   @trixi_testset "elixir_advection_timeintegration.jl with carpenter_kennedy_erk43 with maxiters=1" begin
@@ -119,6 +188,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       ode_algorithm=Trixi.CarpenterKennedy2N43(),
       cfl = 1.0,
       maxiters = 1)
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000 
+      end
   end
 
   @trixi_testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk94" begin
@@ -126,6 +203,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       l2   = [2.4976673477385313e-5],
       linf = [0.0005534166916640881],
       ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar94())
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000 
+      end
   end
 
   @trixi_testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk32" begin
@@ -134,6 +219,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [0.0005799465470165757],
       ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar32(),
       cfl = 1.0)
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000 
+      end
   end
 
   @trixi_testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk32 with maxiters=1" begin
@@ -143,14 +236,29 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar32(),
       cfl = 1.0,
       maxiters = 1)
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000 
+      end
   end
 
   @trixi_testset "elixir_advection_callbacks.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_callbacks.jl"),
       l2   = [8.311947673061856e-6],
       linf = [6.627000273229378e-5])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
-end
 
 # Coverage test for all initial conditions
 @testset "Linear scalar advection: Tests for initial conditions" begin
@@ -161,6 +269,14 @@ end
       linf = [0.0007140570281718439],
       maxiters = 1,
       initial_condition = Trixi.initial_condition_sin_sin)
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_advection_extended.jl with initial_condition_constant" begin
@@ -169,6 +285,14 @@ end
       linf = [1.3322676295501878e-15],
       maxiters = 1,
       initial_condition = initial_condition_constant)
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_x_y" begin
@@ -179,6 +303,14 @@ end
       initial_condition = Trixi.initial_condition_linear_x_y,
       boundary_conditions = Trixi.boundary_condition_linear_x_y,
       periodicity=false)
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
@@ -189,6 +321,14 @@ end
       initial_condition = Trixi.initial_condition_linear_x,
       boundary_conditions = Trixi.boundary_condition_linear_x,
       periodicity=false)
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_y" begin
@@ -199,6 +339,14 @@ end
       initial_condition = Trixi.initial_condition_linear_y,
       boundary_conditions = Trixi.boundary_condition_linear_y,
       periodicity=false)
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 end
 

@@ -17,6 +17,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [0.31371522041799105, 0.3037839783173047, 0.21500228807094351, 0.904249573054642,
               0.0939809809658183, 0.09470282020962761, 0.1527725397829759, 8.245701827530042e-15,
               0.0787460541210726, 0.1574921082421452])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_mhdmulti_ec.jl with flux_derigs_etal" begin
@@ -31,6 +39,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
               0.1567857511190207],
       volume_flux = (flux_derigs_etal, flux_nonconservative_powell),
       surface_flux = (flux_derigs_etal, flux_nonconservative_powell))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_mhdmulti_es.jl" begin
@@ -41,6 +57,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [0.23454607703107877, 0.23464789247380322, 0.11898832084115452, 0.5331209602648022,
               0.061744814466827336, 0.061767127585091286, 0.09595041452184983, 0.004421037168524759,
               0.06186597801911198, 0.12373195603822396])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_mhdmulti_convergence.jl" begin
@@ -51,6 +75,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
       linf = [0.0013324014301672943, 0.0013324014301669181, 0.002684449324758791, 0.0016236816790307085,
               0.0019172373117153363, 0.0019172373117148922, 0.002664932274107224, 0.0011872396664042962,
               0.0002855492944235094, 0.0005710985888470188, 0.0011421971776940376])
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
   end
 
   @trixi_testset "elixir_mhdmulti_rotor.jl" begin
@@ -62,6 +94,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
               0.6628317732399827, 1.4185626901435056, 0.0, 0.06914316292003836,
               3.328770801731456, 1.664385400865728],
       tspan = (0.0, 0.01))
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
 end
 
 end

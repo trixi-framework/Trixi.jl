@@ -356,6 +356,7 @@ include("shallow_water_1d.jl")
 include("shallow_water_2d.jl")
 include("shallow_water_two_layer_1d.jl")
 include("shallow_water_two_layer_2d.jl")
+include("shallow_water_quasi_1d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <:
@@ -369,6 +370,11 @@ abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCO
               AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_multicomponent_1d.jl")
 include("compressible_euler_multicomponent_2d.jl")
+
+# PolytropicEulerEquations
+abstract type AbstractPolytropicEulerEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("polytropic_euler_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS,
