@@ -211,11 +211,11 @@ end
         get_element_variables!(element_variables, u_ode, semi)
         callbacks = integrator.opts.callback
         if callbacks isa CallbackSet
-            for cb in callbacks.continuous_callbacks
+            foreach(callbacks.continuous_callbacks) do cb
                 get_element_variables!(element_variables, u_ode, semi, cb;
                                        t = integrator.t, iter = iter)
             end
-            for cb in callbacks.discrete_callbacks
+            foreach(callbacks.discrete_callbacks) do cb
                 get_element_variables!(element_variables, u_ode, semi, cb;
                                        t = integrator.t, iter = iter)
             end
