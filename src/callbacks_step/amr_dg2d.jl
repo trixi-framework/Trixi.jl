@@ -136,7 +136,6 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     return nothing
 end
 
-# AMR for hyperbolic-parabolic equations currently only supported on TreeMeshes
 function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}},
                  equations, dg::DGSEM, cache, cache_parabolic,
                  elements_to_refine)
@@ -298,7 +297,6 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     return nothing
 end
 
-# AMR for hyperbolic-parabolic equations currently only supported on TreeMeshes
 function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}},
                   equations, dg::DGSEM, cache, cache_parabolic,
                   elements_to_remove)

@@ -717,18 +717,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
         fstar = (fstar_lower_threaded[Threads.threadid()],
                  fstar_upper_threaded[Threads.threadid()])
 
-        # Get index information on the small elements
-        small_indices = node_indices[1, mortar]
-        small_direction = indices2direction(small_indices)
-
-        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
-                                                             index_range)
-        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
-                                                             index_range)
-
         for position in 1:2
-            i_small = i_small_start
-            j_small = j_small_start
             for node in eachnode(dg)
                                 
                 for v in eachvariable(equations)
@@ -738,9 +727,6 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                     # TODO: parabolic; only BR1 at the moment
                     fstar[position][v, node] = 0.5 * (viscous_flux_normal_ll + viscous_flux_normal_rr)
                 end
-
-                i_small += i_small_step
-                j_small += j_small_step
             end
         end
 
