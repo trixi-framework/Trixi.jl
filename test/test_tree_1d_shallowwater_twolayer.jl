@@ -17,6 +17,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
     linf  = [0.022256679217306008, 0.005421833004652266, 0.02233993939574197, 0.008765261497422516,
              0.0008992474511784199],
     tspan = (0.0, 0.25))
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_shallowwater_twolayer_convergence.jl with flux_es_fjordholm_etal" begin
@@ -27,6 +35,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
              0.0008992474511784199],
     surface_flux=(flux_es_fjordholm_etal, flux_nonconservative_fjordholm_etal),
     tspan = (0.0, 0.25))
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_shallowwater_twolayer_well_balanced.jl" begin
@@ -36,6 +52,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
      linf = [2.6229018956769323e-15, 1.878451903240623e-16, 0.005119880996670156,
              8.003199803957679e-16, 0.005119880996670666],
     tspan = (0.0, 0.25))
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
   @trixi_testset "elixir_shallowwater_twolayer_dam_break.jl with flux_lax_friedrichs" begin
@@ -45,6 +69,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
     linf  = [0.5854202777756559, 2.1278930820498934, 0.5193686074348809, 1.8071213168086229, 0.5],
     surface_flux = (flux_lax_friedrichs, flux_nonconservative_fjordholm_etal),
     tspan = (0.0, 0.25))
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let 
+      t = sol.t[end] 
+      u_ode = sol.u[end] 
+      du_ode = similar(u_ode) 
+      @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+    end
   end
 
 end
