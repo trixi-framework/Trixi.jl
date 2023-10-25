@@ -26,7 +26,7 @@ mesh = P4estMesh(trees_per_dimension,
                  periodicity=(false, false))
 
 function initial_condition_cavity(x, t, equations::CompressibleEulerEquations2D)
-  Ma = 0.5
+  Ma = 0.1
   rho = 1.0
   u, v = 0.0, 0.0
   p = 1.0 / (Ma^2 * equations.gamma)
@@ -57,9 +57,6 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
                                              initial_condition, solver;
                                              boundary_conditions=(boundary_conditions,
                                                                   boundary_conditions_parabolic))
-
-# semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-#                                              initial_condition, solver;)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
