@@ -423,6 +423,20 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "TreeMesh3D: elixir_advection_diffusion_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+                                 "elixir_advection_diffusion_amr.jl"),
+                        l2=[0.000355780485397024],
+                        linf=[0.0010810770271614256])
+end
+
+@trixi_testset "TreeMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic.jl"),
+                        l2=[0.0009808996243280868],
+                        linf=[0.01732621559135459])
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
