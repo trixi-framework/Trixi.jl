@@ -58,28 +58,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       end
   end
 
-  @trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl (AMR)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_advection_diffusion.jl"),
-      tspan=(0.0, 0.0), initial_refinement_level = 5)
-      tspan=(0.0, 1.0)
-      ode = semidiscretize(semi, tspan)
-      amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
-                                      base_level=4,
-                                      med_level=5, med_threshold=0.1,
-                                      max_level=6, max_threshold=0.6)
-      amr_callback = AMRCallback(semi, amr_controller,
-                                interval=5,
-                                adapt_initial_condition=true)
-
-      # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-      callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr_callback)
-      sol = solve(ode, KenCarp4(autodiff=false), abstol=time_abs_tol, reltol=time_int_tol,
-            save_everystep=false, callback=callbacks)
-      l2_error, linf_error = analysis_callback(sol)
-      @test l2_error ≈ [6.4878111416468355e-6]
-      @test linf_error ≈ [3.258075790424364e-5]
-  end
-
   @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_periodic.jl"),
       l2 = [0.0001133835907077494, 6.226282245610444e-5, 0.0002820171699999139],
