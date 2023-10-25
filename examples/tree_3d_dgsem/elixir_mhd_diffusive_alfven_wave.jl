@@ -6,8 +6,8 @@ using Trixi
 # semidiscretization of the visco-resistive compressible MHD equations
 
 prandtl_number() = 0.72
-mu() = 1e-3
-eta() = 1e-3
+mu() = 1e-2
+eta() = 1e-2
 mu_const = mu()
 eta_const = eta()
 
@@ -88,14 +88,14 @@ end
 @inline function source_terms_mhd_convergence_test(u, x, t, equations)
     r_1 = 0
     r_2 = -0.000266666666666667*pi*sin(2*pi*x[1])*cos(2*pi*x[1])
-    r_3 = 0.08*pi^2*mu_const*sin(2*pi*x[1]) - 0.04*pi*cos(2*pi*x[1])
+    r_3 = -0.08*pi^2*mu_const*sin(2*pi*x[1]) - 0.04*pi*cos(2*pi*x[1])
     r_4 = 0
-    r_5 = -0.0016*pi^2*eta_const*sin(2*pi*x[1])^2 +
-          0.0016*pi^2*eta_const*cos(2*pi*x[1])^2 +
-	  mu_const*(-0.0016*pi^2*sin(2*pi*x[1])^2 + 0.0016*pi^2*cos(2*pi*x[1])^2) +
+    r_5 = 0.0016*pi^2*eta_const*sin(2*pi*x[1])^2 +
+          -0.0016*pi^2*eta_const*cos(2*pi*x[1])^2 +
+	  -mu_const*(-0.0016*pi^2*sin(2*pi*x[1])^2 + 0.0016*pi^2*cos(2*pi*x[1])^2) +
 	  0.0016*pi*sin(2*pi*x[1])*cos(2*pi*x[1])
     r_6 = 0
-    r_7 = -0.08*pi^2*eta_const*sin(2*pi*x[1]) + 0.04*pi*cos(2*pi*x[1])
+    r_7 = 0.08*pi^2*eta_const*sin(2*pi*x[1]) + 0.04*pi*cos(2*pi*x[1])
     r_8 = 0
     r_9 = 0
 
