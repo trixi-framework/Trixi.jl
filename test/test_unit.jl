@@ -875,7 +875,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                           SVector(-1.2, 0.3)]
 
     for normal_direction in normal_directions
-      @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
+      @test flux_hlle(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
     end
 
     equations = CompressibleEulerEquations3D(1.4)
@@ -893,7 +893,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                         SVector(-1.2, 0.3, 1.4)]
 
     for normal_direction in normal_directions
-      @test flux_hll(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
+      @test flux_hlle(u, u, normal_direction, equations) ≈ flux(u, normal_direction, equations)
     end
   end
 

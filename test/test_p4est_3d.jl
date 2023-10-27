@@ -207,6 +207,22 @@ isdir(outdir) && rm(outdir, recursive=true)
       end
   end
 
+  @trixi_testset "elixir_euler_sedov.jl HLLE" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
+      l2   = [0.09946224487902565, 0.04863386374672001, 0.048633863746720116, 0.04863386374672032, 0.3751015774232693],
+      linf = [0.789241521871487, 0.42046970270100276, 0.42046970270100276, 0.4204697027010028, 4.730877375538398],
+      tspan = (0.0, 0.3),
+      surface_flux = flux_hlle)
+      # Ensure that we do not have excessive memory allocations 
+      # (e.g., from type instabilities) 
+      let 
+        t = sol.t[end] 
+        u_ode = sol.u[end] 
+        du_ode = similar(u_ode) 
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000 
+      end
+  end
+
   @trixi_testset "elixir_euler_source_terms_nonconforming_earth.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_earth.jl"),
       l2 = [6.040180337738628e-6, 5.4254175153621895e-6, 5.677698851333843e-6, 5.8017136892469794e-6, 1.3637854615117974e-5],
