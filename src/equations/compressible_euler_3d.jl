@@ -1462,7 +1462,7 @@ function flux_hlle(u_ll, u_rr, normal_direction::AbstractVector,
     v1_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr) * inv_sum_sqrt_rho
     v2_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr) * inv_sum_sqrt_rho
     v3_roe = (sqrt_rho_ll * v3_ll + sqrt_rho_rr * v3_rr) * inv_sum_sqrt_rho
-    v_roe = v1_roe * normal_direction[1] + v2_roe * normal_direction[2] + 
+    v_roe = v1_roe * normal_direction[1] + v2_roe * normal_direction[2] +
             v3_roe * normal_direction[3]
     v_roe_mag = v1_roe^2 + v2_roe^2 + v3_roe^2
 
@@ -1515,7 +1515,6 @@ function flux_hlle(u_ll, u_rr, normal_direction::AbstractVector,
 
     return SVector(f1, f2, f3, f4, f5)
 end
-
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations3D)
     rho, v1, v2, v3, p = cons2prim(u, equations)
