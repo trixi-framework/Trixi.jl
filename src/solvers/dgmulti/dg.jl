@@ -474,12 +474,6 @@ function calc_boundary_flux!(cache, t, boundary_conditions, mesh,
     end
 end
 
-# terminate recursion
-function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple{(), Tuple{}},
-                             mesh, have_nonconservative_terms, equations, dg::DGMulti)
-    nothing
-end
-
 function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, mesh,
                                     have_nonconservative_terms::False, equations,
                                     dg::DGMulti{NDIMS}) where {NDIMS}
