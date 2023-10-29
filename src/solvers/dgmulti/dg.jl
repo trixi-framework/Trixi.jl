@@ -472,7 +472,7 @@ function calc_boundary_flux!(cache, t, boundary_conditions, mesh,
                                    key,
                                    mesh, have_nonconservative_terms, equations, dg)
     end
-end 
+end
 
 function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, mesh,
                                     have_nonconservative_terms::False, equations,
