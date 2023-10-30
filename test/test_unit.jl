@@ -892,9 +892,12 @@ end
     equations = CompressibleEulerEquations1D(1.4)
     u = SVector(1.1, 2.34, 5.5)
 
+    # Test HLL flux with min_max_speed_einfeldt
+    flux_hll = FluxHLL(min_max_speed_einfeldt)
+
     orientations = [1]
     for orientation in orientations
-        @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
     equations = CompressibleEulerEquations2D(1.4)
@@ -902,7 +905,7 @@ end
 
     orientations = [1, 2]
     for orientation in orientations
-        @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
     normal_directions = [SVector(1.0, 0.0),
@@ -920,7 +923,7 @@ end
 
     orientations = [1, 2, 3]
     for orientation in orientations
-        @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
     normal_directions = [SVector(1.0, 0.0, 0.0),
