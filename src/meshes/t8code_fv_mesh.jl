@@ -23,8 +23,8 @@ mutable struct T8codeFVMesh{NDIMS, RealT <: Real, Forest} <: AbstractMesh{NDIMS}
     unsaved_changes::Bool
 
     function T8codeFVMesh{NDIMS}(mesh_function, initial_refinement_level;
-                               current_filename = "",
-                               unsaved_changes = true) where {NDIMS}
+                                 current_filename = "",
+                                 unsaved_changes = true) where {NDIMS}
         @assert NDIMS == 2
         comm = MPI.COMM_WORLD
 
@@ -102,7 +102,8 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeFVMesh)
         show(io, mesh)
     else
         summary_header(io,
-                       "T8codeFVMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
+                       "T8codeFVMesh{" * string(ndims(mesh)) * ", " *
+                       string(real(mesh)) *
                        "}")
         summary_line(io, "#trees", mesh.number_trees_global)
         summary_line(io, "#elements", nelementsglobal(mesh))
