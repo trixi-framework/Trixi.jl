@@ -7,14 +7,14 @@ using Trixi
 
 prandtl_number() = 0.72
 mu() = 0e-2
-eta() = 0e-2
+eta() = 1e-2
 mu_const = mu()
 eta_const = eta()
 
 equations = IdealGlmMhdEquations3D(5/3)
 equations_parabolic = ViscoResistiveMhd3D(equations, mu = mu(),
                                           Prandtl = prandtl_number(),
-					  eta = eta(),
+                                          eta = eta(),
                                           gradient_variables = GradientVariablesPrimitive())
 
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
@@ -30,88 +30,95 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
                 n_cells_max = 100_000) # set maximum capacity of tree data structure
 
-#function initial_condition_constant_alfven(x, t, equations)
-#    # Homogeneous background magnetic field in the diagonl direction that is perturbed
-#    # by a small change in the orthogonal direction (e.g. Biskamp 2003, section 2.5.1).
-#    # This particular set-up is a modification of Rembiasz et al. (2018)
-#    # DOI: doi.org/10.3847/1538-4365/aa6254, but with p = 1.
-#    # For a derivation of Alfven waves see e.g.:
-#    # Alfven H., 150, p. 450, Nature (1942), DOI: 10.1038/150405d0
-#    # Chandrasekhar, Hydrodynamic and hydromagnetic stability (1961)
-#    # Biskamp, Magnetohydrodynamic Turbulence (2003)
-#
-#    epsilon = 0.02
-#    k = 2*pi*1
-#    p = 2e-3
-#
-#    rho = 1.0
-#    rho_v1 = 0
-#    rho_v2 = -epsilon*sin(k*x[1])/sqrt(rho)
-#    rho_v3 = 0
-#    B1 = 1
-#    B2 = epsilon*sin(k*x[1])
-#    B3 = 0
-#    rho_e = 1
-#    psi = 0
-#
-#    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
-#end
-#
-#@inline function source_terms_mhd_convergence_test(u, x, t, equations)
-#    r_1 = 0
-#    r_2 = -0.000266666666666667*pi*sin(2*pi*x[1])*cos(2*pi*x[1])
-#    r_3 = -0.08*pi^2*mu_const*sin(2*pi*x[1]) - 0.04*pi*cos(2*pi*x[1])
-#    r_4 = 0
-#    r_5 = 0.0016*pi^2*eta_const*sin(2*pi*x[1])^2 +
-#          -0.0016*pi^2*eta_const*cos(2*pi*x[1])^2 +
-#	  -mu_const*(-0.0016*pi^2*sin(2*pi*x[1])^2 + 0.0016*pi^2*cos(2*pi*x[1])^2) +
-#	  0.0016*pi*sin(2*pi*x[1])*cos(2*pi*x[1])
-#    r_6 = 0
-#    r_7 = 0.08*pi^2*eta_const*sin(2*pi*x[1]) + 0.04*pi*cos(2*pi*x[1])
-#    r_8 = 0
-#    r_9 = 0
-#
-#    return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
-#end
+function initial_condition_constant_alfven(x, t, equations)
+   # Homogeneous background magnetic field in the diagonl direction that is perturbed
+   # by a small change in the orthogonal direction (e.g. Biskamp 2003, section 2.5.1).
+   # This particular set-up is a modification of Rembiasz et al. (2018)
+   # DOI: doi.org/10.3847/1538-4365/aa6254, but with p = 1.
+   # For a derivation of Alfven waves see e.g.:
+   # Alfven H., 150, p. 450, Nature (1942), DOI: 10.1038/150405d0
+   # Chandrasekhar, Hydrodynamic and hydromagnetic stability (1961)
+   # Biskamp, Magnetohydrodynamic Turbulence (2003)
 
-function initial_condition_convergence_test(x, t, equations)
-    # Initial condition for the convergence test.
-    # This form has been conjured up by guess work just for this test.
+   epsilon = 0.02
+   k = 2*pi*1
 
-    l = x[1]^2 + 2*x[2]^2 + 3*x[3]^2
+   rho = 1.0
+   rho_v1 = 0
+   rho_v2 = -epsilon*sin(k*x[1])/sqrt(rho)
+   rho_v3 = 0
+   B1 = 1
+   B2 = epsilon*sin(k*x[1])
+   B3 = 0
+   rho_e = 1
+   psi = 0
 
-    rho = exp(-l/10)
-    rho_v1 = rho*x[2]
-    rho_v2 = rho*x[1]
-    rho_v3 = 1/10
-    B1 = x[2]/10 + x[1]/100
-    B2 = x[3]/10
-    B3 = x[1]/10
-    rho_e = 1
-    psi = 0
-
-    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
+   return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
 end
 
 @inline function source_terms_mhd_convergence_test(u, x, t, equations)
-    l = x[1]^2 + 2*x[2]^2 + 3*x[3]^2
-#     z = x[3]
-#     y = x[2]
-#     x = x[1]
+   r_1 = 0
+   r_2 = -0.000133333333333333*pi*sin(4*pi*x[1])
+   r_3 = -pi*(0.08*pi*mu_const*sin(2*pi*x[1]) + 0.04*cos(2*pi*x[1]))
+   r_4 = 0
+   r_5 = 0.0016*pi^2*eta_const*sin(2*pi*x[1])^2
+         - 0.0016*pi^2*eta_const*cos(2*pi*x[1])^2
+         - mu_const*(-0.0016*pi^2*sin(2*pi*x[1])^2
+                     + 0.0016*pi^2*cos(2*pi*x[1])^2)
+         + 0.0008*pi*sin(4*pi*x[1])
+   r_6 = 0
+   r_7 = pi*(0.08*pi*eta_const*sin(2*pi*x[1]) + 0.04*cos(2*pi*x[1]))
+   r_8 = 0
+   r_9 = 0
 
-    r_1 =  -(3*x[1]*x[2] + 0.3*x[3])*exp(-x[1]^2/10 - x[2]^2/5 - 3*x[3]^2/10)/5
-#     r_2 = (0.0666666666666667*x^3 - 0.533333333333333*x*y^2 + 0.00316666666666667*x*exp(x^2/10 + y^2/5 + 3*z^2/10) + 0.334*x - 0.06*y*z - 0.00166666666666667*y*exp(x^2/10 + y^2/5 + 3*z^2/10) - 0.01*z*exp(x^2/10 + y^2/5 + 3*z^2/10))*exp(-x^2/10 - y^2/5 - 3*z^2/10)
-#     r_3 = (-0.466666666666667*x^2*y - 0.06*x*z - 0.00966666666666667*x*exp(x^2/10 + y^2/5 + 3*z^2/10) + 0.133333333333333*y^3 + 0.00333333333333333*y*exp(x^2/10 + y^2/5 + 3*z^2/10) + 0.334666666666667*y - 0.001*z*exp(x^2/10 + y^2/5 + 3*z^2/10))*exp(-x^2/10 - y^2/5 - 3*z^2/10)
-#     r_4 = -0.06*x*y*exp(-x^2/10 - y^2/5 - 3*z^2/10) - x/500 - y/100 + 3*z*(0.333333333333333*x^2 + 0.333333333333333*y^2 + 0.00333333333333333)*exp(-x^2/10 - y^2/5 - 3*z^2/10)/5 - 0.006*z*exp(-x^2/10 - y^2/5 - 3*z^2/10) + 0.00333333333333333*z
-#     r_5 = -0.03*eta_const - 4.0*mu_const + 0.2*x^3*y*exp(-x^2/10 - y^2/5 - 3*z^2/10) + 0.02*x^2*z*exp(-x^2/10 - y^2/5 - 3*z^2/10) - 0.00966666666666667*x^2 + 0.2*x*y^3*exp(-x^2/10 - y^2/5 - 3*z^2/10) - 1.33133333333333*x*y*exp(-x^2/10 - y^2/5 - 3*z^2/10) + 0.0065*x*y - 0.003*x*z - 0.0002*x + 0.02*y^2*z*exp(-x^2/10 - y^2/5 - 3*z^2/10) - 0.00166666666666667*y^2 - 0.03*y*z - 0.001*y + 0.0002*z*exp(-x^2/10 - y^2/5 - 3*z^2/10) + 0.000333333333333333*z
-#     r_6 = x/10 - z/10
-#     r_7 = -x/50 - y/10 + 0.01
-#     r_8 = y/10 - 0.001
-#     r_9 = equations.c_h/100
-
-#     return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
-    return SVector(r_1, 0, 0, 0, 0, 0, 0, 0, 0)
+   return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
+
+# function initial_condition_constant_alfven(x, t, equations)
+#    # Alfvén wave in three space dimensions
+#    # Altmann thesis http://dx.doi.org/10.18419/opus-3895
+#    # domain must be set to [-1, 1]^3, γ = 5/3
+#    p = 1
+#    omega = 2 * pi # may be multiplied by frequency
+#    # r: length-variable = length of computational domain
+#    r = 2
+#    # e: epsilon = 0.02
+#    e = 0.02
+#    nx = 1 / sqrt(r^2 + 1)
+#    ny = r / sqrt(r^2 + 1)
+#    sqr = 1
+#    Va = omega / (ny * sqr)
+#    phi_alv = omega / ny * (nx * (x[1] - 0.5 * r) + ny * (x[2] - 0.5 * r)) - Va * t
+#
+#    rho = 1.0
+#    v1 = -e * ny * cos(phi_alv) / rho
+#    v2 = e * nx * cos(phi_alv) / rho
+#    v3 = e * sin(phi_alv) / rho
+#    B1 = nx - rho * v1 * sqr
+#    B2 = ny - rho * v2 * sqr
+#    B3 = -rho * v3 * sqr
+#    psi = 0
+#
+#    return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
+# end
+#
+# @inline function source_terms_mhd_convergence_test(u, x, t, equations)
+#    z = x[3]
+#    y = x[2]
+#    x = x[1]
+#
+#    r_1 = 0
+#    r_2 = pi*(0.04*sqrt(5)*pi*mu_const*cos(pi*(-sqrt(5)*t + x + 2*y)) - 1.35525271560688e-20*sin(pi*(-2*sqrt(5)*t + 2*x + 4*y)) - 2.60208521396521e-18*sin(pi*(-sqrt(5)*t + x + 2*y)))
+#    r_3 = pi*(-0.02*sqrt(5)*pi*mu_const*cos(pi*(-sqrt(5)*t + x + 2*y)) - 2.71050543121376e-20*sin(pi*(-2*sqrt(5)*t + 2*x + 4*y)) + 3.46944695195361e-18*sin(pi*(-sqrt(5)*t + x + 2*y)))
+#    r_4 = -0.1*pi^2*mu_const*sin(pi*(-sqrt(5)*t + x + 2*y))
+#    r_5 = 2.71050543121376e-19*pi^2*mu_const*sin(pi*(-sqrt(5)*t + x + 2*y))^2 - 2.71050543121376e-19*pi^2*mu_const*cos(pi*(sqrt(5)*t - x - 2*y + 3.0))^2 + 2.71050543121376e-20*sqrt(5)*pi*sin(pi*(-2*sqrt(5)*t + 2*x + 4*y))
+#    r_6 = 0.04*sqrt(5)*pi^2*eta_const*cos(pi*(sqrt(5)*t - x - 2*y + 3.0))
+#    r_7 =-0.02*sqrt(5)*pi^2*eta_const*cos(pi*(sqrt(5)*t - x - 2*y + 3.0))
+#    r_8 = 0.1*pi^2*eta_const*sin(pi*(-sqrt(5)*t + x + 2*y))
+#    r_9 = 0
+#
+#    return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
+# end
 
 #initial_condition = initial_condition_constant_alfven
 initial_condition = initial_condition_convergence_test
