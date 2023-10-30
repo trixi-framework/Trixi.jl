@@ -257,7 +257,12 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 ## Acknowledgments
 <p align="center">
-  <img align="middle" src="https://user-images.githubusercontent.com/3637659/233821022-84910be7-8649-4999-a0ff-22d5e20f0b90.jpg" width=auto/>
+  <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" height="120px">
+  <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" height="120px">
+  <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" height="120px">
+  <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" height="120px">
+  <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125" height="120px">
+  <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" height="120px">
 </p>
 
 This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
@@ -267,6 +272,9 @@ Dynamics-Geometry-Structure.
 This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
 through the research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
 Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
+
+This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
+under grant no. 528753982.
 
 This project has benefited from funding from the European Research Council through the
 ERC Starting Grant "An Exascale aware and Un-crashable Space-Time-Adaptive
@@ -284,3 +292,5 @@ This project has benefited from funding from the German Federal Ministry of
 Education and Research through the project grant "Adaptive earth system modeling
 with significantly reduced computation time for exascale supercomputers
 (ADAPTEX)" (funding id: 16ME0668K).
+
+Trixi.jl is supported by NumFOCUS as an Affiliated Project.
