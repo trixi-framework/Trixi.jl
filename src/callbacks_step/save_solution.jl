@@ -236,7 +236,7 @@ end
 # function save_mesh_file(mesh::TreeMesh, output_directory, timestep=-1) in io/io.jl
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::T8codeMesh,
+                            mesh::T8codeFVMesh,
                             equations, solver, cache,
                             solution_callback, element_variables = Dict{Symbol, Any}();
                             system = "")

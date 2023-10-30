@@ -41,7 +41,7 @@ initial_refinement_level = 4
 mesh_function = Trixi.cmesh_new_periodic_hybrid
 # mesh_function = Trixi.cmesh_new_periodic_quad
 # mesh_function = Trixi.cmesh_new_periodic_tri
-mesh = T8codeMesh{2}(mesh_function, initial_refinement_level)
+mesh = T8codeFVMesh{2}(mesh_function, initial_refinement_level)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 

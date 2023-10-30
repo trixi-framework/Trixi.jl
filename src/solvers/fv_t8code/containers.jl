@@ -52,7 +52,7 @@ function Base.show(container::T8codeElementContainer)
     println("neighbor_faces     = ", container.neighbor_faces[1:num_faces])
 end
 
-function init_elements(mesh::T8codeMesh, RealT, uEltype)
+function init_elements(mesh::T8codeFVMesh, RealT, uEltype)
     # Initialize container
     elements = init_elements(mesh)
 
@@ -62,7 +62,7 @@ function init_elements(mesh::T8codeMesh, RealT, uEltype)
     return elements
 end
 
-function init_elements(mesh::T8codeMesh)
+function init_elements(mesh::T8codeFVMesh)
     @unpack forest = mesh
     # Check that the forest is a committed.
     @assert(t8_forest_is_committed(forest)==1)
@@ -216,7 +216,7 @@ function Base.resize!(interfaces::T8codeInterfaceContainer, capacity)
 end
 
 # Create interface container and initialize interface data.
-function init_interfaces(mesh::T8codeMesh, equations, elements)
+function init_interfaces(mesh::T8codeFVMesh, equations, elements)
     NDIMS = ndims(mesh)
     uEltype = eltype(elements[1].volume)
 
@@ -255,7 +255,7 @@ function init_interfaces(mesh::T8codeMesh, equations, elements)
     return interfaces
 end
 
-function init_interfaces!(interfaces, mesh::T8codeMesh, equations, elements)
+function init_interfaces!(interfaces, mesh::T8codeFVMesh, equations, elements)
     # Note: In t8code, the routine 't8code_forest_iterate' is not implemented yet.
 
     idx = 1
@@ -286,7 +286,7 @@ end
 
 @inline eachinterface(solver::FV, cache) = Base.OneTo(ninterfaces(solver, cache))
 
-function init_solution!(mesh::T8codeMesh, equations)
+function init_solution!(mesh::T8codeFVMesh, equations)
     @unpack forest = mesh
     # Check that the forest is a committed.
     @assert(t8_forest_is_committed(forest)==1)
