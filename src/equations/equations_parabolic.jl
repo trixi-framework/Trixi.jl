@@ -7,9 +7,12 @@ abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
               AbstractEquationsParabolic{NDIMS, NVARS} end
 include("laplace_diffusion_1d.jl")
 include("laplace_diffusion_2d.jl")
+include("laplace_diffusion_3d.jl")
 
 # Compressible Navier-Stokes equations
 abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS} <:
               AbstractEquationsParabolic{NDIMS, NVARS} end
+include("compressible_navier_stokes.jl")
+include("compressible_navier_stokes_1d.jl")
 include("compressible_navier_stokes_2d.jl")
 include("compressible_navier_stokes_3d.jl")

@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
 @doc raw"""
     CompressibleNavierStokesDiffusion3D(equations; mu, Pr,
                                         gradient_variables=GradientVariablesPrimitive())
@@ -29,7 +36,7 @@ The particular form of the compressible Navier-Stokes implemented is
 =
 \nabla \cdot
 \begin{pmatrix}
-0 \\ \underline{\tau} \\ \underline{\tau}\mathbf{v} - \nabla q
+0 \\ \underline{\tau} \\ \underline{\tau}\mathbf{v} - \mathbf{q}
 \end{pmatrix}
 ```
 where the system is closed with the ideal gas assumption giving
@@ -44,7 +51,7 @@ are built from the viscous stress tensor
 ```
 where ``\underline{I}`` is the ``3\times 3`` identity matrix and the heat flux is
 ```math
-\nabla q = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
+\mathbf{q} = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
 ```
 where ``T`` is the temperature and ``\kappa`` is the thermal conductivity for Fick's law.
 Under the assumption that the gas has a constant Prandtl number,
@@ -55,7 +62,7 @@ the thermal conductivity is
 From this combination of temperature ``T`` and thermal conductivity ``\kappa`` we see
 that the gas constant `R` cancels and the heat flux becomes
 ```math
-\nabla q = -\kappa\nabla\left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}}\nabla\left(\frac{p}{\rho}\right)
+\mathbf{q} = -\kappa\nabla\left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}}\nabla\left(\frac{p}{\rho}\right)
 ```
 which is the form implemented below in the [`flux`](@ref) function.
 
@@ -77,7 +84,8 @@ w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = \frac{\rho v_3}{p}
     This code is experimental and may be changed or removed in any future release.
 """
 struct CompressibleNavierStokesDiffusion3D{GradientVariables, RealT <: Real,
-                                           E <: AbstractCompressibleEulerEquations{3}} <:
+                                           E <: AbstractCompressibleEulerEquations{3}
+                                           } <:
        AbstractCompressibleNavierStokesDiffusion{3, 5}
     # TODO: parabolic
     # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
@@ -109,7 +117,8 @@ function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquatio
     CompressibleNavierStokesDiffusion3D{typeof(gradient_variables), typeof(gamma),
                                         typeof(equations)}(gamma, inv_gamma_minus_one,
                                                            μ, Pr, kappa,
-                                                           equations, gradient_variables)
+                                                           equations,
+                                                           gradient_variables)
 end
 
 # TODO: parabolic
@@ -319,9 +328,12 @@ end
 
 @inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
     # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
-    _, dv1dx, dv2dx, dv3dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
-    _, dv1dy, dv2dy, dv3dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
-    _, dv1dz, dv2dz, dv3dz, _ = convert_derivative_to_primitive(u, gradients[3], equations)
+    _, dv1dx, dv2dx, dv3dx, _ = convert_derivative_to_primitive(u, gradients[1],
+                                                                equations)
+    _, dv1dy, dv2dy, dv3dy, _ = convert_derivative_to_primitive(u, gradients[2],
+                                                                equations)
+    _, dv1dz, dv2dz, dv3dz, _ = convert_derivative_to_primitive(u, gradients[3],
+                                                                equations)
 
     return SVector(dv3dy - dv2dz, dv1dz - dv3dx, dv2dx - dv1dy)
 end
@@ -330,7 +342,8 @@ end
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
                                                                                       normal::AbstractVector,
-                                                                                      x, t,
+                                                                                      x,
+                                                                                      t,
                                                                                       operator_type::Gradient,
                                                                                       equations::CompressibleNavierStokesDiffusion3D{
                                                                                                                                      GradientVariablesPrimitive
@@ -345,7 +358,8 @@ end
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
                                                                                       normal::AbstractVector,
-                                                                                      x, t,
+                                                                                      x,
+                                                                                      t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion3D{
                                                                                                                                      GradientVariablesPrimitive
@@ -367,7 +381,8 @@ end
                                                                         <:Isothermal})(flux_inner,
                                                                                        u_inner,
                                                                                        normal::AbstractVector,
-                                                                                       x, t,
+                                                                                       x,
+                                                                                       t,
                                                                                        operator_type::Gradient,
                                                                                        equations::CompressibleNavierStokesDiffusion3D{
                                                                                                                                       GradientVariablesPrimitive
@@ -384,7 +399,8 @@ end
                                                                         <:Isothermal})(flux_inner,
                                                                                        u_inner,
                                                                                        normal::AbstractVector,
-                                                                                       x, t,
+                                                                                       x,
+                                                                                       t,
                                                                                        operator_type::Divergence,
                                                                                        equations::CompressibleNavierStokesDiffusion3D{
                                                                                                                                       GradientVariablesPrimitive
@@ -404,7 +420,8 @@ end
                                                                         <:Adiabatic})(flux_inner,
                                                                                       w_inner,
                                                                                       normal::AbstractVector,
-                                                                                      x, t,
+                                                                                      x,
+                                                                                      t,
                                                                                       operator_type::Gradient,
                                                                                       equations::CompressibleNavierStokesDiffusion3D{
                                                                                                                                      GradientVariablesEntropy
@@ -422,7 +439,8 @@ end
                                                                         <:Adiabatic})(flux_inner,
                                                                                       w_inner,
                                                                                       normal::AbstractVector,
-                                                                                      x, t,
+                                                                                      x,
+                                                                                      t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion3D{
                                                                                                                                      GradientVariablesEntropy
@@ -443,7 +461,8 @@ end
                                                                         <:Isothermal})(flux_inner,
                                                                                        w_inner,
                                                                                        normal::AbstractVector,
-                                                                                       x, t,
+                                                                                       x,
+                                                                                       t,
                                                                                        operator_type::Gradient,
                                                                                        equations::CompressibleNavierStokesDiffusion3D{
                                                                                                                                       GradientVariablesEntropy
@@ -463,7 +482,8 @@ end
                                                                         <:Isothermal})(flux_inner,
                                                                                        w_inner,
                                                                                        normal::AbstractVector,
-                                                                                       x, t,
+                                                                                       x,
+                                                                                       t,
                                                                                        operator_type::Divergence,
                                                                                        equations::CompressibleNavierStokesDiffusion3D{
                                                                                                                                       GradientVariablesEntropy
@@ -471,3 +491,4 @@ end
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4],
                    flux_inner[5])
 end
+end # @muladd

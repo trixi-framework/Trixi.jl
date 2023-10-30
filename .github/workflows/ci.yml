@@ -69,6 +69,7 @@ jobs:
           - structured
           - p4est_part1
           - p4est_part2
+          - t8code_part1
           - unstructured_dgmulti
           - parabolic
           - paper_self_gravitating_gas_dynamics
@@ -100,7 +101,7 @@ jobs:
             arch: x64
             trixi_test: threaded
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
@@ -174,7 +175,7 @@ jobs:
       # Instead, we use the more tedious approach described above.
       # At first, we check out the repository and download all artifacts
       # (and list files for debugging).
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
       - run: ls -R
       # Next, we merge the individual coverage files and upload

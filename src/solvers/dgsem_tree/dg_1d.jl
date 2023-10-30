@@ -144,6 +144,13 @@ function calc_volume_integral!(du, u,
     return nothing
 end
 
+#=
+`weak_form_kernel!` is only implemented for conserved terms as 
+non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
+see `flux_differencing_kernel!`.
+This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
+See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
+=#
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                    nonconservative_terms::False, equations,
@@ -385,15 +392,17 @@ end
 function prolong2interfaces!(cache, u,
                              mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
     @unpack interfaces = cache
+    @unpack neighbor_ids = interfaces
+    interfaces_u = interfaces.u
 
     @threaded for interface in eachinterface(dg, cache)
-        left_element = interfaces.neighbor_ids[1, interface]
-        right_element = interfaces.neighbor_ids[2, interface]
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
 
         # interface in x-direction
         for v in eachvariable(equations)
-            interfaces.u[1, v, interface] = u[v, nnodes(dg), left_element]
-            interfaces.u[2, v, interface] = u[v, 1, right_element]
+            interfaces_u[1, v, interface] = u[v, nnodes(dg), left_element]
+            interfaces_u[2, v, interface] = u[v, 1, right_element]
         end
     end
 
@@ -621,8 +630,10 @@ end
 
 function apply_jacobian!(du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                          equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+
     @threaded for element in eachelement(dg, cache)
-        factor = -cache.elements.inverse_jacobian[element]
+        factor = -inverse_jacobian[element]
 
         for i in eachnode(dg)
             for v in eachvariable(equations)
@@ -642,11 +653,13 @@ end
 
 function calc_sources!(du, u, t, source_terms,
                        equations::AbstractEquations{1}, dg::DG, cache)
+    @unpack node_coordinates = cache.elements
+
     @threaded for element in eachelement(dg, cache)
         for i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, element)
-            x_local = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
-                                      element)
+            x_local = get_node_coords(node_coordinates, equations, dg,
+                                      i, element)
             du_local = source_terms(u_local, x_local, t, equations)
             add_to_node_vars!(du, du_local, equations, dg, i, element)
         end

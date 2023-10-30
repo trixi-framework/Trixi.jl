@@ -86,9 +86,15 @@ function (alive_callback::AliveCallback)(integrator)
         println("─"^100)
         println()
     elseif mpi_isroot()
+        t = integrator.t
+        t_initial = first(integrator.sol.prob.tspan)
+        t_final = last(integrator.sol.prob.tspan)
+        sim_time_percentage = (t - t_initial) / (t_final - t_initial) * 100
         runtime_absolute = 1.0e-9 * (time_ns() - alive_callback.start_time)
-        @printf("#timesteps: %6d │ Δt: %.4e │ sim. time: %.4e │ run time: %.4e s\n",
-                integrator.stats.naccept, integrator.dt, integrator.t, runtime_absolute)
+        println(rpad(@sprintf("#timesteps: %6d │ Δt: %.4e │ sim. time: %.4e (%5.3f%%)",
+                              integrator.stats.naccept, integrator.dt, t,
+                              sim_time_percentage), 71) *
+                @sprintf("│ run time: %.4e s", runtime_absolute))
     end
 
     # avoid re-evaluating possible FSAL stages
