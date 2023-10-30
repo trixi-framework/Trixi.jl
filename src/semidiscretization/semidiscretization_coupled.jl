@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+    
 """
     SemidiscretizationCoupled
 
@@ -150,8 +157,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     # Call rhs! for each semidiscretization
     for i in eachsystem(semi)
         u_loc = get_system_u_ode(u_ode, i, semi)
-        du_loc = get_system_u_ode(du_ode, i, semi)
-
+        du_loc = get_system_u_ode(du_ode, i, semi)    
         @trixi_timeit timer() "system #$i" rhs!(du_loc, u_loc, semi.semis[i], t)
     end
 
@@ -617,3 +623,5 @@ function analyze_convergence(errors_coupled, iterations,
 
     return eoc_mean_values
 end
+
+end # @muladd
