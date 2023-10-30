@@ -345,7 +345,7 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 ## Acknowledgments
 
 ```@raw html
-<p align="center">
+<p align="center" style="font-size:0;">
   <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" height="120px">
   <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" height="120px">
   <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" height="120px">
@@ -355,32 +355,33 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 </p>
 ```
 
-This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
-under Germany's Excellence Strategy EXC 2044-390685587, Mathematics Münster:
-Dynamics-Geometry-Structure.
+This project has benefited from funding by the [Deutsche
+Forschungsgemeinschaft](https://www.dfg.de/) (DFG, German Research Foundation)
+through the following grants:
+* Excellence Strategy EXC 2044-390685587, Mathematics Münster: Dynamics-Geometry-Structure.
+* Research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
+  Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
+* Individual grant no. 528753982.
 
-This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
-through the research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
-Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
-
-This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
-under grant no. 528753982.
-
-This project has benefited from funding from the European Research Council through the
+This project has benefited from funding from the [European Research Council](https://erc.europa.eu)
+through the
 ERC Starting Grant "An Exascale aware and Un-crashable Space-Time-Adaptive
 Discontinuous Spectral Element Solver for Non-Linear Conservation Laws" (Extreme),
 ERC grant agreement no. 714487.
 
-This project has benefited from funding from Vetenskapsrådet (VR, Swedish Research Council), Sweden
+This project has benefited from funding from [Vetenskapsrådet](https://www.vr.se)
+(VR, Swedish Research Council), Sweden
 through the VR Starting Grant "Shallow water flows including sediment transport and morphodynamics",
 VR grant agreement 2020-03642 VR.
 
-This project has benefited from funding from the United States National Science Foundation under awards
+This project has benefited from funding from the United States
+[National Science Foundation](https://www.nsf.gov/) (NSF) under awards
 DMS-1719818 and DMS-1943186.
 
-This project has benefited from funding from the German Federal Ministry of
-Education and Research through the project grant "Adaptive earth system modeling
+This project has benefited from funding from the German
+[Federal Ministry of Education and Research](https://www.bmbf.de) (BMBF)
+through the project grant "Adaptive earth system modeling
 with significantly reduced computation time for exascale supercomputers
 (ADAPTEX)" (funding id: 16ME0668K).
 
-Trixi.jl is supported by NumFOCUS as an Affiliated Project.
+Trixi.jl is supported by [NumFOCUS](https://numfocus.org/) as an Affiliated Project.
