@@ -252,7 +252,9 @@ end
 function save_solution_file(u, time, dt, timestep,
                             mesh::T8codeFVMesh,
                             equations, solver, cache,
-                            solution_callback, element_variables = Dict{Symbol, Any}();
+                            solution_callback,
+                            element_variables = Dict{Symbol, Any}(),
+                            node_variables = Dict{Symbol, Any}();
                             system = "")
     @unpack output_directory = solution_callback
 
