@@ -1322,7 +1322,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
 end
 
 """
-    flux_hlle(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
+    min_max_speed_einfeldtmin_max_speed_einfeldt(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
 
 Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
 Special estimates of the signal velocites and linearization of the Riemann problem developed
@@ -1336,7 +1336,7 @@ of the numerical flux.
   On Godunov-type methods near low densities.
   [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
 """
-function flux_hlle(u_ll, u_rr, orientation::Integer,
+function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
                    equations::CompressibleEulerEquations3D)
     # Calculate primitive variables, enthalpy and speed of sound
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
@@ -1379,47 +1379,11 @@ function flux_hlle(u_ll, u_rr, orientation::Integer,
         SsR = max(v3_roe + c_roe, v3_rr + beta * c_rr, zero(v3_roe))
     end
 
-    if SsL >= 0.0 && SsR > 0.0
-        # Positive supersonic speed
-        f_ll = flux(u_ll, orientation, equations)
-
-        f1 = f_ll[1]
-        f2 = f_ll[2]
-        f3 = f_ll[3]
-        f4 = f_ll[4]
-        f5 = f_ll[5]
-    elseif SsR <= 0.0 && SsL < 0.0
-        # Negative supersonic speed
-        f_rr = flux(u_rr, orientation, equations)
-
-        f1 = f_rr[1]
-        f2 = f_rr[2]
-        f3 = f_rr[3]
-        f4 = f_rr[4]
-        f5 = f_rr[5]
-    else
-        # Subsonic case
-        # Compute left and right fluxes
-        f_ll = flux(u_ll, orientation, equations)
-        f_rr = flux(u_rr, orientation, equations)
-
-        f1 = (SsR * f_ll[1] - SsL * f_rr[1] + SsL * SsR * (u_rr[1] - u_ll[1])) /
-             (SsR - SsL)
-        f2 = (SsR * f_ll[2] - SsL * f_rr[2] + SsL * SsR * (u_rr[2] - u_ll[2])) /
-             (SsR - SsL)
-        f3 = (SsR * f_ll[3] - SsL * f_rr[3] + SsL * SsR * (u_rr[3] - u_ll[3])) /
-             (SsR - SsL)
-        f4 = (SsR * f_ll[4] - SsL * f_rr[4] + SsL * SsR * (u_rr[4] - u_ll[4])) /
-             (SsR - SsL)
-        f5 = (SsR * f_ll[5] - SsL * f_rr[5] + SsL * SsR * (u_rr[5] - u_ll[5])) /
-             (SsR - SsL)
-    end
-
-    return SVector(f1, f2, f3, f4, f5)
+    return SsL, SsR
 end
 
 """
-    flux_hlle(u_ll, u_rr, normal_direction, equations::CompressibleEulerEquations3D)
+    min_max_speed_einfeldt(u_ll, u_rr, normal_direction, equations::CompressibleEulerEquations3D)
 
 Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
 Special estimates of the signal velocites and linearization of the Riemann problem developed
@@ -1433,7 +1397,7 @@ of the numerical flux.
   On Godunov-type methods near low densities.
   [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
 """
-function flux_hlle(u_ll, u_rr, normal_direction::AbstractVector,
+function min_max_speed_einfeldt(u_ll, u_rr, normal_direction::AbstractVector,
                    equations::CompressibleEulerEquations3D)
     # Calculate primitive variables, enthalpy and speed of sound
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
@@ -1477,43 +1441,7 @@ function flux_hlle(u_ll, u_rr, normal_direction::AbstractVector,
     SsL = min(v_roe - c_roe, v_dot_n_ll - beta * c_ll, zero(v_roe))
     SsR = max(v_roe + c_roe, v_dot_n_rr + beta * c_rr, zero(v_roe))
 
-    if SsL >= 0.0 && SsR > 0.0
-        # Positive supersonic speed
-        f_ll = flux(u_ll, normal_direction, equations)
-
-        f1 = f_ll[1]
-        f2 = f_ll[2]
-        f3 = f_ll[3]
-        f4 = f_ll[4]
-        f5 = f_ll[5]
-    elseif SsR <= 0.0 && SsL < 0.0
-        # Negative supersonic speed
-        f_rr = flux(u_rr, normal_direction, equations)
-
-        f1 = f_rr[1]
-        f2 = f_rr[2]
-        f3 = f_rr[3]
-        f4 = f_rr[4]
-        f5 = f_rr[5]
-    else
-        # Subsonic case
-        # Compute left and right fluxes
-        f_ll = flux(u_ll, normal_direction, equations)
-        f_rr = flux(u_rr, normal_direction, equations)
-
-        f1 = (SsR * f_ll[1] - SsL * f_rr[1] + SsL * SsR * (u_rr[1] - u_ll[1])) /
-             (SsR - SsL)
-        f2 = (SsR * f_ll[2] - SsL * f_rr[2] + SsL * SsR * (u_rr[2] - u_ll[2])) /
-             (SsR - SsL)
-        f3 = (SsR * f_ll[3] - SsL * f_rr[3] + SsL * SsR * (u_rr[3] - u_ll[3])) /
-             (SsR - SsL)
-        f4 = (SsR * f_ll[4] - SsL * f_rr[4] + SsL * SsR * (u_rr[4] - u_ll[4])) /
-             (SsR - SsL)
-        f5 = (SsR * f_ll[5] - SsL * f_rr[5] + SsL * SsR * (u_rr[5] - u_ll[5])) /
-             (SsR - SsL)
-    end
-
-    return SVector(f1, f2, f3, f4, f5)
+    return SsL, SsR
 end
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations3D)
