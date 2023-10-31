@@ -960,12 +960,14 @@ end
 end
 
 @timed_testset "Consistency check for HLLE flux: MHD" begin
+    # Note: min_max_speed_naive for MHD is essentially min_max_speed_einfeldt
+
     equations = IdealGlmMhdEquations1D(1.4)
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2)]
 
     for u in u_values
-        @test flux_hlle(u, u, 1, equations) ≈ flux(u, 1, equations)
+        @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
     end
 
     equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
@@ -979,11 +981,11 @@ end
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
-        @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
     for u in u_values, normal_direction in normal_directions
-        @test flux_hlle(u, u, normal_direction, equations) ≈
+        @test flux_hll(u, u, normal_direction, equations) ≈
               flux(u, normal_direction, equations)
     end
 
@@ -999,11 +1001,11 @@ end
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
-        @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
     for u in u_values, normal_direction in normal_directions
-        @test flux_hlle(u, u, normal_direction, equations) ≈
+        @test flux_hll(u, u, normal_direction, equations) ≈
               flux(u, normal_direction, equations)
     end
 end

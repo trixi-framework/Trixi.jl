@@ -304,7 +304,7 @@ end
                             4.730877375538398,
                         ],
                         tspan=(0.0, 0.3),
-                        surface_flux=flux_hlles)
+                        surface_flux=flux_hlle)
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
     let
