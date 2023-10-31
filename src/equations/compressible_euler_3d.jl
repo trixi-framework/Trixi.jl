@@ -1336,7 +1336,7 @@ of the numerical flux.
   On Godunov-type methods near low densities.
   [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
 """
-function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
+@inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
                                 equations::CompressibleEulerEquations3D)
     # Calculate primitive variables, enthalpy and speed of sound
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
