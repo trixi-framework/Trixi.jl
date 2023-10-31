@@ -1322,7 +1322,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
 end
 
 """
-    min_max_speed_einfeldtmin_max_speed_einfeldt(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
+    min_max_speed_einfeldt(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
 
 Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
 Special estimates of the signal velocites and linearization of the Riemann problem developed
