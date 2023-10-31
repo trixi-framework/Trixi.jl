@@ -437,7 +437,7 @@ end
                             6.24263735888126,
                         ],
                         tspan=(0.0, 0.5),
-                        surface_flux=FluxHLL(min_max_speed_einfeldt))
+                        surface_flux=flux_hlle)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

@@ -1337,7 +1337,7 @@ of the numerical flux.
   [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
 """
 @inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
-                                equations::CompressibleEulerEquations3D)
+                                        equations::CompressibleEulerEquations3D)
     # Calculate primitive variables, enthalpy and speed of sound
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
@@ -1398,7 +1398,7 @@ of the numerical flux.
   [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
 """
 @inline function min_max_speed_einfeldt(u_ll, u_rr, normal_direction::AbstractVector,
-                                equations::CompressibleEulerEquations3D)
+                                        equations::CompressibleEulerEquations3D)
     # Calculate primitive variables, enthalpy and speed of sound
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)

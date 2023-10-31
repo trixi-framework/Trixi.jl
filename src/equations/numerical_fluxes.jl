@@ -304,6 +304,13 @@ See [`FluxHLL`](@ref).
 """
 const flux_hll = FluxHLL()
 
+"""
+    flux_hlle
+
+See [`min_max_speed_einfeldt`](@ref).
+"""
+const flux_hlle = FluxHLL(min_max_speed_einfeldt)
+
 # TODO: TrixiShallowWater: move the chen_noelle flux structure to the new package
 
 # An empty version of the `min_max_speed_chen_noelle` function is declared here

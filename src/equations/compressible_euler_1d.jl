@@ -826,7 +826,7 @@ Compactly summarized:
   [Link](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf)
 """
 @inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
-                                equations::CompressibleEulerEquations1D)
+                                        equations::CompressibleEulerEquations1D)
     # Calculate primitive variables, enthalpy and speed of sound
     rho_ll, v_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v_rr, p_rr = cons2prim(u_rr, equations)
