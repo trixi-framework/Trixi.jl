@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -6,15 +5,15 @@ using Trixi
 # semidiscretization of the visco-resistive compressible MHD equations
 
 prandtl_number() = 0.72
-mu() = 1e-2
-eta() = 1e-2
-mu_const = mu()
-eta_const = eta()
+# mu = 1e-2
+# eta = 1e-2
+mu_const = 1e-2
+eta_const = 1e-2
 
 equations = IdealGlmMhdEquations3D(5/3)
-equations_parabolic = ViscoResistiveMhd3D(equations, mu = mu(),
+equations_parabolic = ViscoResistiveMhd3D(equations, mu = mu_const,
                                           Prandtl = prandtl_number(),
-					  eta = eta(),
+                                          eta = eta_const,
                                           gradient_variables = GradientVariablesPrimitive())
 
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
@@ -60,10 +59,16 @@ end
 
 @inline function source_terms_mhd_convergence_test(u, x, t, equations)
    r_1 = 0
-   r_2 = pi*(0.04*sqrt(5)*pi*mu_const*cos(pi*(-sqrt(5)*t + x[1] + 2*x[2])) - 1.35525271560688e-20*sin(pi*(-2*sqrt(5)*t + 2*x[1] + 4*x[2])) - 2.60208521396521e-18*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])))
-   r_3 = pi*(-0.02*sqrt(5)*pi*mu_const*cos(pi*(-sqrt(5)*t + x[1] + 2*x[2])) - 2.71050543121376e-20*sin(pi*(-2*sqrt(5)*t + 2*x[1] + 4*x[2])) + 3.46944695195361e-18*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])))
+   r_2 = pi*(0.04*sqrt(5)*pi*mu_const*cos(pi*(-sqrt(5)*t + x[1] + 2*x[2]))
+             - 1.35525271560688e-20*sin(pi*(-2*sqrt(5)*t + 2*x[1] + 4*x[2]))
+             - 2.60208521396521e-18*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])))
+   r_3 = pi*(-0.02*sqrt(5)*pi*mu_const*cos(pi*(-sqrt(5)*t + x[1] + 2*x[2]))
+             - 2.71050543121376e-20*sin(pi*(-2*sqrt(5)*t + 2*x[1] + 4*x[2]))
+             + 3.46944695195361e-18*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])))
    r_4 = -0.1*pi^2*mu_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))
-   r_5 = 2.71050543121376e-19*pi^2*mu_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))^2 - 2.71050543121376e-19*pi^2*mu_const*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0))^2 + 2.71050543121376e-20*sqrt(5)*pi*sin(pi*(-2*sqrt(5)*t + 2*x[1] + 4*x[2]))
+   r_5 = 2.71050543121376e-19*pi^2*mu_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))^2
+         - 2.71050543121376e-19*pi^2*mu_const*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0))^2
+         + 2.71050543121376e-20*sqrt(5)*pi*sin(pi*(-2*sqrt(5)*t + 2*x[1] + 4*x[2]))
    r_6 = 0.04*sqrt(5)*pi^2*eta_const*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0))
    r_7 =-0.02*sqrt(5)*pi^2*eta_const*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0))
    r_8 = 0.1*pi^2*eta_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))
@@ -71,50 +76,6 @@ end
 
    return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
-
-# function initial_condition_constant_alfven(x, t, equations)
-#     # Homogeneous background magnetic field in the x-direction that is perturbed
-#     # by a small change in the y-direction (e.g. Biskamp 2003, section 2.5.1).
-#     # This particular set-up is in line with Rembiasz et al. (2018)
-#     # DOI: doi.org/10.3847/1538-4365/aa6254, but with p = 1.
-#     # For a derivation of Alfven waves see e.g.:
-#     # Alfven H., 150, p. 450, Nature (1942), DOI: 10.1038/150405d0
-#     # Chandrasekhar, Hydrodynamic and hydromagnetic stability (1961)
-#     # Biskamp, Magnetohydrodynamic Turbulence (2003)
-#
-#     epsilon = 0.02
-#     k = 2*pi*1
-#     p = 2e-3
-#
-#     rho = 1.0
-#     rho_v1 = 0
-#     rho_v2 = -epsilon*sin(k*x[1])/sqrt(rho)
-#     rho_v3 = 0
-#     B1 = 1
-#     B2 = epsilon*sin(k*x[1])
-#     B3 = 0
-#     rho_e = 1
-#     psi = 0
-#
-#     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
-# end
-#
-# @inline function source_terms_mhd_convergence_test(u, x, t, equations)
-#     r_1 = 0
-#     r_2 = -0.000266666666666667*pi*sin(2*pi*x[1])*cos(2*pi*x[1])
-#     r_3 = -0.08*pi^2*mu_const*sin(2*pi*x[1]) - 0.04*pi*cos(2*pi*x[1])
-#     r_4 = 0
-#     r_5 = 0.0016*pi^2*eta_const*sin(2*pi*x[1])^2 +
-#           -0.0016*pi^2*eta_const*cos(2*pi*x[1])^2 +
-# 	  -mu_const*(-0.0016*pi^2*sin(2*pi*x[1])^2 + 0.0016*pi^2*cos(2*pi*x[1])^2) +
-# 	  0.0016*pi*sin(2*pi*x[1])*cos(2*pi*x[1])
-#     r_6 = 0
-#     r_7 = 0.08*pi^2*eta_const*sin(2*pi*x[1]) + 0.04*pi*cos(2*pi*x[1])
-#     r_8 = 0
-#     r_9 = 0
-#
-#     return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
-# end
 
 initial_condition = initial_condition_constant_alfven
 
@@ -126,7 +87,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
-tspan = (0.0, 0.01)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
