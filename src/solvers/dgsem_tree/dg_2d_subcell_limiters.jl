@@ -38,7 +38,7 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
                                                                        nvariables(equations),
                                                                        nnodes(dg))
 
-    if typeof(have_nonconservative_terms(equations)) == True
+    if have_nonconservative_terms(equations) == true
         flux_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
                                                      n_nonconservative_terms(equations),
                                                      nnodes(dg), nnodes(dg))
@@ -385,7 +385,7 @@ end
             end
         end
     end
-
+    
     # FV-form flux `fhat` in x direction
     fhat1_L[:, 1, :] .= zero(eltype(fhat1_L))
     fhat1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_L))

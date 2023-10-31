@@ -278,9 +278,12 @@ The return value will be `True()` or `False()` to allow dispatching on the retur
 have_nonconservative_terms(::AbstractEquations) = False()
 """
     n_nonconservative_terms(equations)
+
 Number of nonconservative terms in the form local * symmetric for a particular equation.
+This function needs to be specialized only if equations with nonconservative terms are
+combined with certain solvers (e.g., subcell limiting).
 """
-function n_nonconservative_terms(::AbstractEquations) end
+function n_nonconservative_terms end
 have_constant_speed(::AbstractEquations) = False()
 
 default_analysis_errors(::AbstractEquations) = (:l2_error, :linf_error)
