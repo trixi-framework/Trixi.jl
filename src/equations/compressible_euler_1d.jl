@@ -825,7 +825,7 @@ Compactly summarized:
   Numerical methods for conservation laws and related equations.
   [Link](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf)
 """
-function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
+@inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
                                 equations::CompressibleEulerEquations1D)
     # Calculate primitive variables, enthalpy and speed of sound
     rho_ll, v_ll, p_ll = cons2prim(u_ll, equations)
