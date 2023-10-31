@@ -296,9 +296,11 @@ end
     end
     Trixi.move_connectivity!(c::MyContainer, first, last, destination) = c
     Trixi.delete_connectivity!(c::MyContainer, first, last) = c
-    Trixi.reset_data_structures!(c::MyContainer) = (c.data = Vector{Int}(undef,
-                                                                         c.capacity + 1);
-                                                    c)
+    function Trixi.reset_data_structures!(c::MyContainer)
+        (c.data = Vector{Int}(undef,
+                              c.capacity + 1);
+         c)
+    end
     function Base.:(==)(c1::MyContainer, c2::MyContainer)
         return (c1.capacity == c2.capacity &&
                 c1.length == c2.length &&
@@ -414,10 +416,13 @@ end
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
-    indicator_idp = SubcellLimiterIDP(true, [1], true, [1], ("variable",), 0.1, true, true, true, "cache", 1, (1.0, 1.0), 1.0, true, 1.0, nothing)
+    indicator_idp = SubcellLimiterIDP(true, [1], true, [1], ("variable",), 0.1, true,
+                                      true, true, "cache", 1, (1.0, 1.0), 1.0, true,
+                                      1.0, nothing)
     @test_nowarn show(stdout, indicator_idp)
 
-    indicator_mcl = SubcellLimiterMCL("cache", true, true, true, true, true, true, true, 1.0, true, true, 1.0, nothing, true)
+    indicator_mcl = SubcellLimiterMCL("cache", true, true, true, true, true, true, true,
+                                      1.0, true, true, 1.0, nothing, true)
     @test_nowarn show(stdout, indicator_mcl)
 
     # TODO: TrixiShallowWater: move unit test

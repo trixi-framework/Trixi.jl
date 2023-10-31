@@ -385,7 +385,7 @@ end
             end
         end
     end
-    
+
     # FV-form flux `fhat` in x direction
     fhat1_L[:, 1, :] .= zero(eltype(fhat1_L))
     fhat1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_L))
