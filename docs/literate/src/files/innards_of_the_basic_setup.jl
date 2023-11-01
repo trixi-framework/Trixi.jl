@@ -195,7 +195,7 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # ## Functions `solve` and `rhs!`
 
 # Once the `ODEProblem` object is initialized, the `solve` function from the OrdinaryDiffEq.jl
-# package can be utilized to compute an approximate solution using the instructions contained in
+# package can be utilized to compute an approximated solution using the instructions contained in
 # the `ODEProblem` object.
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=0.01, save_everystep=false);
