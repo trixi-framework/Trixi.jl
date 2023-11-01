@@ -119,10 +119,10 @@ function solve(ode::ODEProblem, alg::T;
 
     # initialize callbacks
     if callback isa CallbackSet
-        for cb in callback.continuous_callbacks
+        foreach(callback.continuous_callbacks) do cb
             error("unsupported")
         end
-        for cb in callback.discrete_callbacks
+        foreach(callback.discrete_callbacks) do cb
             cb.initialize(cb, integrator.u, integrator.t, integrator)
         end
     elseif !isnothing(callback)
@@ -172,10 +172,11 @@ function solve!(integrator::SimpleIntegrator2N)
 
         # handle callbacks
         if callbacks isa CallbackSet
-            for cb in callbacks.discrete_callbacks
+            foreach(callbacks.discrete_callbacks) do cb
                 if cb.condition(integrator.u, integrator.t, integrator)
                     cb.affect!(integrator)
                 end
+                return nothing
             end
         end
 

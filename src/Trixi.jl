@@ -150,9 +150,10 @@ export AcousticPerturbationEquations2D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
        ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
        ShallowWaterEquationsQuasi1D,
-       LinearizedEulerEquations2D
+       LinearizedEulerEquations2D,
+       PolytropicEulerEquations2D
 
-export LaplaceDiffusion1D, LaplaceDiffusion2D,
+export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
        CompressibleNavierStokesDiffusion3D
 
@@ -161,11 +162,11 @@ export GradientVariablesPrimitive, GradientVariablesEntropy
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
-       flux_nonconservative_powell,
+       flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
        flux_fjordholm_etal, flux_nonconservative_fjordholm_etal, flux_es_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
-       flux_chan_etal, flux_nonconservative_chan_etal,
+       flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
 # TODO: TrixiShallowWater: move anything with "chen_noelle" to new file
        hydrostatic_reconstruction_chen_noelle, flux_nonconservative_chen_noelle,
@@ -231,7 +232,7 @@ export DG,
        SurfaceIntegralUpwind,
        MortarL2
 
-export VolumeIntegralSubcellLimiting,
+export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
 export nelements, nnodes, nvariables,

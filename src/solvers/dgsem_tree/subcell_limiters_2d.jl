@@ -6,17 +6,22 @@
 #! format: noindent
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
-function create_cache(indicator::Type{SubcellLimiterIDP},
-                      equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis, number_bounds)
+function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
+                      basis::LobattoLegendreBasis, bound_keys)
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
                                                                       }(0,
                                                                         nnodes(basis),
-                                                                        number_bounds)
+                                                                        bound_keys)
 
-    cache = (; subcell_limiter_coefficients)
+    # Memory for bounds checking routine with `BoundsCheckCallback`.
+    # The first entry of each vector contains the maximum deviation since the last export.
+    # The second one contains the total maximum deviation.
+    idp_bounds_delta = Dict{Symbol, Vector{real(basis)}}()
+    for key in bound_keys
+        idp_bounds_delta[key] = zeros(real(basis), 2)
+    end
 
-    return cache
+    return (; subcell_limiter_coefficients, idp_bounds_delta)
 end
 
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
@@ -26,8 +31,7 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
     alpha .= zero(eltype(alpha))
 
     if limiter.positivity
-        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt,
-                                                           semi)
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
     end
 
     # Calculate alpha1 and alpha2
@@ -50,22 +54,21 @@ end
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi)
     # Conservative variables
-    for (index, variable) in enumerate(limiter.positivity_variables_cons)
-        idp_positivity!(alpha, limiter, u, dt, semi, variable, index)
+    for variable in limiter.positivity_variables_cons
+        idp_positivity!(alpha, limiter, u, dt, semi, variable)
     end
 
     return nothing
 end
 
-@inline function idp_positivity!(alpha, limiter, u, dt, semi, variable, index)
+@inline function idp_positivity!(alpha, limiter, u, dt, semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
-    @unpack inverse_weights = dg.basis
-    @unpack positivity_correction_factor = limiter
+    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
+    (; positivity_correction_factor) = limiter
 
-    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
-
-    var_min = variable_bounds[index]
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in eachelement(dg, semi.cache)
         inverse_jacobian = cache.elements.inverse_jacobian[element]
@@ -88,13 +91,13 @@ end
             # Calculate Pm
             # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
             val_flux1_local = inverse_weights[i] *
-                              antidiffusive_flux1[variable, i, j, element]
+                              antidiffusive_flux1_R[variable, i, j, element]
             val_flux1_local_ip1 = -inverse_weights[i] *
-                                  antidiffusive_flux1[variable, i + 1, j, element]
+                                  antidiffusive_flux1_L[variable, i + 1, j, element]
             val_flux2_local = inverse_weights[j] *
-                              antidiffusive_flux2[variable, i, j, element]
+                              antidiffusive_flux2_R[variable, i, j, element]
             val_flux2_local_jp1 = -inverse_weights[j] *
-                                  antidiffusive_flux2[variable, i, j + 1, element]
+                                  antidiffusive_flux2_L[variable, i, j + 1, element]
 
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
