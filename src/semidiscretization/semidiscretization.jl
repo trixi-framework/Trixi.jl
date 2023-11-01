@@ -335,6 +335,10 @@ function get_element_variables!(element_variables, u_ode,
     get_element_variables!(element_variables, u, mesh_equations_solver_cache(semi)...)
 end
 
+function get_node_variables!(node_variables, semi::AbstractSemidiscretization)
+    get_node_variables!(node_variables, mesh_equations_solver_cache(semi)...)
+end
+
 # To implement AMR and use OrdinaryDiffEq.jl etc., we have to be a bit creative.
 # Since the caches of the SciML ecosystem are immutable structs, we cannot simply
 # change the underlying arrays therein. Hence, to support changing the number of
