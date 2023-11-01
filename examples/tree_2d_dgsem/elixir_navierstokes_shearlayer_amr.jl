@@ -7,7 +7,7 @@ using Trixi
 
 # TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
-mu() = 1.0/3.0 * 10^(-5) # equivalent to Re = 30,000
+mu() = 1.0/3.0 * 10^(-5)
 
 equations = CompressibleEulerEquations2D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu=mu(),
@@ -55,7 +55,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 0.7)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -65,11 +65,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval,)
 
-# This uses velocity-based AMR
-@inline function v1(u, equations::CompressibleEulerEquations2D)
-  rho, rho_v1, _, _ = u
-  return rho_v1 / rho
-end
 amr_indicator = IndicatorLöhner(semi, variable=v1)                                          
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 3,

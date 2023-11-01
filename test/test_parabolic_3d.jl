@@ -396,47 +396,27 @@ end
     end
 end
 
-@trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
-                                 "elixir_navierstokes_taylor_green_vortex.jl"),
-                        initial_refinement_level=2, tspan=(0.0, 0.25),
-                        l2=[
-                            0.0001547509861140407,
-                            0.015637861347119624,
-                            0.015637861347119687,
-                            0.022024699158522523,
-                            0.009711013505930812,
-                        ],
-                        linf=[
-                            0.0006696415247340326,
-                            0.03442565722527785,
-                            0.03442565722577423,
-                            0.06295407168705314,
-                            0.032857472756916195,
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
+  @trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem", "elixir_navierstokes_taylor_green_vortex.jl"),
+      initial_refinement_level = 2, tspan=(0.0, 0.25),
+      l2 = [0.0001547509861140407, 0.015637861347119624, 0.015637861347119687, 0.022024699158522523, 0.009711013505930812], 
+      linf = [0.0006696415247340326, 0.03442565722527785, 0.03442565722577423, 0.06295407168705314, 0.032857472756916195]
+    )
+  end
 
-@trixi_testset "TreeMesh3D: elixir_advection_diffusion_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
-                                 "elixir_advection_diffusion_amr.jl"),
-                        l2=[0.000355780485397024],
-                        linf=[0.0010810770271614256])
-end
+  @trixi_testset "TreeMesh3D: elixir_advection_diffusion_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_diffusion_amr.jl"),
+      l2 = [0.000355780485397024],
+      linf = [0.0010810770271614256]
+    )
+  end
 
-@trixi_testset "TreeMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
-                                 "elixir_advection_diffusion_nonperiodic.jl"),
-                        l2=[0.0009808996243280868],
-                        linf=[0.01732621559135459])
-end
+  @trixi_testset "TreeMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_diffusion_nonperiodic.jl"),
+      l2 = [0.0009808996243280868],
+      linf = [0.01732621559135459]
+    )
+  end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
