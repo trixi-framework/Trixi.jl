@@ -68,7 +68,8 @@ files = [
     # Topic: other stuff
     "Explicit time stepping" => "time_stepping.jl",
     "Differentiable programming" => "differentiable_programming.jl",
-    "Custom semidiscretizations" => "custom_semidiscretization.jl"
+    "Custom semidiscretizations" => "custom_semidiscretization.jl",
+    "Core aspects of the basic setup" => "innards_of_the_basic_setup.jl",
     ]
 tutorials = create_tutorials(files)
 
