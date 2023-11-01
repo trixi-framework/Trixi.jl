@@ -33,7 +33,7 @@ coarsening_patches = ( # Coarsen cell in the lower-right quarter
 
 # Created `TreeMesh` looks like:
 
-# ![TreeMesh_example](https://github.com/ArseniyKholod/Test/assets/119304909/df675af6-9eba-4e18-9e68-454a401b1292)
+# ![TreeMesh_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/d5ef76ee-8246-4730-a692-b472c06063a3)
 
 # Instantiate a [`DGSEM`](@ref) solver with a user-specified polynomial degree. The solver's
 # objective is to define the `polydeg + 1` Gauss-Lobatto nodes, and their associated weights within
@@ -44,7 +44,7 @@ solver = DGSEM(polydeg=3)
 
 # Gauss-Lobatto nodes with `N=4`:
 
-# ![Gauss-Lobatto_nodes_example](https://github.com/ArseniyKholod/Test/assets/119304909/ce7ecdc8-23b6-47b6-9f3d-3ff58b4e5677)
+# ![Gauss-Lobatto_nodes_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/401e5e85-026e-48b6-8a1f-dca0306f3bb0)
 
 
 # ## Overview of the [`SemidiscretizationHyperbolic`](@ref) function
@@ -68,7 +68,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   from the `TreeMesh`, assigns them the label "elements", records their coordinates, and maps the
 #   Gauss-Lobatto nodes from the 1D interval [-1, 1] onto each axis of every element.
 
-#   ![elements_example](https://github.com/ArseniyKholod/Test/assets/119304909/637a6efb-9e04-47bd-9dd0-dc4b8ee48dd1)
+#   ![elements_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/534131bd-e85b-43d5-860d-2db6e60ce921)
 
 #   The visualization of elements with nodes includes spaces between elements, which do not exist
 #   in  reality. This spacing is included only for illustrative purposes to underscore the
@@ -89,7 +89,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   In our visualization, these interfaces would conceptually resemble tubes connecting the
 #   corresponding elements.
 
-#   ![interfaces_example](https://github.com/ArseniyKholod/Test/assets/119304909/4f6c7835-c98e-4e46-a025-2df81b28883b)
+#   ![interfaces_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/bc3b6b02-afbc-4371-aaf7-c7bdc5a6c540)
 
 # - `init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)`
 
@@ -104,7 +104,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 #   In our visualization, mortars are represented as branched tubes.
 
-#   ![mortars_example](https://github.com/ArseniyKholod/Test/assets/119304909/1c603899-c02c-4923-85b9-75d0e9e0426e)
+#   ![mortars_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/43a95a60-3a31-4b1f-8724-14049e7a0481)
 
 # - `init_boundaries(leaf_cell_ids, mesh, elements)`
 
@@ -116,7 +116,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   In our visualization, boundaries and their corresponding nodes are highlighted with green,
 #   semi-transparent lines.
 
-#   ![boundaries_example](https://github.com/ArseniyKholod/Test/assets/119304909/db0c6d62-e520-49a1-925f-049e3a378841)
+#   ![boundaries_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/21996b20-4a22-4dfb-b16a-e2c22c2f29fe)
 
 # All the structures mentioned earlier are packed as a cache of type `Tuple`. Subsequently, an
 # object of type `SemidiscretizationHyperbolic` is initialized using this cache, initial and
@@ -131,7 +131,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # functions called recursively. Without delving into details, the structure of the primary calls
 # can be illustrated as follows:
 
-# ![SemidiscretizationHyperbolic_structure](https://github.com/ArseniyKholod/Test/assets/119304909/ac95eb2e-d963-4b16-be1c-65dd731368bd)
+# ![SemidiscretizationHyperbolic_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/2cdfe3d1-f88a-4028-b83c-908d34d400cd)
 
 
 # ## Overview of the [`semidiscretize`](@ref) function
@@ -140,7 +140,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # final step before solving is to select a suitable time span and apply the corresponding initial
 # conditions, which are already stored in the initialized `SemidiscretizationHyperbolic` object.
 
-# The purpose of the `semidiscretize` function is to wrap the semi-discretization as an
+# The purpose of the [`semidiscretize`](@ref) function is to wrap the semi-discretization as an
 # `ODEProblem` within the specified time interval, while also applying the initial conditions at
 # the left boundary of this interval. This `ODEProblem` can be subsequently passed to the `solve`
 # function from the OrdinaryDiffEq.jl package.
@@ -189,7 +189,7 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # In summary, the internal workings of `semidiscretize` with brief descriptions can be presented
 # as follows.
 
-# ![semidiscretize_structure](https://github.com/ArseniyKholod/Test/assets/119304909/fa775789-7b4e-4909-9a44-e43b5b3a4a75)
+# ![semidiscretize_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/491eddc4-aadb-4e29-8c76-a7c821d0674e)
 
 
 # ## Functions `solve` and `rhs!`
@@ -222,7 +222,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=0.01, save
 
 # Path from the `solve` function call to the appropriate `rhs!` function call:
 
-# ![rhs_structure](https://github.com/ArseniyKholod/Test/assets/119304909/6603223c-8287-41f9-b609-1dcff7a5a8eb)
+# ![rhs_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/dbea9a0e-25a4-4afa-855e-01f1ad619982)
 
 # Computed solution:
 
