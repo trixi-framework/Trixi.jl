@@ -156,7 +156,7 @@ ode = semidiscretize(semi, (0.0, 1.0));
 #   the target variables for each node within each element. The `allocate_coefficients` function
 #   initializes `u_ode` as a 1D zero-vector with a length that depends on the number of variables,
 #   elements, nodes, and dimensions. The use of a 1D vector format is consistent with the
-#   requirements of the `solve` function from OrdinaryDiffEq.jl. Therefore, Trixi.jl follows this
+#   requirements of the ODE-solvers from OrdinaryDiffEq.jl. Therefore, Trixi.jl follows this
 #   format to be able to utilize the functionalities of OrdinaryDiffEq.jl.
 
 # - `wrap_array(u_ode, semi)`
@@ -194,15 +194,15 @@ ode = semidiscretize(semi, (0.0, 1.0));
 
 # ## Functions `solve` and `rhs!`
 
-# Once the `ODEProblem` object is initialized, the `solve` function from the OrdinaryDiffEq.jl
-# package can be utilized to compute an approximated solution using the instructions contained in
-# the `ODEProblem` object.
+# Once the `ODEProblem` object is initialized, the `solve` function and one of the ODE-solvers from
+# the OrdinaryDiffEq.jl package can be utilized to compute an approximated solution using the
+# instructions contained in the `ODEProblem` object.
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=0.01, save_everystep=false);
 
-# Since the `solve` function is defined in another package without knowledge of how to handle
-# discretizations performed in Trixi.jl, it is necessary to define the right-hand-side function,
-# `rhs!`, within Trixi.jl.
+# Since the `solve` function and the ODE-solver are defined in another package without knowledge
+# of how to handle discretizations performed in Trixi.jl, it is necessary to define the
+# right-hand-side function, `rhs!`, within Trixi.jl.
 
 # Trixi.jl includes a set of `rhs!` functions designed to compute `du` according to the structure
 # of the setup. These `rhs!` functions calculate interface, mortars, and boundary fluxes, in
