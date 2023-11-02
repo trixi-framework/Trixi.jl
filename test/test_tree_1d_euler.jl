@@ -281,6 +281,22 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_sedov_blast_wave.jl (HLLE)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
+                        l2=[0.6442208390304879, 0.508817280068289, 0.9482809853033687],
+                        linf=[3.007059066482486, 2.4678899558345506, 2.3952311739389787],
+                        tspan=(0.0, 0.5),
+                        surface_flux=flux_hlle)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_sedov_blast_wave_pure_fv.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_pure_fv.jl"),

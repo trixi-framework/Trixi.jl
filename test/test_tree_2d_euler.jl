@@ -422,6 +422,32 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_sedov_blast_wave.jl (HLLE)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
+                        l2=[
+                            0.35267161504176747,
+                            0.17218309138797958,
+                            0.17218307467125854,
+                            0.6236143054619037,
+                        ],
+                        linf=[
+                            2.77484045816607,
+                            1.8281111268370718,
+                            1.8281110470490887,
+                            6.24263735888126,
+                        ],
+                        tspan=(0.0, 0.5),
+                        surface_flux=flux_hlle)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl"),

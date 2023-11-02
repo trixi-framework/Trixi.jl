@@ -911,7 +911,7 @@ end
         SVector(-1.2, 0.3)]
 
     for normal_direction in normal_directions
-        @test flux_hll(u, u, normal_direction, equations) ≈
+        @test flux_hlle(u, u, normal_direction, equations) ≈
               flux(u, normal_direction, equations)
     end
 
@@ -930,18 +930,15 @@ end
         SVector(-1.2, 0.3, 1.4)]
 
     for normal_direction in normal_directions
-        @test flux_hll(u, u, normal_direction, equations) ≈
+        @test flux_hlle(u, u, normal_direction, equations) ≈
               flux(u, normal_direction, equations)
     end
 end
 
 @timed_testset "Consistency check for HLLE flux: SWE" begin
-    # Test HLL flux with min_max_speed_einfeldt
-    flux_hll = FluxHLL(min_max_speed_einfeldt)
-
     equations = ShallowWaterEquations1D(gravity_constant = 9.81)
     u = SVector(1, 0.5, 0.0)
-    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
+    @test flux_hlle(u, u, 1, equations) ≈ flux(u, 1, equations)
 
     equations = ShallowWaterEquations2D(gravity_constant = 9.81)
     normal_directions = [SVector(1.0, 0.0),
@@ -953,18 +950,17 @@ end
     u = SVector(1, 0.5, 0.5, 0.0)
 
     for orientation in orientations
-        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
     for normal_direction in normal_directions
-        @test flux_hll(u, u, normal_direction, equations) ≈
+        @test flux_hlle(u, u, normal_direction, equations) ≈
               flux(u, normal_direction, equations)
     end
 end
 
 @timed_testset "Consistency check for HLLE flux: MHD" begin
-    # Test HLL flux with min_max_speed_einfeldt
-    flux_hll = FluxHLL(min_max_speed_naive)
+    # Note: min_max_speed_naive for MHD is essentially min_max_speed_einfeldt
 
     equations = IdealGlmMhdEquations1D(1.4)
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
@@ -1242,7 +1238,7 @@ end
         u = SVector(1, 0.5, 0.5, 0.0)
 
         fluxes = [flux_central, flux_fjordholm_etal, flux_wintermeyer_etal,
-            flux_hll, FluxHLL(min_max_speed_davis), FluxHLL(min_max_speed_einfeldt)]
+            flux_hll, FluxHLL(min_max_speed_davis), flux_hlle]
     end
 
     @timed_testset "IdealGlmMhdEquations2D" begin
