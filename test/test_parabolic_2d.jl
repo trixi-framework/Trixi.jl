@@ -540,6 +540,36 @@ end
     end
 end
 
+@trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_advection_diffusion_periodic_amr.jl"),
+                        l2=[0.22303193440917812],
+                        linf=[0.38947521225655957])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic_amr.jl"),
+                        l2=[0.11749074231727502],
+                        linf=[0.4982673673942727])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_curved.jl"),
@@ -624,6 +654,26 @@ end
                             0.9513271652357098,
                             0.7223919625994717,
                             1.4846907331004786,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_lid_driven_cavity_amr.jl"),
+                                 tspan=(0.0, 4.0),
+                        l2=[
+                            0.0007142381290943997, 0.10536873763324912, 0.06253786571289673, 0.10410025479264316
+                        ],
+                        linf=[
+                            0.011794621374401792, 0.9342637632317564, 0.635809189922223, 2.104675920792687
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

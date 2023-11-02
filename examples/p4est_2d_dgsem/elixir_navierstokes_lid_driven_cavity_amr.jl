@@ -1,4 +1,4 @@
-using OrdinaryDiffEq, Plots
+using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
@@ -65,19 +65,19 @@ tspan = (0.0, 25.0)
 ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
-alive_callback = AliveCallback(alive_interval=100)
-analysis_interval = 100
+alive_callback = AliveCallback(alive_interval=2000)
+analysis_interval = 2000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 amr_indicator = IndicatorLöhner(semi, variable=Trixi.density)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=0,
-                                      med_level=1, med_threshold=0.02,
-                                      max_level=3, max_threshold=0.05)
+                                      med_level=1, med_threshold=0.005,
+                                      max_level=2, max_threshold=0.01)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=5,
+                           interval=50,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
@@ -90,9 +90,5 @@ callbacks = CallbackSet(summary_callback, alive_callback,analysis_callback, amr_
 time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
             ode_default_options()..., callback=callbacks)
+
 summary_callback() # print the timer summary
-
-
-pd = PlotData2D(sol)
-plot(pd["rho"])
-plot!(getmesh(pd))
