@@ -346,7 +346,6 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 ```@raw html
 <div style="width: 100%; text-align: center; font-size: 0;">
-<!-- This style seems to work for both GitHub Flavored Markdown and Documenter.jl's raw HTML -->
   <div><!--
     BMBF     --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" style="height: 120px; width: auto"><!--
     DFG      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" style="height: 120px; width: auto"><!--
