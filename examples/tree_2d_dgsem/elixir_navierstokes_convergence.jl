@@ -159,14 +159,14 @@ end
             p * rho * rho_xx) * mu_ -
            # stress tensor and temperature gradient terms from y-direction
            v1_yy * v1 * mu_ -
-           v2_xy * v1 * mu_
-           - - -
+           v2_xy * v1 * mu_ -
            v2_x * v1_y * mu_ -
            4.0 / 3.0 * v2_yy * v2 * mu_ +
            2.0 / 3.0 * v1_xy -
            4.0 / 3.0 * v2_y * v2_y * mu_ +
            2.0 / 3.0 * v1_x * v2_y * mu_
-           - -
+           -
+           -
            (p_yy * rho * rho -
             2.0 * p_y * rho * rho_y + - -
             p * rho * rho_yy) * mu_)
