@@ -48,9 +48,8 @@ mesh = DGMultiMesh(solver, cells_per_dimension; periodicity = (false, false),
 
 # Create a "reflective-like" boundary condition by mirroring the velocity but leaving the magnetic field alone.
 # Note that this boundary condition is probably not entropy stable.
-function boundary_condition_velocity_slip_wall(u_inner, normal_direction::AbstractVector, x,
-                                               t,
-                                               surface_flux_function,
+function boundary_condition_velocity_slip_wall(u_inner, normal_direction::AbstractVector,
+                                               x, t, surface_flux_function,
                                                equations::IdealGlmMhdEquations2D)
 
     # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later

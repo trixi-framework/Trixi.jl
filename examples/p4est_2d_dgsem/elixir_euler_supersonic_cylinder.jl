@@ -39,9 +39,8 @@ initial_condition = initial_condition_mach3_flow
 # Calculate the boundary flux entirely from the external solution state, i.e., set
 # external solution state values for everything entering the domain.
 @inline function boundary_condition_supersonic_inflow(u_inner,
-                                                      normal_direction::AbstractVector, x,
-                                                      t,
-                                                      surface_flux_function,
+                                                      normal_direction::AbstractVector,
+                                                      x, t, surface_flux_function,
                                                       equations::CompressibleEulerEquations2D)
     u_boundary = initial_condition_mach3_flow(x, t, equations)
     flux = Trixi.flux(u_boundary, normal_direction, equations)

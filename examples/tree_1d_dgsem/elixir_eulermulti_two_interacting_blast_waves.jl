@@ -40,9 +40,8 @@ function initial_condition_two_interacting_blast_waves(x, t,
 end
 initial_condition = initial_condition_two_interacting_blast_waves
 
-function boundary_condition_two_interacting_blast_waves(u_inner, orientation, direction, x,
-                                                        t,
-                                                        surface_flux_function,
+function boundary_condition_two_interacting_blast_waves(u_inner, orientation, direction,
+                                                        x, t, surface_flux_function,
                                                         equations::CompressibleEulerMulticomponentEquations1D)
     u_inner_reflect = SVector(-u_inner[1], u_inner[2], u_inner[3], u_inner[4], u_inner[5])
     # Calculate boundary flux
