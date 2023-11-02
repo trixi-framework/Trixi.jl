@@ -400,6 +400,9 @@ with significantly reduced computation time for exascale supercomputers
 (ADAPTEX)" (funding id: 16ME0668K).
 
 
+| Make | this | a table! |
+|--------|-------------|------------|
+| first | row | with text |
 | ![BMBF](https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6) | ![DFG](https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e) | ![SRC](https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0) |
 | ![ERC](https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca) | ![NSF](https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125) | ![DUBS](https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937) |
 | | ![NumFOCUS](https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185) | |
@@ -408,5 +411,42 @@ with significantly reduced computation time for exascale supercomputers
 This project has benefited from funding by the
 [Daimler und Benz Stiftung](https://www.daimler-benz-stiftung.de) (Daimler and Benz Foundation)
 through grant no. 32-10/22.
+```@raw html
+<p align="center" style="font-size:0;">
+  <table style="border-collapse: collapse; width: 100%">
+    <tr>
+      <td style="padding: 0; margin: 0; width: 33%">
+        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" height="120">
+      </td>
+      <td style="padding: 0; margin: 0; width: 33%">
+        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" height="120">
+      </td>
+      <td style="padding: 0; margin: 0; width: 33%">
+        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" height="120">
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 0; margin: 0; width: 33%">
+        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" height="120">
+      </td>
+      <td style="padding: 0; margin: 0; width: 33%">
+        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125" height="120">
+      </td>
+      <td style="padding: 0; margin: 0; width: 33%">
+        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937" height="120">
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 0; margin: 0; width: 33%">
+      </td>
+      <td style="padding: 0; margin: 0; width: 33%">
+        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" height="120">
+      </td>
+      <td style="padding: 0; margin: 0; width: 33%">
+      </td>
+    </tr>
+  </table>
+</p>
+```
 
 Trixi.jl is supported by [NumFOCUS](https://numfocus.org/) as an Affiliated Project.
