@@ -399,6 +399,12 @@ through the project grant "Adaptive earth system modeling
 with significantly reduced computation time for exascale supercomputers
 (ADAPTEX)" (funding id: 16ME0668K).
 
+
+| ![BMBF](https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6) | ![DFG](https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e) | ![SRC](https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0) |
+| ![ERC](https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca) | ![NSF](https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125) | ![DUBS](https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937) |
+| | ![NumFOCUS](https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185) | |
+
+
 This project has benefited from funding by the
 [Daimler und Benz Stiftung](https://www.daimler-benz-stiftung.de) (Daimler and Benz Foundation)
 through grant no. 32-10/22.
