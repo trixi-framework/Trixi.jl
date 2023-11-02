@@ -27,7 +27,7 @@ end
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
                                       dt;
                                       kwargs...)
-    (; alpha) = limiter.cache.subcell_limiter_coefficients
+    @unpack alpha = limiter.cache.subcell_limiter_coefficients
     alpha .= zero(eltype(alpha))
 
     if limiter.local_minmax
@@ -39,7 +39,7 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
     end
 
     # Calculate alpha1 and alpha2
-    (; alpha1, alpha2) = limiter.cache.subcell_limiter_coefficients
+    @unpack alpha1, alpha2 = limiter.cache.subcell_limiter_coefficients
     @threaded for element in eachelement(dg, semi.cache)
         for j in eachnode(dg), i in 2:nnodes(dg)
             alpha1[i, j, element] = max(alpha[i - 1, j, element], alpha[i, j, element])
@@ -56,7 +56,7 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
     return nothing
 end
 
-@inline function calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
+@inline function calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
@@ -88,10 +88,10 @@ end
     end
 
     # Values at element boundary
-    calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi, mesh)
+    calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi, mesh)
 end
 
-@inline function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
+@inline function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
                                                mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
@@ -170,7 +170,7 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
     var_max = variable_bounds[Symbol(string(variable), "_max")]
-    calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
+    calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
 
     @threaded for element in eachelement(dg, semi.cache)
         inverse_jacobian = cache.elements.inverse_jacobian[element]
