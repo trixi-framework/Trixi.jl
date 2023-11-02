@@ -341,33 +341,29 @@ To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
-```@raw html
-<p align="center" style="font-size:0;"><!--
-  BMBF     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" height="120" style="display: inline;"><!--
-  DFG      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" height="120" style="display: inline;"><!--
-  SRC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" height="120" style="display: inline;"><!--
-  ERC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" height="120" style="display: inline;"><!--
-  NSF      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125" height="120" style="display: inline;"><!--
-  DUBS     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937" height="120" style="display: inline;"><!--
-  NumFOCUS --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" height="120" style="display: inline;"><!--
-  -->
-</p>
-```
-
 
 ## Acknowledgments
 
 ```@raw html
-<p align="center" style="font-size:0;"><!--
-  BMBF     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" height="120"><!--
-  DFG      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" height="120"><!--
-  SRC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" height="120"><!--
-  ERC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" height="120"><!--
-  NSF      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125" height="120"><!--
-  DUBS     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937" height="120"><!--
-  NumFOCUS --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" height="120"><!--
-  -->
-</p>
+<div style="width: 100%; text-align: center; font-size: 0;">
+<!-- This style seems to work for both GitHub Flavored Markdown and Documenter.jl's raw HTML -->
+  <div><!--
+    BMBF     --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" style="height: 120px; width: auto"><!--
+    DFG      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" style="height: 120px; width: auto"><!--
+    SRC      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" style="height: 120px; width: auto"><!--
+    -->
+  </div>
+  <div><!--
+    ERC      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" style="height: 120px; width: auto"><!--
+    NSF      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/5325103c-ae81-4747-b87c-c6e4a1b1d7a8" style="height: 120px; width: auto"><!--
+    DUBS     --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937" style="height: 120px; width: auto"><!--
+    -->
+  </div>
+  <div><!--
+    NumFOCUS --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" style="height: 120px; width: auto"><!--
+    -->
+  </div>
+</div>
 ```
 
 This project has benefited from funding by the [Deutsche
@@ -399,54 +395,8 @@ through the project grant "Adaptive earth system modeling
 with significantly reduced computation time for exascale supercomputers
 (ADAPTEX)" (funding id: 16ME0668K).
 
-
-| Make | this | a table! |
-|--------|-------------|------------|
-| first | row | with text |
-| ![BMBF](https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6) | ![DFG](https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e) | ![SRC](https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0) |
-| ![ERC](https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca) | ![NSF](https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125) | ![DUBS](https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937) |
-| | ![NumFOCUS](https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185) | |
-
-
 This project has benefited from funding by the
 [Daimler und Benz Stiftung](https://www.daimler-benz-stiftung.de) (Daimler and Benz Foundation)
 through grant no. 32-10/22.
-```@raw html
-<p align="center" style="font-size:0;">
-  <table style="border-collapse: collapse; width: 100%">
-    <tr>
-      <td style="padding: 0; margin: 0; width: 33%">
-        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" height="120">
-      </td>
-      <td style="padding: 0; margin: 0; width: 33%">
-        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" height="120">
-      </td>
-      <td style="padding: 0; margin: 0; width: 33%">
-        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" height="120">
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 0; margin: 0; width: 33%">
-        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" height="120">
-      </td>
-      <td style="padding: 0; margin: 0; width: 33%">
-        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125" height="120">
-      </td>
-      <td style="padding: 0; margin: 0; width: 33%">
-        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937" height="120">
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 0; margin: 0; width: 33%">
-      </td>
-      <td style="padding: 0; margin: 0; width: 33%">
-        <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" height="120">
-      </td>
-      <td style="padding: 0; margin: 0; width: 33%">
-      </td>
-    </tr>
-  </table>
-</p>
-```
 
 Trixi.jl is supported by [NumFOCUS](https://numfocus.org/) as an Affiliated Project.
