@@ -15,6 +15,7 @@ for human readability.
 - Implementation of the polytropic Euler equations in 2D
 - Subcell (positivity and local min/max) limiting support for conservative variables
   in 2D for `TreeMesh`
+- AMR for hyperbolic-parabolic equations on 2D/3D `TreeMesh`
 
 #### Changed
 

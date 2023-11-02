@@ -232,8 +232,8 @@ end
 end
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi, variable)
-    _, _, dg, cache = mesh_equations_solver_cache(semi)
-    (; antidiffusive_flux1, antidiffusive_flux2) = cache.antidiffusive_fluxes
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis
     (; positivity_correction_factor) = limiter
 
@@ -266,13 +266,13 @@ end
             # Calculate Pm
             # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
             val_flux1_local = inverse_weights[i] *
-                              antidiffusive_flux1[variable, i, j, element]
+                              antidiffusive_flux1_R[variable, i, j, element]
             val_flux1_local_ip1 = -inverse_weights[i] *
-                                  antidiffusive_flux1[variable, i + 1, j, element]
+                                  antidiffusive_flux1_L[variable, i + 1, j, element]
             val_flux2_local = inverse_weights[j] *
-                              antidiffusive_flux2[variable, i, j, element]
+                              antidiffusive_flux2_R[variable, i, j, element]
             val_flux2_local_jp1 = -inverse_weights[j] *
-                                  antidiffusive_flux2[variable, i, j + 1, element]
+                                  antidiffusive_flux2_L[variable, i, j + 1, element]
 
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
