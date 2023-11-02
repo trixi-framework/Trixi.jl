@@ -27,8 +27,7 @@ function initial_condition_stone_throw_discontinuous_bottom(x, t,
         v = 1.0
     end
 
-    b = (1.5 / exp(0.5 * ((x[1] - 1.0)^2))
-         +
+    b = (1.5 / exp(0.5 * ((x[1] - 1.0)^2)) +
          0.75 / exp(0.5 * ((x[1] + 1.0)^2)))
 
     # Force a discontinuous bottom topography

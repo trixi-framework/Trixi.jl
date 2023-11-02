@@ -74,13 +74,10 @@ end
     # Define auxiliary functions for the strange function of the y variable
     # to make expressions easier to read
     g = log(x[2] + 2.0) * (1.0 - exp(-A3 * (x[2] - 1.0)))
-    g_y = (A3 * log(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0))
-           +
+    g_y = (A3 * log(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0)) +
            (1.0 - exp(-A3 * (x[2] - 1.0))) / (x[2] + 2.0))
-    g_yy = (2.0 * A3 * exp(-A3 * (x[2] - 1.0)) / (x[2] + 2.0)
-            -
-            (1.0 - exp(-A3 * (x[2] - 1.0))) / ((x[2] + 2.0)^2)
-            -
+    g_yy = (2.0 * A3 * exp(-A3 * (x[2] - 1.0)) / (x[2] + 2.0) -
+            (1.0 - exp(-A3 * (x[2] - 1.0))) / ((x[2] + 2.0)^2) -
             A3^2 * log(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0)))
 
     # Density and its derivatives
@@ -182,8 +179,7 @@ end
            + rho * v1 * v2_y
            + rho_z * v1 * v3
            + rho * v1_z * v3
-           + rho * v1 * v3_z
-           -
+           + rho * v1 * v3_z -
            mu_ * (tau11_x + tau12_y + tau13_z))
     # y-momentum equation
     du3 = (rho_t * v2 + rho * v2_t + p_y + rho_x * v1 * v2
@@ -193,8 +189,7 @@ end
            + 2.0 * rho * v2 * v2_y
            + rho_z * v2 * v3
            + rho * v2_z * v3
-           + rho * v2 * v3_z
-           -
+           + rho * v2 * v3_z -
            mu_ * (tau12_x + tau22_y + tau23_z))
     # z-momentum equation
     du4 = (rho_t * v3 + rho * v3_t + p_z + rho_x * v1 * v3
@@ -204,23 +199,19 @@ end
            + rho * v2_y * v3
            + rho * v2 * v3_y
            + rho_z * v3^2
-           + 2.0 * rho * v3 * v3_z
-           -
+           + 2.0 * rho * v3 * v3_z -
            mu_ * (tau13_x + tau23_y + tau33_z))
     # Total energy equation
     du5 = (E_t + v1_x * (E + p) + v1 * (E_x + p_x)
            + v2_y * (E + p) + v2 * (E_y + p_y)
-           + v3_z * (E + p) + v3 * (E_z + p_z)
+           + v3_z * (E + p) + v3 * (E_z + p_z) -
            # stress tensor and temperature gradient from x-direction
-           -
            mu_ * (q_xx + v1_x * tau11 + v2_x * tau12 + v3_x * tau13
-            + v1 * tau11_x + v2 * tau12_x + v3 * tau13_x)
+            + v1 * tau11_x + v2 * tau12_x + v3 * tau13_x) -
            # stress tensor and temperature gradient terms from y-direction
-           -
            mu_ * (q_yy + v1_y * tau12 + v2_y * tau22 + v3_y * tau23
-            + v1 * tau12_y + v2 * tau22_y + v3 * tau23_y)
+            + v1 * tau12_y + v2 * tau22_y + v3 * tau23_y) -
            # stress tensor and temperature gradient terms from z-direction
-           -
            mu_ * (q_zz + v1_z * tau13 + v2_z * tau23 + v3_z * tau33
             + v1 * tau13_z + v2 * tau23_z + v3 * tau33_z))
 

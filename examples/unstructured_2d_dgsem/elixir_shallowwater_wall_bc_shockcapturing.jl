@@ -22,8 +22,7 @@ function initial_condition_stone_throw(x, t, equations::ShallowWaterEquations2D)
     v2 = r < 0.6 ? -2.0 : 0.0
     # bottom topography taken from Pond.control in [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
     x1, x2 = x
-    b = (1.5 / exp(0.5 * ((x1 - 1.0)^2 + (x2 - 1.0)^2))
-         +
+    b = (1.5 / exp(0.5 * ((x1 - 1.0)^2 + (x2 - 1.0)^2)) +
          0.75 / exp(0.5 * ((x1 + 1.0)^2 + (x2 + 1.0)^2)))
 
     return prim2cons(SVector(H, v1, v2, b), equations)

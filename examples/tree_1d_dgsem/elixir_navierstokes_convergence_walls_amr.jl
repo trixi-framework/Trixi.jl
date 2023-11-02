@@ -74,10 +74,8 @@ end
     v1_t = -pi * log(x + 2.0) * (1.0 - exp(-A * (x - 1.0))) * sin(pi_t)
     v1_x = (A * log(x + 2.0) * exp(-A * (x - 1.0)) +
             (1.0 - exp(-A * (x - 1.0))) / (x + 2.0)) * cos(pi_t)
-    v1_xx = ((2.0 * A * exp(-A * (x - 1.0)) / (x + 2.0)
-              -
-              A * A * log(x + 2.0) * exp(-A * (x - 1.0))
-              -
+    v1_xx = ((2.0 * A * exp(-A * (x - 1.0)) / (x + 2.0) -
+              A * A * log(x + 2.0) * exp(-A * (x - 1.0)) -
               (1.0 - exp(-A * (x - 1.0))) / ((x + 2.0) * (x + 2.0))) * cos(pi_t))
 
     p = rho * rho
@@ -100,26 +98,19 @@ end
 
     # y-momentum equation
     du2 = (rho_t * v1 + rho * v1_t
-           + p_x + rho_x * v1^2 + 2.0 * rho * v1 * v1_x
+           + p_x + rho_x * v1^2 + 2.0 * rho * v1 * v1_x -
            # stress tensor from y-direction
-           -
            v1_xx * mu_)
 
     # total energy equation
-    du3 = (E_t + v1_x * (E + p) + v1 * (E_x + p_x)
+    du3 = (E_t + v1_x * (E + p) + v1 * (E_x + p_x) -
            # stress tensor and temperature gradient terms from x-direction
-           -
-           v1_xx * v1 * mu_
-           -
-           v1_x * v1_x * mu_
-           -
+           v1_xx * v1 * mu_ -
+           v1_x * v1_x * mu_ -
            T_const * inv_rho_cubed *
-           (p_xx * rho * rho
-            -
-            2.0 * p_x * rho * rho_x
-            +
-            2.0 * p * rho_x * rho_x
-            -
+           (p_xx * rho * rho -
+            2.0 * p_x * rho * rho_x +
+            2.0 * p * rho_x * rho_x -
             p * rho * rho_xx) * mu_)
 
     return SVector(du1, du2, du3)
