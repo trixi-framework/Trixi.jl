@@ -348,7 +348,7 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
   SRC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" height="120" style="display: inline;"><!--
   ERC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" height="120" style="display: inline;"><!--
   NSF      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125" height="120" style="display: inline;"><!--
-  DUBS     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/c7f0ea4d-9865-40f4-b0bd-9f4709356f22" height="120" style="display: inline;"><!--
+  DUBS     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937" height="120" style="display: inline;"><!--
   NumFOCUS --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" height="120" style="display: inline;"><!--
   -->
 </p>
@@ -364,7 +364,7 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
   SRC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" height="120"><!--
   ERC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" height="120"><!--
   NSF      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125" height="120"><!--
-  DUBS     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/c7f0ea4d-9865-40f4-b0bd-9f4709356f22" height="120"><!--
+  DUBS     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937" height="120"><!--
   NumFOCUS --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" height="120"><!--
   -->
 </p>
@@ -398,5 +398,9 @@ This project has benefited from funding from the German
 through the project grant "Adaptive earth system modeling
 with significantly reduced computation time for exascale supercomputers
 (ADAPTEX)" (funding id: 16ME0668K).
+
+This project has benefited from funding by the
+[Daimler und Benz Stiftung](https://www.daimler-benz-stiftung.de) (Daimler and Benz Foundation)
+through grant no. 32-10/22.
 
 Trixi.jl is supported by [NumFOCUS](https://numfocus.org/) as an Affiliated Project.
