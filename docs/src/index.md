@@ -341,15 +341,32 @@ To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
+```@raw html
+<p align="center" style="font-size:0;"><!--
+  BMBF     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" height="120" style="display: inline;"><!--
+  DFG      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" height="120" style="display: inline;"><!--
+  SRC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" height="120" style="display: inline;"><!--
+  ERC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" height="120" style="display: inline;"><!--
+  NSF      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125" height="120" style="display: inline;"><!--
+  DUBS     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/c7f0ea4d-9865-40f4-b0bd-9f4709356f22" height="120" style="display: inline;"><!--
+  NumFOCUS --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" height="120" style="display: inline;"><!--
+  -->
+</p>
+```
+
 
 ## Acknowledgments
 
 ```@raw html
-<p align="center" style="font-size:0;">
-     <!-- Unfortunately, Documenter does not support adding comments to remove
-     the line breaks, thus all images have to be on one line to be shown in
-     proper size and next to each other. -->
-     <img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" height="120px"><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" height="120px"><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" height="120px"><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" height="120px"><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125" height="120px"><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" height="120px">
+<p align="center" style="font-size:0;"><!--
+  BMBF     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" height="120"><!--
+  DFG      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" height="120"><!--
+  SRC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" height="120"><!--
+  ERC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" height="120"><!--
+  NSF      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/3d07b627-c602-483d-93c6-19ac88bba125" height="120"><!--
+  DUBS     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/c7f0ea4d-9865-40f4-b0bd-9f4709356f22" height="120"><!--
+  NumFOCUS --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" height="120"><!--
+  -->
 </p>
 ```
 
