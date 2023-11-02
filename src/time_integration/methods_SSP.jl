@@ -218,6 +218,11 @@ function set_proposed_dt!(integrator::SimpleIntegratorSSP, dt)
     integrator.dt = dt
 end
 
+# used by adaptive timestepping algorithms in DiffEq
+function get_proposed_dt(integrator::SimpleIntegratorSSP)
+    return integrator.dt
+end
+
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
     integrator.finalstep = true

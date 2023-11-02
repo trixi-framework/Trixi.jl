@@ -19,20 +19,45 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
     A3dp1_x = Array{uEltype, 3}
     A3dp1_y = Array{uEltype, 3}
     A3d = Array{uEltype, 3}
+    A4d = Array{uEltype, 4}
 
-    fhat1_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                     nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fhat2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                     nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
+    fhat1_L_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
+                                       nnodes(dg)) for _ in 1:Threads.nthreads()]
+    fhat2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
+                                       nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
+    fhat1_R_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
+                                       nnodes(dg)) for _ in 1:Threads.nthreads()]
+    fhat2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
+                                       nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
     flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.nthreads()]
-
+    fhat_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg),
+                                 nnodes(dg))
+                             for _ in 1:Threads.nthreads()]
     antidiffusive_fluxes = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0,
                                                                        nvariables(equations),
                                                                        nnodes(dg))
 
-    return (; cache..., antidiffusive_fluxes, fhat1_threaded, fhat2_threaded,
-            flux_temp_threaded)
+    if have_nonconservative_terms(equations) == true
+        flux_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
+                                                     n_nonconservative_terms(equations),
+                                                     nnodes(dg), nnodes(dg))
+                                                 for _ in 1:Threads.nthreads()]
+        fhat_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
+                                                     n_nonconservative_terms(equations),
+                                                     nnodes(dg), nnodes(dg))
+                                                 for _ in 1:Threads.nthreads()]
+        phi_threaded = A4d[A4d(undef, nvariables(equations),
+                               n_nonconservative_terms(equations),
+                               nnodes(dg), nnodes(dg))
+                           for _ in 1:Threads.nthreads()]
+        cache = (; cache..., flux_nonconservative_temp_threaded,
+                 fhat_nonconservative_temp_threaded, phi_threaded)
+    end
+
+    return (; cache..., antidiffusive_fluxes,
+            fhat1_L_threaded, fhat2_L_threaded, fhat1_R_threaded, fhat2_R_threaded,
+            flux_temp_threaded, fhat_temp_threaded)
 end
 
 function calc_volume_integral!(du, u,
@@ -101,19 +126,22 @@ end
 @inline function subcell_limiting_kernel!(du, u,
                                           element,
                                           mesh::Union{TreeMesh{2}, StructuredMesh{2}},
-                                          nonconservative_terms::False, equations,
+                                          nonconservative_terms, equations,
                                           volume_integral, limiter::SubcellLimiterIDP,
                                           dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
     @unpack volume_flux_dg, volume_flux_fv = volume_integral
 
     # high-order DG fluxes
-    @unpack fhat1_threaded, fhat2_threaded = cache
+    @unpack fhat1_L_threaded, fhat1_R_threaded, fhat2_L_threaded, fhat2_R_threaded = cache
 
-    fhat1 = fhat1_threaded[Threads.threadid()]
-    fhat2 = fhat2_threaded[Threads.threadid()]
-    calcflux_fhat!(fhat1, fhat2, u, mesh,
-                   nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
+    fhat1_L = fhat1_L_threaded[Threads.threadid()]
+    fhat1_R = fhat1_R_threaded[Threads.threadid()]
+    fhat2_L = fhat2_L_threaded[Threads.threadid()]
+    fhat2_R = fhat2_R_threaded[Threads.threadid()]
+    calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u, mesh,
+                   nonconservative_terms, equations, volume_flux_dg, dg, element,
+                   cache)
 
     # low-order FV fluxes
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
@@ -123,12 +151,14 @@ end
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
-                 nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
+                 nonconservative_terms, equations, volume_flux_fv, dg, element,
+                 cache)
 
     # antidiffusive flux
-    calcflux_antidiffusive!(fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
-                            nonconservative_terms, equations, limiter, dg, element,
-                            cache)
+    calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
+                            fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                            u, mesh, nonconservative_terms, equations, limiter, dg,
+                            element, cache)
 
     # Calculate volume integral contribution of low-order FV flux
     for j in eachnode(dg), i in eachnode(dg)
@@ -153,11 +183,14 @@ end
     @unpack volume_flux_dg, volume_flux_fv = volume_integral
 
     # high-order DG fluxes
-    @unpack fhat1_threaded, fhat2_threaded = cache
-    fhat1 = fhat1_threaded[Threads.threadid()]
-    fhat2 = fhat2_threaded[Threads.threadid()]
-    calcflux_fhat!(fhat1, fhat2, u, mesh,
-                   nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
+    @unpack fhat1_L_threaded, fhat1_R_threaded, fhat2_L_threaded, fhat2_R_threaded = cache
+    fhat1_L = fhat1_L_threaded[Threads.threadid()]
+    fhat1_R = fhat1_R_threaded[Threads.threadid()]
+    fhat2_L = fhat2_L_threaded[Threads.threadid()]
+    fhat2_R = fhat2_R_threaded[Threads.threadid()]
+    calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u, mesh,
+                   nonconservative_terms, equations, volume_flux_dg, dg, element,
+                   cache)
 
     # low-order FV fluxes
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
@@ -166,10 +199,12 @@ end
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
-                 nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
+                 nonconservative_terms, equations, volume_flux_fv, dg, element,
+                 cache)
 
     # antidiffusive flux
-    calcflux_antidiffusive!(fhat1, fhat2, fstar1_L, fstar2_L,
+    calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
+                            fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                             u, mesh, nonconservative_terms, equations, limiter, dg,
                             element, cache)
 
@@ -178,7 +213,7 @@ end
                                     limiter, dg, element, cache,
                                     fstar1_L, fstar2_L)
 
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
+    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
     for j in eachnode(dg), i in eachnode(dg)
         for v in eachvariable(equations)
             du[v, i, j, element] += inverse_weights[i] *
@@ -187,11 +222,11 @@ end
                                     (fstar2_L[v, i, j + 1] - fstar2_R[v, i, j])
 
             du[v, i, j, element] += inverse_weights[i] *
-                                    (-antidiffusive_flux1[v, i + 1, j, element] +
-                                     antidiffusive_flux1[v, i, j, element]) +
+                                    (-antidiffusive_flux1_L[v, i + 1, j, element] +
+                                     antidiffusive_flux1_R[v, i, j, element]) +
                                     inverse_weights[j] *
-                                    (-antidiffusive_flux2[v, i, j + 1, element] +
-                                     antidiffusive_flux2[v, i, j, element])
+                                    (-antidiffusive_flux2_L[v, i, j + 1, element] +
+                                     antidiffusive_flux2_R[v, i, j, element])
         end
     end
 
@@ -202,7 +237,7 @@ end
 # (**without non-conservative terms**).
 #
 # See also `flux_differencing_kernel!`.
-@inline function calcflux_fhat!(fhat1, fhat2, u,
+@inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
                                 mesh::TreeMesh{2}, nonconservative_terms::False,
                                 equations,
                                 volume_flux, dg::DGSEM, element, cache)
@@ -241,11 +276,14 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    fhat1[:, 1, :] .= zero(eltype(fhat1))
-    fhat1[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1))
+    fhat1_L[:, 1, :] .= zero(eltype(fhat1_L))
+    fhat1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_L))
+    fhat1_R[:, 1, :] .= zero(eltype(fhat1_R))
+    fhat1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_R))
 
     for j in eachnode(dg), i in 1:(nnodes(dg) - 1), v in eachvariable(equations)
-        fhat1[v, i + 1, j] = fhat1[v, i, j] + weights[i] * flux_temp[v, i, j]
+        fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
+        fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
     end
 
     # Split form volume flux in orientation 2: y direction
@@ -264,63 +302,352 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    fhat2[:, :, 1] .= zero(eltype(fhat2))
-    fhat2[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2))
+    fhat2_L[:, :, 1] .= zero(eltype(fhat2_L))
+    fhat2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_L))
+    fhat2_R[:, :, 1] .= zero(eltype(fhat2_R))
+    fhat2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_R))
 
     for j in 1:(nnodes(dg) - 1), i in eachnode(dg), v in eachvariable(equations)
-        fhat2[v, i, j + 1] = fhat2[v, i, j] + weights[j] * flux_temp[v, i, j]
+        fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
+        fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
     end
 
     return nothing
 end
 
-# Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar`.
-@inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
-                                         nonconservative_terms, equations,
+# Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
+# (**with non-conservative terms**).
+#
+# See also `flux_differencing_kernel!`.
+#
+# The calculation of the non-conservative staggered "fluxes" requires non-conservative
+# terms that can be written as a product of local and a symmetric contributions. See, e.g.,
+#
+# - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
+#   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+#
+@inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
+                                mesh::TreeMesh{2}, nonconservative_terms::True,
+                                equations,
+                                volume_flux, dg::DGSEM, element, cache)
+    @unpack weights, derivative_split = dg.basis
+    @unpack flux_temp_threaded, flux_nonconservative_temp_threaded = cache
+    @unpack fhat_temp_threaded, fhat_nonconservative_temp_threaded, phi_threaded = cache
+
+    volume_flux_cons, volume_flux_noncons = volume_flux
+
+    flux_temp = flux_temp_threaded[Threads.threadid()]
+    flux_noncons_temp = flux_nonconservative_temp_threaded[Threads.threadid()]
+
+    fhat_temp = fhat_temp_threaded[Threads.threadid()]
+    fhat_noncons_temp = fhat_nonconservative_temp_threaded[Threads.threadid()]
+    phi = phi_threaded[Threads.threadid()]
+
+    # The FV-form fluxes are calculated in a recursive manner, i.e.:
+    # fhat_(0,1)   = w_0 * FVol_0,
+    # fhat_(j,j+1) = fhat_(j-1,j) + w_j * FVol_j,   for j=1,...,N-1,
+    # with the split form volume fluxes FVol_j = -2 * sum_i=0^N D_ji f*_(j,i).
+
+    # To use the symmetry of the `volume_flux`, the split form volume flux is precalculated
+    # like in `calc_volume_integral!` for the `VolumeIntegralFluxDifferencing`
+    # and saved in in `flux_temp`.
+
+    # Split form volume flux in orientation 1: x direction
+    flux_temp .= zero(eltype(flux_temp))
+    flux_noncons_temp .= zero(eltype(flux_noncons_temp))
+
+    for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+
+        # All diagonal entries of `derivative_split` are zero. Thus, we can skip
+        # the computation of the diagonal terms. In addition, we use the symmetry
+        # of `volume_flux_cons` and `volume_flux_noncons` to save half of the possible two-point flux
+        # computations.
+        for ii in (i + 1):nnodes(dg)
+            u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
+            flux1 = volume_flux_cons(u_node, u_node_ii, 1, equations)
+            multiply_add_to_node_vars!(flux_temp, derivative_split[i, ii], flux1,
+                                       equations, dg, i, j)
+            multiply_add_to_node_vars!(flux_temp, derivative_split[ii, i], flux1,
+                                       equations, dg, ii, j)
+            for noncons in 1:n_nonconservative_terms(equations)
+                # We multiply by 0.5 because that is done in other parts of Trixi
+                flux1_noncons = volume_flux_noncons(u_node, u_node_ii, 1, equations,
+                                                    NonConservativeSymmetric(), noncons)
+                multiply_add_to_node_vars!(flux_noncons_temp,
+                                           0.5 * derivative_split[i, ii],
+                                           flux1_noncons,
+                                           equations, dg, noncons, i, j)
+                multiply_add_to_node_vars!(flux_noncons_temp,
+                                           0.5 * derivative_split[ii, i],
+                                           flux1_noncons,
+                                           equations, dg, noncons, ii, j)
+            end
+        end
+    end
+
+    # FV-form flux `fhat` in x direction
+    fhat1_L[:, 1, :] .= zero(eltype(fhat1_L))
+    fhat1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_L))
+    fhat1_R[:, 1, :] .= zero(eltype(fhat1_R))
+    fhat1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_R))
+
+    fhat_temp[:, 1, :] .= zero(eltype(fhat1_L))
+    fhat_noncons_temp[:, :, 1, :] .= zero(eltype(fhat1_L))
+
+    # Compute local contribution to non-conservative flux
+    for j in eachnode(dg), i in eachnode(dg)
+        u_local = get_node_vars(u, equations, dg, i, j, element)
+        for noncons in 1:n_nonconservative_terms(equations)
+            set_node_vars!(phi,
+                           volume_flux_noncons(u_local, 1, equations,
+                                               NonConservativeLocal(), noncons),
+                           equations, dg, noncons, i, j)
+        end
+    end
+
+    for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+        # Conservative part
+        for v in eachvariable(equations)
+            value = fhat_temp[v, i, j] + weights[i] * flux_temp[v, i, j]
+            fhat_temp[v, i + 1, j] = value
+            fhat1_L[v, i + 1, j] = value
+            fhat1_R[v, i + 1, j] = value
+        end
+        # Nonconservative part
+        for noncons in 1:n_nonconservative_terms(equations),
+            v in eachvariable(equations)
+
+            value = fhat_noncons_temp[v, noncons, i, j] +
+                    weights[i] * flux_noncons_temp[v, noncons, i, j]
+            fhat_noncons_temp[v, noncons, i + 1, j] = value
+
+            fhat1_L[v, i + 1, j] = fhat1_L[v, i + 1, j] + phi[v, noncons, i, j] * value
+            fhat1_R[v, i + 1, j] = fhat1_R[v, i + 1, j] +
+                                   phi[v, noncons, i + 1, j] * value
+        end
+    end
+
+    # Split form volume flux in orientation 2: y direction
+    flux_temp .= zero(eltype(flux_temp))
+    flux_noncons_temp .= zero(eltype(flux_noncons_temp))
+
+    for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        for jj in (j + 1):nnodes(dg)
+            u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
+            flux2 = volume_flux_cons(u_node, u_node_jj, 2, equations)
+            multiply_add_to_node_vars!(flux_temp, derivative_split[j, jj], flux2,
+                                       equations, dg, i, j)
+            multiply_add_to_node_vars!(flux_temp, derivative_split[jj, j], flux2,
+                                       equations, dg, i, jj)
+            for noncons in 1:n_nonconservative_terms(equations)
+                # We multiply by 0.5 because that is done in other parts of Trixi
+                flux2_noncons = volume_flux_noncons(u_node, u_node_jj, 2, equations,
+                                                    NonConservativeSymmetric(), noncons)
+                multiply_add_to_node_vars!(flux_noncons_temp,
+                                           0.5 * derivative_split[j, jj],
+                                           flux2_noncons,
+                                           equations, dg, noncons, i, j)
+                multiply_add_to_node_vars!(flux_noncons_temp,
+                                           0.5 * derivative_split[jj, j],
+                                           flux2_noncons,
+                                           equations, dg, noncons, i, jj)
+            end
+        end
+    end
+
+    # FV-form flux `fhat` in y direction
+    fhat2_L[:, :, 1] .= zero(eltype(fhat2_L))
+    fhat2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_L))
+    fhat2_R[:, :, 1] .= zero(eltype(fhat2_R))
+    fhat2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_R))
+
+    fhat_temp[:, :, 1] .= zero(eltype(fhat1_L))
+    fhat_noncons_temp[:, :, :, 1] .= zero(eltype(fhat1_L))
+
+    # Compute local contribution to non-conservative flux
+    for j in eachnode(dg), i in eachnode(dg)
+        u_local = get_node_vars(u, equations, dg, i, j, element)
+        for noncons in 1:n_nonconservative_terms(equations)
+            set_node_vars!(phi,
+                           volume_flux_noncons(u_local, 2, equations,
+                                               NonConservativeLocal(), noncons),
+                           equations, dg, noncons, i, j)
+        end
+    end
+
+    for j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+        # Conservative part
+        for v in eachvariable(equations)
+            value = fhat_temp[v, i, j] + weights[j] * flux_temp[v, i, j]
+            fhat_temp[v, i, j + 1] = value
+            fhat2_L[v, i, j + 1] = value
+            fhat2_R[v, i, j + 1] = value
+        end
+        # Nonconservative part
+        for noncons in 1:n_nonconservative_terms(equations),
+            v in eachvariable(equations)
+
+            value = fhat_noncons_temp[v, noncons, i, j] +
+                    weights[j] * flux_noncons_temp[v, noncons, i, j]
+            fhat_noncons_temp[v, noncons, i, j + 1] = value
+
+            fhat2_L[v, i, j + 1] = fhat2_L[v, i, j + 1] + phi[v, noncons, i, j] * value
+            fhat2_R[v, i, j + 1] = fhat2_R[v, i, j + 1] +
+                                   phi[v, noncons, i, j + 1] * value
+        end
+    end
+
+    return nothing
+end
+
+# Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
+@inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
+                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                         u, mesh,
+                                         nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
+    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
 
     for j in eachnode(dg), i in 2:nnodes(dg)
         for v in eachvariable(equations)
-            antidiffusive_flux1[v, i, j, element] = fhat1[v, i, j] - fstar1[v, i, j]
+            antidiffusive_flux1_L[v, i, j, element] = fhat1_L[v, i, j] -
+                                                      fstar1_L[v, i, j]
+            antidiffusive_flux1_R[v, i, j, element] = antidiffusive_flux1_L[v, i, j,
+                                                                            element]
         end
     end
     for j in 2:nnodes(dg), i in eachnode(dg)
         for v in eachvariable(equations)
-            antidiffusive_flux2[v, i, j, element] = fhat2[v, i, j] - fstar2[v, i, j]
+            antidiffusive_flux2_L[v, i, j, element] = fhat2_L[v, i, j] -
+                                                      fstar2_L[v, i, j]
+            antidiffusive_flux2_R[v, i, j, element] = antidiffusive_flux2_L[v, i, j,
+                                                                            element]
         end
     end
 
-    antidiffusive_flux1[:, 1, :, element] .= zero(eltype(antidiffusive_flux1))
-    antidiffusive_flux1[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1))
+    antidiffusive_flux1_L[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
+    antidiffusive_flux1_L[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
+    antidiffusive_flux1_R[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
+    antidiffusive_flux1_R[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
 
-    antidiffusive_flux2[:, :, 1, element] .= zero(eltype(antidiffusive_flux2))
-    antidiffusive_flux2[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2))
+    antidiffusive_flux2_L[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_L))
+    antidiffusive_flux2_L[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_L))
+    antidiffusive_flux2_R[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_R))
+    antidiffusive_flux2_R[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_R))
 
     return nothing
 end
 
-@inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
-                                         nonconservative_terms, equations,
-                                         limiter::SubcellLimiterMCL, dg, element, cache)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
+# Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
+@inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
+                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                         u, mesh,
+                                         nonconservative_terms::True, equations,
+                                         limiter::SubcellLimiterIDP, dg, element, cache)
+    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
 
     for j in eachnode(dg), i in 2:nnodes(dg)
         for v in eachvariable(equations)
-            antidiffusive_flux1[v, i, j, element] = -(fhat1[v, i, j] - fstar1[v, i, j])
+            antidiffusive_flux1_L[v, i, j, element] = fhat1_L[v, i, j] -
+                                                      fstar1_L[v, i, j]
+            antidiffusive_flux1_R[v, i, j, element] = fhat1_R[v, i, j] -
+                                                      fstar1_R[v, i, j]
         end
     end
     for j in 2:nnodes(dg), i in eachnode(dg)
         for v in eachvariable(equations)
-            antidiffusive_flux2[v, i, j, element] = -(fhat2[v, i, j] - fstar2[v, i, j])
+            antidiffusive_flux2_L[v, i, j, element] = fhat2_L[v, i, j] -
+                                                      fstar2_L[v, i, j]
+            antidiffusive_flux2_R[v, i, j, element] = fhat2_R[v, i, j] -
+                                                      fstar2_R[v, i, j]
         end
     end
 
-    antidiffusive_flux1[:, 1, :, element] .= zero(eltype(antidiffusive_flux1))
-    antidiffusive_flux1[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1))
+    antidiffusive_flux1_L[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
+    antidiffusive_flux1_L[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
+    antidiffusive_flux1_R[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
+    antidiffusive_flux1_R[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
 
-    antidiffusive_flux2[:, :, 1, element] .= zero(eltype(antidiffusive_flux2))
-    antidiffusive_flux2[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2))
+    antidiffusive_flux2_L[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_L))
+    antidiffusive_flux2_L[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_L))
+    antidiffusive_flux2_R[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_R))
+    antidiffusive_flux2_R[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_R))
+
+    return nothing
+end
+
+@inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
+                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                         u, mesh,
+                                         nonconservative_terms::False, equations,
+                                         limiter::SubcellLimiterMCL, dg, element, cache)
+    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
+
+    for j in eachnode(dg), i in 2:nnodes(dg)
+        for v in eachvariable(equations)
+            antidiffusive_flux1_L[v, i, j, element] = -(fhat1_L[v, i, j] -
+                                                        fstar1_L[v, i, j])
+            antidiffusive_flux1_R[v, i, j, element] = antidiffusive_flux1_L[v, i, j,
+                                                                            element]
+        end
+    end
+    for j in 2:nnodes(dg), i in eachnode(dg)
+        for v in eachvariable(equations)
+            antidiffusive_flux2_L[v, i, j, element] = -(fhat2_L[v, i, j] -
+                                                        fstar2_L[v, i, j])
+            antidiffusive_flux2_R[v, i, j, element] = antidiffusive_flux2_L[v, i, j,
+                                                                            element]
+        end
+    end
+
+    antidiffusive_flux1_L[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
+    antidiffusive_flux1_L[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
+    antidiffusive_flux1_R[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
+    antidiffusive_flux1_R[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
+
+    antidiffusive_flux2_L[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_L))
+    antidiffusive_flux2_L[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_L))
+    antidiffusive_flux2_R[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_R))
+    antidiffusive_flux2_R[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_R))
+
+    return nothing
+end
+
+@inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
+                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                         u, mesh,
+                                         nonconservative_terms::True, equations,
+                                         limiter::SubcellLimiterMCL, dg, element, cache)
+    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
+
+    for j in eachnode(dg), i in 2:nnodes(dg)
+        for v in eachvariable(equations)
+            antidiffusive_flux1_L[v, i, j, element] = -(fhat1_L[v, i, j] -
+                                                        fstar1_L[v, i, j])
+            antidiffusive_flux1_R[v, i, j, element] = -(fhat1_R[v, i, j] -
+                                                        fstar1_R[v, i, j])
+        end
+    end
+    for j in 2:nnodes(dg), i in eachnode(dg)
+        for v in eachvariable(equations)
+            antidiffusive_flux2_L[v, i, j, element] = -(fhat2_L[v, i, j] -
+                                                        fstar2_L[v, i, j])
+            antidiffusive_flux2_R[v, i, j, element] = -(fhat2_R[v, i, j] -
+                                                        fstar2_R[v, i, j])
+        end
+    end
+
+    antidiffusive_flux1_L[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
+    antidiffusive_flux1_L[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
+    antidiffusive_flux1_R[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
+    antidiffusive_flux1_R[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
+
+    antidiffusive_flux2_L[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_L))
+    antidiffusive_flux2_L[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_L))
+    antidiffusive_flux2_R[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_R))
+    antidiffusive_flux2_R[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_R))
 
     return nothing
 end
@@ -771,11 +1098,11 @@ end
     return nothing
 end
 
-@inline function calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms,
+@inline function calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms::False,
                                                  equations, limiter, dg, element,
                                                  cache,
                                                  fstar1, fstar2)
-    @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.antidiffusive_fluxes
+    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
     @unpack var_min, var_max = limiter.cache.subcell_limiter_coefficients
     @unpack bar_states1, bar_states2, lambda1, lambda2 = limiter.cache.container_bar_states
 
@@ -809,27 +1136,27 @@ end
             bar_state_rho = bar_states1[1, i, j, element]
 
             # Limit density
-            if antidiffusive_flux1[1, i, j, element] > 0
+            if antidiffusive_flux1_L[1, i, j, element] > 0
                 f_max = lambda * min(var_max[1, i - 1, j, element] - bar_state_rho,
                             bar_state_rho - var_min[1, i, j, element])
                 f_max = isapprox(f_max, 0.0, atol = eps()) ? 0.0 : f_max
-                flux_limited = min(antidiffusive_flux1[1, i, j, element],
+                flux_limited = min(antidiffusive_flux1_L[1, i, j, element],
                                    max(f_max, 0.0))
             else
                 f_min = lambda * max(var_min[1, i - 1, j, element] - bar_state_rho,
                             bar_state_rho - var_max[1, i, j, element])
                 f_min = isapprox(f_min, 0.0, atol = eps()) ? 0.0 : f_min
-                flux_limited = max(antidiffusive_flux1[1, i, j, element],
+                flux_limited = max(antidiffusive_flux1_L[1, i, j, element],
                                    min(f_min, 0.0))
             end
 
             if limiter.Plotting || limiter.DensityAlphaForAll
-                if isapprox(antidiffusive_flux1[1, i, j, element], 0.0, atol = eps())
+                if isapprox(antidiffusive_flux1_L[1, i, j, element], 0.0, atol = eps())
                     coefficient = 1.0 # flux_limited is zero as well
                 else
                     coefficient = min(1,
                                       (flux_limited + sign(flux_limited) * eps()) /
-                                      (antidiffusive_flux1[1, i, j, element] +
+                                      (antidiffusive_flux1_L[1, i, j, element] +
                                        sign(flux_limited) * eps()))
                 end
 
@@ -842,14 +1169,16 @@ end
                     alpha_mean[1, i, j, element] += coefficient
                 end
             end
-            antidiffusive_flux1[1, i, j, element] = flux_limited
+            antidiffusive_flux1_L[1, i, j, element] = flux_limited
 
             #Limit all quantities with the same alpha
             if limiter.DensityAlphaForAll
                 for v in 2:nvariables(equations)
-                    antidiffusive_flux1[v, i, j, element] = coefficient *
-                                                            antidiffusive_flux1[v, i, j,
-                                                                                element]
+                    antidiffusive_flux1_L[v, i, j, element] = coefficient *
+                                                              antidiffusive_flux1_L[v,
+                                                                                    i,
+                                                                                    j,
+                                                                                    element]
                 end
             end
         end
@@ -859,27 +1188,27 @@ end
             bar_state_rho = bar_states2[1, i, j, element]
 
             # Limit density
-            if antidiffusive_flux2[1, i, j, element] > 0
+            if antidiffusive_flux2_L[1, i, j, element] > 0
                 f_max = lambda * min(var_max[1, i, j - 1, element] - bar_state_rho,
                             bar_state_rho - var_min[1, i, j, element])
                 f_max = isapprox(f_max, 0.0, atol = eps()) ? 0.0 : f_max
-                flux_limited = min(antidiffusive_flux2[1, i, j, element],
+                flux_limited = min(antidiffusive_flux2_L[1, i, j, element],
                                    max(f_max, 0.0))
             else
                 f_min = lambda * max(var_min[1, i, j - 1, element] - bar_state_rho,
                             bar_state_rho - var_max[1, i, j, element])
                 f_min = isapprox(f_min, 0.0, atol = eps()) ? 0.0 : f_min
-                flux_limited = max(antidiffusive_flux2[1, i, j, element],
+                flux_limited = max(antidiffusive_flux2_L[1, i, j, element],
                                    min(f_min, 0.0))
             end
 
             if limiter.Plotting || limiter.DensityAlphaForAll
-                if isapprox(antidiffusive_flux2[1, i, j, element], 0.0, atol = eps())
+                if isapprox(antidiffusive_flux2_L[1, i, j, element], 0.0, atol = eps())
                     coefficient = 1.0 # flux_limited is zero as well
                 else
                     coefficient = min(1,
                                       (flux_limited + sign(flux_limited) * eps()) /
-                                      (antidiffusive_flux2[1, i, j, element] +
+                                      (antidiffusive_flux2_L[1, i, j, element] +
                                        sign(flux_limited) * eps()))
                 end
 
@@ -892,14 +1221,16 @@ end
                     alpha_mean[1, i, j, element] += coefficient
                 end
             end
-            antidiffusive_flux2[1, i, j, element] = flux_limited
+            antidiffusive_flux2_L[1, i, j, element] = flux_limited
 
             #Limit all quantities with the same alpha
             if limiter.DensityAlphaForAll
                 for v in 2:nvariables(equations)
-                    antidiffusive_flux2[v, i, j, element] = coefficient *
-                                                            antidiffusive_flux2[v, i, j,
-                                                                                element]
+                    antidiffusive_flux2_L[v, i, j, element] = coefficient *
+                                                              antidiffusive_flux2_L[v,
+                                                                                    i,
+                                                                                    j,
+                                                                                    element]
                 end
             end
         end
@@ -913,15 +1244,15 @@ end
 
             # Limit velocity and total energy
             rho_limited_iim1 = lambda * bar_state_rho -
-                               antidiffusive_flux1[1, i, j, element]
+                               antidiffusive_flux1_L[1, i, j, element]
             rho_limited_im1i = lambda * bar_state_rho +
-                               antidiffusive_flux1[1, i, j, element]
+                               antidiffusive_flux1_L[1, i, j, element]
             for v in 2:nvariables(equations)
                 bar_state_phi = bar_states1[v, i, j, element]
 
                 phi = bar_state_phi / bar_state_rho
 
-                g = antidiffusive_flux1[v, i, j, element] +
+                g = antidiffusive_flux1_L[v, i, j, element] +
                     (lambda * bar_state_phi - rho_limited_im1i * phi)
 
                 if g > 0
@@ -952,9 +1283,9 @@ end
                     alpha_mean[v, i - 1, j, element] += coefficient
                     alpha_mean[v, i, j, element] += coefficient
                 end
-                antidiffusive_flux1[v, i, j, element] = (rho_limited_im1i * phi -
-                                                         lambda * bar_state_phi) +
-                                                        g_limited
+                antidiffusive_flux1_L[v, i, j, element] = (rho_limited_im1i * phi -
+                                                           lambda * bar_state_phi) +
+                                                          g_limited
             end
         end
 
@@ -964,15 +1295,15 @@ end
 
             # Limit velocity and total energy
             rho_limited_jjm1 = lambda * bar_state_rho -
-                               antidiffusive_flux2[1, i, j, element]
+                               antidiffusive_flux2_L[1, i, j, element]
             rho_limited_jm1j = lambda * bar_state_rho +
-                               antidiffusive_flux2[1, i, j, element]
+                               antidiffusive_flux2_L[1, i, j, element]
             for v in 2:nvariables(equations)
                 bar_state_phi = bar_states2[v, i, j, element]
 
                 phi = bar_state_phi / bar_state_rho
 
-                g = antidiffusive_flux2[v, i, j, element] +
+                g = antidiffusive_flux2_L[v, i, j, element] +
                     (lambda * bar_state_phi - rho_limited_jm1j * phi)
 
                 if g > 0
@@ -1004,9 +1335,9 @@ end
                     alpha_mean[v, i, j, element] += coefficient
                 end
 
-                antidiffusive_flux2[v, i, j, element] = (rho_limited_jm1j * phi -
-                                                         lambda * bar_state_phi) +
-                                                        g_limited
+                antidiffusive_flux2_L[v, i, j, element] = (rho_limited_jm1j * phi -
+                                                           lambda * bar_state_phi) +
+                                                          g_limited
             end
         end
         # Conservative limiter
@@ -1016,28 +1347,28 @@ end
             for v in 2:nvariables(equations)
                 bar_state_phi = bar_states1[v, i, j, element]
                 # Limit density
-                if antidiffusive_flux1[v, i, j, element] > 0
+                if antidiffusive_flux1_L[v, i, j, element] > 0
                     f_max = lambda * min(var_max[v, i - 1, j, element] - bar_state_phi,
                                 bar_state_phi - var_min[v, i, j, element])
                     f_max = isapprox(f_max, 0.0, atol = eps()) ? 0.0 : f_max
-                    flux_limited = min(antidiffusive_flux1[v, i, j, element],
+                    flux_limited = min(antidiffusive_flux1_L[v, i, j, element],
                                        max(f_max, 0.0))
                 else
                     f_min = lambda * max(var_min[v, i - 1, j, element] - bar_state_phi,
                                 bar_state_phi - var_max[v, i, j, element])
                     f_min = isapprox(f_min, 0.0, atol = eps()) ? 0.0 : f_min
-                    flux_limited = max(antidiffusive_flux1[v, i, j, element],
+                    flux_limited = max(antidiffusive_flux1_L[v, i, j, element],
                                        min(f_min, 0.0))
                 end
 
                 if limiter.Plotting
-                    if isapprox(antidiffusive_flux1[v, i, j, element], 0.0,
+                    if isapprox(antidiffusive_flux1_L[v, i, j, element], 0.0,
                                 atol = eps())
                         coefficient = 1.0 # flux_limited is zero as well
                     else
                         coefficient = min(1,
                                           (flux_limited + sign(flux_limited) * eps()) /
-                                          (antidiffusive_flux1[v, i, j, element] +
+                                          (antidiffusive_flux1_L[v, i, j, element] +
                                            sign(flux_limited) * eps()))
                     end
                     @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
@@ -1047,7 +1378,7 @@ end
                     alpha_mean[v, i - 1, j, element] += coefficient
                     alpha_mean[v, i, j, element] += coefficient
                 end
-                antidiffusive_flux1[v, i, j, element] = flux_limited
+                antidiffusive_flux1_L[v, i, j, element] = flux_limited
             end
         end
 
@@ -1056,28 +1387,28 @@ end
             for v in 2:nvariables(equations)
                 bar_state_phi = bar_states2[v, i, j, element]
                 # Limit density
-                if antidiffusive_flux2[v, i, j, element] > 0
+                if antidiffusive_flux2_L[v, i, j, element] > 0
                     f_max = lambda * min(var_max[v, i, j - 1, element] - bar_state_phi,
                                 bar_state_phi - var_min[v, i, j, element])
                     f_max = isapprox(f_max, 0.0, atol = eps()) ? 0.0 : f_max
-                    flux_limited = min(antidiffusive_flux2[v, i, j, element],
+                    flux_limited = min(antidiffusive_flux2_L[v, i, j, element],
                                        max(f_max, 0.0))
                 else
                     f_min = lambda * max(var_min[v, i, j - 1, element] - bar_state_phi,
                                 bar_state_phi - var_max[v, i, j, element])
                     f_min = isapprox(f_min, 0.0, atol = eps()) ? 0.0 : f_min
-                    flux_limited = max(antidiffusive_flux2[v, i, j, element],
+                    flux_limited = max(antidiffusive_flux2_L[v, i, j, element],
                                        min(f_min, 0.0))
                 end
 
                 if limiter.Plotting
-                    if isapprox(antidiffusive_flux2[v, i, j, element], 0.0,
+                    if isapprox(antidiffusive_flux2_L[v, i, j, element], 0.0,
                                 atol = eps())
                         coefficient = 1.0 # flux_limited is zero as well
                     else
                         coefficient = min(1,
                                           (flux_limited + sign(flux_limited) * eps()) /
-                                          (antidiffusive_flux2[v, i, j, element] +
+                                          (antidiffusive_flux2_L[v, i, j, element] +
                                            sign(flux_limited) * eps()))
                     end
                     @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
@@ -1087,7 +1418,7 @@ end
                     alpha_mean[v, i, j - 1, element] += coefficient
                     alpha_mean[v, i, j, element] += coefficient
                 end
-                antidiffusive_flux2[v, i, j, element] = flux_limited
+                antidiffusive_flux2_L[v, i, j, element] = flux_limited
             end
         end
     end # limiter.SequentialLimiter and limiter.ConservativeLimiter
@@ -1099,23 +1430,23 @@ end
             lambda = lambda1[i, j, element]
             bar_state_rho = bar_states1[1, i, j, element]
             # Limit density
-            if antidiffusive_flux1[1, i, j, element] > 0
+            if antidiffusive_flux1_L[1, i, j, element] > 0
                 f_max = (1 - beta) * lambda * bar_state_rho
                 f_max = isapprox(f_max, 0.0, atol = eps()) ? 0.0 : f_max
-                flux_limited = min(antidiffusive_flux1[1, i, j, element],
+                flux_limited = min(antidiffusive_flux1_L[1, i, j, element],
                                    max(f_max, 0.0))
             else
                 f_min = -(1 - beta) * lambda * bar_state_rho
                 f_min = isapprox(f_min, 0.0, atol = eps()) ? 0.0 : f_min
-                flux_limited = max(antidiffusive_flux1[1, i, j, element],
+                flux_limited = max(antidiffusive_flux1_L[1, i, j, element],
                                    min(f_min, 0.0))
             end
 
             if limiter.Plotting || limiter.DensityAlphaForAll
-                if isapprox(antidiffusive_flux1[1, i, j, element], 0.0, atol = eps())
+                if isapprox(antidiffusive_flux1_L[1, i, j, element], 0.0, atol = eps())
                     coefficient = 1.0  # flux_limited is zero as well
                 else
-                    coefficient = flux_limited / antidiffusive_flux1[1, i, j, element]
+                    coefficient = flux_limited / antidiffusive_flux1_L[1, i, j, element]
                 end
 
                 if limiter.Plotting
@@ -1129,14 +1460,16 @@ end
                     end
                 end
             end
-            antidiffusive_flux1[1, i, j, element] = flux_limited
+            antidiffusive_flux1_L[1, i, j, element] = flux_limited
 
             #Limit all quantities with the same alpha
             if limiter.DensityAlphaForAll
                 for v in 2:nvariables(equations)
-                    antidiffusive_flux1[v, i, j, element] = coefficient *
-                                                            antidiffusive_flux1[v, i, j,
-                                                                                element]
+                    antidiffusive_flux1_L[v, i, j, element] = coefficient *
+                                                              antidiffusive_flux1_L[v,
+                                                                                    i,
+                                                                                    j,
+                                                                                    element]
                 end
             end
         end
@@ -1145,23 +1478,23 @@ end
             lambda = lambda2[i, j, element]
             bar_state_rho = bar_states2[1, i, j, element]
             # Limit density
-            if antidiffusive_flux2[1, i, j, element] > 0
+            if antidiffusive_flux2_L[1, i, j, element] > 0
                 f_max = (1 - beta) * lambda * bar_state_rho
                 f_max = isapprox(f_max, 0.0, atol = eps()) ? 0.0 : f_max
-                flux_limited = min(antidiffusive_flux2[1, i, j, element],
+                flux_limited = min(antidiffusive_flux2_L[1, i, j, element],
                                    max(f_max, 0.0))
             else
                 f_min = -(1 - beta) * lambda * bar_state_rho
                 f_min = isapprox(f_min, 0.0, atol = eps()) ? 0.0 : f_min
-                flux_limited = max(antidiffusive_flux2[1, i, j, element],
+                flux_limited = max(antidiffusive_flux2_L[1, i, j, element],
                                    min(f_min, 0.0))
             end
 
             if limiter.Plotting || limiter.DensityAlphaForAll
-                if isapprox(antidiffusive_flux2[1, i, j, element], 0.0, atol = eps())
+                if isapprox(antidiffusive_flux2_L[1, i, j, element], 0.0, atol = eps())
                     coefficient = 1.0  # flux_limited is zero as well
                 else
-                    coefficient = flux_limited / antidiffusive_flux2[1, i, j, element]
+                    coefficient = flux_limited / antidiffusive_flux2_L[1, i, j, element]
                 end
 
                 if limiter.Plotting
@@ -1175,14 +1508,16 @@ end
                     end
                 end
             end
-            antidiffusive_flux2[1, i, j, element] = flux_limited
+            antidiffusive_flux2_L[1, i, j, element] = flux_limited
 
             #Limit all quantities with the same alpha
             if limiter.DensityAlphaForAll
                 for v in 2:nvariables(equations)
-                    antidiffusive_flux2[v, i, j, element] = coefficient *
-                                                            antidiffusive_flux2[v, i, j,
-                                                                                element]
+                    antidiffusive_flux2_L[v, i, j, element] = coefficient *
+                                                              antidiffusive_flux2_L[v,
+                                                                                    i,
+                                                                                    j,
+                                                                                    element]
                 end
             end
         end
@@ -1224,8 +1559,8 @@ end
         for j in eachnode(dg), i in 2:nnodes(dg)
             bar_state_velocity = bar_states1[2, i, j, element]^2 +
                                  bar_states1[3, i, j, element]^2
-            flux_velocity = antidiffusive_flux1[2, i, j, element]^2 +
-                            antidiffusive_flux1[3, i, j, element]^2
+            flux_velocity = antidiffusive_flux1_L[2, i, j, element]^2 +
+                            antidiffusive_flux1_L[3, i, j, element]^2
 
             Q = lambda1[i, j, element]^2 *
                 (bar_states1[1, i, j, element] * bar_states1[4, i, j, element] -
@@ -1235,35 +1570,35 @@ end
                 # exact calculation of max(R_ij, R_ji)
                 R_max = lambda1[i, j, element] *
                         abs(bar_states1[2, i, j, element] *
-                            antidiffusive_flux1[2, i, j, element] +
+                            antidiffusive_flux1_L[2, i, j, element] +
                             bar_states1[3, i, j, element] *
-                            antidiffusive_flux1[3, i, j, element] -
+                            antidiffusive_flux1_L[3, i, j, element] -
                             bar_states1[1, i, j, element] *
-                            antidiffusive_flux1[4, i, j, element] -
+                            antidiffusive_flux1_L[4, i, j, element] -
                             bar_states1[4, i, j, element] *
-                            antidiffusive_flux1[1, i, j, element])
+                            antidiffusive_flux1_L[1, i, j, element])
                 R_max += max(0,
                              0.5 * flux_velocity -
-                             antidiffusive_flux1[4, i, j, element] *
-                             antidiffusive_flux1[1, i, j, element])
+                             antidiffusive_flux1_L[4, i, j, element] *
+                             antidiffusive_flux1_L[1, i, j, element])
             else
                 # approximation R_max
                 R_max = lambda1[i, j, element] *
                         (sqrt(bar_state_velocity * flux_velocity) +
                          abs(bar_states1[1, i, j, element] *
-                             antidiffusive_flux1[4, i, j, element]) +
+                             antidiffusive_flux1_L[4, i, j, element]) +
                          abs(bar_states1[4, i, j, element] *
-                             antidiffusive_flux1[1, i, j, element]))
+                             antidiffusive_flux1_L[1, i, j, element]))
                 R_max += max(0,
                              0.5 * flux_velocity -
-                             antidiffusive_flux1[4, i, j, element] *
-                             antidiffusive_flux1[1, i, j, element])
+                             antidiffusive_flux1_L[4, i, j, element] *
+                             antidiffusive_flux1_L[1, i, j, element])
             end
             alpha = 1 # Initialize alpha for plotting
             if R_max > Q
                 alpha = Q / R_max
                 for v in eachvariable(equations)
-                    antidiffusive_flux1[v, i, j, element] *= alpha
+                    antidiffusive_flux1_L[v, i, j, element] *= alpha
                 end
             end
             if limiter.Plotting
@@ -1279,8 +1614,8 @@ end
         for j in 2:nnodes(dg), i in eachnode(dg)
             bar_state_velocity = bar_states2[2, i, j, element]^2 +
                                  bar_states2[3, i, j, element]^2
-            flux_velocity = antidiffusive_flux2[2, i, j, element]^2 +
-                            antidiffusive_flux2[3, i, j, element]^2
+            flux_velocity = antidiffusive_flux2_L[2, i, j, element]^2 +
+                            antidiffusive_flux2_L[3, i, j, element]^2
 
             Q = lambda2[i, j, element]^2 *
                 (bar_states2[1, i, j, element] * bar_states2[4, i, j, element] -
@@ -1290,35 +1625,35 @@ end
                 # exact calculation of max(R_ij, R_ji)
                 R_max = lambda2[i, j, element] *
                         abs(bar_states2[2, i, j, element] *
-                            antidiffusive_flux2[2, i, j, element] +
+                            antidiffusive_flux2_L[2, i, j, element] +
                             bar_states2[3, i, j, element] *
-                            antidiffusive_flux2[3, i, j, element] -
+                            antidiffusive_flux2_L[3, i, j, element] -
                             bar_states2[1, i, j, element] *
-                            antidiffusive_flux2[4, i, j, element] -
+                            antidiffusive_flux2_L[4, i, j, element] -
                             bar_states2[4, i, j, element] *
-                            antidiffusive_flux2[1, i, j, element])
+                            antidiffusive_flux2_L[1, i, j, element])
                 R_max += max(0,
                              0.5 * flux_velocity -
-                             antidiffusive_flux2[4, i, j, element] *
-                             antidiffusive_flux2[1, i, j, element])
+                             antidiffusive_flux2_L[4, i, j, element] *
+                             antidiffusive_flux2_L[1, i, j, element])
             else
                 # approximation R_max
                 R_max = lambda2[i, j, element] *
                         (sqrt(bar_state_velocity * flux_velocity) +
                          abs(bar_states2[1, i, j, element] *
-                             antidiffusive_flux2[4, i, j, element]) +
+                             antidiffusive_flux2_L[4, i, j, element]) +
                          abs(bar_states2[4, i, j, element] *
-                             antidiffusive_flux2[1, i, j, element]))
+                             antidiffusive_flux2_L[1, i, j, element]))
                 R_max += max(0,
                              0.5 * flux_velocity -
-                             antidiffusive_flux2[4, i, j, element] *
-                             antidiffusive_flux2[1, i, j, element])
+                             antidiffusive_flux2_L[4, i, j, element] *
+                             antidiffusive_flux2_L[1, i, j, element])
             end
             alpha = 1 # Initialize alpha for plotting
             if R_max > Q
                 alpha = Q / R_max
                 for v in eachvariable(equations)
-                    antidiffusive_flux2[v, i, j, element] *= alpha
+                    antidiffusive_flux2_L[v, i, j, element] *= alpha
                 end
             end
             if limiter.Plotting
@@ -1350,7 +1685,8 @@ end
     # TODO: For now, this only works for Cartesian meshes.
     if limiter.SemiDiscEntropyLimiter
         for j in eachnode(dg), i in 2:nnodes(dg)
-            antidiffusive_flux_local = get_node_vars(antidiffusive_flux1, equations, dg,
+            antidiffusive_flux_local = get_node_vars(antidiffusive_flux1_L, equations,
+                                                     dg,
                                                      i, j, element)
             u_local = get_node_vars(u, equations, dg, i, j, element)
             u_local_m1 = get_node_vars(u, equations, dg, i - 1, j, element)
@@ -1379,9 +1715,11 @@ end
                 alpha = min(1.0,
                             (abs(entProd_FV) + eps()) / (abs(delta_entProd) + eps()))
                 for v in eachvariable(equations)
-                    antidiffusive_flux1[v, i, j, element] = alpha *
-                                                            antidiffusive_flux1[v, i, j,
-                                                                                element]
+                    antidiffusive_flux1_L[v, i, j, element] = alpha *
+                                                              antidiffusive_flux1_L[v,
+                                                                                    i,
+                                                                                    j,
+                                                                                    element]
                 end
             end
             if limiter.Plotting
@@ -1395,7 +1733,8 @@ end
         end
 
         for j in 2:nnodes(dg), i in eachnode(dg)
-            antidiffusive_flux_local = get_node_vars(antidiffusive_flux2, equations, dg,
+            antidiffusive_flux_local = get_node_vars(antidiffusive_flux2_L, equations,
+                                                     dg,
                                                      i, j, element)
             u_local = get_node_vars(u, equations, dg, i, j, element)
             u_local_m1 = get_node_vars(u, equations, dg, i, j - 1, element)
@@ -1424,9 +1763,11 @@ end
                 alpha = min(1.0,
                             (abs(entProd_FV) + eps()) / (abs(delta_entProd) + eps()))
                 for v in eachvariable(equations)
-                    antidiffusive_flux2[v, i, j, element] = alpha *
-                                                            antidiffusive_flux2[v, i, j,
-                                                                                element]
+                    antidiffusive_flux2_L[v, i, j, element] = alpha *
+                                                              antidiffusive_flux2_L[v,
+                                                                                    i,
+                                                                                    j,
+                                                                                    element]
                 end
             end
             if limiter.Plotting
@@ -1451,6 +1792,16 @@ end
                 alpha_mean_entropy[i, j, element] /= 4
             end
         end
+    end
+
+    # Copy antidiffusive fluxes left to antidifussive fluxes right
+    for j in eachnode(dg), i in 2:nnodes(dg), v in eachvariable(equations)
+        antidiffusive_flux1_R[v, i, j, element] = antidiffusive_flux1_L[v, i, j,
+                                                                        element]
+    end
+    for j in 2:nnodes(dg), i in eachnode(dg), v in eachvariable(equations)
+        antidiffusive_flux2_R[v, i, j, element] = antidiffusive_flux2_L[v, i, j,
+                                                                        element]
     end
 
     return nothing
