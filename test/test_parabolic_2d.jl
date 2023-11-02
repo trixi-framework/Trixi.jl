@@ -668,12 +668,14 @@ end
 @trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity_amr.jl"),
-                                 tspan=(0.0, 4.0),
+                        tspan=(0.0, 4.0),
                         l2=[
-                            0.0007142381290943997, 0.10536873763324912, 0.06253786571289673, 0.10410025479264316
+                            0.0007142381290943997, 0.10536873763324912,
+                            0.06253786571289673, 0.10410025479264316,
                         ],
                         linf=[
-                            0.011794621374401792, 0.9342637632317564, 0.635809189922223, 2.104675920792687
+                            0.011794621374401792, 0.9342637632317564, 0.635809189922223,
+                            2.104675920792687,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

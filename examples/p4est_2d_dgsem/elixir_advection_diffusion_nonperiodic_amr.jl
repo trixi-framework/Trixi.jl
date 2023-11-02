@@ -10,16 +10,16 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = (-1.0, -0.5) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 0.0,  0.5) # maximum coordinates (max(x), max(y))
+coordinates_max = (0.0, 0.5) # maximum coordinates (max(x), max(y))
 
 trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
-                 polydeg=3, initial_refinement_level=2,
-                 coordinates_min=coordinates_min, coordinates_max=coordinates_max,
-                 periodicity=false)
+                 polydeg = 3, initial_refinement_level = 2,
+                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                 periodicity = false)
 
 # Example setup taken from
 # - Truman Ellis, Jesse Chan, and Leszek Demkowicz (2016).
@@ -28,15 +28,15 @@ mesh = P4estMesh(trees_per_dimension,
 #   to numerical partial differential equations.
 #   [DOI](https://doi.org/10.1007/978-3-319-41640-3_6).
 function initial_condition_eriksson_johnson(x, t, equations)
-  l = 4
-  epsilon = diffusivity() # TODO: this requires epsilon < .6 due to sqrt
-  lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
-  lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
-  r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
-  s1 = (1 - sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
-  u = exp(-l * t) * (exp(lambda_1 * x[1]) - exp(lambda_2 * x[1])) +
-      cos(pi * x[2]) * (exp(s1 * x[1]) - exp(r1 * x[1])) / (exp(-s1) - exp(-r1))
-  return SVector{1}(u)
+    l = 4
+    epsilon = diffusivity() # TODO: this requires epsilon < .6 due to sqrt
+    lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
+    lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
+    r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
+    s1 = (1 - sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
+    u = exp(-l * t) * (exp(lambda_1 * x[1]) - exp(lambda_2 * x[1])) +
+        cos(pi * x[2]) * (exp(s1 * x[1]) - exp(r1 * x[1])) / (exp(-s1) - exp(-r1))
+    return SVector{1}(u)
 end
 initial_condition = initial_condition_eriksson_johnson
 
@@ -45,17 +45,17 @@ boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_conditio
                            :y_pos => BoundaryConditionDirichlet(initial_condition),
                            :x_pos => boundary_condition_do_nothing)
 
-boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition), 
-                                     :x_pos => BoundaryConditionDirichlet(initial_condition), 
-                                     :y_neg => BoundaryConditionDirichlet(initial_condition), 
+boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
+                                     :x_pos => BoundaryConditionDirichlet(initial_condition),
+                                     :y_neg => BoundaryConditionDirichlet(initial_condition),
                                      :y_pos => BoundaryConditionDirichlet(initial_condition))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
-                                             boundary_conditions=(boundary_conditions,
-                                                                  boundary_conditions_parabolic))
+                                             boundary_conditions = (boundary_conditions,
+                                                                    boundary_conditions_parabolic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -70,18 +70,18 @@ summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_interval = 1000
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 # The AliveCallback prints short status information in regular intervals
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
-                                      base_level=1,
-                                      med_level=2, med_threshold=0.9,
-                                      max_level=3, max_threshold=1.0)
+amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
+                                      base_level = 1,
+                                      med_level = 2, med_threshold = 0.9,
+                                      max_level = 3, max_threshold = 1.0)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=50)
+                           interval = 50)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr_callback)
@@ -91,9 +91,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-11
-sol = solve(ode, dt = 1e-7, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
-            ode_default_options()..., callback=callbacks)
+sol = solve(ode, dt = 1e-7, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+            ode_default_options()..., callback = callbacks)
 
 # Print the timer summary
 summary_callback()
-
