@@ -260,9 +260,7 @@ export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax,
-       IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven,
-       NeuralNetworkCNN
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax
 
 # TODO: TrixiShallowWater: move new limiter
 export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterShallowWater
