@@ -33,6 +33,11 @@ function initial_condition_taylor_green_vortex(x, t, equations::CompressibleEule
 end
 initial_condition = initial_condition_taylor_green_vortex
 
+@inline function vel_mag(u, equations::CompressibleEulerEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, _ = u
+  return sqrt(rho_v1^2+rho_v2^2+rho_v3^2)/rho
+end
+
 volume_flux = flux_ranocha
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
@@ -40,11 +45,11 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
 coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = ( 1.0,  1.0,  1.0) .* pi
 
-trees_per_dimension = (2, 2, 2)
+trees_per_dimension = (4, 4, 4)
 
 mesh = P4estMesh(trees_per_dimension, polydeg=3,
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max,
-                 periodicity=(true, true, true), initial_refinement_level=2)
+                 periodicity=(true, true, true), initial_refinement_level=0)
 
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
@@ -53,7 +58,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -68,15 +73,19 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-amr_indicator = IndicatorLöhner(semi, variable=density_pressure)
+amr_indicator = IndicatorLöhner(semi, variable=vel_mag)
 
+# amr_controller = ControllerThreeLevel(semi, amr_indicator,
+#                                       base_level=0,
+#                                       med_level=2, med_threshold=0.002,
+#                                       max_level=4, max_threshold=0.004)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=0,
-                                      med_level=2, med_threshold=0.002,
-                                      max_level=4, max_threshold=0.004)
+                                      med_level=1, med_threshold=0.1,
+                                      max_level=3, max_threshold=0.2)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=1,
+                           interval=5,
                            adapt_initial_condition=false,
                            adapt_initial_condition_only_refine=false)
 
