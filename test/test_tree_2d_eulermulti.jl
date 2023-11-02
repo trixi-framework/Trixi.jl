@@ -94,6 +94,14 @@ end
                         ],
                         initial_refinement_level=3,
                         tspan=(0.0, 0.001))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
 end
 
 @trixi_testset "elixir_eulermulti_ec.jl" begin
