@@ -1,7 +1,6 @@
 using OrdinaryDiffEq
 using Trixi
 
-
 ###############################################################################
 # Coupled semidiscretization of two linear advection systems, which are connected periodically
 #
@@ -35,11 +34,11 @@ advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # First mesh is the left half of a [-1,1]^2 square
 coordinates_min1 = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max1 = ( 0.0,  1.0) # maximum coordinates (max(x), max(y))
+coordinates_max1 = (0.0, 1.0) # maximum coordinates (max(x), max(y))
 
 # Define identical resolution as a variable such that it is easier to change from `trixi_include`
 cells_per_dimension = (8, 16)
@@ -49,32 +48,45 @@ cells_per_dimension1 = cells_per_dimension
 mesh1 = StructuredMesh(cells_per_dimension1, coordinates_min1, coordinates_max1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test, solver,
-                                     boundary_conditions=(
-                                       # Connect left boundary with right boundary of right mesh
-                                       x_neg=BoundaryConditionCoupled(2, (:end, :i_forward), Float64),
-                                       # Connect right boundary with left boundary of right mesh
-                                       x_pos=BoundaryConditionCoupled(2, (:begin, :i_forward),  Float64),
-                                       y_neg=boundary_condition_periodic,
-                                       y_pos=boundary_condition_periodic))
-
+semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
+                                     solver,
+                                     boundary_conditions = (
+                                                            # Connect left boundary with right boundary of right mesh
+                                                            x_neg = BoundaryConditionCoupled(2,
+                                                                                             (:end,
+                                                                                              :i_forward),
+                                                                                             Float64),
+                                                            # Connect right boundary with left boundary of right mesh
+                                                            x_pos = BoundaryConditionCoupled(2,
+                                                                                             (:begin,
+                                                                                              :i_forward),
+                                                                                             Float64),
+                                                            y_neg = boundary_condition_periodic,
+                                                            y_pos = boundary_condition_periodic))
 
 # Second mesh is the right half of a [-1,1]^2 square
 coordinates_min2 = (0.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max2 = (1.0,  1.0) # maximum coordinates (max(x), max(y))
+coordinates_max2 = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
 cells_per_dimension2 = cells_per_dimension
 
 mesh2 = StructuredMesh(cells_per_dimension2, coordinates_min2, coordinates_max2)
 
-semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test, solver,
-                                     boundary_conditions=(
-                                       # Connect left boundary with right boundary of left mesh
-                                       x_neg=BoundaryConditionCoupled(1, (:end, :i_forward), Float64),
-                                       # Connect right boundary with left boundary of left mesh
-                                       x_pos=BoundaryConditionCoupled(1, (:begin, :i_forward),  Float64),
-                                       y_neg=boundary_condition_periodic,
-                                       y_pos=boundary_condition_periodic))
+semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test,
+                                     solver,
+                                     boundary_conditions = (
+                                                            # Connect left boundary with right boundary of left mesh
+                                                            x_neg = BoundaryConditionCoupled(1,
+                                                                                             (:end,
+                                                                                              :i_forward),
+                                                                                             Float64),
+                                                            # Connect right boundary with left boundary of left mesh
+                                                            x_pos = BoundaryConditionCoupled(1,
+                                                                                             (:begin,
+                                                                                              :i_forward),
+                                                                                             Float64),
+                                                            y_neg = boundary_condition_periodic,
+                                                            y_pos = boundary_condition_periodic))
 
 # Create a semidiscretization that bundles semi1 and semi2
 semi = SemidiscretizationCoupled(semi1, semi2)
@@ -90,28 +102,28 @@ ode = semidiscretize(semi, (0.0, 2.0));
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback1 = AnalysisCallback(semi1, interval=100)
-analysis_callback2 = AnalysisCallback(semi2, interval=100)
+analysis_callback1 = AnalysisCallback(semi1, interval = 100)
+analysis_callback2 = AnalysisCallback(semi2, interval = 100)
 analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback1, analysis_callback2)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
-save_solution = SaveSolutionCallback(interval=100,
-                                     solution_variables=cons2prim)
+save_solution = SaveSolutionCallback(interval = 100,
+                                     solution_variables = cons2prim)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=1.6)
+stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
-
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
 
 # Print the timer summary
 summary_callback()
