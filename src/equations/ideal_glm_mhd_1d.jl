@@ -259,6 +259,86 @@ Hindenlang and Gassner (2019), extending [`flux_ranocha`](@ref) to the MHD equat
     return SVector(f1, f2, f3, f4, f5, f6, f7, f8)
 end
 
+"""
+    flux_hllc(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations1D)
+
+- Li (2005)
+An HLLC Riemann solver for magneto-hydrodynamics
+[DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020).
+"""
+function flux_hllc(u_ll, u_rr, orientation::Integer,
+                   equations::IdealGlmMhdEquations1D)
+    # Unpack left and right states
+    rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr = cons2prim(u_rr, equations)
+
+    v1_ll = rho_v1_ll / rho_ll
+    e_ll = rho_e_ll / rho_ll
+    p_ll = (equations.gamma - 1) * (rho_e_ll - 1 / 2 * rho_ll * v1_ll^2)
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+
+    v1_rr = rho_v1_rr / rho_rr
+    e_rr = rho_e_rr / rho_rr
+    p_rr = (equations.gamma - 1) * (rho_e_rr - 1 / 2 * rho_rr * v1_rr^2)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    # Obtain left and right fluxes
+    f_ll = flux(u_ll, orientation, equations)
+    f_rr = flux(u_rr, orientation, equations)
+
+    Ssl, Ssr = min_max_speed_naive(u_ll, u_rr, orientation, equations)
+    sMu_L = Ssl - v1_ll
+    sMu_R = Ssr - v1_rr
+    if Ssl >= 0.0
+        f1 = f_ll[1]
+        f2 = f_ll[2]
+        f3 = f_ll[3]
+        f4 = f_ll[4]
+        f5 = f_ll[5]
+        f6 = f_ll[6]
+        f7 = f_ll[7]
+        f8 = f_ll[8]
+    elseif Ssr <= 0.0
+        f1 = f_rr[1]
+        f2 = f_rr[2]
+        f3 = f_rr[3]
+        f4 = f_rr[4]
+        f5 = f_rr[5]
+        f6 = f_rr[6]
+        f7 = f_rr[7]
+        f8 = f_rr[8]
+    else
+        SStar = (rho_rr * sMu_R - rho_ll * sMu_L + p_ll - p_rr - B1_ll^2 + B1_rr^2 ) /
+                (rho_rr * sMu_R - rho_ll * sMu_L)
+
+        # Compute HLL values for BStar        
+        if Ssl <= SStar
+            densStar = rho_ll * sMu_L / (Ssl - SStar)
+            mom_x_Star = densStar * SStar
+
+            Mom_y_Star = rho_ll*v2_ll*(SsL - u_ll)/sMu_L - ()
+            Mom_z_Star = densStar * SStar
+            enerStar = e_ll + (SStar - v1_ll) * (SStar + p_ll / (rho_ll * sMu_L))
+            UStar3 = densStar * enerStar
+
+            f1 = f_ll[1] + Ssl * (densStar - rho_ll)
+            f2 = f_ll[2] + Ssl * (UStar2 - rho_v1_ll)
+            f3 = f_ll[3] + Ssl * (UStar3 - rho_e_ll)
+        else # SStar <= Ssr
+            densStar = rho_rr * sMu_R / (Ssr - SStar)
+            enerStar = e_rr + (SStar - vel_R) * (SStar + p_rr / (rho_rr * sMu_R))
+            UStar2 = densStar * SStar
+            UStar3 = densStar * enerStar
+
+            #end
+            f1 = f_rr[1] + Ssr * (densStar - rho_rr)
+            f2 = f_rr[2] + Ssr * (UStar2 - rho_v1_rr)
+            f3 = f_rr[3] + Ssr * (UStar3 - rho_e_rr)
+        end
+    end
+    return SVector(f1, f2, f3)
+end
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::IdealGlmMhdEquations1D)
