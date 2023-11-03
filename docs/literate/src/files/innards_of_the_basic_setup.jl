@@ -30,7 +30,7 @@ coarsening_patches = ( # Coarsen cell in the lower-right quarter
                  n_cells_max=30_000,
                  coarsening_patches=coarsening_patches)
 
-# Created `TreeMesh` looks like:
+# The created `TreeMesh` looks like the following:
 
 # ![TreeMesh_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/d5ef76ee-8246-4730-a692-b472c06063a3)
 
