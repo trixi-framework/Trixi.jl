@@ -55,8 +55,8 @@ solver = DGSEM(polydeg=3)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
-# The `SemidiscretizationHyperbolic` function calls numerous sub-functions to perform the necessary
-# steps. A brief description of the key sub-functions is provided below.
+# The constructor for the `SemidiscretizationHyperbolic` object calls numerous sub-functions to perform the necessary
+# initialization steps. A brief description of the key sub-functions is provided below.
 
 # - `init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)`
  
