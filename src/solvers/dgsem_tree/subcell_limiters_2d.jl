@@ -168,8 +168,9 @@ end
     (; inverse_weights) = dg.basis
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
-    var_min = variable_bounds[Symbol(string(variable), "_min")]
-    var_max = variable_bounds[Symbol(string(variable), "_max")]
+    variable_string = string(variable)
+    var_min = variable_bounds[Symbol(variable_string, "_min")]
+    var_max = variable_bounds[Symbol(variable_string, "_max")]
     calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
 
     @threaded for element in eachelement(dg, semi.cache)
