@@ -143,6 +143,13 @@ end
     @view u_ode[semi.u_indices[index]]
 end
 
+@inline function call_rhs!(u_ode, du_ode, i, t, semi::SemidiscretizationCoupled)
+    u_loc = get_system_u_ode(u_ode, i, semi)
+    du_loc = get_system_u_ode(du_ode, i, semi)
+    rhs!(du_loc, u_loc, semi.semis[i], t)
+    # @trixi_timeit timer() "system #$i" rhs!(du_loc, u_loc, semi.semis[i], t)
+end
+
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     @unpack u_indices = semi
 
@@ -150,32 +157,10 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     
     # @trixi_timeit timer() "copy to coupled boundaries" begin
 
-    for semi_ in semi.semis
-        copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi)
-    end
+    foreach(semi_ -> copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi), semi.semis)
 
     # Call rhs! for each semidiscretization
-    for i in eachsystem(semi)
-        u_loc = get_system_u_ode(u_ode, i, semi)
-        du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, semi.semis[i], t)
-        @trixi_timeit timer() "system #$i" rhs!(du_loc, u_loc, semi.semis[i], t)
-    end
-
-    # semi_ = semi.semis[1]
-    # copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi)
-    # semi_ = semi.semis[2]
-    # copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi)
-
-    # Call rhs! for each semidiscretization
-    # i = 1
-    # u_loc = get_system_u_ode(u_ode, i, semi)
-    # du_loc = get_system_u_ode(du_ode, i, semi)
-    # rhs!(du_loc, u_loc, semi.semis[i], t)
-    # i = 2
-    # u_loc = get_system_u_ode(u_ode, i, semi)
-    # du_loc = get_system_u_ode(du_ode, i, semi)
-    # rhs!(du_loc, u_loc, semi.semis[i], t)
+    foreach(index -> call_rhs!(u_ode, du_ode, index, t, semi), nsystems(semi))
 
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
@@ -482,17 +467,7 @@ end
 
 function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}, u_ode,
                                    semi)
-    for boundary_condition in boundary_conditions
-        copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
-    end
-    # boundary_condition = boundary_conditions[1]
-    # copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
-    # boundary_condition = boundary_conditions[2]
-    # copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
-    # boundary_condition = boundary_conditions[3]
-    # copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
-    # boundary_condition = boundary_conditions[4]
-    # copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
+    foreach(boundary_condition -> copy_to_coupled_boundary!(boundary_condition, u_ode, semi), boundary_conditions)
 end
 
 # In 2D
@@ -534,7 +509,9 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         element_id = linear_indices[i_cell, j_cell]
 
         for element_id in eachnode(solver)
-            x = cache.elements.node_coordinates[:, i_node, j_node,
+            # x = get_node_vars(node_coordinates, equations, solver, i_node, j_node,
+            #                   element_id)
+            x = @view cache.elements.node_coordinates[:, i_node, j_node,
                                                 linear_indices[i_cell, j_cell]]
             u_node = u[:, i_node, j_node, linear_indices[i_cell, j_cell]]
             converted_u = coupling_converter(x, u_node)
