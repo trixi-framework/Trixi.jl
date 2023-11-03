@@ -58,6 +58,9 @@
     end
     if positivity
         for v in limiter.positivity_variables_cons
+            if v in limiter.local_minmax_variables_cons
+                continue
+            end
             key = Symbol(string(v), "_min")
             deviation = idp_bounds_delta[key]
             for element in eachelement(solver, cache), j in eachnode(solver),
@@ -102,6 +105,9 @@
             end
             if positivity
                 for v in limiter.positivity_variables_cons
+                    if v in limiter.local_minmax_variables_cons
+                        continue
+                    end
                     print(f, ", ", idp_bounds_delta[Symbol(string(v), "_min")][1])
                 end
                 for variable in limiter.positivity_variables_nonlinear
