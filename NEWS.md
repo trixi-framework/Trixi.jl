@@ -31,7 +31,7 @@ for human readability.
 
 #### Removed
 
-- Migrate neural network-based shock indicators to a new respository
+- Migrate neural network-based shock indicators to a new repository
   [TrixiSmartShockFinder.jl](https://github.com/trixi-framework/TrixiSmartShockFinder.jl).
 
 
