@@ -17,8 +17,7 @@
 using Trixi, OrdinaryDiffEq
 equations = inearScalarAdvectionEquation2D((-0.2, 0.7))
 
-# Generate a geometrical instruction for spatial discretization using [`TreeMesh`](@ref) with
-# pre-coarsened cell.
+# Generate a spatial discretization using a [`TreeMesh`](@ref) with a pre-coarsened set of cells.
 
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
