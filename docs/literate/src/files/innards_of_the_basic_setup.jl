@@ -203,12 +203,12 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=0.01, save
 # of a particular spatial discretization, it is necessary to define a
 # "right-hand-side function", `rhs!`, within Trixi.jl.
 
-# Trixi.jl includes a set of `rhs!` functions designed to compute `du` according to the structure
+# Trixi.jl includes a set of `rhs!` functions designed to compute `du`, i.e., ``\partial u/\partial t`` according to the structure
 # of the setup. These `rhs!` functions calculate interface, mortars, and boundary fluxes, in
 # addition to surface and volume integrals, in order to construct the `du` vector. This `du` vector
-# is then used by the time integration method to derive solutions in the subsequent time step.
-# The `rhs!` function is called by time integration methods in each iteration of the solve-loop
-# within OrdinaryDiffEq.jl, with arguments `du`, `u`, `Semidiscretization`, and the time step.
+# is then used by the time integration method to obtain the solution at the subsequent time step.
+# The `rhs!` function is called by time integration methods in each iteration of the solve loop
+# within OrdinaryDiffEq.jl, with arguments `du`, `u`, `semidiscretization`, and the current time.
 
 # The problem is that `rhs!` functions within Trixi.jl are specialized for specific solver and mesh
 # types. However, the types of arguments passed to `rhs!` by time integration methods do not
