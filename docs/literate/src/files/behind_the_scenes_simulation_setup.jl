@@ -38,7 +38,7 @@ solver = DGSEM(polydeg = 3)
 
 # Gauss-Lobatto nodes with `polydeg = 3`:
 
-# ![Gauss-Lobatto_nodes_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/401e5e85-026e-48b6-8a1f-dca0306f3bb0)
+# ![Gauss-Lobatto_nodes_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/1d894611-801e-4f75-bff0-d77ca1c672e5)
 
 # ## Overview of the [`SemidiscretizationHyperbolic`](@ref) type
 
