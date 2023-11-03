@@ -126,7 +126,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # functions called recursively. Without delving into details, the structure of the primary calls
 # can be illustrated as follows:
 
-# ![SemidiscretizationHyperbolic_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/2cdfe3d1-f88a-4028-b83c-908d34d400cd)
+# ![SemidiscretizationHyperbolic_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/8bf59422-0537-4d7a-9f13-d9b2253c19d7)
 
 # ## Overview of the [`semidiscretize`](@ref) function
 

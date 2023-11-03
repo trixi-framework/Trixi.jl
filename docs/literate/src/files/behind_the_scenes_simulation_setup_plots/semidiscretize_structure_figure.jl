@@ -48,4 +48,4 @@ annotate!(-2.4, -20.2, ("specialized for solver
 type and dimensionality
 of mesh", 9, :black, :left))
 
-savefig("Issues/semidiscretize_issue#1215/semidiscretize")
+savefig("./semidiscretize")

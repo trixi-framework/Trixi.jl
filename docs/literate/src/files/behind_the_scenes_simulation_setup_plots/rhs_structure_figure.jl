@@ -40,4 +40,4 @@ annotate!(0, -15.5, ("Trixi.rhs!(du, u, t, mesh, equations, initial_condition, \
 
 
 plot!([-2,2], [2,2], linecolor="white", fillcolor="white", label=false,linewidth=2)
-savefig("Issues/semidiscretize_issue#1215/rhs!")
+savefig("./rhs!")

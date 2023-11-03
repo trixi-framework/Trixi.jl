@@ -3,7 +3,7 @@ plot(Shape([(-2.3,4.5), (2.35,4.5), (2.35,2.5), (-2.3,2.5)]), linecolor="black",
 annotate!(2.3, 3.5, ("SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver; source_terms,
 boundary_conditions, RealT, uEltype, initial_cache)          ", 10, :black, :right))
 annotate!(-2.3, 1.5, ("creates and returns SemidiscretizationHyperbolic object, initialized using a mesh, equations,
-initial_coditions, boundary_conditions, source_terms, solver and cache", 9, :black, :left))
+initial_conditions, boundary_conditions, source_terms, solver and cache", 9, :black, :left))
 plot!([-1.2,-1.2],[0.6,-2],arrow=true,color=:black,linewidth=2,label="")
 plot!([-1.2,-1.4],[0.6,-2],arrow=true,color=:black,linewidth=2,label="")
 plot!([-1.2,-1.],[0.6,-2],arrow=true,color=:black,linewidth=2,label="")
@@ -61,4 +61,4 @@ for 2D and 3D create_cache(mesh, equations, dg.mortar, uEltype)", 10, :black, :l
 annotate!(-2, -23.5, ("add specialized parts of the cache required to compute the volume integral, etc.", 9, :black, :left))
 plot!([-2.22,-2],[-22,-22],arrow=true,color=:black,linewidth=2,label="")
 
-savefig("Issues/semidiscretize_issue#1215/SemidiscretizationHyperbolic")
+savefig("./SemidiscretizationHyperbolic")

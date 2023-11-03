@@ -23,4 +23,4 @@ plot!(Shape([(-1.94,-1),(-1.94,-0.03),(-1,-0.03),(-1,-1)]), linecolor="blue", fi
 plot!(Shape([(-1.94,-1.94),(-1.94,-1),(-1,-1),(-1,-1.94)]), linecolor="blue", fillcolor="white", label=false, linewidth=2)
 plot!(Shape([(-1,-1.94),(-1,-1),(-0.03,-1),(-0.03,-1.94)]), linecolor="blue", fillcolor="white", label=false, linewidth=2)
 
-savefig("Issues/semidiscretize_issue#1215/treemesh")
+savefig("./treemesh")

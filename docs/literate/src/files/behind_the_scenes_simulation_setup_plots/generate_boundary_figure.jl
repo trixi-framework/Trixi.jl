@@ -187,4 +187,4 @@ scatter!(nodes_2d[:,1], nodes_2d[:,2], color = "red", label = false, markersize 
 
 plot!([-0.25,-1.25], [-3,-3], linecolor="green", label=false, linewidth=15, opacity=0.3)
 
-savefig("Issues/semidiscretize_issue#1215/boundary")
+savefig("./boundary")
