@@ -2,9 +2,10 @@
 
 # This tutorial will guide you through a simple Trixi.jl setup ("elixir"), giving an overview of what
 # happens in the background during the initialization of a simulation. While this setup
-# does not cover all details, it is based on relatively stable parts of Trixi.jl that are unlikely to undergo
-# significant changes in the near future. The goal is to clarify some of the more fundamental, *technical* concepts that
-# are applicable to a variety of (also more complex) configurations.
+# does not cover all details, it is based on relatively stable parts of Trixi.jl that are unlikely
+# to undergo significant changes in the near future. The goal is to clarify some of the more
+# fundamental, *technical* concepts that are applicable to a variety of (also more complex)
+# configurations.
 
 # ## Basic setup
 
@@ -31,8 +32,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max, initial_refinement_level = 2,
 
 # Instantiate a [`DGSEM`](@ref) solver with a user-specified polynomial degree. The solver
 # will define `polydeg + 1` Gauss-Lobatto nodes and their associated weights within
-# the reference interval ``[-1, 1]`` in each spatial direction. These nodes will be subsequently used to approximate solutions
-# on each leaf cell of the `TreeMesh`.
+# the reference interval ``[-1, 1]`` in each spatial direction. These nodes will be subsequently
+# used to approximate solutions on each leaf cell of the `TreeMesh`.
 
 solver = DGSEM(polydeg = 3)
 
@@ -50,22 +51,24 @@ solver = DGSEM(polydeg = 3)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
                                     solver)
 
-# The constructor for the `SemidiscretizationHyperbolic` object calls numerous sub-functions to perform the necessary
-# initialization steps. A brief description of the key sub-functions is provided below.
+# The constructor for the `SemidiscretizationHyperbolic` object calls numerous sub-functions to
+# perform the necessary initialization steps. A brief description of the key sub-functions is
+# provided below.
 
 # - `init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)`
 
 #   The fundamental elements for approximating a solution are the leaf
-#   cells. This implies that on each leaf cell and in each spatial direction, the solution is treated as a polynomial of the
-#   degree specified in the `DGSEM` solver and evaluated at the Gauss-Lobatto nodes, which were
-#   previously illustrated. The `init_elements` function extracts these leaf cells
-#   from the `TreeMesh`, assigns them the label "elements", records their coordinates, and maps the
-#   Gauss-Lobatto nodes from the 1D interval ``[-1, 1]`` onto each axis of every element.
+#   cells. This implies that on each leaf cell and in each spatial direction, the solution is
+#   treated as a polynomial of the degree specified in the `DGSEM` solver and evaluated at the
+#   Gauss-Lobatto nodes, which were previously illustrated. The `init_elements` function extracts
+#   these leaf cells from the `TreeMesh`, assigns them the label "elements", records their
+#   coordinates, and maps the Gauss-Lobatto nodes from the 1D interval ``[-1, 1]`` onto each axis
+#   of every element.
 
 #   ![elements_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/9f486670-b579-4e42-8697-439540c8bbb4)
 
-#   The visualization of elements with nodes shown here includes spaces between elements, which do not exist
-#   in reality. This spacing is included only for illustrative purposes to underscore the
+#   The visualization of elements with nodes shown here includes spaces between elements, which do
+#   not exist in reality. This spacing is included only for illustrative purposes to underscore the
 #   separation of elements and the independent projection of nodes onto each element.
 
 # - `init_interfaces(leaf_cell_ids, mesh, elements)`
@@ -88,8 +91,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # - `init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)`
 
 #   Returning to the consideration of different sizes among adjacent elements, within the
-#   `TreeMesh`, adjacent leaf cells can vary in side length by a maximum factor of two. This implies
-#   that a large element has one neighbor of
+#   `TreeMesh`, adjacent leaf cells can vary in side length by a maximum factor of two. This
+#   implies that a large element has one neighbor of
 #   equal size with a connection through an interface, or two neighbors at half the size,
 #   requiring a connection through so called "mortars". In 3D, a large element would have
 #   four small neighbor elements.
@@ -117,10 +120,10 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # object of type `SemidiscretizationHyperbolic` is initialized using this cache, initial and
 # boundary conditions, equations, mesh and solver.
 
-# In conclusion, a `HyperbolicSemidiscretization`'s primary purpose is to collect equations, the geometric
-# representation of the domain, and approximation instructions, creating specialized structures to
-# interconnect these components in a manner that enables their utilization for the numerical
-# solution of partial differential equations (PDEs).
+# In conclusion, a `HyperbolicSemidiscretization`'s primary purpose is to collect equations, the
+# geometric representation of the domain, and approximation instructions, creating specialized
+# structures to interconnect these components in a manner that enables their utilization for
+# the numerical solution of partial differential equations (PDEs).
 
 # As evident from the earlier description of `SemidiscretizationHyperbolic`, it comprises numerous
 # functions called recursively. Without delving into details, the structure of the primary calls
@@ -137,7 +140,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # The purpose of the [`semidiscretize`](@ref) function is to wrap the semidiscretization as an
 # `ODEProblem` within the specified time interval, while also applying the initial conditions at
 # the initial time. This `ODEProblem` can be subsequently passed to the `solve`
-# function from the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package or to [`Trixi.solve`](@ref).
+# function from the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package or to
+# [`Trixi.solve`](@ref).
 
 ode = semidiscretize(semi, (0.0, 1.0));
 
@@ -146,11 +150,12 @@ ode = semidiscretize(semi, (0.0, 1.0));
 
 # - `allocate_coefficients(mesh, equations, solver, cache)`
 
-#   To apply initial conditions, a data structure ("container") needs to be generated to store the initial values of
-#   the target variables for each node within each element. The `allocate_coefficients` function
-#   initializes `u_ode` as a 1D vector with a length that depends on the number of variables,
-#   elements, nodes, and dimensions. The use of a 1D vector format allows one to resize the mesh (and thus change the number of elements)
-#   while utilizing the functionalities of OrdinaryDiffEq.jl.
+#   To apply initial conditions, a data structure ("container") needs to be generated to store the
+#   initial values of the target variables for each node within each element. The
+#   `allocate_coefficients` function initializes `u_ode` as a 1D vector with a length that depends
+#   on the number of variables, elements, nodes, and dimensions. The use of a 1D vector format
+#   allows one to resize the mesh (and thus change the number of elements) while utilizing the
+#   functionalities of OrdinaryDiffEq.jl.
 
 # - `wrap_array(u_ode, semi)`
 
@@ -197,7 +202,8 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 0.01,
 # of a particular spatial discretization, it is necessary to define a
 # "right-hand-side function", `rhs!`, within Trixi.jl.
 
-# Trixi.jl includes a set of `rhs!` functions designed to compute `du`, i.e., ``\partial u/\partial t`` according to the structure
+# Trixi.jl includes a set of `rhs!` functions designed to compute `du`, i.e.,
+# ``\partial u/\partial t`` according to the structure
 # of the setup. These `rhs!` functions calculate interface, mortars, and boundary fluxes, in
 # addition to surface and volume integrals, in order to construct the `du` vector. This `du` vector
 # is then used by the time integration method to obtain the solution at the subsequent time step.
