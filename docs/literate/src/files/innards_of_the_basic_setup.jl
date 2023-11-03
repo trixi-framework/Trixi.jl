@@ -161,8 +161,8 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # - `wrap_array(u_ode, semi)`
 
 #   As previously noted, `u_ode` is constructed as a 1D vector to ensure compatibility with
-#   OrdinaryDiffEq.jl. However, for internal use within Trixi.jl, identification which part of the
-#   vector relates to specific variables, elements and nodes can be challenging.
+#   OrdinaryDiffEq.jl. However, for internal use within Trixi.jl, identifying which part of the
+#   vector relates to specific variables, elements, or nodes can be challenging.
 
 #   This is why the `u_ode` vector is wrapped by the `wrap_array` function to create a
 #   multidimensional array `u`, with each dimension representing variables, nodes and elements.
