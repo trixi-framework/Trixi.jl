@@ -199,9 +199,9 @@ ode = semidiscretize(semi, (0.0, 1.0));
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=0.01, save_everystep=false);
 
-# Since the `solve` function and the ODE-solver are defined in another package without knowledge
-# of how to handle discretizations performed in Trixi.jl, it is necessary to define the
-# right-hand-side function, `rhs!`, within Trixi.jl.
+# Since the `solve` function and the ODE solver have no knowledge
+# of a particular spatial discretization, it is necessary to define a
+# "right-hand-side function", `rhs!`, within Trixi.jl.
 
 # Trixi.jl includes a set of `rhs!` functions designed to compute `du` according to the structure
 # of the setup. These `rhs!` functions calculate interface, mortars, and boundary fluxes, in
