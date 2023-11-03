@@ -160,7 +160,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     foreach(semi_ -> copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi), semi.semis)
 
     # Call rhs! for each semidiscretization
-    foreach(index -> call_rhs!(u_ode, du_ode, index, t, semi), nsystems(semi))
+    foreach(index -> call_rhs!(u_ode, du_ode, index, t, semi), eachsystem(semi))
 
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
@@ -512,11 +512,11 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
             # x = get_node_vars(node_coordinates, equations, solver, i_node, j_node,
             #                   element_id)
             x = @view cache.elements.node_coordinates[:, i_node, j_node,
-                                                linear_indices[i_cell, j_cell]]
+                                                      linear_indices[i_cell, j_cell]]
             u_node = u[:, i_node, j_node, linear_indices[i_cell, j_cell]]
             converted_u = coupling_converter(x, u_node)
-            # u_boundary[:, element_id, cell] = converted_u
-            boundary_condition.u_boundary[:, element_id, cell] = converted_u
+            u_boundary[:, element_id, cell] = converted_u
+            # boundary_condition.u_boundary[:, element_id, cell] = converted_u
             i_node += i_node_step
             j_node += j_node_step
         end
