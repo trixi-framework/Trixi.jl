@@ -193,7 +193,7 @@ ode = semidiscretize(semi, (0.0, 1.0));
 
 # ## Functions `solve` and `rhs!`
 
-# Once the `ODEProblem` object is initialized, the `solve` function and one of the ODE-solvers from
+# Once the `ODEProblem` object is initialized, the `solve` function and one of the ODE solvers from
 # the OrdinaryDiffEq.jl package can be utilized to compute an approximated solution using the
 # instructions contained in the `ODEProblem` object.
 
