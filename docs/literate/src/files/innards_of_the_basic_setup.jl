@@ -1,13 +1,10 @@
-#src # Core aspects of the basic setup
+#src # Behind the scenes of a simulation setup
 
-# This tutorial aims to provide insights into the Trixi.jl framework, with a focus on commonly
-# used complex functions. These functions may lack clarity in their names and brief documentation
-# descriptions.
-
-# We will guide you through a simplified setup, emphasizing functionalities that may not be evident
-# to an average user. This setup is based on stable parts of Trixi.jl that are unlikely to undergo
-# significant changes in the near future. Nevertheless, it will clarify fundamental concepts that
-# continue to be applied in more recent and flexible configurations.
+# This tutorial will guide you through a simple Trixi.jl setup ("elixir"), giving an overview of what
+# happens in the background during the initialization of a simulation. While this setup
+# does not cover all details, it is based on relatively stable parts of Trixi.jl that are unlikely to undergo
+# significant changes in the near future. The goal is to clarify some of the more fundamental, *technical* concepts that
+# are applicable to a variety of (also more complex) configurations.
 
 
 # ## Basic setup
