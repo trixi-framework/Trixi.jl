@@ -118,7 +118,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 #   ![boundaries_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/21996b20-4a22-4dfb-b16a-e2c22c2f29fe)
 
-# All the structures mentioned earlier are packed as a cache of type `Tuple`. Subsequently, an
+# All the structures mentioned earlier are collected as a cache of type `NamedTuple`. Subsequently, an
 # object of type `SemidiscretizationHyperbolic` is initialized using this cache, initial and
 # boundary conditions, equations, mesh and solver.
 
