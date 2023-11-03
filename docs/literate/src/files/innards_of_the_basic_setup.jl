@@ -100,7 +100,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   four small neighbor elements.
 
 #   Mortars store information about the connected elements, their relative positions, and allocate
-#   containers for sharing solutions between these elements along their boundaries.
+#   containers for storing the solutions along the boundaries between these elements.
 
 #   In our visualization, mortars are represented as branched tubes.
 
