@@ -140,10 +140,10 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # final step before solving is to select a suitable time span and apply the corresponding initial
 # conditions, which are already stored in the initialized `SemidiscretizationHyperbolic` object.
 
-# The purpose of the [`semidiscretize`](@ref) function is to wrap the semi-discretization as an
+# The purpose of the [`semidiscretize`](@ref) function is to wrap the semidiscretization as an
 # `ODEProblem` within the specified time interval, while also applying the initial conditions at
-# the left boundary of this interval. This `ODEProblem` can be subsequently passed to the `solve`
-# function from the OrdinaryDiffEq.jl package.
+# the initial time. This `ODEProblem` can be subsequently passed to the `solve`
+# function from the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package or to [`Trixi.solve`](@ref).
 
 ode = semidiscretize(semi, (0.0, 1.0));
  
