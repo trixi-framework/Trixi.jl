@@ -23,7 +23,7 @@ coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 
 coarsening_patches = ( # Coarsen cell in the lower-right quarter
-  (type="box", coordinates_min=[0.0, -2.0], coordinates_max=[2.0, 0.0]), 
+  (type = "box", coordinates_min = [0.0, -2.0], coordinates_max = [2.0, 0.0]), 
 )
 
  mesh = TreeMesh(coordinates_min, coordinates_max, initial_refinement_level=2, 
