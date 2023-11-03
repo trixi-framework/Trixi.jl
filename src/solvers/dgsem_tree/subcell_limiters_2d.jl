@@ -92,7 +92,7 @@ end
 end
 
 @inline function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
-                                               mesh::TreeMesh2D)
+                                                 mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
     # Calc bounds at interfaces and periodic boundaries
@@ -249,12 +249,14 @@ end
             end
 
             # Compute bound
-            if limiter.local_minmax
-                var_min[i, j, element] = max(var_min[i, j, element],
-                                             positivity_correction_factor * var)
-            else
-                var_min[i, j, element] = positivity_correction_factor * var
+            if limiter.local_minmax &&
+               variable in limiter.local_minmax_variables_cons &&
+               var_min[i, j, element] >= positivity_correction_factor * var
+                # Local limiting is more restrictive that positivity limiting
+                # => Skip positivity limiting for this node
+                continue
             end
+            var_min[i, j, element] = positivity_correction_factor * var
 
             # Real one-sided Zalesak-type limiter
             # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
