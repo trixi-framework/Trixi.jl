@@ -6,7 +6,6 @@
 # significant changes in the near future. The goal is to clarify some of the more fundamental, *technical* concepts that
 # are applicable to a variety of (also more complex) configurations.
 
-
 # ## Basic setup
 
 # Import essential libraries and specify an equation.
@@ -19,13 +18,12 @@ equations = inearScalarAdvectionEquation2D((-0.2, 0.7))
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 
-coarsening_patches = ( # Coarsen cell in the lower-right quarter
-  (type = "box", coordinates_min = [0.0, -2.0], coordinates_max = [2.0, 0.0]), 
-)
+coarsening_patches = ((type = "box", coordinates_min = [0.0, -2.0],
+                       coordinates_max = [2.0, 0.0]),)
 
- mesh = TreeMesh(coordinates_min, coordinates_max, initial_refinement_level=2, 
-                 n_cells_max=30_000,
-                 coarsening_patches=coarsening_patches)
+mesh = TreeMesh(coordinates_min, coordinates_max, initial_refinement_level = 2,
+                n_cells_max = 30_000,
+                coarsening_patches = coarsening_patches)
 
 # The created `TreeMesh` looks like the following:
 
@@ -36,12 +34,11 @@ coarsening_patches = ( # Coarsen cell in the lower-right quarter
 # the reference interval ``[-1, 1]`` in each spatial direction. These nodes will be subsequently used to approximate solutions
 # on each leaf cell of the `TreeMesh`.
 
-solver = DGSEM(polydeg=3)
+solver = DGSEM(polydeg = 3)
 
-# Gauss-Lobatto nodes with `N=4`:
+# Gauss-Lobatto nodes with `polydeg = 3`:
 
 # ![Gauss-Lobatto_nodes_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/401e5e85-026e-48b6-8a1f-dca0306f3bb0)
-
 
 # ## Overview of the [`SemidiscretizationHyperbolic`](@ref) type
 
@@ -50,13 +47,14 @@ solver = DGSEM(polydeg=3)
 # throughout the entire solving process. This is where [`SemidiscretizationHyperbolic`](@ref) comes
 # into play.
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
+                                    solver)
 
 # The constructor for the `SemidiscretizationHyperbolic` object calls numerous sub-functions to perform the necessary
 # initialization steps. A brief description of the key sub-functions is provided below.
 
 # - `init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)`
- 
+
 #   The fundamental elements for approximating a solution are the leaf
 #   cells. This implies that on each leaf cell and in each spatial direction, the solution is treated as a polynomial of the
 #   degree specified in the `DGSEM` solver and evaluated at the Gauss-Lobatto nodes, which were
@@ -130,7 +128,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 # ![SemidiscretizationHyperbolic_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/2cdfe3d1-f88a-4028-b83c-908d34d400cd)
 
-
 # ## Overview of the [`semidiscretize`](@ref) function
 
 # At this stage, we have defined the equations and configured the domain's discretization. The
@@ -143,7 +140,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # function from the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package or to [`Trixi.solve`](@ref).
 
 ode = semidiscretize(semi, (0.0, 1.0));
- 
+
 # The `semidiscretize` function involves a deep tree of recursive calls, with the primary ones
 # explained below.
 
@@ -187,14 +184,14 @@ ode = semidiscretize(semi, (0.0, 1.0));
 
 # ![semidiscretize_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/491eddc4-aadb-4e29-8c76-a7c821d0674e)
 
-
 # ## Functions `solve` and `rhs!`
 
 # Once the `ODEProblem` object is initialized, the `solve` function and one of the ODE solvers from
 # the OrdinaryDiffEq.jl package can be utilized to compute an approximated solution using the
 # instructions contained in the `ODEProblem` object.
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=0.01, save_everystep=false);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 0.01,
+            save_everystep = false);
 
 # Since the `solve` function and the ODE solver have no knowledge
 # of a particular spatial discretization, it is necessary to define a
@@ -226,4 +223,3 @@ using Plots
 plot(sol)
 pd = PlotData2D(sol)
 plot!(getmesh(pd))
-
