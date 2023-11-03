@@ -304,5 +304,4 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
 
     return alpha
 end
-
 end # @muladd

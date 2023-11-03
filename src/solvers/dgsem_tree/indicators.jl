@@ -332,5 +332,4 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
         summary_box(io, "IndicatorMax", setup)
     end
 end
-
 end # @muladd
