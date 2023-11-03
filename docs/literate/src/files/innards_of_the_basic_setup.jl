@@ -15,7 +15,7 @@
 # Import essential libraries and specify an equation.
 
 using Trixi, OrdinaryDiffEq
-equations=LinearScalarAdvectionEquation2D((-0.2,0.7))
+equations = inearScalarAdvectionEquation2D((-0.2, 0.7))
 
 # Generate a geometrical instruction for spatial discretization using [`TreeMesh`](@ref) with
 # pre-coarsened cell.
