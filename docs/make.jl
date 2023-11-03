@@ -69,7 +69,8 @@ files = [
     "Explicit time stepping" => "time_stepping.jl",
     "Differentiable programming" => "differentiable_programming.jl",
     "Custom semidiscretizations" => "custom_semidiscretization.jl",
-    "Core aspects of the basic setup" => "innards_of_the_basic_setup.jl",
+    "Behind the scenes of a simulation setup"
+     => "behind_the_scenes_simulation_setup.jl",
     ]
 tutorials = create_tutorials(files)
 
