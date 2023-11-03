@@ -34,9 +34,9 @@ coarsening_patches = ( # Coarsen cell in the lower-right quarter
 
 # ![TreeMesh_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/d5ef76ee-8246-4730-a692-b472c06063a3)
 
-# Instantiate a [`DGSEM`](@ref) solver with a user-specified polynomial degree. The solver's
-# objective is to define the `polydeg + 1` Gauss-Lobatto nodes, and their associated weights within
-# the reference interval [-1, 1]. These nodes will be subsequently used to approximate solutions
+# Instantiate a [`DGSEM`](@ref) solver with a user-specified polynomial degree. The solver
+# will define `polydeg + 1` Gauss-Lobatto nodes and their associated weights within
+# the reference interval ``[-1, 1]`` in each spatial direction. These nodes will be subsequently used to approximate solutions
 # on each leaf cell of the `TreeMesh`.
 
 solver = DGSEM(polydeg=3)
