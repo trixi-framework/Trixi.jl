@@ -230,14 +230,3 @@ plot(sol)
 pd = PlotData2D(sol)
 plot!(getmesh(pd))
 
-
-# ## Package versions
-
-# These results were obtained using the following versions.
-
-using InteractiveUtils
-versioninfo()
-
-using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots", "ForwardDiff"],
-           mode=PKGMODE_MANIFEST)
