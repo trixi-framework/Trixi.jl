@@ -46,7 +46,7 @@ solver = DGSEM(polydeg=3)
 # ![Gauss-Lobatto_nodes_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/401e5e85-026e-48b6-8a1f-dca0306f3bb0)
 
 
-# ## Overview of the [`SemidiscretizationHyperbolic`](@ref) function
+# ## Overview of the [`SemidiscretizationHyperbolic`](@ref) type
 
 # At this stage, all the necessary components for configuring domain discretization are in place.
 # The remaining task is to combine these components into a single structure that will be used
