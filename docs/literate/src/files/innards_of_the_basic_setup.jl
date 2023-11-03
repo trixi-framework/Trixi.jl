@@ -60,17 +60,17 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 # - `init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)`
  
-#   As was already mentioned, the fundamental elements for approximating a solution are the leaf
-#   cells. This implies that on each leaf cell, the solution is treated as a polynomial of the
+#   The fundamental elements for approximating a solution are the leaf
+#   cells. This implies that on each leaf cell and in each spatial direction, the solution is treated as a polynomial of the
 #   degree specified in the `DGSEM` solver and evaluated at the Gauss-Lobatto nodes, which were
-#   previously illustrated. To provide this, the `init_elements` function extracts these leaf cells
+#   previously illustrated. The `init_elements` function extracts these leaf cells
 #   from the `TreeMesh`, assigns them the label "elements", records their coordinates, and maps the
-#   Gauss-Lobatto nodes from the 1D interval [-1, 1] onto each axis of every element.
+#   Gauss-Lobatto nodes from the 1D interval ``[-1, 1]`` onto each axis of every element.
 
 #   ![elements_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/534131bd-e85b-43d5-860d-2db6e60ce921)
 
-#   The visualization of elements with nodes includes spaces between elements, which do not exist
-#   in  reality. This spacing is included only for illustrative purposes to underscore the
+#   The visualization of elements with nodes shown here includes spaces between elements, which do not exist
+#   in reality. This spacing is included only for illustrative purposes to underscore the
 #   separation of elements and the independent projection of nodes onto each element.
 
 # - `init_interfaces(leaf_cell_ids, mesh, elements)`
