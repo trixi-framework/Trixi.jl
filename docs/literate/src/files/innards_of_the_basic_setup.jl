@@ -48,7 +48,7 @@ solver = DGSEM(polydeg=3)
 
 # ## Overview of the [`SemidiscretizationHyperbolic`](@ref) type
 
-# At this stage, all the necessary components for configuring domain discretization are in place.
+# At this stage, all necessary components for configuring the spatial discretization are in place.
 # The remaining task is to combine these components into a single structure that will be used
 # throughout the entire solving process. This is where [`SemidiscretizationHyperbolic`](@ref) comes
 # into play.
