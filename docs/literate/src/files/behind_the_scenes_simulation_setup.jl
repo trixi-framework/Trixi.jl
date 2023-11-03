@@ -62,7 +62,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   from the `TreeMesh`, assigns them the label "elements", records their coordinates, and maps the
 #   Gauss-Lobatto nodes from the 1D interval ``[-1, 1]`` onto each axis of every element.
 
-#   ![elements_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/534131bd-e85b-43d5-860d-2db6e60ce921)
+#   ![elements_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/9f486670-b579-4e42-8697-439540c8bbb4)
 
 #   The visualization of elements with nodes shown here includes spaces between elements, which do not exist
 #   in reality. This spacing is included only for illustrative purposes to underscore the
