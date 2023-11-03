@@ -152,12 +152,11 @@ ode = semidiscretize(semi, (0.0, 1.0));
 
 # - `allocate_coefficients(mesh, equations, solver, cache)`
 
-#   To apply initial conditions, a container needs to be generated to store the initial values of
+#   To apply initial conditions, a data structure ("container") needs to be generated to store the initial values of
 #   the target variables for each node within each element. The `allocate_coefficients` function
-#   initializes `u_ode` as a 1D zero-vector with a length that depends on the number of variables,
-#   elements, nodes, and dimensions. The use of a 1D vector format is consistent with the
-#   requirements of the ODE-solvers from OrdinaryDiffEq.jl. Therefore, Trixi.jl follows this
-#   format to be able to utilize the functionalities of OrdinaryDiffEq.jl.
+#   initializes `u_ode` as a 1D vector with a length that depends on the number of variables,
+#   elements, nodes, and dimensions. The use of a 1D vector format allows one to resize the mesh (and thus change the number of elements)
+#   while utilizing the functionalities of OrdinaryDiffEq.jl.
 
 # - `wrap_array(u_ode, semi)`
 
