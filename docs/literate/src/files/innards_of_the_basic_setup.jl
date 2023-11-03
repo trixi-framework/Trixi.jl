@@ -93,10 +93,11 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # - `init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)`
 
 #   Returning to the consideration of different sizes among adjacent elements, within the
-#   `TreeMesh`, adjacent leaf cells can vary in size by a maximum factor of two. This implies
-#   that a coarsened element on each side, excluding the domain boundaries, has one neighbor of
-#   equal size with a connection through an interface, or two neighbors with sizes two times
-#   smaller, requiring a connection through so called "mortars".
+#   `TreeMesh`, adjacent leaf cells can vary in side length by a maximum factor of two. This implies
+#   that a large element has one neighbor of
+#   equal size with a connection through an interface, or two neighbors at half the size,
+#   requiring a connection through so called "mortars". In 3D, a large element would have
+#   four small neighbor elements.
 
 #   Mortars store information about the connected elements, their relative positions, and allocate
 #   containers for sharing solutions between these elements along their boundaries.
