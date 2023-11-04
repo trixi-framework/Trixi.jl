@@ -56,7 +56,7 @@ a system-provided MPI installation with Trixi.jl can be found in the following s
 When using Trixi.jl with a system-provided MPI backend, the underlying
 [`p4est`](https://github.com/cburstedde/p4est), [`t8code`](https://github.com/DLR-AMR/t8code)
 and [`hdf5`](https://github.com/HDFGroup/hdf5) libraries need to be compiled with the same MPI
-installation. Therefore, you also need to use system-provided `p4est`, `t8code`, `hdf5` installations
+installation. Therefore, you also need to use system-provided `p4est`, `t8code` and `hdf5` installations
 (for notes on how to install `p4est` and `t8code` see e.g. [here](https://github.com/cburstedde/p4est/blob/master/README)
 and [here](https://github.com/DLR-AMR/t8code/wiki/Installation), use the configure option
 `--enable-mpi`). Note that `t8code` already comes with a `p4est` installation, so it suffices
