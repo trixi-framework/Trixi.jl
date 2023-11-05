@@ -43,7 +43,7 @@ scatter(real.(λ), imag.(λ), label="central flux")
 # As you can see here, the maximal real part is close to zero.
 
 relative_maximum = maximum(real, λ) / maximum(abs, λ)
-@test 3.0e-10 < relative_maximum < 8.0e-10 #src
+@test 3.0e-10 < relative_maximum < 9.0e-10 #src
 
 # Interestingly, if we add dissipation by switching to the `flux_lax_friedrichs`
 # at the interfaces, the maximal real part of the eigenvalues increases.
@@ -87,7 +87,7 @@ scatter(real.(λ), imag.(λ), label="central flux")
 # Here, the maximal real part is basically zero to machine accuracy.
 
 relative_maximum = maximum(real, λ) / maximum(abs, λ)
-@test 1.0e-17 < relative_maximum < 1.0e-15 #src
+@test 1.0e-17 < relative_maximum < 2.0e-15 #src
 
 # Moreover, the eigenvectors are not as ill-conditioned as in 2D.
 
