@@ -55,23 +55,23 @@ a system-provided MPI installation with Trixi.jl can be found in the following s
 
 When using Trixi.jl with a system-provided MPI backend, the underlying
 [`p4est`](https://github.com/cburstedde/p4est), [`t8code`](https://github.com/DLR-AMR/t8code)
-and [`hdf5`](https://github.com/HDFGroup/hdf5) libraries need to be compiled with the same MPI
-installation. Therefore, you also need to use system-provided `p4est`, `t8code` and `hdf5` installations
-(for notes on how to install `p4est` and `t8code` see e.g. [here](https://github.com/cburstedde/p4est/blob/master/README)
+and [`HDF5`](https://github.com/HDFGroup/hdf5) libraries need to be compiled with the same MPI
+installation. Therefore, you also need to use system-provided `p4est`, `t8code` and `HDF5` installations
+(for notes on how to install `p4est` and `t8code` see, e.g., [here](https://github.com/cburstedde/p4est/blob/master/README)
 and [here](https://github.com/DLR-AMR/t8code/wiki/Installation), use the configure option
 `--enable-mpi`). Note that `t8code` already comes with a `p4est` installation, so it suffices
 to install `t8code`. In addition, [P4est.jl](https://github.com/trixi-framework/P4est.jl),
-[T8code.jl](https://github.com/DLR-AMR/T8code.jl) and [HDF5.jl](https://github.com/JuliaIO/HDF5.jl)
+[T8code.jl](https://github.com/DLR-AMR/T8code.jl), and [HDF5.jl](https://github.com/JuliaIO/HDF5.jl)
 need to be configured to use the custom installations. Follow the steps described
 [here](https://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation),
-[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) and
+[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation), and
 [here](https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#Using-parallel-input-and-output)
 for the configuration. The paths that point to `libp4est.so` (and potentially to `libsc.so`) need to be
 the same for P4est.jl and T8code.jl. This could e.g. be `libp4est.so` that usually can be found
 in `lib/` or `local/lib/` in the installation directory of `t8code`.
-In total, in your active Julia project you should have a LocalPreferences.toml file with sections
-`[MPIPreferences]`, `[T8code]`, `[P4est]` and `[HDF5]` as well as an entry `MPIPreferences` in your
-Project.toml to use a custom MPI installation. A `LocalPreferences.toml` file 
+In total, in your active Julia project you should have a `LocalPreferences.toml` file with sections
+`[MPIPreferences]`, `[T8code]`, `[P4est]`, and `[HDF5]` as well as an entry `MPIPreferences` in your
+`Project.toml` to use a custom MPI installation. A `LocalPreferences.toml` file 
 created as described above might look something like the following:
 ```toml
 [HDF5]
