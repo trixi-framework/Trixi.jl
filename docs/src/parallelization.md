@@ -219,7 +219,7 @@ julia> HDF5.API.set_libraries!("/path/to/your/libhdf5.so", "/path/to/your/libhdf
 ```
 For more information see also the
 [documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). In total, you should
-have a file called LocalPreferences.toml in the project directory that contains a section
+have a file called `LocalPreferences.toml` in the project directory that contains a section
 `[MPIPreferences]`, a section `[HDF5]` with entries `libhdf5` and `libhdf5_hl`, a section `[P4est]`
 with the entry `libp4est` as well as a section `[T8code]` with the entries `libt8`, `libp4est`
 and `libsc`.
