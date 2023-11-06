@@ -6,8 +6,6 @@ gradient_variable_transformation(::AbstractEquationsParabolic) = cons2cons
 # this is reflected by the type parameter `GradientVariablesConservative` in the abstract
 # type `AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative}`.
 struct GradientVariablesConservative end
-struct GradientVariablesPrimitive end
-struct GradientVariablesEntropy end
 
 # Linear scalar diffusion for use in linear scalar advection-diffusion problems
 abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
