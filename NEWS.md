@@ -4,6 +4,18 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.6 from v0.5.x
+
+#### Added
+
+#### Changed
+
+- The wave speed estimates for `flux_hll`, `FluxHLL()` are now consistent across equations.
+  In particular, the functions `min_max_speed_naive`, `min_max_speed_einfeldt` are now 
+  conceptually identical across equations.
+  Users, who have been using `flux_hll` for MHD have now to use `flux_hlle` in order to use the
+  Einfeldt wave speed estimate.
+
 ## Changes in the v0.5 lifecycle
 
 #### Added

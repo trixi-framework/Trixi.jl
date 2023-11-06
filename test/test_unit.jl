@@ -1189,7 +1189,7 @@ end
         u_values = [SVector(1.0, 0.5, -0.7, 1.0),
             SVector(1.5, -0.2, 0.1, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            flux_hll, FluxHLL(min_max_speed_davis)]
+            flux_hll, FluxHLL(min_max_speed_davis), flux_hlle]
 
         for f_std in fluxes
             f_rot = FluxRotated(f_std)
@@ -1213,7 +1213,7 @@ end
             SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
             FluxLMARS(340),
-            flux_hll, FluxHLL(min_max_speed_davis)]
+            flux_hll, FluxHLL(min_max_speed_davis), flux_hlle]
 
         for f_std in fluxes
             f_rot = FluxRotated(f_std)
@@ -1252,6 +1252,7 @@ end
             flux_hindenlang_gassner,
             flux_hll,
             FluxHLL(min_max_speed_davis),
+            flux_hlle
         ]
 
         for f_std in fluxes
@@ -1279,6 +1280,7 @@ end
             flux_hindenlang_gassner,
             flux_hll,
             FluxHLL(min_max_speed_davis),
+            flux_hlle
         ]
 
         for f_std in fluxes
