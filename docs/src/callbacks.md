@@ -15,7 +15,7 @@ control, adaptive mesh refinement, I/O, and more.
 
 ### CFL-based time step control
 Time step control can be performed with a [`StepsizeCallback`](@ref). An example making use
-of this can be found at [examples/tree_2d_dgsem/elixir\_advection\_basic.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_basic.jl)
+of this can be found at [`examples/tree_2d_dgsem/elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_basic.jl)
 
 ### Adaptive mesh refinement
 Trixi.jl uses a hierarchical Cartesian mesh which can be locally refined in a solution-adaptive way.
@@ -24,13 +24,18 @@ passing an [`AMRCallback`](@ref) to the ODE solver. The `AMRCallback` requires a
 [`ControllerThreeLevel`](@ref) or [`ControllerThreeLevelCombined`](@ref) to tell the AMR
 algorithm which cells to refine/coarsen.
 
-An example elixir using AMR can be found at [examples/tree_2d_dgsem/elixir\_advection\_amr.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_amr.jl).
+An example elixir using AMR can be found at [`examples/tree_2d_dgsem/elixir_advection_amr.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_amr.jl).
 
 ### Analyzing the numerical solution
 The [`AnalysisCallback`](@ref) can be used to analyze the numerical solution, e.g. calculate
 errors or user-specified integrals, and print the results to the screen. The results can also be
-saved in a file. An example can be found at [examples/tree_2d_dgsem/elixir\_euler\_vortex.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_vortex.jl).
-In [Performance metrics of the `AnalysisCallback`](@ref) you can find a detailed
+saved in a file. An example can be found at [`examples/tree_2d_dgsem/elixir_euler_vortex.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_vortex.jl).
+Note that the errors (e.g. `L2 error` or `Linf error`) are computed with respect to the initial condition.
+The percentage of the simulation time refers to the ratio of the current time and the final time, i.e. it does
+not consider the maximal number of iterations. So the simulation could finish before 100% are reached.
+Note that, e.g., due to AMR or smaller time step sizes, the simulation can actually take longer than
+the percentage indicates.
+In [Performance metrics of the `AnalysisCallback`](@ref performance-metrics) you can find a detailed
 description of the different performance metrics the `AnalysisCallback` computes.
 
 ### I/O
@@ -38,15 +43,15 @@ description of the different performance metrics the `AnalysisCallback` computes
 #### Solution and restart files
 To save the solution in regular intervals you can use a [`SaveSolutionCallback`](@ref). It is also
 possible to create restart files using the [`SaveRestartCallback`](@ref). An example making use
-of these can be found at [examples/tree_2d_dgsem/elixir\_advection\_extended.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_extended.jl).
+of these can be found at [`examples/tree_2d_dgsem/elixir_advection_extended.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_extended.jl).
 An example showing how to restart a simulation from a restart file can be found at
-[examples/tree_2d_dgsem/elixir\_advection\_restart.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_restart.jl).
+[`examples/tree_2d_dgsem/elixir_advection_restart.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_restart.jl).
 
 #### Time series
 Sometimes it is useful to record the evaluations of state variables over time at
 a given set of points. This can be achieved by the [`TimeSeriesCallback`](@ref), which is used,
 e.g., in
-[examples/tree_2d_dgsem/elixir\_acoustics\_gaussian\_source.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_acoustics_gaussian_source.jl).
+[`examples/tree_2d_dgsem/elixir_acoustics_gaussian_source.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_acoustics_gaussian_source.jl).
 The `TimeSeriesCallback` constructor expects a semidiscretization and a list of points at
 which the solution should be recorded in regular time step intervals. After the
 last time step, the entire record is stored in an HDF5 file.
@@ -106,19 +111,19 @@ will yield the following plot:
   the automated performance measurements, including an output of the recorded timers after a simulation.
 * The [`VisualizationCallback`](@ref) can be used for in-situ visualization. See
   [Visualizing results during a simulation](@ref).
-* The [`TrivialCallback`](@ref) does nothing and can be used to to easily disable some callbacks
+* The [`TrivialCallback`](@ref) does nothing and can be used to easily disable some callbacks
   via [`trixi_include`](@ref).
 
 ### Equation-specific callbacks
 Some callbacks provided by Trixi.jl implement specific features for certain equations:
 * The [`LBMCollisionCallback`](@ref) implements the Lattice-Boltzmann method (LBM) collision
   operator and should only be used when solving the Lattice-Boltzmann equations. See e.g.
-  [examples/tree_2d_dgsem/elixir\_lbm\_constant.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_lbm_constant.jl)
+  [`examples/tree_2d_dgsem/elixir_lbm_constant.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_lbm_constant.jl)
 * The [`SteadyStateCallback`](@ref) terminates the time integration when the residual steady state
   falls below a certain threshold. This checks the convergence of the potential ``\phi`` for
-  hyperbolic diffusion. See e.g. [examples/tree_2d_dgsem/elixir\_hypdiff\_nonperiodic.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_hypdiff_nonperiodic.jl).
+  hyperbolic diffusion. See e.g. [`examples/tree_2d_dgsem/elixir_hypdiff_nonperiodic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_hypdiff_nonperiodic.jl).
 * The [`GlmSpeedCallback`](@ref) updates the divergence cleaning wave speed `c_h` for the ideal
-  GLM-MHD equations. See e.g. [examples/tree_2d_dgsem/elixir\_mhd\_alfven\_wave.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_mhd_alfven_wave.jl).
+  GLM-MHD equations. See e.g. [`examples/tree_2d_dgsem/elixir_mhd_alfven_wave.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_mhd_alfven_wave.jl).
 
 ## Usage of step callbacks
 Step callbacks are passed to the `solve` method from the ODE solver via the keyword argument
@@ -152,7 +157,7 @@ more callbacks, you need to turn them into a `CallbackSet` first by calling
 ## Stage callbacks
 [`PositivityPreservingLimiterZhangShu`](@ref) is a positivity-preserving limiter, used to enforce
 physical constraints. An example elixir using this feature can be found at
-[examples/tree_2d_dgsem/elixir\_euler\_positivity.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_positivity.jl).
+[`examples/tree_2d_dgsem/elixir_euler_positivity.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_positivity.jl).
 
 ## Implementing new callbacks
 Since Trixi.jl is compatible with [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
@@ -162,4 +167,4 @@ Step callbacks are just called [callbacks](https://diffeq.sciml.ai/latest/featur
 Stage callbacks are called [`stage_limiter!`](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws)).
 
 An example elixir showing how to implement a new simple stage callback and a new simple step
-callback can be found at [examples/tree_2d_dgsem/elixir\_advection\_callbacks.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_callbacks.jl).
+callback can be found at [`examples/tree_2d_dgsem/elixir_advection_callbacks.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_callbacks.jl).

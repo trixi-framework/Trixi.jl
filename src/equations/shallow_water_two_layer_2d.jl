@@ -271,24 +271,24 @@ end
     v1_upper, v2_upper, v1_lower, v2_lower = velocity(u, equations)
 
     # Calculate pressure
-    p1 = 0.5 * equations.gravity * h_upper^2
-    p2 = 0.5 * equations.gravity * h_lower^2
+    p_upper = 0.5 * equations.gravity * h_upper^2
+    p_lower = 0.5 * equations.gravity * h_lower^2
 
     # Calculate fluxes depending on orientation
     if orientation == 1
         f1 = h_v1_upper
-        f2 = h_v1_upper * v1_upper + p1
+        f2 = h_v1_upper * v1_upper + p_upper
         f3 = h_v1_upper * v2_upper
         f4 = h_v1_lower
-        f5 = h_v1_lower * v1_lower + p2
+        f5 = h_v1_lower * v1_lower + p_lower
         f6 = h_v1_lower * v2_lower
     else
         f1 = h_v2_upper
         f2 = h_v2_upper * v1_upper
-        f3 = h_v2_upper * v2_upper + p1
+        f3 = h_v2_upper * v2_upper + p_upper
         f4 = h_v2_lower
         f5 = h_v2_lower * v1_lower
-        f6 = h_v2_lower * v2_lower + p2
+        f6 = h_v2_lower * v2_lower + p_lower
     end
     return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u)))
 end
@@ -305,21 +305,25 @@ end
     h_v_upper_normal = h_upper * v_normal_upper
     h_v_lower_normal = h_lower * v_normal_lower
 
-    p1 = 0.5 * equations.gravity * h_upper^2
-    p2 = 0.5 * equations.gravity * h_lower^2
+    p_upper = 0.5 * equations.gravity * h_upper^2
+    p_lower = 0.5 * equations.gravity * h_lower^2
 
     f1 = h_v_upper_normal
-    f2 = h_v_upper_normal * v1_upper + p1 * normal_direction[1]
-    f3 = h_v_upper_normal * v2_upper + p1 * normal_direction[2]
+    f2 = h_v_upper_normal * v1_upper + p_upper * normal_direction[1]
+    f3 = h_v_upper_normal * v2_upper + p_upper * normal_direction[2]
     f4 = h_v_lower_normal
-    f5 = h_v_lower_normal * v1_lower + p2 * normal_direction[1]
-    f6 = h_v_lower_normal * v2_lower + p2 * normal_direction[2]
+    f5 = h_v_lower_normal * v1_lower + p_lower * normal_direction[1]
+    f6 = h_v_lower_normal * v2_lower + p_lower * normal_direction[2]
 
     return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u)))
 end
 
 """
     flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterTwoLayerEquations2D)
+    flux_nonconservative_ersing_etal(u_ll, u_rr,
+                                     normal_direction_ll::AbstractVector,
+                                     normal_direction_average::AbstractVector,
                                      equations::ShallowWaterTwoLayerEquations2D)
 
 !!! warning "Experimental code"
@@ -410,6 +414,9 @@ end
 """
     flux_wintermeyer_etal(u_ll, u_rr, orientation,
                           equations::ShallowWaterTwoLayerEquations2D)
+    flux_wintermeyer_etal(u_ll, u_rr,
+                          normal_direction::AbstractVector,
+                          equations::ShallowWaterTwoLayerEquations2D)
 
 Total energy conservative (mathematical entropy for two-layer shallow water equations) split form.
 When the bottom topography is nonzero this scheme will be well-balanced when used with the 
@@ -439,24 +446,24 @@ Further details are available in Theorem 1 of the paper:
     v1_lower_avg = 0.5 * (v1_lower_ll + v1_lower_rr)
     v2_upper_avg = 0.5 * (v2_upper_ll + v2_upper_rr)
     v2_lower_avg = 0.5 * (v2_lower_ll + v2_lower_rr)
-    p1_avg = 0.5 * equations.gravity * h_upper_ll * h_upper_rr
-    p2_avg = 0.5 * equations.gravity * h_lower_ll * h_lower_rr
+    p_upper_avg = 0.5 * equations.gravity * h_upper_ll * h_upper_rr
+    p_lower_avg = 0.5 * equations.gravity * h_lower_ll * h_lower_rr
 
     # Calculate fluxes depending on orientation
     if orientation == 1
         f1 = 0.5 * (h_v1_upper_ll + h_v1_upper_rr)
-        f2 = f1 * v1_upper_avg + p1_avg
+        f2 = f1 * v1_upper_avg + p_upper_avg
         f3 = f1 * v2_upper_avg
         f4 = 0.5 * (h_v1_lower_ll + h_v1_lower_rr)
-        f5 = f4 * v1_lower_avg + p2_avg
+        f5 = f4 * v1_lower_avg + p_lower_avg
         f6 = f4 * v2_lower_avg
     else
         f1 = 0.5 * (h_v2_upper_ll + h_v2_upper_rr)
         f2 = f1 * v1_upper_avg
-        f3 = f1 * v2_upper_avg + p1_avg
+        f3 = f1 * v2_upper_avg + p_upper_avg
         f4 = 0.5 * (h_v2_lower_ll + h_v2_lower_rr)
         f5 = f4 * v1_lower_avg
-        f6 = f4 * v2_lower_avg + p2_avg
+        f6 = f4 * v2_lower_avg + p_lower_avg
     end
 
     return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
@@ -478,8 +485,8 @@ end
     v1_lower_avg = 0.5 * (v1_lower_ll + v1_lower_rr)
     v2_upper_avg = 0.5 * (v2_upper_ll + v2_upper_rr)
     v2_lower_avg = 0.5 * (v2_lower_ll + v2_lower_rr)
-    p1_avg = 0.5 * equations.gravity * h_upper_ll * h_upper_rr
-    p2_avg = 0.5 * equations.gravity * h_lower_ll * h_lower_rr
+    p_upper_avg = 0.5 * equations.gravity * h_upper_ll * h_upper_rr
+    p_lower_avg = 0.5 * equations.gravity * h_lower_ll * h_lower_rr
     h_v1_upper_avg = 0.5 * (h_v1_upper_ll + h_v1_upper_rr)
     h_v2_upper_avg = 0.5 * (h_v2_upper_ll + h_v2_upper_rr)
     h_v1_lower_avg = 0.5 * (h_v1_lower_ll + h_v1_lower_rr)
@@ -487,11 +494,11 @@ end
 
     # Calculate fluxes depending on normal_direction
     f1 = h_v1_upper_avg * normal_direction[1] + h_v2_upper_avg * normal_direction[2]
-    f2 = f1 * v1_upper_avg + p1_avg * normal_direction[1]
-    f3 = f1 * v2_upper_avg + p1_avg * normal_direction[2]
+    f2 = f1 * v1_upper_avg + p_upper_avg * normal_direction[1]
+    f3 = f1 * v2_upper_avg + p_upper_avg * normal_direction[2]
     f4 = h_v1_lower_avg * normal_direction[1] + h_v2_lower_avg * normal_direction[2]
-    f5 = f4 * v1_lower_avg + p2_avg * normal_direction[1]
-    f6 = f4 * v2_lower_avg + p2_avg * normal_direction[2]
+    f5 = f4 * v1_lower_avg + p_lower_avg * normal_direction[1]
+    f6 = f4 * v2_lower_avg + p_lower_avg * normal_direction[2]
 
     return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
 end

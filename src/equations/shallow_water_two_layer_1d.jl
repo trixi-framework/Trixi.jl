@@ -87,15 +87,15 @@ end
 
 have_nonconservative_terms(::ShallowWaterTwoLayerEquations1D) = True()
 function varnames(::typeof(cons2cons), ::ShallowWaterTwoLayerEquations1D)
-    ("h_upper", "h_v1_upper",
-     "h_lower", "h_v1_lower", "b")
+    ("h_upper", "h_v_upper",
+     "h_lower", "h_v_lower", "b")
 end
 # Note, we use the total water height, H_lower = h_upper + h_lower + b, and first layer total height
 # H_upper = h_upper + b as the first primitive variable for easier visualization and setting initial
 # conditions
 function varnames(::typeof(cons2prim), ::ShallowWaterTwoLayerEquations1D)
-    ("H_upper", "v1_upper",
-     "H_lower", "v1_lower", "b")
+    ("H_upper", "v_upper",
+     "H_lower", "v_lower", "b")
 end
 
 # Set initial conditions at physical location `x` for time `t`
@@ -113,11 +113,11 @@ function initial_condition_convergence_test(x, t,
 
     H_lower = 2.0 + 0.1 * sin(ω * x[1] + t)
     H_upper = 4.0 + 0.1 * cos(ω * x[1] + t)
-    v1_lower = 1.0
-    v1_upper = 0.9
+    v_lower = 1.0
+    v_upper = 0.9
     b = 1.0 + 0.1 * cos(2.0 * ω * x[1])
 
-    return prim2cons(SVector(H_upper, v1_upper, H_lower, v1_lower, b), equations)
+    return prim2cons(SVector(H_upper, v_upper, H_lower, v_lower, b), equations)
 end
 
 """
@@ -196,18 +196,18 @@ end
 # Note, the bottom topography has no flux
 @inline function flux(u, orientation::Integer,
                       equations::ShallowWaterTwoLayerEquations1D)
-    h_upper, h_v1_upper, h_lower, h_v2_lower, _ = u
+    h_upper, h_v_upper, h_lower, h_v_lower, _ = u
 
     # Calculate velocities
-    v1_upper, v1_lower = velocity(u, equations)
+    v_upper, v_lower = velocity(u, equations)
     # Calculate pressure
-    p1 = 0.5 * equations.gravity * h_upper^2
-    p2 = 0.5 * equations.gravity * h_lower^2
+    p_upper = 0.5 * equations.gravity * h_upper^2
+    p_lower = 0.5 * equations.gravity * h_lower^2
 
-    f1 = h_v1_upper
-    f2 = h_v1_upper * v1_upper + p1
-    f3 = h_v2_lower
-    f4 = h_v2_lower * v1_lower + p2
+    f1 = h_v_upper
+    f2 = h_v_upper * v_upper + p_upper
+    f3 = h_v_lower
+    f4 = h_v_lower * v_lower + p_lower
 
     return SVector(f1, f2, f3, f4, zero(eltype(u)))
 end
@@ -279,24 +279,24 @@ Further details are available in Theorem 1 of the paper:
                                        orientation::Integer,
                                        equations::ShallowWaterTwoLayerEquations1D)
     # Unpack left and right state
-    h_upper_ll, h_v1_upper_ll, h_lower_ll, h_v2_lower_ll, _ = u_ll
-    h_upper_rr, h_v1_upper_rr, h_lower_rr, h_v2_lower_rr, _ = u_rr
+    h_upper_ll, h_v_upper_ll, h_lower_ll, h_v_lower_ll, _ = u_ll
+    h_upper_rr, h_v_upper_rr, h_lower_rr, h_v_lower_rr, _ = u_rr
 
     # Get the velocities on either side
-    v1_ll, v2_ll = velocity(u_ll, equations)
-    v1_rr, v2_rr = velocity(u_rr, equations)
+    v_upper_ll, v_lower_ll = velocity(u_ll, equations)
+    v_upper_rr, v_lower_rr = velocity(u_rr, equations)
 
     # Average each factor of products in flux
-    v1_avg = 0.5 * (v1_ll + v1_rr)
-    v2_avg = 0.5 * (v2_ll + v2_rr)
-    p1_avg = 0.5 * equations.gravity * h_upper_ll * h_upper_rr
-    p2_avg = 0.5 * equations.gravity * h_lower_ll * h_lower_rr
+    v_upper_avg = 0.5 * (v_upper_ll + v_upper_rr)
+    v_lower_avg = 0.5 * (v_lower_ll + v_lower_rr)
+    p_upper_avg = 0.5 * equations.gravity * h_upper_ll * h_upper_rr
+    p_lower_avg = 0.5 * equations.gravity * h_lower_ll * h_lower_rr
 
     # Calculate fluxes
-    f1 = 0.5 * (h_v1_upper_ll + h_v1_upper_rr)
-    f2 = f1 * v1_avg + p1_avg
-    f3 = 0.5 * (h_v2_lower_ll + h_v2_lower_rr)
-    f4 = f3 * v2_avg + p2_avg
+    f1 = 0.5 * (h_v_upper_ll + h_v_upper_rr)
+    f2 = f1 * v_upper_avg + p_upper_avg
+    f3 = 0.5 * (h_v_lower_ll + h_v_lower_rr)
+    f4 = f3 * v_lower_avg + p_lower_avg
 
     return SVector(f1, f2, f3, f4, zero(eltype(u_ll)))
 end
@@ -383,12 +383,12 @@ end
                                      orientation::Integer,
                                      equations::ShallowWaterTwoLayerEquations1D)
     # Unpack left and right state
-    h_upper_ll, h_v1_upper_ll, h_lower_ll, h_v2_lower_ll, _ = u_ll
-    h_upper_rr, h_v1_upper_rr, h_lower_rr, h_v2_lower_rr, _ = u_rr
+    h_upper_ll, h_v_upper_ll, h_lower_ll, h_v_lower_ll, _ = u_ll
+    h_upper_rr, h_v_upper_rr, h_lower_rr, h_v_lower_rr, _ = u_rr
 
     # Get the averaged velocity
-    v_m_ll = (h_v1_upper_ll + h_v2_lower_ll) / (h_upper_ll + h_lower_ll)
-    v_m_rr = (h_v1_upper_rr + h_v2_lower_rr) / (h_upper_rr + h_lower_rr)
+    v_m_ll = (h_v_upper_ll + h_v_lower_ll) / (h_upper_ll + h_lower_ll)
+    v_m_rr = (h_v_upper_rr + h_v_lower_rr) / (h_upper_rr + h_lower_rr)
 
     # Calculate the wave celerity on the left and right
     h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
@@ -412,10 +412,10 @@ end
 
 # Absolute speed of the barotropic mode
 @inline function max_abs_speeds(u, equations::ShallowWaterTwoLayerEquations1D)
-    h_upper, h_v1_upper, h_lower, h_v2_lower, _ = u
+    h_upper, h_v_upper, h_lower, h_v_lower, _ = u
 
     # Calculate averaged velocity of both layers
-    v_m = (h_v1_upper + h_v2_lower) / (h_upper + h_lower)
+    v_m = (h_v_upper + h_v_lower) / (h_upper + h_lower)
     c = sqrt(equations.gravity * (h_upper + h_lower))
 
     return (abs(v_m) + c)
@@ -423,11 +423,11 @@ end
 
 # Helper function to extract the velocity vector from the conservative variables
 @inline function velocity(u, equations::ShallowWaterTwoLayerEquations1D)
-    h_upper, h_v1_upper, h_lower, h_v2_lower, _ = u
+    h_upper, h_v_upper, h_lower, h_v_lower, _ = u
 
-    v1_upper = h_v1_upper / h_upper
-    v1_lower = h_v2_lower / h_lower
-    return SVector(v1_upper, v1_lower)
+    v_upper = h_v_upper / h_upper
+    v_lower = h_v_lower / h_lower
+    return SVector(v_upper, v_lower)
 end
 
 # Convert conservative variables to primitive
@@ -436,8 +436,8 @@ end
 
     H_lower = h_lower + b
     H_upper = h_lower + h_upper + b
-    v1_upper, v1_lower = velocity(u, equations)
-    return SVector(H_upper, v1_upper, H_lower, v1_lower, b)
+    v_upper, v_lower = velocity(u, equations)
+    return SVector(H_upper, v_upper, H_lower, v_lower, b)
 end
 
 # Convert conservative variables to entropy variables
@@ -445,26 +445,26 @@ end
 # bottom topography values for convenience
 @inline function cons2entropy(u, equations::ShallowWaterTwoLayerEquations1D)
     h_upper, _, h_lower, _, b = u
-    v1_upper, v1_lower = velocity(u, equations)
+    v_upper, v_lower = velocity(u, equations)
 
     w1 = (equations.rho_upper *
-          (equations.gravity * (h_upper + h_lower + b) - 0.5 * v1_upper^2))
-    w2 = equations.rho_upper * v1_upper
+          (equations.gravity * (h_upper + h_lower + b) - 0.5 * v_upper^2))
+    w2 = equations.rho_upper * v_upper
     w3 = (equations.rho_lower *
-          (equations.gravity * (equations.r * h_upper + h_lower + b) - 0.5 * v1_lower^2))
-    w4 = equations.rho_lower * v1_lower
+          (equations.gravity * (equations.r * h_upper + h_lower + b) - 0.5 * v_lower^2))
+    w4 = equations.rho_lower * v_lower
     return SVector(w1, w2, w3, w4, b)
 end
 
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::ShallowWaterTwoLayerEquations1D)
-    H_upper, v1_upper, H_lower, v1_lower, b = prim
+    H_upper, v_upper, H_lower, v_lower, b = prim
 
     h_lower = H_lower - b
     h_upper = H_upper - h_lower - b
-    h_v1_upper = h_upper * v1_upper
-    h_v2_lower = h_lower * v1_lower
-    return SVector(h_upper, h_v1_upper, h_lower, h_v2_lower, b)
+    h_v_upper = h_upper * v_upper
+    h_v_lower = h_lower * v_lower
+    return SVector(h_upper, h_v_upper, h_lower, h_v_lower, b)
 end
 
 @inline function waterheight(u, equations::ShallowWaterTwoLayerEquations1D)
@@ -478,23 +478,23 @@ end
 
 # Calculate total energy for a conservative state `cons`
 @inline function energy_total(cons, equations::ShallowWaterTwoLayerEquations1D)
-    h_upper, h_v1_upper, h_lower, h_v2_lower, b = cons
+    h_upper, h_v_upper, h_lower, h_v_lower, b = cons
     # Set new variables for better readability
     g = equations.gravity
     rho_upper = equations.rho_upper
     rho_lower = equations.rho_lower
 
-    e = (0.5 * rho_upper * (h_v1_upper^2 / h_upper + g * h_upper^2) +
-         0.5 * rho_lower * (h_v2_lower^2 / h_lower + g * h_lower^2) +
+    e = (0.5 * rho_upper * (h_v_upper^2 / h_upper + g * h_upper^2) +
+         0.5 * rho_lower * (h_v_lower^2 / h_lower + g * h_lower^2) +
          g * rho_lower * h_lower * b + g * rho_upper * h_upper * (h_lower + b))
     return e
 end
 
 # Calculate kinetic energy for a conservative state `cons`
 @inline function energy_kinetic(u, equations::ShallowWaterTwoLayerEquations1D)
-    h_upper, h_v1_upper, h_lower, h_v2_lower, _ = u
-    return (0.5 * equations.rho_upper * h_v1_upper^2 / h_upper +
-            0.5 * equations.rho_lower * h_v2_lower^2 / h_lower)
+    h_upper, h_v_upper, h_lower, h_v_lower, _ = u
+    return (0.5 * equations.rho_upper * h_v_upper^2 / h_upper +
+            0.5 * equations.rho_lower * h_v_lower^2 / h_lower)
 end
 
 # Calculate potential energy for a conservative state `cons`

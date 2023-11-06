@@ -75,8 +75,14 @@ end
 
 @inline Base.ndims(::AbstractEquations{NDIMS}) where {NDIMS} = NDIMS
 
-# equations act like scalars in broadcasting
-Base.broadcastable(equations::AbstractEquations) = Ref(equations)
+# Equations act like scalars in broadcasting.
+# Using `Ref(equations)` would be more convenient in some circumstances.
+# However, this does not work with Julia v1.9.3 correctly due to a (performance)
+# bug in Julia, see
+# - https://github.com/trixi-framework/Trixi.jl/pull/1618
+# - https://github.com/JuliaLang/julia/issues/51118
+# Thus, we use the workaround below.
+Base.broadcastable(equations::AbstractEquations) = (equations,)
 
 """
     flux(u, orientation_or_normal, equations)
@@ -202,6 +208,24 @@ struct BoundaryConditionNeumann{B}
     boundary_normal_flux_function::B
 end
 
+"""
+    NonConservativeLocal()
+
+Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric". 
+When the argument `nonconservative_type` is of type `NonConservativeLocal`, 
+the function returns the local part of the non-conservative term.
+"""
+struct NonConservativeLocal end
+
+"""
+    NonConservativeSymmetric()
+
+Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric". 
+When the argument `nonconservative_type` is of type `NonConservativeSymmetric`, 
+the function returns the symmetric part of the non-conservative term.
+"""
+struct NonConservativeSymmetric end
+
 # set sensible default values that may be overwritten by specific equations
 """
     have_nonconservative_terms(equations)
@@ -214,6 +238,14 @@ example of equations with nonconservative terms.
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
 have_nonconservative_terms(::AbstractEquations) = False()
+"""
+    n_nonconservative_terms(equations)
+
+Number of nonconservative terms in the form local * symmetric for a particular equation.
+This function needs to be specialized only if equations with nonconservative terms are
+combined with certain solvers (e.g., subcell limiting).
+"""
+function n_nonconservative_terms end
 have_constant_speed(::AbstractEquations) = False()
 
 default_analysis_errors(::AbstractEquations) = (:l2_error, :linf_error)
@@ -350,6 +382,7 @@ include("shallow_water_1d.jl")
 include("shallow_water_2d.jl")
 include("shallow_water_two_layer_1d.jl")
 include("shallow_water_two_layer_2d.jl")
+include("shallow_water_quasi_1d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <:
@@ -363,6 +396,11 @@ abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCO
               AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_multicomponent_1d.jl")
 include("compressible_euler_multicomponent_2d.jl")
+
+# PolytropicEulerEquations
+abstract type AbstractPolytropicEulerEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("polytropic_euler_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS,

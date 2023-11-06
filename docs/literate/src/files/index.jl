@@ -76,21 +76,30 @@
 # In this part, another physics model is implemented, the nonconservative linear advection equation.
 # We run two different simulations with different levels of refinement and compare the resulting errors.
 
-# ### [10 Adaptive mesh refinement](@ref adaptive_mesh_refinement)
+# ### [10 Parabolic terms](@ref parabolic_terms)
+#-
+# This tutorial describes how parabolic terms are implemented in Trixi.jl, e.g.,
+# to solve the advection-diffusion equation.
+
+# ### [11 Adding new parabolic terms](@ref adding_new_parabolic_terms)
+#-
+# This tutorial describes how new parabolic terms can be implemented using Trixi.jl.
+
+# ### [12 Adaptive mesh refinement](@ref adaptive_mesh_refinement)
 #-
 # Adaptive mesh refinement (AMR) helps to increase the accuracy in sensitive or turbolent regions while
 # not wasting resources for less interesting parts of the domain. This leads to much more efficient
 # simulations. This tutorial presents the implementation strategy of AMR in Trixi.jl, including the use of
 # different indicators and controllers.
 
-# ### [11 Structured mesh with curvilinear mapping](@ref structured_mesh_mapping)
+# ### [13 Structured mesh with curvilinear mapping](@ref structured_mesh_mapping)
 #-
 # In this tutorial, the use of Trixi.jl's structured curved mesh type [`StructuredMesh`](@ref) is explained.
 # We present the two basic option to initialize such a mesh. First, the curved domain boundaries
 # of a circular cylinder are set by explicit boundary functions. Then, a fully curved mesh is
 # defined by passing the transformation mapping.
 
-# ### [12 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_tutorial)
+# ### [14 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_tutorial)
 #-
 # The purpose of this tutorial is to demonstrate how to use the [`UnstructuredMesh2D`](@ref)
 # functionality of Trixi.jl. This begins by running and visualizing an available unstructured
@@ -99,24 +108,29 @@
 # software in the Trixi.jl ecosystem, and then run a simulation using Trixi.jl on said mesh.
 # In the end, the tutorial briefly explains how to simulate an example using AMR via `P4estMesh`.
 
-# ### [13 Explicit time stepping](@ref time_stepping)
+# ### [15 Explicit time stepping](@ref time_stepping)
 #-
 # This tutorial is about time integration using [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
 # It explains how to use their algorithms and presents two types of time step choices - with error-based
 # and CFL-based adaptive step size control.
 
-# ### [14 Differentiable programming](@ref differentiable_programming)
+# ### [16 Differentiable programming](@ref differentiable_programming)
 #-
 # This part deals with some basic differentiable programming topics. For example, a Jacobian, its
 # eigenvalues and a curve of total energy (through the simulation) are calculated and plotted for
 # a few semidiscretizations. Moreover, we calculate an example for propagating errors with Measurement.jl
 # at the end.
 
+# ### [17 Custom semidiscretization](@ref custom_semidiscretization)
+#-
+# This tutorial describes the [semidiscretiations](@ref overview-semidiscretizations) of Trixi.jl
+# and explains how to extend them for custom tasks.
+
 
 
 # ## Examples in Trixi.jl
 # Trixi.jl already contains several more coding examples, the so-called `elixirs`. You can find them
-# in the folder [`examples`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/).
+# in the folder [`examples/`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/).
 # They are structured by the underlying mesh type and the respective number of spatial dimensions.
 # The name of an elixir is composed of the underlying system of conservation equations (for instance
 # `advection` or `euler`) and other special characteristics like the initial condition
