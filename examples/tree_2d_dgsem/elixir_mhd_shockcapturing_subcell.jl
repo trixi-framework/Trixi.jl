@@ -10,28 +10,35 @@ equations = IdealGlmMhdEquations2D(1.4)
 """
     initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
 
-An MHD blast wave taken from
+An MHD blast wave modified from:
 - Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
   Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
   [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
+This setup needs a positivity limiter for the density.
 """
 function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
     # setup taken from Derigs et al. DMV article (2018)
     # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
     r = sqrt(x[1]^2 + x[2]^2)
-    f = (0.1 - r) / 0.01
+
+    pmax = 10.0
+    pmin = 1.0
+    rhomax = 1.0
+    rhomin = 0.01
     if r <= 0.09
-        p = 1000.0
+        p = pmax
+        rho = rhomax
     elseif r >= 0.1
-        p = 0.1
+        p = pmin
+        rho = rhomin
     else
-        p = 0.1 + 999.9 * f
+        p = pmin + (0.1 - r) * (pmax - pmin) / 0.01
+        rho = rhomin + (0.1 - r) * (rhomax - rhomin) / 0.01
     end
-    rho = 1.0
     v1 = 0.0
     v2 = 0.0
     v3 = 0.0
-    B1 = 100.0 / sqrt(4.0 * pi)
+    B1 = 1.0 / sqrt(4.0 * pi)
     B2 = 0.0
     B3 = 0.0
     psi = 0.0
@@ -39,17 +46,16 @@ function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
 end
 initial_condition = initial_condition_blast_wave
 
-surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
-volume_flux = (flux_central, flux_nonconservative_powell)
+surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell_local_symmetric)
+volume_flux = (flux_derigs_etal, flux_nonconservative_powell_local_symmetric)
 basis = LobattoLegendreBasis(3)
-indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 0.5,
-                                         alpha_min = 0.001,
-                                         alpha_smooth = true,
-                                         variable = density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
+
+limiter_idp = SubcellLimiterIDP(equations, basis;
+                                positivity_variables_cons = [1],
+                                positivity_correction_factor = 0.5)
+volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                volume_flux_dg = volume_flux,
+                                                volume_flux_fv = surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-0.5, -0.5)
@@ -63,7 +69,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.01)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -78,20 +84,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-amr_indicator = IndicatorHennemannGassner(semi,
-                                          alpha_max = 0.5,
-                                          alpha_min = 0.001,
-                                          alpha_smooth = false,
-                                          variable = density_pressure)
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 4,
-                                      max_level = 6, max_threshold = 0.01)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 7,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
-
-cfl = 0.8
+cfl = 0.5
 stepsize_callback = StepsizeCallback(cfl = cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
@@ -100,14 +93,14 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_solution,
-                        amr_callback,
                         stepsize_callback,
                         glm_speed_callback)
 
 ###############################################################################
 # run the simulation
+stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
+                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary

@@ -48,7 +48,6 @@ cells_per_dimension = (8, 16)
 cells_per_dimension1 = cells_per_dimension
 
 mesh1 = StructuredMesh(cells_per_dimension1, coordinates_min1, coordinates_max1)
-
 # The user can define their own coupling functions.
 coupling_function1 = (x, u) -> u
 
