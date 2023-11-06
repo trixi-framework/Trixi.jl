@@ -279,7 +279,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     SsL, SsR = min_max_speed_naive(u_ll, u_rr, orientation, equations)
     sMu_L = SsL - v1_ll
     sMu_R = SsR - v1_rr
-    if SsL >= 0.0
+    if SsL >= 0
         f1 = f_ll[1]
         f2 = f_ll[2]
         f3 = f_ll[3]
