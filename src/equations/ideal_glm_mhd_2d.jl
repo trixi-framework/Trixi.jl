@@ -775,7 +775,6 @@ end
     return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
-
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::IdealGlmMhdEquations2D)
