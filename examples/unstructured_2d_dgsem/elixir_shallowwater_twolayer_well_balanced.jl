@@ -35,8 +35,8 @@ initial_condition = initial_condition_well_balanced
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal)
 surface_flux = (flux_es_ersing_etal, flux_nonconservative_ersing_etal)
-solver = DGSEM(polydeg=6, surface_flux=surface_flux,
-               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg = 6, surface_flux = surface_flux,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
 # This setup is for the curved, split form well-balancedness testing

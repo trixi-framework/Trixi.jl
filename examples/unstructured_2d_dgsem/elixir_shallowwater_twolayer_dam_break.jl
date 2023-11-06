@@ -42,9 +42,9 @@ boundary_condition_constant = BoundaryConditionDirichlet(initial_condition_dam_b
 # Get the DG approximation space
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal)
-surface_flux= (flux_wintermeyer_etal, flux_nonconservative_ersing_etal)
-solver = DGSEM(polydeg=6, surface_flux=surface_flux,
-               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+surface_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal)
+solver = DGSEM(polydeg = 6, surface_flux = surface_flux,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
