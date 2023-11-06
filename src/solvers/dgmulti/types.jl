@@ -438,10 +438,3 @@ end # @muladd
 @deprecate DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension, kwargs...) where {NDIMS} DGMultiMesh(dg,
                                                                                                      cells_per_dimension;
                                                                                                      kwargs...)
-
-# TODO: deprecations introduced in Trixi.jl v0.5
-@deprecate DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS};
-                       kwargs...) where {NDIMS} DGMultiMesh(dg, vertex_coordinates, EToV;
-                                                            kwargs...)
-@deprecate DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int};
-                       kwargs...) DGMultiMesh(dg, triangulateIO, boundary_dict; kwargs...)
