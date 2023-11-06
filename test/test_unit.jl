@@ -1252,7 +1252,7 @@ end
             flux_hindenlang_gassner,
             flux_hll,
             FluxHLL(min_max_speed_davis),
-            flux_hlle
+            flux_hlle,
         ]
 
         for f_std in fluxes
@@ -1280,7 +1280,7 @@ end
             flux_hindenlang_gassner,
             flux_hll,
             FluxHLL(min_max_speed_davis),
-            flux_hlle
+            flux_hlle,
         ]
 
         for f_std in fluxes
