@@ -1250,7 +1250,6 @@ end
         fluxes = [
             flux_central,
             flux_hindenlang_gassner,
-            flux_hll,
             FluxHLL(min_max_speed_davis),
             flux_hlle,
         ]
@@ -1278,7 +1277,6 @@ end
         fluxes = [
             flux_central,
             flux_hindenlang_gassner,
-            flux_hll,
             FluxHLL(min_max_speed_davis),
             flux_hlle,
         ]
