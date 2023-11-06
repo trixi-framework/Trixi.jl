@@ -10,7 +10,9 @@ equations = IdealGlmMhdEquations3D(5 / 3)
 initial_condition = initial_condition_convergence_test
 
 volume_flux = (flux_central, flux_nonconservative_powell)
-solver = DGSEM(polydeg = 5, surface_flux = (FluxHLL(min_max_speed_einfeldt), flux_nonconservative_powell),
+solver = DGSEM(polydeg = 5,
+               surface_flux = (FluxHLL(min_max_speed_einfeldt),
+                               flux_nonconservative_powell),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 # Create the mesh
