@@ -437,7 +437,8 @@ include("ideal_glm_mhd_multicomponent_1d.jl")
 include("ideal_glm_mhd_multicomponent_2d.jl")
 
 # IdealMhdMultiIonEquations
-abstract type AbstractIdealMhdMultiIonEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractIdealMhdMultiIonEquations{NDIMS, NVARS, NCOMP} <:
+              AbstractEquations{NDIMS, NVARS} end
 include("ideal_mhd_multiion_1d.jl")
 include("ideal_mhd_multiion_2d.jl")
 
@@ -462,7 +463,13 @@ In particular, not the components themselves are returned.
 end
 
 # Retrieve number of components from equation instance for the multi-ion case
-@inline ncomponents(::AbstractIdealMhdMultiIonEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+@inline function ncomponents(::AbstractIdealMhdMultiIonEquations{NDIMS, NVARS, NCOMP}) where {
+                                                                                              NDIMS,
+                                                                                              NVARS,
+                                                                                              NCOMP
+                                                                                              }
+    NCOMP
+end
 
 """
     eachcomponent(equations::AbstractIdealMhdMultiIonEquations)
@@ -471,7 +478,9 @@ Return an iterator over the indices that specify the location in relevant data s
 for the components in `AbstractIdealMhdMultiIonEquations`. 
 In particular, not the components themselves are returned.
 """
-@inline eachcomponent(equations::AbstractIdealMhdMultiIonEquations) = Base.OneTo(ncomponents(equations))
+@inline function eachcomponent(equations::AbstractIdealMhdMultiIonEquations)
+    Base.OneTo(ncomponents(equations))
+end
 
 # Diffusion equation: first order hyperbolic system
 abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <:
