@@ -961,6 +961,7 @@ end
 
 @timed_testset "Consistency check for HLLE flux: MHD" begin
     # Note: min_max_speed_naive for MHD is essentially min_max_speed_einfeldt
+    flux_hll = FluxHLL(min_max_speed_einfeldt)
 
     equations = IdealGlmMhdEquations1D(1.4)
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
