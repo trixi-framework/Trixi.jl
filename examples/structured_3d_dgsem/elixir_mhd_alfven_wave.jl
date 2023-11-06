@@ -11,7 +11,7 @@ initial_condition = initial_condition_convergence_test
 
 volume_flux = (flux_central, flux_nonconservative_powell)
 solver = DGSEM(polydeg = 5,
-               surface_flux = (FluxHLL(min_max_speed_einfeldt),
+               surface_flux = (flux_hlle,
                                flux_nonconservative_powell),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 

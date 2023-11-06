@@ -240,7 +240,7 @@ end
                                       1000
                             end
                         end,
-                        surface_flux=(FluxHLL(min_max_speed_einfeldt),
+                        surface_flux=(flux_hlle,
                                       flux_nonconservative_powell),
                         volume_flux=(flux_central, flux_nonconservative_powell),
                         coordinates_min=(0.0, 0.0, 0.0),
