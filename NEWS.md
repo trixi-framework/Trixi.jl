@@ -58,7 +58,7 @@ for human readability.
   argument now comes first.
 - The undocumented and unused
   `DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})`
-  constructor was removed.
+  constructor was deprecated.
 
 #### Removed
 
