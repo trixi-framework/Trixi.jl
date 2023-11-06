@@ -8,7 +8,6 @@ equations = IdealMhdMultiIonEquations1D(gammas = (2.0, 2.0),
 
 initial_condition = initial_condition_weak_blast_wave
 
-#volume_flux = flux_central
 volume_flux = (flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal)
 surface_flux = (flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal)
 solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
