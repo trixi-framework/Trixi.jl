@@ -288,7 +288,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
         f6 = f_ll[6]
         f7 = f_ll[7]
         f8 = f_ll[8]
-    elseif SsR <= 0.0
+    elseif SsR <= 0
         f1 = f_rr[1]
         f2 = f_rr[2]
         f3 = f_rr[3]
