@@ -41,7 +41,7 @@ end
 
 # Set initial conditions at physical location `x` for time `t`
 """
-initial_condition_constant(x, t, equations::IdealGlmMhdEquations3D)
+    initial_condition_constant(x, t, equations::IdealGlmMhdEquations3D)
 
 A constant initial condition to test free-stream preservation.
 """
@@ -668,6 +668,77 @@ end
 
     # wave speeds already scaled by norm(normal_direction) in [`calc_fast_wavespeed`](@ref)
     return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
+end
+
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
+                                     equations::IdealGlmMhdEquations3D)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
+
+    # Calculate primitive variables and speed of sound
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+
+    v1_rr = rho_v1_rr / rho_rr
+    v2_rr = rho_v2_rr / rho_rr
+    v3_rr = rho_v3_rr / rho_rr
+
+    # Approximate the left-most and right-most eigenvalues in the Riemann fan
+    if orientation == 1 # x-direction
+        c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+        c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+
+        λ_min = min(v1_ll - c_f_ll, v1_rr - c_f_rr)
+        λ_max = max(v1_ll + c_f_ll, v1_rr + c_f_rr)
+    elseif orientation == 2 # y-direction
+        c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+        c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+
+        λ_min = min(v2_ll - c_f_ll, v2_rr - c_f_rr)
+        λ_max = max(v2_ll + c_f_ll, v2_rr + c_f_rr)
+    else # z-direction
+        c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+        c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+
+        λ_min = min(v3_ll - c_f_ll, v3_rr - c_f_rr)
+        λ_max = max(v3_ll + c_f_ll, v3_rr + c_f_rr)
+    end
+
+    return λ_min, λ_max
+end
+
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::IdealGlmMhdEquations3D)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
+
+    # Calculate primitive velocity variables
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+
+    v1_rr = rho_v1_rr / rho_rr
+    v2_rr = rho_v2_rr / rho_rr
+    v3_rr = rho_v3_rr / rho_rr
+
+    v_normal_ll = (v1_ll * normal_direction[1] +
+                   v2_ll * normal_direction[2] +
+                   v3_ll * normal_direction[3])
+    v_normal_rr = (v1_rr * normal_direction[1] +
+                   v2_rr * normal_direction[2] +
+                   v3_rr * normal_direction[3])
+
+    c_f_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
+    c_f_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
+
+    # Estimate the min/max eigenvalues in the normal direction
+    λ_min = min(v_normal_ll - c_f_ll, v_normal_rr - c_f_rr)
+    λ_max = max(v_normal_ll + c_f_ll, v_normal_rr + c_f_rr)
+
+    return λ_min, λ_max
 end
 
 """

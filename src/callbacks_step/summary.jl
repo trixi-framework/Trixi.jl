@@ -15,10 +15,14 @@ Create and return a callback that prints a human-readable summary of the simulat
 beginning of a simulation and then resets the timer. When the returned callback is executed
 directly, the current timer values are shown.
 """
-function SummaryCallback()
+function SummaryCallback(reset_threads = true)
+    function initialize(cb, u, t, integrator)
+        initialize_summary_callback(cb, u, t, integrator;
+                                    reset_threads)
+    end
     DiscreteCallback(summary_callback, summary_callback,
                      save_positions = (false, false),
-                     initialize = initialize_summary_callback)
+                     initialize = initialize)
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:typeof(summary_callback)})
@@ -139,7 +143,15 @@ end
 
 # Print information about the current simulation setup
 # Note: This is called *after* all initialization is done, but *before* the first time step
-function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
+function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
+                                     reset_threads = true)
+    # Optionally reset Polyester.jl threads. See
+    # https://github.com/trixi-framework/Trixi.jl/issues/1583
+    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
+    if reset_threads
+        Polyester.reset_threads!()
+    end
+
     mpi_isroot() || return nothing
 
     print_startup_message()
@@ -156,16 +168,17 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
 
     callbacks = integrator.opts.callback
     if callbacks isa CallbackSet
-        for cb in callbacks.continuous_callbacks
+        foreach(callbacks.continuous_callbacks) do cb
             show(io_context, MIME"text/plain"(), cb)
             println(io, "\n")
         end
-        for cb in callbacks.discrete_callbacks
+        foreach(callbacks.discrete_callbacks) do cb
             # Do not show ourselves
-            cb.affect! === summary_callback && continue
+            cb.affect! === summary_callback && return nothing
 
             show(io_context, MIME"text/plain"(), cb)
             println(io, "\n")
+            return nothing
         end
     else
         show(io_context, MIME"text/plain"(), callbacks)

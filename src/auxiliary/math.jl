@@ -51,7 +51,7 @@ Given ε = 1.0e-4, we use the following algorithm.
 - Agner Fog.
   Lists of instruction latencies, throughputs and micro-operation breakdowns
   for Intel, AMD, and VIA CPUs.
-  https://www.agner.org/optimize/instruction_tables.pdf
+  [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
 """
 @inline function ln_mean(x, y)
     epsilon_f2 = 1.0e-4
@@ -166,8 +166,10 @@ checks necessary in the presence of `NaN`s (or signed zeros).
 
 # Examples
 
+```jldoctest
 julia> max(2, 5, 1)
 5
+```
 """
 @inline max(args...) = @fastmath max(args...)
 
@@ -183,8 +185,10 @@ checks necessary in the presence of `NaN`s (or signed zeros).
 
 # Examples
 
+```jldoctest
 julia> min(2, 5, 1)
 1
+```
 """
 @inline min(args...) = @fastmath min(args...)
 
@@ -206,5 +210,72 @@ Return `x` if `x` is negative, else zero. In other words, return
 """
 @inline function negative_part(x)
     return min(x, zero(x))
+end
+
+"""
+    stolarsky_mean(x, y, gamma)
+
+Compute an instance of a weighted Stolarsky mean of the form
+
+    stolarsky_mean(x, y, gamma) = (gamma - 1)/gamma * (y^gamma - x^gamma) / (y^(gamma-1) - x^(gamma-1))
+
+where `gamma > 1`.
+
+Problem: The formula above has a removable singularity at `x == y`. Thus,
+some care must be taken to implement it correctly without problems or loss
+of accuracy when `x ≈ y`. Here, we use the approach proposed by
+Winters et al. (2020).
+Set f = (y - x) / (y + x) and g = gamma (for compact notation).
+Then, we use the expansions
+
+    ((1+f)^g - (1-f)^g) / g = 2*f + (g-1)(g-2)/3 * f^3 + (g-1)(g-2)(g-3)(g-4)/60 * f^5 + O(f^7)
+
+and
+
+    ((1+f)^(g-1) - (1-f)^(g-1)) / (g-1) = 2*f + (g-2)(g-3)/3 * f^3 + (g-2)(g-3)(g-4)(g-5)/60 * f^5 + O(f^7)
+
+Inserting the first few terms of these expansions and performing polynomial long division
+we find that
+
+    stolarsky_mean(x, y, gamma) ≈ (y + x) / 2 * (1 + (g-2)/3 * f^2 - (g+1)(g-2)(g-3)/45 * f^4 + (g+1)(g-2)(g-3)(2g(g-2)-9)/945 * f^6)
+
+Since divisions are usually more expensive on modern hardware than
+multiplications (Agner Fog), we try to avoid computing two divisions. Thus,
+we use
+
+    f^2 = (y - x)^2 / (x + y)^2
+        = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y)
+
+Given ε = 1.0e-4, we use the following algorithm.
+
+    if f^2 < ε
+      # use the expansion above
+    else
+      # use the direct formula (gamma - 1)/gamma * (y^gamma - x^gamma) / (y^(gamma-1) - x^(gamma-1))
+    end
+
+# References
+- Andrew R. Winters, Christof Czernik, Moritz B. Schily & Gregor J. Gassner (2020)
+  Entropy stable numerical approximations for the isothermal and polytropic
+  Euler equations
+  [DOI: 10.1007/s10543-019-00789-w](https://doi.org/10.1007/s10543-019-00789-w)
+- Agner Fog.
+  Lists of instruction latencies, throughputs and micro-operation breakdowns
+  for Intel, AMD, and VIA CPUs.
+  [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
+"""
+@inline function stolarsky_mean(x, y, gamma)
+    epsilon_f2 = 1.0e-4
+    f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
+    if f2 < epsilon_f2
+        # convenience coefficients
+        c1 = (1 / 3) * (gamma - 2)
+        c2 = -(1 / 15) * (gamma + 1) * (gamma - 3) * c1
+        c3 = -(1 / 21) * (2 * gamma * (gamma - 2) - 9) * c2
+        return 0.5 * (x + y) * @evalpoly(f2, 1, c1, c2, c3)
+    else
+        return (gamma - 1) / gamma * (y^gamma - x^gamma) /
+               (y^(gamma - 1) - x^(gamma - 1))
+    end
 end
 end # @muladd

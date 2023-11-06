@@ -232,6 +232,12 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     @unpack dt, t = integrator
     iter = integrator.stats.naccept
 
+    # Compute the percentage of the simulation that is done
+    t = integrator.t
+    t_initial = first(integrator.sol.prob.tspan)
+    t_final = last(integrator.sol.prob.tspan)
+    sim_time_percentage = (t - t_initial) / (t_final - t_initial) * 100
+
     # Record performance measurements and compute performance index (PID)
     runtime_since_last_analysis = 1.0e-9 * (time_ns() -
                                    analysis_callback.start_time_last_analysis)
@@ -267,7 +273,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     gc_time_absolute = 1.0e-9 * (Base.gc_time_ns() - analysis_callback.start_gc_time)
 
     # Compute the percentage of total time that was spent in garbage collection
-    gc_time_percentage = gc_time_absolute / runtime_absolute
+    gc_time_percentage = gc_time_absolute / runtime_absolute * 100
 
     # Obtain the current memory usage of the Julia garbage collector, in MiB, i.e., the total size of
     # objects in memory that have been allocated by the JIT compiler or the user code.
@@ -291,13 +297,13 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
                     "               " *
                     " └── GC time:    " *
                     @sprintf("%10.8e s (%5.3f%%)", gc_time_absolute, gc_time_percentage))
-        mpi_println(" sim. time:      " * @sprintf("%10.8e", t) *
-                    "               " *
+        mpi_println(rpad(" sim. time:      " *
+                         @sprintf("%10.8e (%5.3f%%)", t, sim_time_percentage), 46) *
                     " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
         mpi_println("                 " * "              " *
                     "               " *
                     " PID:            " * @sprintf("%10.8e s", performance_index))
-        mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)) *
+        mpi_println(" #DOFs per field:" * @sprintf("% 14d", ndofs(semi)) *
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
         mpi_println(" #elements:      " *
@@ -530,6 +536,36 @@ function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
     end
     mpi_println(" └── level $min_level:    " *
                 @sprintf("% 14d", elements_per_level[min_level + 1]))
+
+    return nothing
+end
+
+# Print level information only if AMR is enabled
+function print_amr_information(callbacks, mesh::T8codeMesh, solver, cache)
+
+    # Return early if there is nothing to print
+    uses_amr(callbacks) || return nothing
+
+    # TODO: Switch to global element levels array when MPI supported or find
+    # another solution.
+    levels = trixi_t8_get_local_element_levels(mesh.forest)
+
+    min_level = minimum(levels)
+    max_level = maximum(levels)
+
+    mpi_println(" minlevel = $min_level")
+    mpi_println(" maxlevel = $max_level")
+
+    if min_level > 0
+        elements_per_level = [count(==(l), levels) for l in 1:max_level]
+
+        for level in max_level:-1:(min_level + 1)
+            mpi_println(" ├── level $level:    " *
+                        @sprintf("% 14d", elements_per_level[level]))
+        end
+        mpi_println(" └── level $min_level:    " *
+                    @sprintf("% 14d", elements_per_level[min_level]))
+    end
 
     return nothing
 end

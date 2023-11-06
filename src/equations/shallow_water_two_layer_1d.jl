@@ -5,6 +5,8 @@
 @muladd begin
 #! format: noindent
 
+# TODO: TrixiShallowWater: 1D two layer equations should move to new package
+
 @doc raw"""
     ShallowWaterTwoLayerEquations1D(gravity, H0, rho_upper, rho_lower)
 
@@ -392,7 +394,7 @@ end
                            equations::ShallowWaterTwoLayerEquations1D)
 
 Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy
-conservative flux_fjordholm_etal and adds a Lax-Friedrichs type dissipation dependent on the jump
+conservative [`flux_fjordholm_etal`](@ref) and adds a Lax-Friedrichs type dissipation dependent on the jump
 of entropy variables.
 
 Further details are available in the paper:
