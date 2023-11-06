@@ -10,22 +10,22 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_constant
 
 surface_flux = flux_lax_friedrichs
-volume_flux  = flux_ranocha
+volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                positivity_variables_cons=[1],
-                                positivity_variables_nonlinear=(pressure,),
-                                positivity_correction_factor=0.1,
-                                spec_entropy=false,
-                                smoothness_indicator=false,
-                                bar_states=true,
-                                max_iterations_newton=10,
-                                newton_tolerances=(1.0e-12, 1.0e-14))
+                                positivity_variables_cons = [1],
+                                positivity_variables_nonlinear = (pressure,),
+                                positivity_correction_factor = 0.1,
+                                spec_entropy = false,
+                                smoothness_indicator = false,
+                                bar_states = true,
+                                max_iterations_newton = 10,
+                                newton_tolerances = (1.0e-12, 1.0e-14))
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
-                                                volume_flux_dg=volume_flux,
-                                                volume_flux_fv=surface_flux)
+                                                volume_flux_dg = volume_flux,
+                                                volume_flux_fv = surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 # Mapping as described in https://arxiv.org/abs/2012.12040 but reduced to 2D.
@@ -36,21 +36,21 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 
 # Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
 function mapping(xi_, eta_)
-  # Transform input variables between -1 and 1 onto [0,3]
-  xi = 1.5 * xi_ + 1.5
-  eta = 1.5 * eta_ + 1.5
+    # Transform input variables between -1 and 1 onto [0,3]
+    xi = 1.5 * xi_ + 1.5
+    eta = 1.5 * eta_ + 1.5
 
-  y = eta + 3/8 * (cos(1.5 * pi * (2 * xi - 3)/3) *
-                   cos(0.5 * pi * (2 * eta - 3)/3))
+    y = eta + 3 / 8 * (cos(1.5 * pi * (2 * xi - 3) / 3) *
+                       cos(0.5 * pi * (2 * eta - 3) / 3))
 
-  x = xi + 3/8 * (cos(0.5 * pi * (2 * xi - 3)/3) *
-                  cos(2 * pi * (2 * y - 3)/3))
+    x = xi + 3 / 8 * (cos(0.5 * pi * (2 * xi - 3) / 3) *
+                      cos(2 * pi * (2 * y - 3) / 3))
 
-  return SVector(x, y)
+    return SVector(x, y)
 end
 
 cells_per_dimension = (32, 32)
-mesh = StructuredMesh(cells_per_dimension, mapping, periodicity=true)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -63,29 +63,28 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=10000,
-                                     save_initial_solution=true,
-                                     save_final_solution=true,
-                                     solution_variables=cons2prim)
+save_solution = SaveSolutionCallback(interval = 10000,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.9)
+stepsize_callback = StepsizeCallback(cfl = 0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         stepsize_callback,
                         save_solution)
 
-
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback(save_errors=false))
+stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback(save_errors = false))
 
-sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks=stage_callbacks);
-                  dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep=false, callback=callbacks);
+sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
+                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary

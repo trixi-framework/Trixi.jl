@@ -118,8 +118,6 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
         return nothing
     end
 
-    # TODO: Revise Bounds Check for MCL
-
     @unpack output_directory = callback
     mkpath(output_directory)
     open("$output_directory/deviations.txt", "a") do f
@@ -128,7 +126,7 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
         if limiter.PressurePositivityLimiterKuzmin
             print(f, ", pressure_min")
         end
-        # No check for entropy limiting rn
+        # TODO: Bounds check for entropy limiting
         println(f)
     end
 
@@ -192,21 +190,23 @@ end
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    limiter::SubcellLimiterMCL)
-    @unpack idp_bounds_delta = limiter.cache
-
-    # TODO: Revise bounds check for MCL
+    @unpack mcl_bounds_delta = limiter.cache
 
     println("─"^100)
     println("Maximum deviation from bounds:")
     println("─"^100)
     variables = varnames(cons2cons, semi.equations)
     for v in eachvariable(semi.equations)
-        println(variables[v], ":\n- lower bound: ", idp_bounds_delta[1, v],
-                "\n- upper bound: ", idp_bounds_delta[2, v])
+        println(variables[v], ":\n- lower bound: ", mcl_bounds_delta[2, 1, v],
+                "\n- upper bound: ", mcl_bounds_delta[2, 2, v])
     end
     if limiter.PressurePositivityLimiterKuzmin
-        println("pressure:\n- lower bound: ",
-                idp_bounds_delta[1, nvariables(semi.equations) + 1])
+        println("pressure:\n- positivity: ",
+                mcl_bounds_delta[2, 1, nvariables(semi.equations) + 1])
+    end
+    if limiter.SemiDiscEntropyLimiter
+        # TODO: Bounds check for entropy limiting
+        println("\nWARNING: No bounds check for the entropy limiter.")
     end
     println("─"^100 * "\n")
 

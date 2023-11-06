@@ -23,8 +23,8 @@ dg = DGMulti(polydeg = 3,
 
 cells_per_dimension = (8,)
 mesh = DGMultiMesh(dg, cells_per_dimension,
-                   coordinates_min=(-1.0,), coordinates_max=(1.0,),
-                   periodicity=true)
+                   coordinates_min = (-1.0,), coordinates_max = (1.0,),
+                   periodicity = true)
 
 ###############################################################################
 #  setup the test problem (no source term needed for linear advection)
@@ -49,10 +49,10 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 # analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval=100, uEltype=real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
 
 # handles the re-calculation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=0.75)
+stepsize_callback = StepsizeCallback(cfl = 0.75)
 
 # collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
@@ -60,9 +60,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1.0, save_everystep=false, callback=callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 1.0, save_everystep = false, callback = callbacks);
 
 # Print the timer summary
 summary_callback()
-
