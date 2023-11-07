@@ -143,11 +143,14 @@ end
     @view u_ode[semi.u_indices[index]]
 end
 
-@inline function call_rhs!(u_ode, du_ode, i, t, semi::SemidiscretizationCoupled)
+# Fix for the type instability.
+@inline function call_rhs!(u_ode, du_ode, t, semi, i, semi_, semi_tuple...)
     u_loc = get_system_u_ode(u_ode, i, semi)
     du_loc = get_system_u_ode(du_ode, i, semi)
     rhs!(du_loc, u_loc, semi.semis[i], t)
-    # @trixi_timeit timer() "system #$i" rhs!(du_loc, u_loc, semi.semis[i], t)
+    if length(semi_tuple) > 0
+        call_rhs!(u_ode, du_ode, t, semi, i+1, semi.semis)
+    end
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
@@ -160,7 +163,13 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     foreach(semi_ -> copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi), semi.semis)
 
     # Call rhs! for each semidiscretization
-    foreach(index -> call_rhs!(u_ode, du_ode, index, t, semi), eachsystem(semi))
+    call_rhs!(u_ode, du_ode, t, semi, 1, semi.semis...)
+
+    # for i in eachsystem(semi)
+    #     u_loc = get_system_u_ode(u_ode, i, semi)
+    #     du_loc = get_system_u_ode(du_ode, i, semi)
+    #     rhs!(du_loc, u_loc, semi.semis[i], t)
+    # end
 
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
@@ -470,6 +479,10 @@ function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}
     foreach(boundary_condition -> copy_to_coupled_boundary!(boundary_condition, u_ode, semi), boundary_conditions)
 end
 
+function mesh_equations_solver_cache_coupled!(semi_, other_semi_index, mesh, equations, solver, cache)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
+end
+
 # In 2D
 function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2}, u_ode,
                                    semi)
@@ -477,6 +490,8 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     @unpack other_semi_index, other_orientation, indices = boundary_condition
     @unpack coupling_converter, u_boundary = boundary_condition
 
+    # foreach(index -> call_rhs!(u_ode, du_ode, index, t, semi), eachsystem(semi))
+    # foreach(index -> mesh_equations_solver_cache_coupled!(index, _index, mesh, equations, solver, cache), eachsystem(semi))
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
     @unpack node_coordinates = cache.elements
     u = wrap_array(get_system_u_ode(u_ode, other_semi_index, semi), mesh, equations, solver,
