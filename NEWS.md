@@ -13,6 +13,7 @@ for human readability.
 - Capability to set truly discontinuous initial conditions in 1D.
 - Wetting and drying feature and examples for 1D and 2D shallow water equations
 - Implementation of the polytropic Euler equations in 2D
+- Implementation of the quasi-1D shallow water equations
 - Subcell (positivity and local min/max) limiting support for conservative variables
   in 2D for `TreeMesh`
 - AMR for hyperbolic-parabolic equations on 2D/3D `TreeMesh`
