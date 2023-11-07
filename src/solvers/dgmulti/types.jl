@@ -433,4 +433,3 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
     return nothing
 end
 end # @muladd
-
