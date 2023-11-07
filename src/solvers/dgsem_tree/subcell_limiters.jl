@@ -113,7 +113,8 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     end
 
     variables = varnames(cons2cons, equations)
-    local_minmax_variables_cons_ = Vector{Int}(undef, length(local_minmax_variables_cons))
+    local_minmax_variables_cons_ = Vector{Int}(undef,
+                                               length(local_minmax_variables_cons))
     positivity_variables_cons_ = Vector{Int}(undef, length(positivity_variables_cons))
     for (i, variable) in enumerate(local_minmax_variables_cons)
         local_minmax_variables_cons_[i] = get_variable_index(variable, variables)
