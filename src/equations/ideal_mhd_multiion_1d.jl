@@ -20,7 +20,7 @@ mutable struct IdealMhdMultiIonEquations1D{NVARS, NCOMP, RealT <: Real} <:
                                                 ::SVector{NCOMP, RealT},
                                                 charge_to_mass
                                                 ::SVector{NCOMP, RealT}) where
-        {NVARS, NCOMP, RealT <: Real}
+            {NVARS, NCOMP, RealT <: Real}
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 
