@@ -396,8 +396,9 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_blast_wave_sc_subcell.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_sc_subcell.jl"),
+@trixi_testset "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl"),
                         l2=[
                             0.3517507570120483,
                             0.19252291020146015,
