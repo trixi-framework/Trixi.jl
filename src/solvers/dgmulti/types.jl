@@ -434,7 +434,3 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
 end
 end # @muladd
 
-# TODO: deprecations introduced in Trixi.jl v0.6
-@deprecate DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension, kwargs...) where {NDIMS} DGMultiMesh(dg,
-                                                                                                     cells_per_dimension;
-                                                                                                     kwargs...)
