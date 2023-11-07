@@ -1341,5 +1341,4 @@ end
 
 # Return the magnetic field
 magnetic_field(u, equations::IdealGlmMhdEquations2D) = SVector(u[6], u[7], u[8])
-
 end # @muladd
