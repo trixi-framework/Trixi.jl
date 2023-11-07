@@ -252,8 +252,8 @@ function analyze(::Val{:l2_divb}, du, u, t,
                                                          dg, cache, derivative_matrix
         divb = zero(eltype(u))
         for k in eachnode(dg)
-            B1_kj, _, _ = magnetic_field(view(u,:, k, j, element), equations)
-            _, B2_ik, _ = magnetic_field(view(u,:, i, k, element), equations)
+            B1_kj, _, _ = magnetic_field(view(u, :, k, j, element), equations)
+            _, B2_ik, _ = magnetic_field(view(u, :, i, k, element), equations)
             divb += (derivative_matrix[i, k] * B1_kj +
                      derivative_matrix[j, k] * B2_ik)
         end
@@ -276,8 +276,8 @@ function analyze(::Val{:l2_divb}, du, u, t,
         Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
         # Compute the transformed divergence
         for k in eachnode(dg)
-            B1_kj, B2_kj, _ = magnetic_field(view(u,:, k, j, element), equations)
-            B1_ik, B2_ik, _ = magnetic_field(view(u,:, i, k, element), equations)
+            B1_kj, B2_kj, _ = magnetic_field(view(u, :, k, j, element), equations)
+            B1_ik, B2_ik, _ = magnetic_field(view(u, :, i, k, element), equations)
             divb += (derivative_matrix[i, k] *
                      (Ja11 * B1_kj + Ja12 * B2_kj) +
                      derivative_matrix[j, k] *
@@ -299,8 +299,8 @@ function analyze(::Val{:linf_divb}, du, u, t,
         for j in eachnode(dg), i in eachnode(dg)
             divb = zero(eltype(u))
             for k in eachnode(dg)
-                B1_kj, _, _ = magnetic_field(view(u,:, k, j, element), equations)
-                _, B2_ik, _ = magnetic_field(view(u,:, i, k, element), equations)
+                B1_kj, _, _ = magnetic_field(view(u, :, k, j, element), equations)
+                _, B2_ik, _ = magnetic_field(view(u, :, i, k, element), equations)
                 divb += (derivative_matrix[i, k] * B1_kj +
                          derivative_matrix[j, k] * B2_ik)
             end
@@ -331,12 +331,12 @@ function analyze(::Val{:linf_divb}, du, u, t,
                                                   element)
             # Compute the transformed divergence
             for k in eachnode(dg)
-                B1_kj, B2_kj, _ = magnetic_field(view(u,:, k, j, element), equations)
-                B1_ik, B2_ik, _ = magnetic_field(view(u,:, i, k, element), equations)
+                B1_kj, B2_kj, _ = magnetic_field(view(u, :, k, j, element), equations)
+                B1_ik, B2_ik, _ = magnetic_field(view(u, :, i, k, element), equations)
                 divb += (derivative_matrix[i, k] *
-                        (Ja11 * B1_kj + Ja12 * B2_kj) +
-                        derivative_matrix[j, k] *
-                        (Ja21 * B1_ik + Ja22 * B2_ik))
+                         (Ja11 * B1_kj + Ja12 * B2_kj) +
+                         derivative_matrix[j, k] *
+                         (Ja21 * B1_ik + Ja22 * B2_ik))
             end
             divb *= cache.elements.inverse_jacobian[i, j, element]
             linf_divb = max(linf_divb, abs(divb))
