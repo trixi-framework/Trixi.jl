@@ -416,7 +416,7 @@ end
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
-    indicator_idp = SubcellLimiterIDP(true, [1], true, [1], ("variable",), 0.1, true,
+    indicator_idp = SubcellLimiterIDP(true, ["rho"], true, ["rho"], ["variable"], 0.1, true,
                                       true, true, "cache", 1, (1.0, 1.0), 1.0, true,
                                       1.0, nothing)
     @test_nowarn show(stdout, indicator_idp)
