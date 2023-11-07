@@ -260,9 +260,7 @@ export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax,
-       IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven,
-       NeuralNetworkCNN
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax
 
 # TODO: TrixiShallowWater: move new limiter
 export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterShallowWater
@@ -301,10 +299,6 @@ function __init__()
         @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
             include("../ext/TrixiMakieExt.jl")
         end
-    end
-
-    @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
-        using .Flux: params
     end
 
     # FIXME upstream. This is a hacky workaround for
