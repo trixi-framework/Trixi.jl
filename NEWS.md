@@ -4,6 +4,22 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.6 from v0.5.x
+
+#### Added
+
+#### Changed
+
+#### Deprecated
+
+#### Removed
+
+- The neural network-based shock indicators have been migrated to a new repository
+  [TrixiSmartShockFinder.jl](https://github.com/trixi-framework/TrixiSmartShockFinder.jl).
+  To continue using the indicators, you will need to use both Trixi.jl and
+  TrixiSmartShockFinder.jl, as explained in the latter packages' `README.md`.
+
+
 ## Changes in the v0.5 lifecycle
 
 #### Added
@@ -30,6 +46,9 @@ for human readability.
   does not have `cells_per_dimesion` as a keyword argument.
 
 #### Removed
+
+- Migrate neural network-based shock indicators to a new repository
+  [TrixiSmartShockFinder.jl](https://github.com/trixi-framework/TrixiSmartShockFinder.jl).
 
 
 ## Changes when updating to v0.5 from v0.4.x
