@@ -17,21 +17,14 @@ mutable struct IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real, Electron
     charge_to_mass::SVector{NCOMP, RealT} # Charge to mass ratios
     electron_pressure::ElectronPressure       # Function to compute the electron pressure
 
-    function IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT, ElectronPressure}(gammas::SVector{
-                                                                                                NCOMP,
-                                                                                                RealT
-                                                                                                },
-                                                                                charge_to_mass::SVector{
-                                                                                                        NCOMP,
-                                                                                                        RealT
-                                                                                                        },
-                                                                                electron_pressure::ElectronPressure) where {
-                                                                                                                            NVARS,
-                                                                                                                            NCOMP,
-                                                                                                                            RealT <:
-                                                                                                                            Real,
-                                                                                                                            ElectronPressure
-                                                                                                                            }
+    function IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT,
+                                         ElectronPressure}(gammas
+                                                           ::SVector{NCOMP, RealT},
+                                                           charge_to_mass
+                                                           ::SVector{NCOMP, RealT},
+                                                           electron_pressure
+                                                           ::ElectronPressure) where
+        {NVARS, NCOMP, RealT <: Real, ElectronPressure}
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 

@@ -15,17 +15,12 @@ mutable struct IdealMhdMultiIonEquations1D{NVARS, NCOMP, RealT <: Real} <:
     gammas         :: SVector{NCOMP, RealT} # Heat capacity ratios
     charge_to_mass :: SVector{NCOMP, RealT} # Charge to mass ratios
 
-    function IdealMhdMultiIonEquations1D{NVARS, NCOMP, RealT}(gammas::SVector{NCOMP,
-                                                                              RealT},
-                                                              charge_to_mass::SVector{
-                                                                                      NCOMP,
-                                                                                      RealT
-                                                                                      }) where {
-                                                                                                NVARS,
-                                                                                                NCOMP,
-                                                                                                RealT <:
-                                                                                                Real
-                                                                                                }
+    function IdealMhdMultiIonEquations1D{NVARS, NCOMP,
+                                         RealT}(gammas
+                                                ::SVector{NCOMP, RealT},
+                                                charge_to_mass
+                                                ::SVector{NCOMP, RealT}) where
+        {NVARS, NCOMP, RealT <: Real}
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 
@@ -310,7 +305,7 @@ The term is composed of three parts
 
     # Compute charge ratio of u_ll
     charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
-    total_electron_charge = zero(eltype(u_ll))
+    total_electron_charge = zero(real(equations))
     for k in eachcomponent(equations)
         rho_k = u_ll[3 + (k - 1) * 5 + 1]
         charge_ratio_ll[k] = rho_k * charge_to_mass[k]
@@ -504,7 +499,7 @@ end
 end
 
 @inline function max_abs_speeds(u, equations::IdealMhdMultiIonEquations1D)
-    v1 = zero(eltype(u))
+    v1 = zero(real(equations))
     for k in eachcomponent(equations)
         rho, rho_v1, _ = get_component(k, u, equations)
         v1 = max(v1, abs(rho_v1 / rho))
@@ -610,7 +605,7 @@ Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoaco
                                      equations::IdealMhdMultiIonEquations1D)
     B1, B2, B3 = magnetic_field(cons, equations)
 
-    c_f = zero(cons[1])
+    c_f = zero(real(equations))
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, cons, equations)
 
@@ -642,7 +637,7 @@ Routine to compute the charge-averaged velocities:
 * vk*_plus: Contribution of each species to the charge-averaged velocity
 """
 @inline function charge_averaged_velocities(u, equations::IdealMhdMultiIonEquations1D)
-    total_electron_charge = zero(eltype(u))
+    total_electron_charge = zero(real(equations))
 
     vk1_plus = zero(MVector{ncomponents(equations), eltype(u)})
     vk2_plus = zero(MVector{ncomponents(equations), eltype(u)})
@@ -696,7 +691,7 @@ end
 magnetic_field(u, equations::IdealMhdMultiIonEquations1D) = SVector(u[1], u[2], u[3])
 
 @inline function density(u, equations::IdealMhdMultiIonEquations1D)
-    rho = zero(eltype(u))
+    rho = zero(real(equations))
     for k in eachcomponent(equations)
         rho += u[3 + (k - 1) * 5 + 1]
     end
