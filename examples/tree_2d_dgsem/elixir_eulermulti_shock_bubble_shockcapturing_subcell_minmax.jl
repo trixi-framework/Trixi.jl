@@ -89,7 +89,7 @@ basis = LobattoLegendreBasis(3)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_minmax_variables_cons = [
-                                    (i + 3 for i in eachcomponent(equations))...,
+                                    ("rho" * string(i) for i in eachcomponent(equations))...,
                                 ])
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,

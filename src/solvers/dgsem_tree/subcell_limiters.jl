@@ -23,6 +23,9 @@ including:
 - Local maximum/minimum Zalesak-type limiting for conservative variables (`local_minmax_variables_cons`)
 - Positivity limiting for conservative variables (`positivity_variables_cons`)
 
+Conservative variables to be limited are passed as a strings, e.g. `local_minmax_variables_cons = ["rho"]`
+and `positivity_variables_nonlinear = ["rho"]`.
+
 The bounds are calculated using the low-order FV solution. The positivity limiter uses
 `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
 
@@ -59,16 +62,27 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     local_minmax = (length(local_minmax_variables_cons) > 0)
     positivity = (length(positivity_variables_cons) > 0)
 
+    variables = varnames(cons2cons, equations)
+    local_minmax_variables_cons_ = Vector{Int}(undef,
+                                               length(local_minmax_variables_cons))
+    positivity_variables_cons_ = Vector{Int}(undef, length(positivity_variables_cons))
+    for (i, variable) in enumerate(local_minmax_variables_cons)
+        local_minmax_variables_cons_[i] = get_variable_index(variable, variables)
+    end
+    for (i, variable) in enumerate(positivity_variables_cons)
+        positivity_variables_cons_[i] = get_variable_index(variable, variables)
+    end
+
     bound_keys = ()
     if local_minmax
-        for v in local_minmax_variables_cons
+        for v in local_minmax_variables_cons_
             v_string = string(v)
             bound_keys = (bound_keys..., Symbol(v_string, "_min"),
                           Symbol(v_string, "_max"))
         end
     end
-    for v in positivity_variables_cons
-        if !(v in local_minmax_variables_cons)
+    for v in positivity_variables_cons_
+        if !(v in local_minmax_variables_cons_)
             bound_keys = (bound_keys..., Symbol(string(v), "_min"))
         end
     end
@@ -76,8 +90,8 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
 
     SubcellLimiterIDP{typeof(positivity_correction_factor),
-                      typeof(cache)}(local_minmax, local_minmax_variables_cons,
-                                     positivity, positivity_variables_cons,
+                      typeof(cache)}(local_minmax, local_minmax_variables_cons_,
+                                     positivity, positivity_variables_cons_,
                                      positivity_correction_factor, cache)
 end
 
@@ -137,5 +151,14 @@ function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
     node_variables[:limiting_coefficient] = limiter.cache.subcell_limiter_coefficients.alpha
 
     return nothing
+end
+
+@inline function get_variable_index(variable, variable_names)
+    for (i_, variable_) in enumerate(variable_names)
+        if variable == variable_
+            return i_
+        end
+    end
+    error("$variable is no valid variable.")
 end
 end # @muladd
