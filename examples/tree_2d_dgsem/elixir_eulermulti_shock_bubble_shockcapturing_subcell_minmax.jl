@@ -89,7 +89,7 @@ basis = LobattoLegendreBasis(3)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_minmax_variables_cons = [
-                                    (i + 3 for i in eachcomponent(equations))...,
+                                    ("rho" * string(i) for i in eachcomponent(equations))...,
                                 ],
                                 spec_entropy = false,
                                 bar_states = true)

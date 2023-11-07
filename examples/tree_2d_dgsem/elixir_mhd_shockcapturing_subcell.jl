@@ -51,7 +51,7 @@ volume_flux = (flux_derigs_etal, flux_nonconservative_powell_local_symmetric)
 basis = LobattoLegendreBasis(3)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                positivity_variables_cons = [1],
+                                positivity_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure],
                                 positivity_correction_factor = 0.1,
                                 bar_states = false)

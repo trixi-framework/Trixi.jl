@@ -22,7 +22,7 @@ polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                local_minmax_variables_cons = [1],
+                                local_minmax_variables_cons = ["rho"],
                                 spec_entropy = true,
                                 positivity_correction_factor = 0.1,
                                 max_iterations_newton = 100,

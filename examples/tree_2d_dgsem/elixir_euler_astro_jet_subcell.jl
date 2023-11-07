@@ -42,7 +42,7 @@ basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                local_minmax_variables_cons = [1],
+                                local_minmax_variables_cons = ["rho"],
                                 spec_entropy = true,
                                 bar_states = true,
                                 max_iterations_newton = 25)
