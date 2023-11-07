@@ -79,9 +79,6 @@ where
 ```math
 w_2 = \frac{\rho v1}{p},\, w_3 = -\frac{\rho}{p}
 ```
-
-!!! warning "Experimental code"
-    This code is experimental and may be changed or removed in any future release.
 """
 struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real,
                                            E <: AbstractCompressibleEulerEquations{1}

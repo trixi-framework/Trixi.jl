@@ -12,7 +12,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
 
 [**Trixi.jl**](https://github.com/trixi-framework/Trixi.jl)
-is a numerical simulation framework for hyperbolic conservation
+is a numerical simulation framework for conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
 having an extensible design with a fast implementation, Trixi.jl is
@@ -39,7 +39,7 @@ installation and postprocessing procedures. Its features include:
   * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
 * Periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
-  * Compressible Euler equations
+  * Compressible Euler and Navier-Stokes equations
   * Magnetohydrodynamics (MHD) equations
   * Multi-component compressible Euler and MHD equations
   * Linearized Euler and acoustic perturbation equations
