@@ -57,6 +57,7 @@ installation and postprocessing procedures. Its features include:
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
+* Multi-node parallelization via MPI
 * Visualization and postprocessing of the results
   * In-situ and a posteriori visualization with [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
   * Interactive visualization with [Makie.jl](https://makie.juliaplots.org/)
