@@ -4,7 +4,7 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
-    
+
 """
     SemidiscretizationCoupled
 
@@ -48,7 +48,8 @@ function SemidiscretizationCoupled(semis...)
 
     performance_counter = PerformanceCounter()
 
-    SemidiscretizationCoupled{typeof(semis), typeof(u_indices), typeof(performance_counter)
+    SemidiscretizationCoupled{typeof(semis), typeof(u_indices),
+                              typeof(performance_counter)
                               }(semis, u_indices, performance_counter)
 end
 
@@ -71,11 +72,13 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
             summary_line(io, "system", i)
             mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
             summary_line(increment_indent(io), "mesh", mesh |> typeof |> nameof)
-            summary_line(increment_indent(io), "equations", equations |> typeof |> nameof)
+            summary_line(increment_indent(io), "equations",
+                         equations |> typeof |> nameof)
             summary_line(increment_indent(io), "initial condition",
                          semi.semis[i].initial_condition)
             # no boundary conditions since that could be too much
-            summary_line(increment_indent(io), "source terms", semi.semis[i].source_terms)
+            summary_line(increment_indent(io), "source terms",
+                         semi.semis[i].source_terms)
             summary_line(increment_indent(io), "solver", solver |> typeof |> nameof)
         end
         summary_line(io, "total #DOFs per field", ndofs(semi))
@@ -112,7 +115,9 @@ end
 
 @inline Base.real(semi::SemidiscretizationCoupled) = promote_type(real.(semi.semis)...)
 
-@inline Base.eltype(semi::SemidiscretizationCoupled) = promote_type(eltype.(semi.semis)...)
+@inline function Base.eltype(semi::SemidiscretizationCoupled)
+    promote_type(eltype.(semi.semis)...)
+end
 
 @inline function ndofs(semi::SemidiscretizationCoupled)
     sum(ndofs, semi.semis)
@@ -150,7 +155,7 @@ end
     du_loc = get_system_u_ode(du_ode, i, semi)
     rhs!(du_loc, u_loc, semi_, t)
     if i < nsystems(semi)
-        rhs!(u_ode, du_ode, t, semi, i+1, semi_tuple...)
+        rhs!(u_ode, du_ode, t, semi, i + 1, semi_tuple...)
     end
 end
 
@@ -158,8 +163,9 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     @unpack u_indices = semi
 
     time_start = time_ns()
-    
-    foreach(semi_ -> copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi), semi.semis)
+
+    foreach(semi_ -> copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi),
+            semi.semis)
 
     # Call rhs! for each semidiscretization
     rhs!(u_ode, du_ode, t, semi, 1, semi.semis...)
@@ -317,7 +323,8 @@ end
 
     for i in eachsystem(semi)
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        save_solution_file(semis[i], u_ode_slice, solution_callback, integrator, system = i)
+        save_solution_file(semis[i], u_ode_slice, solution_callback, integrator,
+                           system = i)
     end
 end
 
@@ -409,8 +416,10 @@ function Base.eltype(boundary_condition::BoundaryConditionCoupled)
 end
 
 function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction,
-                                                        cell_indices, surface_node_indices,
-                                                        surface_flux_function, equations)
+                                                        cell_indices,
+                                                        surface_node_indices,
+                                                        surface_flux_function,
+                                                        equations)
     # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
     # but we don't have a solver here
     u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v,
@@ -435,19 +444,22 @@ function allocate_coupled_boundary_conditions(semi::AbstractSemidiscretization)
     for direction in 1:n_boundaries
         boundary_condition = semi.boundary_conditions[direction]
 
-        allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations,
+        allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
+                                            equations,
                                             solver)
     end
 end
 
 # Don't do anything for other BCs than BoundaryConditionCoupled
-function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations,
+function allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
+                                             equations,
                                              solver)
     return nothing
 end
 
 # In 2D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{
+                                                                                          2
                                                                                           },
                                              direction, mesh, equations, dg::DGSEM)
     if direction in (1, 2)
@@ -469,27 +481,31 @@ end
 
 function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}, u_ode,
                                    semi)
-    foreach(boundary_condition -> copy_to_coupled_boundary!(boundary_condition, u_ode, semi), boundary_conditions)
+    foreach(boundary_condition -> copy_to_coupled_boundary!(boundary_condition, u_ode,
+                                                            semi), boundary_conditions)
 end
 
 function mesh_equations_solver_cache(other_semi_index, i, semi_, semi_tuple...)
     if i == other_semi_index
         return mesh_equations_solver_cache(semi_)
     else
-        mesh_equations_solver_cache(other_semi_index, i+1, semi_tuple...)
+        mesh_equations_solver_cache(other_semi_index, i + 1, semi_tuple...)
     end
 end
 
 # In 2D
-function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2}, u_ode,
+function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2},
+                                   u_ode,
                                    semi)
     @unpack u_indices = semi
     @unpack other_semi_index, other_orientation, indices = boundary_condition
     @unpack coupling_converter, u_boundary = boundary_condition
 
-    mesh, equations, solver, cache = mesh_equations_solver_cache(other_semi_index, 1, semi.semis...)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(other_semi_index, 1,
+                                                                 semi.semis...)
     @unpack node_coordinates = cache.elements
-    u = wrap_array(get_system_u_ode(u_ode, other_semi_index, semi), mesh, equations, solver,
+    u = wrap_array(get_system_u_ode(u_ode, other_semi_index, semi), mesh, equations,
+                   solver,
                    cache)
 
     linear_indices = LinearIndices(size(mesh))
@@ -536,7 +552,8 @@ end
 ### DGSEM/structured
 ################################################################################
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t, orientation,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+                                                  orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::StructuredMesh, equations,
                                                   surface_integral, dg::DG, cache,
@@ -556,7 +573,8 @@ end
     sign_jacobian = sign(inverse_jacobian[node_indices..., element])
 
     # Contravariant vector Ja^i is the normal vector
-    normal = sign_jacobian * get_contravariant_vector(orientation, contravariant_vectors,
+    normal = sign_jacobian *
+             get_contravariant_vector(orientation, contravariant_vectors,
                                       node_indices..., element)
 
     # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
@@ -633,5 +651,4 @@ function analyze_convergence(errors_coupled, iterations,
 
     return eoc_mean_values
 end
-
 end # @muladd
