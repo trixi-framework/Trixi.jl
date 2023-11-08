@@ -437,8 +437,9 @@ end
                             6.251573757093399,
                         ],
                         tspan=(0.0, 0.5),
-                        callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,stepsize_callback),
+                        callbacks=CallbackSet(summary_callback,
+                                              analysis_callback, alive_callback,
+                                              stepsize_callback),
                         surface_flux=flux_hlle),
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
