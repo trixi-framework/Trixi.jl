@@ -20,8 +20,8 @@ end
 
 """
     SubcellLimiterIDP(equations::AbstractEquations, basis;
-                      local_minmax_variables_cons = [],
-                      positivity_variables_cons = [],
+                      local_minmax_variables_cons = String[],
+                      positivity_variables_cons = String[],
                       positivity_variables_nonlinear = [],
                       positivity_correction_factor = 0.1,
                       spec_entropy = false,
@@ -36,13 +36,13 @@ end
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
-- maximum/minimum Zalesak-type limiting for conservative variables (`local_minmax_variables_cons`)
-- positivity limiting for conservative (`positivity_variables_cons`) and non-linear variables (`positivity_variables_nonlinear`)
-- one-sided limiting for specific and mathematical entropy (`spec_entropy`, `math_entropy`)
+- Local maximum/minimum Zalesak-type limiting for conservative variables (`local_minmax_variables_cons`)
+- Positivity limiting for conservative (`positivity_variables_cons`) and non-linear variables (`positivity_variables_nonlinear`)
+- One-sided limiting for specific and mathematical entropy (`spec_entropy`, `math_entropy`)
 
-Conservative variables to be limited are passed as a strings, e.g. `local_minmax_variables_cons = ["rho"]`
-and `positivity_variables_nonlinear = ["rho"]`. For the non-linear variables the specific function is
-passed, e.g. `positivity_variables_nonlinear = [pressure]`.
+Conservative variables to be limited are passed as a vector of strings, e.g. `local_minmax_variables_cons = ["rho"]`
+and `positivity_variables_cons = ["rho"]`. For the non-linear variables the specific function is
+passed in a vector, e.g. `positivity_variables_nonlinear = [pressure]`.
 
 The bounds can be calculated using the `bar_states` or the low-order FV solution. The positivity
 limiter uses `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
@@ -92,8 +92,8 @@ end
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function SubcellLimiterIDP(equations::AbstractEquations, basis;
-                           local_minmax_variables_cons = [],
-                           positivity_variables_cons = [],
+                           local_minmax_variables_cons = String[],
+                           positivity_variables_cons = String[],
                            positivity_variables_nonlinear = [],
                            positivity_correction_factor = 0.1,
                            spec_entropy = false,
@@ -112,16 +112,10 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         error("Only one of the two can be selected: math_entropy/spec_entropy")
     end
 
-    variables = varnames(cons2cons, equations)
-    local_minmax_variables_cons_ = Vector{Int}(undef,
-                                               length(local_minmax_variables_cons))
-    positivity_variables_cons_ = Vector{Int}(undef, length(positivity_variables_cons))
-    for (i, variable) in enumerate(local_minmax_variables_cons)
-        local_minmax_variables_cons_[i] = get_variable_index(variable, variables)
-    end
-    for (i, variable) in enumerate(positivity_variables_cons)
-        positivity_variables_cons_[i] = get_variable_index(variable, variables)
-    end
+    local_minmax_variables_cons_ = get_variable_index.(local_minmax_variables_cons,
+                                                       equations)
+    positivity_variables_cons_ = get_variable_index.(positivity_variables_cons,
+                                                     equations)
 
     bound_keys = ()
     if local_minmax
@@ -199,7 +193,7 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
     @nospecialize limiter # reduce precompilation time
-    @unpack local_minmax, positivity, spec_entropy, math_entropy = limiter
+    (; local_minmax, positivity, spec_entropy, math_entropy) = limiter
 
     if get(io, :compact, false)
         show(io, limiter)
@@ -248,15 +242,6 @@ function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
     node_variables[:alpha_limiter] = limiter.cache.subcell_limiter_coefficients.alpha
 
     return nothing
-end
-
-@inline function get_variable_index(variable, variable_names)
-    for (i_, variable_) in enumerate(variable_names)
-        if variable == variable_
-            return i_
-        end
-    end
-    error("$variable is no valid variable.")
 end
 
 """

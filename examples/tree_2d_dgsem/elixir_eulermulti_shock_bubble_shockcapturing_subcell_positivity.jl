@@ -88,9 +88,8 @@ volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                positivity_variables_cons = [
-                                    ("rho" * string(i) for i in eachcomponent(equations))...,
-                                ],
+                                positivity_variables_cons = ["rho" * string(i)
+                                                             for i in eachcomponent(equations)],
                                 positivity_variables_nonlinear = [],
                                 positivity_correction_factor = 0.1,
                                 spec_entropy = false,

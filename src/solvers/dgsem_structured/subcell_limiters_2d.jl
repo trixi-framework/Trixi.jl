@@ -5,8 +5,8 @@
 @muladd begin
 #! format: noindent
 
-function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
-                                       mesh::StructuredMesh{2})
+function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
+                                         mesh::StructuredMesh{2})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
     @unpack boundary_conditions = semi
     @unpack contravariant_vectors = cache.elements
@@ -127,8 +127,8 @@ function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
     return nothing
 end
 
-function calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, t, semi,
-                                       mesh::StructuredMesh{2})
+function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, semi,
+                                         mesh::StructuredMesh{2})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
     @unpack boundary_conditions = semi
     @unpack contravariant_vectors = cache.elements

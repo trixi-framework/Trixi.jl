@@ -82,7 +82,7 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
     return nothing
 end
 
-@inline function calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
+@inline function calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
@@ -114,13 +114,13 @@ end
     end
 
     # Values at element boundary
-    calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi, mesh)
+    calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi, mesh)
 end
 
-@inline function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi,
-                                               mesh::TreeMesh2D)
+@inline function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
+                                                 mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack boundary_conditions = semi
+    (; boundary_conditions) = semi
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
@@ -182,8 +182,8 @@ end
     return nothing
 end
 
-@inline function calc_bounds_1sided!(var_minmax, minmax, typeminmax, variable, u, t,
-                                     semi)
+@inline function calc_bounds_onesided!(var_minmax, minmax, typeminmax, variable, u, t,
+                                       semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
@@ -214,13 +214,13 @@ end
     end
 
     # Values at element boundary
-    calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, t, semi, mesh)
+    calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, semi, mesh)
 end
 
-@inline function calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, t, semi,
-                                               mesh::TreeMesh2D)
+@inline function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t,
+                                                 semi, mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
-    @unpack boundary_conditions = semi
+    (; boundary_conditions) = semi
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
@@ -333,15 +333,16 @@ end
 
 @inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
-    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
-    var_min = variable_bounds[Symbol(string(variable), "_min")]
-    var_max = variable_bounds[Symbol(string(variable), "_max")]
-    if !limiter.bar_states
-        calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
-    end
+    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
 
-    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
-    @unpack inverse_weights = dg.basis
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    variable_string = string(variable)
+    var_min = variable_bounds[Symbol(variable_string, "_min")]
+    var_max = variable_bounds[Symbol(variable_string, "_max")]
+    if !limiter.bar_states
+        calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
+    end
 
     @threaded for element in elements
         if mesh isa TreeMesh
@@ -403,7 +404,7 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     s_min = variable_bounds[:spec_entropy_min]
     if !limiter.bar_states
-        calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u, t, semi)
+        calc_bounds_onesided!(s_min, min, typemax, entropy_spec, u, t, semi)
     end
 
     # Perform Newton's bisection method to find new alpha
@@ -425,7 +426,7 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     s_max = variable_bounds[:math_entropy_max]
     if !limiter.bar_states
-        calc_bounds_1sided!(s_max, max, typemin, entropy_math, u, t, semi)
+        calc_bounds_onesided!(s_max, max, typemin, entropy_math, u, t, semi)
     end
 
     # Perform Newton's bisection method to find new alpha
@@ -480,12 +481,14 @@ end
             end
 
             # Compute bound
-            if limiter.local_minmax
-                var_min[i, j, element] = max(var_min[i, j, element],
-                                             positivity_correction_factor * var)
-            else
-                var_min[i, j, element] = positivity_correction_factor * var
+            if limiter.local_minmax &&
+               variable in limiter.local_minmax_variables_cons &&
+               var_min[i, j, element] >= positivity_correction_factor * var
+                # Local limiting is more restrictive that positivity limiting
+                # => Skip positivity limiting for this node
+                continue
             end
+            var_min[i, j, element] = positivity_correction_factor * var
 
             # Real one-sided Zalesak-type limiter
             # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
