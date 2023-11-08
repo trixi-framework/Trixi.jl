@@ -10,6 +10,9 @@ for human readability.
 
 #### Changed
 
+- Parabolic diffusion terms are now officially supported and not marked as experimental
+  anymore.
+
 #### Deprecated
 
 #### Removed
