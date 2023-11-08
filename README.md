@@ -45,7 +45,8 @@ installation and postprocessing procedures. Its features include:
   * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
 * Periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
-  * Compressible Euler and Navier-Stokes equations
+  * Compressible Euler equations
+  * Compressible Navier-Stokes equations
   * Magnetohydrodynamics (MHD) equations
   * Multi-component compressible Euler and MHD equations
   * Linearized Euler and acoustic perturbation equations
