@@ -88,9 +88,8 @@ volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                positivity_variables_cons = [
-                                    ("rho" * string(i) for i in eachcomponent(equations))...,
-                                ])
+                                positivity_variables_cons = ["rho" * string(i)
+                                                             for i in eachcomponent(equations)])
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,

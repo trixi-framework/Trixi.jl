@@ -42,6 +42,22 @@ Common choices of the `conversion_function` are [`cons2cons`](@ref) and
 """
 function varnames end
 
+"""
+    get_variable_index(variable, equations, conversion_function = cons2cons)
+
+Return the index of `variable` in `varnames(conversion_function, equations)` if available.
+Otherwise, return an error.
+"""
+@inline function get_variable_index(variable, equations,
+                                    conversion_function = cons2cons)
+    index = findfirst(==(variable), varnames(conversion_function, equations))
+    if isnothing(index)
+        error("$variable is no valid variable.")
+    end
+
+    return index
+end
+
 # Add methods to show some information on systems of equations.
 function Base.show(io::IO, equations::AbstractEquations)
     # Since this is not performance-critical, we can use `@nospecialize` to reduce latency.
@@ -211,8 +227,8 @@ end
 """
     NonConservativeLocal()
 
-Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric". 
-When the argument `nonconservative_type` is of type `NonConservativeLocal`, 
+Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric".
+When the argument `nonconservative_type` is of type `NonConservativeLocal`,
 the function returns the local part of the non-conservative term.
 """
 struct NonConservativeLocal end
@@ -220,8 +236,8 @@ struct NonConservativeLocal end
 """
     NonConservativeSymmetric()
 
-Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric". 
-When the argument `nonconservative_type` is of type `NonConservativeSymmetric`, 
+Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric".
+When the argument `nonconservative_type` is of type `NonConservativeSymmetric`,
 the function returns the symmetric part of the non-conservative term.
 """
 struct NonConservativeSymmetric end

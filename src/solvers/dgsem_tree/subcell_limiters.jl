@@ -14,8 +14,8 @@ end
 
 """
     SubcellLimiterIDP(equations::AbstractEquations, basis;
-                      local_minmax_variables_cons = [],
-                      positivity_variables_cons = [],
+                      local_minmax_variables_cons = String[],
+                      positivity_variables_cons = String[],
                       positivity_correction_factor = 0.1)
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
@@ -23,8 +23,8 @@ including:
 - Local maximum/minimum Zalesak-type limiting for conservative variables (`local_minmax_variables_cons`)
 - Positivity limiting for conservative variables (`positivity_variables_cons`)
 
-Conservative variables to be limited are passed as a strings, e.g. `local_minmax_variables_cons = ["rho"]`
-and `positivity_variables_nonlinear = ["rho"]`.
+Conservative variables to be limited are passed as a vector of strings, e.g. `local_minmax_variables_cons = ["rho"]`
+and `positivity_variables_cons = ["rho"]`.
 
 The bounds are calculated using the low-order FV solution. The positivity limiter uses
 `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
@@ -56,22 +56,16 @@ end
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function SubcellLimiterIDP(equations::AbstractEquations, basis;
-                           local_minmax_variables_cons = [],
-                           positivity_variables_cons = [],
+                           local_minmax_variables_cons = String[],
+                           positivity_variables_cons = String[],
                            positivity_correction_factor = 0.1)
     local_minmax = (length(local_minmax_variables_cons) > 0)
     positivity = (length(positivity_variables_cons) > 0)
 
-    variables = varnames(cons2cons, equations)
-    local_minmax_variables_cons_ = Vector{Int}(undef,
-                                               length(local_minmax_variables_cons))
-    positivity_variables_cons_ = Vector{Int}(undef, length(positivity_variables_cons))
-    for (i, variable) in enumerate(local_minmax_variables_cons)
-        local_minmax_variables_cons_[i] = get_variable_index(variable, variables)
-    end
-    for (i, variable) in enumerate(positivity_variables_cons)
-        positivity_variables_cons_[i] = get_variable_index(variable, variables)
-    end
+    local_minmax_variables_cons_ = get_variable_index.(local_minmax_variables_cons,
+                                                       equations)
+    positivity_variables_cons_ = get_variable_index.(positivity_variables_cons,
+                                                     equations)
 
     bound_keys = ()
     if local_minmax
@@ -151,14 +145,5 @@ function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
     node_variables[:limiting_coefficient] = limiter.cache.subcell_limiter_coefficients.alpha
 
     return nothing
-end
-
-@inline function get_variable_index(variable, variable_names)
-    for (i_, variable_) in enumerate(variable_names)
-        if variable == variable_
-            return i_
-        end
-    end
-    error("$variable is no valid variable.")
 end
 end # @muladd
