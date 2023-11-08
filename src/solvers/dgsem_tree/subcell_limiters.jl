@@ -41,7 +41,7 @@ including:
 - One-sided limiting for specific and mathematical entropy (`spec_entropy`, `math_entropy`)
 
 Conservative variables to be limited are passed as a vector of strings, e.g. `local_minmax_variables_cons = ["rho"]`
-and `positivity_variables_cons = ["rho"]`. For the non-linear variables the specific function is
+and `positivity_variables_cons = ["rho"]`. For non-linear variables the specific functions are
 passed in a vector, e.g. `positivity_variables_nonlinear = [pressure]`.
 
 The bounds can be calculated using the `bar_states` or the low-order FV solution. The positivity
@@ -83,8 +83,8 @@ struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
     bar_states::Bool
     cache::Cache
     max_iterations_newton::Int
-    newton_tolerances::Tuple{RealT, RealT}          # Relative and absolute tolerances for Newton's method
-    gamma_constant_newton::RealT                    # Constant for the subcell limiting of convex (nonlinear) constraints
+    newton_tolerances::Tuple{RealT, RealT}  # Relative and absolute tolerances for Newton's method
+    gamma_constant_newton::RealT            # Constant for the subcell limiting of convex (nonlinear) constraints
     smoothness_indicator::Bool
     threshold_smoothness_indicator::RealT
     IndicatorHG::Indicator
@@ -170,7 +170,7 @@ end
 
 function Base.show(io::IO, limiter::SubcellLimiterIDP)
     @nospecialize limiter # reduce precompilation time
-    @unpack local_minmax, positivity, spec_entropy, math_entropy = limiter
+    (; local_minmax, positivity, spec_entropy, math_entropy) = limiter
 
     print(io, "SubcellLimiterIDP(")
     if !(local_minmax || positivity || spec_entropy || math_entropy)
