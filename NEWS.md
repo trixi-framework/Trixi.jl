@@ -35,6 +35,7 @@ for human readability.
 - Implementation of the quasi-1D shallow water equations
 - Subcell positivity limiting support for conservative variables in 2D for `TreeMesh`
 - AMR for hyperbolic-parabolic equations on 2D/3D `TreeMesh`
+- Added `GradientVariables` type parameter to `AbstractEquationsParabolic`
 
 #### Changed
 
