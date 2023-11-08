@@ -490,8 +490,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     @unpack other_semi_index, other_orientation, indices = boundary_condition
     @unpack coupling_converter, u_boundary = boundary_condition
 
-    # foreach(index -> call_rhs!(u_ode, du_ode, index, t, semi), eachsystem(semi))
-    # foreach(index -> mesh_equations_solver_cache_coupled!(index, _index, mesh, equations, solver, cache), eachsystem(semi))
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
     @unpack node_coordinates = cache.elements
     u = wrap_array(get_system_u_ode(u_ode, other_semi_index, semi), mesh, equations, solver,
