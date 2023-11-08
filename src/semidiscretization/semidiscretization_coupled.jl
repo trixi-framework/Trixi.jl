@@ -148,9 +148,9 @@ end
 @inline function rhs!(u_ode, du_ode, t, semi, i, semi_, semi_tuple...)
     u_loc = get_system_u_ode(u_ode, i, semi)
     du_loc = get_system_u_ode(du_ode, i, semi)
-    rhs!(du_loc, u_loc, semi.semis[i], t)
-    if length(semi_tuple) > 0
-        rhs!(u_ode, du_ode, t, semi, i+1, semi.semis)
+    rhs!(du_loc, u_loc, semi_, t)
+    if i < nsystems(semi)
+        rhs!(u_ode, du_ode, t, semi, i+1, semi_tuple...)
     end
 end
 
@@ -159,18 +159,10 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 
     time_start = time_ns()
     
-    # @trixi_timeit timer() "copy to coupled boundaries" begin
-
     foreach(semi_ -> copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi), semi.semis)
 
     # Call rhs! for each semidiscretization
     rhs!(u_ode, du_ode, t, semi, 1, semi.semis...)
-
-    # for i in eachsystem(semi)
-    #     u_loc = get_system_u_ode(u_ode, i, semi)
-    #     du_loc = get_system_u_ode(du_ode, i, semi)
-    #     rhs!(du_loc, u_loc, semi.semis[i], t)
-    # end
 
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
