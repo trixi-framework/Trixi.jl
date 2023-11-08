@@ -143,13 +143,14 @@ end
     @view u_ode[semi.u_indices[index]]
 end
 
-# Fix for the type instability.
-@inline function call_rhs!(u_ode, du_ode, t, semi, i, semi_, semi_tuple...)
+# Rcursive call of the RHS for the semidiscretizations using Lispy tuple programming
+# to avoid type instability.
+@inline function rhs!(u_ode, du_ode, t, semi, i, semi_, semi_tuple...)
     u_loc = get_system_u_ode(u_ode, i, semi)
     du_loc = get_system_u_ode(du_ode, i, semi)
     rhs!(du_loc, u_loc, semi.semis[i], t)
     if length(semi_tuple) > 0
-        call_rhs!(u_ode, du_ode, t, semi, i+1, semi.semis)
+        rhs!(u_ode, du_ode, t, semi, i+1, semi.semis)
     end
 end
 
@@ -163,7 +164,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     foreach(semi_ -> copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi), semi.semis)
 
     # Call rhs! for each semidiscretization
-    call_rhs!(u_ode, du_ode, t, semi, 1, semi.semis...)
+    rhs!(u_ode, du_ode, t, semi, 1, semi.semis...)
 
     # for i in eachsystem(semi)
     #     u_loc = get_system_u_ode(u_ode, i, semi)
@@ -479,8 +480,12 @@ function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}
     foreach(boundary_condition -> copy_to_coupled_boundary!(boundary_condition, u_ode, semi), boundary_conditions)
 end
 
-function mesh_equations_solver_cache_coupled!(semi_, other_semi_index, mesh, equations, solver, cache)
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
+function mesh_equations_solver_cache(other_semi_index, i, semi_, semi_tuple...)
+    if i == other_semi_index
+        return mesh_equations_solver_cache(semi_)
+    else
+        mesh_equations_solver_cache(other_semi_index, i+1, semi_tuple...)
+    end
 end
 
 # In 2D
@@ -490,7 +495,7 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     @unpack other_semi_index, other_orientation, indices = boundary_condition
     @unpack coupling_converter, u_boundary = boundary_condition
 
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
+    mesh, equations, solver, cache = mesh_equations_solver_cache(other_semi_index, 1, semi.semis...)
     @unpack node_coordinates = cache.elements
     u = wrap_array(get_system_u_ode(u_ode, other_semi_index, semi), mesh, equations, solver,
                    cache)
