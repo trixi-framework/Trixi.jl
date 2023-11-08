@@ -83,7 +83,7 @@ w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = -\frac{\rho}{p}
 struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real,
                                            E <: AbstractCompressibleEulerEquations{2}
                                            } <:
-       AbstractCompressibleNavierStokesDiffusion{2, 4}
+       AbstractCompressibleNavierStokesDiffusion{2, 4, GradientVariables}
     # TODO: parabolic
     # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
     # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
