@@ -1351,7 +1351,7 @@ of the numerical flux.
     v1_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr) * inv_sum_sqrt_rho
     v2_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr) * inv_sum_sqrt_rho
     v_roe = v1_roe * normal_direction[1] + v2_roe * normal_direction[2]
-    v_roe_mag = (v1_roe * normal_direction[1])^2 + (v2_roe * normal_direction[2])^2
+    v_roe_mag = (v1_roe)^2 + (v2_roe)^2
 
     H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) * inv_sum_sqrt_rho
     c_roe = sqrt((equations.gamma - 1) * (H_roe - 0.5 * v_roe_mag)) * norm_
