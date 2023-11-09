@@ -15,7 +15,8 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
     @assert all(index_min .> 0)
     @assert index_max <= size(parent)
 
-    return StructuredMeshView{NDIMS, RealT}(parent, parent.mapping, index_min, index_max, periodicity)
+    return StructuredMeshView{NDIMS, RealT}(parent, parent.mapping, index_min,
+                                            index_max, periodicity)
 end
 
 function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT}) where {NDIMS, RealT}
@@ -47,11 +48,10 @@ end
 Base.axes(mesh::StructuredMeshView) = map(Base.OneTo, size(mesh))
 Base.axes(mesh::StructuredMeshView, i) = Base.OneTo(size(mesh, i))
 
-
 function calc_node_coordinates!(node_coordinates, element,
                                 cell_x, cell_y, mapping,
                                 mesh::StructuredMeshView{2},
-#                                basis::LobattoLegendreBasis)
+                                #                                basis::LobattoLegendreBasis)
                                 basis)
     @unpack nodes = basis
     @unpack parent, index_min, index_max = mesh
