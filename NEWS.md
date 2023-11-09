@@ -15,6 +15,8 @@ for human readability.
   conceptually identical across equations.
   Users, who have been using `flux_hll` for MHD have now to use `flux_hlle` in order to use the
   Einfeldt wave speed estimate.
+- Parabolic diffusion terms are now officially supported and not marked as experimental
+  anymore.
 
 #### Deprecated
 
@@ -37,6 +39,7 @@ for human readability.
 - Implementation of the polytropic Euler equations in 2D
 - Subcell positivity limiting support for conservative variables in 2D for `TreeMesh`
 - AMR for hyperbolic-parabolic equations on 2D/3D `TreeMesh`
+- Added `GradientVariables` type parameter to `AbstractEquationsParabolic`
 
 #### Changed
 
