@@ -56,7 +56,7 @@
             if local_minmax
                 for v in limiter.local_minmax_variables_cons
                     v_string = string(v)
-                    print(f, ", ", idp_bounds_delta[Symbol(v_string, "_min")][1],
+                    print(f, ", ", idp_bounds_delta[Symbol(v_string, "_min")][1], ", ",
                           idp_bounds_delta[Symbol(v_string, "_max")][1])
                 end
             end
