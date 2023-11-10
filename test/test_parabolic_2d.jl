@@ -16,7 +16,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     dg = DGMulti(polydeg = 2, element_type = Quad(), approximation_type = Polynomial(),
                  surface_integral = SurfaceIntegralWeakForm(flux_central),
                  volume_integral = VolumeIntegralWeakForm())
-    cells_per_dimension = (2, 2)                 
+    cells_per_dimension = (2, 2)
     mesh = DGMultiMesh(dg, cells_per_dimension)
 
     # test with polynomial initial condition x^2 * y
