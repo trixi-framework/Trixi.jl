@@ -36,9 +36,9 @@ initial_condition = initial_condition_dam_break
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
+volume_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal)
 solver = DGSEM(polydeg = 3,
-               surface_flux = (flux_fjordholm_etal, flux_nonconservative_fjordholm_etal),
+               surface_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
