@@ -10,6 +10,11 @@ for human readability.
 
 #### Changed
 
+- The wave speed estimates for `flux_hll`, `FluxHLL()` are now consistent across equations.
+  In particular, the functions `min_max_speed_naive`, `min_max_speed_einfeldt` are now 
+  conceptually identical across equations.
+  Users, who have been using `flux_hll` for MHD have now to use `flux_hlle` in order to use the
+  Einfeldt wave speed estimate.
 - Parabolic diffusion terms are now officially supported and not marked as experimental
   anymore.
 
