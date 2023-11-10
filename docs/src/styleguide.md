@@ -17,11 +17,11 @@ conventions, we apply and enforce automated source code formatting
   * Maximum line length (strictly): **92**.
   * Functions that mutate their *input* are named with a trailing `!`.
   * Functions order their parameters [similar to Julia Base](https://docs.julialang.org/en/v1/manual/style-guide/#Write-functions-with-argument-ordering-similar-to-Julia-Base-1).
-    * The main modified argument comes first. For example, if the right-hand side `du` is modified, 
-      it should come first. If only the `cache` is modified, e.g., in `prolong2interfaces!` 
+    * The main modified argument comes first. For example, if the right-hand side `du` is modified,
+      it should come first. If only the `cache` is modified, e.g., in `prolong2interfaces!`
       and its siblings, put the `cache` first.
     * Otherwise, use the order `mesh, equations, solver, cache`.
-    * If something needs to be specified in more detail for dispatch, put the additional argument before the general one 
+    * If something needs to be specified in more detail for dispatch, put the additional argument before the general one
       that is specified in more detail. For example, we use `have_nonconservative_terms(equations), equations`
       and `dg.mortar, dg`.
   * Prefer `for i in ...` to `for i = ...` for better semantic clarity and greater flexibility.
@@ -55,7 +55,7 @@ julia -e 'using Pkg; Pkg.add("JuliaFormatter")'
 ```
 You can then recursively format the core Julia files in the Trixi.jl repo by executing
 ```shell
-julia -e 'using JuliaFormatter; format(["benchmark", "ext", "src", "utils"])'
+julia -e 'using JuliaFormatter; format(["benchmark", "examples", "ext", "src", "test", "utils"])'
 ```
 from inside the Trixi.jl repository. For convenience, there is also a script you can
 directly run from your terminal shell, which will automatically install JuliaFormatter in a
@@ -67,12 +67,12 @@ You can get more information about using the convenience script by running it wi
 `--help`/`-h` flag.
 
 ### Checking formatting before committing
-It can be convenient to check the formatting of source code automatically before each commit. 
+It can be convenient to check the formatting of source code automatically before each commit.
 We use git-hooks for it and provide a `pre-commit` script in the `utils` folder. The script uses
-[JuliaFormatter.jl](https://github.com/domluna/JuliaFormatter.jl) just like formatting script that 
-runs over the whole Trixi.jl directory. 
-You can copy the `pre-commit`-script into `.git/hooks/pre-commit` and it will check your formatting 
+[JuliaFormatter.jl](https://github.com/domluna/JuliaFormatter.jl) just like formatting script that
+runs over the whole Trixi.jl directory.
+You can copy the `pre-commit`-script into `.git/hooks/pre-commit` and it will check your formatting
 before each commit. If errors are found the commit is aborted and you can add the corrections via
-```shell 
+```shell
 git add -p
 ```
