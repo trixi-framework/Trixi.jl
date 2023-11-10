@@ -13,7 +13,7 @@ volume_flux = flux_ranocha
 solver = DGSEM(polydeg=3, surface_flux=flux_ranocha,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-cells_per_dimension = (32, 32)
+cells_per_dimension = (16, 16)
 coordinates_min = (-1.0, -1.0)
 coordinates_max = ( 1.0,  1.0)
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
