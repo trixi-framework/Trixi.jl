@@ -1320,7 +1320,7 @@ end
     dg = DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),
                  surface_integral = SurfaceIntegralWeakForm(flux_central),
                  volume_integral = VolumeIntegralFluxDifferencing(flux_central))
-    cells_per_dimension = (1,)                 
+    cells_per_dimension = (1,)
     mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = false)
 
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
