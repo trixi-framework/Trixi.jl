@@ -109,7 +109,9 @@ end
                             2.2447689894899726e-13,
                             1.9999999999999714,
                         ],
-                        tspan=(0.0, 0.25))
+                        tspan=(0.0, 0.25),
+                        # Soften the tolerance as test results vary between different CPUs
+                        atol = 1000*eps())
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
