@@ -323,6 +323,7 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
                                        kwargs...)
     @unpack alpha, indicator_threaded = indicator_max.cache
     resize!(alpha, nelements(dg, cache))
+    indicator_variable = indicator_max.variable
 
     @threaded for element in eachelement(dg, cache)
         indicator = indicator_threaded[Threads.threadid()]
@@ -330,7 +331,7 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
         # Calculate indicator variables at Gauss-Lobatto nodes
         for j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, element)
-            indicator[i, j] = indicator_max.variable(u_local, equations)
+            indicator[i, j] = indicator_variable(u_local, equations)
         end
 
         alpha[element] = maximum(indicator)

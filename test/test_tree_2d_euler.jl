@@ -425,19 +425,22 @@ end
 @trixi_testset "elixir_euler_sedov_blast_wave.jl (HLLE)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
                         l2=[
-                            0.35267161504176747,
-                            0.17218309138797958,
-                            0.17218307467125854,
-                            0.6236143054619037,
+                            0.352405949321075,
+                            0.17207721487429464,
+                            0.17207721487433883,
+                            0.6263024434020885,
                         ],
                         linf=[
-                            2.77484045816607,
-                            1.8281111268370718,
-                            1.8281110470490887,
-                            6.24263735888126,
+                            2.760997358628186,
+                            1.8279186132509326,
+                            1.8279186132502805,
+                            6.251573757093399,
                         ],
                         tspan=(0.0, 0.5),
-                        surface_flux=flux_hlle)
+                        callbacks=CallbackSet(summary_callback,
+                                              analysis_callback, alive_callback,
+                                              stepsize_callback),
+                        surface_flux=flux_hlle),
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
