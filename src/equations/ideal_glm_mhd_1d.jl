@@ -272,6 +272,15 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr = cons2prim(u_rr, equations)
 
+    # Conserved variables
+    rho_v1_ll = u_ll[2]
+    rho_v2_ll = u_ll[3]
+    rho_v3_ll = u_ll[4]
+
+    rho_v1_rr = u_rr[2]
+    rho_v2_rr = u_rr[3]
+    rho_v3_rr = u_rr[4]
+
     # Obtain left and right fluxes
     f_ll = flux(u_ll, orientation, equations)
     f_rr = flux(u_rr, orientation, equations)
@@ -312,21 +321,21 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
         # Compute HLL values for vStar, BStar
         # These correspond to eq. (28) and (30) from the referenced paper 
         # and the classic HLL intermediate state given by (2)
-        rho_HLL = (SsR * u_rr[1] - SsL * u_ll[1] - (f_rr[1] - f_ll[1])) / Sdiff
+        rho_HLL = (SsR * rho_rr - SsL * rho_ll - (f_rr[1] - f_ll[1])) / Sdiff
 
-        v1Star = (SsR * u_rr[2] - SsL * u_ll[2] - (f_rr[2] - f_ll[2])) /
+        v1Star = (SsR * rho_v1_rr - SsL * rho_v1_ll - (f_rr[2] - f_ll[2])) /
                  (Sdiff * rho_HLL)
-        v2Star = (SsR * u_rr[3] - SsL * u_ll[3] - (f_rr[3] - f_ll[3])) /
+        v2Star = (SsR * rho_v2_rr - SsL * rho_v2_ll - (f_rr[3] - f_ll[3])) /
                  (Sdiff * rho_HLL)
-        v3Star = (SsR * u_rr[4] - SsL * u_ll[4] - (f_rr[4] - f_ll[4])) /
+        v3Star = (SsR * rho_v3_rr - SsL * rho_v3_ll - (f_rr[4] - f_ll[4])) /
                  (Sdiff * rho_HLL)
 
-        #B1Star = (SsR * u_rr[6] - SsL * u_ll[6] - (f_rr[6] - f_ll[6])) / Sdiff
+        #B1Star = (SsR * B1_rr - SsL * B1_ll - (f_rr[6] - f_ll[6])) / Sdiff
         # 1D B1 = constant => B1_ll = B1_rr = B1Star
         B1Star = B1_ll
 
-        B2Star = (SsR * u_rr[7] - SsL * u_ll[7] - (f_rr[7] - f_ll[7])) / Sdiff
-        B3Star = (SsR * u_rr[8] - SsL * u_ll[8] - (f_rr[8] - f_ll[8])) / Sdiff
+        B2Star = (SsR * B2_rr - SsL * B2_ll - (f_rr[7] - f_ll[7])) / Sdiff
+        B3Star = (SsR * B3_rr - SsL * B3_ll - (f_rr[8] - f_ll[8])) / Sdiff
         if SsL <= SStar
             SdiffStar = SsL - SStar
 
