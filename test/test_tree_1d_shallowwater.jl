@@ -387,6 +387,31 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_shallowwater_quasi_1d_discontinuous.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_shallowwater_quasi_1d_discontinuous.jl"),
+                        l2=[
+                            0.02843233740533314,
+                            0.14083324483705398,
+                            0.0054554472558998,
+                            0.005455447255899814,
+                        ],
+                        linf=[
+                            0.26095842440037487,
+                            0.45919004549253795,
+                            0.09999999999999983,
+                            0.10000000000000009,
+                        ],)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 end # module
