@@ -321,7 +321,10 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
         v3Star = (SsR * u_rr[4] - SsL * u_ll[4] - (f_rr[4] - f_ll[4])) /
                  (Sdiff * rho_HLL)
 
-        B1Star = (SsR * u_rr[6] - SsL * u_ll[6] - (f_rr[6] - f_ll[6])) / Sdiff
+        #B1Star = (SsR * u_rr[6] - SsL * u_ll[6] - (f_rr[6] - f_ll[6])) / Sdiff
+        # 1D B1 = constant => B1_ll = B1_rr = B1Star
+        B1Star = B1_ll
+
         B2Star = (SsR * u_rr[7] - SsL * u_ll[7] - (f_rr[7] - f_ll[7])) / Sdiff
         B3Star = (SsR * u_rr[8] - SsL * u_ll[8] - (f_rr[8] - f_ll[8])) / Sdiff
         if SsL <= SStar
@@ -335,7 +338,9 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
             mom_3_Star = densStar * v3_ll -
                          (B1Star * B3Star - B1_ll * B3_ll) / SdiffStar # (22)
 
-            pstar = rho_ll * sMu_L * (SStar - v1_ll) + p_ll - B1_ll^2 + B1Star^2 # (17)
+            #pstar = rho_ll * sMu_L * (SStar - v1_ll) + p_ll - B1_ll^2 + B1Star^2 # (17)
+            # 1D B1 = constant => B1_ll = B1_rr = B1Star
+            pstar = rho_ll * sMu_L * (SStar - v1_ll) + p_ll # (17)
 
             enerStar = u_ll[5] * sMu_L / SdiffStar +
                        (pstar * SStar - p_ll * v1_ll - (B1Star *
@@ -363,7 +368,9 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
             mom_3_Star = densStar * v3_rr -
                          (B1Star * B3Star - B1_rr * B3_rr) / SdiffStar # (22)
 
-            pstar = rho_rr * sMu_R * (SStar - v1_rr) + p_rr - B1_rr^2 + B1Star^2 # (17)
+            #pstar = rho_rr * sMu_R * (SStar - v1_rr) + p_rr - B1_rr^2 + B1Star^2 # (17)
+            # 1D B1 = constant => B1_ll = B1_rr = B1Star
+            pstar = rho_rr * sMu_R * (SStar - v1_rr) + p_rr # (17)
 
             enerStar = u_rr[5] * sMu_R / SdiffStar +
                        (pstar * SStar - p_rr * v1_rr - (B1Star *
