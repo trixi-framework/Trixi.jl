@@ -8,7 +8,6 @@ using Trixi
 equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.81)
 
 function initial_condition_discontinuity(x, t, equations::ShallowWaterEquationsQuasi1D)
-
     H = 2 + 0.1 * exp(-25 * x[1]^2)
     v = 0.0
 
@@ -37,7 +36,7 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
 # Get the TreeMesh and setup a periodic mesh
 
 coordinates_min = -0.5
-coordinates_max =  0.5
+coordinates_max = 0.5
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 n_cells_max = 10_000,
@@ -49,7 +48,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, .25)
+tspan = (0.0, 0.25)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -72,4 +71,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-8, reltol = 1.0e-8,
             ode_default_options()..., callback = callbacks);
 summary_callback() # print the timer summary
-
