@@ -298,18 +298,20 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
         f7 = f_rr[7]
         f8 = f_rr[8]
     else
+        # Compute the "HLLC-speed", eq. (14) from paper mentioned above
         #=
         SStar = (rho_rr * v1_rr * sMu_R - rho_ll * v1_ll * sMu_L + p_ll - p_rr - B1_ll^2 + B1_rr^2 ) /
                 (rho_rr * sMu_R - rho_ll * sMu_L)
         =#
-        # 1D
-
+        # Simplification for 1D: B1 is constant
         SStar = (rho_rr * v1_rr * sMu_R - rho_ll * v1_ll * sMu_L + p_ll - p_rr) /
                 (rho_rr * sMu_R - rho_ll * sMu_L)
 
         Sdiff = SsR - SsL
 
         # Compute HLL values for vStar, BStar
+        # These correspond to eq. (28) and (30) from the referenced paper 
+        # and the classic HLL intermediate state given by (2)
         rho_HLL = (SsR * u_rr[1] - SsL * u_ll[1] - (f_rr[1] - f_ll[1])) / Sdiff
 
         v1Star = (SsR * u_rr[2] - SsL * u_ll[2] - (f_rr[2] - f_ll[2])) /
@@ -325,22 +327,23 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
         if SsL <= SStar
             SdiffStar = SsL - SStar
 
-            densStar = rho_ll * sMu_L / SdiffStar
+            densStar = rho_ll * sMu_L / SdiffStar # (19)
 
-            mom_1_Star = densStar * SStar
+            mom_1_Star = densStar * SStar # (20)
             mom_2_Star = densStar * v2_ll -
-                         (B1Star * B2Star - B1_ll * B2_ll) / SdiffStar
+                         (B1Star * B2Star - B1_ll * B2_ll) / SdiffStar # (21)
             mom_3_Star = densStar * v3_ll -
-                         (B1Star * B3Star - B1_ll * B3_ll) / SdiffStar
+                         (B1Star * B3Star - B1_ll * B3_ll) / SdiffStar # (22)
 
-            pstar = rho_ll * sMu_L * (SStar - v1_ll) + p_ll - B1_ll^2 + B1Star^2
+            pstar = rho_ll * sMu_L * (SStar - v1_ll) + p_ll - B1_ll^2 + B1Star^2 # (17)
 
             enerStar = u_ll[5] * sMu_L / SdiffStar +
                        (pstar * SStar - p_ll * v1_ll - (B1Star *
                          (B1Star * v1Star + B2Star * v2Star + B3Star * v3Star) -
                          B1_ll * (B1_ll * v1_ll + B2_ll * v2_ll + B3_ll * v3_ll))) /
-                       SdiffStar
+                       SdiffStar # (23)
 
+            # Classic HLLC update (32)
             f1 = f_ll[1] + SsL * (densStar - u_ll[1])
             f2 = f_ll[2] + SsL * (mom_1_Star - u_ll[2])
             f3 = f_ll[3] + SsL * (mom_2_Star - u_ll[3])
@@ -352,22 +355,23 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
         else # SStar <= Ssr
             SdiffStar = SsR - SStar
 
-            densStar = rho_rr * sMu_R / SdiffStar
+            densStar = rho_rr * sMu_R / SdiffStar # (19)
 
-            mom_1_Star = densStar * SStar
+            mom_1_Star = densStar * SStar # (20)
             mom_2_Star = densStar * v2_rr -
-                         (B1Star * B2Star - B1_rr * B2_rr) / SdiffStar
+                         (B1Star * B2Star - B1_rr * B2_rr) / SdiffStar # (21)
             mom_3_Star = densStar * v3_rr -
-                         (B1Star * B3Star - B1_rr * B3_rr) / SdiffStar
+                         (B1Star * B3Star - B1_rr * B3_rr) / SdiffStar # (22)
 
-            pstar = rho_rr * sMu_R * (SStar - v1_rr) + p_rr - B1_rr^2 + B1Star^2
+            pstar = rho_rr * sMu_R * (SStar - v1_rr) + p_rr - B1_rr^2 + B1Star^2 # (17)
 
             enerStar = u_rr[5] * sMu_R / SdiffStar +
                        (pstar * SStar - p_rr * v1_rr - (B1Star *
                          (B1Star * v1Star + B2Star * v2Star + B3Star * v3Star) -
                          B1_rr * (B1_rr * v1_rr + B2_rr * v2_rr + B3_rr * v3_rr))) /
-                       SdiffStar
+                       SdiffStar # (23)
 
+            # Classic HLLC update (32)           
             f1 = f_rr[1] + SsR * (densStar - u_rr[1])
             f2 = f_rr[2] + SsR * (mom_1_Star - u_rr[2])
             f3 = f_rr[3] + SsR * (mom_2_Star - u_rr[3])
