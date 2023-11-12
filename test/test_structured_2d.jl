@@ -600,13 +600,16 @@ end
 
 @trixi_testset "elixir_eulerpolytropic_convergence.jl: HLL(Davis)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_convergence.jl"),
-    solver = DGSEM(polydeg = 3, surface_flux = FluxHLL(min_max_speed_davis),
-    volume_integral = VolumeIntegralFluxDifferencing(volume_flux)),
+                        solver=DGSEM(polydeg = 3,
+                                     surface_flux = FluxHLL(min_max_speed_davis),
+                                     volume_integral = VolumeIntegralFluxDifferencing(volume_flux)),
                         l2=[
-                            0.0016689832177644243, 0.0025920263793104445, 0.003281074494629298
+                            0.0016689832177644243, 0.0025920263793104445,
+                            0.003281074494629298,
                         ],
                         linf=[
-                            0.01099488320190023, 0.013309526619350365, 0.02008032661117909
+                            0.01099488320190023, 0.013309526619350365,
+                            0.02008032661117909,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

@@ -807,14 +807,15 @@ end
 end
 
 @timed_testset "Consistency check for Winters flux: Polytropic CEE" begin
-    for gamma in [1.4, 1.0, 5/3] 
+    for gamma in [1.4, 1.0, 5 / 3]
         kappa = 0.5     # Scaling factor for the pressure.
         equations = PolytropicEulerEquations2D(gamma, kappa)
         u = SVector(1.1, -0.5, 2.34)
 
         orientations = [1, 2]
         for orientation in orientations
-            @test flux_winters_etal(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+            @test flux_winters_etal(u, u, orientation, equations) ≈
+                  flux(u, orientation, equations)
         end
 
         normal_directions = [SVector(1.0, 0.0),
@@ -824,7 +825,7 @@ end
 
         for normal_direction in normal_directions
             @test flux_winters_etal(u, u, normal_direction, equations) ≈
-                flux(u, normal_direction, equations)
+                  flux(u, normal_direction, equations)
         end
     end
 end
