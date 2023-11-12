@@ -30,6 +30,14 @@ isdir(outdir) && rm(outdir, recursive = true)
                             0.002062399194485476,
                             0.004897700392503701,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_weakform.jl (SBP)" begin
@@ -49,6 +57,14 @@ end
                             0.013593978324845324,
                             0.03270995869587523,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_weakform.jl (Quadrilateral elements)" begin
@@ -68,6 +84,14 @@ end
                             0.0013568139808290969,
                             0.0032249020004324613,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_weakform.jl (EC) " begin
@@ -88,6 +112,14 @@ end
                             0.01396529873508534,
                             0.04227683691807904,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_weakform.jl (SBP, EC)" begin
@@ -109,6 +141,14 @@ end
                             0.05321027922608157,
                             0.13392025411844033,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_weakform.jl (Quadrilateral elements, SBP, EC)" begin
@@ -131,6 +171,14 @@ end
                             0.012674028479251254,
                             0.02210545278615017,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_bilinear.jl (Bilinear quadrilateral elements, SBP, flux differencing)" begin
@@ -147,6 +195,14 @@ end
                             6.874188052830021e-5,
                             0.0001912435192696904,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" begin
@@ -163,6 +219,14 @@ end
                             0.00010003778085621029,
                             0.00036426282101720275,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, GaussSBP, flux differencing)" begin
@@ -181,6 +245,14 @@ end
                             3.679582619220412e-5,
                         ],
                         rtol=2 * sqrt(eps()))
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_curved.jl (Triangular elements, Polynomial, weak formulation)" begin
@@ -199,6 +271,14 @@ end
                             4.032272526011127e-5,
                             0.00012013725458537294,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_hohqmesh.jl (Quadrilateral elements, SBP, flux differencing)" begin
@@ -215,6 +295,14 @@ end
                             0.0028721569841545502,
                             0.011125365074589944,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
@@ -228,6 +316,14 @@ end
                        4.128314378397532,
                        4.081366752807379,
                    ], rtol = 0.05)
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_weakform_periodic.jl" begin
@@ -245,6 +341,14 @@ end
                             0.0019373508504538783,
                             0.004742686826709086,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_triangulate_pkg_mesh.jl" begin
@@ -261,6 +365,14 @@ end
                             2.6180448559287584e-5,
                             5.5752932611508044e-5,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
@@ -280,6 +392,14 @@ end
                             0.1235468309508845,
                             0.26911424973147735,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl (Quadrilateral elements, GaussSBP)" begin
@@ -300,6 +420,14 @@ end
                             0.12344140473946856,
                             0.26978428189564774,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
@@ -318,6 +446,14 @@ end
                             0.040307056293369226,
                             0.0852365428206836,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_brown_minion_vortex.jl" begin
@@ -335,6 +471,14 @@ end
                             0.021957154972646383,
                             0.33773439650806303,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_shockcapturing.jl" begin
@@ -352,6 +496,14 @@ end
                             0.1668441768697189,
                             0.8572572782118661,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_shockcapturing_curved.jl" begin
@@ -369,6 +521,14 @@ end
                             0.16930148707515688,
                             0.8587706761131937,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_weakform.jl (FD SBP)" begin
@@ -395,6 +555,14 @@ end
                             0.0016243096040242655,
                             0.004447503691245913,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_weakform.jl (FD SBP, EC)" begin
@@ -423,6 +591,14 @@ end
                             0.003452046522624652,
                             0.007677153211004928,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
@@ -439,6 +615,14 @@ end
                             3.9885950273710336e-6,
                             8.848583042286862e-6,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference domain)" begin
@@ -456,6 +640,14 @@ end
                             3.988595024928543e-6,
                             8.84858303740188e-6,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference and physical domains)" begin
@@ -479,6 +671,14 @@ end
                             0.5244468027020814,
                             1.2210130256735705,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_euler_fdsbp_periodic.jl (CGSEM)" begin
@@ -503,6 +703,14 @@ end
                             5.067812786885284e-5,
                             9.887976803746312e-5,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_mhd_weak_blast_wave.jl (Quad)" begin
@@ -518,6 +726,14 @@ end
                             0.7450328339751362, 0.06357382685763713, 0.0635738268576378,
                             0.1058830287485999,
                             0.005740591170062146])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_mhd_weak_blast_wave.jl (Tri)" begin
@@ -533,6 +749,14 @@ end
                             0.6906308908961734, 0.05349939593012487,
                             0.05349939593013042, 0.08830587480616725,
                             0.0029551359803035027])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_mhd_weak_blast_wave_SBP.jl (Quad)" begin
@@ -601,6 +825,14 @@ end
                             0.0,
                             0.0002992631411931389,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_shallowwater_source_terms.jl (Quad, SBP)" begin
@@ -619,6 +851,14 @@ end
                             0.12088392994348407,
                             9.325873406851315e-15,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_shallowwater_source_terms.jl (Tri, SBP)" begin
@@ -637,6 +877,14 @@ end
                             0.5674183379872275,
                             1.1546319456101628e-14,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_shallowwater_source_terms.jl (Tri, Polynomial)" begin
@@ -657,6 +905,14 @@ end
                             0.06345885709961152,
                             3.3989933098554914e-5,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_shallowwater_source_terms.jl (Quad, Polynomial)" begin
@@ -679,9 +935,16 @@ end
                             0.010364675200833062,
                             1.021405182655144e-14,
                         ])
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 end
-
 # Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive = true)
 
