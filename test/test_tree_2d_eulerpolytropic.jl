@@ -16,7 +16,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 
 @trixi_testset "elixir_eulerpolytropic_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_eulerpolytropic_convergence.jl.jl"),
+                                 "elixir_eulerpolytropic_convergence.jl"),
                         l2=[
                             0.0016689832177626373, 0.0025920263793094526,
                             0.003281074494626679,
