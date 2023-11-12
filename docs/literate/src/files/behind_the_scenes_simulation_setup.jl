@@ -45,7 +45,7 @@ solver = DGSEM(polydeg = 3)
 
 # At this stage, all necessary components for configuring the spatial discretization are in place.
 # The remaining task is to combine these components into a single structure that will be used
-# throughout the entire solving process. This is where [`SemidiscretizationHyperbolic`](@ref) comes
+# throughout the entire simulation process. This is where [`SemidiscretizationHyperbolic`](@ref) comes
 # into play.
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
