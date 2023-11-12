@@ -60,10 +60,9 @@ different features on different mesh types.
 | Flux differencing                                            |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | [`VolumeIntegralFluxDifferencing`](@ref)
 | Shock capturing                                              |          ✅         |             ✅            |               ✅              |          ✅          |               ❌            | [`VolumeIntegralShockCapturingHG`](@ref)
 | Nonconservative equations                                    |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | e.g., GLM MHD or shallow water equations
-| Parabolic termsᵇ                                             |          ✅         |             ✅            |               ❌              |          ✅          |               ✅            | e.g., [`CompressibleNavierStokesDiffusion2D`](@ref)
+| Parabolic terms                                              |          ✅         |             ✅            |               ❌              |          ✅          |               ✅            | e.g., [`CompressibleNavierStokesDiffusion2D`](@ref)
 
 ᵃ: quad = quadrilateral, hex = hexahedron
-ᵇ: Parabolic terms do not currently support adaptivity. 
 
 ## Time integration methods
 
