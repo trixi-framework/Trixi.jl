@@ -84,7 +84,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   As demonstrated earlier, the elements can have varying sizes. Let us initially consider
 #   neighbors with equal size. For these elements, the `init_interfaces` function generates
 #   interfaces that store information about adjacent elements, their relative positions, and
-#   allocate containers for sharing solutions between neighbors during the solving process. 
+#   allocate containers for sharing solution data between neighbors during the solution process. 
 
 #   In our visualization, these interfaces would conceptually resemble tubes connecting the
 #   corresponding elements.
