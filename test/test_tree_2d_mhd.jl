@@ -208,7 +208,8 @@ end
                             0.04879208429337193,
                         ],
                         tspan=(0.0, 0.06),
-                        surface_flux=(flux_hll, flux_nonconservative_powell))
+                        surface_flux=(flux_hlle,
+                                      flux_nonconservative_powell))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
