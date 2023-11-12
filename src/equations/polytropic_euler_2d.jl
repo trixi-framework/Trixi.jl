@@ -135,6 +135,26 @@ end
     return SVector(f1, f2, f3)
 end
 
+# Calculate 2D flux for a single point
+@inline function flux(u, orientation::Integer, equations::PolytropicEulerEquations2D)
+    _, v1, v2 = cons2prim(u, equations)
+    p = pressure(u, equations)
+
+    rho_v1 = u[2]
+    rho_v2 = u[3]
+
+    if orientation == 1
+        f1 = rho_v1
+        f2 = rho_v1 * v1 + p
+        f3 = rho_v1 * v2
+    else
+        f1 = rho_v2
+        f2 = rho_v2 * v1
+        f3 = rho_v2 * v2 + p
+    end
+    return SVector(f1, f2, f3)
+end
+
 """
     flux_winters_etal(u_ll, u_rr, normal_direction,
                       equations::PolytropicEulerEquations2D)
@@ -194,6 +214,53 @@ end
     lambda_max = v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) * norm_
 
     return lambda_min, lambda_max
+end
+
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
+                                     equations::PolytropicEulerEquations2D)
+    rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr = cons2prim(u_rr, equations)
+    # Pressure for polytropic Euler
+    p_ll = equations.kappa * rho_ll^equations.gamma
+    p_rr = equations.kappa * rho_rr^equations.gamma
+
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    if orientation == 1 # x-direction
+        λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
+        λ_max = max(v1_ll + c_ll, v1_rr + c_rr)
+    else # y-direction
+        λ_min = min(v2_ll - c_ll, v2_rr - c_rr)
+        λ_max = max(v2_ll + c_ll, v2_rr + c_rr)
+    end
+
+    return λ_min, λ_max
+end
+
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::PolytropicEulerEquations2D)
+    rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr = cons2prim(u_rr, equations)
+    # Pressure for polytropic Euler
+    p_ll = equations.kappa * rho_ll^equations.gamma
+    p_rr = equations.kappa * rho_rr^equations.gamma
+
+    norm_ = norm(normal_direction)
+
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll) * norm_
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr) * norm_
+
+    v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    # The v_normals are already scaled by the norm
+    λ_min = min(v_normal_ll - c_ll, v_normal_rr - c_rr)
+    λ_max = max(v_normal_ll + c_ll, v_normal_rr + c_rr)
+
+    return λ_min, λ_max
 end
 
 @inline function max_abs_speeds(u, equations::PolytropicEulerEquations2D)
