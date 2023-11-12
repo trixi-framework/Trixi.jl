@@ -1,41 +1,54 @@
-
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# Semidiscretization of the two-layer shallow water equations
+# Semidiscretization of the quasi 1d shallow water equations
+# See Chan et al.  https://doi.org/10.48550/arXiv.2307.12089 for details
 
-equations = ShallowWaterTwoLayerEquations2D(gravity_constant = 10.0, rho_upper = 0.9,
-                                            rho_lower = 1.0)
+equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.81)
 
-initial_condition = initial_condition_convergence_test
+function initial_condition_discontinuity(x, t, equations::ShallowWaterEquationsQuasi1D)
+    H = 2 + 0.1 * exp(-25 * x[1]^2)
+    v = 0.0
+
+    if x[1] > 0
+        b = 0.1
+        a = 1.0
+    else
+        b = 0.0
+        a = 1.1
+    end
+
+    return prim2cons(SVector(H, v, b, a), equations)
+end
+
+initial_condition = initial_condition_discontinuity
 
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal)
-solver = DGSEM(polydeg = 3,
-               surface_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal),
+volume_flux = (flux_chan_etal, flux_nonconservative_chan_etal)
+surface_flux = (flux_lax_friedrichs, flux_nonconservative_chan_etal)
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
 # Get the TreeMesh and setup a periodic mesh
 
-coordinates_min = (0.0, 0.0)
-coordinates_max = (sqrt(2.0), sqrt(2.0))
+coordinates_min = -0.5
+coordinates_max = 0.5
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 20_000,
+                n_cells_max = 10_000,
                 periodicity = true)
 
-# Create the semi discretization object
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_convergence_test)
+# create the semi discretization object
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 0.25)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -45,7 +58,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 500,
+save_solution = SaveSolutionCallback(interval = 200,
                                      save_initial_solution = true,
                                      save_final_solution = true)
 
@@ -55,6 +68,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # run the simulation
 
 # use a Runge-Kutta method with automatic (error based) time step size control
-sol = solve(ode, RDPK3SpFSAL49(), abstol = 1.0e-8, reltol = 1.0e-8,
-            save_everystep = false, callback = callbacks);
+sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-8, reltol = 1.0e-8,
+            ode_default_options()..., callback = callbacks);
 summary_callback() # print the timer summary

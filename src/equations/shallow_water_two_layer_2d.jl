@@ -271,24 +271,24 @@ end
     v1_upper, v2_upper, v1_lower, v2_lower = velocity(u, equations)
 
     # Calculate pressure
-    p1 = 0.5 * equations.gravity * h_upper^2
-    p2 = 0.5 * equations.gravity * h_lower^2
+    p_upper = 0.5 * equations.gravity * h_upper^2
+    p_lower = 0.5 * equations.gravity * h_lower^2
 
     # Calculate fluxes depending on orientation
     if orientation == 1
         f1 = h_v1_upper
-        f2 = h_v1_upper * v1_upper + p1
+        f2 = h_v1_upper * v1_upper + p_upper
         f3 = h_v1_upper * v2_upper
         f4 = h_v1_lower
-        f5 = h_v1_lower * v1_lower + p2
+        f5 = h_v1_lower * v1_lower + p_lower
         f6 = h_v1_lower * v2_lower
     else
         f1 = h_v2_upper
         f2 = h_v2_upper * v1_upper
-        f3 = h_v2_upper * v2_upper + p1
+        f3 = h_v2_upper * v2_upper + p_upper
         f4 = h_v2_lower
         f5 = h_v2_lower * v1_lower
-        f6 = h_v2_lower * v2_lower + p2
+        f6 = h_v2_lower * v2_lower + p_lower
     end
     return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u)))
 end
@@ -305,44 +305,57 @@ end
     h_v_upper_normal = h_upper * v_normal_upper
     h_v_lower_normal = h_lower * v_normal_lower
 
-    p1 = 0.5 * equations.gravity * h_upper^2
-    p2 = 0.5 * equations.gravity * h_lower^2
+    p_upper = 0.5 * equations.gravity * h_upper^2
+    p_lower = 0.5 * equations.gravity * h_lower^2
 
     f1 = h_v_upper_normal
-    f2 = h_v_upper_normal * v1_upper + p1 * normal_direction[1]
-    f3 = h_v_upper_normal * v2_upper + p1 * normal_direction[2]
+    f2 = h_v_upper_normal * v1_upper + p_upper * normal_direction[1]
+    f3 = h_v_upper_normal * v2_upper + p_upper * normal_direction[2]
     f4 = h_v_lower_normal
-    f5 = h_v_lower_normal * v1_lower + p2 * normal_direction[1]
-    f6 = h_v_lower_normal * v2_lower + p2 * normal_direction[2]
+    f5 = h_v_lower_normal * v1_lower + p_lower * normal_direction[1]
+    f6 = h_v_lower_normal * v2_lower + p_lower * normal_direction[2]
 
     return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u)))
 end
 
 """
-    flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
-                                          equations::ShallowWaterTwoLayerEquations2D)
+    flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterTwoLayerEquations2D)
+    flux_nonconservative_ersing_etal(u_ll, u_rr,
+                                     normal_direction_ll::AbstractVector,
+                                     normal_direction_average::AbstractVector,
+                                     equations::ShallowWaterTwoLayerEquations2D)
 
 !!! warning "Experimental code"
-    This numerical flux is experimental and may change in any future release.
+  This numerical flux is experimental and may change in any future release.
 
-Non-symmetric two-point volume flux discretizing the nonconservative (source) term
+Non-symmetric path-conservative two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the bottom topography [`ShallowWaterTwoLayerEquations2D`](@ref) and an
-additional term that couples the momentum of both layers. This is a slightly modified version
-to account for the additional source term compared to the standard SWE described in the paper.
+additional term that couples the momentum of both layers. 
 
-Further details are available in the paper:
-- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
-  An entropy stable nodal discontinuous Galerkin method for the two dimensional
-  shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
-  [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
+This is a modified version of [`flux_nonconservative_wintermeyer_etal`](@ref) that gives entropy 
+conservation and well-balancedness in both the volume and surface when combined with 
+[`flux_wintermeyer_etal`](@ref).
+
+For further details see:
+- Patrick Ersing, Andrew R. Winters (2023)
+  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on 
+  curvilinear meshes
+  [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
 """
-@inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
-                                                       orientation::Integer,
-                                                       equations::ShallowWaterTwoLayerEquations2D)
+@inline function flux_nonconservative_ersing_etal(u_ll, u_rr,
+                                                  orientation::Integer,
+                                                  equations::ShallowWaterTwoLayerEquations2D)
     # Pull the necessary left and right state information
     h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
     h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
     b_rr = u_rr[7]
+    b_ll = u_ll[7]
+
+    # Calculate jumps
+    h_upper_jump = (h_upper_rr - h_upper_ll)
+    h_lower_jump = (h_lower_rr - h_lower_ll)
+    b_jump = (b_rr - b_ll)
 
     z = zero(eltype(u_ll))
 
@@ -351,268 +364,64 @@ Further details are available in the paper:
     #                                        g*h_lower*(b + r*h_upper)_y, 0)
     if orientation == 1
         f = SVector(z,
-                    equations.gravity * h_upper_ll * (b_rr + h_lower_rr),
+                    equations.gravity * h_upper_ll * (b_jump + h_lower_jump),
                     z, z,
-                    equations.gravity * h_lower_ll * (b_rr + equations.r * h_upper_rr),
+                    equations.gravity * h_lower_ll *
+                    (b_jump + equations.r * h_upper_jump),
                     z, z)
     else # orientation == 2
         f = SVector(z, z,
-                    equations.gravity * h_upper_ll * (b_rr + h_lower_rr),
+                    equations.gravity * h_upper_ll * (b_jump + h_lower_jump),
                     z, z,
-                    equations.gravity * h_lower_ll * (b_rr + equations.r * h_upper_rr),
+                    equations.gravity * h_lower_ll *
+                    (b_jump + equations.r * h_upper_jump),
                     z)
     end
 
     return f
 end
 
-@inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
-                                                       normal_direction_ll::AbstractVector,
-                                                       normal_direction_average::AbstractVector,
-                                                       equations::ShallowWaterTwoLayerEquations2D)
+@inline function flux_nonconservative_ersing_etal(u_ll, u_rr,
+                                                  normal_direction_ll::AbstractVector,
+                                                  normal_direction_average::AbstractVector,
+                                                  equations::ShallowWaterTwoLayerEquations2D)
     # Pull the necessary left and right state information
     h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
     h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
     b_rr = u_rr[7]
+    b_ll = u_ll[7]
+
+    # Calculate jumps
+    h_upper_jump = (h_upper_rr - h_upper_ll)
+    h_lower_jump = (h_lower_rr - h_lower_ll)
+    b_jump = (b_rr - b_ll)
 
     # Note this routine only uses the `normal_direction_average` and the average of the
     # bottom topography to get a quadratic split form DG gradient on curved elements
     return SVector(zero(eltype(u_ll)),
                    normal_direction_average[1] * equations.gravity * h_upper_ll *
-                   (b_rr + h_lower_rr),
+                   (b_jump + h_lower_jump),
                    normal_direction_average[2] * equations.gravity * h_upper_ll *
-                   (b_rr + h_lower_rr),
+                   (b_jump + h_lower_jump),
                    zero(eltype(u_ll)),
                    normal_direction_average[1] * equations.gravity * h_lower_ll *
-                   (b_rr +
-                    equations.r * h_upper_rr),
+                   (b_jump + equations.r * h_upper_jump),
                    normal_direction_average[2] * equations.gravity * h_lower_ll *
-                   (b_rr +
-                    equations.r * h_upper_rr),
+                   (b_jump + equations.r * h_upper_jump),
                    zero(eltype(u_ll)))
-end
-
-"""
-    flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
-                                        equations::ShallowWaterTwoLayerEquations2D)
-
-!!! warning "Experimental code"
-    This numerical flux is experimental and may change in any future release.
-
-Non-symmetric two-point surface flux discretizing the nonconservative (source) term that contains
-the gradients of the bottom topography and an additional term that couples the momentum of both
-layers [`ShallowWaterTwoLayerEquations2D`](@ref).
-
-Further details are available in the paper:
-- Ulrik Skre Fjordholm (2012)
-  Energy conservative and stable schemes for the two-layer shallow water equations.
-  [DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
-It should be noted that the equations are ordered differently and the
-designation of the upper and lower layer has been changed which leads to a slightly different
-formulation.
-"""
-@inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
-                                                     orientation::Integer,
-                                                     equations::ShallowWaterTwoLayerEquations2D)
-    # Pull the necessary left and right state information
-    h_upper_ll, h_v1_upper_ll, h_v2_upper_ll, h_lower_ll, h_v1_lower_ll, h_v2_lower_ll, b_ll = u_ll
-    h_upper_rr, h_v1_upper_rr, h_v2_upper_rr, h_lower_rr, h_v1_lower_rr, h_v2_lower_rr, b_rr = u_rr
-
-    # Create average and jump values
-    h_upper_average = 0.5 * (h_upper_ll + h_upper_rr)
-    h_lower_average = 0.5 * (h_lower_ll + h_lower_rr)
-    h_upper_jump = h_upper_rr - h_upper_ll
-    h_lower_jump = h_lower_rr - h_lower_ll
-    b_jump = b_rr - b_ll
-
-    # Assign variables for constants for better readability
-    g = equations.gravity
-
-    # Bottom gradient nonconservative term: (0, g*h_upper*(b+h_lower)_x, g*h_upper*(b+h_lower)_y, 0,
-    #                                        g*h_lower*(b+r*h_upper)_x, g*h_lower*(b+r*h_upper)_x, 0)
-
-    # Includes two parts:
-    #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
-    #        cross-averaging across a discontinuous bottom topography
-    #   (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
-    z = zero(eltype(u_ll))
-    if orientation == 1
-        f = SVector(z,
-                    g * h_upper_ll * (b_ll + h_lower_ll) +
-                    g * h_upper_average * (b_jump + h_lower_jump),
-                    z, z,
-                    g * h_lower_ll * (b_ll + equations.r * h_upper_ll) +
-                    g * h_lower_average * (b_jump +
-                                           equations.r * h_upper_jump),
-                    z, z)
-    else # orientation == 2
-        f = SVector(z, z,
-                    g * h_upper_ll * (b_ll + h_lower_ll) +
-                    g * h_upper_average * (b_jump + h_lower_jump),
-                    z, z,
-                    g * h_lower_ll * (b_ll + equations.r * h_upper_ll) +
-                    g * h_lower_average * (b_jump +
-                                           equations.r * h_upper_jump),
-                    z)
-    end
-
-    return f
-end
-
-@inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
-                                                     normal_direction_ll::AbstractVector,
-                                                     normal_direction_average::AbstractVector,
-                                                     equations::ShallowWaterTwoLayerEquations2D)
-    # Pull the necessary left and right state information
-    h_upper_ll, h_v1_upper_ll, h_v2_upper_ll, h_lower_ll, h_v1_lower_ll, h_v2_lower_ll, b_ll = u_ll
-    h_upper_rr, h_v1_upper_rr, h_v2_upper_rr, h_lower_rr, h_v1_lower_rr, h_v2_lower_rr, b_rr = u_rr
-
-    # Create average and jump values
-    h_upper_average = 0.5 * (h_upper_ll + h_upper_rr)
-    h_lower_average = 0.5 * (h_lower_ll + h_lower_rr)
-    h_upper_jump = h_upper_rr - h_upper_ll
-    h_lower_jump = h_lower_rr - h_lower_ll
-    b_jump = b_rr - b_ll
-
-    # Comes in two parts:
-    #   (i)  Diagonal (consistent) term from the volume flux that uses `normal_direction_average`
-    #        but we use `b_ll` to avoid cross-averaging across a discontinuous bottom topography
-    f2 = normal_direction_average[1] * equations.gravity * h_upper_ll *
-         (b_ll + h_lower_ll)
-    f3 = normal_direction_average[2] * equations.gravity * h_upper_ll *
-         (b_ll + h_lower_ll)
-    f5 = normal_direction_average[1] * equations.gravity * h_lower_ll *
-         (b_ll + equations.r * h_upper_ll)
-    f6 = normal_direction_average[2] * equations.gravity * h_lower_ll *
-         (b_ll + equations.r * h_upper_ll)
-    #   (ii) True surface part that uses `normal_direction_ll`, `h_average` and `b_jump`
-    #        to handle discontinuous bathymetry
-    f2 += normal_direction_ll[1] * equations.gravity * h_upper_average *
-          (b_jump + h_lower_jump)
-    f3 += normal_direction_ll[2] * equations.gravity * h_upper_average *
-          (b_jump + h_lower_jump)
-    f5 += normal_direction_ll[1] * equations.gravity * h_lower_average *
-          (b_jump +
-           equations.r * h_upper_jump)
-    f6 += normal_direction_ll[2] * equations.gravity * h_lower_average *
-          (b_jump +
-           equations.r * h_upper_jump)
-
-    # Continuity equations do not have a nonconservative flux
-    f1 = f4 = zero(eltype(u_ll))
-
-    return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
-end
-
-"""
-    flux_fjordholm_etal(u_ll, u_rr, orientation,
-                        equations::ShallowWaterTwoLayerEquations2D)
-
-Total energy conservative (mathematical entropy for two-layer shallow water equations). When the
-bottom topography is nonzero this should only be used as a surface flux otherwise the scheme will
-not be well-balanced. For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
-
-Details are available in Eq. (4.1) in the paper:
-- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
-  Well-balanced and energy stable schemes for the shallow water equations with discontinuous
-  topography [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
-and the application to two layers is shown in the paper:
-- Ulrik Skre Fjordholm (2012)
-  Energy conservative and stable schemes for the two-layer shallow water equations.
-  [DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
-It should be noted that the equations are ordered differently and the
-designation of the upper and lower layer has been changed which leads to a slightly different
-formulation.
-"""
-@inline function flux_fjordholm_etal(u_ll, u_rr,
-                                     orientation::Integer,
-                                     equations::ShallowWaterTwoLayerEquations2D)
-    # Unpack left and right state
-    h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
-    v1_upper_ll, v2_upper_ll, v1_lower_ll, v2_lower_ll = velocity(u_ll, equations)
-    h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
-    v1_upper_rr, v2_upper_rr, v1_lower_rr, v2_lower_rr = velocity(u_rr, equations)
-
-    # Average each factor of products in flux
-    h_upper_avg = 0.5 * (h_upper_ll + h_upper_rr)
-    h_lower_avg = 0.5 * (h_lower_ll + h_lower_rr)
-    v1_upper_avg = 0.5 * (v1_upper_ll + v1_upper_rr)
-    v1_lower_avg = 0.5 * (v1_lower_ll + v1_lower_rr)
-    v2_upper_avg = 0.5 * (v2_upper_ll + v2_upper_rr)
-    v2_lower_avg = 0.5 * (v2_lower_ll + v2_lower_rr)
-    p1_avg = 0.25 * equations.gravity * (h_upper_ll^2 + h_upper_rr^2)
-    p2_avg = 0.25 * equations.gravity * (h_lower_ll^2 + h_lower_rr^2)
-
-    # Calculate fluxes depending on orientation
-    if orientation == 1
-        f1 = h_upper_avg * v1_upper_avg
-        f2 = f1 * v1_upper_avg + p1_avg
-        f3 = f1 * v2_upper_avg
-        f4 = h_lower_avg * v1_lower_avg
-        f5 = f4 * v1_lower_avg + p2_avg
-        f6 = f4 * v2_lower_avg
-    else
-        f1 = h_upper_avg * v2_upper_avg
-        f2 = f1 * v1_upper_avg
-        f3 = f1 * v2_upper_avg + p1_avg
-        f4 = h_lower_avg * v2_lower_avg
-        f5 = f4 * v1_lower_avg
-        f6 = f4 * v2_lower_avg + p2_avg
-    end
-
-    return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
-end
-
-@inline function flux_fjordholm_etal(u_ll, u_rr,
-                                     normal_direction::AbstractVector,
-                                     equations::ShallowWaterTwoLayerEquations2D)
-    # Unpack left and right state
-    h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
-    v1_upper_ll, v2_upper_ll, v1_lower_ll, v2_lower_ll = velocity(u_ll, equations)
-    h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
-    v1_upper_rr, v2_upper_rr, v1_lower_rr, v2_lower_rr = velocity(u_rr, equations)
-
-    # Compute velocity in normal direction
-    v_upper_dot_n_ll = v1_upper_ll * normal_direction[1] +
-                       v2_upper_ll * normal_direction[2]
-    v_upper_dot_n_rr = v1_upper_rr * normal_direction[1] +
-                       v2_upper_rr * normal_direction[2]
-    v_lower_dot_n_ll = v1_lower_ll * normal_direction[1] +
-                       v2_lower_ll * normal_direction[2]
-    v_lower_dot_n_rr = v1_lower_rr * normal_direction[1] +
-                       v2_lower_rr * normal_direction[2]
-
-    # Average each factor of products in flux
-    h_upper_avg = 0.5 * (h_upper_ll + h_upper_rr)
-    h_lower_avg = 0.5 * (h_lower_ll + h_lower_rr)
-    v1_upper_avg = 0.5 * (v1_upper_ll + v1_upper_rr)
-    v1_lower_avg = 0.5 * (v1_lower_ll + v1_lower_rr)
-    v2_upper_avg = 0.5 * (v2_upper_ll + v2_upper_rr)
-    v2_lower_avg = 0.5 * (v2_lower_ll + v2_lower_rr)
-    p1_avg = 0.25 * equations.gravity * (h_upper_ll^2 + h_upper_rr^2)
-    p2_avg = 0.25 * equations.gravity * (h_lower_ll^2 + h_lower_rr^2)
-    v_upper_dot_n_avg = 0.5 * (v_upper_dot_n_ll + v_upper_dot_n_rr)
-    v_lower_dot_n_avg = 0.5 * (v_lower_dot_n_ll + v_lower_dot_n_rr)
-
-    # Calculate fluxes depending on normal_direction
-    f1 = h_upper_avg * v_upper_dot_n_avg
-    f2 = f1 * v1_upper_avg + p1_avg * normal_direction[1]
-    f3 = f1 * v2_upper_avg + p1_avg * normal_direction[2]
-    f4 = h_lower_avg * v_lower_dot_n_avg
-    f5 = f4 * v1_lower_avg + p2_avg * normal_direction[1]
-    f6 = f4 * v2_lower_avg + p2_avg * normal_direction[2]
-
-    return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
 end
 
 """
     flux_wintermeyer_etal(u_ll, u_rr, orientation,
                           equations::ShallowWaterTwoLayerEquations2D)
+    flux_wintermeyer_etal(u_ll, u_rr,
+                          normal_direction::AbstractVector,
+                          equations::ShallowWaterTwoLayerEquations2D)
 
 Total energy conservative (mathematical entropy for two-layer shallow water equations) split form.
-When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
-The `surface_flux` should still use, e.g., [`flux_fjordholm_etal`](@ref). To obtain the flux for the
-two-layer shallow water equations the flux that is described in the paper for the normal shallow
+When the bottom topography is nonzero this scheme will be well-balanced when used with the 
+nonconservative [`flux_nonconservative_ersing_etal`](@ref). To obtain the flux for the
+two-layer shallow water equations the flux that is described in the paper for the normal shallow 
 water equations is used within each layer.
 
 Further details are available in Theorem 1 of the paper:
@@ -637,24 +446,24 @@ Further details are available in Theorem 1 of the paper:
     v1_lower_avg = 0.5 * (v1_lower_ll + v1_lower_rr)
     v2_upper_avg = 0.5 * (v2_upper_ll + v2_upper_rr)
     v2_lower_avg = 0.5 * (v2_lower_ll + v2_lower_rr)
-    p1_avg = 0.5 * equations.gravity * h_upper_ll * h_upper_rr
-    p2_avg = 0.5 * equations.gravity * h_lower_ll * h_lower_rr
+    p_upper_avg = 0.5 * equations.gravity * h_upper_ll * h_upper_rr
+    p_lower_avg = 0.5 * equations.gravity * h_lower_ll * h_lower_rr
 
     # Calculate fluxes depending on orientation
     if orientation == 1
         f1 = 0.5 * (h_v1_upper_ll + h_v1_upper_rr)
-        f2 = f1 * v1_upper_avg + p1_avg
+        f2 = f1 * v1_upper_avg + p_upper_avg
         f3 = f1 * v2_upper_avg
         f4 = 0.5 * (h_v1_lower_ll + h_v1_lower_rr)
-        f5 = f4 * v1_lower_avg + p2_avg
+        f5 = f4 * v1_lower_avg + p_lower_avg
         f6 = f4 * v2_lower_avg
     else
         f1 = 0.5 * (h_v2_upper_ll + h_v2_upper_rr)
         f2 = f1 * v1_upper_avg
-        f3 = f1 * v2_upper_avg + p1_avg
+        f3 = f1 * v2_upper_avg + p_upper_avg
         f4 = 0.5 * (h_v2_lower_ll + h_v2_lower_rr)
         f5 = f4 * v1_lower_avg
-        f6 = f4 * v2_lower_avg + p2_avg
+        f6 = f4 * v2_lower_avg + p_lower_avg
     end
 
     return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
@@ -676,8 +485,8 @@ end
     v1_lower_avg = 0.5 * (v1_lower_ll + v1_lower_rr)
     v2_upper_avg = 0.5 * (v2_upper_ll + v2_upper_rr)
     v2_lower_avg = 0.5 * (v2_lower_ll + v2_lower_rr)
-    p1_avg = 0.5 * equations.gravity * h_upper_ll * h_upper_rr
-    p2_avg = 0.5 * equations.gravity * h_lower_ll * h_lower_rr
+    p_upper_avg = 0.5 * equations.gravity * h_upper_ll * h_upper_rr
+    p_lower_avg = 0.5 * equations.gravity * h_lower_ll * h_lower_rr
     h_v1_upper_avg = 0.5 * (h_v1_upper_ll + h_v1_upper_rr)
     h_v2_upper_avg = 0.5 * (h_v2_upper_ll + h_v2_upper_rr)
     h_v1_lower_avg = 0.5 * (h_v1_lower_ll + h_v1_lower_rr)
@@ -685,38 +494,36 @@ end
 
     # Calculate fluxes depending on normal_direction
     f1 = h_v1_upper_avg * normal_direction[1] + h_v2_upper_avg * normal_direction[2]
-    f2 = f1 * v1_upper_avg + p1_avg * normal_direction[1]
-    f3 = f1 * v2_upper_avg + p1_avg * normal_direction[2]
+    f2 = f1 * v1_upper_avg + p_upper_avg * normal_direction[1]
+    f3 = f1 * v2_upper_avg + p_upper_avg * normal_direction[2]
     f4 = h_v1_lower_avg * normal_direction[1] + h_v2_lower_avg * normal_direction[2]
-    f5 = f4 * v1_lower_avg + p2_avg * normal_direction[1]
-    f6 = f4 * v2_lower_avg + p2_avg * normal_direction[2]
+    f5 = f4 * v1_lower_avg + p_lower_avg * normal_direction[1]
+    f6 = f4 * v2_lower_avg + p_lower_avg * normal_direction[2]
 
     return SVector(f1, f2, f3, f4, f5, f6, zero(eltype(u_ll)))
 end
 
 """
-    flux_es_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction,
-                           equations::ShallowWaterTwoLayerEquations1D)
+    flux_es_ersing_etal(u_ll, u_rr, orientation_or_normal_direction,
+                        equations::ShallowWaterTwoLayerEquations2D)
 
-Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy conservative
-[`flux_fjordholm_etal`](@ref) and adds a Lax-Friedrichs type dissipation dependent on the jump of entropy
-variables.
+Entropy stable surface flux for the two-layer shallow water equations. Uses the entropy conservative 
+[`flux_wintermeyer_etal`](@ref) and adds a Lax-Friedrichs type dissipation dependent on the jump of 
+entropy variables. 
 
-Further details are available in the paper:
-- Ulrik Skre Fjordholm (2012)
-Energy conservative and stable schemes for the two-layer shallow water equations.
-[DOI: 10.1142/9789814417099_0039](https://doi.org/10.1142/9789814417099_0039)
-It should be noted that the equations are ordered differently and the
-designation of the upper and lower layer has been changed which leads to a slightly different
-formulation.
+For further details see:
+- Patrick Ersing, Andrew R. Winters (2023)
+  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on 
+  curvilinear meshes
+  [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
 """
-@inline function flux_es_fjordholm_etal(u_ll, u_rr,
-                                        orientation_or_normal_direction,
-                                        equations::ShallowWaterTwoLayerEquations2D)
+@inline function flux_es_ersing_etal(u_ll, u_rr,
+                                     orientation_or_normal_direction,
+                                     equations::ShallowWaterTwoLayerEquations2D)
     # Compute entropy conservative flux but without the bottom topography
-    f_ec = flux_fjordholm_etal(u_ll, u_rr,
-                               orientation_or_normal_direction,
-                               equations)
+    f_ec = flux_wintermeyer_etal(u_ll, u_rr,
+                                 orientation_or_normal_direction,
+                                 equations)
 
     # Get maximum signal velocity
     λ = max_abs_speed_naive(u_ll, u_rr, orientation_or_normal_direction, equations)
@@ -926,12 +733,12 @@ end
     rho_lower = equations.rho_lower
     v1_upper, v2_upper, v1_lower, v2_lower = velocity(u, equations)
 
-    w1 = rho_upper * (equations.gravity * (h_upper + h_lower + b) +
-          -0.5 * (v1_upper^2 + v2_upper^2))
+    w1 = (rho_upper * (equations.gravity * (h_upper + h_lower + b) +
+           -0.5 * (v1_upper^2 + v2_upper^2)))
     w2 = rho_upper * v1_upper
     w3 = rho_upper * v2_upper
-    w4 = rho_lower * (equations.gravity * (equations.r * h_upper + h_lower + b) +
-          -0.5 * (v1_lower^2 + v2_lower^2))
+    w4 = (rho_lower * (equations.gravity * (equations.r * h_upper + h_lower + b) +
+           -0.5 * (v1_lower^2 + v2_lower^2)))
     w5 = rho_lower * v1_lower
     w6 = rho_lower * v2_lower
     return SVector(w1, w2, w3, w4, w5, w6, b)
