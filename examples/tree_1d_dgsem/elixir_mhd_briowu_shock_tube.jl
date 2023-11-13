@@ -32,7 +32,7 @@ initial_condition = initial_condition_briowu_shock_tube
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
-surface_flux = flux_hll
+surface_flux = flux_hlle
 volume_flux = flux_derigs_etal
 basis = LobattoLegendreBasis(4)
 
