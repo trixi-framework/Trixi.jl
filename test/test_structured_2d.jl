@@ -239,9 +239,21 @@ end
 end
 
 @trixi_testset "elixir_eulermulti_convergence_ec.jl" begin
-  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_ec.jl"),
-    l2   = [1.5123651627525257e-5, 1.51236516273878e-5, 2.4544918394022538e-5, 5.904791661362391e-6, 1.1809583322724782e-5],
-    linf = [8.393471747591974e-5, 8.393471748258108e-5, 0.00015028562494778797, 3.504466610437795e-5, 7.00893322087559e-5])
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_ec.jl"),
+                        l2=[
+                            1.5123651627525257e-5,
+                            1.51236516273878e-5,
+                            2.4544918394022538e-5,
+                            5.904791661362391e-6,
+                            1.1809583322724782e-5,
+                        ],
+                        linf=[
+                            8.393471747591974e-5,
+                            8.393471748258108e-5,
+                            0.00015028562494778797,
+                            3.504466610437795e-5,
+                            7.00893322087559e-5,
+                        ])
 end
 
 @trixi_testset "elixir_euler_source_terms.jl" begin
