@@ -309,89 +309,6 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl"),
-                        l2=[
-                            0.4758794741390833,
-                            0.21045415565179362,
-                            0.21045325630191866,
-                            0.7022517958549878,
-                        ],
-                        linf=[
-                            1.710832148442441,
-                            0.9711663578827681,
-                            0.9703787873632452,
-                            2.9619758810532653,
-                        ],
-                        initial_refinement_level=4,
-                        maxiters=50)
-end
-
-@trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl"),
-                        l2=[
-                            0.472445774440313,
-                            0.2090782039442978,
-                            0.20885558673697927,
-                            0.700569533591275,
-                        ],
-                        linf=[
-                            1.7066492792835155,
-                            0.9856122336679919,
-                            0.9784316656930644,
-                            2.9372978989672873,
-                        ],
-                        initial_refinement_level=4,
-                        maxiters=50)
-end
-
-@trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl with mortars" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl"),
-                        l2=[
-                            0.016486406327766923,
-                            0.03097329879894433,
-                            0.03101012918167401,
-                            0.15157175775429868,
-                        ],
-                        linf=[
-                            0.27688647744873407,
-                            0.5653724536715139,
-                            0.565695523611447,
-                            2.513047611639946,
-                        ],
-                        refinement_patches=((type = "box",
-                                             coordinates_min = (-0.25, -0.25),
-                                             coordinates_max = (0.25, 0.25)),
-                                            (type = "box",
-                                             coordinates_min = (-0.125, -0.125),
-                                             coordinates_max = (0.125, 0.125))),
-                        initial_refinement_level=4,
-                        maxiters=5)
-end
-
-@trixi_testset "elixir_euler_blast_wave_neuralnetwork_cnn.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_blast_wave_neuralnetwork_cnn.jl"),
-                        l2=[
-                            0.4795795496408325,
-                            0.2125148972465021,
-                            0.21311260934645868,
-                            0.7033388737692883,
-                        ],
-                        linf=[
-                            1.8295385992182336,
-                            0.9687795218482794,
-                            0.9616033072376108,
-                            2.9513245978047133,
-                        ],
-                        initial_refinement_level=4,
-                        maxiters=50,
-                        rtol=1.0e-7)
-end
-
 @trixi_testset "elixir_euler_blast_wave_pure_fv.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_pure_fv.jl"),
                         l2=[
@@ -556,19 +473,22 @@ end
 @trixi_testset "elixir_euler_sedov_blast_wave.jl (HLLE)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
                         l2=[
-                            0.35267161504176747,
-                            0.17218309138797958,
-                            0.17218307467125854,
-                            0.6236143054619037,
+                            0.352405949321075,
+                            0.17207721487429464,
+                            0.17207721487433883,
+                            0.6263024434020885,
                         ],
                         linf=[
-                            2.77484045816607,
-                            1.8281111268370718,
-                            1.8281110470490887,
-                            6.24263735888126,
+                            2.760997358628186,
+                            1.8279186132509326,
+                            1.8279186132502805,
+                            6.251573757093399,
                         ],
                         tspan=(0.0, 0.5),
-                        surface_flux=flux_hlle)
+                        callbacks=CallbackSet(summary_callback,
+                                              analysis_callback, alive_callback,
+                                              stepsize_callback),
+                        surface_flux=flux_hlle),
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

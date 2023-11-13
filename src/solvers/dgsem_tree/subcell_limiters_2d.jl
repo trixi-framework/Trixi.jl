@@ -36,7 +36,8 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
                                       dt;
                                       kwargs...)
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
-    @trixi_timeit timer() "reset alpha" @threaded for element in eachelement(dg, semi.cache)
+    @trixi_timeit timer() "reset alpha" @threaded for element in eachelement(dg,
+                                                                             semi.cache)
         alpha[.., element] .= zero(eltype(alpha))
     end
     if limiter.smoothness_indicator
@@ -46,10 +47,9 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
     end
 
     if limiter.local_minmax
-        @trixi_timeit timer() "local min/max limiting" idp_local_minmax!(alpha,
-                                                                         limiter, u,
-                                                                         t, dt,
-                                                                         semi, elements)
+        @trixi_timeit timer() "local min/max limiting" idp_local_minmax!(alpha, limiter,
+                                                                         u, t, dt, semi,
+                                                                         elements)
     end
     if limiter.positivity
         @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt,

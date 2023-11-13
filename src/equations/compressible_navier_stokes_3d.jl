@@ -79,14 +79,11 @@ where
 ```math
 w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = \frac{\rho v_3}{p},\, w_5 = -\frac{\rho}{p}
 ```
-
-!!! warning "Experimental code"
-    This code is experimental and may be changed or removed in any future release.
 """
 struct CompressibleNavierStokesDiffusion3D{GradientVariables, RealT <: Real,
                                            E <: AbstractCompressibleEulerEquations{3}
                                            } <:
-       AbstractCompressibleNavierStokesDiffusion{3, 5}
+       AbstractCompressibleNavierStokesDiffusion{3, 5, GradientVariables}
     # TODO: parabolic
     # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
     # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function

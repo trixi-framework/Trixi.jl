@@ -42,17 +42,13 @@ Common choices of the `conversion_function` are [`cons2cons`](@ref) and
 """
 function varnames end
 
-"""
-    get_variable_index(variable, equations, conversion_function = cons2cons)
-
-Return the index of `variable` in `varnames(conversion_function, equations)` if available.
-Otherwise, return an error.
-"""
-@inline function get_variable_index(variable, equations,
-                                    conversion_function = cons2cons)
-    index = findfirst(==(variable), varnames(conversion_function, equations))
+# Return the index of `varname` in `varnames(solution_variables, equations)` if available.
+# Otherwise, throw an error.
+function get_variable_index(varname, equations;
+                            solution_variables = cons2cons)
+    index = findfirst(==(varname), varnames(solution_variables, equations))
     if isnothing(index)
-        error("$variable is no valid variable.")
+        throw(ArgumentError("$varname is no valid variable."))
     end
 
     return index
@@ -533,6 +529,6 @@ abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("linearized_euler_2d.jl")
 
-abstract type AbstractEquationsParabolic{NDIMS, NVARS} <:
+abstract type AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} <:
               AbstractEquations{NDIMS, NVARS} end
 end # @muladd
