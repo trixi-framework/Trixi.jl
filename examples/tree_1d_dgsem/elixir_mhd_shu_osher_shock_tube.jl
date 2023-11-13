@@ -61,7 +61,7 @@ initial_condition = initial_condition_shu_osher_shock_tube
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
-surface_flux = flux_hll
+surface_flux = flux_hlle
 volume_flux = flux_hindenlang_gassner
 basis = LobattoLegendreBasis(4)
 
