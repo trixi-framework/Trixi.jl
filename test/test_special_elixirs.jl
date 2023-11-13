@@ -203,7 +203,8 @@ end
                              volume_integral = VolumeIntegralWeakForm())
 
             # DGMultiMesh is on [-1, 1]^ndims by default
-            mesh = DGMultiMesh(solver, cells_per_dimension = (2, 2),
+            cells_per_dimension = (2, 2)
+            mesh = DGMultiMesh(solver, cells_per_dimension,
                                periodicity = (true, true))
 
             semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
@@ -225,7 +226,8 @@ end
                              volume_integral = VolumeIntegralFluxDifferencing(flux_central))
 
             # DGMultiMesh is on [-1, 1]^ndims by default
-            mesh = DGMultiMesh(solver, cells_per_dimension = (2, 2),
+            cells_per_dimension = (2, 2)
+            mesh = DGMultiMesh(solver, cells_per_dimension,
                                periodicity = (true, true))
 
             semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
