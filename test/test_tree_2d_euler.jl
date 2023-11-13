@@ -313,6 +313,34 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl"),
+                        l2=[
+                            0.3517507570120483,
+                            0.19252291020146015,
+                            0.19249751956580294,
+                            0.618717827188004,
+                        ],
+                        linf=[
+                            1.6699566795772216,
+                            1.3608007992899402,
+                            1.361864507190922,
+                            2.44022884092527,
+                        ],
+                        tspan=(0.0, 0.5),
+                        initial_refinement_level=4,
+                        coverage_override=(maxiters = 6,))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
 @trixi_testset "elixir_euler_sedov_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
                         l2=[
@@ -336,6 +364,34 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
+                        l2=[
+                            0.4328635350273501,
+                            0.15011135840723572,
+                            0.15011135840723572,
+                            0.616129927549474,
+                        ],
+                        linf=[
+                            1.6145297181778906,
+                            0.8614006163026988,
+                            0.8614006163026972,
+                            6.450225090647602,
+                        ],
+                        tspan=(0.0, 1.0),
+                        initial_refinement_level=4,
+                        coverage_override=(maxiters = 6,))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 
