@@ -75,10 +75,12 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
         for j in 2:nnodes(dg), i in eachnode(dg)
             alpha2[i, j, element] = max(alpha[i, j - 1, element], alpha[i, j, element])
         end
-        alpha1[1, :, element] .= zero(eltype(alpha1))
-        alpha1[nnodes(dg) + 1, :, element] .= zero(eltype(alpha1))
-        alpha2[:, 1, element] .= zero(eltype(alpha2))
-        alpha2[:, nnodes(dg) + 1, element] .= zero(eltype(alpha2))
+        for i in eachnode(dg)
+            alpha1[1, i, element] = zero(eltype(alpha1))
+            alpha1[nnodes(dg) + 1, i, element] = zero(eltype(alpha1))
+            alpha2[i, 1, element] = zero(eltype(alpha2))
+            alpha2[i, nnodes(dg) + 1, element] = zero(eltype(alpha2))
+        end
     end
 
     return nothing
@@ -88,8 +90,10 @@ end
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
-        var_min[:, :, element] .= typemax(eltype(var_min))
-        var_max[:, :, element] .= typemin(eltype(var_max))
+        for j in eachnode(dg), i in eachnode(dg)
+            var_min[i, j, element] = typemax(eltype(var_min))
+            var_max[i, j, element] = typemin(eltype(var_max))
+        end
         # Calculate bounds at Gauss-Lobatto nodes using u
         for j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, element]
@@ -189,7 +193,9 @@ end
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
-        var_minmax[:, :, element] .= typeminmax(eltype(var_minmax))
+        for j in eachnode(dg), i in eachnode(dg)
+            var_minmax[i, j, element] = typeminmax(eltype(var_minmax))
+        end
 
         # Calculate bounds at Gauss-Lobatto nodes using u
         for j in eachnode(dg), i in eachnode(dg)
