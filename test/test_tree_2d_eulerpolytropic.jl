@@ -10,10 +10,6 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 @testset "Polytropic Euler" begin
 #! format: noindent
 
-# NOTE: Some of the L2/Linf errors are comparably large. This is due to the fact that some of the
-#       simulations are set up with dimensional states. For example, the reference pressure in SI
-#       units is 101325 Pa, i.e., pressure has values of O(10^5)
-
 @trixi_testset "elixir_eulerpolytropic_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_eulerpolytropic_convergence.jl"),
