@@ -47,11 +47,11 @@ function analyze_coefficient_MCL(mesh::TreeMesh2D, equations, dg, cache, limiter
     n_vars = nvariables(equations)
 
     alpha_avg = zeros(eltype(alpha),
-                      n_vars + limiter.PressurePositivityLimiterKuzmin +
-                      limiter.SemiDiscEntropyLimiter)
+                      n_vars + limiter.positivity_limiter_pressure +
+                      limiter.entropy_limiter_semidiscrete)
     alpha_mean_avg = zeros(eltype(alpha),
-                           n_vars + limiter.PressurePositivityLimiterKuzmin +
-                           limiter.SemiDiscEntropyLimiter)
+                           n_vars + limiter.positivity_limiter_pressure +
+                           limiter.entropy_limiter_semidiscrete)
     total_volume = zero(eltype(alpha))
 
     for element in eachelement(dg, cache)
@@ -63,14 +63,14 @@ function analyze_coefficient_MCL(mesh::TreeMesh2D, equations, dg, cache, limiter
                 alpha_mean_avg[v] += jacobian * weights[i] * weights[j] *
                                      alpha_mean[v, i, j, element]
             end
-            if limiter.PressurePositivityLimiterKuzmin
+            if limiter.positivity_limiter_pressure
                 alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] *
                                          alpha_pressure[i, j, element]
                 alpha_mean_avg[n_vars + 1] += jacobian * weights[i] * weights[j] *
                                               alpha_mean_pressure[i, j, element]
             end
-            if limiter.SemiDiscEntropyLimiter
-                k = n_vars + limiter.PressurePositivityLimiterKuzmin + 1
+            if limiter.entropy_limiter_semidiscrete
+                k = n_vars + limiter.positivity_limiter_pressure + 1
                 alpha_avg[k] += jacobian * weights[i] * weights[j] *
                                 alpha_entropy[i, j, element]
                 alpha_mean_avg[k] += jacobian * weights[i] * weights[j] *
@@ -92,11 +92,11 @@ function analyze_coefficient_MCL(mesh::StructuredMesh{2}, equations, dg, cache,
     n_vars = nvariables(equations)
 
     alpha_avg = zeros(eltype(alpha),
-                      n_vars + limiter.PressurePositivityLimiterKuzmin +
-                      limiter.SemiDiscEntropyLimiter)
+                      n_vars + limiter.positivity_limiter_pressure +
+                      limiter.entropy_limiter_semidiscrete)
     alpha_mean_avg = zeros(eltype(alpha),
-                           n_vars + limiter.PressurePositivityLimiterKuzmin +
-                           limiter.SemiDiscEntropyLimiter)
+                           n_vars + limiter.positivity_limiter_pressure +
+                           limiter.entropy_limiter_semidiscrete)
     total_volume = zero(eltype(alpha))
 
     for element in eachelement(dg, cache)
@@ -108,14 +108,14 @@ function analyze_coefficient_MCL(mesh::StructuredMesh{2}, equations, dg, cache,
                 alpha_mean_avg[v] += jacobian * weights[i] * weights[j] *
                                      alpha_mean[v, i, j, element]
             end
-            if limiter.PressurePositivityLimiterKuzmin
+            if limiter.positivity_limiter_pressure
                 alpha_avg[n_vars + 1] += jacobian * weights[i] * weights[j] *
                                          alpha_pressure[i, j, element]
                 alpha_mean_avg[n_vars + 1] += jacobian * weights[i] * weights[j] *
                                               alpha_mean_pressure[i, j, element]
             end
-            if limiter.SemiDiscEntropyLimiter
-                k = n_vars + limiter.PressurePositivityLimiterKuzmin + 1
+            if limiter.entropy_limiter_semidiscrete
+                k = n_vars + limiter.positivity_limiter_pressure + 1
                 alpha_avg[k] += jacobian * weights[i] * weights[j] *
                                 alpha_entropy[i, j, element]
                 alpha_mean_avg[k] += jacobian * weights[i] * weights[j] *

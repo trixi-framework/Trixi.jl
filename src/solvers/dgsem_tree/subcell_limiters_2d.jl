@@ -725,7 +725,7 @@ end
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis, PressurePositivityLimiterKuzmin)
+                      basis::LobattoLegendreBasis, positivity_limiter_pressure)
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterMCL2D{real(basis)
                                                                       }(0,
                                                                         nvariables(equations),
@@ -737,7 +737,7 @@ function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquat
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # [maximum since the last export / total maximum, min / max, variable]
     mcl_bounds_delta = zeros(real(basis), 2, 2,
-                             nvariables(equations) + PressurePositivityLimiterKuzmin)
+                             nvariables(equations) + positivity_limiter_pressure)
 
     return (; subcell_limiter_coefficients, container_bar_states, mcl_bounds_delta)
 end

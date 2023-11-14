@@ -123,7 +123,7 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
     open("$output_directory/deviations.txt", "a") do f
         print(f, "# iter, simu_time",
               join(", $(v)_min, $(v)_max" for v in varnames(cons2cons, semi.equations)))
-        if limiter.PressurePositivityLimiterKuzmin
+        if limiter.positivity_limiter_pressure
             print(f, ", pressure_min")
         end
         # TODO: Bounds check for entropy limiting
@@ -200,11 +200,11 @@ end
         println(variables[v], ":\n- lower bound: ", mcl_bounds_delta[2, 1, v],
                 "\n- upper bound: ", mcl_bounds_delta[2, 2, v])
     end
-    if limiter.PressurePositivityLimiterKuzmin
+    if limiter.positivity_limiter_pressure
         println("pressure:\n- positivity: ",
                 mcl_bounds_delta[2, 1, nvariables(semi.equations) + 1])
     end
-    if limiter.SemiDiscEntropyLimiter
+    if limiter.entropy_limiter_semidiscrete
         # TODO: Bounds check for entropy limiting
         println("\nWARNING: No bounds check for the entropy limiter.")
     end

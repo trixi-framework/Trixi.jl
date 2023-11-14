@@ -136,7 +136,7 @@ end
 
     n_vars = nvariables(equations)
 
-    if limiter.DensityLimiter
+    if limiter.density_limiter
         # New solution u^{n+1}
         for element in eachelement(solver, cache)
             for j in eachnode(solver), i in eachnode(solver)
@@ -189,9 +189,9 @@ end
                                                 rho_limited - var_max[1, i, j, element])
             end
         end
-    end # limiter.DensityLimiter
+    end # limiter.density_limiter
 
-    if limiter.SequentialLimiter
+    if limiter.sequential_limiter
         # New solution u^{n+1}
         for element in eachelement(solver, cache)
             for j in eachnode(solver), i in eachnode(solver)
@@ -204,7 +204,7 @@ end
                                                     var_limited -
                                                     var_max[v, i, j, element])
                 end
-                if limiter.PressurePositivityLimiterKuzmin
+                if limiter.positivity_limiter_pressure
                     error_pressure = 0.5 *
                                      (u[2, i, j, element]^2 + u[3, i, j, element]^2) -
                                      u[1, i, j, element] * u[4, i, j, element]
@@ -239,11 +239,11 @@ end
                     mcl_bounds_delta[1, 2, v] = max(mcl_bounds_delta[1, 2, v],
                                                     var_limited / rho_limited -
                                                     var_max[v, i, j, element])
-                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.positivity_limiter_pressure && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if limiter.PressurePositivityLimiterKuzmin
+                if limiter.positivity_limiter_pressure
                     error_pressure -= var_limited * rho_limited
                     mcl_bounds_delta[1, 1, n_vars + 1] = max(mcl_bounds_delta[1, 1,
                                                                               n_vars + 1],
@@ -264,11 +264,11 @@ end
                     mcl_bounds_delta[1, 2, v] = max(mcl_bounds_delta[1, 2, v],
                                                     var_limited / rho_limited -
                                                     var_max[v, i, j, element])
-                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.positivity_limiter_pressure && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if limiter.PressurePositivityLimiterKuzmin
+                if limiter.positivity_limiter_pressure
                     error_pressure -= var_limited * rho_limited
                     mcl_bounds_delta[1, 1, n_vars + 1] = max(mcl_bounds_delta[1, 1,
                                                                               n_vars + 1],
@@ -289,11 +289,11 @@ end
                     mcl_bounds_delta[1, 2, v] = max(mcl_bounds_delta[1, 2, v],
                                                     var_limited / rho_limited -
                                                     var_max[v, i, j, element])
-                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.positivity_limiter_pressure && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if limiter.PressurePositivityLimiterKuzmin
+                if limiter.positivity_limiter_pressure
                     error_pressure -= var_limited * rho_limited
                     mcl_bounds_delta[1, 1, n_vars + 1] = max(mcl_bounds_delta[1, 1,
                                                                               n_vars + 1],
@@ -314,11 +314,11 @@ end
                     mcl_bounds_delta[1, 2, v] = max(mcl_bounds_delta[1, 2, v],
                                                     var_limited / rho_limited -
                                                     var_max[v, i, j, element])
-                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.positivity_limiter_pressure && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if limiter.PressurePositivityLimiterKuzmin
+                if limiter.positivity_limiter_pressure
                     error_pressure -= var_limited * rho_limited
                     mcl_bounds_delta[1, 1, n_vars + 1] = max(mcl_bounds_delta[1, 1,
                                                                               n_vars + 1],
@@ -327,7 +327,7 @@ end
                 end
             end
         end
-    elseif limiter.ConservativeLimiter
+    elseif limiter.conservative_limiter
         # New solution u^{n+1}
         for element in eachelement(solver, cache)
             for j in eachnode(solver), i in eachnode(solver)
@@ -339,7 +339,7 @@ end
                                                     u[v, i, j, element] -
                                                     var_max[v, i, j, element])
                 end
-                if limiter.PressurePositivityLimiterKuzmin
+                if limiter.positivity_limiter_pressure
                     error_pressure = 0.5 *
                                      (u[2, i, j, element]^2 + u[3, i, j, element]^2) -
                                      u[1, i, j, element] * u[4, i, j, element]
@@ -374,11 +374,11 @@ end
                     mcl_bounds_delta[1, 2, v] = max(mcl_bounds_delta[1, 2, v],
                                                     var_limited -
                                                     var_max[v, i, j, element])
-                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.positivity_limiter_pressure && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if limiter.PressurePositivityLimiterKuzmin
+                if limiter.positivity_limiter_pressure
                     error_pressure -= var_limited * rho_limited
                     mcl_bounds_delta[1, 1, n_vars + 1] = max(mcl_bounds_delta[1, 1,
                                                                               n_vars + 1],
@@ -399,11 +399,11 @@ end
                     mcl_bounds_delta[1, 2, v] = max(mcl_bounds_delta[1, 2, v],
                                                     var_limited -
                                                     var_max[v, i, j, element])
-                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.positivity_limiter_pressure && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if limiter.PressurePositivityLimiterKuzmin
+                if limiter.positivity_limiter_pressure
                     error_pressure -= var_limited * rho_limited
                     mcl_bounds_delta[1, 1, n_vars + 1] = max(mcl_bounds_delta[1, 1,
                                                                               n_vars + 1],
@@ -424,11 +424,11 @@ end
                     mcl_bounds_delta[1, 2, v] = max(mcl_bounds_delta[1, 2, v],
                                                     var_limited -
                                                     var_max[v, i, j, element])
-                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.positivity_limiter_pressure && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if limiter.PressurePositivityLimiterKuzmin
+                if limiter.positivity_limiter_pressure
                     error_pressure -= var_limited * rho_limited
                     mcl_bounds_delta[1, 1, n_vars + 1] = max(mcl_bounds_delta[1, 1,
                                                                               n_vars + 1],
@@ -449,11 +449,11 @@ end
                     mcl_bounds_delta[1, 2, v] = max(mcl_bounds_delta[1, 2, v],
                                                     var_limited -
                                                     var_max[v, i, j, element])
-                    if limiter.PressurePositivityLimiterKuzmin && (v == 2 || v == 3)
+                    if limiter.positivity_limiter_pressure && (v == 2 || v == 3)
                         error_pressure += 0.5 * var_limited^2
                     end
                 end
-                if limiter.PressurePositivityLimiterKuzmin
+                if limiter.positivity_limiter_pressure
                     error_pressure -= var_limited * rho_limited
                     mcl_bounds_delta[1, 1, n_vars + 1] = max(mcl_bounds_delta[1, 1,
                                                                               n_vars + 1],
@@ -462,7 +462,7 @@ end
                 end
             end
         end
-    elseif limiter.PressurePositivityLimiterKuzmin
+    elseif limiter.positivity_limiter_pressure
         # New solution u^{n+1}
         for element in eachelement(solver, cache)
             for j in eachnode(solver), i in eachnode(solver)
@@ -554,9 +554,9 @@ end
                                                          error_pressure)
             end
         end
-    end # limiter.PressurePositivityLimiterKuzmin
+    end # limiter.positivity_limiter_pressure
 
-    if limiter.DensityPositivityLimiter
+    if limiter.positivity_limiter_density
         # New solution u^{n+1}
         for element in eachelement(solver, cache)
             for j in eachnode(solver), i in eachnode(solver)
@@ -566,7 +566,7 @@ end
         end
 
         # Limited bar states \bar{u}^{Lim} = \bar{u} + Δf^{Lim} / λ
-        beta = limiter.DensityPositivityCorrectionFactor
+        beta = limiter.positivity_limiter_correction_factor
         # Checking the bounds for...
         # - density (rho):
         #   beta * \bar{rho} <= \bar{rho}^{Lim}
@@ -594,7 +594,7 @@ end
                 mcl_bounds_delta[1, 1, 1] = max(mcl_bounds_delta[1, 1, 1], -rho_limited)
             end
         end
-    end # limiter.DensityPositivityLimiter
+    end # limiter.positivity_limiter_density
 
     for v in eachvariable(equations)
         mcl_bounds_delta[2, 1, v] = max(mcl_bounds_delta[2, 1, v],
@@ -602,7 +602,7 @@ end
         mcl_bounds_delta[2, 2, v] = max(mcl_bounds_delta[2, 2, v],
                                         mcl_bounds_delta[1, 2, v])
     end
-    if limiter.PressurePositivityLimiterKuzmin
+    if limiter.positivity_limiter_pressure
         mcl_bounds_delta[2, 1, n_vars + 1] = max(mcl_bounds_delta[2, 1, n_vars + 1],
                                                  mcl_bounds_delta[1, 1, n_vars + 1])
     end
@@ -615,7 +615,7 @@ end
         for v in eachvariable(equations)
             print(f, ", ", mcl_bounds_delta[1, 1, v], ", ", mcl_bounds_delta[1, 2, v])
         end
-        if limiter.PressurePositivityLimiterKuzmin
+        if limiter.positivity_limiter_pressure
             print(f, ", ", mcl_bounds_delta[1, 1, n_vars + 1])
         end
         println(f)
@@ -624,7 +624,7 @@ end
         mcl_bounds_delta[1, 1, v] = zero(eltype(mcl_bounds_delta))
         mcl_bounds_delta[1, 2, v] = zero(eltype(mcl_bounds_delta))
     end
-    if limiter.PressurePositivityLimiterKuzmin
+    if limiter.positivity_limiter_pressure
         mcl_bounds_delta[1, 1, n_vars + 1] = zero(eltype(mcl_bounds_delta))
     end
 

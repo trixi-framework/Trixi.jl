@@ -91,10 +91,10 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t, integra
         open("$output_directory/$file", "a") do f
             print(f, "# iter, simu_time",
                   join(", alpha_min_$v, alpha_avg_$v" for v in vars))
-            if limiter.PressurePositivityLimiterKuzmin
+            if limiter.positivity_limiter_pressure
                 print(f, ", alpha_min_pressure, alpha_avg_pressure")
             end
-            if limiter.SemiDiscEntropyLimiter
+            if limiter.entropy_limiter_semidiscrete
                 print(f, ", alpha_min_entropy, alpha_avg_entropy")
             end
             println(f)
@@ -172,11 +172,11 @@ end
             print(f, ", ", minimum(view(alpha, v, ntuple(_ -> :, n_vars - 1)...)))
             print(f, ", ", alpha_min_avg[v])
         end
-        if limiter.PressurePositivityLimiterKuzmin
+        if limiter.positivity_limiter_pressure
             print(f, ", ", minimum(alpha_pressure), ", ", alpha_min_avg[n_vars + 1])
         end
-        if limiter.SemiDiscEntropyLimiter
-            k = n_vars + limiter.PressurePositivityLimiterKuzmin + 1
+        if limiter.entropy_limiter_semidiscrete
+            k = n_vars + limiter.positivity_limiter_pressure + 1
             print(f, ", ", minimum(alpha_entropy), ", ", alpha_min_avg[k])
         end
         println(f)
@@ -187,12 +187,12 @@ end
             print(f, ", ", minimum(view(alpha_mean, v, ntuple(_ -> :, n_vars - 1)...)))
             print(f, ", ", alpha_mean_avg[v])
         end
-        if limiter.PressurePositivityLimiterKuzmin
+        if limiter.positivity_limiter_pressure
             print(f, ", ", minimum(alpha_mean_pressure), ", ",
                   alpha_mean_avg[n_vars + 1])
         end
-        if limiter.SemiDiscEntropyLimiter
-            k = n_vars + limiter.PressurePositivityLimiterKuzmin + 1
+        if limiter.entropy_limiter_semidiscrete
+            k = n_vars + limiter.positivity_limiter_pressure + 1
             print(f, ", ", minimum(alpha_mean_entropy), ", ", alpha_mean_avg[k])
         end
         println(f)

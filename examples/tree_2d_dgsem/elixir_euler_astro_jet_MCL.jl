@@ -42,12 +42,12 @@ basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example
 limiter_mcl = SubcellLimiterMCL(equations, basis;
-                                DensityLimiter = true,
-                                DensityAlphaForAll = true,
-                                SequentialLimiter = true,
-                                PressurePositivityLimiterKuzmin = true,
-                                DensityPositivityLimiter = false,
-                                SemiDiscEntropyLimiter = false,
+                                density_limiter = true,
+                                density_coefficient_for_all = true,
+                                sequential_limiter = true,
+                                positivity_limiter_pressure = true,
+                                positivity_limiter_density = false,
+                                entropy_limiter_semidiscrete = false,
                                 Plotting = true)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_mcl;
                                                 volume_flux_dg = volume_flux,

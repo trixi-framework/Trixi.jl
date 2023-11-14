@@ -246,32 +246,33 @@ end
 
 """
     SubcellLimiterMCL(equations::AbstractEquations, basis;
-                      DensityLimiter = true,
-                      DensityAlphaForAll = false,
-                      SequentialLimiter = true,
-                      ConservativeLimiter = false,
-                      PressurePositivityLimiterKuzmin = false,
-                      PressurePositivityLimiterKuzminExact = true,
-                      DensityPositivityLimiter = false,
-                      DensityPositivityCorrectionFactor = 0.0,
-                      SemiDiscEntropyLimiter = false,
+                      density_limiter = true,
+                      density_coefficient_for_all = false,
+                      sequential_limiter = true,
+                      conservative_limiter = false,
+                      positivity_limiter_pressure = false,
+                      positivity_limiter_pressure_exact = true,
+                      positivity_limiter_density = false,
+                      positivity_limiter_correction_factor = 0.0,
+                      entropy_limiter_semidiscrete = false,
                       smoothness_indicator = false,
                       threshold_smoothness_indicator = 0.1,
                       variable_smoothness_indicator = density_pressure,
                       Plotting = true)
 
 Subcell monolithic convex limiting (MCL) used with [`VolumeIntegralSubcellLimiting`](@ref) including:
-- local two-sided limiting for `cons(1)` (`DensityLimiter`)
-- transfer amount of `DensityLimiter` to all quantities (`DensityAlphaForAll`)
-- local two-sided limiting for variables `phi:=cons(i)/cons(1)` (`SequentialLimiter`)
-- local two-sided limiting for conservative variables (`ConservativeLimiter`)
-- positivity limiting for `cons(1)` (`DensityPositivityLimiter`) and pressure (`PressurePositivityLimiterKuzmin`)
-- semidiscrete entropy fix (`SemiDiscEntropyLimiter`)
+- local two-sided limiting for `cons(1)` (`density_limiter`)
+- transfer amount of `density_limiter` to all quantities (`density_coefficient_for_all`)
+- local two-sided limiting for variables `phi:=cons(i)/cons(1)` (`sequential_limiter`)
+- local two-sided limiting for conservative variables (`conservative_limiter`)
+- positivity limiting for `cons(1)` (`positivity_limiter_density`)
+- positivity limiting pressure à la Kuzmin (`positivity_limiter_pressure`)
+- semidiscrete entropy fix (`entropy_limiter_semidiscrete`)
 
-The pressure positivity limiting preserves a sharp version (`PressurePositivityLimiterKuzminExact`)
-and a more cautious one. The density positivity limiter uses a `DensityPositivityCorrectionFactor`
-such that `u^new >= positivity_correction_factor * u^FV`. All additional analyses for plotting routines
-can be disabled via `Plotting=false` (see `save_alpha` and `update_alpha_max_avg!`).
+The pressure positivity limiting preserves a sharp version (`positivity_limiter_pressure_exact`)
+and a more cautious one. The density positivity limiter uses a `positivity_limiter_correction_factor`
+such that `u^new >= positivity_limiter_correction_factor * u^FV`. All additional analyses for plotting
+routines can be disabled via `Plotting=false` (see `save_alpha` and `update_alpha_max_avg!`).
 
 A hard-switch [`IndicatorHennemannGassner`](@ref) can be activated (`smoothness_indicator`) with
 `variable_smoothness_indicator`, which disables subcell blending for element-wise
@@ -291,41 +292,41 @@ indicator values <= `threshold_smoothness_indicator`.
 """
 struct SubcellLimiterMCL{RealT <: Real, Cache, Indicator} <: AbstractSubcellLimiter
     cache::Cache
-    DensityLimiter::Bool        # Impose local maximum/minimum for cons(1) based on bar states
-    DensityAlphaForAll::Bool    # Use the cons(1) blending coefficient for all quantities
-    SequentialLimiter::Bool     # Impose local maximum/minimum for variables phi:=cons(i)/cons(1) i 2:nvariables based on bar states
-    ConservativeLimiter::Bool   # Impose local maximum/minimum for conservative variables 2:nvariables based on bar states
-    PressurePositivityLimiterKuzmin::Bool       # Impose positivity for pressure â la Kuzmin
-    PressurePositivityLimiterKuzminExact::Bool  # Only for PressurePositivityLimiterKuzmin=true: Use the exact calculation of alpha
-    DensityPositivityLimiter::Bool              # Impose positivity for cons(1)
-    DensityPositivityCorrectionFactor::RealT    # Correction Factor for DensityPositivityLimiter in [0,1)
-    SemiDiscEntropyLimiter::Bool                # synchronized semidiscrete entropy fix
-    smoothness_indicator::Bool                  # activates smoothness indicator: IndicatorHennemannGassner
-    threshold_smoothness_indicator::RealT       # threshold for smoothness indicator
+    density_limiter::Bool               # Impose local maximum/minimum for cons(1) based on bar states
+    density_coefficient_for_all::Bool   # Use the cons(1) blending coefficient for all quantities
+    sequential_limiter::Bool    # Impose local maximum/minimum for variables phi:=cons(i)/cons(1) i 2:nvariables based on bar states
+    conservative_limiter::Bool  # Impose local maximum/minimum for conservative variables 2:nvariables based on bar states
+    positivity_limiter_pressure::Bool       # Impose positivity for pressure  la Kuzmin
+    positivity_limiter_pressure_exact::Bool # Only for positivity_limiter_pressure=true: Use the sharp calculation of factor
+    positivity_limiter_density::Bool        # Impose positivity for cons(1)
+    positivity_limiter_correction_factor::RealT  # Correction Factor for positivity_limiter_density in [0,1)
+    entropy_limiter_semidiscrete::Bool      # synchronized semidiscrete entropy fix
+    smoothness_indicator::Bool              # activates smoothness indicator: IndicatorHennemannGassner
+    threshold_smoothness_indicator::RealT   # threshold for smoothness indicator
     IndicatorHG::Indicator
     Plotting::Bool
 end
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function SubcellLimiterMCL(equations::AbstractEquations, basis;
-                           DensityLimiter = true,
-                           DensityAlphaForAll = false,
-                           SequentialLimiter = true,
-                           ConservativeLimiter = false,
-                           PressurePositivityLimiterKuzmin = false,
-                           PressurePositivityLimiterKuzminExact = true,
-                           DensityPositivityLimiter = false,
-                           DensityPositivityCorrectionFactor = 0.0,
-                           SemiDiscEntropyLimiter = false,
+                           density_limiter = true,
+                           density_coefficient_for_all = false,
+                           sequential_limiter = true,
+                           conservative_limiter = false,
+                           positivity_limiter_pressure = false,
+                           positivity_limiter_pressure_exact = true,
+                           positivity_limiter_density = false,
+                           positivity_limiter_correction_factor = 0.0,
+                           entropy_limiter_semidiscrete = false,
                            smoothness_indicator = false,
                            threshold_smoothness_indicator = 0.1,
                            variable_smoothness_indicator = density_pressure,
                            Plotting = true)
-    if SequentialLimiter && ConservativeLimiter
-        error("Only one of the two can be selected: SequentialLimiter/ConservativeLimiter")
+    if sequential_limiter && conservative_limiter
+        error("Only one of the two can be selected: sequential_limiter/conservative_limiter")
     end
     cache = create_cache(SubcellLimiterMCL, equations, basis,
-                         PressurePositivityLimiterKuzmin)
+                         positivity_limiter_pressure)
     if smoothness_indicator
         IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_smooth = false,
                                                 variable = variable_smoothness_indicator)
@@ -334,13 +335,13 @@ function SubcellLimiterMCL(equations::AbstractEquations, basis;
     end
     SubcellLimiterMCL{typeof(threshold_smoothness_indicator), typeof(cache),
                       typeof(IndicatorHG)}(cache,
-                                           DensityLimiter, DensityAlphaForAll,
-                                           SequentialLimiter, ConservativeLimiter,
-                                           PressurePositivityLimiterKuzmin,
-                                           PressurePositivityLimiterKuzminExact,
-                                           DensityPositivityLimiter,
-                                           DensityPositivityCorrectionFactor,
-                                           SemiDiscEntropyLimiter,
+                                           density_limiter, density_coefficient_for_all,
+                                           sequential_limiter, conservative_limiter,
+                                           positivity_limiter_pressure,
+                                           positivity_limiter_pressure_exact,
+                                           positivity_limiter_density,
+                                           positivity_limiter_correction_factor,
+                                           entropy_limiter_semidiscrete,
                                            smoothness_indicator,
                                            threshold_smoothness_indicator, IndicatorHG,
                                            Plotting)
@@ -350,20 +351,20 @@ function Base.show(io::IO, limiter::SubcellLimiterMCL)
     @nospecialize limiter # reduce precompilation time
 
     print(io, "SubcellLimiterMCL(")
-    limiter.DensityLimiter && print(io, "; dens")
-    limiter.DensityAlphaForAll && print(io, "; dens alpha ∀")
-    limiter.SequentialLimiter && print(io, "; seq")
-    limiter.ConservativeLimiter && print(io, "; cons")
-    if limiter.PressurePositivityLimiterKuzmin
+    limiter.density_limiter && print(io, "; dens")
+    limiter.density_coefficient_for_all && print(io, "; dens alpha ∀")
+    limiter.sequential_limiter && print(io, "; seq")
+    limiter.conservative_limiter && print(io, "; cons")
+    if limiter.positivity_limiter_pressure
         print(io,
-              "; $(limiter.PressurePositivityLimiterKuzminExact ? "pres (Kuzmin ex)" : "pres (Kuzmin)")")
+              "; $(limiter.positivity_limiter_pressure_exact ? "pres (sharp)" : "pres (cautious)")")
     end
-    limiter.DensityPositivityLimiter && print(io, "; dens pos")
-    if limiter.DensityPositivityCorrectionFactor != 0
+    limiter.positivity_limiter_density && print(io, "; dens pos")
+    if limiter.positivity_limiter_correction_factor != 0
         print(io,
-              " with correction factor $(limiter.DensityPositivityCorrectionFactor)")
+              " with correction factor $(limiter.positivity_limiter_correction_factor)")
     end
-    limiter.SemiDiscEntropyLimiter && print(io, "; semid. entropy")
+    limiter.entropy_limiter_semidiscrete && print(io, "; semid. entropy")
     limiter.smoothness_indicator &&
         print(io, "; Smoothness indicator: ", limiter.IndicatorHG,
               " with threshold ", limiter.threshold_smoothness_indicator)
@@ -372,34 +373,36 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterMCL)
     @nospecialize limiter # reduce precompilation time
-    @unpack DensityLimiter, DensityAlphaForAll, SequentialLimiter, ConservativeLimiter,
-    PressurePositivityLimiterKuzminExact, DensityPositivityLimiter, SemiDiscEntropyLimiter = limiter
+    @unpack density_limiter, density_coefficient_for_all, sequential_limiter, conservative_limiter,
+    positivity_limiter_pressure_exact, positivity_limiter_density, entropy_limiter_semidiscrete = limiter
 
     if get(io, :compact, false)
         show(io, limiter)
     else
         setup = ["limiter" => ""]
-        DensityLimiter && (setup = [setup..., "" => "DensityLimiter"])
-        DensityAlphaForAll && (setup = [setup..., "" => "DensityAlphaForAll"])
-        SequentialLimiter && (setup = [setup..., "" => "SequentialLimiter"])
-        ConservativeLimiter && (setup = [setup..., "" => "ConservativeLimiter"])
-        if limiter.PressurePositivityLimiterKuzmin
+        density_limiter && (setup = [setup..., "" => "Density Limiter"])
+        density_coefficient_for_all &&
+            (setup = [setup..., "" => "Transfer density coefficient to all quantities"])
+        sequential_limiter && (setup = [setup..., "" => "Sequential Limiter"])
+        conservative_limiter && (setup = [setup..., "" => "Conservative Limiter"])
+        if limiter.positivity_limiter_pressure
             setup = [
                 setup...,
-                "" => "PressurePositivityLimiterKuzmin $(PressurePositivityLimiterKuzminExact ? "(exact)" : "")",
+                "" => "$(positivity_limiter_pressure_exact ? "(Sharp)" : "(Cautious)") positivity limiter for Pressure à la Kuzmin",
             ]
         end
-        if DensityPositivityLimiter
-            if limiter.DensityPositivityCorrectionFactor != 0.0
+        if positivity_limiter_density
+            if limiter.positivity_limiter_correction_factor != 0.0
                 setup = [
                     setup...,
-                    "" => "DensityPositivityLimiter with correction factor $(limiter.DensityPositivityCorrectionFactor)",
+                    "" => "Positivity Limiter for Density with correction factor $(limiter.positivity_limiter_correction_factor)",
                 ]
             else
-                setup = [setup..., "" => "DensityPositivityLimiter"]
+                setup = [setup..., "" => "Positivity Limiter for Density"]
             end
         end
-        SemiDiscEntropyLimiter && (setup = [setup..., "" => "SemiDiscEntropyLimiter"])
+        entropy_limiter_semidiscrete &&
+            (setup = [setup..., "" => "Semidiscrete Entropy Limiter"])
         if limiter.smoothness_indicator
             setup = [
                 setup...,
@@ -422,12 +425,12 @@ function get_node_variables!(node_variables, limiter::SubcellLimiterMCL,
         node_variables[s] = alpha[v, ntuple(_ -> :, size(alpha, 2) + 1)...]
     end
 
-    if limiter.PressurePositivityLimiterKuzmin
+    if limiter.positivity_limiter_pressure
         @unpack alpha_pressure = limiter.cache.subcell_limiter_coefficients
         node_variables[:alpha_pressure] = alpha_pressure
     end
 
-    if limiter.SemiDiscEntropyLimiter
+    if limiter.entropy_limiter_semidiscrete
         @unpack alpha_entropy = limiter.cache.subcell_limiter_coefficients
         node_variables[:alpha_entropy] = alpha_entropy
     end
@@ -438,12 +441,12 @@ function get_node_variables!(node_variables, limiter::SubcellLimiterMCL,
         node_variables[s] = copy(alpha_mean[v, ntuple(_ -> :, size(alpha, 2) + 1)...])
     end
 
-    if limiter.PressurePositivityLimiterKuzmin
+    if limiter.positivity_limiter_pressure
         @unpack alpha_mean_pressure = limiter.cache.subcell_limiter_coefficients
         node_variables[:alpha_mean_pressure] = alpha_mean_pressure
     end
 
-    if limiter.SemiDiscEntropyLimiter
+    if limiter.entropy_limiter_semidiscrete
         @unpack alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
         node_variables[:alpha_mean_entropy] = alpha_mean_entropy
     end

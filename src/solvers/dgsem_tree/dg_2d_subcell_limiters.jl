@@ -978,7 +978,7 @@ end
             var_max[v, :, :, element] .= typemin(eltype(var_max))
         end
 
-        if limiter.DensityLimiter
+        if limiter.density_limiter
             for j in eachnode(dg), i in eachnode(dg)
                 # Previous solution
                 var_min[1, i, j, element] = min(var_min[1, i, j, element],
@@ -1010,9 +1010,9 @@ end
                 var_max[1, i, j, element] = max(var_max[1, i, j, element],
                                                 bar_state_rho)
             end
-        end #limiter.DensityLimiter
+        end #limiter.density_limiter
 
-        if limiter.SequentialLimiter
+        if limiter.sequential_limiter
             for j in eachnode(dg), i in eachnode(dg)
                 # Previous solution
                 for v in 2:nvariables(equations)
@@ -1057,7 +1057,7 @@ end
                                                     bar_state_phi)
                 end
             end
-        elseif limiter.ConservativeLimiter
+        elseif limiter.conservative_limiter
             for j in eachnode(dg), i in eachnode(dg)
                 # Previous solution
                 for v in 2:nvariables(equations)
@@ -1119,11 +1119,11 @@ end
         for j in eachnode(dg), i in eachnode(dg)
             alpha_mean[:, i, j, element] .= zero(eltype(alpha_mean))
             alpha[:, i, j, element] .= one(eltype(alpha))
-            if limiter.PressurePositivityLimiterKuzmin
+            if limiter.positivity_limiter_pressure
                 alpha_mean_pressure[i, j, element] = zero(eltype(alpha_mean_pressure))
                 alpha_pressure[i, j, element] = one(eltype(alpha_pressure))
             end
-            if limiter.SemiDiscEntropyLimiter
+            if limiter.entropy_limiter_semidiscrete
                 alpha_mean_entropy[i, j, element] = zero(eltype(alpha_mean_entropy))
                 alpha_entropy[i, j, element] = one(eltype(alpha_entropy))
             end
@@ -1137,7 +1137,7 @@ end
     # Therefore we make sure that the flux keeps its sign during limiting.
 
     # Density limiter
-    if limiter.DensityLimiter
+    if limiter.density_limiter
         for j in eachnode(dg), i in 2:nnodes(dg)
             lambda = lambda1[i, j, element]
             bar_state_rho = bar_states1[1, i, j, element]
@@ -1157,7 +1157,7 @@ end
                                    min(f_min, 0.0))
             end
 
-            if limiter.Plotting || limiter.DensityAlphaForAll
+            if limiter.Plotting || limiter.density_coefficient_for_all
                 if isapprox(antidiffusive_flux1_L[1, i, j, element], 0.0, atol = eps())
                     coefficient = 1.0 # flux_limited is zero as well
                 else
@@ -1179,7 +1179,7 @@ end
             antidiffusive_flux1_L[1, i, j, element] = flux_limited
 
             #Limit all quantities with the same alpha
-            if limiter.DensityAlphaForAll
+            if limiter.density_coefficient_for_all
                 for v in 2:nvariables(equations)
                     antidiffusive_flux1_L[v, i, j, element] = coefficient *
                                                               antidiffusive_flux1_L[v,
@@ -1209,7 +1209,7 @@ end
                                    min(f_min, 0.0))
             end
 
-            if limiter.Plotting || limiter.DensityAlphaForAll
+            if limiter.Plotting || limiter.density_coefficient_for_all
                 if isapprox(antidiffusive_flux2_L[1, i, j, element], 0.0, atol = eps())
                     coefficient = 1.0 # flux_limited is zero as well
                 else
@@ -1231,7 +1231,7 @@ end
             antidiffusive_flux2_L[1, i, j, element] = flux_limited
 
             #Limit all quantities with the same alpha
-            if limiter.DensityAlphaForAll
+            if limiter.density_coefficient_for_all
                 for v in 2:nvariables(equations)
                     antidiffusive_flux2_L[v, i, j, element] = coefficient *
                                                               antidiffusive_flux2_L[v,
@@ -1241,10 +1241,10 @@ end
                 end
             end
         end
-    end # if limiter.DensityLimiter
+    end # if limiter.density_limiter
 
     # Sequential limiter
-    if limiter.SequentialLimiter
+    if limiter.sequential_limiter
         for j in eachnode(dg), i in 2:nnodes(dg)
             lambda = lambda1[i, j, element]
             bar_state_rho = bar_states1[1, i, j, element]
@@ -1348,7 +1348,7 @@ end
             end
         end
         # Conservative limiter
-    elseif limiter.ConservativeLimiter
+    elseif limiter.conservative_limiter
         for j in eachnode(dg), i in 2:nnodes(dg)
             lambda = lambda1[i, j, element]
             for v in 2:nvariables(equations)
@@ -1428,11 +1428,11 @@ end
                 antidiffusive_flux2_L[v, i, j, element] = flux_limited
             end
         end
-    end # limiter.SequentialLimiter and limiter.ConservativeLimiter
+    end # limiter.sequential_limiter and limiter.conservative_limiter
 
     # Density positivity limiter
-    if limiter.DensityPositivityLimiter
-        beta = limiter.DensityPositivityCorrectionFactor
+    if limiter.positivity_limiter_density
+        beta = limiter.positivity_limiter_correction_factor
         for j in eachnode(dg), i in 2:nnodes(dg)
             lambda = lambda1[i, j, element]
             bar_state_rho = bar_states1[1, i, j, element]
@@ -1449,7 +1449,7 @@ end
                                    min(f_min, 0.0))
             end
 
-            if limiter.Plotting || limiter.DensityAlphaForAll
+            if limiter.Plotting || limiter.density_coefficient_for_all
                 if isapprox(antidiffusive_flux1_L[1, i, j, element], 0.0, atol = eps())
                     coefficient = 1.0  # flux_limited is zero as well
                 else
@@ -1461,7 +1461,7 @@ end
                     alpha[1, i - 1, j, element] = min(alpha[1, i - 1, j, element],
                                                       coefficient)
                     alpha[1, i, j, element] = min(alpha[1, i, j, element], coefficient)
-                    if !limiter.DensityLimiter
+                    if !limiter.density_limiter
                         alpha_mean[1, i - 1, j, element] += coefficient
                         alpha_mean[1, i, j, element] += coefficient
                     end
@@ -1470,7 +1470,7 @@ end
             antidiffusive_flux1_L[1, i, j, element] = flux_limited
 
             #Limit all quantities with the same alpha
-            if limiter.DensityAlphaForAll
+            if limiter.density_coefficient_for_all
                 for v in 2:nvariables(equations)
                     antidiffusive_flux1_L[v, i, j, element] = coefficient *
                                                               antidiffusive_flux1_L[v,
@@ -1497,7 +1497,7 @@ end
                                    min(f_min, 0.0))
             end
 
-            if limiter.Plotting || limiter.DensityAlphaForAll
+            if limiter.Plotting || limiter.density_coefficient_for_all
                 if isapprox(antidiffusive_flux2_L[1, i, j, element], 0.0, atol = eps())
                     coefficient = 1.0  # flux_limited is zero as well
                 else
@@ -1509,7 +1509,7 @@ end
                     alpha[1, i, j - 1, element] = min(alpha[1, i, j - 1, element],
                                                       coefficient)
                     alpha[1, i, j, element] = min(alpha[1, i, j, element], coefficient)
-                    if !limiter.DensityLimiter
+                    if !limiter.density_limiter
                         alpha_mean[1, i, j - 1, element] += coefficient
                         alpha_mean[1, i, j, element] += coefficient
                     end
@@ -1518,7 +1518,7 @@ end
             antidiffusive_flux2_L[1, i, j, element] = flux_limited
 
             #Limit all quantities with the same alpha
-            if limiter.DensityAlphaForAll
+            if limiter.density_coefficient_for_all
                 for v in 2:nvariables(equations)
                     antidiffusive_flux2_L[v, i, j, element] = coefficient *
                                                               antidiffusive_flux2_L[v,
@@ -1528,13 +1528,13 @@ end
                 end
             end
         end
-    end #if limiter.DensityPositivityLimiter
+    end #if limiter.positivity_limiter_density
 
     # Divide alpha_mean by number of additions
     if limiter.Plotting
         @unpack alpha_mean = limiter.cache.subcell_limiter_coefficients
         # Interfaces contribute with 1.0
-        if limiter.DensityLimiter || limiter.DensityPositivityLimiter
+        if limiter.density_limiter || limiter.positivity_limiter_density
             for i in eachnode(dg)
                 alpha_mean[1, i, 1, element] += 1.0
                 alpha_mean[1, i, nnodes(dg), element] += 1.0
@@ -1545,7 +1545,7 @@ end
                 alpha_mean[1, i, j, element] /= 4
             end
         end
-        if limiter.SequentialLimiter || limiter.ConservativeLimiter
+        if limiter.sequential_limiter || limiter.conservative_limiter
             for v in 2:nvariables(equations)
                 for i in eachnode(dg)
                     alpha_mean[v, i, 1, element] += 1.0
@@ -1561,7 +1561,7 @@ end
     end
 
     # Limit pressure à la Kuzmin
-    if limiter.PressurePositivityLimiterKuzmin
+    if limiter.positivity_limiter_pressure
         @unpack alpha_pressure, alpha_mean_pressure = limiter.cache.subcell_limiter_coefficients
         for j in eachnode(dg), i in 2:nnodes(dg)
             bar_state_velocity = bar_states1[2, i, j, element]^2 +
@@ -1573,7 +1573,7 @@ end
                 (bar_states1[1, i, j, element] * bar_states1[4, i, j, element] -
                  0.5 * bar_state_velocity)
 
-            if limiter.PressurePositivityLimiterKuzminExact
+            if limiter.positivity_limiter_pressure_exact
                 # exact calculation of max(R_ij, R_ji)
                 R_max = lambda1[i, j, element] *
                         abs(bar_states1[2, i, j, element] *
@@ -1628,7 +1628,7 @@ end
                 (bar_states2[1, i, j, element] * bar_states2[4, i, j, element] -
                  0.5 * bar_state_velocity)
 
-            if limiter.PressurePositivityLimiterKuzminExact
+            if limiter.positivity_limiter_pressure_exact
                 # exact calculation of max(R_ij, R_ji)
                 R_max = lambda2[i, j, element] *
                         abs(bar_states2[2, i, j, element] *
@@ -1690,7 +1690,7 @@ end
     # Limit entropy
     # TODO: This is a very inefficient function. We compute the entropy four times at each node.
     # TODO: For now, this only works for Cartesian meshes.
-    if limiter.SemiDiscEntropyLimiter
+    if limiter.entropy_limiter_semidiscrete
         for j in eachnode(dg), i in 2:nnodes(dg)
             antidiffusive_flux_local = get_node_vars(antidiffusive_flux1_L, equations,
                                                      dg,
