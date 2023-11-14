@@ -559,25 +559,6 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl"),
-                        l2=[
-                            0.0845430093623868,
-                            0.09271459184623232,
-                            0.09271459184623232,
-                            0.4377291875101709,
-                        ],
-                        linf=[
-                            1.3608553480069898,
-                            1.6822884847136004,
-                            1.6822884847135997,
-                            4.2201475428867035,
-                        ],
-                        maxiters=30,
-                        coverage_override=(maxiters = 6,))
-end
-
 @trixi_testset "elixir_euler_positivity.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
                         l2=[
@@ -789,18 +770,6 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
-end
-
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl"),
-                        # This stuff is experimental and annoying to test. In the future, we plan
-                        # to move it to another repository. Thus, we save developer time right now
-                        # and do not run these tests anymore.
-                        # l2   = [0.0009823702998067061, 0.004943231496200673, 0.0048604522073091815, 0.00496983530893294],
-                        # linf = [0.00855717053383187, 0.02087422420794427, 0.017121993783086185, 0.02720703869972585],
-                        maxiters=30,
-                        coverage_override=(maxiters = 2,))
 end
 
 @trixi_testset "elixir_euler_colliding_flow.jl" begin
