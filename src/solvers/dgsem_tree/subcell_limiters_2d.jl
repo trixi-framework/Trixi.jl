@@ -13,22 +13,23 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
                                                                         nnodes(basis),
                                                                         bound_keys)
 
-    # Memory for bounds checking routine with `BoundsCheckCallback`.
+    # Threaded memory for bounds checking routine with `BoundsCheckCallback`.
     # The first entry of each vector contains the maximum deviation since the last export.
-    # The second one contains the total maximum deviation.
-    idp_bounds_delta = Dict{Symbol, Vector{real(basis)}}()
+    # In the second entry, the total maximum deviation is saved.
+    idp_bounds_delta_threaded = Dict{Symbol, Vector{Vector{real(basis)}}}()
     for key in bound_keys
-        idp_bounds_delta[key] = zeros(real(basis), 2)
+        idp_bounds_delta_threaded[key] = [zeros(real(basis), 2)
+                                          for _ in 1:Threads.nthreads()]
     end
 
-    return (; subcell_limiter_coefficients, idp_bounds_delta)
+    return (; subcell_limiter_coefficients, idp_bounds_delta_threaded)
 end
 
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
                                       dt;
                                       kwargs...)
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
-    alpha .= zero(eltype(alpha))
+    @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
 
     if limiter.local_minmax
         @trixi_timeit timer() "local min/max limiting" idp_local_minmax!(alpha, limiter,
