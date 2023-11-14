@@ -479,7 +479,8 @@ function copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
     return nothing
 end
 
-function copy_to_coupled_boundary!(u_ode, semi, i, boundary_condition, boundary_conditions...)
+function copy_to_coupled_boundary!(u_ode, semi, i, boundary_condition,
+                                   boundary_conditions...)
     copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
     if i < length(boundary_conditions)
         copy_to_coupled_boundary!(u_ode, semi, i + 1, boundary_conditions...)
