@@ -290,7 +290,7 @@ function extract_initial_resolution(elixir, kwargs)
             return initial_refinement_level
         end
     catch e
-        if isa(e, UndefVarError)
+        if isa(e, ArgumentError)
             # get cells_per_dimension from the elixir
             cells_per_dimension = eval(find_assignment(expr, :cells_per_dimension))
 
