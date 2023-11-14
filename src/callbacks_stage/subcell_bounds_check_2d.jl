@@ -48,6 +48,19 @@
             end
             deviation[2] = max(deviation[2], deviation[1])
         end
+        for variable in limiter.positivity_variables_nonlinear
+            key = Symbol(string(variable), "_min")
+            deviation = idp_bounds_delta[key]
+            for element in eachelement(solver, cache), j in eachnode(solver),
+                i in eachnode(solver)
+
+                var = variable(get_node_vars(u, equations, solver, i, j, element),
+                               equations)
+                deviation[1] = max(deviation[1],
+                                   variable_bounds[key][i, j, element] - var)
+            end
+            deviation[2] = max(deviation[2], deviation[1])
+        end
     end
     if save_errors
         # Print to output file
@@ -66,6 +79,10 @@
                         continue
                     end
                     print(f, ", ", idp_bounds_delta[Symbol(string(v), "_min")][1])
+                end
+                for variable in limiter.positivity_variables_nonlinear
+                    print(f, ", ",
+                          idp_bounds_delta[Symbol(string(variable), "_min")][1])
                 end
             end
             println(f)

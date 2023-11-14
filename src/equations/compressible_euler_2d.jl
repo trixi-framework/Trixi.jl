@@ -1404,6 +1404,17 @@ end
     return SVector(w1, w2, w3, w4)
 end
 
+# Transformation from conservative variables u to d(p)/d(u)
+@inline function pressure(u, equations::CompressibleEulerEquations2D, derivative::True)
+    rho, rho_v1, rho_v2, rho_e = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v_square = v1^2 + v2^2
+
+    return (equations.gamma - 1.0) * SVector(0.5 * v_square, -v1, -v2, 1.0)
+end
+
 @inline function entropy2cons(w, equations::CompressibleEulerEquations2D)
     # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
     # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
@@ -1426,6 +1437,14 @@ end
     rho_v2 = rho_iota * V3
     rho_e = rho_iota * (1 - (V2^2 + V3^2) / (2 * V5))
     return SVector(rho, rho_v1, rho_v2, rho_e)
+end
+
+@inline function is_valid_state(cons, equations::CompressibleEulerEquations2D)
+    p = pressure(cons, equations)
+    if cons[1] <= 0.0 || p <= 0.0
+        return false
+    end
+    return true
 end
 
 # Convert primitive to conservative variables

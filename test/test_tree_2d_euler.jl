@@ -581,6 +581,32 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl"),
+                        l2=[
+                            0.05570313943221697,
+                            0.03298722119008495,
+                            0.05224470329798064,
+                            0.08011555326900793,
+                        ],
+                        linf=[
+                            0.2409101307301882,
+                            0.16601896096921037,
+                            0.12356154796415487,
+                            0.2695166427148403,
+                        ],
+                        tspan=(0.0, 0.2))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
 @trixi_testset "elixir_euler_colliding_flow.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_colliding_flow.jl"),
                         l2=[
