@@ -239,7 +239,7 @@ end
 
 function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
                              ::VolumeIntegralSubcellLimiting, equations)
-    node_variables[:alpha_limiter] = limiter.cache.subcell_limiter_coefficients.alpha
+    node_variables[:limiting_coefficient] = limiter.cache.subcell_limiter_coefficients.alpha
 
     return nothing
 end

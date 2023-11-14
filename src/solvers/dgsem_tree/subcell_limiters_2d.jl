@@ -36,10 +36,8 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
                                       dt;
                                       kwargs...)
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
-    @trixi_timeit timer() "reset alpha" @threaded for element in eachelement(dg,
-                                                                             semi.cache)
-        alpha[.., element] .= zero(eltype(alpha))
-    end
+    @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
+
     if limiter.smoothness_indicator
         elements = semi.cache.element_ids_dgfv
     else
