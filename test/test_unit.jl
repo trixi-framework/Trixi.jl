@@ -1356,6 +1356,8 @@ end
     end
 
     @trixi_testset "With `solve` Without `maxiters`" begin
+        # `trixi_include` assumes this to be the `solve` function of OrdinaryDiffEq,
+        # and therefore tries to insert the kwarg `maxiters`, which will fail here.
         example = """
             solve() = 0
             x = solve()
@@ -1383,6 +1385,7 @@ end
     @trixi_testset "With `solve` With `maxiters`" begin
         # We need another example file that we include with `Base.include` first, in order to
         # define the `solve` method without `trixi_include` trying to insert `maxiters` kwargs.
+        # Then, we can test that `trixi_include` inserts the kwarg in the `solve()` call.
         example1 = """
             solve(; maxiters=0) = maxiters
             """
@@ -1406,10 +1409,12 @@ end
             Base.include(@__MODULE__, filename1)
             @test_warn "You just called" trixi_include(@__MODULE__, filename2)
             @test @isdefined x
+            # This is the default `maxiters` inserted by `trixi_include`
             @test x == 10^5
 
             @test_warn "You just called" trixi_include(@__MODULE__, filename2,
                                                        maxiters = 7)
+            # Test that `maxiters` got overwritten
             @test x == 7
         finally
             rm(filename1, force = true)
