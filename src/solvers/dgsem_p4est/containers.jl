@@ -87,14 +87,16 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, Re
                        ::Type{uEltype}) where {NDIMS, RealT <: Real, uEltype <: Real}
     nelements = ncells(mesh)
 
-    _node_coordinates = Vector{RealT}(undef, NDIMS * nnodes(basis)^NDIMS * nelements)
+    ndims_spa = size(mesh.tree_node_coordinates,1)
+
+    _node_coordinates = Vector{RealT}(undef, ndims_spa * nnodes(basis)^NDIMS * nelements)
     node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
-                                   (NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
+                                   (ndims_spa, ntuple(_ -> nnodes(basis), NDIMS)...,
                                     nelements))
 
-    _jacobian_matrix = Vector{RealT}(undef, NDIMS^2 * nnodes(basis)^NDIMS * nelements)
+    _jacobian_matrix = Vector{RealT}(undef, ndims_spa^2 * nnodes(basis)^NDIMS * nelements)
     jacobian_matrix = unsafe_wrap(Array, pointer(_jacobian_matrix),
-                                  (NDIMS, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
+                                  (ndims_spa, ndims_spa, ntuple(_ -> nnodes(basis), NDIMS)...,
                                    nelements))
 
     _contravariant_vectors = similar(_jacobian_matrix)

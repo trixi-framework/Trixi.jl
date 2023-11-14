@@ -24,7 +24,7 @@ end
 # Extract contravariant vector Ja^i (i = index) as SVector
 @inline function get_contravariant_vector(index, contravariant_vectors, indices...)
     SVector(ntuple(@inline(dim->contravariant_vectors[dim, index, indices...]),
-                   Val(ndims(contravariant_vectors) - 3)))
+                   Val(size(contravariant_vectors, 1))))
 end
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
