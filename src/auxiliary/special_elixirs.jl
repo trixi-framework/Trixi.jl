@@ -20,7 +20,7 @@ providing examples with sensible default values for users.
 
 Before replacing assignments in `elixir`, the keyword argument `maxiters` is inserted
 into calls to `solve` and `Trixi.solve` with it's default value used in the SciML ecosystem
-for ODEs, see the "Miscellaneous" section of the 
+for ODEs, see the "Miscellaneous" section of the
 [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
 
 # Examples
@@ -36,6 +36,16 @@ julia> redirect_stdout(devnull) do
 ```
 """
 function trixi_include(mod::Module, elixir::AbstractString; kwargs...)
+    # Check that all kwargs exist as assignments
+    code = read(elixir, String)
+    expr = Meta.parse("begin \n$code \nend")
+    expr = insert_maxiters(expr)
+
+    for (key, val) in kwargs
+        # This will throw an error when `key` is not found
+        find_assignment(expr, key)
+    end
+
     # Print information on potential wait time only in non-parallel case
     if !mpi_isparallel()
         @info "You just called `trixi_include`. Julia may now compile the code, please be patient."
@@ -243,6 +253,7 @@ end
 function find_assignment(expr, destination)
     # declare result to be able to assign to it in the closure
     local result
+    found = false
 
     # find explicit and keyword assignments
     walkexpr(expr) do x
@@ -250,10 +261,15 @@ function find_assignment(expr, destination)
             if (x.head === Symbol("=") || x.head === :kw) &&
                x.args[1] === Symbol(destination)
                 result = x.args[2]
+                found = true
                 # dump(x)
             end
         end
         return x
+    end
+
+    if !found
+        throw(ArgumentError("assignment `$destination` not found in expression"))
     end
 
     result
