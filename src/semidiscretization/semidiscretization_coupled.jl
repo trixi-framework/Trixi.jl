@@ -479,10 +479,16 @@ function copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
     return nothing
 end
 
+function copy_to_coupled_boundary!(u_ode, semi, i, boundary_condition, boundary_conditions...)
+    copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
+    if i < length(boundary_conditions)
+        copy_to_coupled_boundary!(u_ode, semi, i + 1, boundary_conditions...)
+    end
+end
+
 function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}, u_ode,
                                    semi)
-    foreach(boundary_condition -> copy_to_coupled_boundary!(boundary_condition, u_ode,
-                                                            semi), boundary_conditions)
+    copy_to_coupled_boundary!(u_ode, semi, 1, boundary_conditions...)
 end
 
 function mesh_equations_solver_cache(other_semi_index, i, semi_, semi_tuple...)
