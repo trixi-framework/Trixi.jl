@@ -307,7 +307,7 @@ function extract_initial_resolution(elixir, kwargs)
                     throw(ArgumentError("`convergence_test` requires the elixir to define " *
                                         "`initial_refinement_level` or `cells_per_dimension`"))
                 else
-                    throw(e2)
+                    rethrow()
                 end
             end
         else
