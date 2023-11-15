@@ -311,7 +311,7 @@ function extract_initial_resolution(elixir, kwargs)
                 end
             end
         else
-            throw(e)
+            rethrow()
         end
     end
 end
