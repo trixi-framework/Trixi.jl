@@ -13,16 +13,49 @@ function init_elements!(elements, mesh::Union{P4estMesh{2}, T8codeMesh{2}},
 
     calc_node_coordinates!(node_coordinates, mesh, basis)
 
-    if size(node_coordinates,1) == 3 # 2D cubed sphere
+    if size(node_coordinates,1) == 3 
+        # This is a 2D cubed sphere. 
+        # We compute the metric terms by creating a 3D cubed sphere mesh with one layer and computing 
+        # the metric terms there... We then transfer those metric terms to our spherical shell.
+        # TODO: Is there a more efficient way to do this?!?
+        mesh2 = P4estMeshCubedSphere(Int(sqrt(size(mesh.tree_node_coordinates,4)/6)), # trees_per_face_dimension read from the 2D mesh
+                                     1, # One layer
+                                     sqrt(sum(node_coordinates[:,1,1,1].^2)), # Sphere radius as read from node 1
+                                     2.0, # thickness of spherical shell (2.0 seems to provide the right scaling for the jacobian_matrix. TODO: Check if this is correct.)
+                                     polydeg = size(basis.nodes, 1) - 1, # Same as current basis
+                                     initial_refinement_level = 0) #TODO: check if this needs to be changed
+        
+        # Allocate storage for 3D metric terms
+        # TODO: Do this without causing too many allocations!
+
+        nelements = ncells(mesh2)
+        ndims_spa = size(mesh2.tree_node_coordinates,1)
+        
+        node_coordinates2 = zeros(ndims_spa, nnodes(basis), nnodes(basis), nnodes(basis), nelements)
+        jacobian_matrix2 = zeros(ndims_spa, ndims_spa, nnodes(basis), nnodes(basis), nnodes(basis), nelements)
+        contravariant_vectors2 = zeros(ndims_spa, ndims_spa, nnodes(basis), nnodes(basis), nnodes(basis), nelements)
+        #inverse_jacobian2 = zeros(nnodes(basis), nnodes(basis), nnodes(basis), nelements)
+
+        # Compute 3D metric terms
+        calc_node_coordinates!(node_coordinates2, mesh2, basis)
+        for element in 1:ncells(mesh2)
+            calc_jacobian_matrix!(jacobian_matrix2, element, node_coordinates2, basis)
+            calc_contravariant_vectors!(contravariant_vectors2, element, jacobian_matrix2,
+                                        node_coordinates2, basis)
+            # We don't need to compute the inverse Jacobian, as we will compute the 2D inverse
+            # Jacobian from the 3D jacobian_matrix
+        end
+
+        # Transfer 3D metric terms to 2D
         for element in 1:ncells(mesh)
-            calc_jacobian_matrix_cubed_sphere!(jacobian_matrix, element, node_coordinates, basis)
-
-            #calc_contravariant_vectors_cubed_sphere!(contravariant_vectors, element, jacobian_matrix)
-
-            calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix)
-
-            #calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix)
-            calc_inverse_jacobian_cubed_sphere!(inverse_jacobian, element, jacobian_matrix, basis)
+            for j in eachnode(basis), i in eachnode(basis)
+                # We take the contravariant vectors from node k=1
+                contravariant_vectors[:, :, i, j, element] = contravariant_vectors2[:, :, i, j, 1, element]
+                # We compute the inverse Jacobian using a cross product
+                inverse_jacobian[i, j, element] = 1 / norm(cross(jacobian_matrix2[:,1,i,j,1,element], jacobian_matrix2[:, 2, i, j, 1, element]))
+                # We don't really need jacobian_matrix here.. So we do nothing.
+                jacobian_matrix[:, :, i, j, element] = jacobian_matrix2[:, :, i, j, 1, element] 
+            end
         end
     else
         for element in 1:ncells(mesh)
@@ -39,80 +72,77 @@ function init_elements!(elements, mesh::Union{P4estMesh{2}, T8codeMesh{2}},
     return nothing
 end
 
-"""
-    calc_jacobian_matrix_cubed_sphere!(jacobian_matrix, element,
-                                       node_coordinates::AbstractArray{<:Any, 4},
-                                       basis::LobattoLegendreBasis)
-Compute Jacobian matrix for cubed sphere. We compute the Jacobian components in ξ and η
-direction as usual, and then compute third component (dx⃗/dζ) analytically as (dx⃗/dr). See, e.g.
-
-*   Giraldo, F. X., Hesthaven, J. S., & Warburton, T. (2002). Nodal high-order discontinuous 
-    Galerkin methods for the spherical shallow water equations. Journal of Computational Physics, 181(2), 499-525.
-"""
-function calc_jacobian_matrix_cubed_sphere!(jacobian_matrix, element,
-                                            node_coordinates::AbstractArray{<:Any, 4},
-                                            basis::LobattoLegendreBasis)
-    # Compute 2D Jacobian matrix as usual
-    calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
-
-    # Compute third component (dx⃗/dζ) analytically as (dx⃗/dr). See, e.g.
-    for j in indices((jacobian_matrix, node_coordinates), (4, 3)),
-        i in indices((jacobian_matrix, node_coordinates), (3, 2))
-
-        x = node_coordinates[1, i, j, element]
-        y = node_coordinates[2, i, j, element]
-        z = node_coordinates[3, i, j, element]
-        theta = acos(z / sqrt(x^2 + y^2 + z^2))
-        phi = sign(y) * acos(x / sqrt(x^2 + y^2))
-
-        jacobian_matrix[1, 3, i, j, element] = sin(theta) * cos(phi)
-        jacobian_matrix[2, 3, i, j, element] = sin(theta) * sin(phi)
-        jacobian_matrix[3, 3, i, j, element] = cos(theta)
-        #= jacobian_matrix[1, 3, i, j, element] = theta
-        jacobian_matrix[2, 3, i, j, element] = phi
-        jacobian_matrix[3, 3, i, j, element] = sqrt(sum(node_coordinates[:, i, j, element].^2)) =#
-    end
-end
+#"""
+#    calc_jacobian_matrix_cubed_sphere!(jacobian_matrix, element,
+#                                       node_coordinates::AbstractArray{<:Any, 4},
+#                                       basis::LobattoLegendreBasis)
+#Compute Jacobian matrix for cubed sphere. We compute the Jacobian components in ξ and η
+#direction as usual, and then compute third component (dx⃗/dζ) analytically as (dx⃗/dr). See, e.g.
+#
+#*   Giraldo, F. X., Hesthaven, J. S., & Warburton, T. (2002). Nodal high-order discontinuous 
+#    Galerkin methods for the spherical shallow water equations. Journal of Computational Physics, 181(2), 499-525.
+#"""
+#function calc_jacobian_matrix_cubed_sphere!(jacobian_matrix, element,
+#                                            node_coordinates::AbstractArray{<:Any, 4},
+#                                            basis::LobattoLegendreBasis)
+#    # Compute 2D Jacobian matrix as usual
+#    calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
+#
+#    # Compute third component (dx⃗/dζ) analytically as (dx⃗/dr). See, e.g.
+#    for j in indices((jacobian_matrix, node_coordinates), (4, 3)),
+#        i in indices((jacobian_matrix, node_coordinates), (3, 2))
+#
+#        x = node_coordinates[1, i, j, element]
+#        y = node_coordinates[2, i, j, element]
+#        z = node_coordinates[3, i, j, element]
+#        theta = acos(z / sqrt(x^2 + y^2 + z^2))
+#        phi = sign(y) * acos(x / sqrt(x^2 + y^2))
+#
+#        jacobian_matrix[1, 3, i, j, element] = sin(theta) * cos(phi)
+#        jacobian_matrix[2, 3, i, j, element] = sin(theta) * sin(phi)
+#        jacobian_matrix[3, 3, i, j, element] = cos(theta)
+#    end
+#end
 
 # Calculate inverse Jacobian for the cubed sphere in 2D (determinant of Jacobian matrix of the mapping) in each node
-function calc_inverse_jacobian_cubed_sphere!(inverse_jacobian::AbstractArray{<:Any, 3}, element,
-                                             jacobian_matrix, basis)
-    @turbo for j in eachnode(basis), i in eachnode(basis)
-        # Calculate Determinant by using Sarrus formula (about 100 times faster than LinearAlgebra.det())
-        inverse_jacobian[i, j, element] = inv(jacobian_matrix[1, 1, i, j,
-                                                                 element] *
-                                                 jacobian_matrix[2, 2, i, j,
-                                                                 element] *
-                                                 jacobian_matrix[3, 3, i, j, element] +
-                                                 jacobian_matrix[1, 2, i, j,
-                                                                 element] *
-                                                 jacobian_matrix[2, 3, i, j,
-                                                                 element] *
-                                                 jacobian_matrix[3, 1, i, j, element] +
-                                                 jacobian_matrix[1, 3, i, j,
-                                                                 element] *
-                                                 jacobian_matrix[2, 1, i, j,
-                                                                 element] *
-                                                 jacobian_matrix[3, 2, i, j, element] -
-                                                 jacobian_matrix[3, 1, i, j,
-                                                                 element] *
-                                                 jacobian_matrix[2, 2, i, j,
-                                                                 element] *
-                                                 jacobian_matrix[1, 3, i, j, element] -
-                                                 jacobian_matrix[3, 2, i, j,
-                                                                 element] *
-                                                 jacobian_matrix[2, 3, i, j,
-                                                                 element] *
-                                                 jacobian_matrix[1, 1, i, j, element] -
-                                                 jacobian_matrix[3, 3, i, j,
-                                                                 element] *
-                                                 jacobian_matrix[2, 1, i, j,
-                                                                 element] *
-                                                 jacobian_matrix[1, 2, i, j, element])
-    end
-
-    return inverse_jacobian
-end
+#function calc_inverse_jacobian_cubed_sphere!(inverse_jacobian::AbstractArray{<:Any, 3}, element,
+#                                             jacobian_matrix, basis)
+#    @turbo for j in eachnode(basis), i in eachnode(basis)
+#        # Calculate Determinant by using Sarrus formula (about 100 times faster than LinearAlgebra.det())
+#        inverse_jacobian[i, j, element] = inv(jacobian_matrix[1, 1, i, j,
+#                                                                 element] *
+#                                                 jacobian_matrix[2, 2, i, j,
+#                                                                 element] *
+#                                                 jacobian_matrix[3, 3, i, j, element] +
+#                                                 jacobian_matrix[1, 2, i, j,
+#                                                                 element] *
+#                                                 jacobian_matrix[2, 3, i, j,
+#                                                                 element] *
+#                                                 jacobian_matrix[3, 1, i, j, element] +
+#                                                 jacobian_matrix[1, 3, i, j,
+#                                                                 element] *
+#                                                 jacobian_matrix[2, 1, i, j,
+#                                                                 element] *
+#                                                 jacobian_matrix[3, 2, i, j, element] -
+#                                                 jacobian_matrix[3, 1, i, j,
+#                                                                 element] *
+#                                                 jacobian_matrix[2, 2, i, j,
+#                                                                 element] *
+#                                                 jacobian_matrix[1, 3, i, j, element] -
+#                                                 jacobian_matrix[3, 2, i, j,
+#                                                                 element] *
+#                                                 jacobian_matrix[2, 3, i, j,
+#                                                                 element] *
+#                                                 jacobian_matrix[1, 1, i, j, element] -
+#                                                 jacobian_matrix[3, 3, i, j,
+#                                                                 element] *
+#                                                 jacobian_matrix[2, 1, i, j,
+#                                                                 element] *
+#                                                 jacobian_matrix[1, 2, i, j, element])
+#    end
+#
+#    return inverse_jacobian
+#end
 
 # Interpolate tree_node_coordinates to each quadrant at the nodes of the specified basis
 function calc_node_coordinates!(node_coordinates,
