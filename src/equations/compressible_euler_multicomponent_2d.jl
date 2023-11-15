@@ -534,7 +534,7 @@ end
          0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
 
     # momentum and energy flux
-    f_other = SVector{3, real(equations)}(f1, f2, f3)
+    f_other = SVector(f1, f2, f3)
 
     return vcat(f_other, f_rho)
 end
