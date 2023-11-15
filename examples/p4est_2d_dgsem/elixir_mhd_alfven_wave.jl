@@ -12,7 +12,9 @@ initial_condition = initial_condition_convergence_test
 
 # Get the DG approximation space
 volume_flux = (flux_central, flux_nonconservative_powell)
-solver = DGSEM(polydeg = 4, surface_flux = (flux_hll, flux_nonconservative_powell),
+solver = DGSEM(polydeg = 4,
+               surface_flux = (flux_hlle,
+                               flux_nonconservative_powell),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0.0, 0.0)
