@@ -72,7 +72,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_2d_dgsem")
                             linf=[6.21489667023134e-5],
                             # With the default `maxiters = 1` in coverage tests,
                             # there would be no time steps after the restart.
-                            coverage_override = (maxiters = 100_000,))
+                            coverage_override=(maxiters = 100_000,))
     end
 
     @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
