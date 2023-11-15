@@ -483,13 +483,15 @@ function copy_to_coupled_boundary!(u_ode, semi, i, n_boundaries, boundary_condit
                                    boundary_conditions...)
     copy_to_coupled_boundary!(boundary_condition, u_ode, semi)
     if i < n_boundaries
-        copy_to_coupled_boundary!(u_ode, semi, i + 1, n_boundaries, boundary_conditions...)
+        copy_to_coupled_boundary!(u_ode, semi, i + 1, n_boundaries,
+                                  boundary_conditions...)
     end
 end
 
 function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}, u_ode,
                                    semi)
-    copy_to_coupled_boundary!(u_ode, semi, 1, length(boundary_conditions), boundary_conditions...)
+    copy_to_coupled_boundary!(u_ode, semi, 1, length(boundary_conditions),
+                              boundary_conditions...)
 end
 
 function mesh_equations_solver_cache(other_semi_index, i, semi_, semi_tuple...)
