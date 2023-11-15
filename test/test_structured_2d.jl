@@ -254,6 +254,14 @@ end
                             3.504466610437795e-5,
                             7.00893322087559e-5,
                         ])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
 end
 
 @trixi_testset "elixir_euler_source_terms.jl" begin
