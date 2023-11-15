@@ -290,14 +290,25 @@ function extract_initial_resolution(elixir, kwargs)
             return initial_refinement_level
         end
     catch e
+        # If `initial_refinement_level` is not found, we will get an `ArgumentError`
         if isa(e, ArgumentError)
-            # get cells_per_dimension from the elixir
-            cells_per_dimension = eval(find_assignment(expr, :cells_per_dimension))
+            try
+                # get cells_per_dimension from the elixir
+                cells_per_dimension = eval(find_assignment(expr, :cells_per_dimension))
 
-            if haskey(kwargs, :cells_per_dimension)
-                return kwargs[:cells_per_dimension]
-            else
-                return cells_per_dimension
+                if haskey(kwargs, :cells_per_dimension)
+                    return kwargs[:cells_per_dimension]
+                else
+                    return cells_per_dimension
+                end
+            catch e2
+                # If `cells_per_dimension` is not found either
+                if isa(e2, ArgumentError)
+                    throw(ArgumentError("`convergence_test` requires the elixir to define " *
+                                        "`initial_refinement_level` or `cells_per_dimension`"))
+                else
+                    throw(e2)
+                end
             end
         else
             throw(e)
