@@ -528,6 +528,7 @@ function copy_to_quad_iter_volume(info, user_data)
     return nothing
 end
 
+# specialized callback which includes the `cache_parabolic` argument
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                                      equations, dg::DG, cache, cache_parabolic,
                                      semi,
