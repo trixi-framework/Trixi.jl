@@ -666,6 +666,47 @@ end
     return λ_min, λ_max
 end
 
+@inline function rotate_to_x(u, normal_vector, equations::CompressibleEulerMulticomponentEquations2D)
+    # cos and sin of the angle between the x-axis and the normalized normal_vector are
+    # the normalized vector's x and y coordinates respectively (see unit circle).
+    c = normal_vector[1]
+    s = normal_vector[2]
+
+    # Apply the 2D rotation matrix with normal and tangent directions of the form
+    # [ n_1  n_2  0    0;
+    #   t_1  t_2  0    0;
+    #   0    0    1    0
+    #   0    0    0    1]
+    # where t_1 = -n_2 and t_2 = n_1
+
+    return SVector(c * u[1] + s * u[2],
+                   -s * u[1] + c * u[2],
+                   u[3],
+                   u[4:end]...)
+end
+
+# Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
+# has been normalized prior to this back-rotation of the state vector
+@inline function rotate_from_x(u, normal_vector,
+                               equations::CompressibleEulerMulticomponentEquations2D)
+    # cos and sin of the angle between the x-axis and the normalized normal_vector are
+    # the normalized vector's x and y coordinates respectively (see unit circle).
+    c = normal_vector[1]
+    s = normal_vector[2]
+
+    # Apply the 2D back-rotation matrix with normal and tangent directions of the form
+    # [ n_1  t_1  0   0;
+    #   n_2  t_2  0   0;
+    #   0    0    1   0;
+    #   0    0    0   1 ]
+    # where t_1 = -n_2 and t_2 = n_1
+
+    return SVector(c * u[1] - s * u[2],
+                   s * u[1] + c * u[2],
+                   u[3],
+                   u[4:end]...)
+end
+
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::CompressibleEulerMulticomponentEquations2D)
     rho_v1, rho_v2, rho_e = u
