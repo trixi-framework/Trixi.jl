@@ -176,11 +176,11 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
     if !(local_minmax || positivity || spec_entropy || math_entropy)
         print(io, "No limiter selected => pure DG method")
     else
-        print(io, "limiter=(")
-        local_minmax && print(io, "min/max limiting, ")
-        positivity && print(io, "positivity, ")
-        spec_entropy && print(io, "specific entropy, ")
-        math_entropy && print(io, "mathematical entropy, ")
+        print(io, "Limiter=(")
+        local_minmax && print(io, "Local min/max, ")
+        positivity && print(io, "Positivity, ")
+        spec_entropy && print(io, "Specific entropy, ")
+        math_entropy && print(io, "Mathematical entropy, ")
         print(io, "), ")
     end
     limiter.smoothness_indicator &&
@@ -199,32 +199,36 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
         show(io, limiter)
     else
         if !(local_minmax || positivity || spec_entropy || math_entropy)
-            setup = ["limiter" => "No limiter selected => pure DG method"]
+            setup = ["Limiter" => "No limiter selected => pure DG method"]
         else
-            setup = ["limiter" => ""]
+            setup = ["Limiter" => ""]
             if local_minmax
                 setup = [
                     setup...,
-                    "" => "local maximum/minimum bounds for conservative variables $(limiter.local_minmax_variables_cons)",
+                    "" => "Local maximum/minimum limiting for conservative variables $(limiter.local_minmax_variables_cons)",
                 ]
             end
             if positivity
-                string = "positivity for conservative variables $(limiter.positivity_variables_cons) and $(limiter.positivity_variables_nonlinear)"
+                string = "Positivity limiting for conservative variables $(limiter.positivity_variables_cons) and $(limiter.positivity_variables_nonlinear)"
                 setup = [setup..., "" => string]
                 setup = [
                     setup...,
-                    "" => "   positivity correction factor = $(limiter.positivity_correction_factor)",
+                    "" => "- with positivity correction factor = $(limiter.positivity_correction_factor)",
                 ]
             end
             if spec_entropy
-                setup = [setup..., "" => "local minimum bound for specific entropy"]
+                setup = [setup..., "" => "Local minimum limiting for specific entropy"]
             end
             if math_entropy
-                setup = [setup..., "" => "local maximum bound for mathematical entropy"]
+                setup = [
+                    setup...,
+                    "" => "Local maximum limiting for mathematical entropy",
+                ]
             end
             setup = [
                 setup...,
-                "Local bounds" => (limiter.bar_states ? "Bar States" : "FV solution"),
+                "Local bounds with" => (limiter.bar_states ? "Bar States" :
+                                        "FV solution"),
             ]
             if limiter.smoothness_indicator
                 setup = [
@@ -232,8 +236,8 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
                     "Smoothness indicator" => "$(limiter.IndicatorHG) using threshold $(limiter.threshold_smoothness_indicator)",
                 ]
             end
-            summary_box(io, "SubcellLimiterIDP", setup)
         end
+        summary_box(io, "SubcellLimiterIDP", setup)
     end
 end
 
