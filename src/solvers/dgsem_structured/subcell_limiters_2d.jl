@@ -9,7 +9,6 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
                                          mesh::StructuredMesh{2})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
-    (; contravariant_vectors) = cache.elements
 
     # Calc bounds at interfaces and periodic boundaries
     for element in eachelement(dg, cache)
@@ -57,11 +56,9 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
         for cell_y in axes(mesh, 2)
             element = linear_indices[begin, cell_y]
             for j in eachnode(dg)
-                Ja1 = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
-                u_inner = get_node_vars(u, equations, dg, 1, j, element)
-                u_outer = get_boundary_outer_state(u_inner, cache, t,
-                                                   boundary_conditions[1], Ja1, 1,
-                                                   equations, dg, 1, j, element)
+                u_outer = get_boundary_outer_state(boundary_conditions[1],
+                                                   cache, t, equations, dg,
+                                                   1, j, element)
                 var_outer = u_outer[variable]
 
                 var_min[1, j, element] = min(var_min[1, j, element], var_outer)
@@ -72,13 +69,9 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
         for cell_y in axes(mesh, 2)
             element = linear_indices[end, cell_y]
             for j in eachnode(dg)
-                Ja1 = get_contravariant_vector(1, contravariant_vectors, nnodes(dg), j,
-                                               element)
-                u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
-                u_outer = get_boundary_outer_state(u_inner, cache, t,
-                                                   boundary_conditions[2], Ja1, 2,
-                                                   equations, dg, nnodes(dg), j,
-                                                   element)
+                u_outer = get_boundary_outer_state(boundary_conditions[2],
+                                                   cache, t, equations, dg,
+                                                   nnodes(dg), j, element)
                 var_outer = u_outer[variable]
 
                 var_min[nnodes(dg), j, element] = min(var_min[nnodes(dg), j, element],
@@ -93,11 +86,9 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
         for cell_x in axes(mesh, 1)
             element = linear_indices[cell_x, begin]
             for i in eachnode(dg)
-                Ja2 = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
-                u_inner = get_node_vars(u, equations, dg, i, 1, element)
-                u_outer = get_boundary_outer_state(u_inner, cache, t,
-                                                   boundary_conditions[3], Ja2, 3,
-                                                   equations, dg, i, 1, element)
+                u_outer = get_boundary_outer_state(boundary_conditions[3],
+                                                   cache, t, equations, dg,
+                                                   i, 1, element)
                 var_outer = u_outer[variable]
 
                 var_min[i, 1, element] = min(var_min[i, 1, element], var_outer)
@@ -108,13 +99,9 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
         for cell_x in axes(mesh, 1)
             element = linear_indices[cell_x, end]
             for i in eachnode(dg)
-                Ja2 = get_contravariant_vector(2, contravariant_vectors, i, nnodes(dg),
-                                               element)
-                u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
-                u_outer = get_boundary_outer_state(u_inner, cache, t,
-                                                   boundary_conditions[4], Ja2, 4,
-                                                   equations, dg, i, nnodes(dg),
-                                                   element)
+                u_outer = get_boundary_outer_state(boundary_conditions[4],
+                                                   cache, t, equations, dg,
+                                                   i, nnodes(dg), element)
                 var_outer = u_outer[variable]
 
                 var_min[i, nnodes(dg), element] = min(var_min[i, nnodes(dg), element],

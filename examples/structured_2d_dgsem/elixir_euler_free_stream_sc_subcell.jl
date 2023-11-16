@@ -9,6 +9,12 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_constant
 
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = (x_neg = boundary_condition_periodic,
+                       x_pos = boundary_condition_periodic,
+                       y_neg = boundary_condition,
+                       y_pos = boundary_condition)
+
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 polydeg = 3
@@ -45,9 +51,10 @@ function mapping(xi_, eta_)
 end
 
 cells_per_dimension = (16, 16)
-mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = (true, false))
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
