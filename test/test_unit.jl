@@ -1183,6 +1183,29 @@ end
 end
 
 @testset "FluxRotated vs. direct implementation" begin
+    @timed_testset "CompressibleEulerMulticomponentEquations2D" begin
+        equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
+                                                               gas_constants = (0.4, 0.4))
+        normal_directions = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+        u_values = [SVector(0.1, -0.5, 1.0, 1.0, 2.0),
+            SVector(-0.1, -0.3, 1.2, 1.3, 1.4)]
+
+        f_std = flux
+        f_rot = FluxRotated(f_std)
+	println(typeof(f_std))
+	println(typeof(f_rot))
+        for u in u_values,
+            normal_direction in normal_directions
+
+            @test f_rot(u, normal_direction, equations) ≈
+                  f_std(u, normal_direction, equations)
+        end
+        
+    end
+
     @timed_testset "CompressibleEulerEquations2D" begin
         equations = CompressibleEulerEquations2D(1.4)
         normal_directions = [SVector(1.0, 0.0),
