@@ -188,14 +188,15 @@ function calc_gradient!(gradients, u_transformed, t,
         end
     end
 
-    # Prolong solution to interfaces. This reuses P4est `prolong2interfaces`. 
+    # Prolong solution to interfaces. 
+    # This reuses `prolong2interfaces` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache_parabolic, u_transformed, mesh,
                             equations_parabolic, dg.surface_integral, dg)
     end
 
-    # Calculate interface fluxes for the gradient. This reuses P4est `calc_interface_flux!` along with a
-    # specialization for AbstractEquationsParabolic.
+    # Calculate interface fluxes for the gradient. 
+    # This reuses `calc_interface_flux!` for the purely hyperbolic case.
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache_parabolic.elements.surface_flux_values,
                              mesh, False(), # False() = no nonconservative terms
@@ -214,16 +215,14 @@ function calc_gradient!(gradients, u_transformed, t,
                                       mesh, equations_parabolic, dg.surface_integral, dg)
     end
 
-    # Prolong solution to mortars. These should reuse the hyperbolic version of `prolong2mortars`
-    # !!! NOTE: we reuse the hyperbolic cache here, since it contains both `mortars` and `u_threaded`. 
-    # !!! should we have a separate mortars/u_threaded in cache_parabolic?
+    # Prolong solution to mortars. This resues the hyperbolic version of `prolong2mortars`
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
                          dg.mortar, dg.surface_integral, dg)
     end
 
-    # Calculate mortar fluxes. These should reuse the hyperbolic version of `calc_mortar_flux`,
-    # along with a specialization on `calc_mortar_flux!` and `mortar_fluxes_to_elements!` for 
+    # Calculate mortar fluxes. This reuses the hyperbolic version of `calc_mortar_flux`,
+    # along with a specialization on `calc_mortar_flux!(fstar, ...)` and `mortar_fluxes_to_elements!` for 
     # AbstractEquationsParabolic. 
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache_parabolic.elements.surface_flux_values,
