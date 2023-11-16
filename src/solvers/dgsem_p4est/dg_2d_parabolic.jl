@@ -736,9 +736,11 @@ function calc_mortar_flux_divergence!(surface_flux_values,
     return nothing
 end
 
-# NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
-# Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for 
-# hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
+# We structure `calc_interface_flux!` similarly to "calc_mortar_flux!" for 
+# hyperbolic  equations with no nonconservative terms. 
+# The reasoning is that parabolic fluxes are treated like conservative 
+# terms (e.g., we compute a viscous conservative "flux") and thus no
+# non-conservative terms are present. 
 @inline function calc_mortar_flux!(fstar,
                                    mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                    nonconservative_terms::False,
