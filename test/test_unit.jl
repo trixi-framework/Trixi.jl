@@ -958,6 +958,7 @@ end
 
     for u in u_values
         @test flux_hlle(u, u, 1, equations) ≈ flux(u, 1, equations)
+        @test flux_hllc(u, u, 1, equations) ≈ flux(u, 1, equations)
     end
 
     equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
