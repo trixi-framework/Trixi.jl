@@ -611,6 +611,17 @@ end
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
 end
 
+@timed_testset "Consistency check for single point flux: CEMCE" begin
+    equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
+                                                           gas_constants = (0.4, 0.4))
+    u = SVector(0.1, -0.5, 1.0, 1.0, 2.0)
+
+    orientations = [1, 2]
+    for orientation in orientations
+        @test flux(u, orientation, equations) ≈ flux_ranocha(u, u, orientation, equations)
+    end
+end
+
 @timed_testset "Consistency check for HLL flux (naive): CEE" begin
     flux_hll = FluxHLL(min_max_speed_naive)
 
