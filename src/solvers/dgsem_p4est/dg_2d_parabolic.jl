@@ -95,8 +95,7 @@ function rhs_parabolic!(du, u, t, mesh::P4estMesh{2},
     end
 
     # Prolong solution to mortars (specialized for AbstractEquationsParabolic)
-    # !!! NOTE: we reuse the hyperbolic cache here since it contains "mortars" and "u_threaded"
-    # !!! Is this OK?
+    # !!! NOTE: we reuse the hyperbolic cache here since it contains "mortars" and "u_threaded". See https://github.com/trixi-framework/Trixi.jl/issues/1674 for a discussion
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars_divergence!(cache, flux_viscous, mesh, equations_parabolic,
                                     dg.mortar, dg.surface_integral, dg)
