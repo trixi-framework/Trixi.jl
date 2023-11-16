@@ -614,6 +614,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         end
 
         reinitialize_boundaries!(semi.boundary_conditions, cache)
+        # if the semidiscretization also stores parabolic boundary conditions, 
+        # reinitialize them after each refinement step as well.
         if hasproperty(semi, :boundary_conditions_parabolic)
             reinitialize_boundaries!(semi.boundary_conditions_parabolic, cache)
         end
