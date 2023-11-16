@@ -1105,6 +1105,26 @@ end
     end
 end
 
+@testset "Consistency check for variable_derivative routine" begin
+    # Set up conservative variables, equations
+    u = [
+        0.5011914484393387,
+        0.8829127712445113,
+        0.43024132987932817,
+        0.7560616633050348,
+    ]
+
+    equations = CompressibleEulerEquations2D(1.4)
+
+    # Define wrapper function for pressure in order to call default implementation
+    function pressure_test(u, equations)
+        return pressure(u, equations)
+    end
+
+    @test Trixi.variable_derivative(pressure_test, u, equations) ≈
+          Trixi.variable_derivative(pressure, u, equations)
+end
+
 @testset "Equivalent Fluxes" begin
     # Set up equations and dummy conservative variables state
     # Burgers' Equation
