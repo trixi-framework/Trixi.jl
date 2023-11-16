@@ -328,9 +328,12 @@ function calc_gradient!(gradients, u_transformed, t,
     return nothing
 end
 
-# This version is called during `calc_gradients!` and must be specialized because the flux
-# in the gradient is {u} which doesn't depend on normals. Thus, you don't need to scale by 
-# 2 and flip the sign when storing the mortar fluxes back into surface_flux_values
+# This version is called during `calc_gradients!` and must be specialized because the 
+# flux for the gradient is {u}, which doesn't depend on the outward normal. Thus, 
+# you don't need to scale by 2 (e.g., the scaling factor in the normals (and in the 
+# contravariant vectors) along large/small elements across a non-conforming 
+# interface in 2D) and flip the sign when storing the mortar fluxes back 
+# into `surface_flux_values`.
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
                                             mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                             equations::AbstractEquationsParabolic,
