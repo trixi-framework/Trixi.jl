@@ -344,8 +344,8 @@ end
     end
 
     @timed_testset "elixir_euler_ad.jl" begin
-        @test_nowarn trixi_include(joinpath(examples_dir(), "special_elixirs",
-                                            "elixir_euler_ad.jl"))
+        @test_nowarn_mod trixi_include(joinpath(examples_dir(), "special_elixirs",
+                                                "elixir_euler_ad.jl"))
     end
 end
 end
