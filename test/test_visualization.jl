@@ -286,8 +286,7 @@ end
 
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "structured_3d_dgsem",
-                                            "elixir_advection_basic.jl"),
-                                   tspan = (0, 0.1))
+                                            "elixir_advection_basic.jl"))
 
     @testset "1D plot from 3D solution and general mesh" begin
         @testset "Create 1D plot as slice" begin
