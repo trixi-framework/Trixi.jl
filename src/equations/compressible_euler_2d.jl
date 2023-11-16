@@ -1405,7 +1405,8 @@ end
 end
 
 # Transformation from conservative variables u to d(p)/d(u)
-@inline function pressure(u, equations::CompressibleEulerEquations2D, derivative::True)
+@inline function variable_derivative(::typeof(pressure),
+                                     u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
 
     v1 = rho_v1 / rho

@@ -466,7 +466,7 @@ end
 # Goal and d(Goal)d(u) function
 @inline goal_function(variable, bound, u, equations) = bound - variable(u, equations)
 @inline function dgoal_function(variable, u, dt, antidiffusive_flux, equations)
-    -dot(variable(u, equations, True()), dt * antidiffusive_flux)
+    -dot(variable_derivative(variable, u, equations), dt * antidiffusive_flux)
 end
 
 # Final checks
