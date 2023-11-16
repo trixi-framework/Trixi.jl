@@ -359,14 +359,6 @@ end
                             mortar_l2.reverse_upper, fstar[2],
                             mortar_l2.reverse_lower, fstar[1])
 
-    # The flux is calculated in the outward direction of the small elements,
-    # so the sign must be switched to get the flux in outward direction
-    # of the large element.
-    # The contravariant vectors of the large element (and therefore the normal
-    # vectors of the large element as well) are twice as large as the
-    # contravariant vectors of the small elements. Therefore, the flux needs
-    # to be scaled by a factor of 2 to obtain the flux of the large element.
-    # u_buffer .*= 0.5
 
     # Copy interpolated flux values from buffer to large element face in the
     # correct orientation.
