@@ -783,6 +783,54 @@ end
     end
 end
 
+@timed_testset "Consistency check for HLL flux with Davis wave speed estimates: Polytropic CEE" begin
+    flux_hll = FluxHLL(min_max_speed_davis)
+
+    gamma = 1.4
+    kappa = 0.5     # Scaling factor for the pressure.
+    equations = PolytropicEulerEquations2D(gamma, kappa)
+    u = SVector(1.1, -0.5, 2.34)
+
+    orientations = [1, 2]
+    for orientation in orientations
+        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
+    normal_directions = [SVector(1.0, 0.0),
+        SVector(0.0, 1.0),
+        SVector(0.5, -0.5),
+        SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+        @test flux_hll(u, u, normal_direction, equations) ≈
+              flux(u, normal_direction, equations)
+    end
+end
+
+@timed_testset "Consistency check for Winters flux: Polytropic CEE" begin
+    for gamma in [1.4, 1.0, 5 / 3]
+        kappa = 0.5     # Scaling factor for the pressure.
+        equations = PolytropicEulerEquations2D(gamma, kappa)
+        u = SVector(1.1, -0.5, 2.34)
+
+        orientations = [1, 2]
+        for orientation in orientations
+            @test flux_winters_etal(u, u, orientation, equations) ≈
+                  flux(u, orientation, equations)
+        end
+
+        normal_directions = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+
+        for normal_direction in normal_directions
+            @test flux_winters_etal(u, u, normal_direction, equations) ≈
+                  flux(u, normal_direction, equations)
+        end
+    end
+end
+
 @timed_testset "Consistency check for HLL flux with Davis wave speed estimates: LEE" begin
     flux_hll = FluxHLL(min_max_speed_davis)
 
@@ -959,6 +1007,7 @@ end
 
     for u in u_values
         @test flux_hlle(u, u, 1, equations) ≈ flux(u, 1, equations)
+        @test flux_hllc(u, u, 1, equations) ≈ flux(u, 1, equations)
     end
 
     equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
