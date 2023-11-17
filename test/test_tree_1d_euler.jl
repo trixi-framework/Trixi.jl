@@ -219,7 +219,7 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_ec.jl with flux_hll" begin
+@trixi_testset "elixir_euler_ec.jl with FluxHLL(min_max_speed_naive)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[0.07852272782240548, 0.10209790867523805, 0.293873048809011],
                         linf=[
@@ -228,7 +228,7 @@ end
                             0.7258000837553769,
                         ],
                         maxiters=10,
-                        surface_flux=flux_hll,
+                        surface_flux=FluxHLL(min_max_speed_naive),
                         volume_flux=flux_ranocha)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

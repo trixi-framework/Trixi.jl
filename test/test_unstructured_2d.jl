@@ -417,7 +417,7 @@ end
                             0.17625472321992852,
                             2.6407324614341476e-5,
                         ],
-                        surface_flux=(FluxHydrostaticReconstruction(flux_hll,
+                        surface_flux=(FluxHydrostaticReconstruction(FluxHLL(min_max_speed_naive),
                                                                     hydrostatic_reconstruction_audusse_etal),
                                       flux_nonconservative_audusse_etal),
                         tspan=(0.0, 0.025))
@@ -460,7 +460,7 @@ end
     end
 end
 
-@trixi_testset "elixir_shallowwater_source_terms.jl with flux_hll" begin
+@trixi_testset "elixir_shallowwater_source_terms.jl with FluxHLL(min_max_speed_naive)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         l2=[
                             0.0011197139793938727,
@@ -474,7 +474,8 @@ end
                             0.17625472321993918,
                             2.6407324614341476e-5,
                         ],
-                        surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal),
+                        surface_flux=(FluxHLL(min_max_speed_naive),
+                                      flux_nonconservative_fjordholm_etal),
                         tspan=(0.0, 0.025))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
