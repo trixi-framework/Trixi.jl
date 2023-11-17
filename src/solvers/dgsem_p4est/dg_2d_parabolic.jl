@@ -359,7 +359,6 @@ end
                             mortar_l2.reverse_upper, fstar[2],
                             mortar_l2.reverse_lower, fstar[1])
 
-
     # Copy interpolated flux values from buffer to large element face in the
     # correct orientation.
     # Note that the index of the small sides will always run forward but
