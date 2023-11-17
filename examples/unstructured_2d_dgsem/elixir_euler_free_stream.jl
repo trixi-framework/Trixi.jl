@@ -22,7 +22,7 @@ boundary_conditions = Dict(:Body => boundary_condition_free_stream,
 ###############################################################################
 # Get the DG approximation space
 
-solver = DGSEM(polydeg = 6, surface_flux = flux_hll)
+solver = DGSEM(polydeg = 6, surface_flux = FluxHLL(min_max_speed_naive))
 
 ###############################################################################
 # Get the curved quad mesh from a file (downloads the file if not available locally)

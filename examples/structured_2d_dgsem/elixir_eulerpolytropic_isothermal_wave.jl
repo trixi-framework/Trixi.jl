@@ -24,7 +24,7 @@ end
 initial_condition = initial_condition_wave
 
 volume_flux = flux_winters_etal
-solver = DGSEM(polydeg = 2, surface_flux = flux_hll,
+solver = DGSEM(polydeg = 2, surface_flux = FluxHLL(min_max_speed_naive),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-2.0, -1.0)

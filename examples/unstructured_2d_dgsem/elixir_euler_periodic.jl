@@ -15,7 +15,7 @@ boundary_conditions = boundary_condition_periodic
 ###############################################################################
 # Get the DG approximation space
 
-solver = DGSEM(polydeg = 6, surface_flux = FluxRotated(flux_hll))
+solver = DGSEM(polydeg = 6, surface_flux = FluxRotated(FluxHLL(min_max_speed_naive)))
 
 ###############################################################################
 # Get the curved quad mesh from a file (downloads the file if not available locally)
