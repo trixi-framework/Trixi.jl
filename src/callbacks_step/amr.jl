@@ -548,7 +548,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
     # Copy controller value of each quad to the quad's user data storage
     iter_volume_c = cfunction(copy_to_quad_iter_volume, Val(ndims(mesh)))
 
-    # The pointer to lambda will be interpreted as Ptr{Int} above
+    # The pointer to lambda will be interpreted as Ptr{Int} below
     @assert lambda isa Vector{Int}
     iterate_p4est(mesh.p4est, lambda; iter_volume_c = iter_volume_c)
 
