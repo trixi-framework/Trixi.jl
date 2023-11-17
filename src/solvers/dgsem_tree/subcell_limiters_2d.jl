@@ -329,6 +329,9 @@ end
     return nothing
 end
 
+###############################################################################
+# Local minimum/maximum limiting
+
 @inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements)
     mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
@@ -436,6 +439,9 @@ end
     return nothing
 end
 
+###############################################################################
+# Local minimum limiting of specific entropy
+
 @inline function idp_spec_entropy!(alpha, limiter, u, t, dt, semi, elements)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
@@ -457,6 +463,9 @@ end
 
     return nothing
 end
+
+###############################################################################
+# Local maximum limiting of mathematical entropy
 
 @inline function idp_math_entropy!(alpha, limiter, u, t, dt, semi, elements)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
@@ -480,6 +489,9 @@ end
     return nothing
 end
 
+###############################################################################
+# Global positivity limiting
+
 @inline function idp_positivity!(alpha, limiter, u, dt, semi, elements)
     mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
@@ -495,6 +507,9 @@ end
 
     return nothing
 end
+
+###############################################################################
+# Global positivity limiting of conservative variables
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi, mesh::TreeMesh{2},
                                  elements, variable)
@@ -586,6 +601,9 @@ end
     return nothing
 end
 
+###############################################################################
+# Global positivity limiting of non-linear variables
+
 @inline function idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, elements,
                                            variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
@@ -614,6 +632,9 @@ end
 
     return nothing
 end
+
+###############################################################################
+# Newton-bisection method
 
 @inline function newton_loops_alpha!(alpha, bound, u, i, j, element, variable,
                                      initial_check, final_check, dt, mesh, equations,
