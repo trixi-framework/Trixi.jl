@@ -679,10 +679,11 @@ end
     #   0    0    0    1]
     # where t_1 = -n_2 and t_2 = n_1
 
+    densities = @view u[4:end]
     return SVector(c * u[1] + s * u[2],
                    -s * u[1] + c * u[2],
                    u[3],
-                   u[4:end]...)
+                   densities...)
 end
 
 # Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
@@ -701,10 +702,11 @@ end
     #   0    0    0   1 ]
     # where t_1 = -n_2 and t_2 = n_1
 
+    densities = @view u[4:end]
     return SVector(c * u[1] - s * u[2],
                    s * u[1] + c * u[2],
                    u[3],
-                   u[4:end]...)
+                   densities...)
 end
 
 # Convert conservative variables to primitive
