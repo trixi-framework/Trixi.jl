@@ -5,13 +5,17 @@
 @muladd begin
 #! format: noindent
 
+# Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
+# (**without non-conservative terms**).
+#
+# See also `flux_differencing_kernel!`.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
                                 mesh::StructuredMesh{2}, nonconservative_terms::False,
                                 equations,
                                 volume_flux, dg::DGSEM, element, cache)
-    @unpack contravariant_vectors = cache.elements
-    @unpack weights, derivative_split = dg.basis
-    @unpack flux_temp_threaded = cache
+    (; contravariant_vectors) = cache.elements
+    (; weights, derivative_split) = dg.basis
+    (; flux_temp_threaded) = cache
 
     flux_temp = flux_temp_threaded[Threads.threadid()]
 
@@ -112,10 +116,10 @@ end
     if limiter isa SubcellLimiterIDP && !limiter.bar_states
         return nothing
     end
-    @unpack lambda1, lambda2, bar_states1, bar_states2 = limiter.cache.container_bar_states
-    @unpack contravariant_vectors = cache.elements
+    (; lambda1, lambda2, bar_states1, bar_states2) = limiter.cache.container_bar_states
+    (; contravariant_vectors) = cache.elements
 
-    @unpack normal_direction_xi, normal_direction_eta = limiter.cache.container_bar_states
+    (; normal_direction_xi, normal_direction_eta) = limiter.cache.container_bar_states
 
     # Calc lambdas and bar states inside elements
     @threaded for element in eachelement(dg, cache)

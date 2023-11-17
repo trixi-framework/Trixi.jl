@@ -123,8 +123,7 @@ function calc_volume_integral!(du, u,
     end
 end
 
-@inline function subcell_limiting_kernel!(du, u,
-                                          element,
+@inline function subcell_limiting_kernel!(du, u, element,
                                           mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                           nonconservative_terms, equations,
                                           volume_integral, limiter::SubcellLimiterIDP,

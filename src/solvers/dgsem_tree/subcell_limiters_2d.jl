@@ -330,17 +330,18 @@ end
 end
 
 @inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements)
+    mesh, _, _, _ = mesh_equations_solver_cache(semi)
+
     for variable in limiter.local_minmax_variables_cons
-        idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable)
+        idp_local_minmax!(alpha, limiter, u, t, dt, semi, mesh, elements, variable)
     end
 
     return nothing
 end
 
-@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements, variable)
-    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
-    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
-    (; inverse_weights) = dg.basis
+@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, mesh::TreeMesh{2},
+                                   elements, variable)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     variable_string = string(variable)
@@ -351,56 +352,86 @@ end
     end
 
     @threaded for element in elements
-        if mesh isa TreeMesh
-            inverse_jacobian = cache.elements.inverse_jacobian[element]
-        end
+        inverse_jacobian = cache.elements.inverse_jacobian[element]
         for j in eachnode(dg), i in eachnode(dg)
-            if mesh isa StructuredMesh
-                inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
-            end
-            var = u[variable, i, j, element]
-            # Real Zalesak type limiter
-            #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
-            #   * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
-            #   Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
-            #         for each interface, not each node
-
-            Qp = max(0, (var_max[i, j, element] - var) / dt)
-            Qm = min(0, (var_min[i, j, element] - var) / dt)
-
-            # Calculate Pp and Pm
-            # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
-            val_flux1_local = inverse_weights[i] *
-                              antidiffusive_flux1_R[variable, i, j, element]
-            val_flux1_local_ip1 = -inverse_weights[i] *
-                                  antidiffusive_flux1_L[variable, i + 1, j, element]
-            val_flux2_local = inverse_weights[j] *
-                              antidiffusive_flux2_R[variable, i, j, element]
-            val_flux2_local_jp1 = -inverse_weights[j] *
-                                  antidiffusive_flux2_L[variable, i, j + 1, element]
-
-            Pp = max(0, val_flux1_local) + max(0, val_flux1_local_ip1) +
-                 max(0, val_flux2_local) + max(0, val_flux2_local_jp1)
-            Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
-                 min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
-
-            Qp = max(0, (var_max[i, j, element] - var) / dt)
-            Qm = min(0, (var_min[i, j, element] - var) / dt)
-
-            Pp = inverse_jacobian * Pp
-            Pm = inverse_jacobian * Pm
-
-            # Compute blending coefficient avoiding division by zero
-            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-            Qp = abs(Qp) /
-                 (abs(Pp) + eps(typeof(Qp)) * 100 * abs(var_max[i, j, element]))
-            Qm = abs(Qm) /
-                 (abs(Pm) + eps(typeof(Qm)) * 100 * abs(var_max[i, j, element]))
-
-            # Calculate alpha at nodes
-            alpha[i, j, element] = max(alpha[i, j, element], 1 - min(1, Qp, Qm))
+            idp_local_minmax_inner!(alpha, inverse_jacobian, u, dt, dg, cache, variable,
+                                    var_min, var_max, i, j, element)
         end
     end
+
+    return nothing
+end
+
+@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi,
+                                   mesh::StructuredMesh{2}, elements, variable)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    variable_string = string(variable)
+    var_min = variable_bounds[Symbol(variable_string, "_min")]
+    var_max = variable_bounds[Symbol(variable_string, "_max")]
+    if !limiter.bar_states
+        calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
+    end
+
+    @threaded for element in elements
+        for j in eachnode(dg), i in eachnode(dg)
+            inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
+            idp_local_minmax_inner!(alpha, inverse_jacobian, u, dt, dg, cache, variable,
+                                    var_min, var_max, i, j, element)
+        end
+    end
+
+    return nothing
+end
+
+# Function barrier to dispatch outer function by mesh type
+@inline function idp_local_minmax_inner!(alpha, inverse_jacobian, u, dt, dg, cache,
+                                         variable, var_min, var_max, i, j, element)
+    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
+
+    var = u[variable, i, j, element]
+    # Real Zalesak type limiter
+    #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
+    #   * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+    #   Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+    #         for each interface, not each node
+
+    Qp = max(0, (var_max[i, j, element] - var) / dt)
+    Qm = min(0, (var_min[i, j, element] - var) / dt)
+
+    # Calculate Pp and Pm
+    # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+    val_flux1_local = inverse_weights[i] *
+                      antidiffusive_flux1_R[variable, i, j, element]
+    val_flux1_local_ip1 = -inverse_weights[i] *
+                          antidiffusive_flux1_L[variable, i + 1, j, element]
+    val_flux2_local = inverse_weights[j] *
+                      antidiffusive_flux2_R[variable, i, j, element]
+    val_flux2_local_jp1 = -inverse_weights[j] *
+                          antidiffusive_flux2_L[variable, i, j + 1, element]
+
+    Pp = max(0, val_flux1_local) + max(0, val_flux1_local_ip1) +
+         max(0, val_flux2_local) + max(0, val_flux2_local_jp1)
+    Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
+         min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
+
+    Qp = max(0, (var_max[i, j, element] - var) / dt)
+    Qm = min(0, (var_min[i, j, element] - var) / dt)
+
+    Pp = inverse_jacobian * Pp
+    Pm = inverse_jacobian * Pm
+
+    # Compute blending coefficient avoiding division by zero
+    # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+    Qp = abs(Qp) /
+         (abs(Pp) + eps(typeof(Qp)) * 100 * abs(var_max[i, j, element]))
+    Qm = abs(Qm) /
+         (abs(Pm) + eps(typeof(Qm)) * 100 * abs(var_max[i, j, element]))
+
+    # Calculate alpha at nodes
+    alpha[i, j, element] = max(alpha[i, j, element], 1 - min(1, Qp, Qm))
 
     return nothing
 end
@@ -450,9 +481,11 @@ end
 end
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi, elements)
+    mesh, _, _, _ = mesh_equations_solver_cache(semi)
+
     # Conservative variables
     for variable in limiter.positivity_variables_cons
-        idp_positivity!(alpha, limiter, u, dt, semi, elements, variable)
+        idp_positivity!(alpha, limiter, u, dt, semi, mesh, elements, variable)
     end
 
     # Nonlinear variables
@@ -463,69 +496,92 @@ end
     return nothing
 end
 
-@inline function idp_positivity!(alpha, limiter, u, dt, semi, elements, variable)
-    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
-    (; inverse_weights) = dg.basis
-    (; positivity_correction_factor) = limiter
+@inline function idp_positivity!(alpha, limiter, u, dt, semi, mesh::TreeMesh{2},
+                                 elements, variable)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in elements
-        if mesh isa TreeMesh
-            inverse_jacobian = cache.elements.inverse_jacobian[element]
-        end
+        inverse_jacobian = cache.elements.inverse_jacobian[element]
         for j in eachnode(dg), i in eachnode(dg)
-            if mesh isa StructuredMesh
-                inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
-            end
-
-            var = u[variable, i, j, element]
-            if var < 0
-                error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
-            end
-
-            # Compute bound
-            if limiter.local_minmax &&
-               variable in limiter.local_minmax_variables_cons &&
-               var_min[i, j, element] >= positivity_correction_factor * var
-                # Local limiting is more restrictive that positivity limiting
-                # => Skip positivity limiting for this node
-                continue
-            end
-            var_min[i, j, element] = positivity_correction_factor * var
-
-            # Real one-sided Zalesak-type limiter
-            # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
-            # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
-            # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
-            #       for each interface, not each node
-            Qm = min(0, (var_min[i, j, element] - var) / dt)
-
-            # Calculate Pm
-            # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
-            val_flux1_local = inverse_weights[i] *
-                              antidiffusive_flux1_R[variable, i, j, element]
-            val_flux1_local_ip1 = -inverse_weights[i] *
-                                  antidiffusive_flux1_L[variable, i + 1, j, element]
-            val_flux2_local = inverse_weights[j] *
-                              antidiffusive_flux2_R[variable, i, j, element]
-            val_flux2_local_jp1 = -inverse_weights[j] *
-                                  antidiffusive_flux2_L[variable, i, j + 1, element]
-
-            Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
-                 min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
-            Pm = inverse_jacobian * Pm
-
-            # Compute blending coefficient avoiding division by zero
-            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-            Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100)
-
-            # Calculate alpha
-            alpha[i, j, element] = max(alpha[i, j, element], 1 - Qm)
+            idp_positivity_inner!(alpha, inverse_jacobian, limiter, u, dt, dg, cache,
+                                  variable, var_min, i, j, element)
         end
     end
+
+    return nothing
+end
+
+@inline function idp_positivity!(alpha, limiter, u, dt, semi, mesh::StructuredMesh{2},
+                                 elements, variable)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
+
+    @threaded for element in elements
+        for j in eachnode(dg), i in eachnode(dg)
+            inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
+            idp_positivity_inner!(alpha, inverse_jacobian, limiter, u, dt, dg, cache,
+                                  variable, var_min, i, j, element)
+        end
+    end
+
+    return nothing
+end
+
+# Function barrier to dispatch outer function by mesh type
+@inline function idp_positivity_inner!(alpha, inverse_jacobian, limiter, u, dt, dg,
+                                       cache, variable, var_min, i, j, element)
+    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
+    (; positivity_correction_factor) = limiter
+
+    var = u[variable, i, j, element]
+    if var < 0
+        error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
+    end
+
+    # Compute bound
+    if limiter.local_minmax &&
+       variable in limiter.local_minmax_variables_cons &&
+       var_min[i, j, element] >= positivity_correction_factor * var
+        # Local limiting is more restrictive that positivity limiting
+        # => Skip positivity limiting for this node
+        return nothing
+    end
+    var_min[i, j, element] = positivity_correction_factor * var
+
+    # Real one-sided Zalesak-type limiter
+    # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
+    # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+    # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+    #       for each interface, not each node
+    Qm = min(0, (var_min[i, j, element] - var) / dt)
+
+    # Calculate Pm
+    # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+    val_flux1_local = inverse_weights[i] *
+                      antidiffusive_flux1_R[variable, i, j, element]
+    val_flux1_local_ip1 = -inverse_weights[i] *
+                          antidiffusive_flux1_L[variable, i + 1, j, element]
+    val_flux2_local = inverse_weights[j] *
+                      antidiffusive_flux2_R[variable, i, j, element]
+    val_flux2_local_jp1 = -inverse_weights[j] *
+                          antidiffusive_flux2_L[variable, i, j + 1, element]
+
+    Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
+         min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
+    Pm = inverse_jacobian * Pm
+
+    # Compute blending coefficient avoiding division by zero
+    # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+    Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100)
+
+    # Calculate alpha
+    alpha[i, j, element] = max(alpha[i, j, element], 1 - Qm)
 
     return nothing
 end
@@ -564,6 +620,7 @@ end
                                      dg, cache, limiter)
     @unpack inverse_weights = dg.basis
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
+    # TODO: Pass inverse_jacobian for the correct mesh type
     if mesh isa TreeMesh
         inverse_jacobian = cache.elements.inverse_jacobian[element]
     else # mesh isa StructuredMesh
