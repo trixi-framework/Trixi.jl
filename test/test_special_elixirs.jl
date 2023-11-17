@@ -100,8 +100,7 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
                                           tspan = (0.0, 0.1))
         @test_nowarn_mod convergence_test(@__MODULE__,
                                           joinpath(EXAMPLES_DIR, "structured_2d_dgsem",
-                                                   "elixir_advection_basic.jl"), 2,
-                                          tspan = (0.0, 0.01))
+                                                   "elixir_advection_basic.jl"), 2)
         @test_nowarn_mod convergence_test(@__MODULE__,
                                           joinpath(EXAMPLES_DIR, "structured_2d_dgsem",
                                                    "elixir_advection_coupled.jl"), 2,
