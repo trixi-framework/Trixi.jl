@@ -13,48 +13,22 @@ function init_elements!(elements, mesh::Union{P4estMesh{2}, T8codeMesh{2}},
 
     calc_node_coordinates!(node_coordinates, mesh, basis)
 
-    if size(node_coordinates,1) == 3 
-        # This is a 2D cubed sphere. 
-        # We compute the metric terms by creating a 3D cubed sphere mesh with one layer and computing 
-        # the metric terms there... We then transfer those metric terms to our spherical shell.
-        # TODO: Is there a more efficient way to do this?!?
-        mesh2 = P4estMeshCubedSphere(Int(sqrt(size(mesh.tree_node_coordinates,4)/6)), # trees_per_face_dimension read from the 2D mesh
-                                     1, # One layer
-                                     sqrt(sum(node_coordinates[:,1,1,1].^2)), # Sphere radius as read from node 1
-                                     2.0, # thickness of spherical shell (2.0 seems to provide the right scaling for the jacobian_matrix. TODO: Check if this is correct.)
-                                     polydeg = size(basis.nodes, 1) - 1, # Same as current basis
-                                     initial_refinement_level = 0) #TODO: check if this needs to be changed
-        
-        # Allocate storage for 3D metric terms
-        # TODO: Do this without causing too many allocations!
-
-        nelements = ncells(mesh2)
-        ndims_spa = size(mesh2.tree_node_coordinates,1)
-        
-        node_coordinates2 = zeros(ndims_spa, nnodes(basis), nnodes(basis), nnodes(basis), nelements)
-        jacobian_matrix2 = zeros(ndims_spa, ndims_spa, nnodes(basis), nnodes(basis), nnodes(basis), nelements)
-        contravariant_vectors2 = zeros(ndims_spa, ndims_spa, nnodes(basis), nnodes(basis), nnodes(basis), nelements)
-        #inverse_jacobian2 = zeros(nnodes(basis), nnodes(basis), nnodes(basis), nelements)
-
-        # Compute 3D metric terms
-        calc_node_coordinates!(node_coordinates2, mesh2, basis)
-        for element in 1:ncells(mesh2)
-            calc_jacobian_matrix!(jacobian_matrix2, element, node_coordinates2, basis)
-            calc_contravariant_vectors!(contravariant_vectors2, element, jacobian_matrix2,
-                                        node_coordinates2, basis)
-            # We don't need to compute the inverse Jacobian, as we will compute the 2D inverse
-            # Jacobian from the 3D jacobian_matrix
-        end
-
-        # Transfer 3D metric terms to 2D
+    if size(node_coordinates, 1) == 3
+        # The mesh is a spherical shell
         for element in 1:ncells(mesh)
+            # Compute Jacobian matrix as usual
+            calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
+            # Compute contravariant vectors with Giraldo's formula
+            calc_contravariant_vectors_cubed_sphere!(contravariant_vectors, element,
+                                                     jacobian_matrix, node_coordinates,
+                                                     basis)
+            # Compute the inverse Jacobian as the norm of the cross product of the covariant vectors
             for j in eachnode(basis), i in eachnode(basis)
-                # We take the contravariant vectors from node k=1
-                contravariant_vectors[:, :, i, j, element] = contravariant_vectors2[:, :, i, j, 1, element]
-                # We compute the inverse Jacobian using a cross product
-                inverse_jacobian[i, j, element] = 1 / norm(cross(jacobian_matrix2[:,1,i,j,1,element], jacobian_matrix2[:, 2, i, j, 1, element]))
-                # We don't really need jacobian_matrix here.. So we do nothing.
-                jacobian_matrix[:, :, i, j, element] = jacobian_matrix2[:, :, i, j, 1, element] 
+                inverse_jacobian[i, j, element] = 1 /
+                                                  norm(cross(jacobian_matrix[:, 1, i, j,
+                                                                             element],
+                                                             jacobian_matrix[:, 2, i, j,
+                                                                             element]))
             end
         end
     else
@@ -66,8 +40,6 @@ function init_elements!(elements, mesh::Union{P4estMesh{2}, T8codeMesh{2}},
             calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix)
         end
     end
-
-    
 
     return nothing
 end
@@ -163,7 +135,8 @@ function calc_node_coordinates!(node_coordinates,
     # places and the additional information passed to the compiler makes them faster
     # than native `Array`s.
     tmp1 = StrideArray(undef, real(mesh),
-                       StaticInt(size(mesh.tree_node_coordinates,1)), static_length(nodes), static_length(mesh.nodes))
+                       StaticInt(size(mesh.tree_node_coordinates, 1)),
+                       static_length(nodes), static_length(mesh.nodes))
     matrix1 = StrideArray(undef, real(mesh),
                           static_length(nodes), static_length(mesh.nodes))
     matrix2 = similar(matrix1)
@@ -202,6 +175,62 @@ function calc_node_coordinates!(node_coordinates,
     end
 
     return node_coordinates
+end
+
+# Calculate contravariant vectors, multiplied by the Jacobian determinant J of the transformation mapping,
+# using eq (12) of :
+#   Giraldo, F. X. (2001). A spectral element shallow water model on spherical geodesic grids. 
+#   International Journal for Numerical Methods in Fluids, 35(8), 869-901. https://doi.org/10.1002/1097-0363(20010430)35:8<869::AID-FLD116>3.0.CO;2-S
+function calc_contravariant_vectors_cubed_sphere!(contravariant_vectors::AbstractArray{
+                                                                                       <:Any,
+                                                                                       5
+                                                                                       },
+                                                  element,
+                                                  jacobian_matrix, node_coordinates,
+                                                  basis::LobattoLegendreBasis)
+    @unpack derivative_matrix = basis
+
+    # The general form is
+    # Jaⁱₙ = 0.5 * ( ∇ × (Xₘ ∇ Xₗ - Xₗ ∇ Xₘ) )ᵢ  where (n, m, l) cyclic and ∇ = (∂/∂ξ, ∂/∂η, ∂/∂ζ)ᵀ
+    for j in eachnode(basis), i in eachnode(basis)
+        for n in 1:3
+            # (n, m, l) cyclic
+            m = (n % 3) + 1
+            l = ((n + 1) % 3) + 1
+
+            contravariant_vectors[n, 1, i, j, element] = (jacobian_matrix[m, 2, i, j,
+                                                                          element] *
+                                                          node_coordinates[l, i, j,
+                                                                           element]
+                                                          -
+                                                          jacobian_matrix[l, 2, i, j,
+                                                                          element] *
+                                                          node_coordinates[m, i, j,
+                                                                           element])
+
+            contravariant_vectors[n, 2, i, j, element] = (jacobian_matrix[l, 1, i, j,
+                                                                          element] *
+                                                          node_coordinates[m, i, j,
+                                                                           element]
+                                                          -
+                                                          jacobian_matrix[m, 1, i, j,
+                                                                          element] *
+                                                          node_coordinates[l, i, j,
+                                                                           element])
+
+            contravariant_vectors[n, 3, i, j, element] = (jacobian_matrix[m, 1, i, j,
+                                                                          element] *
+                                                          jacobian_matrix[l, 2, i, j,
+                                                                          element]
+                                                          -
+                                                          jacobian_matrix[m, 2, i, j,
+                                                                          element] *
+                                                          jacobian_matrix[l, 1, i, j,
+                                                                          element])
+        end
+    end
+
+    return contravariant_vectors
 end
 
 # Initialize node_indices of interface container

@@ -123,6 +123,14 @@ end
                                         contravariant_flux2, equations, dg, i, jj,
                                         element)
             end
+
+            #Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, element)
+            Ja31 = contravariant_vectors[1, 3, i, j, element]
+            Ja32 = contravariant_vectors[2, 3, i, j, element]
+            Ja33 = contravariant_vectors[3, 3, i, j, element]
+            for v in eachvariable(equations)
+                du[v, i, j, element] += (Ja31 * flux1[v] + Ja32 * flux2[v] + Ja33 * flux3[v])
+            end
         end
     end
     

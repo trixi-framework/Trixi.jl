@@ -94,14 +94,15 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, Re
                                    (ndims_spa, ntuple(_ -> nnodes(basis), NDIMS)...,
                                     nelements))
 
-    _jacobian_matrix = Vector{RealT}(undef, ndims_spa^2 * nnodes(basis)^NDIMS * nelements)
+    _jacobian_matrix = Vector{RealT}(undef, ndims_spa * NDIMS * nnodes(basis)^NDIMS * nelements)
     jacobian_matrix = unsafe_wrap(Array, pointer(_jacobian_matrix),
-                                  (ndims_spa, ndims_spa, ntuple(_ -> nnodes(basis), NDIMS)...,
+                                  (ndims_spa, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
                                    nelements))
 
-    _contravariant_vectors = similar(_jacobian_matrix)
+    _contravariant_vectors = Vector{RealT}(undef, ndims_spa^2 * nnodes(basis)^NDIMS * nelements)
     contravariant_vectors = unsafe_wrap(Array, pointer(_contravariant_vectors),
-                                        size(jacobian_matrix))
+                                  (ndims_spa, ndims_spa, ntuple(_ -> nnodes(basis), NDIMS)...,
+                                   nelements))
 
     _inverse_jacobian = Vector{RealT}(undef, nnodes(basis)^NDIMS * nelements)
     inverse_jacobian = unsafe_wrap(Array, pointer(_inverse_jacobian),
