@@ -174,7 +174,22 @@ function rhs!(du, u, t,
     @trixi_timeit timer() "source terms" begin
         calc_sources!(du, u, t, source_terms, equations, dg, cache)
     end
-
+    
+    # Quick fix (TODO: Change)
+    # For the spherical shell model, transform the Euler equations into linear advection
+    if size(cache.elements.node_coordinates,1) == 3 && typeof(equations) == CompressibleEulerEquations3D{Float64}
+        @threaded for element in eachelement(dg, cache)
+            for j in eachnode(dg), i in eachnode(dg)
+                v1 = u[2, i, j, element] / u[1, i, j, element]
+                v2 = u[3, i, j, element] / u[1, i, j, element]
+                v3 = u[4, i, j, element] / u[1, i, j, element]
+                du[2, i, j, element] = du[1, i, j, element] * v1
+                du[3, i, j, element] = du[1, i, j, element] * v2
+                du[4, i, j, element] = du[1, i, j, element] * v3
+                du[5, i, j, element] = du[2, i, j, element] * v1 + du[3, i, j, element] * v2 + du[4, i, j, element] * v3
+            end
+        end
+    end
     return nothing
 end
 
