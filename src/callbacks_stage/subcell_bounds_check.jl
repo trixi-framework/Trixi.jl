@@ -77,15 +77,24 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
         return nothing
     end
 
-    (; positivity) = limiter
+    (; local_minmax, positivity) = limiter
     (; output_directory) = callback
     variables = varnames(cons2cons, semi.equations)
 
     mkpath(output_directory)
     open("$output_directory/deviations.txt", "a") do f
         print(f, "# iter, simu_time")
+        if local_minmax
+            for v in limiter.local_minmax_variables_cons
+                variable_string = string(variables[v])
+                print(f, ", " * variable_string * "_min, " * variable_string * "_max")
+            end
+        end
         if positivity
             for v in limiter.positivity_variables_cons
+                if v in limiter.local_minmax_variables_cons
+                    continue
+                end
                 print(f, ", " * string(variables[v]) * "_min")
             end
         end
@@ -108,15 +117,26 @@ end
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    limiter::SubcellLimiterIDP)
-    (; positivity) = limiter
+    (; local_minmax, positivity) = limiter
     (; idp_bounds_delta) = limiter.cache
     variables = varnames(cons2cons, semi.equations)
 
     println("─"^100)
     println("Maximum deviation from bounds:")
     println("─"^100)
+    if local_minmax
+        for v in limiter.local_minmax_variables_cons
+            v_string = string(v)
+            println("$(variables[v]):")
+            println("-lower bound: ", idp_bounds_delta[Symbol(v_string, "_min")][2])
+            println("-upper bound: ", idp_bounds_delta[Symbol(v_string, "_max")][2])
+        end
+    end
     if positivity
         for v in limiter.positivity_variables_cons
+            if v in limiter.local_minmax_variables_cons
+                continue
+            end
             println(string(variables[v]) * ":\n- positivity: ",
                     idp_bounds_delta[Symbol(string(v), "_min")][2])
         end
