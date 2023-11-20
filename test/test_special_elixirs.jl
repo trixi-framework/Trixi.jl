@@ -92,8 +92,7 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
         # the convergence test logic
         @test_nowarn_mod convergence_test(@__MODULE__,
                                           joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
-                                                   "elixir_advection_basic.jl"), 2,
-                                          tspan = (0.0, 0.01))
+                                                   "elixir_advection_basic.jl"), 2)
         @test_nowarn_mod convergence_test(@__MODULE__,
                                           joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                                    "elixir_advection_extended.jl"), 2,
@@ -101,12 +100,10 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
                                           tspan = (0.0, 0.1))
         @test_nowarn_mod convergence_test(@__MODULE__,
                                           joinpath(EXAMPLES_DIR, "structured_2d_dgsem",
-                                                   "elixir_advection_basic.jl"), 2,
-                                          tspan = (0.0, 0.01))
+                                                   "elixir_advection_basic.jl"), 2)
         @test_nowarn_mod convergence_test(@__MODULE__,
                                           joinpath(EXAMPLES_DIR, "structured_2d_dgsem",
-                                                   "elixir_advection_coupled.jl"), 2,
-                                          tspan = (0.0, 0.01))
+                                                   "elixir_advection_coupled.jl"), 2)
         @test_nowarn_mod convergence_test(@__MODULE__,
                                           joinpath(EXAMPLES_DIR, "structured_2d_dgsem",
                                                    "elixir_advection_extended.jl"), 2,
@@ -345,8 +342,8 @@ end
     end
 
     @timed_testset "elixir_euler_ad.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "special_elixirs",
-                                     "elixir_euler_ad.jl"))
+        @test_nowarn_mod trixi_include(joinpath(examples_dir(), "special_elixirs",
+                                                "elixir_euler_ad.jl"))
     end
 end
 end
