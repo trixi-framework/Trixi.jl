@@ -555,13 +555,22 @@ end
     mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
     # Conservative variables
-    @trixi_timeit timer() "conservative variables" for variable in limiter.positivity_variables_cons
-        idp_positivity!(alpha, limiter, u, dt, semi, mesh, elements, variable)
+    for variable in limiter.positivity_variables_cons
+        @trixi_timeit timer() "conservative variables" idp_positivity!(alpha, limiter,
+                                                                       u, dt, semi,
+                                                                       mesh, elements,
+                                                                       variable)
     end
 
     # Nonlinear variables
-    @trixi_timeit timer() "non-linear variables" for variable in limiter.positivity_variables_nonlinear
-        idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, mesh, elements, variable)
+    for variable in limiter.positivity_variables_nonlinear
+        @trixi_timeit timer() "nonlinear variables" idp_positivity_nonlinear!(alpha,
+                                                                              limiter,
+                                                                              u, dt,
+                                                                              semi,
+                                                                              mesh,
+                                                                              elements,
+                                                                              variable)
     end
 
     return nothing
@@ -661,7 +670,7 @@ end
 end
 
 ###############################################################################
-# Global positivity limiting of non-linear variables
+# Global positivity limiting of nonlinear variables
 
 @inline function idp_positivity_nonlinear!(alpha, limiter, u, dt, semi,
                                            mesh::TreeMesh{2}, elements, variable)

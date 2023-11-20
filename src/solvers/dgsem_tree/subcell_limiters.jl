@@ -37,16 +37,16 @@ end
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
 - Local maximum/minimum Zalesak-type limiting for conservative variables (`local_minmax_variables_cons`)
-- Positivity limiting for conservative (`positivity_variables_cons`) and non-linear variables (`positivity_variables_nonlinear`)
+- Positivity limiting for conservative (`positivity_variables_cons`) and nonlinear variables (`positivity_variables_nonlinear`)
 - One-sided limiting for specific and mathematical entropy (`spec_entropy`, `math_entropy`)
 
 Conservative variables to be limited are passed as a vector of strings, e.g. `local_minmax_variables_cons = ["rho"]`
-and `positivity_variables_cons = ["rho"]`. For non-linear variables the specific functions are
+and `positivity_variables_cons = ["rho"]`. For nonlinear variables the specific functions are
 passed in a vector, e.g. `positivity_variables_nonlinear = [pressure]`.
 
 The bounds can be calculated using the `bar_states` or the low-order FV solution. The positivity
 limiter uses `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
-The Newton-bisection method for the limiting of non-linear variables uses maximal `max_iterations_newton`
+The Newton-bisection method for the limiting of nonlinear variables uses maximal `max_iterations_newton`
 iterations, tolerances `newton_tolerances` and the gamma constant `gamma_constant_newton`
 (gamma_constant_newton>=2*d, where d=#dimensions).
 
