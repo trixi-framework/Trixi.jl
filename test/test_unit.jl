@@ -296,9 +296,11 @@ end
     end
     Trixi.move_connectivity!(c::MyContainer, first, last, destination) = c
     Trixi.delete_connectivity!(c::MyContainer, first, last) = c
-    Trixi.reset_data_structures!(c::MyContainer) = (c.data = Vector{Int}(undef,
-                                                                         c.capacity + 1);
-                                                    c)
+    function Trixi.reset_data_structures!(c::MyContainer)
+        (c.data = Vector{Int}(undef,
+                              c.capacity + 1);
+         c)
+    end
     function Base.:(==)(c1::MyContainer, c2::MyContainer)
         return (c1.capacity == c2.capacity &&
                 c1.length == c2.length &&
@@ -618,7 +620,8 @@ end
 
     orientations = [1, 2]
     for orientation in orientations
-        @test flux(u, orientation, equations) ≈ flux_ranocha(u, u, orientation, equations)
+        @test flux(u, orientation, equations) ≈
+              flux_ranocha(u, u, orientation, equations)
     end
 end
 
@@ -1234,7 +1237,8 @@ end
 @testset "FluxRotated vs. direct implementation" begin
     @timed_testset "CompressibleEulerMulticomponentEquations2D" begin
         equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
-                                                               gas_constants = (0.4, 0.4))
+                                                               gas_constants = (0.4,
+                                                                                0.4))
         normal_directions = [SVector(1.0, 0.0),
             SVector(0.0, 1.0),
             SVector(0.5, -0.5),
@@ -1244,15 +1248,14 @@ end
 
         f_std = flux
         f_rot = FluxRotated(f_std)
-	println(typeof(f_std))
-	println(typeof(f_rot))
+        println(typeof(f_std))
+        println(typeof(f_rot))
         for u in u_values,
             normal_direction in normal_directions
 
             @test f_rot(u, normal_direction, equations) ≈
                   f_std(u, normal_direction, equations)
         end
-        
     end
 
     @timed_testset "CompressibleEulerEquations2D" begin
