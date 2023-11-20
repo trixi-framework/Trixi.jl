@@ -29,7 +29,7 @@ save_solution.condition.save_initial_solution = false
 
 integrator = init(ode, alg,
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep = false, callback = callbacks; ode_default_options()...)
+                  callback = callbacks, maxiters = 100_000; ode_default_options()...)
 
 # Load saved context for adaptive time integrator
 if integrator.opts.adaptive
