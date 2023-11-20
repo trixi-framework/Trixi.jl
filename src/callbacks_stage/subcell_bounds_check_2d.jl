@@ -32,16 +32,6 @@
                                            variable_bounds[key_max][i, j, element])
                 end
             end
-            for i in 2:Threads.nthreads()
-                deviation_min_threaded[1][1] = max(deviation_min_threaded[1][1],
-                                                   deviation_min_threaded[i][1])
-                deviation_max_threaded[1][1] = max(deviation_max_threaded[1][1],
-                                                   deviation_max_threaded[i][1])
-            end
-            deviation_min_threaded[1][2] = max(deviation_min_threaded[1][2],
-                                               deviation_min_threaded[1][1])
-            deviation_max_threaded[1][2] = max(deviation_max_threaded[1][2],
-                                               deviation_max_threaded[1][1])
         end
     end
     if positivity
@@ -59,14 +49,20 @@
                                        variable_bounds[key][i, j, element] - var)
                 end
             end
-            for i in 2:Threads.nthreads()
-                deviation_threaded[1][1] = max(deviation_threaded[1][1],
-                                               deviation_threaded[i][1])
-            end
-            deviation_threaded[1][2] = max(deviation_threaded[1][2],
-                                           deviation_threaded[1][1])
         end
     end
+
+    for (key, _) in idp_bounds_delta_threaded
+        # Calculate maximum deviations of all threads
+        for i in 2:Threads.nthreads()
+            idp_bounds_delta_threaded[key][1][1] = max(idp_bounds_delta_threaded[key][1][1],
+                                                       idp_bounds_delta_threaded[key][i][1])
+        end
+        # Update global maximum deviations
+        idp_bounds_delta_threaded[key][1][2] = max(idp_bounds_delta_threaded[key][1][2],
+                                                   idp_bounds_delta_threaded[key][1][1])
+    end
+
     if save_errors
         # Print to output file
         open("$output_directory/deviations.txt", "a") do f
