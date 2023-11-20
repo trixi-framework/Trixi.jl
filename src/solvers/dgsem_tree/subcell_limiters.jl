@@ -25,16 +25,16 @@ end
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
 - Local maximum/minimum Zalesak-type limiting for conservative variables (`local_minmax_variables_cons`)
-- Positivity limiting for conservative variables (`positivity_variables_cons`) and non-linear variables
+- Positivity limiting for conservative variables (`positivity_variables_cons`) and nonlinear variables
 (`positivity_variables_nonlinear`)
 
 Conservative variables to be limited are passed as a vector of strings, e.g. `local_minmax_variables_cons = ["rho"]`
-and `positivity_variables_cons = ["rho"]`. For non-linear variables the specific functions are
+and `positivity_variables_cons = ["rho"]`. For nonlinear variables the specific functions are
 passed in a vector, e.g. `positivity_variables_nonlinear = [pressure]`.
 
 The bounds are calculated using the low-order FV solution. The positivity limiter uses
 `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
-The limiting of non-linear variables uses a Newton-bisection method with a maximum of
+The limiting of nonlinear variables uses a Newton-bisection method with a maximum of
 `max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`
 and a gamma constant of `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
 where `d = #dimensions`).
@@ -124,9 +124,9 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
     if !(local_minmax || positivity)
         print(io, "No limiter selected => pure DG method")
     else
-        print(io, "limiter=(")
-        local_minmax && print(io, "min/max limiting, ")
-        positivity && print(io, "positivity")
+        print(io, "Limiter=(")
+        local_minmax && print(io, "Local min/max, ")
+        positivity && print(io, "Positivity, ")
         print(io, "), ")
     end
     print(io, "Local bounds with FV solution")
@@ -147,15 +147,15 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
             if local_minmax
                 setup = [
                     setup...,
-                    "" => "local maximum/minimum bounds for conservative variables $(limiter.local_minmax_variables_cons)",
+                    "" => "Local maximum/minimum limiting for conservative variables $(limiter.local_minmax_variables_cons)",
                 ]
             end
             if positivity
-                string = "positivity for conservative variables $(limiter.positivity_variables_cons) and $(limiter.positivity_variables_nonlinear)"
+                string = "Positivity limiting for conservative variables $(limiter.positivity_variables_cons) and $(limiter.positivity_variables_nonlinear)"
                 setup = [setup..., "" => string]
                 setup = [
                     setup...,
-                    "" => "   positivity correction factor = $(limiter.positivity_correction_factor)",
+                    "" => "- with positivity correction factor = $(limiter.positivity_correction_factor)",
                 ]
             end
             setup = [

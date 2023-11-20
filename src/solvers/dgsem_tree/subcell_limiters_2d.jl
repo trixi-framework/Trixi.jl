@@ -5,6 +5,10 @@
 @muladd begin
 #! format: noindent
 
+###############################################################################
+# IDP Limiting
+###############################################################################
+
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, bound_keys)
@@ -55,6 +59,9 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
 
     return nothing
 end
+
+###############################################################################
+# Calculation of local bounds using low-order FV solution
 
 @inline function calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
@@ -154,6 +161,9 @@ end
     return nothing
 end
 
+###############################################################################
+# Local minimum/maximum limiting
+
 @inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi)
     for variable in limiter.local_minmax_variables_cons
         idp_local_minmax!(alpha, limiter, u, t, dt, semi, variable)
@@ -223,19 +233,31 @@ end
     return nothing
 end
 
+###############################################################################
+# Global positivity limiting
+
 @inline function idp_positivity!(alpha, limiter, u, dt, semi)
     # Conservative variables
     for variable in limiter.positivity_variables_cons
-        idp_positivity!(alpha, limiter, u, dt, semi, variable)
+        @trixi_timeit timer() "conservative variables" idp_positivity!(alpha, limiter,
+                                                                       u, dt, semi,
+                                                                       variable)
     end
 
     # Nonlinear variables
     for variable in limiter.positivity_variables_nonlinear
-        idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, variable)
+        @trixi_timeit timer() "nonlinear variables" idp_positivity_nonlinear!(alpha,
+                                                                              limiter,
+                                                                              u, dt,
+                                                                              semi,
+                                                                              variable)
     end
 
     return nothing
 end
+
+###############################################################################
+# Global positivity limiting of conservative variables
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
@@ -299,13 +321,14 @@ end
 end
 
 @inline function idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, variable)
-    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; positivity_correction_factor) = limiter
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in eachelement(dg, semi.cache)
+        inverse_jacobian = cache.elements.inverse_jacobian[element]
         for j in eachnode(dg), i in eachnode(dg)
             # Compute bound
             u_local = get_node_vars(u, equations, dg, i, j, element)
@@ -318,8 +341,8 @@ end
             # Perform Newton's bisection method to find new alpha
             newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j, element,
                                 variable, initial_check_nonnegative,
-                                final_check_nonnegative,
-                                dt, mesh, equations, dg, cache, limiter)
+                                final_check_nonnegative, inverse_jacobian,
+                                dt, equations, dg, cache, limiter)
         end
     end
 
@@ -327,11 +350,10 @@ end
 end
 
 @inline function newton_loops_alpha!(alpha, bound, u, i, j, element, variable,
-                                     initial_check, final_check, dt, mesh, equations,
-                                     dg, cache, limiter)
+                                     initial_check, final_check, inverse_jacobian, dt,
+                                     equations, dg, cache, limiter)
     (; inverse_weights) = dg.basis
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
-    inverse_jacobian = cache.elements.inverse_jacobian[element]
 
     (; gamma_constant_newton) = limiter
 
