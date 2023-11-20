@@ -13,6 +13,10 @@ for human readability.
 - The default wave speed estimate using within `flux_hll` is now `min_max_speed_davis` 
   instead of `min_max_speed_naive`.
 
+#### Deprecated
+
+#### Removed
+
 ## Changes when updating to v0.6 from v0.5.x
 
 #### Added
