@@ -38,6 +38,9 @@ function init_t8code()
             @warn "T8code.jl: sc_finalize will be called during shutdown of Trixi.jl."
             MPI.add_finalize_hook!(T8code.Libt8.sc_finalize)
         end
+    else
+        @warn "Preferences for T8code.jl are not set correctly. Until fixed, using `T8codeMesh` will result in a crash. " *
+              "See also https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#parallel_system_MPI"
     end
 
     return nothing

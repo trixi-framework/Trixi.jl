@@ -22,6 +22,9 @@ function init_p4est()
 
         # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
         p4est_init(C_NULL, SC_LP_ERROR)
+    else
+        @warn "Preferences for P4est.jl are not set correctly. Until fixed, using `P4estMesh` will result in a crash. " *
+              "See also https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#parallel_system_MPI"
     end
 
     return nothing
