@@ -666,7 +666,8 @@ end
     return λ_min, λ_max
 end
 
-@inline function rotate_to_x(u, normal_vector, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function rotate_to_x(u, normal_vector,
+                             equations::CompressibleEulerMulticomponentEquations2D)
     # cos and sin of the angle between the x-axis and the normalized normal_vector are
     # the normalized vector's x and y coordinates respectively (see unit circle).
     c = normal_vector[1]
