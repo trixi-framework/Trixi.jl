@@ -6,7 +6,7 @@ dg = DGMulti(element_type = Line(),
                                                                accuracy_order = 4,
                                                                xmin = 0.0, xmax = 1.0,
                                                                N = 50),
-             surface_flux = FluxHLL(min_max_speed_naive),
+             surface_flux = flux_hll,
              volume_integral = VolumeIntegralWeakForm())
 
 equations = CompressibleEulerEquations1D(1.4)

@@ -61,14 +61,14 @@ end
 
 # numerical parameters
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg = 3, surface_flux = FluxHLL(min_max_speed_naive),
+solver = DGSEM(polydeg = 3, surface_flux = flux_hll,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 # The domain is [0, 0.25] x [0, 1]
 mapping(xi, eta) = SVector(0.25 * 0.5 * (1.0 + xi), 0.5 * (1.0 + eta))
 
 num_elements_per_dimension = 32
-cells_per_dimension = (num_elements_per_dimension, num_elements_per_dimension * 4)
+cells_per_dimension = (8, 8)
 mesh = StructuredMesh(cells_per_dimension, mapping)
 
 initial_condition = initial_condition_rayleigh_taylor_instability
@@ -92,7 +92,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.65)
+tspan = (0.0, 0.3)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

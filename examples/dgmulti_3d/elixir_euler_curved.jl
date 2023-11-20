@@ -1,8 +1,8 @@
 
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = SBP(),
-             surface_integral = SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
+dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = GaussSBP(),
+             surface_integral = SurfaceIntegralWeakForm(flux_hll),
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 equations = CompressibleEulerEquations3D(1.4)
@@ -46,3 +46,5 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 0.5 * estimate_dt(mesh, dg), save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary
+
+analysis_callback(sol)
