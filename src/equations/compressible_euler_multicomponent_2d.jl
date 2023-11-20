@@ -569,32 +569,6 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
-                                     equations::CompressibleEulerMulticomponentEquations2D)
-    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-
-    # Get the density and gas gamma
-    rho_ll = density(u_ll, equations)
-    rho_rr = density(u_rr, equations)
-    gamma_ll = totalgamma(u_ll, equations)
-    gamma_rr = totalgamma(u_rr, equations)
-
-    # Get the velocities based on direction
-    v_ll = rho_v1_ll / rho_ll * normal_direction[1] +
-           rho_v1_ll / rho_ll * normal_direction[2]
-    v_rr = rho_v1_rr / rho_rr * normal_direction[1] +
-           rho_v1_rr / rho_rr * normal_direction[2]
-
-    # Compute the sound speeds on the left and right
-    p_ll = (gamma_ll - 1) * (rho_e_ll - 1 / 2 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
-    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
-    p_rr = (gamma_rr - 1) * (rho_e_rr - 1 / 2 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
-    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
-
-    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
-end
-
 @inline function max_abs_speeds(u,
                                 equations::CompressibleEulerMulticomponentEquations2D)
     rho_v1, rho_v2, rho_e = u
@@ -608,62 +582,6 @@ end
     c = sqrt(gamma * p / rho)
 
     return (abs(v1) + c, abs(v2) + c)
-end
-
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
-                                     equations::CompressibleEulerMulticomponentEquations2D)
-    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-
-    rho_ll = density(u_ll, equations)
-    rho_rr = density(u_rr, equations)
-
-    v1_ll = rho_v1_ll / rho_ll
-    v2_ll = rho_v2_ll / rho_ll
-    v1_rr = rho_v1_rr / rho_rr
-    v2_rr = rho_v2_rr / rho_rr
-
-    gamma = totalgamma(u_ll, equations)
-    p_ll = (gamma - 1) * (rho_e_ll - 1 / 2 * rho_ll * (v1_ll^2 + v2_ll^2))
-    p_rr = (gamma - 1) * (rho_e_rr - 1 / 2 * rho_rr * (v1_rr^2 + v2_rr^2))
-
-    if orientation == 1 # x-direction
-        λ_min = v1_ll - sqrt(gamma * p_ll / rho_ll)
-        λ_max = v1_rr + sqrt(gamma * p_rr / rho_rr)
-    else # y-direction
-        λ_min = v2_ll - sqrt(gamma * p_ll / rho_ll)
-        λ_max = v2_rr + sqrt(gamma * p_rr / rho_rr)
-    end
-
-    return λ_min, λ_max
-end
-
-@inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
-                                     equations::CompressibleEulerMulticomponentEquations2D)
-    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-
-    rho_ll = density(u_ll, equations)
-    rho_rr = density(u_rr, equations)
-
-    v1_ll = rho_v1_ll / rho_ll
-    v2_ll = rho_v2_ll / rho_ll
-    v1_rr = rho_v1_rr / rho_rr
-    v2_rr = rho_v2_rr / rho_rr
-
-    gamma = totalgamma(u_ll, equations)
-    p_ll = (gamma - 1) * (rho_e_ll - 1 / 2 * rho_ll * (v1_ll^2 + v2_ll^2))
-    p_rr = (gamma - 1) * (rho_e_rr - 1 / 2 * rho_rr * (v1_rr^2 + v2_rr^2))
-
-    v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
-    v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
-
-    norm_ = norm(normal_direction)
-    # The v_normals are already scaled by the norm
-    λ_min = v_normal_ll - sqrt(gamma * p_ll / rho_ll) * norm_
-    λ_max = v_normal_rr + sqrt(gamma * p_rr / rho_rr) * norm_
-
-    return λ_min, λ_max
 end
 
 @inline function rotate_to_x(u, normal_vector,
