@@ -62,7 +62,10 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[0.0025903889347585777],
-                        linf=[0.018407576968841655])
+                        linf=[0.018407576968841655],
+                        # With the default `maxiters = 1` in coverage tests,
+                        # there would be no time steps after the restart.
+                        coverage_override=(maxiters = 100_000,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
