@@ -129,7 +129,10 @@ end
                             0.005243995459478956,
                             0.004685630332338153,
                             0.01750217718347713,
-                        ])
+                        ],
+                        # With the default `maxiters = 1` in coverage tests,
+                        # there would be no time steps after the restart.
+                        coverage_override=(maxiters = 100_000,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
