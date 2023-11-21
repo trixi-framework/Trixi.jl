@@ -365,6 +365,30 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_cubed_sphere_shell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_cubed_sphere_shell.jl"),
+                        l2=[
+                            0.005386774714265701, 0.0053034549371091975,
+                            0.0009984808604061753, 0.0, 0.0011482642682649322,
+                        ],
+                        linf=[
+                            0.05757879060005222, 0.05734888774521418,
+                            0.0099936366211697, 0.0, 0.021317676978318545,
+                        ],
+                        tspan=(0.0, 0.01),
+                        skip_coverage=true)
+    if @isdefined sol # Skipped in coverage run
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+end
+
 @trixi_testset "elixir_eulergravity_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
                         l2=[

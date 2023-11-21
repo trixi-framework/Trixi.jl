@@ -11,21 +11,25 @@ equations = CompressibleEulerEquations3D(1.4)
 polydeg = 3
 solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
 
+# Initial condition for a Gaussian density profile with constant pressure
+# and the velocity of a rotating solid body
 function initial_condition_advection_sphere(x, t, equations::CompressibleEulerEquations3D)
-    # Constant velocity and pressure
-    rho = 1.0
-    #if x[2] < 0
+    # Gaussian density
     rho = 1.0 + exp(-20 * (x[1]^2 + x[3]^2))
-    #end
-
+    # Constant pressure
     p = 1.0
+    
+    # Spherical coordinates for the point x
     if sign(x[2]) == 0.0
         signy = 1.0
     else
         signy = sign(x[2])
     end
+    # Co-latitude
     colat = acos(x[3] / sqrt(x[1]^2 + x[2]^2 + x[3]^2))
-    lat = -colat + 0.5 * pi # Latitude, not co-latitude! 
+    # Latitude (auxiliary variable)
+    lat = -colat + 0.5 * pi 
+    # Longitude
     r_xy = sqrt(x[1]^2 + x[2]^2)
     if r_xy == 0.0
         phi = pi / 2
@@ -33,11 +37,14 @@ function initial_condition_advection_sphere(x, t, equations::CompressibleEulerEq
         phi = signy * acos(x[1] / r_xy)
     end
 
-    v0 = 1.0
+    # Compute the velocity of a rotating solid body
+    # (alpha is the angle between the rotation axis and the polar axis of the spherical coordinate system)
+    v0 = 1.0 # Velocity at the "equator"
     alpha = 0.0 #pi / 4
     v_long = v0 * (cos(lat) * cos(alpha) + sin(lat) * cos(phi) * sin(alpha))
     v_lat = -v0 * sin(phi) * sin(alpha)
 
+    # Transform to Cartesian coordinate system
     v1 = -cos(colat) * cos(phi) * v_lat - sin(phi) * v_long
     v2 = -cos(colat) * sin(phi) * v_lat + cos(phi) * v_long
     v3 = sin(colat) * v_lat
@@ -67,16 +74,6 @@ mesh = Trixi.P4estMeshCubedSphere2D(5, 1.0, polydeg = polydeg, initial_refinemen
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_convert_to_linear_advection)
-
-# compute area of the sphere to test
-area = zero(Float64)
-for element in 1:Trixi.ncells(mesh)
-    for j in 1:(polydeg + 1), i in 1:(polydeg + 1)
-        global area += solver.basis.weights[i] * solver.basis.weights[j] /
-                       semi.cache.elements.inverse_jacobian[i, j, element]
-    end
-end
-println("Area of sphere: ", area)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
