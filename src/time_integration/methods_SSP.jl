@@ -31,6 +31,11 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
     stage_callbacks::StageCallbacks
 
     function SimpleSSPRK33(; stage_callbacks = ())
+        # Mathematically speaking, it is not necessary for the algorithm to split the factors
+        # into numerator and denominator. Otherwise, however, rounding errors of the order of
+        # the machine accuracy will occur, which will add up over time and thus endanger the
+        # conservation of the simulation.
+        # See also https://github.com/trixi-framework/Trixi.jl/pull/1640.
         numerator_a = SVector(0.0, 3.0, 1.0) # a = numerator_a / denominator
         numerator_b = SVector(1.0, 1.0, 2.0) # b = numerator_b / denominator
         denominator = SVector(1.0, 4.0, 3.0)
@@ -119,10 +124,10 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
 
     # initialize callbacks
     if callback isa CallbackSet
-        for cb in callback.continuous_callbacks
+        foreach(callback.continuous_callbacks) do cb
             error("unsupported")
         end
-        for cb in callback.discrete_callbacks
+        foreach(callback.discrete_callbacks) do cb
             cb.initialize(cb, integrator.u, integrator.t, integrator)
         end
     elseif !isnothing(callback)
@@ -143,7 +148,7 @@ function solve!(integrator::SimpleIntegratorSSP)
     callbacks = integrator.opts.callback
 
     integrator.finalstep = false
-    while !integrator.finalstep
+    @trixi_timeit timer() "main loop" while !integrator.finalstep
         if isnan(integrator.dt)
             error("time step size `dt` is NaN")
         end
@@ -179,7 +184,7 @@ function solve!(integrator::SimpleIntegratorSSP)
 
         # handle callbacks
         if callbacks isa CallbackSet
-            for cb in callbacks.discrete_callbacks
+            foreach(callbacks.discrete_callbacks) do cb
                 if cb.condition(integrator.u, integrator.t, integrator)
                     cb.affect!(integrator)
                 end
@@ -213,6 +218,11 @@ function set_proposed_dt!(integrator::SimpleIntegratorSSP, dt)
     integrator.dt = dt
 end
 
+# used by adaptive timestepping algorithms in DiffEq
+function get_proposed_dt(integrator::SimpleIntegratorSSP)
+    return integrator.dt
+end
+
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
     integrator.finalstep = true
@@ -226,7 +236,9 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     resize!(integrator.r0, new_size)
 
     # Resize container
-    resize!(integrator.p, new_size)
+    # new_size = n_variables * n_nodes^n_dims * n_elements
+    n_elements = nelements(integrator.p.solver, integrator.p.cache)
+    resize!(integrator.p, n_elements)
 end
 
 function Base.resize!(semi::AbstractSemidiscretization, new_size)

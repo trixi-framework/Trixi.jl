@@ -79,14 +79,11 @@ where
 ```math
 w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = -\frac{\rho}{p}
 ```
-
-!!! warning "Experimental code"
-    This code is experimental and may be changed or removed in any future release.
 """
 struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real,
                                            E <: AbstractCompressibleEulerEquations{2}
                                            } <:
-       AbstractCompressibleNavierStokesDiffusion{2, 4}
+       AbstractCompressibleNavierStokesDiffusion{2, 4, GradientVariables}
     # TODO: parabolic
     # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
     # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
@@ -455,5 +452,34 @@ end
                                                                                                                                       GradientVariablesEntropy
                                                                                                                                       })
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4])
+end
+
+# Dirichlet Boundary Condition for P4est mesh
+
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
+                                                                  u_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Gradient,
+                                                                  equations::CompressibleNavierStokesDiffusion2D{
+                                                                                                                 GradientVariablesPrimitive
+                                                                                                                 })
+    # BCs are usually specified as conservative variables so we convert them to primitive variables
+    #  because the gradients are assumed to be with respect to the primitive variables
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    return cons2prim(u_boundary, equations)
+end
+
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
+                                                                  u_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Divergence,
+                                                                  equations::CompressibleNavierStokesDiffusion2D{
+                                                                                                                 GradientVariablesPrimitive
+                                                                                                                 })
+    # for Dirichlet boundary conditions, we do not impose any conditions on the viscous fluxes
+    return flux_inner
 end
 end # @muladd
