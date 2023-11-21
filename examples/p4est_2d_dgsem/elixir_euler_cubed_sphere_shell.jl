@@ -18,7 +18,7 @@ function initial_condition_advection_sphere(x, t, equations::CompressibleEulerEq
     rho = 1.0 + exp(-20 * (x[1]^2 + x[3]^2))
     # Constant pressure
     p = 1.0
-    
+
     # Spherical coordinates for the point x
     if sign(x[2]) == 0.0
         signy = 1.0
@@ -28,7 +28,7 @@ function initial_condition_advection_sphere(x, t, equations::CompressibleEulerEq
     # Co-latitude
     colat = acos(x[3] / sqrt(x[1]^2 + x[2]^2 + x[3]^2))
     # Latitude (auxiliary variable)
-    lat = -colat + 0.5 * pi 
+    lat = -colat + 0.5 * pi
     # Longitude
     r_xy = sqrt(x[1]^2 + x[2]^2)
     if r_xy == 0.0
