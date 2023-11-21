@@ -87,22 +87,29 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, Re
                        ::Type{uEltype}) where {NDIMS, RealT <: Real, uEltype <: Real}
     nelements = ncells(mesh)
 
-    ndims_spa = size(mesh.tree_node_coordinates,1)
+    ndims_spa = size(mesh.tree_node_coordinates, 1)
 
-    _node_coordinates = Vector{RealT}(undef, ndims_spa * nnodes(basis)^NDIMS * nelements)
+    _node_coordinates = Vector{RealT}(undef,
+                                      ndims_spa * nnodes(basis)^NDIMS * nelements)
     node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
                                    (ndims_spa, ntuple(_ -> nnodes(basis), NDIMS)...,
                                     nelements))
 
-    _jacobian_matrix = Vector{RealT}(undef, ndims_spa * NDIMS * nnodes(basis)^NDIMS * nelements)
+    _jacobian_matrix = Vector{RealT}(undef,
+                                     ndims_spa * NDIMS * nnodes(basis)^NDIMS *
+                                     nelements)
     jacobian_matrix = unsafe_wrap(Array, pointer(_jacobian_matrix),
-                                  (ndims_spa, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
+                                  (ndims_spa, NDIMS,
+                                   ntuple(_ -> nnodes(basis), NDIMS)...,
                                    nelements))
 
-    _contravariant_vectors = Vector{RealT}(undef, ndims_spa^2 * nnodes(basis)^NDIMS * nelements)
+    _contravariant_vectors = Vector{RealT}(undef,
+                                           ndims_spa^2 * nnodes(basis)^NDIMS *
+                                           nelements)
     contravariant_vectors = unsafe_wrap(Array, pointer(_contravariant_vectors),
-                                  (ndims_spa, ndims_spa, ntuple(_ -> nnodes(basis), NDIMS)...,
-                                   nelements))
+                                        (ndims_spa, ndims_spa,
+                                         ntuple(_ -> nnodes(basis), NDIMS)...,
+                                         nelements))
 
     _inverse_jacobian = Vector{RealT}(undef, nnodes(basis)^NDIMS * nelements)
     inverse_jacobian = unsafe_wrap(Array, pointer(_inverse_jacobian),

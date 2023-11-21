@@ -172,24 +172,13 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
-    end
-    
-    # Quick fix (TODO: Change)
-    # For the spherical shell model, transform the Euler equations into linear advection
-    if size(cache.elements.node_coordinates,1) == 3 && typeof(equations) == CompressibleEulerEquations3D{Float64}
-        @threaded for element in eachelement(dg, cache)
-            for j in eachnode(dg), i in eachnode(dg)
-                v1 = u[2, i, j, element] / u[1, i, j, element]
-                v2 = u[3, i, j, element] / u[1, i, j, element]
-                v3 = u[4, i, j, element] / u[1, i, j, element]
-                du[2, i, j, element] = du[1, i, j, element] * v1
-                du[3, i, j, element] = du[1, i, j, element] * v2
-                du[4, i, j, element] = du[1, i, j, element] * v3
-                du[5, i, j, element] = 0.5 * (du[2, i, j, element] * v1 + du[3, i, j, element] * v2 + du[4, i, j, element] * v3)
-            end
+        if size(cache.elements.node_coordinates,1) == 3
+            calc_extended_sources!(du, u, t, source_terms, equations, dg, cache)
+        else
+            calc_sources!(du, u, t, source_terms, equations, dg, cache)
         end
     end
+    
     return nothing
 end
 
@@ -1168,6 +1157,31 @@ function calc_sources!(du, u, t, source_terms,
                                       i, j, element)
             du_local = source_terms(u_local, x_local, t, equations)
             add_to_node_vars!(du, du_local, equations, dg, i, j, element)
+        end
+    end
+
+    return nothing
+end
+
+function calc_extended_sources!(du, u, t, source_terms::Nothing,
+                                equations::AbstractEquations{3}, dg::DG, cache)
+    return nothing
+end
+
+# Source term that depends on du for 3D equations
+# TODO: Is there a better way to do this?
+function calc_extended_sources!(du, u, t, source_terms,
+                                equations::AbstractEquations{3}, dg::DG, cache)
+    @unpack node_coordinates = cache.elements
+
+    @threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            du_local = get_node_vars(du, equations, dg, i, j, element)
+            x_local = get_node_coords(node_coordinates, equations, dg,
+                                      i, j, element)
+            source = source_terms(u_local, du_local, x_local, t, equations)
+            add_to_node_vars!(du, source, equations, dg, i, j, element)
         end
     end
 

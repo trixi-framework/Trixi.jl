@@ -34,7 +34,7 @@ function initial_condition_advection_sphere(x, t, equations::CompressibleEulerEq
     end
 
     v0 = 1.0
-    alpha = pi / 4
+    alpha = 0.0 #pi / 4
     v_long = v0 * (cos(lat) * cos(alpha) + sin(lat) * cos(phi) * sin(alpha))
     v_lat = -v0 * sin(phi) * sin(alpha)
 
@@ -45,12 +45,26 @@ function initial_condition_advection_sphere(x, t, equations::CompressibleEulerEq
     return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
 
+# Source term function to transform the Euler equations into the linear advection equations with variable advection velocity
+function source_terms_convert_to_linear_advection(u, du, x, t, equations::CompressibleEulerEquations3D)
+    v1 = u[2] / u[1]
+    v2 = u[3] / u[1]
+    v3 = u[4] / u[1]
+    
+    s2 = du[1] * v1 - du[2]
+    s3 = du[1] * v2 - du[3]
+    s4 = du[1] * v3 - du[4]
+    s5 = 0.5 * (s2 * v1 + s3 * v2 + s4 * v3) - du[5]
+
+    return SVector(0.0, s2, s3, s4, s5)
+end
+
 initial_condition = initial_condition_advection_sphere
 
 mesh = Trixi.P4estMeshCubedSphere2D(5, 1.0, polydeg=polydeg, initial_refinement_level=0)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, source_terms = source_terms_convert_to_linear_advection)
 
 # compute area of the sphere to test
 area = zero(Float64)

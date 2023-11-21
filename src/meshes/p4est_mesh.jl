@@ -538,15 +538,15 @@ end
                             initial_refinement_level=0, unsaved_changes=true,
                             p4est_partition_allow_for_coarsening=true)
 
-Build a "Cubed Sphere" mesh as `P4estMesh` with
-`6 * trees_per_face_dimension^2 * layers` trees.
+Build a "Cubed Sphere" mesh as a 2D `P4estMesh` with
+`6 * trees_per_face_dimension^2` trees.
 
-The mesh will have two boundaries, `:inside` and `:outside`.
+The mesh will have no boundaries.
 
 # Arguments
-- `trees_per_face_dimension::Integer`: the number of trees in the first two local dimensions of
+- `trees_per_face_dimension::Integer`: the number of trees in the two local dimensions of
                                        each face.
-- `radius::Integer`: the inner radius of the sphere.
+- `radius::Integer`: the radius of the sphere.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
                       of the specified degree for each tree.
@@ -571,7 +571,8 @@ function P4estMeshCubedSphere2D(trees_per_face_dimension, radius;
     tree_node_coordinates = Array{RealT, 4}(undef, 3,
                                             ntuple(_ -> length(nodes), 2)...,
                                             n_trees)
-    calc_tree_node_coordinates_cubed_sphere_2D!(tree_node_coordinates, nodes, trees_per_face_dimension, radius)
+    calc_tree_node_coordinates_cubed_sphere_2D!(tree_node_coordinates, nodes,
+                                                trees_per_face_dimension, radius)
 
     p4est = new_p4est(connectivity, initial_refinement_level)
 
@@ -1054,14 +1055,15 @@ end
 function connectivity_cubed_sphere_2D(trees_per_face_dimension)
     n_cells_x = n_cells_y = trees_per_face_dimension
 
-    linear_indices = LinearIndices((trees_per_face_dimension, trees_per_face_dimension, 6))
+    linear_indices = LinearIndices((trees_per_face_dimension, trees_per_face_dimension,
+                                    6))
 
     # Vertices represent the coordinates of the forest. This is used by `p4est`
     # to write VTK files.
     # Trixi.jl doesn't use the coordinates from `p4est`, so the vertices can be empty.
     n_vertices = 0
     n_trees = 6 * n_cells_x * n_cells_y
-    
+
     # No corner connectivity is needed
     n_corners = 0
     vertices = C_NULL
@@ -1469,8 +1471,11 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
 end
 
 # Calculate physical coordinates of each node of a 2D cubed sphere mesh.
-function calc_tree_node_coordinates_cubed_sphere_2D!(node_coordinates::AbstractArray{<:Any, 4},
-                                     nodes, trees_per_face_dimension, radius)
+function calc_tree_node_coordinates_cubed_sphere_2D!(node_coordinates::AbstractArray{
+                                                                                     <:Any,
+                                                                                     4},
+                                                     nodes, trees_per_face_dimension,
+                                                     radius)
     n_cells_x = n_cells_y = trees_per_face_dimension
 
     linear_indices = LinearIndices((n_cells_x, n_cells_y, 6))
@@ -1490,15 +1495,15 @@ function calc_tree_node_coordinates_cubed_sphere_2D!(node_coordinates::AbstractA
             for j in eachindex(nodes), i in eachindex(nodes)
                 # node_coordinates are the mapped reference node coordinates
                 node_coordinates[:, i, j, tree] .= cubed_sphere_mapping(x_offset +
-                                                                           dx / 2 *
-                                                                           nodes[i],
-                                                                           y_offset +
-                                                                           dy / 2 *
-                                                                           nodes[j],
-                                                                           z_offset,
-                                                                           radius,
-                                                                           0,
-                                                                           direction)
+                                                                        dx / 2 *
+                                                                        nodes[i],
+                                                                        y_offset +
+                                                                        dy / 2 *
+                                                                        nodes[j],
+                                                                        z_offset,
+                                                                        radius,
+                                                                        0,
+                                                                        direction)
             end
         end
     end

@@ -60,7 +60,7 @@ end
     @unpack derivative_dhat = dg.basis
     @unpack contravariant_vectors = cache.elements
 
-    if size(contravariant_vectors,1) == 2
+    if size(contravariant_vectors, 1) == 2
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
 
@@ -74,8 +74,8 @@ end
             contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
             for ii in eachnode(dg)
                 multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
-                                        contravariant_flux1, equations, dg, ii, j,
-                                        element)
+                                           contravariant_flux1, equations, dg, ii, j,
+                                           element)
             end
 
             # Compute the contravariant flux by taking the scalar product of the
@@ -86,8 +86,8 @@ end
             contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
             for jj in eachnode(dg)
                 multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
-                                        contravariant_flux2, equations, dg, i, jj,
-                                        element)
+                                           contravariant_flux2, equations, dg, i, jj,
+                                           element)
             end
         end
     else #size(contravariant_vectors,1) == 3
@@ -107,8 +107,8 @@ end
             contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
             for ii in eachnode(dg)
                 multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
-                                        contravariant_flux1, equations, dg, ii, j,
-                                        element)
+                                           contravariant_flux1, equations, dg, ii, j,
+                                           element)
             end
 
             # Compute the contravariant flux by taking the scalar product of the
@@ -120,8 +120,8 @@ end
             contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
             for jj in eachnode(dg)
                 multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
-                                        contravariant_flux2, equations, dg, i, jj,
-                                        element)
+                                           contravariant_flux2, equations, dg, i, jj,
+                                           element)
             end
 
             #Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, element)
@@ -129,11 +129,12 @@ end
             Ja32 = contravariant_vectors[2, 3, i, j, element]
             Ja33 = contravariant_vectors[3, 3, i, j, element]
             for v in eachvariable(equations)
-                du[v, i, j, element] += (Ja31 * flux1[v] + Ja32 * flux2[v] + Ja33 * flux3[v])
+                du[v, i, j, element] += (Ja31 * flux1[v] + Ja32 * flux2[v] +
+                                         Ja33 * flux3[v])
             end
         end
     end
-    
+
     return nothing
 end
 
