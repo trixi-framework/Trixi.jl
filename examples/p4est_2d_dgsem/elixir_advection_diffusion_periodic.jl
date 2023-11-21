@@ -7,7 +7,7 @@ using Trixi
 diffusivity() = 5.0e-2
 advection_velocity = (1.0, 0.0)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
-equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
+equations_parabolic = LaplaceDiffusionEquations2D(diffusivity(), equations)
 
 function x_trans_periodic(x, domain_length = SVector(2 * pi), center = SVector(0.0))
     x_normalized = x .- center

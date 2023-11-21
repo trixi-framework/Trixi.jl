@@ -8,7 +8,7 @@ prandtl_number() = 0.72
 mu() = 0.01
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
+equations_parabolic = CompressibleNavierStokesDiffusionEquations2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
@@ -25,8 +25,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity = (true, false),
                 n_cells_max = 30_000) # set maximum capacity of tree data structure
 
-# Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion2D`
-#       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion2D`)
+# Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusionEquations2D`
+#       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusionEquations2D`)
 #       and by the initial condition (which passes in `CompressibleEulerEquations2D`).
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 function initial_condition_navier_stokes_convergence_test(x, t, equations)

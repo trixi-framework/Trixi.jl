@@ -10,7 +10,7 @@ prandtl_number() = 0.72
 mu() = 6.25e-4 # equivalent to Re = 1600
 
 equations = CompressibleEulerEquations1D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu(),
+equations_parabolic = CompressibleNavierStokesDiffusionEquations1D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
 
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)

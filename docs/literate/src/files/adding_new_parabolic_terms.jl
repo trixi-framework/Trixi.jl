@@ -24,7 +24,7 @@ equations_hyperbolic = LinearScalarAdvectionEquation2D(advection_velocity);
 # `GradientVariablesConservative`. This indicates that the gradient should be taken with respect to the
 # conservative variables (e.g., the same variables used in `equations_hyperbolic`). Users can also take
 # the gradient with respect to a different set of variables; see, for example, the implementation of
-# [`CompressibleNavierStokesDiffusion2D`](@ref), which can utilize either "primitive" or "entropy" variables.
+# [`CompressibleNavierStokesDiffusionEquations2D`](@ref), which can utilize either "primitive" or "entropy" variables.
 
 struct ConstantAnisotropicDiffusion2D{E, T} <: Trixi.AbstractEquationsParabolic{2, 1, GradientVariablesConservative}
   diffusivity::T
@@ -111,7 +111,7 @@ end
 # ### A note on the choice of gradient variables
 #
 # It is often simpler to transform the solution variables (and solution gradients) to another set of
-# variables prior to computing the viscous fluxes (see [`CompressibleNavierStokesDiffusion2D`](@ref)
+# variables prior to computing the viscous fluxes (see [`CompressibleNavierStokesDiffusionEquations2D`](@ref)
 # for an example of this). If this is done, then the boundary condition for the `Gradient` operator
 # should be modified accordingly as well.
 #

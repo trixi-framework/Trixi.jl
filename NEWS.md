@@ -105,17 +105,17 @@ for human readability.
   has been added in Trixi.jl v0.4.55. The first implementation requires a `TreeMesh` and comes
   with several examples in the `examples_dir()` of Trixi.jl.
 - Experimental support for 2D parabolic diffusion terms has been added.
-  * `LaplaceDiffusion2D` and `CompressibleNavierStokesDiffusion2D` can be used to add
-  diffusion to systems. `LaplaceDiffusion2D` can be used to add scalar diffusion to each
-  equation of a system, while `CompressibleNavierStokesDiffusion2D` can be used to add
+  * `LaplaceDiffusionEquations2D` and `CompressibleNavierStokesDiffusionEquations2D` can be used to add
+  diffusion to systems. `LaplaceDiffusionEquations2D` can be used to add scalar diffusion to each
+  equation of a system, while `CompressibleNavierStokesDiffusionEquations2D` can be used to add
   Navier-Stokes diffusion to `CompressibleEulerEquations2D`.
-  * Parabolic boundary conditions can be imposed as well. For `LaplaceDiffusion2D`, both
-  `Dirichlet` and `Neumann` conditions are supported. For `CompressibleNavierStokesDiffusion2D`,
+  * Parabolic boundary conditions can be imposed as well. For `LaplaceDiffusionEquations2D`, both
+  `Dirichlet` and `Neumann` conditions are supported. For `CompressibleNavierStokesDiffusionEquations2D`,
   viscous no-slip velocity boundary conditions are supported, along with adiabatic and isothermal
   temperature boundary conditions. See the boundary condition container
   `BoundaryConditionNavierStokesWall` and boundary condition types `NoSlip`, `Adiabatic`, and
   `Isothermal` for more information.
-  * `CompressibleNavierStokesDiffusion2D` can utilize both primitive variables (which are not
+  * `CompressibleNavierStokesDiffusionEquations2D` can utilize both primitive variables (which are not
   guaranteed to provably dissipate entropy) and entropy variables (which provably dissipate
   entropy at the semi-discrete level).
   * Please check the `examples` directory for further information about the supported setups.

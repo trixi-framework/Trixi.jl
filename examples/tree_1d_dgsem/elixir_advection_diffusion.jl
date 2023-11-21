@@ -8,7 +8,7 @@ using Trixi
 advection_velocity = 0.1
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 diffusivity() = 0.1
-equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations)
+equations_parabolic = LaplaceDiffusionEquations1D(diffusivity(), equations)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)

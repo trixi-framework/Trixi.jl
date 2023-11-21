@@ -137,7 +137,7 @@ end
 
 function integrate(func::typeof(enstrophy), u,
                    mesh::DGMultiMesh,
-                   equations, equations_parabolic::CompressibleNavierStokesDiffusion3D,
+                   equations, equations_parabolic::CompressibleNavierStokesDiffusionEquations3D,
                    dg::DGMulti,
                    cache, cache_parabolic; normalize = true)
     gradients_x, gradients_y, gradients_z = cache_parabolic.gradients

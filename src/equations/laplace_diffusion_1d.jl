@@ -1,24 +1,24 @@
 @doc raw"""
-    LaplaceDiffusion1D(diffusivity, equations)
+    LaplaceDiffusionEquations1D(diffusivity, equations)
 
-`LaplaceDiffusion1D` represents a scalar diffusion term ``\nabla \cdot (\kappa\nabla u))``
+`LaplaceDiffusionEquations1D` represents a scalar diffusion term ``\nabla \cdot (\kappa\nabla u))``
 with diffusivity ``\kappa`` applied to each solution component defined by `equations`.
 """
-struct LaplaceDiffusion1D{E, N, T} <: AbstractLaplaceDiffusion{1, N}
+struct LaplaceDiffusionEquations1D{E, N, T} <: AbstractLaplaceDiffusionEquations{1, N}
     diffusivity::T
     equations_hyperbolic::E
 end
 
-function LaplaceDiffusion1D(diffusivity, equations_hyperbolic)
-    LaplaceDiffusion1D{typeof(equations_hyperbolic), nvariables(equations_hyperbolic),
+function LaplaceDiffusionEquations1D(diffusivity, equations_hyperbolic)
+    LaplaceDiffusionEquations1D{typeof(equations_hyperbolic), nvariables(equations_hyperbolic),
                        typeof(diffusivity)}(diffusivity, equations_hyperbolic)
 end
 
-function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion1D)
+function varnames(variable_mapping, equations_parabolic::LaplaceDiffusionEquations1D)
     varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
-function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDiffusion1D)
+function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDiffusionEquations1D)
     dudx = gradients
     # orientation == 1
     return equations_parabolic.diffusivity * dudx
@@ -29,7 +29,7 @@ end
                                                                   normal::AbstractVector,
                                                                   x, t,
                                                                   operator_type::Gradient,
-                                                                  equations_parabolic::LaplaceDiffusion1D)
+                                                                  equations_parabolic::LaplaceDiffusionEquations1D)
     return boundary_condition.boundary_value_function(x, t, equations_parabolic)
 end
 
@@ -37,7 +37,7 @@ end
                                                                   normal::AbstractVector,
                                                                   x, t,
                                                                   operator_type::Divergence,
-                                                                  equations_parabolic::LaplaceDiffusion1D)
+                                                                  equations_parabolic::LaplaceDiffusionEquations1D)
     return flux_inner
 end
 
@@ -45,7 +45,7 @@ end
                                                                 normal::AbstractVector,
                                                                 x, t,
                                                                 operator_type::Divergence,
-                                                                equations_parabolic::LaplaceDiffusion1D)
+                                                                equations_parabolic::LaplaceDiffusionEquations1D)
     return boundary_condition.boundary_normal_flux_function(x, t, equations_parabolic)
 end
 
@@ -53,6 +53,6 @@ end
                                                                 normal::AbstractVector,
                                                                 x, t,
                                                                 operator_type::Gradient,
-                                                                equations_parabolic::LaplaceDiffusion1D)
+                                                                equations_parabolic::LaplaceDiffusionEquations1D)
     return flux_inner
 end

@@ -10,7 +10,7 @@ mu() = 0.01
 equations = CompressibleEulerEquations2D(1.4)
 # Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
 # I really do not like this structure but it should work for now
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
+equations_parabolic = CompressibleNavierStokesDiffusionEquations2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
@@ -25,8 +25,8 @@ is_on_boundary = Dict(:top_bottom => top_bottom)
 cells_per_dimension = (16, 16)
 mesh = DGMultiMesh(dg, cells_per_dimension; periodicity = (true, false), is_on_boundary)
 
-# Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion2D`
-#       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion2D`)
+# Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusionEquations2D`
+#       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusionEquations2D`)
 #       and by the initial condition (which passes in `CompressibleEulerEquations2D`).
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 function initial_condition_navier_stokes_convergence_test(x, t, equations)

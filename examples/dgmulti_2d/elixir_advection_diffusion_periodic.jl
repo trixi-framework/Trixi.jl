@@ -5,7 +5,7 @@ dg = DGMulti(polydeg = 1, element_type = Tri(), approximation_type = Polynomial(
              volume_integral = VolumeIntegralWeakForm())
 
 equations = LinearScalarAdvectionEquation2D(0.0, 0.0)
-equations_parabolic = LaplaceDiffusion2D(5.0e-1, equations)
+equations_parabolic = LaplaceDiffusionEquations2D(5.0e-1, equations)
 
 function initial_condition_sharp_gaussian(x, t, equations::LinearScalarAdvectionEquation2D)
     return SVector(exp(-100 * (x[1]^2 + x[2]^2)))

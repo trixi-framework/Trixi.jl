@@ -8,7 +8,7 @@ prandtl_number() = 0.72
 mu() = 0.01
 
 equations = CompressibleEulerEquations3D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
+equations_parabolic = CompressibleNavierStokesDiffusionEquations3D(equations, mu = mu(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
@@ -25,8 +25,8 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = (true, false, true), initial_refinement_level = 2)
 
-# Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion3D`
-#       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion3D`)
+# Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusionEquations3D`
+#       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusionEquations3D`)
 #       and by the initial condition (which passes in `CompressibleEulerEquations3D`).
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 function initial_condition_navier_stokes_convergence_test(x, t, equations)

@@ -50,7 +50,7 @@ end
 
 """
 `GradientVariablesPrimitive` and `GradientVariablesEntropy` are gradient variable type parameters
-for `CompressibleNavierStokesDiffusion1D`. By default, the gradient variables are set to be
+for `CompressibleNavierStokesDiffusionEquations1D`. By default, the gradient variables are set to be
 `GradientVariablesPrimitive`. Specifying `GradientVariablesEntropy` instead uses the entropy variable
 formulation from
 - Hughes, Mallet, Franca (1986)

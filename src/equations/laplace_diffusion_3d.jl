@@ -1,24 +1,24 @@
 @doc raw"""
-    LaplaceDiffusion3D(diffusivity, equations)
+    LaplaceDiffusionEquations3D(diffusivity, equations)
 
-`LaplaceDiffusion3D` represents a scalar diffusion term ``\nabla \cdot (\kappa\nabla u))``
+`LaplaceDiffusionEquations3D` represents a scalar diffusion term ``\nabla \cdot (\kappa\nabla u))``
 with diffusivity ``\kappa`` applied to each solution component defined by `equations`.
 """
-struct LaplaceDiffusion3D{E, N, T} <: AbstractLaplaceDiffusion{3, N}
+struct LaplaceDiffusionEquations3D{E, N, T} <: AbstractLaplaceDiffusionEquations{3, N}
     diffusivity::T
     equations_hyperbolic::E
 end
 
-function LaplaceDiffusion3D(diffusivity, equations_hyperbolic)
-    LaplaceDiffusion3D{typeof(equations_hyperbolic), nvariables(equations_hyperbolic),
+function LaplaceDiffusionEquations3D(diffusivity, equations_hyperbolic)
+    LaplaceDiffusionEquations3D{typeof(equations_hyperbolic), nvariables(equations_hyperbolic),
                        typeof(diffusivity)}(diffusivity, equations_hyperbolic)
 end
 
-function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion3D)
+function varnames(variable_mapping, equations_parabolic::LaplaceDiffusionEquations3D)
     varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
-function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDiffusion3D)
+function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDiffusionEquations3D)
     dudx, dudy, dudz = gradients
     if orientation == 1
         return SVector(equations_parabolic.diffusivity * dudx)
@@ -32,7 +32,7 @@ end
 # TODO: parabolic; should this remain in the equations file, be moved to solvers, or live in the elixir?
 # The penalization depends on the solver, but also depends explicitly on physical parameters,
 # and would probably need to be specialized for every different equation.
-function penalty(u_outer, u_inner, inv_h, equations_parabolic::LaplaceDiffusion3D,
+function penalty(u_outer, u_inner, inv_h, equations_parabolic::LaplaceDiffusionEquations3D,
                  dg::ViscousFormulationLocalDG)
     return dg.penalty_parameter * (u_outer - u_inner) * equations_parabolic.diffusivity
 end
@@ -42,7 +42,7 @@ end
                                                                   normal::AbstractVector,
                                                                   x, t,
                                                                   operator_type::Gradient,
-                                                                  equations_parabolic::LaplaceDiffusion3D)
+                                                                  equations_parabolic::LaplaceDiffusionEquations3D)
     return boundary_condition.boundary_value_function(x, t, equations_parabolic)
 end
 
@@ -50,7 +50,7 @@ end
                                                                   normal::AbstractVector,
                                                                   x, t,
                                                                   operator_type::Divergence,
-                                                                  equations_parabolic::LaplaceDiffusion3D)
+                                                                  equations_parabolic::LaplaceDiffusionEquations3D)
     return flux_inner
 end
 
@@ -58,7 +58,7 @@ end
                                                                 normal::AbstractVector,
                                                                 x, t,
                                                                 operator_type::Divergence,
-                                                                equations_parabolic::LaplaceDiffusion3D)
+                                                                equations_parabolic::LaplaceDiffusionEquations3D)
     return boundary_condition.boundary_normal_flux_function(x, t, equations_parabolic)
 end
 
@@ -66,6 +66,6 @@ end
                                                                 normal::AbstractVector,
                                                                 x, t,
                                                                 operator_type::Gradient,
-                                                                equations_parabolic::LaplaceDiffusion3D)
+                                                                equations_parabolic::LaplaceDiffusionEquations3D)
     return flux_inner
 end
