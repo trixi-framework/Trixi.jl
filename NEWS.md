@@ -7,6 +7,7 @@ for human readability.
 ## Changes when updating to v0.6 from v0.5.x
 
 #### Added
+- AMR for hyperbolic-parabolic equations on 2D `P4estMesh`
 
 #### Changed
 

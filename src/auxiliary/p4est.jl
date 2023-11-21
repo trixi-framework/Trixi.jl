@@ -13,13 +13,19 @@ This function will check if `p4est` is already initialized
 and if yes, do nothing, thus it is safe to call it multiple times.
 """
 function init_p4est()
-    p4est_package_id = P4est.package_id()
-    if p4est_package_id >= 0
-        return nothing
-    end
+    # Only initialize p4est if P4est.jl can be used
+    if P4est.preferences_set_correctly()
+        p4est_package_id = P4est.package_id()
+        if p4est_package_id >= 0
+            return nothing
+        end
 
-    # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
-    p4est_init(C_NULL, SC_LP_ERROR)
+        # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
+        p4est_init(C_NULL, SC_LP_ERROR)
+    else
+        @warn "Preferences for P4est.jl are not set correctly. Until fixed, using `P4estMesh` will result in a crash. " *
+              "See also https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#parallel_system_MPI"
+    end
 
     return nothing
 end
