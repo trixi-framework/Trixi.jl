@@ -251,7 +251,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
     if mesh_type == "TreeMesh"
         capacity = h5open(mesh_file, "r") do file
-            return read(file["capacity"])
+            return read(attributes(file)["capacity"])
         end
         mesh = TreeMesh(SerialTree{ndims}, max(n_cells_max, capacity))
         load_mesh!(mesh, mesh_file)
