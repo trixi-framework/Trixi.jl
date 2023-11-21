@@ -186,7 +186,7 @@ function rhs!(du, u, t,
                 du[2, i, j, element] = du[1, i, j, element] * v1
                 du[3, i, j, element] = du[1, i, j, element] * v2
                 du[4, i, j, element] = du[1, i, j, element] * v3
-                du[5, i, j, element] = du[2, i, j, element] * v1 + du[3, i, j, element] * v2 + du[4, i, j, element] * v3
+                du[5, i, j, element] = 0.5 * (du[2, i, j, element] * v1 + du[3, i, j, element] * v2 + du[4, i, j, element] * v3)
             end
         end
     end

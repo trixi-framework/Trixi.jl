@@ -19,19 +19,28 @@ function initial_condition_advection_sphere(x, t, equations::CompressibleEulerEq
     #end
 
     p = 1.0
-
+    if sign(x[2]) == 0.0
+        signy = 1.0
+    else
+        signy = sign(x[2])
+    end
     colat = acos(x[3] / sqrt(x[1]^2 + x[2]^2 + x[3]^2))
-    lat = -colat + 0.5 * pi # Latitude, not co-latitude!
-    phi = sign(x[2]) * acos(x[1] / sqrt(x[1]^2 + x[2]^2)) 
+    lat = -colat + 0.5 * pi # Latitude, not co-latitude! 
+    r_xy = sqrt(x[1]^2 + x[2]^2)
+    if r_xy == 0.0
+        phi = pi/2
+    else
+        phi = signy * acos(x[1] / r_xy) 
+    end
 
     v0 = 1.0
-    alpha = 0.0
+    alpha = pi / 4
     v_long = v0 * (cos(lat) * cos(alpha) + sin(lat) * cos(phi) * sin(alpha))
     v_lat = -v0 * sin(phi) * sin(alpha)
 
-    v1 = cos(colat) * cos(phi) * v_lat - sin(phi) * v_long
-    v2 = cos(colat) * sin(phi) * v_lat + cos(phi) * v_long
-    v3 = - sin(colat) * v_lat
+    v1 = -cos(colat) * cos(phi) * v_lat - sin(phi) * v_long
+    v2 = -cos(colat) * sin(phi) * v_lat + cos(phi) * v_long
+    v3 = sin(colat) * v_lat
 
     return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
@@ -64,14 +73,16 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval=10)
+analysis_callback = AnalysisCallback(semi, interval=10, 
+                                     save_analysis=true,
+                                     extra_analysis_integrals = (Trixi.density, ))
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval=10,
                                      solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=0.8)
+stepsize_callback = StepsizeCallback(cfl=0.7)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
