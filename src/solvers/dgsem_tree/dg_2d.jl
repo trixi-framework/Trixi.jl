@@ -172,13 +172,13 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        if size(cache.elements.node_coordinates,1) == 3
+        if size(cache.elements.node_coordinates, 1) == 3
             calc_extended_sources!(du, u, t, source_terms, equations, dg, cache)
         else
             calc_sources!(du, u, t, source_terms, equations, dg, cache)
         end
     end
-    
+
     return nothing
 end
 
