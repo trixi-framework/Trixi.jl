@@ -9,8 +9,8 @@ mu() = 0.01
 
 equations = CompressibleEulerEquations3D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusionEquations3D(equations, mu = mu(),
-                                                          Prandtl = prandtl_number(),
-                                                          gradient_variables = GradientVariablesPrimitive())
+                                                                   Prandtl = prandtl_number(),
+                                                                   gradient_variables = GradientVariablesPrimitive())
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = Polynomial(),

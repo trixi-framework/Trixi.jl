@@ -10,15 +10,17 @@ struct LaplaceDiffusionEquations1D{E, N, T} <: AbstractLaplaceDiffusionEquations
 end
 
 function LaplaceDiffusionEquations1D(diffusivity, equations_hyperbolic)
-    LaplaceDiffusionEquations1D{typeof(equations_hyperbolic), nvariables(equations_hyperbolic),
-                       typeof(diffusivity)}(diffusivity, equations_hyperbolic)
+    LaplaceDiffusionEquations1D{typeof(equations_hyperbolic),
+                                nvariables(equations_hyperbolic),
+                                typeof(diffusivity)}(diffusivity, equations_hyperbolic)
 end
 
 function varnames(variable_mapping, equations_parabolic::LaplaceDiffusionEquations1D)
     varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
-function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDiffusionEquations1D)
+function flux(u, gradients, orientation::Integer,
+              equations_parabolic::LaplaceDiffusionEquations1D)
     dudx = gradients
     # orientation == 1
     return equations_parabolic.diffusivity * dudx

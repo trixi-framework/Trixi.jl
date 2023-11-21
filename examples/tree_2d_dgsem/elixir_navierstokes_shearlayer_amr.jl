@@ -11,7 +11,7 @@ mu() = 1.0 / 3.0 * 10^(-5) # equivalent to Re = 30,000
 
 equations = CompressibleEulerEquations2D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusionEquations2D(equations, mu = mu(),
-                                                          Prandtl = prandtl_number())
+                                                                   Prandtl = prandtl_number())
 
 """
 A compressible version of the double shear layer initial condition. Adapted from
