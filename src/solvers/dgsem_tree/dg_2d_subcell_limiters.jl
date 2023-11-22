@@ -1813,44 +1813,30 @@ end
     return nothing
 end
 
+@inline function get_boundary_outer_state(u_inner, cache, t,
+                                          boundary_condition::typeof(boundary_condition_slip_wall),
+                                          orientation::Integer, direction,
+                                          equations, dg, indices...)
+    return SVector(u_inner[1], -u_inner[2], -u_inner[3], u_inner[4])
+end
+
+@inline function get_boundary_outer_state(u_inner, cache, t,
+                                          boundary_condition::typeof(boundary_condition_slip_wall),
+                                          normal_direction::AbstractVector,
+                                          direction, equations, dg, indices...)
+    u_rotate = rotate_to_x(u_inner, normal_direction, equations)
+
+    return SVector(u_inner[1],
+                   u_inner[2] - 2.0 * u_rotate[2],
+                   u_inner[3] - 2.0 * u_rotate[3],
+                   u_inner[4])
+end
+
+# Default implementation of `get_boundary_outer_state` returns inner value.
 @inline function get_boundary_outer_state(u_inner, cache, t, boundary_condition,
                                           orientation_or_normal, direction, equations,
                                           dg, indices...)
-    if boundary_condition == boundary_condition_slip_wall #boundary_condition_reflecting_euler_wall
-        if orientation_or_normal isa AbstractArray
-            u_rotate = rotate_to_x(u_inner, orientation_or_normal, equations)
-
-            return SVector(u_inner[1],
-                           u_inner[2] - 2.0 * u_rotate[2],
-                           u_inner[3] - 2.0 * u_rotate[3],
-                           u_inner[4])
-        else # orientation_or_normal isa Integer
-            return SVector(u_inner[1], -u_inner[2], -u_inner[3], u_inner[4])
-        end
-    elseif boundary_condition == boundary_condition_mixed_dirichlet_wall
-        x = get_node_coords(cache.elements.node_coordinates, equations, dg, indices...)
-        if x[1] < 1 / 6 # BoundaryConditionCharacteristic
-            u_outer = Trixi.characteristic_boundary_value_function(initial_condition_double_mach_reflection,
-                                                                   u_inner,
-                                                                   orientation_or_normal,
-                                                                   direction, x, t,
-                                                                   equations)
-
-            return u_outer
-        else # x[1] >= 1 / 6 # boundary_condition_slip_wall
-            if orientation_or_normal isa AbstractArray
-                u_rotate = rotate_to_x(u_inner, orientation_or_normal, equations)
-
-                return SVector(u_inner[1],
-                               u_inner[2] - 2.0 * u_rotate[2],
-                               u_inner[3] - 2.0 * u_rotate[3],
-                               u_inner[4])
-            else # orientation_or_normal isa Integer
-                return SVector(u_inner[1], -u_inner[2], -u_inner[3], u_inner[4])
-            end
-        end
-    end
-
+                                          error("rr")
     return u_inner
 end
 
