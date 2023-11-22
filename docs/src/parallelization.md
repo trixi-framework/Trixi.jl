@@ -66,13 +66,13 @@ T8code.jl that can be ignored if you do not use these libraries from Trixi.jl. N
 In order to use system-provided `p4est` and `t8code` installations, [P4est.jl](https://github.com/trixi-framework/P4est.jl)
 and [T8code.jl](https://github.com/DLR-AMR/T8code.jl) need to be configured to use the custom
 installations. Follow the steps described [here](https://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation) and
-[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation).
-for the configuration. The paths that point to `libp4est.so` (and potentially to `libsc.so`) need to be
+[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) for the configuration.
+The paths that point to `libp4est.so` (and potentially to `libsc.so`) need to be
 the same for P4est.jl and T8code.jl. This could, e.g., be `libp4est.so` that usually can be found
 in `lib/` or `local/lib/` in the installation directory of `t8code`. Note that the `T8codeMesh`, however,
 does not support MPI yet.
 The preferences for [HDF5.jl](https://github.com/JuliaIO/HDF5.jl) always need to be set, even if you
-do not want to use `HDF5` from Trixi.jl, see also https://github.com/JuliaIO/HDF5.jl/issues/1079.
+do not want to use `HDF5` from Trixi.jl, see also [issue #1079 in HDF5.jl](https://github.com/JuliaIO/HDF5.jl/issues/1079).
 To set the preferences for HDF5.jl, follow the instructions described
 [here](https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#Using-parallel-input-and-output).
 
