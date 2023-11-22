@@ -6,7 +6,6 @@ mutable struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
     mapping::Any # Not relevant for performance
     index_min::NTuple{NDIMS, Int}
     index_max::NTuple{NDIMS, Int}
-    periodicity::NTuple{NDIMS, Bool}
 end
 
 function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
@@ -16,7 +15,7 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
     @assert index_max <= size(parent)
 
     return StructuredMeshView{NDIMS, RealT}(parent, parent.mapping, index_min,
-                                            index_max, periodicity)
+                                            index_max)
 end
 
 function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT}) where {NDIMS, RealT}
@@ -28,6 +27,7 @@ function isperiodic(mesh::StructuredMeshView)
     @unpack parent = mesh
     return isperiodic(parent) && size(parent) == size(mesh)
 end
+
 function isperiodic(mesh::StructuredMeshView, dimension)
     @unpack parent, index_min, index_max = mesh
     return (isperiodic(parent, dimension) &&
