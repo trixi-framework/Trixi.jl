@@ -101,7 +101,7 @@ mapping_as_string = "a = sqrt(5.9^2 - 3.85^2); alpha = acos(3.85 / 5.9); l = (pi
                     "f4(s) = SVector(0.0, -(a - 1.0) * 0.5 * (s + 1.0) + a); " *
                     "faces = (f1, f2, f3, f4); mapping = Trixi.transfinite_mapping(faces)"
 
-cells_per_dimension = (24, 36)
+cells_per_dimension = (8, 12)
 
 mesh = StructuredMesh(cells_per_dimension, mapping_bow,
                       mapping_as_string = mapping_as_string, periodicity = false)
@@ -112,7 +112,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 10.0)
+tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

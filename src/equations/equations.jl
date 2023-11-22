@@ -203,6 +203,10 @@ end
 """
     BoundaryConditionCharacteristic(outer_boundary_value_function)
 
+Characteristic-based boundary condition.
+
+!!! warning "Experimental code"
+  This numerical flux is experimental and may change in any future release.
 """
 struct BoundaryConditionCharacteristic{B, C}
     outer_boundary_value_function::B
@@ -215,7 +219,7 @@ function BoundaryConditionCharacteristic(outer_boundary_value_function)
                                                                                     characteristic_boundary_value_function)
 end
 
-# Dirichlet-type boundary condition for use with TreeMesh or StructuredMesh
+# Characteristic-based boundary condition for use with TreeMesh or StructuredMesh
 @inline function (boundary_condition::BoundaryConditionCharacteristic)(u_inner,
                                                                        orientation_or_normal,
                                                                        direction,

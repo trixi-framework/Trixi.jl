@@ -539,19 +539,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_free_stream_sc_subcell.jl"),
                         l2=[
-                            2.6224749465938795e-14,
-                            1.6175366858083413e-14,
-                            2.358782725951525e-14,
-                            5.910156539173304e-14,
+                            1.4663777294625118e-15,
+                            2.320054900530864e-14,
+                            3.487555722563465e-14,
+                            2.008802099296406e-14,
                         ],
                         linf=[
-                            1.1546319456101628e-14,
-                            1.084687895058778e-13,
-                            1.7050250100680842e-13,
-                            2.0250467969162855e-13,
+                            2.3092638912203256e-14,
+                            2.0623780461193064e-13,
+                            2.6795232699328153e-13,
+                            2.362554596402333e-13,
                         ],
-                        atol=1.0e-13,
-                        cells_per_dimension=(8, 8))
+                        atol=7.0e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -565,19 +564,18 @@ end
 @trixi_testset "elixir_euler_free_stream_MCL.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_MCL.jl"),
                         l2=[
-                            3.532639560334565e-14,
-                            1.4787576718355913e-14,
-                            2.109573923923632e-14,
-                            2.54649935281524e-14,
+                            8.457600308458635e-16,
+                            2.185478357408446e-14,
+                            3.14987670823871e-14,
+                            1.6817763381190492e-14,
                         ],
                         linf=[
-                            7.993605777301127e-15,
-                            1.1611545058798356e-13,
-                            1.7619239400801234e-13,
-                            2.007283228522283e-13,
+                            2.1316282072803006e-14,
+                            2.0759782781709646e-13,
+                            2.4705237855471296e-13,
+                            2.255973186038318e-13,
                         ],
-                        atol=1.0e-13,
-                        cells_per_dimension=(8, 8))
+                        atol=7.0e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -617,34 +615,42 @@ end
 @trixi_testset "elixir_euler_double_mach.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach.jl"),
                         l2=[
-                            0.8955457632754655,
-                            6.8117495933240235,
-                            3.2697118944675716,
-                            77.5174041919109,
+                            0.8895735118233061,
+                            6.7732502383794655,
+                            3.2537120458330913,
+                            77.15211199077615,
                         ],
                         linf=[
-                            10.16165871096883,
-                            133.2522870057006,
-                            38.23157147773949,
-                            1470.3950960145828,
+                            10.595204890391603,
+                            133.14647204580373,
+                            39.59427444784427,
+                            1467.649170200717,
                         ],
                         initial_refinement_level=3,
                         tspan=(0.0, 0.05))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+    end
 end
 
 @trixi_testset "elixir_euler_double_mach_MCL.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach_MCL.jl"),
                         l2=[
-                            0.9266313242695542,
-                            7.071517579972717,
-                            3.2627078543492787,
-                            80.24631724351916,
+                            0.9230564188859353,
+                            7.048067525695328,
+                            3.2513897966486693,
+                            80.02373234685636,
                         ],
                         linf=[
-                            14.244598580563007,
-                            138.4745277257612,
-                            38.69633620234036,
-                            1574.6686216469134,
+                            13.994085024959638,
+                            138.49691741864086,
+                            38.68709126443809,
+                            1574.7770582279284,
                         ],
                         initial_refinement_level=3,
                         tspan=(0.0, 0.05))
@@ -662,16 +668,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shock_upstream_sc_subcell.jl"),
                         l2=[
-                            1.2351468819080416,
-                            1.1269856428294935,
-                            1.7239124305681928,
-                            11.715260007491556,
+                            1.2351650580585378,
+                            1.1268555757641623,
+                            1.723421391322672,
+                            11.715156856828612,
                         ],
                         linf=[
-                            5.385493056976312,
-                            6.575446146030286,
-                            10.06523457762742,
-                            51.00903155017642,
+                            5.3783629857817825,
+                            6.562416423223851,
+                            10.008377369949162,
+                            51.24533429408666,
                         ],
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
@@ -687,18 +693,17 @@ end
 @trixi_testset "elixir_euler_shock_upstream_MCL.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shock_upstream_MCL.jl"),
                         l2=[
-                            1.2607430289877726,
-                            1.1565837325291355,
-                            1.7791790302458714,
-                            11.891223800389232,
+                            1.2607430289878367,
+                            1.1565837325291748,
+                            1.779179030245946,
+                            11.891223800389836,
                         ],
                         linf=[
-                            5.68876088477983,
-                            8.165554425950146,
-                            10.859100194836538,
-                            50.25822408989214,
+                            5.68876088478026,
+                            8.16555442595031,
+                            10.859100194836678,
+                            50.258224089906975,
                         ],
-                        cells_per_dimension=(8, 12),
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

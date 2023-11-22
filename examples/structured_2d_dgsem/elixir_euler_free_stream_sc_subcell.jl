@@ -18,10 +18,7 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_nonlinear = [pressure],
                                 positivity_correction_factor = 0.1,
                                 spec_entropy = false,
-                                smoothness_indicator = false,
-                                bar_states = true,
-                                max_iterations_newton = 10,
-                                newton_tolerances = (1.0e-12, 1.0e-14))
+                                bar_states = true)
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
@@ -49,7 +46,7 @@ function mapping(xi_, eta_)
     return SVector(x, y)
 end
 
-cells_per_dimension = (32, 32)
+cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

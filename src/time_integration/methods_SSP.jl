@@ -271,10 +271,10 @@ end
 
 function calc_normal_directions!(container_bar_states, mesh::StructuredMesh, equations,
                                  dg, cache)
-    @unpack weights, derivative_matrix = dg.basis
-    @unpack contravariant_vectors = cache.elements
+    (; weights, derivative_matrix) = dg.basis
+    (; contravariant_vectors) = cache.elements
 
-    @unpack normal_direction_xi, normal_direction_eta = container_bar_states
+    (; normal_direction_xi, normal_direction_eta) = container_bar_states
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg)
             normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j,

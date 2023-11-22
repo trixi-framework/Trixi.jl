@@ -43,7 +43,7 @@ function max_dt(u, t, mesh::TreeMesh{2},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-@inline function max_dt(u, t, mesh::Union{TreeMesh, StructuredMesh},
+@inline function max_dt(u, t, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                         constant_speed::False, equations, semi, dg::DG, cache,
                         limiter::Union{SubcellLimiterIDP, SubcellLimiterMCL})
     @unpack inverse_weights = dg.basis
