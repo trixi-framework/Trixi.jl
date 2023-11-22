@@ -296,9 +296,11 @@ end
     end
     Trixi.move_connectivity!(c::MyContainer, first, last, destination) = c
     Trixi.delete_connectivity!(c::MyContainer, first, last) = c
-    Trixi.reset_data_structures!(c::MyContainer) = (c.data = Vector{Int}(undef,
-                                                                         c.capacity + 1);
-                                                    c)
+    function Trixi.reset_data_structures!(c::MyContainer)
+        (c.data = Vector{Int}(undef,
+                              c.capacity + 1);
+         c)
+    end
     function Base.:(==)(c1::MyContainer, c2::MyContainer)
         return (c1.capacity == c2.capacity &&
                 c1.length == c2.length &&
@@ -615,6 +617,18 @@ end
     @test_nowarn show(stdout, time_series)
     @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval = -1)
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
+end
+
+@timed_testset "Consistency check for single point flux: CEMCE" begin
+    equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
+                                                           gas_constants = (0.4, 0.4))
+    u = SVector(0.1, -0.5, 1.0, 1.0, 2.0)
+
+    orientations = [1, 2]
+    for orientation in orientations
+        @test flux(u, orientation, equations) ≈
+              flux_ranocha(u, u, orientation, equations)
+    end
 end
 
 @timed_testset "Consistency check for HLL flux (naive): CEE" begin
@@ -1227,6 +1241,29 @@ end
 end
 
 @testset "FluxRotated vs. direct implementation" begin
+    @timed_testset "CompressibleEulerMulticomponentEquations2D" begin
+        equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
+                                                               gas_constants = (0.4,
+                                                                                0.4))
+        normal_directions = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+        u_values = [SVector(0.1, -0.5, 1.0, 1.0, 2.0),
+            SVector(-0.1, -0.3, 1.2, 1.3, 1.4)]
+
+        f_std = flux
+        f_rot = FluxRotated(f_std)
+        println(typeof(f_std))
+        println(typeof(f_rot))
+        for u in u_values,
+            normal_direction in normal_directions
+
+            @test f_rot(u, normal_direction, equations) ≈
+                  f_std(u, normal_direction, equations)
+        end
+    end
+
     @timed_testset "CompressibleEulerEquations2D" begin
         equations = CompressibleEulerEquations2D(1.4)
         normal_directions = [SVector(1.0, 0.0),
