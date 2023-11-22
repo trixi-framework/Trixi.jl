@@ -121,11 +121,10 @@ include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
-include("time_integration/time_integration.jl")
-include("coupling_converters/coupling_converters.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
@@ -150,20 +149,25 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
        ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
-       LinearizedEulerEquations2D
+       ShallowWaterEquationsQuasi1D,
+       LinearizedEulerEquations2D,
+       PolytropicEulerEquations2D
 
-export LaplaceDiffusion1D, LaplaceDiffusion2D,
-       CompressibleNavierStokesDiffusion2D, CompressibleNavierStokesDiffusion3D
+export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
+       CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
+       CompressibleNavierStokesDiffusion3D
 
-export GradientVariablesPrimitive, GradientVariablesEntropy
+export GradientVariablesConservative, GradientVariablesPrimitive, GradientVariablesEntropy
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
-       flux_nonconservative_powell,
+       flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
-       flux_fjordholm_etal, flux_nonconservative_fjordholm_etal, flux_es_fjordholm_etal,
+       flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
+       flux_es_ersing_etal, flux_nonconservative_ersing_etal,
+       flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
 # TODO: TrixiShallowWater: move anything with "chen_noelle" to new file
        hydrostatic_reconstruction_chen_noelle, flux_nonconservative_chen_noelle,
@@ -232,6 +236,9 @@ export DG,
        SurfaceIntegralUpwind,
        MortarL2
 
+export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
+       SubcellLimiterIDP, SubcellLimiterIDPCorrection
+
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
 
@@ -253,12 +260,11 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled
 
-export load_mesh, load_time, load_timestep, load_dt
+export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
+       load_adaptive_time_integrator!
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax,
-       IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven,
-       NeuralNetworkCNN
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax
 
 # TODO: TrixiShallowWater: move new limiter
 export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterShallowWater
@@ -297,10 +303,6 @@ function __init__()
         @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
             include("../ext/TrixiMakieExt.jl")
         end
-    end
-
-    @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
-        using .Flux: params
     end
 
     # FIXME upstream. This is a hacky workaround for

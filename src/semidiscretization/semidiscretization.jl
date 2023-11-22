@@ -335,6 +335,10 @@ function get_element_variables!(element_variables, u_ode,
     get_element_variables!(element_variables, u, mesh_equations_solver_cache(semi)...)
 end
 
+function get_node_variables!(node_variables, semi::AbstractSemidiscretization)
+    get_node_variables!(node_variables, mesh_equations_solver_cache(semi)...)
+end
+
 # To implement AMR and use OrdinaryDiffEq.jl etc., we have to be a bit creative.
 # Since the caches of the SciML ecosystem are immutable structs, we cannot simply
 # change the underlying arrays therein. Hence, to support changing the number of
@@ -363,7 +367,7 @@ end
 #
 # In some sense, having plain multidimensional `Array`s not support `resize!`
 # isn't necessarily a bug (although it would be nice to add this possibility to
-# base Julia) but can turn out to be a feature for us, because it will aloow us
+# base Julia) but can turn out to be a feature for us, because it will allow us
 # more specializations.
 # Since we can use multiple dispatch, these kinds of specializations can be
 # tailored specifically to each combinations of mesh/solver etc.

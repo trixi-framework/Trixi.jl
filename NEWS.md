@@ -4,13 +4,45 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.6 from v0.5.x
+
+#### Added
+- AMR for hyperbolic-parabolic equations on 2D `P4estMesh`
+
+#### Changed
+
+- The wave speed estimates for `flux_hll`, `FluxHLL()` are now consistent across equations.
+  In particular, the functions `min_max_speed_naive`, `min_max_speed_einfeldt` are now 
+  conceptually identical across equations.
+  Users, who have been using `flux_hll` for MHD have now to use `flux_hlle` in order to use the
+  Einfeldt wave speed estimate.
+- Parabolic diffusion terms are now officially supported and not marked as experimental
+  anymore.
+
+#### Deprecated
+
+#### Removed
+
+- The neural network-based shock indicators have been migrated to a new repository
+  [TrixiSmartShockFinder.jl](https://github.com/trixi-framework/TrixiSmartShockFinder.jl).
+  To continue using the indicators, you will need to use both Trixi.jl and
+  TrixiSmartShockFinder.jl, as explained in the latter packages' `README.md`.
+
+
 ## Changes in the v0.5 lifecycle
 
 #### Added
 
 - Experimental support for 3D parabolic diffusion terms has been added.
+- Non-uniform `TreeMesh` available for hyperbolic-parabolic equations.
 - Capability to set truly discontinuous initial conditions in 1D.
 - Wetting and drying feature and examples for 1D and 2D shallow water equations
+- Implementation of the polytropic Euler equations in 2D
+- Implementation of the quasi-1D shallow water equations
+- Subcell (positivity and local min/max) limiting support for conservative variables
+  in 2D for `TreeMesh`
+- AMR for hyperbolic-parabolic equations on 2D/3D `TreeMesh`
+- Added `GradientVariables` type parameter to `AbstractEquationsParabolic`
 
 #### Changed
 
@@ -26,6 +58,9 @@ for human readability.
   does not have `cells_per_dimesion` as a keyword argument.
 
 #### Removed
+
+- Migrate neural network-based shock indicators to a new repository
+  [TrixiSmartShockFinder.jl](https://github.com/trixi-framework/TrixiSmartShockFinder.jl).
 
 
 ## Changes when updating to v0.5 from v0.4.x

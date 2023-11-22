@@ -228,7 +228,7 @@ function Base.show(io::IO, ::MIME"text/plain",
         summary_line(io, "source terms", semi.source_terms)
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "parabolic solver", semi.solver_parabolic |> typeof |> nameof)
-        summary_line(io, "total #DOFs", ndofs(semi))
+        summary_line(io, "total #DOFs per field", ndofs(semi))
         summary_footer(io)
     end
 end
@@ -329,5 +329,20 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabol
     put!(semi.performance_counter.counters[2], runtime)
 
     return nothing
+end
+
+function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u0_ode,
+                              du_ode, config)
+    new_semi = remake(semi, uEltype = eltype(config))
+
+    du_ode_hyp = Vector{eltype(config)}(undef, length(du_ode))
+    J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
+        # Implementation of split ODE problem in OrdinaryDiffEq
+        rhs!(du_ode_hyp, u_ode, new_semi, t0)
+        rhs_parabolic!(du_ode, u_ode, new_semi, t0)
+        du_ode .+= du_ode_hyp
+    end
+
+    return J
 end
 end # @muladd

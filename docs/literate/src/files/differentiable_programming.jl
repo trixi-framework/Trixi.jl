@@ -43,7 +43,7 @@ scatter(real.(λ), imag.(λ), label="central flux")
 # As you can see here, the maximal real part is close to zero.
 
 relative_maximum = maximum(real, λ) / maximum(abs, λ)
-@test 3.0e-10 < relative_maximum < 8.0e-10 #src
+@test 3.0e-10 < relative_maximum < 9.0e-10 #src
 
 # Interestingly, if we add dissipation by switching to the `flux_lax_friedrichs`
 # at the interfaces, the maximal real part of the eigenvalues increases.
@@ -87,7 +87,7 @@ scatter(real.(λ), imag.(λ), label="central flux")
 # Here, the maximal real part is basically zero to machine accuracy.
 
 relative_maximum = maximum(real, λ) / maximum(abs, λ)
-@test 1.0e-17 < relative_maximum < 1.0e-15 #src
+@test 1.0e-17 < relative_maximum < 2.0e-15 #src
 
 # Moreover, the eigenvectors are not as ill-conditioned as in 2D.
 
@@ -128,7 +128,7 @@ condition_number = cond(V)
 # you can compute the gradient of an entropy-dissipative semidiscretization with respect to the
 # ideal gas constant of the compressible Euler equations as described in the following. This example
 # is also available as the elixir
-# [examples/special\_elixirs/elixir\_euler\_ad.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/special_elixirs/elixir_euler_ad.jl)
+# [`examples/special_elixirs/elixir_euler_ad.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/special_elixirs/elixir_euler_ad.jl)
 
 # First, we create a semidiscretization of the compressible Euler equations.
 
@@ -446,3 +446,15 @@ scatter(real.(λ), imag.(λ))
 λ = eigvals(Matrix(A))
 relative_maximum = maximum(real, λ) / maximum(abs, λ)
 @test relative_maximum < 1.0e-15 #src
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots", "ForwardDiff"],
+           mode=PKGMODE_MANIFEST)

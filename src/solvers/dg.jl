@@ -12,6 +12,11 @@ function get_element_variables!(element_variables, u, mesh, equations,
     nothing
 end
 
+function get_node_variables!(node_variables, mesh, equations,
+                             volume_integral::AbstractVolumeIntegral, dg, cache)
+    nothing
+end
+
 """
     VolumeIntegralStrongForm()
 
@@ -35,6 +40,11 @@ standard textbooks.
   Nodal Discontinuous Galerkin Methods: Algorithms, Analysis, and
   Applications
   [doi: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
+
+`VolumeIntegralWeakForm()` is only implemented for conserved terms as 
+non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
+see [`VolumeIntegralFluxDifferencing`](@ref).
+This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
@@ -172,6 +182,64 @@ function Base.show(io::IO, ::MIME"text/plain",
         ]
         summary_box(io, "VolumeIntegralPureLGLFiniteVolume", setup)
     end
+end
+
+"""
+    VolumeIntegralSubcellLimiting(limiter;
+                                  volume_flux_dg, volume_flux_fv)
+
+A subcell limiting volume integral type for DG methods based on subcell blending approaches
+with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
+
+!!! note
+    Subcell limiting methods are not fully functional on non-conforming meshes. This is
+    mainly because the implementation assumes that low- and high-order schemes have the same
+    surface terms, which is not guaranteed for non-conforming meshes. The low-order scheme
+    with a high-order mortar is not invariant domain preserving.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
+       AbstractVolumeIntegral
+    volume_flux_dg::VolumeFluxDG
+    volume_flux_fv::VolumeFluxFV
+    limiter::Limiter
+end
+
+function VolumeIntegralSubcellLimiting(limiter; volume_flux_dg,
+                                       volume_flux_fv)
+    VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
+                                  typeof(limiter)}(volume_flux_dg, volume_flux_fv,
+                                                   limiter)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain",
+                   integral::VolumeIntegralSubcellLimiting)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        summary_header(io, "VolumeIntegralSubcellLimiting")
+        summary_line(io, "volume flux DG", integral.volume_flux_dg)
+        summary_line(io, "volume flux FV", integral.volume_flux_fv)
+        summary_line(io, "limiter", integral.limiter |> typeof |> nameof)
+        show(increment_indent(io), mime, integral.limiter)
+        summary_footer(io)
+    end
+end
+
+function get_node_variables!(node_variables, mesh, equations,
+                             volume_integral::VolumeIntegralSubcellLimiting, dg, cache)
+    # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
+    # called here to get up-to-date values for IO, this is not easily possible in this case
+    # because the calculation is very integrated into the method.
+    # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
+    # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
+    # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
+    get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
+                        equations)
 end
 
 # TODO: FD. Should this definition live in a different file because it is
@@ -361,6 +429,10 @@ Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
     get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral,
                            dg, cache)
+end
+
+function get_node_variables!(node_variables, mesh, equations, dg::DG, cache)
+    get_node_variables!(node_variables, mesh, equations, dg.volume_integral, dg, cache)
 end
 
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh,

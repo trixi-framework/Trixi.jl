@@ -5,7 +5,7 @@ conservation laws. Thus, it is not a monolithic PDE solver that is configured at
 via parameter files, as it is often found in classical numerical simulation codes.
 Instead, each simulation is configured by pure Julia code. Many examples of such
 simulation setups, called *elixirs* in Trixi.jl, are provided in the
-[examples](https://github.com/trixi-framework/Trixi.jl/blob/main/examples)
+[`examples/`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples)
 folder.
 
 Trixi.jl uses the method of lines, i.e., the full space-time discretization is separated into two steps;
@@ -16,7 +16,7 @@ to solve a PDE numerically are the spatial semidiscretization and the time
 integration scheme.
 
 
-## Semidiscretizations
+## [Semidiscretizations](@id overview-semidiscretizations)
 
 Semidiscretizations are high-level descriptions of spatial discretizations
 specialized for certain PDEs. Trixi.jl's main focus is on hyperbolic conservation
@@ -55,14 +55,14 @@ different features on different mesh types.
 | Element type                                                 | line, square, cube |     line, quadᵃ, hexᵃ    |             quadᵃ            |     quadᵃ, hexᵃ     |    simplex, quadᵃ, hexᵃ    |
 | Adaptive mesh refinement                                     |          ✅         |             ❌            |               ❌              |          ✅          |               ❌            | [`AMRCallback`](@ref)
 | Solver type                                                  |   [`DGSEM`](@ref)  |      [`DGSEM`](@ref)     |        [`DGSEM`](@ref)       |   [`DGSEM`](@ref)   |       [`DGMulti`](@ref)    |
-| Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |      arbitrary      |       arbitraryᵇ   |
+| Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |      arbitrary      |       arbitrary    |
 | Weak form                                                    |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | [`VolumeIntegralWeakForm`](@ref)
 | Flux differencing                                            |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | [`VolumeIntegralFluxDifferencing`](@ref)
 | Shock capturing                                              |          ✅         |             ✅            |               ✅              |          ✅          |               ❌            | [`VolumeIntegralShockCapturingHG`](@ref)
 | Nonconservative equations                                    |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | e.g., GLM MHD or shallow water equations
+| Parabolic terms                                              |          ✅         |             ✅            |               ❌              |          ✅          |               ✅            | e.g., [`CompressibleNavierStokesDiffusion2D`](@ref)
 
 ᵃ: quad = quadrilateral, hex = hexahedron
-ᵇ: curved meshes supported for `SBP` and `GaussSBP` approximation types for `VolumeIntegralFluxDifferencing` solvers on quadrilateral and hexahedral `DGMultiMesh`es (non-conservative terms not yet supported)
 
 ## Time integration methods
 
@@ -77,7 +77,7 @@ Further information can be found in the
 ## Next steps
 
 We explicitly encourage people interested in Trixi.jl to have a look at the
-[examples](https://github.com/trixi-framework/Trixi.jl/blob/main/examples)
+[`examples/`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples)
 bundled with Trixi.jl to get an impression of what is possible and the general
 look and feel of Trixi.jl.
 Before doing that, it is usually good to get an idea of
