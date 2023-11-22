@@ -34,7 +34,7 @@ Hence, you should at least investigate the performance roughly by comparing the 
 timings of several elixirs. Deeper investigations and micro-benchmarks should usually use
 [BenchmarkTools.jl](https://github.com/JuliaCI/BenchmarkTools.jl).
 For example, the following steps were used to benchmark the changes introduced in
-https://github.com/trixi-framework/Trixi.jl/pull/256.
+[PR #256](https://github.com/trixi-framework/Trixi.jl/pull/256).
 
 1. `git checkout e7ebf3846b3fd62ee1d0042e130afb50d7fe8e48` (new version)
 2. Start `julia --threads=1 --check-bounds=no`.
