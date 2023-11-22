@@ -1836,7 +1836,6 @@ end
 @inline function get_boundary_outer_state(u_inner, cache, t, boundary_condition,
                                           orientation_or_normal, direction, equations,
                                           dg, indices...)
-                                          error("rr")
     return u_inner
 end
 

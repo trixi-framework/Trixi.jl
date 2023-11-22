@@ -74,10 +74,10 @@ end
 
 # Note: Only for StructuredMesh
 @inline function Trixi.get_boundary_outer_state(u_inner, cache, t,
-                                          boundary_condition::typeof(boundary_condition_mixed_characteristic_wall),
-                                          normal_direction::AbstractVector, direction,
-                                          equations,
-                                          dg, indices...)
+                                                boundary_condition::typeof(boundary_condition_mixed_characteristic_wall),
+                                                normal_direction::AbstractVector, direction,
+                                                equations,
+                                                dg, indices...)
     x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, indices...)
     if x[1] < 1 / 6 # BoundaryConditionCharacteristic
         u_outer = Trixi.characteristic_boundary_value_function(initial_condition_double_mach_reflection,
