@@ -54,7 +54,7 @@ end
     end
 end
 
-@trixi_testset "elixir_advection_basic.jl" begin
+@trixi_testset "elixir_advection_basic.jl (No errors)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         analysis_callback=AnalysisCallback(semi, interval = 42,
                                                            analysis_errors = Symbol[]))
