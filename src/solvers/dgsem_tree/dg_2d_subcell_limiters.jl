@@ -83,7 +83,7 @@ function calc_volume_integral!(du, u,
                                                                         cache)
 
     if limiter.smoothness_indicator
-        @unpack element_ids_dg, element_ids_dgfv = cache
+        (; element_ids_dg, element_ids_dgfv) = cache
         # Calculate element-wise blending factors α
         alpha_element = @trixi_timeit timer() "element-wise blending factors" limiter.IndicatorHG(u,
                                                                                                   mesh,
@@ -178,11 +178,11 @@ end
                                           nonconservative_terms::False, equations,
                                           volume_integral, limiter::SubcellLimiterMCL,
                                           dg::DGSEM, cache)
-    @unpack inverse_weights = dg.basis
-    @unpack volume_flux_dg, volume_flux_fv = volume_integral
+    (; inverse_weights) = dg.basis
+    (; volume_flux_dg, volume_flux_fv) = volume_integral
 
     # high-order DG fluxes
-    @unpack fhat1_L_threaded, fhat1_R_threaded, fhat2_L_threaded, fhat2_R_threaded = cache
+    (; fhat1_L_threaded, fhat1_R_threaded, fhat2_L_threaded, fhat2_R_threaded) = cache
     fhat1_L = fhat1_L_threaded[Threads.threadid()]
     fhat1_R = fhat1_R_threaded[Threads.threadid()]
     fhat2_L = fhat2_L_threaded[Threads.threadid()]
@@ -192,7 +192,7 @@ end
                    cache)
 
     # low-order FV fluxes
-    @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
+    (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded) = cache
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar2_L = fstar2_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
@@ -212,7 +212,7 @@ end
                                     limiter, dg, element, cache,
                                     fstar1_L, fstar2_L)
 
-    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
+    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     for j in eachnode(dg), i in eachnode(dg)
         for v in eachvariable(equations)
             du[v, i, j, element] += inverse_weights[i] *
@@ -582,7 +582,7 @@ end
                                          u, mesh,
                                          nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterMCL, dg, element, cache)
-    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
+    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
 
     for j in eachnode(dg), i in 2:nnodes(dg)
         for v in eachvariable(equations)
@@ -619,7 +619,7 @@ end
                                          u, mesh,
                                          nonconservative_terms::True, equations,
                                          limiter::SubcellLimiterMCL, dg, element, cache)
-    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
+    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
 
     for j in eachnode(dg), i in 2:nnodes(dg)
         for v in eachvariable(equations)
@@ -658,7 +658,7 @@ end
     if limiter isa SubcellLimiterIDP && !limiter.bar_states
         return nothing
     end
-    @unpack lambda1, lambda2, bar_states1, bar_states2 = limiter.cache.container_bar_states
+    (; lambda1, lambda2, bar_states1, bar_states2) = limiter.cache.container_bar_states
 
     # Calc lambdas and bar states inside elements
     @threaded for element in eachelement(dg, cache)
@@ -857,8 +857,8 @@ end
     if !limiter.bar_states
         return nothing
     end
-    @unpack variable_bounds = limiter.cache.subcell_limiter_coefficients
-    @unpack bar_states1, bar_states2 = limiter.cache.container_bar_states
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    (; bar_states1, bar_states2) = limiter.cache.container_bar_states
 
     # state variables
     if limiter.local_minmax
@@ -908,27 +908,34 @@ end
             for j in eachnode(dg), i in eachnode(dg)
                 s_min[i, j, element] = typemax(eltype(s_min))
             end
+            # FV solution at node (i, j)
             for j in eachnode(dg), i in eachnode(dg)
                 s = entropy_spec(get_node_vars(u, equations, dg, i, j, element),
                                  equations)
                 s_min[i, j, element] = min(s_min[i, j, element], s)
-                # TODO: Add source?
-                # - xi direction
+                # TODO: Add source term!
+            end
+            # xi direction: subcell face between (i-1, j) and (i, j)
+            for j in eachnode(dg), i in 1:(nnodes(dg) + 1)
                 s = entropy_spec(get_node_vars(bar_states1, equations, dg, i, j,
                                                element), equations)
-                s_min[i, j, element] = min(s_min[i, j, element], s)
-                # + xi direction
-                s = entropy_spec(get_node_vars(bar_states1, equations, dg, i + 1, j,
-                                               element), equations)
-                s_min[i, j, element] = min(s_min[i, j, element], s)
-                # - eta direction
+                if i <= nnodes(dg)
+                    s_min[i, j, element] = min(s_min[i, j, element], s)
+                end
+                if i > 1
+                    s_min[i - 1, j, element] = min(s_min[i - 1, j, element], s)
+                end
+            end
+            # eta direction: subcell face between (i, j-1) and (i, j)
+            for j in 1:(nnodes(dg) + 1), i in eachnode(dg)
                 s = entropy_spec(get_node_vars(bar_states2, equations, dg, i, j,
                                                element), equations)
-                s_min[i, j, element] = min(s_min[i, j, element], s)
-                # + eta direction
-                s = entropy_spec(get_node_vars(bar_states2, equations, dg, i, j + 1,
-                                               element), equations)
-                s_min[i, j, element] = min(s_min[i, j, element], s)
+                if j <= nnodes(dg)
+                    s_min[i, j, element] = min(s_min[i, j, element], s)
+                end
+                if j > 1
+                    s_min[i, j - 1, element] = min(s_min[i, j - 1, element], s)
+                end
             end
         end
     end
@@ -939,26 +946,34 @@ end
             for j in eachnode(dg), i in eachnode(dg)
                 s_max[i, j, element] = typemin(eltype(s_max))
             end
+            # FV solution at node (i, j)
             for j in eachnode(dg), i in eachnode(dg)
                 s = entropy_math(get_node_vars(u, equations, dg, i, j, element),
                                  equations)
                 s_max[i, j, element] = max(s_max[i, j, element], s)
-                # - xi direction
+                # TODO: Add source term!
+            end
+            # xi direction: subcell face between (i-1, j) and (i, j)
+            for j in eachnode(dg), i in 1:(nnodes(dg) + 1)
                 s = entropy_math(get_node_vars(bar_states1, equations, dg, i, j,
                                                element), equations)
-                s_max[i, j, element] = max(s_max[i, j, element], s)
-                # + xi direction
-                s = entropy_math(get_node_vars(bar_states1, equations, dg, i + 1, j,
-                                               element), equations)
-                s_max[i, j, element] = max(s_max[i, j, element], s)
-                # - eta direction
+                if i <= nnodes(dg)
+                    s_max[i, j, element] = max(s_max[i, j, element], s)
+                end
+                if i > 1
+                    s_max[i - 1, j, element] = max(s_max[i - 1, j, element], s)
+                end
+            end
+            # eta direction: subcell face between (i, j-1) and (i, j)
+            for j in 1:(nnodes(dg) + 1), i in eachnode(dg)
                 s = entropy_math(get_node_vars(bar_states2, equations, dg, i, j,
                                                element), equations)
-                s_max[i, j, element] = max(s_max[i, j, element], s)
-                # + eta direction
-                s = entropy_math(get_node_vars(bar_states2, equations, dg, i, j + 1,
-                                               element), equations)
-                s_max[i, j, element] = max(s_max[i, j, element], s)
+                if j <= nnodes(dg)
+                    s_max[i, j, element] = max(s_max[i, j, element], s)
+                end
+                if j > 1
+                    s_max[i, j - 1, element] = max(s_max[i, j - 1, element], s)
+                end
             end
         end
     end
@@ -968,8 +983,8 @@ end
 
 @inline function calc_variable_bounds!(u, mesh, nonconservative_terms, equations,
                                        limiter::SubcellLimiterMCL, dg, cache)
-    @unpack var_min, var_max = limiter.cache.subcell_limiter_coefficients
-    @unpack bar_states1, bar_states2, lambda1, lambda2 = limiter.cache.container_bar_states
+    (; var_min, var_max) = limiter.cache.subcell_limiter_coefficients
+    (; bar_states1, bar_states2) = limiter.cache.container_bar_states
 
     @threaded for element in eachelement(dg, cache)
         for v in eachvariable(equations)
@@ -1108,13 +1123,13 @@ end
                                                  equations, limiter, dg, element,
                                                  cache,
                                                  fstar1, fstar2)
-    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
-    @unpack var_min, var_max = limiter.cache.subcell_limiter_coefficients
-    @unpack bar_states1, bar_states2, lambda1, lambda2 = limiter.cache.container_bar_states
+    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
+    (; var_min, var_max) = limiter.cache.subcell_limiter_coefficients
+    (; bar_states1, bar_states2, lambda1, lambda2) = limiter.cache.container_bar_states
 
     if limiter.Plotting
-        @unpack alpha, alpha_pressure, alpha_entropy,
-        alpha_mean, alpha_mean_pressure, alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
+        (; alpha, alpha_pressure, alpha_entropy, alpha_mean,
+        alpha_mean_pressure, alpha_mean_entropy) = limiter.cache.subcell_limiter_coefficients
         for j in eachnode(dg), i in eachnode(dg)
             alpha_mean[:, i, j, element] .= zero(eltype(alpha_mean))
             alpha[:, i, j, element] .= one(eltype(alpha))
@@ -1167,7 +1182,7 @@ end
                 end
 
                 if limiter.Plotting
-                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
+                    (; alpha, alpha_mean) = limiter.cache.subcell_limiter_coefficients
                     alpha[1, i - 1, j, element] = min(alpha[1, i - 1, j, element],
                                                       coefficient)
                     alpha[1, i, j, element] = min(alpha[1, i, j, element], coefficient)
@@ -1219,7 +1234,7 @@ end
                 end
 
                 if limiter.Plotting
-                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
+                    (; alpha, alpha_mean) = limiter.cache.subcell_limiter_coefficients
                     alpha[1, i, j - 1, element] = min(alpha[1, i, j - 1, element],
                                                       coefficient)
                     alpha[1, i, j, element] = min(alpha[1, i, j, element], coefficient)
@@ -1282,7 +1297,7 @@ end
                                           (g_limited + sign(g_limited) * eps()) /
                                           (g + sign(g_limited) * eps()))
                     end
-                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
+                    (; alpha, alpha_mean) = limiter.cache.subcell_limiter_coefficients
                     alpha[v, i - 1, j, element] = min(alpha[v, i - 1, j, element],
                                                       coefficient)
                     alpha[v, i, j, element] = min(alpha[v, i, j, element], coefficient)
@@ -1333,7 +1348,7 @@ end
                                           (g_limited + sign(g_limited) * eps()) /
                                           (g + sign(g_limited) * eps()))
                     end
-                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
+                    (; alpha, alpha_mean) = limiter.cache.subcell_limiter_coefficients
                     alpha[v, i, j - 1, element] = min(alpha[v, i, j - 1, element],
                                                       coefficient)
                     alpha[v, i, j, element] = min(alpha[v, i, j, element], coefficient)
@@ -1377,7 +1392,7 @@ end
                                           (antidiffusive_flux1_L[v, i, j, element] +
                                            sign(flux_limited) * eps()))
                     end
-                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
+                    (; alpha, alpha_mean) = limiter.cache.subcell_limiter_coefficients
                     alpha[v, i - 1, j, element] = min(alpha[v, i - 1, j, element],
                                                       coefficient)
                     alpha[v, i, j, element] = min(alpha[v, i, j, element], coefficient)
@@ -1417,7 +1432,7 @@ end
                                           (antidiffusive_flux2_L[v, i, j, element] +
                                            sign(flux_limited) * eps()))
                     end
-                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
+                    (; alpha, alpha_mean) = limiter.cache.subcell_limiter_coefficients
                     alpha[v, i, j - 1, element] = min(alpha[v, i, j - 1, element],
                                                       coefficient)
                     alpha[v, i, j, element] = min(alpha[v, i, j, element], coefficient)
@@ -1456,7 +1471,7 @@ end
                 end
 
                 if limiter.Plotting
-                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
+                    (; alpha, alpha_mean) = limiter.cache.subcell_limiter_coefficients
                     alpha[1, i - 1, j, element] = min(alpha[1, i - 1, j, element],
                                                       coefficient)
                     alpha[1, i, j, element] = min(alpha[1, i, j, element], coefficient)
@@ -1504,7 +1519,7 @@ end
                 end
 
                 if limiter.Plotting
-                    @unpack alpha, alpha_mean = limiter.cache.subcell_limiter_coefficients
+                    (; alpha, alpha_mean) = limiter.cache.subcell_limiter_coefficients
                     alpha[1, i, j - 1, element] = min(alpha[1, i, j - 1, element],
                                                       coefficient)
                     alpha[1, i, j, element] = min(alpha[1, i, j, element], coefficient)
@@ -1531,7 +1546,7 @@ end
 
     # Divide alpha_mean by number of additions
     if limiter.Plotting
-        @unpack alpha_mean = limiter.cache.subcell_limiter_coefficients
+        (; alpha_mean) = limiter.cache.subcell_limiter_coefficients
         # Interfaces contribute with 1.0
         if limiter.density_limiter || limiter.positivity_limiter_density
             for i in eachnode(dg)
@@ -1561,7 +1576,7 @@ end
 
     # Limit pressure à la Kuzmin
     if limiter.positivity_limiter_pressure
-        @unpack alpha_pressure, alpha_mean_pressure = limiter.cache.subcell_limiter_coefficients
+        (; alpha_pressure, alpha_mean_pressure) = limiter.cache.subcell_limiter_coefficients
         for j in eachnode(dg), i in 2:nnodes(dg)
             bar_state_velocity = bar_states1[2, i, j, element]^2 +
                                  bar_states1[3, i, j, element]^2
@@ -1672,7 +1687,7 @@ end
             end
         end
         if limiter.Plotting
-            @unpack alpha_mean_pressure = limiter.cache.subcell_limiter_coefficients
+            (; alpha_mean_pressure) = limiter.cache.subcell_limiter_coefficients
             # Interfaces contribute with 1.0
             for i in eachnode(dg)
                 alpha_mean_pressure[i, 1, element] += 1.0
@@ -1729,7 +1744,7 @@ end
                 end
             end
             if limiter.Plotting
-                @unpack alpha_entropy, alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
+                (; alpha_entropy, alpha_mean_entropy) = limiter.cache.subcell_limiter_coefficients
                 alpha_entropy[i - 1, j, element] = min(alpha_entropy[i - 1, j, element],
                                                        alpha)
                 alpha_entropy[i, j, element] = min(alpha_entropy[i, j, element], alpha)
@@ -1777,7 +1792,7 @@ end
                 end
             end
             if limiter.Plotting
-                @unpack alpha_entropy, alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
+                (; alpha_entropy, alpha_mean_entropy) = limiter.cache.subcell_limiter_coefficients
                 alpha_entropy[i, j - 1, element] = min(alpha_entropy[i, j - 1, element],
                                                        alpha)
                 alpha_entropy[i, j, element] = min(alpha_entropy[i, j, element], alpha)
@@ -1786,7 +1801,7 @@ end
             end
         end
         if limiter.Plotting
-            @unpack alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
+            (; alpha_mean_entropy) = limiter.cache.subcell_limiter_coefficients
             # Interfaces contribute with 1.0
             for i in eachnode(dg)
                 alpha_mean_entropy[i, 1, element] += 1.0
