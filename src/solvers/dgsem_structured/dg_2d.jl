@@ -6,7 +6,7 @@
 #! format: noindent
 
 function rhs!(du, u, t,
-              mesh::Union{StructuredMesh{2},StructuredMeshView{2}}, equations,
+              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}}, equations,
               initial_condition, boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
@@ -388,7 +388,7 @@ end
 end
 
 function calc_interface_flux!(cache, u,
-                              mesh::Union{StructuredMesh{2},StructuredMeshView{2}},
+                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
                               nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG)
     @unpack elements = cache
@@ -417,7 +417,8 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
-                                      mesh::Union{StructuredMesh{2},StructuredMeshView{2}},
+                                      mesh::Union{StructuredMesh{2},
+                                                  StructuredMeshView{2}},
                                       nonconservative_terms::False, equations,
                                       surface_integral, dg::DG, cache)
     # This is slow for LSA, but for some reason faster for Euler (see #519)
@@ -552,13 +553,14 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::Union{StructuredMesh{2},StructuredMeshView{2}},
+                             mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
                              equations, surface_integral, dg::DG)
     @assert isperiodic(mesh)
 end
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
-                             mesh::Union{StructuredMesh{2},StructuredMeshView{2}}, equations, surface_integral,
+                             mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
+                             equations, surface_integral,
                              dg::DG)
     @unpack surface_flux_values = cache.elements
     linear_indices = LinearIndices(size(mesh))

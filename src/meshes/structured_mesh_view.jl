@@ -9,8 +9,8 @@ mutable struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
 end
 
 function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
-    index_min=ntuple(_ -> 1, Val(NDIMS)),
-    index_max=size(parent)) where {NDIMS, RealT}
+                            index_min = ntuple(_ -> 1, Val(NDIMS)),
+                            index_max = size(parent)) where {NDIMS, RealT}
     @assert index_min <= index_max
     @assert all(index_min .> 0)
     @assert index_max <= size(parent)

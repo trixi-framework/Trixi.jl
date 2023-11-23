@@ -1085,8 +1085,9 @@ end
     return nothing
 end
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                                   StructuredMeshView{2}},
+function calc_surface_integral!(du, u,
+                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                            StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DG, cache)
     @unpack boundary_interpolation = dg.basis

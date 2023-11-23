@@ -30,7 +30,8 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{2},
 end
 
 function create_cache_analysis(analyzer,
-                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2}, UnstructuredMesh2D,
+                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                           UnstructuredMesh2D,
                                            P4estMesh{2}, T8codeMesh{2}},
                                equations, dg::DG, cache,
                                RealT, uEltype)
@@ -177,7 +178,8 @@ end
 
 function integrate_via_indices(func::Func, u,
                                mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                           UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                                           UnstructuredMesh2D, P4estMesh{2},
+                                           T8codeMesh{2}},
                                equations,
                                dg::DGSEM, cache, args...; normalize = true) where {Func}
     @unpack weights = dg.basis

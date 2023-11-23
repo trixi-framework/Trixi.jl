@@ -31,18 +31,18 @@ mesh2 = StructuredMeshView(parent; index_min = (9, 1), index_max = (16, 16))
 # Define the coupled boundary conditions
 boundary_conditions1 = (
                         # Connect left boundary with right boundary of left mesh
-                        x_neg=BoundaryConditionCoupled(2, (:end, :i_forward), Float64),
-                        x_pos=BoundaryConditionCoupled(2, (:begin, :i_forward), Float64),
-#                         x_neg = boundary_condition_periodic,
-#                         x_pos = boundary_condition_periodic,
+                        x_neg = BoundaryConditionCoupled(2, (:end, :i_forward), Float64),
+                        x_pos = BoundaryConditionCoupled(2, (:begin, :i_forward), Float64),
+                        #                         x_neg = boundary_condition_periodic,
+                        #                         x_pos = boundary_condition_periodic,
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
 boundary_conditions2 = (
                         # Connect left boundary with right boundary of left mesh
-                        x_neg=BoundaryConditionCoupled(1, (:end, :i_forward), Float64),
-                        x_pos=BoundaryConditionCoupled(1, (:begin, :i_forward), Float64),
-#                         x_neg = boundary_condition_periodic,
-#                         x_pos = boundary_condition_periodic,
+                        x_neg = BoundaryConditionCoupled(1, (:end, :i_forward), Float64),
+                        x_pos = BoundaryConditionCoupled(1, (:begin, :i_forward), Float64),
+                        #                         x_neg = boundary_condition_periodic,
+                        #                         x_pos = boundary_condition_periodic,
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
 
