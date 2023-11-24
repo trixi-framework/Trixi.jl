@@ -12,7 +12,7 @@ function initial_condition_ec(x, t, equations::CompressibleEulerEquationsQuasi1D
     rho = 2.0 + 0.1 * x[1]
     p = 3.0
     a = 2.0 + x[1]
-    
+
     return prim2cons(SVector(rho, v1, p, a), equations)
 end
 
