@@ -8,7 +8,7 @@ using ForwardDiff
 
 equations = CompressibleEulerEquationsQuasi1D(1.4)
 
-initial_condition = initial_condition_convergance_test
+initial_condition = initial_condition_convergence_test
 
 volume_flux = (flux_chan_etal, flux_nonconservative_chan_etal)
 surface_flux = volume_flux

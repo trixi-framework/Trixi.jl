@@ -70,13 +70,13 @@ function varnames(::typeof(cons2prim), ::CompressibleEulerEquationsQuasi1D)
 end
 
 """
-    initial_condition_convergance_test(x, t, equations::CompressibleEulerEquationsQuasi1D)
+    initial_condition_convergence_test(x, t, equations::CompressibleEulerEquationsQuasi1D)
 
 A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
-function initial_condition_convergance_test(x, t,
+function initial_condition_convergence_test(x, t,
                                             equations::CompressibleEulerEquationsQuasi1D)
     c = 2
     A = 0.1
@@ -102,11 +102,11 @@ Source terms used for convergence tests in combination with
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 
 This manufactured solution source term is specifically designed for the mozzle width 'a(x) = 1.5 - 0.5 * cos(x[1] * pi)'
-as defined in [`initial_condition_convergance_test`](@ref).
+as defined in [`initial_condition_convergence_test`](@ref).
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerEquationsQuasi1D)
-    # Same settings as in `initial_condition_convergance_test`. 
+    # Same settings as in `initial_condition_convergence_test`. 
     #Derivatives calculated with ForwardDiff.jl
     c = 2
     A = 0.1
