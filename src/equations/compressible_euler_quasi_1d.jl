@@ -6,9 +6,9 @@
 #! format: noindent
 
 @doc raw"""
-    CompressibleEulerEquations1D(gamma)
+    CompressibleEulerEquationsQuasi1D(gamma)
 
-The compressible Euler equations
+The quasi-1d compressible Euler equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
@@ -30,7 +30,8 @@ a \frac{\partial}{\partial x}
 \end{pmatrix}
 ```
 for an ideal gas with ratio of specific heats `gamma` in one space dimension.
-Here, ``\rho`` is the density, ``v_1`` the velocity, ``e`` the specific total energy **rather than** specific internal energy, ``a`` the (possibly) variable nozzle width, and
+Here, ``\rho`` is the density, ``v_1`` the velocity, ``e`` the specific total energy **rather than** specific internal energy, 
+``a`` the (possibly) variable nozzle width, and
 ```math
 p = (\gamma - 1) \left( e - \frac{1}{2} \rho v_1^2 \right)
 ```
@@ -64,7 +65,9 @@ have_nonconservative_terms(::CompressibleEulerEquationsQuasi1D) = Trixi.True()
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquationsQuasi1D)
     ("a_rho", "a_rho_v1", "a_e", "a")
 end
-varnames(::typeof(cons2prim), ::CompressibleEulerEquationsQuasi1D) = ("rho", "v1", "p", "a")
+function varnames(::typeof(cons2prim), ::CompressibleEulerEquationsQuasi1D)
+    ("rho", "v1", "p", "a")
+end
 
 """
     initial_condition_convergance_test(x, t, equations::CompressibleEulerEquationsQuasi1D)
@@ -73,7 +76,8 @@ A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
-function initial_condition_convergance_test(x, t, equations::CompressibleEulerEquationsQuasi1D)
+function initial_condition_convergance_test(x, t,
+                                            equations::CompressibleEulerEquationsQuasi1D)
     c = 2
     A = 0.1
     L = 2
@@ -83,10 +87,10 @@ function initial_condition_convergance_test(x, t, equations::CompressibleEulerEq
 
     rho = ini
     v1 = 1.0
-    e = ini^2 / rho 
+    e = ini^2 / rho
     p = (equations.gamma - 1) * (e - 0.5 * rho * v1^2)
     a = 1.5 - 0.5 * cos(x[1] * pi)
-    
+
     return prim2cons(SVector(rho, v1, p, a), equations)
 end
 
@@ -102,7 +106,7 @@ as defined in [`initial_condition_convergance_test`](@ref).
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerEquationsQuasi1D)
-    # Same settings as in `initial_condition`. 
+    # Same settings as in `initial_condition_convergance_test`. 
     #Derivatives calculated with ForwardDiff.jl
     c = 2
     A = 0.1
@@ -110,41 +114,40 @@ as defined in [`initial_condition_convergance_test`](@ref).
     f = 1 / L
     ω = 2 * pi * f
     x1, = x
-    ini(x1,t) = c + A * sin(ω * (x1 - t))
+    ini(x1, t) = c + A * sin(ω * (x1 - t))
 
-    rho(x1,t) = ini(x1,t)
+    rho(x1, t) = ini(x1, t)
     v1(x1, t) = 1.0
-    e(x1,t) = ini(x1,t)^2 / rho(x1,t)
-    p1(x1,t) = (equations.gamma - 1) * (e(x1,t) - 0.5 * rho(x1,t) * v1(x1,t)^2)
-    a(x1,t) =  1.5 - 0.5 * cos(x1 * pi)
-    
-    arho(x1,t) = a(x1,t) * rho(x1,t)
-    arhou(x1,t) = arho(x1,t) * v1(x1,t)
-    aE(x1,t) = a(x1,t) * e(x1,t)
-    
-    darho_dt(x1,t) = ForwardDiff.derivative(t->arho(x1,t), t)
-    darhou_dx(x1,t) = ForwardDiff.derivative(x1->arhou(x1,t), x1)
-    
-    arhouu(x1,t) = arhou(x1,t) * v1(x1,t)
-    darhou_dt(x1,t) = ForwardDiff.derivative(t->arhou(x1,t), t)
-    darhouu_dx(x1,t) = ForwardDiff.derivative(x1->arhouu(x1,t), x1)
-    dp1_dx(x1,t) = ForwardDiff.derivative(x1->p1(x1,t), x1)
-    
-    auEp(x1,t) = a(x1,t) * v1(x1,t) * (e(x1,t) + p1(x1,t))
-    daE_dt(x1,t) = ForwardDiff.derivative(t->aE(x1, t), t)
-    dauEp_dx(x1,t) = ForwardDiff.derivative(x1->auEp(x1,t), x1)
+    e(x1, t) = ini(x1, t)^2 / rho(x1, t)
+    p1(x1, t) = (equations.gamma - 1) * (e(x1, t) - 0.5 * rho(x1, t) * v1(x1, t)^2)
+    a(x1, t) = 1.5 - 0.5 * cos(x1 * pi)
 
+    arho(x1, t) = a(x1, t) * rho(x1, t)
+    arhou(x1, t) = arho(x1, t) * v1(x1, t)
+    aE(x1, t) = a(x1, t) * e(x1, t)
 
-    du1 = darho_dt(x1,t) + darhou_dx(x1,t)
-    du2 = darhou_dt(x1,t) + darhouu_dx(x1,t) + a(x1,t) * dp1_dx(x1,t) 
-    du3 = daE_dt(x1,t) + dauEp_dx(x1,t)
-    
+    darho_dt(x1, t) = ForwardDiff.derivative(t -> arho(x1, t), t)
+    darhou_dx(x1, t) = ForwardDiff.derivative(x1 -> arhou(x1, t), x1)
+
+    arhouu(x1, t) = arhou(x1, t) * v1(x1, t)
+    darhou_dt(x1, t) = ForwardDiff.derivative(t -> arhou(x1, t), t)
+    darhouu_dx(x1, t) = ForwardDiff.derivative(x1 -> arhouu(x1, t), x1)
+    dp1_dx(x1, t) = ForwardDiff.derivative(x1 -> p1(x1, t), x1)
+
+    auEp(x1, t) = a(x1, t) * v1(x1, t) * (e(x1, t) + p1(x1, t))
+    daE_dt(x1, t) = ForwardDiff.derivative(t -> aE(x1, t), t)
+    dauEp_dx(x1, t) = ForwardDiff.derivative(x1 -> auEp(x1, t), x1)
+
+    du1 = darho_dt(x1, t) + darhou_dx(x1, t)
+    du2 = darhou_dt(x1, t) + darhouu_dx(x1, t) + a(x1, t) * dp1_dx(x1, t)
+    du3 = daE_dt(x1, t) + dauEp_dx(x1, t)
+
     return SVector(du1, du2, du3, 0.0)
 end
 
 """
     boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
-                                 surface_flux_function, equations::CompressibleEulerEquations1D)
+                                 surface_flux_function, equations::CompressibleEulerEquationsQuasi1D)
 Determine the boundary numerical surface flux for a slip wall condition.
 Imposes a zero normal velocity at the wall.
 Density is taken from the internal solution state and pressure is computed as an
@@ -195,16 +198,17 @@ are available in the paper:
 end
 
 # Calculate 1D flux for a single point
-@inline function Trixi.flux(u, orientation::Integer, equations::CompressibleEulerEquationsQuasi1D)
+@inline function Trixi.flux(u, orientation::Integer,
+                            equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     rho, v1, p, a = cons2prim(u, equations)
     e = a_e / a
-    
+
     # Ignore orientation since it is always "1" in 1D
     f1 = a_rho_v1
-    f2 = a_rho_v1 * v1 
+    f2 = a_rho_v1 * v1
     f3 = a * v1 * (e + p)
-    
+
     return SVector(f1, f2, f3, zero(eltype(u)))
 end
 
@@ -227,11 +231,11 @@ Further details are available in the paper:
     #Variables
     _, _, p_ll, a_ll = cons2prim(u_ll, equations)
     _, _, p_rr, _ = cons2prim(u_rr, equations)
-    
+
     p_avg = 0.5 * (p_ll + p_rr)
 
     z = zero(eltype(u_ll))
-    
+
     return SVector(z, 2 * a_ll * p_avg, z, z)
 end
 
@@ -248,7 +252,7 @@ Further details are available in the paper:
   [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)     
 """
 @inline function flux_chan_etal(u_ll, u_rr, orientation::Integer,
-                                           equations::CompressibleEulerEquationsQuasi1D)
+                                equations::CompressibleEulerEquationsQuasi1D)
     # Unpack left and right state
     rho_ll, v1_ll, p_ll, a_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, p_rr, a_rr = cons2prim(u_rr, equations)
@@ -261,7 +265,7 @@ Further details are available in the paper:
     #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
     inv_rho_p_mean = p_ll * p_rr * Trixi.inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
     v1_avg = 0.5 * (v1_ll + v1_rr)
-    a_v1_avg = 0.5 * (a_ll * v1_ll + a_rr * v1_rr) 
+    a_v1_avg = 0.5 * (a_ll * v1_ll + a_rr * v1_rr)
     p_avg = 0.5 * (p_ll + p_rr)
     velocity_square_avg = 0.5 * (v1_ll * v1_rr)
 
@@ -271,7 +275,7 @@ Further details are available in the paper:
     f2 = rho_mean * a_v1_avg * v1_avg
     f3 = f1 * (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one) +
          0.5 * (p_ll * a_rr * v1_rr + p_rr * a_ll * v1_ll)
-    
+
     return SVector(f1, f2, f3, zero(eltype(u_ll)))
 end
 
@@ -303,7 +307,7 @@ end
     a_rho, a_rho_v1, a_e, a = u
     rho = a_rho / a
     v1 = a_rho_v1 / a_rho
-    e = a_e / a 
+    e = a_e / a
     p = (equations.gamma - 1) * (e - 0.5 * rho * v1^2)
     c = sqrt(equations.gamma * p / rho)
 
@@ -312,9 +316,9 @@ end
 
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::CompressibleEulerEquationsQuasi1D)
-    a_rho, a_rho_v1, a_e, a = u    
+    a_rho, a_rho_v1, a_e, a = u
     q = cons2prim(u, CompressibleEulerEquations1D(equations.gamma))
-    
+
     return SVector(q[1] / a, q[2], q[3] / a, a)
 end
 
@@ -322,11 +326,11 @@ end
 @inline function Trixi.cons2entropy(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     q = cons2entropy(u, CompressibleEulerEquations1D(equations.gamma))
-        
-    w1 = q[1] -log(a)
+
+    w1 = q[1] - log(a)
     w2 = q[2]
     w3 = q[3]
-    
+
     return SVector(w1, w2, w3, a)
 end
 
@@ -335,7 +339,7 @@ end
     rho, v1, p, a = u
     q = prim2cons(u, CompressibleEulerEquations1D(equations.gamma))
 
-    return SVector(a * q[1], a * q[2], a * q[3] , a)
+    return SVector(a * q[1], a * q[2], a * q[3], a)
 end
 
 @inline function Trixi.density(u, equations::CompressibleEulerEquationsQuasi1D)
@@ -347,7 +351,7 @@ end
     a_rho, a_rho_v1, a_e, a = u
     rho = a_rho / a
     v1 = a_rho_v1 / a_rho
-    e = a_e / a 
+    e = a_e / a
     p = (equations.gamma - 1) * (e - 0.5 * rho * v1^2)
     return p
 end
@@ -357,7 +361,7 @@ end
     rho = a_rho / a
     v1 = a_rho_v1 / a_rho
     rho_v1 = a_rho_v1 / a
-    e = a_e / a 
+    e = a_e / a
     rho_times_p = (equations.gamma - 1) * (e - 0.5 * rho * v1^2) * rho
     return rho_times_p
 end

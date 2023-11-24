@@ -12,8 +12,8 @@ initial_condition = initial_condition_convergance_test
 
 volume_flux = (flux_chan_etal, flux_nonconservative_chan_etal)
 surface_flux = volume_flux
-solver = DGSEM(polydeg=4, surface_flux=surface_flux,
-               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg = 4, surface_flux = surface_flux,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = -1.0
 coordinates_max = 1.0
@@ -22,7 +22,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 10_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms_convergence_test)
+                                    source_terms = source_terms_convergence_test)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
