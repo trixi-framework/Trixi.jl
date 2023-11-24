@@ -285,7 +285,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     f_ll = flux(u_ll, orientation, equations)
     f_rr = flux(u_rr, orientation, equations)
 
-    SsL, SsR = min_max_speed_naive(u_ll, u_rr, orientation, equations)
+    SsL, SsR = min_max_speed_einfeldt(u_ll, u_rr, orientation, equations)
     sMu_L = SsL - v1_ll
     sMu_R = SsR - v1_rr
     if SsL >= 0
