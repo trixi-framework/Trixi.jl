@@ -272,7 +272,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr = cons2prim(u_rr, equations)
 
-    # Total pressure (eq. (12))
+    # Total pressure, i.e., thermal + magnetic pressures (eq. (12))
     p_tot_ll = p_ll + 0.5 * (B1_ll^2 + B2_ll^2 + B3_ll^2)
     p_tot_rr = p_rr + 0.5 * (B1_rr^2 + B2_rr^2 + B3_rr^2)
 
