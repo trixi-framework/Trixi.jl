@@ -402,6 +402,7 @@ abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <:
 include("compressible_euler_1d.jl")
 include("compressible_euler_2d.jl")
 include("compressible_euler_3d.jl")
+include("compressible_euler_quasi_1d.jl")
 
 # CompressibleEulerMulticomponentEquations
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <:
