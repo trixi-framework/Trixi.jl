@@ -2,11 +2,18 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# Semidiscretization of the quasi 1d compressible Euler equations
+# Semidiscretization of the quasi 1d compressible Euler equations with a discontinuous nozzle width function.
 # See Chan et al.  https://doi.org/10.48550/arXiv.2307.12089 for details
 
 equations = CompressibleEulerEquationsQuasi1D(1.4)
 
+# Setup a truly discontinuous density function and nozzle width for
+# this academic testcase of entropy conservation. The errors from the analysis
+# callback are not important but the entropy error for this test case
+# `∑∂S/∂U ⋅ Uₜ` should be around machine roundoff.
+# Works as intended for TreeMesh1D with `initial_refinement_level=6`. If the mesh
+# refinement level is changed the initial condition below may need changed as well to
+# ensure that the discontinuities lie on an element interface.
 function initial_condition_ec(x, t, equations::CompressibleEulerEquationsQuasi1D)
     v1 = 0.1
     rho = 2.0 + 0.1 * x[1]
@@ -20,8 +27,6 @@ initial_condition = initial_condition_ec
 
 volume_flux = (flux_chan_etal, flux_nonconservative_chan_etal)
 surface_flux = volume_flux
-
-basis = LobattoLegendreBasis(3)
 solver = DGSEM(polydeg = 4, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
@@ -36,7 +41,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -52,7 +57,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

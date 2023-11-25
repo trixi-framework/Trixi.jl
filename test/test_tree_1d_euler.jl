@@ -442,6 +442,30 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_euler_quasi_1d_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d_ec.jl"),
+                        l2=[
+                            0.08889113985713934,
+                            0.16199235348889698,
+                            0.4031652436505426,
+                            2.9602775074723667e-16,
+                        ],
+                        linf=[
+                            0.28891355898287685,
+                            0.3752709888964392,
+                            0.8447710240240944,
+                            8.881784197001252e-16,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 end # module
