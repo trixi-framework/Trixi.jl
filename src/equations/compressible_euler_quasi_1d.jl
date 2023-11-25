@@ -326,7 +326,7 @@ end
 end
 
 # Convert conservative variables to entropy
-@inline function Trixi.cons2entropy(u, equations::CompressibleEulerEquationsQuasi1D)
+@inline function cons2entropy(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     q = cons2entropy(u, CompressibleEulerEquations1D(equations.gamma))
 
