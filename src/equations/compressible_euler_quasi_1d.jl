@@ -325,16 +325,24 @@ end
     return cons2prim(SVector(a_rho, a_rho_v1, a_e) / a, CompressibleEulerEquations1D(equations.gamma))
 end
 
-# Convert conservative variables to entropy
+# The entropy for the quasi-1D compressible Euler equations is the entropy for the
+# 1D compressible Euler equations scaled by the channel width `a`.
+@inline function entropy(u, equations::CompressibleEulerEquationsQuasi1D)
+    a_rho, a_rho_v1, a_e, a = u
+    return a * entropy(SVector(a_rho, a_rho_v1, a_e) / a, CompressibleEulerEquations1D(equations.gamma))
+end
+
+# Convert conservative variables to entropy. The entropy variables for the 
+# quasi-1D compressible Euler equations are identical to the entropy variables
+# for the standard Euler equations for an appropriate definition of `entropy`.
 @inline function cons2entropy(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
-    q = cons2entropy(u, CompressibleEulerEquations1D(equations.gamma))
-
-    w1 = q[1] - log(a)
-    w2 = q[2]
-    w3 = q[3]
-
-    return SVector(w1, w2, w3, a)
+    w = cons2entropy(SVector(a_rho, a_rho_v1, a_e) / a, CompressibleEulerEquations1D(equations.gamma))
+    
+    # we follow the convention for other spatially-varying equations such as
+    # `ShallowWaterEquations1D` and return the spatially varying coefficient 
+    # `a` as the final entropy variable.
+    return SVector(w[1], w[2], w[3], a)
 end
 
 # Convert primitive to conservative variables
