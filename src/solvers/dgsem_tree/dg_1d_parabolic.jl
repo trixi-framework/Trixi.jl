@@ -62,20 +62,28 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
+        prolong2interfaces!(cache.interfaces, 
+                            flux_viscous, mesh, equations_parabolic,
                             dg.surface_integral, dg, cache)
+        # prolong2interfaces!(cache_parabolic.interfaces, 
+        #                     flux_viscous, mesh, equations_parabolic,
+        #                     dg.surface_integral, dg, cache)
     end
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-                             equations_parabolic, dg, cache_parabolic)
+        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+                             equations_parabolic, dg, cache)
+        # calc_interface_flux!(cache_parabolic.elements.surface_flux_values, mesh,
+        #                      equations_parabolic, dg, cache_parabolic)
     end
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
+        prolong2boundaries!(cache.boundaries, flux_viscous, mesh, equations_parabolic,
                             dg.surface_integral, dg, cache)
+        # prolong2boundaries!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
+        #                     dg.surface_integral, dg, cache)
     end
 
     # Calculate boundary fluxes
@@ -88,8 +96,10 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations_parabolic,
-                               dg.surface_integral, dg, cache_parabolic)
+    calc_surface_integral!(du, u, mesh, equations_parabolic,
+                           dg.surface_integral, dg, cache)
+        # calc_surface_integral!(du, u, mesh, equations_parabolic,
+        #                        dg.surface_integral, dg, cache_parabolic)
     end
 
     # Apply Jacobian from mapping to reference element
@@ -144,11 +154,10 @@ end
 
 # This is the version used when calculating the divergence of the viscous fluxes
 # We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(cache_parabolic, flux_viscous,
+function prolong2interfaces!(interfaces, flux_viscous,
                              mesh::TreeMesh{1},
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG, cache)
-    @unpack interfaces = cache_parabolic
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u
 
@@ -203,15 +212,14 @@ function calc_interface_flux!(surface_flux_values,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2boundaries!(cache_parabolic, flux_viscous,
+function prolong2boundaries!(boundaries, flux_viscous,
                              mesh::TreeMesh{1},
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG, cache)
-    @unpack boundaries = cache_parabolic
     @unpack neighbor_sides, neighbor_ids = boundaries
     boundaries_u = boundaries.u
 
-    @threaded for boundary in eachboundary(dg, cache_parabolic)
+    @threaded for boundary in eachboundary(dg, cache)
         element = neighbor_ids[boundary]
 
         if neighbor_sides[boundary] == 1
@@ -230,6 +238,33 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
 
     return nothing
 end
+# function prolong2boundaries!(cache_parabolic, flux_viscous,
+#                              mesh::TreeMesh{1},
+#                              equations_parabolic::AbstractEquationsParabolic,
+#                              surface_integral, dg::DG, cache)
+#     @unpack boundaries = cache_parabolic
+#     @unpack neighbor_sides, neighbor_ids = boundaries
+#     boundaries_u = boundaries.u
+
+#     @threaded for boundary in eachboundary(dg, cache_parabolic)
+#         element = neighbor_ids[boundary]
+
+#         if neighbor_sides[boundary] == 1
+#             # element in -x direction of boundary
+#             for v in eachvariable(equations_parabolic)
+#                 # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
+#                 boundaries_u[1, v, boundary] = flux_viscous[v, nnodes(dg), element]
+#             end
+#         else # Element in +x direction of boundary
+#             for v in eachvariable(equations_parabolic)
+#                 # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
+#                 boundaries_u[2, v, boundary] = flux_viscous[v, 1, element]
+#             end
+#         end
+#     end
+
+#     return nothing
+# end
 
 function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::TreeMesh{1},
                               equations_parabolic::AbstractEquationsParabolic,
@@ -436,7 +471,7 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(cache_parabolic,
+    @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(cache,
                                                                    u_transformed, mesh,
                                                                    equations_parabolic,
                                                                    dg.surface_integral,
@@ -444,10 +479,10 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
-        @unpack surface_flux_values = cache_parabolic.elements
-        @unpack neighbor_ids, orientations = cache_parabolic.interfaces
+        @unpack surface_flux_values = cache.elements
+        @unpack neighbor_ids, orientations = cache.interfaces
 
-        @threaded for interface in eachinterface(dg, cache_parabolic)
+        @threaded for interface in eachinterface(dg, cache)
             # Get neighboring elements
             left_id = neighbor_ids[1, interface]
             right_id = neighbor_ids[2, interface]
@@ -458,7 +493,7 @@ function calc_gradient!(gradients, u_transformed, t,
             right_direction = 2 * orientations[interface] - 1
 
             # Call pointwise Riemann solver
-            u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
+            u_ll, u_rr = get_surface_node_vars(cache.interfaces.u,
                                                equations_parabolic, dg, interface)
             flux = 0.5 * (u_ll + u_rr)
 
@@ -471,14 +506,14 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(cache_parabolic,
+    @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(cache,
                                                                    u_transformed, mesh,
                                                                    equations_parabolic,
                                                                    dg.surface_integral,
                                                                    dg)
 
     # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" calc_boundary_flux_gradients!(cache_parabolic,
+    @trixi_timeit timer() "boundary flux" calc_boundary_flux_gradients!(cache,
                                                                         t,
                                                                         boundary_conditions_parabolic,
                                                                         mesh,
@@ -489,7 +524,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
         @unpack boundary_interpolation = dg.basis
-        @unpack surface_flux_values = cache_parabolic.elements
+        @unpack surface_flux_values = cache.elements
 
         # Note that all fluxes have been computed with outward-pointing normal vectors.
         # Access the factors only once before beginning the loop to increase performance.
