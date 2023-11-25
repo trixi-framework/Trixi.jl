@@ -317,12 +317,12 @@ end
     return (abs(v1) + c,)
 end
 
-# Convert conservative variables to primitive
+# Convert conservative variables to primitive. We use the convention that the primitive
+# variables for the quasi-1D equations are `(rho, v1, p)` (i.e., the same as the primitive
+# variables for `CompressibleEulerEquations1D`)
 @inline function cons2prim(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
-    q = cons2prim(u, CompressibleEulerEquations1D(equations.gamma))
-
-    return SVector(q[1] / a, q[2], q[3] / a, a)
+    return cons2prim(SVector(a_rho, a_rho_v1, a_e) / a, CompressibleEulerEquations1D(equations.gamma))
 end
 
 # Convert conservative variables to entropy
