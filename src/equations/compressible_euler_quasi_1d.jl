@@ -350,7 +350,7 @@ end
     return rho
 end
 
-@inline function Trixi.pressure(u, equations::CompressibleEulerEquationsQuasi1D)
+@inline function pressure(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     rho = a_rho / a
     v1 = a_rho_v1 / a_rho
