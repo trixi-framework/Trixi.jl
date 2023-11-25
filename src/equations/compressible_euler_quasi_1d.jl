@@ -322,7 +322,8 @@ end
 # variables for `CompressibleEulerEquations1D`)
 @inline function cons2prim(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
-    q = cons2prim(SVector(a_rho, a_rho_v1, a_e) / a, CompressibleEulerEquations1D(equations.gamma))
+    q = cons2prim(SVector(a_rho, a_rho_v1, a_e) / a,
+                  CompressibleEulerEquations1D(equations.gamma))
 
     return SVector(q[1], q[2], q[3], a)
 end
@@ -331,7 +332,8 @@ end
 # 1D compressible Euler equations scaled by the channel width `a`.
 @inline function entropy(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
-    q = a * entropy(SVector(a_rho, a_rho_v1, a_e) / a, CompressibleEulerEquations1D(equations.gamma))
+    q = a * entropy(SVector(a_rho, a_rho_v1, a_e) / a,
+                CompressibleEulerEquations1D(equations.gamma))
 
     return SVector(q[1], q[2], q[3], a)
 end
@@ -341,8 +343,9 @@ end
 # for the standard Euler equations for an appropriate definition of `entropy`.
 @inline function cons2entropy(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
-    w = cons2entropy(SVector(a_rho, a_rho_v1, a_e) / a, CompressibleEulerEquations1D(equations.gamma))
-    
+    w = cons2entropy(SVector(a_rho, a_rho_v1, a_e) / a,
+                     CompressibleEulerEquations1D(equations.gamma))
+
     # we follow the convention for other spatially-varying equations such as
     # `ShallowWaterEquations1D` and return the spatially varying coefficient 
     # `a` as the final entropy variable.
@@ -364,11 +367,13 @@ end
 
 @inline function pressure(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
-    return pressure(SVector(a_rho, a_rho_v1, a_e) / a, CompressibleEulerEquations1D(equations.gamma))
+    return pressure(SVector(a_rho, a_rho_v1, a_e) / a,
+                    CompressibleEulerEquations1D(equations.gamma))
 end
 
 @inline function density_pressure(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
-    return density_pressure(SVector(a_rho, a_rho_v1, a_e) / a, CompressibleEulerEquations1D(equations.gamma))
+    return density_pressure(SVector(a_rho, a_rho_v1, a_e) / a,
+                            CompressibleEulerEquations1D(equations.gamma))
 end
 end # @muladd
