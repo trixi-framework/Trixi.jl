@@ -65,30 +65,23 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
         prolong2interfaces!(cache.interfaces, 
                             flux_viscous, mesh, equations_parabolic,
                             dg.surface_integral, dg, cache)
-        # prolong2interfaces!(cache_parabolic.interfaces, 
-        #                     flux_viscous, mesh, equations_parabolic,
-        #                     dg.surface_integral, dg, cache)
     end
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values, mesh,
                              equations_parabolic, dg, cache)
-        # calc_interface_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-        #                      equations_parabolic, dg, cache_parabolic)
     end
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
         prolong2boundaries!(cache.boundaries, flux_viscous, mesh, equations_parabolic,
                             dg.surface_integral, dg, cache)
-        # prolong2boundaries!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-        #                     dg.surface_integral, dg, cache)
     end
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_divergence!(cache_parabolic, t,
+        calc_boundary_flux_divergence!(cache, t,
                                        boundary_conditions_parabolic, mesh,
                                        equations_parabolic,
                                        dg.surface_integral, dg)
@@ -98,13 +91,11 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     @trixi_timeit timer() "surface integral" begin
     calc_surface_integral!(du, u, mesh, equations_parabolic,
                            dg.surface_integral, dg, cache)
-        # calc_surface_integral!(du, u, mesh, equations_parabolic,
-        #                        dg.surface_integral, dg, cache_parabolic)
     end
 
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache_parabolic)
+        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
     end
 
     return nothing
