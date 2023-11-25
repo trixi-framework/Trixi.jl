@@ -247,7 +247,7 @@ end
                                            equations::CompressibleEulerEquationsQuasi1D)
 
 Conservative (symmetric) part of the entropy conservative flux for quasi 1D compressible Euler equations split form.
-
+This flux is a generalization of [`flux_ranocha`](@ref) for [`CompressibleEulerEquations1D`](@ref).
 Further details are available in the paper:
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023) 
   High order entropy stable schemes for the quasi-one-dimensional
