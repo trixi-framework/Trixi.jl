@@ -345,7 +345,7 @@ end
     return SVector(a * q[1], a * q[2], a * q[3], a)
 end
 
-@inline function Trixi.density(u, equations::CompressibleEulerEquationsQuasi1D)
+@inline function density(u, equations::CompressibleEulerEquationsQuasi1D)
     rho = u[1] / u[4]
     return rho
 end
