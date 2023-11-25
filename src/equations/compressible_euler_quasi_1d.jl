@@ -232,11 +232,14 @@ Further details are available in the paper:
     _, _, p_ll, a_ll = cons2prim(u_ll, equations)
     _, _, p_rr, _ = cons2prim(u_rr, equations)
 
-    p_avg = 0.5 * (p_ll + p_rr)
+    # For flux differencing using non-conservative terms, we return the 
+    # non-conservative flux scaled by 2. This cancels with a factor of 0.5 
+    # in the arithmetic average of {p}.
+    p_avg = p_ll + p_rr 
 
     z = zero(eltype(u_ll))
 
-    return SVector(z, 2 * a_ll * p_avg, z, z)
+    return SVector(z, a_ll * p_avg, z, z)
 end
 
 """
