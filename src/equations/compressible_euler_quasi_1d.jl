@@ -246,7 +246,7 @@ end
 @inline function flux_chan_etal(u_ll, u_rr, orientation::Integer,
                                            equations::CompressibleEulerEquationsQuasi1D)
 
-Total energy conservative (mathematical entropy for quasi 1D compressible Euler equations) split form.
+Conservative (symmetric) part of the entropy conservative flux for quasi 1D compressible Euler equations split form.
 
 Further details are available in the paper:
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023) 
