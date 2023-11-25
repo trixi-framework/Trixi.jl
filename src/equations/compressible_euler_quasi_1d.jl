@@ -8,7 +8,7 @@
 @doc raw"""
     CompressibleEulerEquationsQuasi1D(gamma)
 
-The quasi-1d compressible Euler equations
+The quasi-1d compressible Euler equations (see Chan et al.  https://doi.org/10.48550/arXiv.2307.12089 for details)
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
