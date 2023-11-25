@@ -662,8 +662,10 @@ end
 
     orientations = [1]
     for orientation in orientations
-        @test flux_chan_etal(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_chan_etal(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
     end
+end
 
 @timed_testset "Consistency check for HLL flux (naive): LEE" begin
     flux_hll = FluxHLL(min_max_speed_naive)

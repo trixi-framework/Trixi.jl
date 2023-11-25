@@ -199,7 +199,7 @@ end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
-                            equations::CompressibleEulerEquationsQuasi1D)
+                      equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     rho, v1, p, a = cons2prim(u, equations)
     e = a_e / a
@@ -235,7 +235,7 @@ Further details are available in the paper:
     # For flux differencing using non-conservative terms, we return the 
     # non-conservative flux scaled by 2. This cancels with a factor of 0.5 
     # in the arithmetic average of {p}.
-    p_avg = p_ll + p_rr 
+    p_avg = p_ll + p_rr
 
     z = zero(eltype(u_ll))
 
