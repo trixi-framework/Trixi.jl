@@ -170,10 +170,10 @@ end
 # This is the version used when calculating the divergence of the viscous fluxes
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1}, equations_parabolic,
-                              dg::DG, cache_parabolic)
-    @unpack neighbor_ids, orientations = cache_parabolic.interfaces
+                              dg::DG, cache)
+    @unpack neighbor_ids, orientations = cache.interfaces
 
-    @threaded for interface in eachinterface(dg, cache_parabolic)
+    @threaded for interface in eachinterface(dg, cache)
         # Get neighboring elements
         left_id = neighbor_ids[1, interface]
         right_id = neighbor_ids[2, interface]
@@ -184,7 +184,7 @@ function calc_interface_flux!(surface_flux_values,
         right_direction = 2 * orientations[interface] - 1
 
         # Get precomputed fluxes at interfaces
-        flux_ll, flux_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
+        flux_ll, flux_rr = get_surface_node_vars(cache.interfaces.u,
                                                  equations_parabolic,
                                                  dg, interface)
 
@@ -229,33 +229,6 @@ function prolong2boundaries!(boundaries, flux_viscous,
 
     return nothing
 end
-# function prolong2boundaries!(cache_parabolic, flux_viscous,
-#                              mesh::TreeMesh{1},
-#                              equations_parabolic::AbstractEquationsParabolic,
-#                              surface_integral, dg::DG, cache)
-#     @unpack boundaries = cache_parabolic
-#     @unpack neighbor_sides, neighbor_ids = boundaries
-#     boundaries_u = boundaries.u
-
-#     @threaded for boundary in eachboundary(dg, cache_parabolic)
-#         element = neighbor_ids[boundary]
-
-#         if neighbor_sides[boundary] == 1
-#             # element in -x direction of boundary
-#             for v in eachvariable(equations_parabolic)
-#                 # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
-#                 boundaries_u[1, v, boundary] = flux_viscous[v, nnodes(dg), element]
-#             end
-#         else # Element in +x direction of boundary
-#             for v in eachvariable(equations_parabolic)
-#                 # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
-#                 boundaries_u[2, v, boundary] = flux_viscous[v, 1, element]
-#             end
-#         end
-#     end
-
-#     return nothing
-# end
 
 function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::TreeMesh{1},
                               equations_parabolic::AbstractEquationsParabolic,
@@ -542,7 +515,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
         apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
-                                  cache_parabolic)
+                                  cache)
     end
 
     return nothing
