@@ -397,15 +397,15 @@ end
 @trixi_testset "elixir_euler_quasi_1d_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d_source_terms.jl"),
                         l2=[
-                            3.876288364589425e-7,
-                            2.224704317890825e-7,
-                            2.964004223514882e-7,
+                            3.876288369618363e-7,
+                            2.2247043122302947e-7,
+                            2.964004224572679e-7,
                             5.2716983399807875e-8,
                         ],
                         linf=[
-                            2.392511842419509e-6,
-                            1.360369332736866e-6,
-                            1.8218888442333991e-6,
+                            2.3925118561862746e-6,
+                            1.3603693522767912e-6,
+                            1.821888865105592e-6,
                             1.1166012159335992e-7,
                         ])
     # Ensure that we do not have excessive memory allocations
@@ -422,16 +422,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_quasi_1d_discontinuous.jl"),
                         l2=[
-                            0.04551042115634054,
-                            0.03675058478890224,
-                            0.24689859591319177,
-                            0.0368449418082899,
+                            0.045510421156346015,
+                            0.036750584788912195,
+                            0.2468985959132176,
+                            0.03684494180829024,
                         ],
                         linf=[
-                            0.3313374853025661,
-                            0.11621933362147452,
-                            1.8274030135685742,
-                            0.28045939999015945,
+                            0.3313374853025697,
+                            0.11621933362158643,
+                            1.827403013568638,
+                            0.28045939999015723,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -446,15 +446,15 @@ end
 @trixi_testset "elixir_euler_quasi_1d_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d_ec.jl"),
                         l2=[
-                            0.08889113985713934,
-                            0.16199235348889698,
-                            0.4031652436505426,
+                            0.08889113985713998,
+                            0.16199235348889673,
+                            0.40316524365054346,
                             2.9602775074723667e-16,
                         ],
                         linf=[
-                            0.28891355898287685,
-                            0.3752709888964392,
-                            0.8447710240240944,
+                            0.28891355898284043,
+                            0.3752709888964313,
+                            0.84477102402413,
                             8.881784197001252e-16,
                         ])
     # Ensure that we do not have excessive memory allocations
