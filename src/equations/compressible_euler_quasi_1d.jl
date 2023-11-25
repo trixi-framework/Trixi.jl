@@ -306,7 +306,7 @@ end
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
-@inline function Trixi.max_abs_speeds(u, equations::CompressibleEulerEquationsQuasi1D)
+@inline function max_abs_speeds(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     rho = a_rho / a
     v1 = a_rho_v1 / a_rho
