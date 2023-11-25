@@ -10,7 +10,7 @@ equations = CompressibleEulerEquationsQuasi1D(1.4)
 """
     initial_condition_discontinuity(x, t, equations::CompressibleEulerEquations1D)
 
-An entropy conservation verification initial condition taken from
+A discontinuous initial condition taken from
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023)
     High order entropy stable schemes for the quasi-one-dimensional
     shallow water and compressible Euler equations

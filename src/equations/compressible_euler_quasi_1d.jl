@@ -232,19 +232,22 @@ Further details are available in the paper:
     _, _, p_ll, a_ll = cons2prim(u_ll, equations)
     _, _, p_rr, _ = cons2prim(u_rr, equations)
 
-    p_avg = 0.5 * (p_ll + p_rr)
+    # For flux differencing using non-conservative terms, we return the 
+    # non-conservative flux scaled by 2. This cancels with a factor of 0.5 
+    # in the arithmetic average of {p}.
+    p_avg = p_ll + p_rr 
 
     z = zero(eltype(u_ll))
 
-    return SVector(z, 2 * a_ll * p_avg, z, z)
+    return SVector(z, a_ll * p_avg, z, z)
 end
 
 """
 @inline function flux_chan_etal(u_ll, u_rr, orientation::Integer,
                                            equations::CompressibleEulerEquationsQuasi1D)
 
-Total energy conservative (mathematical entropy for quasi 1D compressible Euler equations) split form.
-
+Conservative (symmetric) part of the entropy conservative flux for quasi 1D compressible Euler equations split form.
+This flux is a generalization of [`flux_ranocha`](@ref) for [`CompressibleEulerEquations1D`](@ref).
 Further details are available in the paper:
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023) 
   High order entropy stable schemes for the quasi-one-dimensional
