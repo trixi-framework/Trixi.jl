@@ -198,7 +198,7 @@ are available in the paper:
 end
 
 # Calculate 1D flux for a single point
-@inline function Trixi.flux(u, orientation::Integer,
+@inline function flux(u, orientation::Integer,
                             equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     rho, v1, p, a = cons2prim(u, equations)
