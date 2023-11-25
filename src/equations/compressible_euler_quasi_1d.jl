@@ -365,11 +365,6 @@ end
 
 @inline function density_pressure(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
-    rho = a_rho / a
-    v1 = a_rho_v1 / a_rho
-    rho_v1 = a_rho_v1 / a
-    e = a_e / a
-    rho_times_p = (equations.gamma - 1) * (e - 0.5 * rho * v1^2) * rho
-    return rho_times_p
+    return density_pressure(SVector(a_rho, a_rho_v1, a_e) / a, CompressibleEulerEquations(equations.gamma))
 end
 end # @muladd
