@@ -261,7 +261,7 @@ Further details are available in the paper:
     rho_rr, v1_rr, p_rr, a_rr = cons2prim(u_rr, equations)
 
     # Compute the necessary mean values
-    rho_mean = Trixi.ln_mean(rho_ll, rho_rr)
+    rho_mean = ln_mean(rho_ll, rho_rr)
     # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
     # in exact arithmetic since
     #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
