@@ -266,7 +266,7 @@ Further details are available in the paper:
     # in exact arithmetic since
     #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
     #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
-    inv_rho_p_mean = p_ll * p_rr * Trixi.inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+    inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
     v1_avg = 0.5 * (v1_ll + v1_rr)
     a_v1_avg = 0.5 * (a_ll * v1_ll + a_rr * v1_rr)
     p_avg = 0.5 * (p_ll + p_rr)
