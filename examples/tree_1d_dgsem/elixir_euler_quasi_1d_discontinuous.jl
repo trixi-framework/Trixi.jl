@@ -28,8 +28,8 @@ end
 
 initial_condition = initial_condition_discontinuity
 
-volume_flux = (flux_chan_etal, flux_nonconservative_chan_etal)
 surface_flux = (flux_lax_friedrichs, flux_nonconservative_chan_etal)
+volume_flux = (flux_chan_etal, flux_nonconservative_chan_etal)
 
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
