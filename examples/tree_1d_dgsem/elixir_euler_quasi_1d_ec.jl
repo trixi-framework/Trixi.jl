@@ -25,8 +25,8 @@ end
 
 initial_condition = initial_condition_ec
 
-volume_flux = (flux_chan_etal, flux_nonconservative_chan_etal)
-surface_flux = volume_flux
+surface_flux = (flux_chan_etal, flux_nonconservative_chan_etal)
+volume_flux = surface_flux
 solver = DGSEM(polydeg = 4, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
