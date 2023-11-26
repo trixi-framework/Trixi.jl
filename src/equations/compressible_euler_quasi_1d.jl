@@ -51,7 +51,7 @@ This affects the implementation and use of these equations in various ways:
 * Trixi.jl's visualization tools will visualize the nozzle width by default.
 """
 struct CompressibleEulerEquationsQuasi1D{RealT <: Real} <:
-       Trixi.AbstractCompressibleEulerEquations{1, 4}
+       AbstractCompressibleEulerEquations{1, 4}
     gamma::RealT               # ratio of specific heats
     inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
 
@@ -61,7 +61,7 @@ struct CompressibleEulerEquationsQuasi1D{RealT <: Real} <:
     end
 end
 
-have_nonconservative_terms(::CompressibleEulerEquationsQuasi1D) = Trixi.True()
+have_nonconservative_terms(::CompressibleEulerEquationsQuasi1D) = True()
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquationsQuasi1D)
     ("a_rho", "a_rho_v1", "a_e", "a")
 end
