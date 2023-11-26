@@ -361,7 +361,8 @@ end
 end
 
 @inline function density(u, equations::CompressibleEulerEquationsQuasi1D)
-    rho = u[1] / u[4]
+    a_rho, _, _, a = u
+    rho = a_rho / a
     return rho
 end
 
