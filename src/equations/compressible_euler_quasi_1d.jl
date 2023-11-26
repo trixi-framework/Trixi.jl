@@ -167,7 +167,7 @@ are available in the paper:
     # compute the primitive variables
     rho_local, v_normal, p_local, a_local = cons2prim(u_inner, equations)
 
-    if isodd(direction) # flip sign of normal to make it outward pointing
+    if direction == 1 # flip sign of normal to make it outward pointing
         v_normal *= -1
     end
 
