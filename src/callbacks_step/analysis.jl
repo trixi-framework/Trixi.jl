@@ -381,7 +381,8 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
         # Calculate L2/Linf errors, which are also returned
         l2_error, linf_error = calc_error_norms(u_ode, t, analyzer, semi,
                                                 cache_analysis)
-    else # Need something to be returned
+    else
+        # Names `l2_error`, `linf_error` need to be defined
         l2_error = nothing
         linf_error = nothing
     end
