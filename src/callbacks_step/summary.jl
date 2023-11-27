@@ -168,16 +168,17 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
 
     callbacks = integrator.opts.callback
     if callbacks isa CallbackSet
-        for cb in callbacks.continuous_callbacks
+        foreach(callbacks.continuous_callbacks) do cb
             show(io_context, MIME"text/plain"(), cb)
             println(io, "\n")
         end
-        for cb in callbacks.discrete_callbacks
+        foreach(callbacks.discrete_callbacks) do cb
             # Do not show ourselves
-            cb.affect! === summary_callback && continue
+            cb.affect! === summary_callback && return nothing
 
             show(io_context, MIME"text/plain"(), cb)
             println(io, "\n")
+            return nothing
         end
     else
         show(io_context, MIME"text/plain"(), callbacks)

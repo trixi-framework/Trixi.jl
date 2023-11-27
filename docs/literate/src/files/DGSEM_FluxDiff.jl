@@ -236,3 +236,15 @@ plot(sol)
 # [`flux_chandrashekar`](@ref), [`flux_kennedy_gruber`](@ref).
 # As surface flux you can use all volume fluxes and additionally for instance [`flux_lax_friedrichs`](@ref),
 # [`flux_hll`](@ref), [`flux_hllc`](@ref).
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)

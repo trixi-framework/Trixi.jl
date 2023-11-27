@@ -168,7 +168,7 @@ meshIO = StartUpDG.triangulate_domain(StartUpDG.RectangularDomainWithHole());
 
 # The pre-defined Triangulate geometry in StartUpDG has integer boundary tags. With [`DGMultiMesh`](@ref)
 # we assign boundary faces based on these integer boundary tags and create a mesh compatible with Trixi.jl.
-mesh = DGMultiMesh(meshIO, dg, Dict(:outer_boundary=>1, :inner_boundary=>2))
+mesh = DGMultiMesh(dg, meshIO, Dict(:outer_boundary=>1, :inner_boundary=>2))
 #-
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :outer_boundary => boundary_condition_convergence_test,
@@ -194,3 +194,15 @@ plot(pd["rho"])
 plot!(getmesh(pd))
 
 # For more information, please have a look in the [StartUpDG.jl documentation](https://jlchan.github.io/StartUpDG.jl/stable/).
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "StartUpDG", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)

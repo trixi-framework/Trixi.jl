@@ -9,10 +9,12 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
-isdir(outdir) && rm(outdir, recursive=true)
+isdir(outdir) && rm(outdir, recursive = true)
 
 @testset "P4estMesh2D" begin
-  @trixi_testset "elixir_advection_basic.jl" begin
+#! format: noindent
+
+@trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [8.311947673061856e-6],
@@ -172,6 +174,6 @@ isdir(outdir) && rm(outdir, recursive=true)
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive=true)
+@test_nowarn rm(outdir, recursive = true)
 
 end # module

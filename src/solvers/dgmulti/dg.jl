@@ -302,7 +302,12 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     @threaded for e in eachelement(mesh, dg, cache)
         flux_values = local_values_threaded[Threads.threadid()]
         for i in eachdim(mesh)
-            flux_values .= flux.(view(u_values, :, e), i, equations)
+            # Here, the broadcasting operation does allocate
+            #flux_values .= flux.(view(u_values, :, e), i, equations)
+            # Use loop instead
+            for j in eachindex(flux_values)
+                flux_values[j] = flux(u_values[j, e], i, equations)
+            end
             for j in eachdim(mesh)
                 apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j],
                                                   dxidxhatj[i, j][1, e]),
@@ -327,6 +332,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
     @threaded for e in eachelement(mesh, dg, cache)
         flux_values = cache.flux_threaded[Threads.threadid()]
         for i in eachdim(mesh)
+            # Here, the broadcasting operation does not allocate
             flux_values[i] .= flux.(view(u_values, :, e), i, equations)
         end
 
@@ -459,24 +465,13 @@ function calc_boundary_flux!(cache, t, boundary_conditions::BoundaryConditionPer
     nothing
 end
 
-# "lispy tuple programming" instead of for loop for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions, mesh,
                              have_nonconservative_terms, equations, dg::DGMulti)
-
-    # peel off first boundary condition
-    calc_single_boundary_flux!(cache, t, first(boundary_conditions),
-                               first(keys(boundary_conditions)),
-                               mesh, have_nonconservative_terms, equations, dg)
-
-    # recurse on the remainder of the boundary conditions
-    calc_boundary_flux!(cache, t, Base.tail(boundary_conditions),
-                        mesh, have_nonconservative_terms, equations, dg)
-end
-
-# terminate recursion
-function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple{(), Tuple{}},
-                             mesh, have_nonconservative_terms, equations, dg::DGMulti)
-    nothing
+    for (key, value) in zip(keys(boundary_conditions), boundary_conditions)
+        calc_single_boundary_flux!(cache, t, value,
+                                   key,
+                                   mesh, have_nonconservative_terms, equations, dg)
+    end
 end
 
 function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, mesh,

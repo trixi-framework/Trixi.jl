@@ -9,7 +9,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
-isdir(outdir) && rm(outdir, recursive=true)
+isdir(outdir) && rm(outdir, recursive = true)
 
 @testset "P4estMesh3D" begin
   #@trixi_testset "elixir_advection_basic.jl" begin
@@ -176,6 +176,6 @@ isdir(outdir) && rm(outdir, recursive=true)
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive=true)
+@test_nowarn rm(outdir, recursive = true)
 
 end # module

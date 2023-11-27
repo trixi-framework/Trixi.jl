@@ -23,14 +23,13 @@ solver = FDSBP(D_upw,
                volume_integral = VolumeIntegralUpwind(flux_splitting))
 
 coordinates_min = -1.0
-coordinates_max =  1.0
+coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 0,
                 n_cells_max = 10_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sin, solver)
-
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -41,17 +40,16 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 1000
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback)
 
-
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
-            ode_default_options()..., callback=callbacks);
+sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+            ode_default_options()..., callback = callbacks);
 summary_callback() # print the timer summary
