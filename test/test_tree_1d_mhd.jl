@@ -206,6 +206,31 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_torrilhon_shock_tube.jl (HLLC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_torrilhon_shock_tube.jl"),
+                        surface_flux=flux_hllc,
+                        l2=[
+                            0.45738965718253993, 0.479402222862685, 0.34069729746967664,
+                            0.44795514335568865, 0.9206813325913135,
+                            1.3216517820475193e-16, 0.2889672868491632,
+                            0.2552794220777942,
+                        ],
+                        linf=[
+                            1.2181099854251536, 0.8869319941747589, 0.8763562906332134,
+                            0.9712221036087284, 1.6734231113527818,
+                            2.220446049250313e-16, 0.7035011427822779,
+                            0.6562884129650286,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_mhd_ryujones_shock_tube.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ryujones_shock_tube.jl"),
                         l2=[
