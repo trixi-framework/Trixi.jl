@@ -17,20 +17,15 @@ isdir(outdir) && rm(outdir, recursive = true)
 # 3d tet/hex tests
 @trixi_testset "elixir_euler_weakform.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
-                        # division by sqrt(8.0) corresponds to normalization by the square root of the size of the domain
                         l2=[
-                            0.0010029534292051608,
-                            0.0011682205957721673,
-                            0.001072975385793516,
-                            0.000997247778892257,
-                            0.0039364354651358294,
-                        ] ./ sqrt(8),
+                            0.000354593110864001, 0.00041301573702385284,
+                            0.00037934556184883277, 0.0003525767114354012,
+                            0.0013917457634530887,
+                        ],
                         linf=[
-                            0.003660737033303718,
-                            0.005625620600749226,
-                            0.0030566354814669516,
-                            0.0041580358824311325,
-                            0.019326660236036464,
+                            0.0036608123230692513, 0.005625540942772123,
+                            0.0030565781898950206, 0.004158099048202857,
+                            0.01932716837214299,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -74,6 +69,7 @@ end
 @trixi_testset "elixir_euler_weakform.jl (Hexahedral elements)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         element_type=Hex(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         # division by sqrt(8.0) corresponds to normalization by the square root of the size of the domain
                         l2=[
                             0.00030580190715769566,
@@ -145,20 +141,15 @@ end
 
 @trixi_testset "elixir_euler_weakform_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
-                        # division by sqrt(8.0) corresponds to normalization by the square root of the size of the domain
                         l2=[
-                            0.0010317074322517949,
-                            0.0012277090547035293,
-                            0.0011273991123913515,
-                            0.0010418496196130177,
-                            0.004058878478404962,
-                        ] ./ sqrt(8),
+                            0.00036475807571383924, 0.00043404536371780537,
+                            0.0003985850214093045, 0.0003683451584072326,
+                            0.00143503620472638,
+                        ],
                         linf=[
-                            0.003227752881827861,
-                            0.005620317864620361,
-                            0.0030514833972379307,
-                            0.003987027618439498,
-                            0.019282224709831652,
+                            0.0032278615418719347, 0.005620238272054934,
+                            0.0030514261010661237, 0.0039871165455998,
+                            0.019282771780667396,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -173,6 +164,7 @@ end
 @trixi_testset "elixir_euler_weakform_periodic.jl (Hexahedral elements)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                         element_type=Hex(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         # division by sqrt(8.0) corresponds to normalization by the square root of the size of the domain
                         l2=[
                             0.00034230612468547436,

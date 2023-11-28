@@ -400,6 +400,7 @@ end
     @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.25),
+                        surface_flux=FluxHLL(min_max_speed_naive),
                         l2=[
                             0.0001547509861140407,
                             0.015637861347119624,

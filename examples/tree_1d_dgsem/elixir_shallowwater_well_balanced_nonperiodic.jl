@@ -27,7 +27,7 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
 solver = DGSEM(polydeg = 4,
-               surface_flux = (FluxHLL(min_max_speed_naive),
+               surface_flux = (flux_hll,
                                flux_nonconservative_fjordholm_etal),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 

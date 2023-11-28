@@ -19,16 +19,12 @@ isdir(outdir) && rm(outdir, recursive = true)
 @trixi_testset "elixir_euler_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_periodic.jl"),
                         l2=[
-                            0.00010978828464875207,
-                            0.00013010359527356914,
-                            0.00013010359527326057,
-                            0.0002987656724828824,
+                            0.0001099216141882387, 0.0001303795774982892,
+                            0.00013037957749794242, 0.0002993727892598759,
                         ],
                         linf=[
-                            0.00638626102818618,
-                            0.009804042508242183,
-                            0.009804042508253286,
-                            0.02183139311614468,
+                            0.006407280810928562, 0.009836067015418948,
+                            0.009836067015398076, 0.021903519038095176,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -76,7 +72,8 @@ end
                             0.29339040847600434,
                             0.5915610037764794,
                         ],
-                        tspan=(0.0, 0.25))
+                        tspan=(0.0, 0.25),
+                        surface_flux=FluxHLL(min_max_speed_naive))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -489,16 +486,12 @@ end
 @trixi_testset "elixir_shallowwater_dirichlet.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_dirichlet.jl"),
                         l2=[
-                            1.1577518608940115e-5,
-                            4.867189932537344e-13,
-                            4.647273240470541e-13,
-                            1.1577518608933468e-5,
+                            1.1577518608938916e-5, 4.859252379740366e-13,
+                            4.639600837197925e-13, 1.1577518608952174e-5,
                         ],
                         linf=[
-                            8.394063878602864e-5,
-                            1.1469760027632646e-10,
-                            1.1146619484429974e-10,
-                            8.394063879602065e-5,
+                            8.3940638787805e-5, 1.1446362498574484e-10,
+                            1.1124515748367981e-10, 8.39406387962427e-5,
                         ],
                         tspan=(0.0, 2.0))
     # Ensure that we do not have excessive memory allocations
@@ -515,16 +508,12 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_shallowwater_wall_bc_shockcapturing.jl"),
                         l2=[
-                            0.04444388691670699,
-                            0.1527771788033111,
-                            0.1593763537203512,
-                            6.225080476986749e-8,
+                            0.0442113635677511, 0.1537465759364839, 0.16003586586203947,
+                            6.225080477067782e-8,
                         ],
                         linf=[
-                            0.6526506870169639,
-                            1.980765893182952,
-                            2.4807635459119757,
-                            3.982097158683473e-7,
+                            0.6347820607387928, 2.0078125433846736, 2.530726684667019,
+                            3.982097165344811e-7,
                         ],
                         tspan=(0.0, 0.05))
     # Ensure that we do not have excessive memory allocations

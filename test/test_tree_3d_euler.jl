@@ -458,6 +458,7 @@ end
                             2.397746252817731,
                         ],
                         maxiters=5, max_level=6,
+                        surface_flux=FluxHLL(min_max_speed_naive),
                         coverage_override=(maxiters = 2, initial_refinement_level = 1,
                                            base_level = 1, max_level = 3))
     # Ensure that we do not have excessive memory allocations
