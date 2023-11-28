@@ -137,17 +137,14 @@ as defined in [`initial_condition_convergence_test`](@ref).
     return SVector(du1, du2, 0.0, 0.0)
 end
 
-# Calculate 1D flux for a single point
+# Calculate 1D conservative flux for a single point
 # Note, the bottom topography and channel width have no flux
 @inline function flux(u, orientation::Integer, equations::ShallowWaterEquationsQuasi1D)
-    a_h, a_h_v, _, a = u
-    h = waterheight(u, equations)
+    _, a_h_v, _, _ = u
     v = velocity(u, equations)
 
-    p = 0.5 * a * equations.gravity * h^2
-
     f1 = a_h_v
-    f2 = a_h_v * v + p
+    f2 = a_h_v * v
 
     return SVector(f1, f2, zero(eltype(u)), zero(eltype(u)))
 end

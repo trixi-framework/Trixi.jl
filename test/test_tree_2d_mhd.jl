@@ -208,7 +208,8 @@ end
                             0.04879208429337193,
                         ],
                         tspan=(0.0, 0.06),
-                        surface_flux=(flux_hll, flux_nonconservative_powell))
+                        surface_flux=(flux_hlle,
+                                      flux_nonconservative_powell))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -326,6 +327,37 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_mhd_shockcapturing_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_subcell.jl"),
+                        l2=[2.9974425783503109e-02,
+                            7.2849646345685956e-02,
+                            7.2488477174662239e-02,
+                            0.0000000000000000e+00,
+                            1.2507971380965512e+00,
+                            1.8929505145499678e-02,
+                            1.2218606317164420e-02,
+                            0.0000000000000000e+00,
+                            3.0154796910479838e-03],
+                        linf=[3.2147382412340830e-01,
+                            1.3709471664007811e+00,
+                            1.3465154685288383e+00,
+                            0.0000000000000000e+00,
+                            1.6051257523415284e+01,
+                            3.0564266749926644e-01,
+                            2.3908016329805595e-01,
+                            0.0000000000000000e+00,
+                            1.3711262178549158e-01],
+                        tspan=(0.0, 0.003))
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 end

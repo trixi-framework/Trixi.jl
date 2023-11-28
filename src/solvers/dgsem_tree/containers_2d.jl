@@ -1266,11 +1266,15 @@ end
 #                               |
 #                            (i, j-1)
 mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real}
-    antidiffusive_flux1::Array{uEltype, 4} # [variables, i, j, elements]
-    antidiffusive_flux2::Array{uEltype, 4} # [variables, i, j, elements]
+    antidiffusive_flux1_L::Array{uEltype, 4} # [variables, i, j, elements]
+    antidiffusive_flux1_R::Array{uEltype, 4} # [variables, i, j, elements]
+    antidiffusive_flux2_L::Array{uEltype, 4} # [variables, i, j, elements]
+    antidiffusive_flux2_R::Array{uEltype, 4} # [variables, i, j, elements]
     # internal `resize!`able storage
-    _antidiffusive_flux1::Vector{uEltype}
-    _antidiffusive_flux2::Vector{uEltype}
+    _antidiffusive_flux1_L::Vector{uEltype}
+    _antidiffusive_flux1_R::Vector{uEltype}
+    _antidiffusive_flux2_L::Vector{uEltype}
+    _antidiffusive_flux2_R::Vector{uEltype}
 end
 
 function ContainerAntidiffusiveFlux2D{uEltype}(capacity::Integer, n_variables,
@@ -1278,24 +1282,36 @@ function ContainerAntidiffusiveFlux2D{uEltype}(capacity::Integer, n_variables,
     nan_uEltype = convert(uEltype, NaN)
 
     # Initialize fields with defaults
-    _antidiffusive_flux1 = fill(nan_uEltype,
-                                n_variables * (n_nodes + 1) * n_nodes * capacity)
-    antidiffusive_flux1 = unsafe_wrap(Array, pointer(_antidiffusive_flux1),
-                                      (n_variables, n_nodes + 1, n_nodes, capacity))
+    _antidiffusive_flux1_L = fill(nan_uEltype,
+                                  n_variables * (n_nodes + 1) * n_nodes * capacity)
+    antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
+                                        (n_variables, n_nodes + 1, n_nodes, capacity))
+    _antidiffusive_flux1_R = fill(nan_uEltype,
+                                  n_variables * (n_nodes + 1) * n_nodes * capacity)
+    antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
+                                        (n_variables, n_nodes + 1, n_nodes, capacity))
 
-    _antidiffusive_flux2 = fill(nan_uEltype,
-                                n_variables * n_nodes * (n_nodes + 1) * capacity)
-    antidiffusive_flux2 = unsafe_wrap(Array, pointer(_antidiffusive_flux2),
-                                      (n_variables, n_nodes, n_nodes + 1, capacity))
+    _antidiffusive_flux2_L = fill(nan_uEltype,
+                                  n_variables * n_nodes * (n_nodes + 1) * capacity)
+    antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
+                                        (n_variables, n_nodes, n_nodes + 1, capacity))
+    _antidiffusive_flux2_R = fill(nan_uEltype,
+                                  n_variables * n_nodes * (n_nodes + 1) * capacity)
+    antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
+                                        (n_variables, n_nodes, n_nodes + 1, capacity))
 
-    return ContainerAntidiffusiveFlux2D{uEltype}(antidiffusive_flux1,
-                                                 antidiffusive_flux2,
-                                                 _antidiffusive_flux1,
-                                                 _antidiffusive_flux2)
+    return ContainerAntidiffusiveFlux2D{uEltype}(antidiffusive_flux1_L,
+                                                 antidiffusive_flux1_R,
+                                                 antidiffusive_flux2_L,
+                                                 antidiffusive_flux2_R,
+                                                 _antidiffusive_flux1_L,
+                                                 _antidiffusive_flux1_R,
+                                                 _antidiffusive_flux2_L,
+                                                 _antidiffusive_flux2_R)
 end
 
-nvariables(fluxes::ContainerAntidiffusiveFlux2D) = size(fluxes.antidiffusive_flux1, 1)
-nnodes(fluxes::ContainerAntidiffusiveFlux2D) = size(fluxes.antidiffusive_flux1, 3)
+nvariables(fluxes::ContainerAntidiffusiveFlux2D) = size(fluxes.antidiffusive_flux1_L, 1)
+nnodes(fluxes::ContainerAntidiffusiveFlux2D) = size(fluxes.antidiffusive_flux1_L, 3)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
@@ -1306,16 +1322,24 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
     n_nodes = nnodes(fluxes)
     n_variables = nvariables(fluxes)
 
-    @unpack _antidiffusive_flux1, _antidiffusive_flux2 = fluxes
+    @unpack _antidiffusive_flux1_L, _antidiffusive_flux2_L, _antidiffusive_flux1_R, _antidiffusive_flux2_R = fluxes
 
-    resize!(_antidiffusive_flux1, n_variables * (n_nodes + 1) * n_nodes * capacity)
-    fluxes.antidiffusive_flux1 = unsafe_wrap(Array, pointer(_antidiffusive_flux1),
-                                             (n_variables, n_nodes + 1, n_nodes,
-                                              capacity))
-    resize!(_antidiffusive_flux2, n_variables * n_nodes * (n_nodes + 1) * capacity)
-    fluxes.antidiffusive_flux2 = unsafe_wrap(Array, pointer(_antidiffusive_flux2),
-                                             (n_variables, n_nodes, n_nodes + 1,
-                                              capacity))
+    resize!(_antidiffusive_flux1_L, n_variables * (n_nodes + 1) * n_nodes * capacity)
+    fluxes.antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
+                                               (n_variables, n_nodes + 1, n_nodes,
+                                                capacity))
+    resize!(_antidiffusive_flux1_R, n_variables * (n_nodes + 1) * n_nodes * capacity)
+    fluxes.antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
+                                               (n_variables, n_nodes + 1, n_nodes,
+                                                capacity))
+    resize!(_antidiffusive_flux2_L, n_variables * n_nodes * (n_nodes + 1) * capacity)
+    fluxes.antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
+                                               (n_variables, n_nodes, n_nodes + 1,
+                                                capacity))
+    resize!(_antidiffusive_flux2_R, n_variables * n_nodes * (n_nodes + 1) * capacity)
+    fluxes.antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
+                                               (n_variables, n_nodes, n_nodes + 1,
+                                                capacity))
 
     return nothing
 end
