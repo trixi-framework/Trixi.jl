@@ -1831,27 +1831,23 @@ end
 @inline function get_boundary_outer_state(u_inner, cache, t,
                                           boundary_condition::typeof(boundary_condition_slip_wall),
                                           orientation::Integer, direction,
-                                          equations, dg, indices...)
+                                          equations::CompressibleEulerEquations2D,
+                                          dg, indices...)
     return SVector(u_inner[1], -u_inner[2], -u_inner[3], u_inner[4])
 end
 
 @inline function get_boundary_outer_state(u_inner, cache, t,
                                           boundary_condition::typeof(boundary_condition_slip_wall),
-                                          normal_direction::AbstractVector,
-                                          direction, equations, dg, indices...)
-    u_rotate = rotate_to_x(u_inner, normal_direction, equations)
+                                          normal_direction::AbstractVector, direction,
+                                          equations::CompressibleEulerEquations2D,
+                                          dg, indices...)
+    factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
+    u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
 
     return SVector(u_inner[1],
-                   u_inner[2] - 2.0 * u_rotate[2],
-                   u_inner[3] - 2.0 * u_rotate[3],
+                   u_inner[2] - 2.0 * u_normal[1],
+                   u_inner[3] - 2.0 * u_normal[2],
                    u_inner[4])
-end
-
-# Default implementation of `get_boundary_outer_state` returns inner value.
-@inline function get_boundary_outer_state(u_inner, cache, t, boundary_condition,
-                                          orientation_or_normal, direction, equations,
-                                          dg, indices...)
-    return u_inner
 end
 
 @inline function get_boundary_outer_state(u_inner, cache, t,
@@ -1868,13 +1864,30 @@ end
 
 @inline function get_boundary_outer_state(u_inner, cache, t,
                                           boundary_condition::BoundaryConditionCharacteristic,
-                                          orientation_or_normal, direction, equations,
+                                          orientation::Integer, direction, equations,
                                           dg, indices...)
-    @unpack node_coordinates = cache.elements
+    (; node_coordinates) = cache.elements
 
     x = get_node_coords(node_coordinates, equations, dg, indices...)
     u_outer = boundary_condition.boundary_value_function(boundary_condition.outer_boundary_value_function,
-                                                         u_inner, orientation_or_normal,
+                                                         u_inner, orientation,
+                                                         direction, x, t, equations)
+
+    return u_outer
+end
+
+@inline function get_boundary_outer_state(u_inner, cache, t,
+                                          boundary_condition::BoundaryConditionCharacteristic,
+                                          normal_direction::AbstractVector, direction,
+                                          equations, dg, indices...)
+    (; node_coordinates) = cache.elements
+
+    x = get_node_coords(node_coordinates, equations, dg, indices...)
+
+    u_outer = boundary_condition.boundary_value_function(boundary_condition.outer_boundary_value_function,
+                                                         u_inner,
+                                                         normal_direction /
+                                                         norm(normal_direction),
                                                          direction, x, t, equations)
 
     return u_outer

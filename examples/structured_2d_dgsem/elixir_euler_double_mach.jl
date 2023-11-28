@@ -76,22 +76,23 @@ end
 @inline function Trixi.get_boundary_outer_state(u_inner, cache, t,
                                                 boundary_condition::typeof(boundary_condition_mixed_characteristic_wall),
                                                 normal_direction::AbstractVector, direction,
-                                                equations,
+                                                equations::CompressibleEulerEquations2D,
                                                 dg, indices...)
     x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, indices...)
     if x[1] < 1 / 6 # BoundaryConditionCharacteristic
         u_outer = Trixi.characteristic_boundary_value_function(initial_condition_double_mach_reflection,
                                                                u_inner,
-                                                               normal_direction,
-                                                               direction, x, t,
-                                                               equations)
+                                                               normal_direction /
+                                                               norm(normal_direction),
+                                                               direction, x, t, equations)
 
     else # if x[1] >= 1 / 6 # boundary_condition_slip_wall
-        u_rotate = Trixi.rotate_to_x(u_inner, normal_direction, equations)
+        factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
+        u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
 
         u_outer = SVector(u_inner[1],
-                          u_inner[2] - 2.0 * u_rotate[2],
-                          u_inner[3] - 2.0 * u_rotate[3],
+                          u_inner[2] - 2.0 * u_normal[1],
+                          u_inner[3] - 2.0 * u_normal[2],
                           u_inner[4])
     end
     return u_outer

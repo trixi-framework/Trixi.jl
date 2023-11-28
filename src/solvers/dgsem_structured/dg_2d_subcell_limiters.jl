@@ -109,7 +109,7 @@
     return nothing
 end
 
-@inline function calc_lambdas_bar_states!(u, t, mesh::StructuredMesh,
+@inline function calc_lambdas_bar_states!(u, t, mesh::StructuredMesh{2},
                                           nonconservative_terms, equations, limiter,
                                           dg, cache, boundary_conditions;
                                           calc_bar_states = true)
