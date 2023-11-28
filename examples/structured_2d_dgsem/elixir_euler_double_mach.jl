@@ -1,6 +1,7 @@
 
 using OrdinaryDiffEq
 using Trixi
+using LinearAlgebra: norm # for use in get_boundary_outer_state
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
