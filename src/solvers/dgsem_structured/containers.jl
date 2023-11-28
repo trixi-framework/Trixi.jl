@@ -5,8 +5,8 @@
 @muladd begin
 #! format: noindent
 
-struct ElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIMSP1, NDIMSP2, NDIMSP3
-                        }
+struct ElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIMSP1, NDIMSP2,
+                        NDIMSP3}
     # Physical coordinates at each node
     node_coordinates::Array{RealT, NDIMSP2}   # [orientation, node_i, node_j, node_k, element]
     # ID of neighbor element in negative direction in orientation
