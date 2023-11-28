@@ -3,20 +3,19 @@
 
 mutable struct P4estMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
     parent::P4estMesh{NDIMS, RealT}
-    mapping::Any # Not relevant for performance
-    index_min::NTuple{NDIMS, Int}
-    index_max::NTuple{NDIMS, Int}
+    nodes::SVector
+    index_min::Int
+    index_max::Int
 end
 
 function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
-                        index_min = ntuple(_ -> 1, Val(NDIMS)),
-                        index_max = size(parent)) where {NDIMS, RealT}
+                        index_min = 1::Int,
+                        index_max = sizeof(unsafe_wrap_sc(p4est_tree_t, parent.p4est.trees))::Int) where {NDIMS, RealT}
     @assert index_min <= index_max
     @assert all(index_min .> 0)
-    @assert index_max <= size(parent)
+    @assert index_max <= sizeof(unsafe_wrap_sc(p4est_tree_t, parent.p4est.trees))
 
-    return P4estMeshView{NDIMS, RealT}(parent, parent.mapping, index_min,
-                                       index_max)
+    return P4estMeshView{NDIMS, RealT}(parent, parent.nodes, index_min, index_max)
 end
 
 # Check if mesh is periodic
@@ -44,6 +43,36 @@ function Base.size(mesh::P4estMeshView, i)
 end
 Base.axes(mesh::P4estMeshView) = map(Base.OneTo, size(mesh))
 Base.axes(mesh::P4estMeshView, i) = Base.OneTo(size(mesh, i))
+
+function balance!(mesh::P4estMeshView{2}, init_fn = C_NULL)
+    p4est_balance(mesh.parent.p4est, P4EST_CONNECT_FACE, init_fn)
+    # Due to a bug in `p4est`, the forest needs to be rebalanced twice sometimes
+    # See https://github.com/cburstedde/p4est/issues/112
+    p4est_balance(mesh.parent.p4est, P4EST_CONNECT_FACE, init_fn)
+end
+
+@inline ncells(mesh::P4estMeshView) = Int(mesh.parent.p4est.local_num_quadrants[])
+
+function count_required_surfaces(mesh::P4estMeshView)
+    # Let `p4est` iterate over all interfaces and call count_surfaces_iter_face
+    iter_face_c = cfunction(count_surfaces_iter_face, Val(ndims(mesh.parent)))
+
+    # interfaces, mortars, boundaries
+    user_data = [0, 0, 0]
+
+    iterate_p4est(mesh.parent.p4est, user_data; iter_face_c = iter_face_c)
+
+    # Return counters
+    return (interfaces = user_data[1],
+            mortars = user_data[2],
+            boundaries = user_data[3])
+end
+
+function init_interfaces!(interfaces, mesh::P4estMeshView)
+    init_surfaces!(interfaces, nothing, nothing, mesh.parent)
+
+    return interfaces
+end
 
 # function calc_node_coordinates!(node_coordinates, element,
 #                                 cell_x, cell_y, mapping,
@@ -93,7 +122,6 @@ function calc_node_coordinates!(node_coordinates,
     p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
 
     trees = unsafe_wrap_sc(p4est_tree_t, parent.p4est.trees)
-    @autoinfiltrate
 
     for tree in eachindex(trees)
         offset = trees[tree].quadrants_offset
