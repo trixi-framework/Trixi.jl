@@ -29,9 +29,7 @@ import Trixi: iplot, iplot!
 # First some utilities
 # Given a reference plotting triangulation, this function generates a plotting triangulation for
 # the entire global mesh. The output can be plotted using `Makie.mesh`.
-function global_plotting_triangulation_makie(pds::PlotDataSeries{
-                                                                 <:PlotData2DTriangulated
-                                                                 };
+function global_plotting_triangulation_makie(pds::PlotDataSeries{<:PlotData2DTriangulated};
                                              set_z_coordinate_zero = false)
     @unpack variable_id = pds
     pd = pds.plot_data
@@ -61,8 +59,7 @@ end
 
 # Returns a list of `Makie.Point`s which can be used to plot the mesh, or a solution "wireframe"
 # (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
-function convert_PlotData2D_to_mesh_Points(pds::PlotDataSeries{<:PlotData2DTriangulated
-                                                               };
+function convert_PlotData2D_to_mesh_Points(pds::PlotDataSeries{<:PlotData2DTriangulated};
                                            set_z_coordinate_zero = false)
     @unpack variable_id = pds
     pd = pds.plot_data
