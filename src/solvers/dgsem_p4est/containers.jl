@@ -242,7 +242,7 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
 end
 
 # Create interface container and initialize interface data in `elements`.
-function init_boundaries(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
+function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations, basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
@@ -373,7 +373,7 @@ function Base.resize!(mortars::P4estMortarContainer, capacity)
 end
 
 # Create mortar container and initialize mortar data.
-function init_mortars(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
+function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations, basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 

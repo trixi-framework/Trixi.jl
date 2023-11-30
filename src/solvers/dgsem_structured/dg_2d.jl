@@ -59,7 +59,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 @inline function weak_form_kernel!(du, u,
                                    element,
                                    mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                               P4estMesh{2}, T8codeMesh{2}},
+                                               P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                                    nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
