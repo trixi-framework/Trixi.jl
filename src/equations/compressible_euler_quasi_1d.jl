@@ -107,7 +107,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerEquationsQuasi1D)
     # Same settings as in `initial_condition_convergence_test`. 
-    #Derivatives calculated with ForwardDiff.jl
+    # Derivatives calculated with ForwardDiff.jl
     c = 2
     A = 0.1
     L = 2
