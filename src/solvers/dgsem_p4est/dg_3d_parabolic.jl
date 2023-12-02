@@ -115,8 +115,8 @@ function rhs_parabolic!(du, u, t, mesh::P4estMesh{3},
 
     # Calculate mortar fluxes (specialized for AbstractEquationsParabolic)
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux_divergence!(cache_parabolic.elements.surface_flux_values, 
-                                     mesh, equations_parabolic, dg.mortar, 
+        calc_mortar_flux_divergence!(cache_parabolic.elements.surface_flux_values,
+                                     mesh, equations_parabolic, dg.mortar,
                                      dg.surface_integral, dg, cache)
     end
 
@@ -364,7 +364,8 @@ end
                                             mesh::P4estMesh{3},
                                             equations::AbstractEquationsParabolic,
                                             mortar_l2::LobattoLegendreMortarL2,
-                                            dg::DGSEM, cache, mortar, fstar, u_buffer,fstar_tmp)
+                                            dg::DGSEM, cache, mortar, fstar, u_buffer,
+                                            fstar_tmp)
     @unpack neighbor_ids, node_indices = cache.mortars
     index_range = eachnode(dg)
     # Copy solution small to small
@@ -753,23 +754,29 @@ function prolong2mortars_divergence!(cache, flux_viscous::Vector{Array{uEltype, 
             element = neighbor_ids[position, mortar]
             for j in eachnode(dg)
                 for i in eachnode(dg)
-                    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
-                                                            i_small, j_small, k_small, element)
-                                                
-                    for v in eachvariable(equations)
-                        flux_viscous = SVector(flux_viscous_x[v, i_small, j_small , k_small, element],
-                                            flux_viscous_y[v, i_small, j_small , k_small, element],
-                                            flux_viscous_z[v, i_small, j_small , k_small, element])
+                    normal_direction = get_normal_direction(direction_index,
+                                                            contravariant_vectors,
+                                                            i_small, j_small, k_small,
+                                                            element)
 
-                        cache.mortars.u[1, v, position, i, j, mortar] = dot(flux_viscous, normal_direction)
+                    for v in eachvariable(equations)
+                        flux_viscous = SVector(flux_viscous_x[v, i_small, j_small, k_small,
+                                                              element],
+                                               flux_viscous_y[v, i_small, j_small, k_small,
+                                                              element],
+                                               flux_viscous_z[v, i_small, j_small, k_small,
+                                                              element])
+
+                        cache.mortars.u[1, v, position, i, j, mortar] = dot(flux_viscous,
+                                                                            normal_direction)
                     end
                     i_small += i_small_step_i
                     j_small += j_small_step_i
                     k_small += k_small_step_i
                 end
-            i_small += i_small_step_j
-            j_small += j_small_step_j
-            k_small += k_small_step_j
+                i_small += i_small_step_j
+                j_small += j_small_step_j
+                k_small += k_small_step_j
             end
         end
 
@@ -797,13 +804,17 @@ function prolong2mortars_divergence!(cache, flux_viscous::Vector{Array{uEltype, 
         element = neighbor_ids[5, mortar]
         for j in eachnode(dg)
             for i in eachnode(dg)
-                normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                normal_direction = get_normal_direction(direction_index,
+                                                        contravariant_vectors,
                                                         i_large, j_large, k_large, element)
 
                 for v in eachvariable(equations)
-                    flux_viscous = SVector(flux_viscous_x[v, i_large, j_large, k_large, element],
-                                        flux_viscous_y[v, i_large, j_large, k_large, element],
-                                        flux_viscous_z[v, i_large, j_large, k_large, element])
+                    flux_viscous = SVector(flux_viscous_x[v, i_large, j_large, k_large,
+                                                          element],
+                                           flux_viscous_y[v, i_large, j_large, k_large,
+                                                          element],
+                                           flux_viscous_z[v, i_large, j_large, k_large,
+                                                          element])
 
                     # We prolong the viscous flux dotted with respect the outward normal 
                     # on the small element. We scale by -1/2 here because the normal 
@@ -820,7 +831,7 @@ function prolong2mortars_divergence!(cache, flux_viscous::Vector{Array{uEltype, 
             k_large += k_large_step_j
         end
 
-         # Interpolate large element face data from buffer to small face locations
+        # Interpolate large element face data from buffer to small face locations
         multiply_dimensionwise!(view(cache.mortars.u, 2, :, 1, :, :, mortar),
                                 mortar_l2.forward_lower,
                                 mortar_l2.forward_lower,
@@ -862,7 +873,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
         # Choose thread-specific pre-allocated container
         fstar = fstar_threaded[Threads.threadid()]
         fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
- 
+
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
         small_direction = indices2direction(small_indices)
@@ -874,7 +885,6 @@ function calc_mortar_flux_divergence!(surface_flux_values,
         k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
                                                                                index_range)
 
-
         for position in 1:4
             i_small = i_small_start
             j_small = j_small_start
@@ -882,13 +892,15 @@ function calc_mortar_flux_divergence!(surface_flux_values,
             element = neighbor_ids[position, mortar]
             for j in eachnode(dg)
                 for i in eachnode(dg)
-                                
                     for v in eachvariable(equations)
-                        viscous_flux_normal_ll = cache.mortars.u[1, v, position, i, j , mortar]
-                        viscous_flux_normal_rr = cache.mortars.u[2, v, position, i, j , mortar]
+                        viscous_flux_normal_ll = cache.mortars.u[1, v, position, i, j,
+                                                                 mortar]
+                        viscous_flux_normal_rr = cache.mortars.u[2, v, position, i, j,
+                                                                 mortar]
 
                         # TODO: parabolic; only BR1 at the moment
-                        fstar[v, i, j, position] = 0.5 * (viscous_flux_normal_ll + viscous_flux_normal_rr)
+                        fstar[v, i, j, position] = 0.5 * (viscous_flux_normal_ll +
+                                                    viscous_flux_normal_rr)
                     end
 
                     i_small += i_small_step_i
@@ -919,7 +931,7 @@ end
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
 @inline function calc_mortar_flux!(fstar,
                                    mesh::P4estMesh{3},
-                                   nonconservative_terms::False, 
+                                   nonconservative_terms::False,
                                    equations::AbstractEquationsParabolic,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
@@ -928,13 +940,13 @@ end
     @unpack surface_flux = surface_integral
 
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index,
-                                      j_node_index,mortar_index)
+                                       j_node_index, mortar_index)
 
     # TODO: parabolic; only BR1 at the moment
     flux_ = 0.5 * (u_ll + u_rr)
-# # Copy flux to buffer
-# set_node_vars!(fstar, flux, equations, dg, i_node_index, j_node_index,
-# position_index)
+    # # Copy flux to buffer
+    # set_node_vars!(fstar, flux, equations, dg, i_node_index, j_node_index,
+    # position_index)
     # Copy flux to buffer
     set_node_vars!(fstar, flux_, equations, dg, i_node_index, j_node_index, position_index)
 end
