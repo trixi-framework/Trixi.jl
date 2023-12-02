@@ -383,8 +383,9 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                                                 cache_analysis)
     else
         # Names `l2_error`, `linf_error` need to be defined
-        l2_error = nothing
-        linf_error = nothing
+        #l2_error = nothing
+        #linf_error = nothing
+        return nothing, nothing
     end
 
     if mpi_isroot()
