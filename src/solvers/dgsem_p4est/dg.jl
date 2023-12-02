@@ -9,13 +9,13 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::Any,
-                      ::Type{uEltype}) where {uEltype <: Real}
+                      ::Type{uEltype}, backend::Backend) where {uEltype <: Real}
     # Make sure to balance the `p4est` before creating any containers
     # in case someone has tampered with the `p4est` after creating the mesh
     balance!(mesh)
 
-    elements = init_elements(mesh, equations, dg.basis, uEltype)
-    interfaces = init_interfaces(mesh, equations, dg.basis, elements)
+    elements = init_elements(mesh, equations, dg.basis, uEltype, backend)
+    interfaces = init_interfaces(mesh, equations, dg.basis, elements, backend)
     boundaries = init_boundaries(mesh, equations, dg.basis, elements)
     mortars = init_mortars(mesh, equations, dg.basis, elements)
 

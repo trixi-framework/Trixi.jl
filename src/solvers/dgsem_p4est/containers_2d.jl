@@ -11,15 +11,22 @@ function init_elements!(elements, mesh::Union{P4estMesh{2}, T8codeMesh{2}},
     @unpack node_coordinates, jacobian_matrix,
     contravariant_vectors, inverse_jacobian = elements
 
+    backend = get_backend(contravariant_vectors)
+    tmp_contravariant_vectors = Array{eltype(contravariant_vectors)}(undef, size(contravariant_vectors))
+    tmp_inverse_jacobian = Array{eltype(inverse_jacobian)}(undef, size(inverse_jacobian))
+
     calc_node_coordinates!(node_coordinates, mesh, basis)
 
     for element in 1:ncells(mesh)
         calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
 
-        calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix)
+        calc_contravariant_vectors!(tmp_contravariant_vectors, element, jacobian_matrix)
 
-        calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix)
+        calc_inverse_jacobian!(tmp_inverse_jacobian, element, jacobian_matrix)
     end
+
+    copyto!(backend, contravariant_vectors, tmp_contravariant_vectors)
+    copyto!(backend, inverse_jacobian, tmp_inverse_jacobian)
 
     return nothing
 end
@@ -94,24 +101,24 @@ end
         # relative to the interface.
         if side == 1 || orientation == 0
             # Forward indexing
-            i = :i_forward
+            i = i_forward
         else
             # Backward indexing
-            i = :i_backward
+            i = i_backward
         end
 
         if faces[side] == 0
             # Index face in negative x-direction
-            interfaces.node_indices[side, interface_id] = (:begin, i)
+            @allowscalar interfaces.node_indices[side, interface_id] = (_begin, i)
         elseif faces[side] == 1
             # Index face in positive x-direction
-            interfaces.node_indices[side, interface_id] = (:end, i)
+            @allowscalar interfaces.node_indices[side, interface_id] = (_end, i)
         elseif faces[side] == 2
             # Index face in negative y-direction
-            interfaces.node_indices[side, interface_id] = (i, :begin)
+            @allowscalar interfaces.node_indices[side, interface_id] = (i, _begin)
         else # faces[side] == 3
             # Index face in positive y-direction
-            interfaces.node_indices[side, interface_id] = (i, :end)
+            @allowscalar interfaces.node_indices[side, interface_id] = (i, _end)
         end
     end
 
@@ -123,16 +130,16 @@ end
                                              face, boundary_id)
     if face == 0
         # Index face in negative x-direction
-        boundaries.node_indices[boundary_id] = (:begin, :i_forward)
+        boundaries.node_indices[boundary_id] = (_begin, i_forward)
     elseif face == 1
         # Index face in positive x-direction
-        boundaries.node_indices[boundary_id] = (:end, :i_forward)
+        boundaries.node_indices[boundary_id] = (_end, i_forward)
     elseif face == 2
         # Index face in negative y-direction
-        boundaries.node_indices[boundary_id] = (:i_forward, :begin)
+        boundaries.node_indices[boundary_id] = (i_forward, _begin)
     else # face == 3
         # Index face in positive y-direction
-        boundaries.node_indices[boundary_id] = (:i_forward, :end)
+        boundaries.node_indices[boundary_id] = (i_forward, _end)
     end
 
     return boundaries
@@ -147,24 +154,24 @@ end
         # relative to the mortar.
         if side == 1 || orientation == 0
             # Forward indexing for small side or orientation == 0
-            i = :i_forward
+            i = i_forward
         else
             # Backward indexing for large side with reversed orientation
-            i = :i_backward
+            i = i_backward
         end
 
         if faces[side] == 0
             # Index face in negative x-direction
-            mortars.node_indices[side, mortar_id] = (:begin, i)
+            mortars.node_indices[side, mortar_id] = (_begin, i)
         elseif faces[side] == 1
             # Index face in positive x-direction
-            mortars.node_indices[side, mortar_id] = (:end, i)
+            mortars.node_indices[side, mortar_id] = (_end, i)
         elseif faces[side] == 2
             # Index face in negative y-direction
-            mortars.node_indices[side, mortar_id] = (i, :begin)
+            mortars.node_indices[side, mortar_id] = (i, _begin)
         else # faces[side] == 3
             # Index face in positive y-direction
-            mortars.node_indices[side, mortar_id] = (i, :end)
+            mortars.node_indices[side, mortar_id] = (i, _end)
         end
     end
 

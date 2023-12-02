@@ -140,7 +140,7 @@ end
 function initialize_save_cb!(solution_callback::SaveSolutionCallback, u, t, integrator)
     mpi_isroot() && mkpath(solution_callback.output_directory)
 
-    semi = integrator.p
+    @unpack semi = integrator.p
     @trixi_timeit timer() "I/O" save_mesh(semi, solution_callback.output_directory)
 
     if solution_callback.save_initial_solution
@@ -184,7 +184,7 @@ end
 # this method is called when the callback is activated
 function (solution_callback::SaveSolutionCallback)(integrator)
     u_ode = integrator.u
-    semi = integrator.p
+    @unpack semi = integrator.p
     iter = integrator.stats.naccept
 
     @trixi_timeit timer() "I/O" begin

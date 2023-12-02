@@ -49,7 +49,8 @@ function integrate(func::Func, u_ode, semi::AbstractSemidiscretization;
 end
 
 function integrate(u, semi::AbstractSemidiscretization; normalize = true)
-    integrate(cons2cons, u, semi; normalize = normalize)
+    tmp_u = copyto!(CPU(), allocate(CPU(), eltype(u), size(u)), u)
+    integrate(cons2cons, tmp_u, semi; normalize = normalize)
 end
 
 """
@@ -59,9 +60,16 @@ Calculate discrete L2 and L∞ error norms of `func` applied to each nodal varia
 If no exact solution is available, "errors" are calculated using some reference state and can be useful
 for regression tests.
 """
+
 function calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization,
                           cache_analysis)
-    calc_error_norms(cons2cons, u_ode, t, analyzer, semi, cache_analysis)
+    tmp_u_ode = copyto!(CPU(), allocate(CPU(), eltype(u_ode), size(u_ode)), u_ode)
+    calc_error_norms(cons2cons, tmp_u_ode, t, analyzer, semi, cache_analysis)
+end
+
+struct ODEParams
+    semi::AbstractSemidiscretization
+    backend::Backend
 end
 
 """
@@ -71,7 +79,7 @@ Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
-                        reset_threads = true)
+                        reset_threads = true, offload=false, backend=CPU())
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -79,13 +87,16 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         Polyester.reset_threads!()
     end
 
-    u0_ode = compute_coefficients(first(tspan), semi)
+    u0_ode = compute_coefficients(first(tspan), semi; backend=backend)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
     iip = true # is-inplace, i.e., we modify a vector when calling rhs!
-    specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
-    return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
+    if offload
+        return ODEProblem{iip}(rhs_gpu!, u0_ode, tspan, ODEParams(semi, backend))
+    else
+        return ODEProblem{iip}(rhs!, u0_ode, tspan, ODEParams(semi, CPU()))
+    end
 end
 
 """
@@ -128,8 +139,8 @@ the values of `func` at the nodes of the grid assoociated with the semidiscretiz
 For semidiscretizations `semi` associated with an initial condition, `func` can be omitted
 to use the given initial condition at time `t`.
 """
-function compute_coefficients(func, t, semi::AbstractSemidiscretization)
-    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
+function compute_coefficients(func, t, semi::AbstractSemidiscretization; backend::Backend=CPU())
+    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...; backend=backend)
     # Call `compute_coefficients` defined below
     compute_coefficients!(u_ode, func, t, semi)
     return u_ode

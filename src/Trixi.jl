@@ -88,6 +88,11 @@ import SummationByPartsOperators: integrate, semidiscretize,
                            Quad, Hex, Tet, Wedge
 using StartUpDG: RefElemData, MeshData, AbstractElemShape
 
+# For GPU offloading
+using KernelAbstractions: @kernel, @index, Backend, CPU, allocate, copyto!, get_backend, synchronize
+import KernelAbstractions: get_backend
+using GPUArrays: @allowscalar
+
 # TODO: include_optimized
 # This should be used everywhere (except to `include("interpolations.jl")`)
 # once the upstream issue https://github.com/timholy/Revise.jl/issues/634
@@ -299,6 +304,18 @@ function __init__()
     @static if !isdefined(Base, :get_extension)
         @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
             include("../ext/TrixiMakieExt.jl")
+        end
+        @require CUDA="052768ef-5323-5732-b1bb-66c8b64840ba" begin
+            include("../ext/TrixiCUDAExt.jl")
+        end
+        @require AMDGPU="21141c5a-9bdb-4563-92ae-f87d6854732e" begin
+            include("../ext/TrixiAMDGPUExt.jl")
+        end
+        @require oneAPI="8f75cd03-7ff8-4ecb-9b8f-daf728133b1b" begin
+            include("../ext/TrixiOneAPIExt.jl")
+        end
+        @require Metal="dde4c033-4e86-420c-a63e-0dd931031962" begin
+            include("../ext/TrixiMetalExt.jl")
         end
     end
 

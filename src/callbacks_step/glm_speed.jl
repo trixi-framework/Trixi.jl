@@ -68,7 +68,7 @@ end
 # This method is called as callback after the StepsizeCallback during the time integration.
 @inline function (glm_speed_callback::GlmSpeedCallback)(integrator)
     dt = get_proposed_dt(integrator)
-    semi = integrator.p
+    @unpack semi = integrator.p
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     @unpack glm_scale, cfl = glm_speed_callback
 

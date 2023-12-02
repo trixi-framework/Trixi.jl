@@ -110,6 +110,29 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
+function calc_volume_integral_gpu!(du, u,
+                                   mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                   nonconservative_terms, equations,
+                                   volume_integral::VolumeIntegralFluxDifferencing,
+                                   dg::DGSEM, cache)
+    @kernel function calc_volume_integral_gpu_kernel!(du, u, derivative_split, contravariant_vectors, volume_flux, equations, alpha, num_nodes)
+        element = @index(Global)
+        flux_differencing_kernel_internal!(du, u, element, derivative_split, contravariant_vectors, volume_flux, equations, alpha, num_nodes)
+    end
+
+    @unpack derivative_split = dg.basis
+    @unpack contravariant_vectors = cache.elements
+
+    backend = get_backend(u)
+    kernel! = calc_volume_integral_gpu_kernel!(backend)
+
+    num_nodes = nnodes(dg)
+    num_elements = nelements(cache.elements)
+
+    kernel!(du, u, derivative_split, contravariant_vectors, volume_integral.volume_flux, equations, true, num_nodes, ndrange=num_elements)
+    #synchronize(backend)
+end
+
 # flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
@@ -124,8 +147,13 @@ end
     @unpack contravariant_vectors = cache.elements
 
     # Calculate volume integral in one element
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-        u_node = get_node_vars(u, equations, dg, i, j, k, element)
+    flux_differencing_kernel_internal!(du, u, element, derivative_split, contravariant_vectors, volume_flux, equations, alpha, nnodes(dg))
+end
+
+@inline function flux_differencing_kernel_internal!(du, u, element, derivative_split, contravariant_vectors, volume_flux, equations, alpha, num_nodes)
+    for k in 1:num_nodes, j in 1:num_nodes, i in 1:num_nodes
+        #u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        u_node = SVector(ntuple(@inline(v->u[v, i, j, k, element]), Val(nvariables(equations))))
 
         # pull the contravariant vectors in each coordinate direction
         Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -138,8 +166,9 @@ end
         # computations.
 
         # x direction
-        for ii in (i + 1):nnodes(dg)
-            u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
+        for ii in (i + 1):num_nodes
+            #u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
+            u_node_ii = SVector(ntuple(@inline(v->u[v, ii, j, k, element]), Val(nvariables(equations))))
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
@@ -147,15 +176,22 @@ end
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1,
-                                       equations, dg, i, j, k, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1,
-                                       equations, dg, ii, j, k, element)
+            #multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1,
+            #                           equations, dg, i, j, k, element)
+            #multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1,
+            #                           equations, dg, ii, j, k, element)
+            for v in eachvariable(equations)
+                du[v, i, j, k, element] = du[v, i, j, k, element] + (alpha * derivative_split[i, ii]) * fluxtilde1[v]
+            end
+            for v in eachvariable(equations)
+                du[v, ii, j, k, element] = du[v, ii, j, k, element] + (alpha * derivative_split[ii, i]) * fluxtilde1[v]
+            end
         end
 
         # y direction
-        for jj in (j + 1):nnodes(dg)
-            u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
+        for jj in (j + 1):num_nodes
+            #u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
+            u_node_jj = SVector(ntuple(@inline(v->u[v, i, jj, k, element]), Val(nvariables(equations))))
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
@@ -163,15 +199,22 @@ end
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2,
-                                       equations, dg, i, j, k, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2,
-                                       equations, dg, i, jj, k, element)
+            #multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2,
+            #                           equations, dg, i, j, k, element)
+            #multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2,
+            #                           equations, dg, i, jj, k, element)
+            for v in eachvariable(equations)
+                du[v, i, j, k, element] = du[v, i, j, k, element] + (alpha * derivative_split[j, jj]) * fluxtilde2[v]
+            end
+            for v in eachvariable(equations)
+                du[v, i, jj, k, element] = du[v, i, jj, k, element] + (alpha * derivative_split[jj, j]) * fluxtilde2[v]
+            end
         end
 
         # z direction
-        for kk in (k + 1):nnodes(dg)
-            u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
+        for kk in (k + 1):num_nodes
+            #u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
+            u_node_kk = SVector(ntuple(@inline(v->u[v, i, j, kk, element]), Val(nvariables(equations))))
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
@@ -179,10 +222,16 @@ end
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde3 = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[k, kk], fluxtilde3,
-                                       equations, dg, i, j, k, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[kk, k], fluxtilde3,
-                                       equations, dg, i, j, kk, element)
+            #multiply_add_to_node_vars!(du, alpha * derivative_split[k, kk], fluxtilde3,
+            #                           equations, dg, i, j, k, element)
+            #multiply_add_to_node_vars!(du, alpha * derivative_split[kk, k], fluxtilde3,
+            #                           equations, dg, i, j, kk, element)
+            for v in eachvariable(equations)
+                du[v, i, j, k, element] = du[v, i, j, k, element] + (alpha * derivative_split[k, kk]) * fluxtilde3[v]
+            end
+            for v in eachvariable(equations)
+                du[v, i, j, kk, element] = du[v, i, j, kk, element] + (alpha * derivative_split[kk, k]) * fluxtilde3[v]
+            end
         end
     end
 end
@@ -782,19 +831,45 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
     end
 end
 
+function apply_jacobian_gpu!(du,
+                         mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                         equations, dg::DG, cache)
+    @kernel function apply_jacobian_kernel!(du, inverse_jacobian, equations, num_nodes)
+        element = @index(Global)
+        apply_jacobian_structured_3d_internal!(du, element, inverse_jacobian, equations, num_nodes)
+    end
+
+    @unpack inverse_jacobian = cache.elements
+    backend = get_backend(du)
+
+    kernel! = apply_jacobian_kernel!(backend)
+
+    kernel!(du, inverse_jacobian, equations, nnodes(dg), ndrange=nelements(cache.elements))
+    #synchronize(backend)
+
+    return nothing
+end
+
 function apply_jacobian!(du,
                          mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                          equations, dg::DG, cache)
-    @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            factor = -cache.elements.inverse_jacobian[i, j, k, element]
+    @unpack inverse_jacobian = cache.elements
+    num_nodes = nnodes(dg)
 
-            for v in eachvariable(equations)
-                du[v, i, j, k, element] *= factor
-            end
-        end
+    @threaded for element in eachelement(dg, cache)
+        apply_jacobian_structured_3d_internal!(du, element, inverse_jacobian, equations, num_nodes)
     end
 
     return nothing
+end
+
+@inline function apply_jacobian_structured_3d_internal!(du, element, inverse_jacobian, equations, num_nodes)
+    for k in 1:num_nodes, j in 1:num_nodes, i in 1:num_nodes
+        factor = -inverse_jacobian[i, j, k, element]
+
+        for v in eachvariable(equations)
+            du[v, i, j, k, element] *= factor
+        end
+    end
 end
 end # @muladd

@@ -137,7 +137,7 @@ end
 # This method gets called from OrdinaryDiffEq's `solve(...)`
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
                      integrator) where {Condition, Affect! <: AnalysisCallback}
-    semi = integrator.p
+    @unpack semi, backend = integrator.p
     du_ode = first(get_tmp_cache(integrator))
     initialize!(cb, u_ode, du_ode, t, integrator, semi)
 end
@@ -219,9 +219,16 @@ end
 
 # This method gets called from OrdinaryDiffEq's `solve(...)`
 function (analysis_callback::AnalysisCallback)(integrator)
-    semi = integrator.p
+    @unpack semi, backend = integrator.p
     du_ode = first(get_tmp_cache(integrator))
     u_ode = integrator.u
+
+    #tmp_u_ode = Array{eltype(u_ode)}(undef, size(u_ode))
+    #tmp_du_ode = Array{eltype(du_ode)}(undef, size(du_ode))
+
+    #copyto!(backend, tmp_u_ode, u_ode)
+    #copyto!(backend, tmp_du_ode, du_ode)
+
     analysis_callback(u_ode, du_ode, integrator, semi)
 end
 
@@ -329,7 +336,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         # However, we want to allow users to modify the ODE RHS outside of Trixi.jl
         # and allow us to pass a combined ODE RHS to OrdinaryDiffEq, e.g., for
         # hyperbolic-parabolic systems.
-        @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
+        @notimeit timer() integrator.f(du_ode, u_ode, integrator.p, t)
         u = wrap_array(u_ode, mesh, equations, solver, cache)
         du = wrap_array(du_ode, mesh, equations, solver, cache)
         l2_error, linf_error = analysis_callback(io, du, u, u_ode, t, semi)
@@ -601,11 +608,14 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
                                                                 Affect! <:
                                                                 AnalysisCallback}
     analysis_callback = cb.affect!
-    semi = sol.prob.p
+    @unpack semi = sol.prob.p
     @unpack analyzer = analysis_callback
     cache_analysis = analysis_callback.cache
 
-    l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi,
+    sol_u_tmp = Array{eltype(sol.u[end])}(undef, size(sol.u[end]))
+    copyto!(get_backend(sol.u[end]), sol_u_tmp, sol.u[end])
+
+    l2_error, linf_error = calc_error_norms(sol_u_tmp, sol.t[end], analyzer, semi,
                                             cache_analysis)
     (; l2 = l2_error, linf = linf_error)
 end
@@ -615,7 +625,11 @@ end
 # Trixi.analyze, Trixi.pretty_form_utf, Trixi.pretty_form_ascii
 function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    analyze(quantity, du, u, t, mesh, equations, solver, cache)
+
+    tmp_u = copyto!(CPU(), allocate(CPU(), eltype(u), size(u)), u)
+    tmp_du = copyto!(CPU(), allocate(CPU(), eltype(du), size(du)), du)
+
+    analyze(quantity, tmp_du, tmp_u, t, mesh, equations, solver, cache)
 end
 function analyze(quantity, du, u, t, mesh, equations, solver, cache)
     integrate(quantity, u, mesh, equations, solver, cache, normalize = true)

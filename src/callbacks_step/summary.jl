@@ -163,7 +163,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
                            :total_width => 100,
                            :indentation_level => 0)
 
-    semi = integrator.p
+    @unpack semi = integrator.p
     print_summary_semidiscretization(io_context, semi)
 
     callbacks = integrator.opts.callback

@@ -208,6 +208,77 @@ function rhs!(du, u, t,
     return nothing
 end
 
+function rhs_gpu!(du, u, t,
+              mesh::Union{TreeMesh{3}, P4estMesh{3}}, equations,
+              initial_condition, boundary_conditions, source_terms::Source,
+              dg::DG, cache, backend::Backend) where {Source}
+    # Reset du
+    @trixi_timeit timer() "reset ∂u/∂t gpu" reset_du_gpu!(du, dg, cache)
+
+    # Calculate volume integral
+    @trixi_timeit timer() "volume integral gpu" begin
+        calc_volume_integral_gpu!(du, u, mesh,
+                              have_nonconservative_terms(equations), equations,
+                              dg.volume_integral, dg, cache)
+    end
+
+    # Prolong solution to interfaces
+    @trixi_timeit timer() "prolong2interfaces gpu" begin
+        prolong2interfaces_gpu!(cache, u, mesh, equations,
+                            dg.surface_integral, dg)
+    end
+
+    # Calculate interface fluxes
+    @trixi_timeit timer() "interface flux gpu" begin
+        calc_interface_flux_gpu!(cache.elements.surface_flux_values, mesh,
+                             have_nonconservative_terms(equations), equations,
+                             dg.surface_integral, dg, cache)
+    end
+
+    # Prolong solution to boundaries
+    @trixi_timeit timer() "prolong2boundaries gpu" begin
+        prolong2boundaries_gpu!(cache, u, mesh, equations,
+                            dg.surface_integral, dg)
+    end
+
+    # Calculate boundary fluxes
+    @trixi_timeit timer() "boundary flux gpu" begin
+        calc_boundary_flux_gpu!(cache, t, boundary_conditions, mesh, equations,
+                            dg.surface_integral, dg)
+    end
+
+    # Prolong solution to mortars
+    @trixi_timeit timer() "prolong2mortars gpu" begin
+        prolong2mortars_gpu!(cache, u, mesh, equations,
+                         dg.mortar, dg.surface_integral, dg)
+    end
+
+    # Calculate mortar fluxes
+    @trixi_timeit timer() "mortar flux gpu" begin
+        calc_mortar_flux_gpu!(cache.elements.surface_flux_values, mesh,
+                          have_nonconservative_terms(equations), equations,
+                          dg.mortar, dg.surface_integral, dg, cache)
+    end
+
+    # Calculate surface integrals
+    @trixi_timeit timer() "surface integral gpu" begin
+        calc_surface_integral_gpu!(du, u, mesh, equations,
+                               dg.surface_integral, dg, cache)
+    end
+
+    # Apply Jacobian from mapping to reference element
+    @trixi_timeit timer() "Jacobian gpu" apply_jacobian_gpu!(du, mesh, equations, dg, cache)
+
+    # Calculate source terms
+    @trixi_timeit timer() "source terms gpu" begin
+        calc_sources_gpu!(du, u, t, source_terms, equations, dg, cache)
+    end
+
+    synchronize(backend)
+
+    return nothing
+end
+
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}
                                            },
@@ -1376,6 +1447,11 @@ end
 # TODO: Taal dimension agnostic
 function calc_sources!(du, u, t, source_terms::Nothing,
                        equations::AbstractEquations{3}, dg::DG, cache)
+    return nothing
+end
+
+function calc_sources_gpu!(du, u, t, source_terms::Nothing,
+    equations::AbstractEquations{3}, dg::DG, cache)
     return nothing
 end
 

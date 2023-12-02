@@ -33,7 +33,7 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     # negative adjoint wrt the SBP dot product
 end
 
-function LobattoLegendreBasis(RealT, polydeg::Integer)
+function LobattoLegendreBasis(RealT, polydeg::Integer; backend::Backend=CPU())
     nnodes_ = polydeg + 1
 
     # compute everything using `Float64` by default
@@ -58,13 +58,13 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
     inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
 
     inverse_vandermonde_legendre = convert.(RealT, inverse_vandermonde_legendre_)
-    boundary_interpolation = convert.(RealT, boundary_interpolation_)
+    boundary_interpolation = copyto!(backend, allocate(backend, RealT, size(boundary_interpolation_)), convert.(RealT, boundary_interpolation_))
 
     # Usually as fast as `SMatrix` (when using `let` in the volume integral/`@threaded`)
-    derivative_matrix = Matrix{RealT}(derivative_matrix_)
-    derivative_split = Matrix{RealT}(derivative_split_)
-    derivative_split_transpose = Matrix{RealT}(derivative_split_transpose_)
-    derivative_dhat = Matrix{RealT}(derivative_dhat_)
+    derivative_matrix = copyto!(backend, allocate(backend, RealT, size(derivative_matrix_)), derivative_matrix_)
+    derivative_split = copyto!(backend, allocate(backend, RealT, size(derivative_split_)), derivative_split_)
+    derivative_split_transpose = copyto!(backend, allocate(backend, RealT, size(derivative_split_transpose_)), derivative_split_transpose_)
+    derivative_dhat = copyto!(backend, allocate(backend, RealT, size(derivative_dhat_)), derivative_dhat_)
 
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),

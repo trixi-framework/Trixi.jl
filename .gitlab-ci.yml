@@ -1,0 +1,21 @@
+stages:
+    - test
+
+.trigger-template:
+    stage: test
+    trigger:
+        include: /.test-ci.yml
+        strategy: depend
+        forward: 
+            yaml_variables: true
+
+julia-1.8-test:
+    extends: .trigger-template
+    allow_failure: true
+    variables:
+        JULIA_EXEC: "julia-1.8"
+
+julia-1.9-test:
+    extends: .trigger-template
+    variables:
+        JULIA_EXEC: "julia-1.9"

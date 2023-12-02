@@ -33,9 +33,13 @@ function max_dt(u, t, mesh::TreeMesh{2},
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
+    tmp_inverse_jacobian = copyto!(CPU(),
+                                   allocate(CPU(), eltype(cache.elements.inverse_jacobian), size(cache.elements.inverse_jacobian)),
+                                   cache.elements.inverse_jacobian)
+
     for element in eachelement(dg, cache)
         max_lambda1, max_lambda2 = max_abs_speeds(equations)
-        inv_jacobian = cache.elements.inverse_jacobian[element]
+        inv_jacobian = tmp_inverse_jacobian[element]
         max_scaled_speed = max(max_scaled_speed,
                                inv_jacobian * (max_lambda1 + max_lambda2))
     end
@@ -117,6 +121,13 @@ function max_dt(u, t,
                 constant_speed::True, equations, dg::DG, cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
+    tmp_inverse_jacobian = copyto!(CPU(),
+                                   allocate(CPU(), eltype(inverse_jacobian), size(inverse_jacobian)),
+                                   inverse_jacobian)
+    tmp_contravariant_vectors = copyto!(CPU(),
+                                   allocate(CPU(), eltype(contravariant_vectors), size(contravariant_vectors)),
+                                   contravariant_vectors)
+
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
@@ -126,14 +137,14 @@ function max_dt(u, t,
     for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             # Local speeds transformed to the reference element
-            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j,
+            Ja11, Ja12 = get_contravariant_vector(1, tmp_contravariant_vectors, i, j,
                                                   element)
             lambda1_transformed = abs(Ja11 * max_lambda1 + Ja12 * max_lambda2)
-            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j,
+            Ja21, Ja22 = get_contravariant_vector(2, tmp_contravariant_vectors, i, j,
                                                   element)
             lambda2_transformed = abs(Ja21 * max_lambda1 + Ja22 * max_lambda2)
 
-            inv_jacobian = abs(inverse_jacobian[i, j, element])
+            inv_jacobian = abs(tmp_inverse_jacobian[i, j, element])
             max_scaled_speed = max(max_scaled_speed,
                                    inv_jacobian *
                                    (lambda1_transformed + lambda2_transformed))

@@ -129,20 +129,19 @@ function get_element_variables!(element_variables, u, mesh, equations, solver, c
                            amr_callback.controller, amr_callback; kwargs...)
 end
 
-function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
-                     integrator) where {Condition, Affect! <: AMRCallback}
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:AMRCallback}
     amr_callback = cb.affect!
-    semi = integrator.p
+    @unpack semi = integrator.p
 
     @trixi_timeit timer() "initial condition AMR" if amr_callback.adapt_initial_condition
         # iterate until mesh does not change anymore
         has_changed = amr_callback(integrator,
-                                   only_refine = amr_callback.adapt_initial_condition_only_refine)
+                                only_refine=amr_callback.adapt_initial_condition_only_refine)
         while has_changed
             compute_coefficients!(integrator.u, t, semi)
             u_modified!(integrator, true)
             has_changed = amr_callback(integrator,
-                                       only_refine = amr_callback.adapt_initial_condition_only_refine)
+                                        only_refine=amr_callback.adapt_initial_condition_only_refine)
         end
     end
 
@@ -169,7 +168,7 @@ end
 
 function (amr_callback::AMRCallback)(integrator; kwargs...)
     u_ode = integrator.u
-    semi = integrator.p
+    @unpack semi = integrator.p
 
     @trixi_timeit timer() "AMR" begin
         has_changed = amr_callback(u_ode, semi,

@@ -64,21 +64,14 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       boundary_conditions = boundary_condition_periodic,
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
-                                      RealT = real(solver), uEltype = RealT,
-                                      initial_cache = NamedTuple())
-    cache = (; create_cache(mesh, equations, solver, RealT, uEltype)...,
-             initial_cache...)
-    _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
-                                                      cache)
+                                      RealT=real(solver), uEltype=RealT,
+                                      initial_cache=NamedTuple(), backend::Backend=CPU())
 
-    SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
-                                 typeof(initial_condition),
-                                 typeof(_boundary_conditions), typeof(source_terms),
-                                 typeof(solver), typeof(cache)}(mesh, equations,
-                                                                initial_condition,
-                                                                _boundary_conditions,
-                                                                source_terms, solver,
-                                                                cache)
+    cache = (; create_cache(mesh, equations, solver, RealT, uEltype, backend)..., initial_cache...)
+    _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver, cache)
+
+    SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
+    mesh, equations, initial_condition, _boundary_conditions, source_terms, solver, cache)
 end
 
 # Create a new semidiscretization but change some parameters compared to the input.
@@ -329,16 +322,18 @@ function calc_error_norms(func, u_ode, t, analyzer, semi::SemidiscretizationHype
                      cache, cache_analysis)
 end
 
-function compute_coefficients(t, semi::SemidiscretizationHyperbolic)
+function compute_coefficients(t, semi::SemidiscretizationHyperbolic; backend::Backend=CPU())
     # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
-    compute_coefficients(semi.initial_condition, t, semi)
+    compute_coefficients(semi.initial_condition, t, semi; backend=backend)
 end
 
 function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolic)
     compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
-function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
+
+function rhs!(du_ode, u_ode, params::ODEParams, t)
+    @unpack semi = params
     @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
@@ -353,4 +348,22 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
 
     return nothing
 end
+
+function rhs_gpu!(du_ode, u_ode, params::ODEParams, t)
+    @unpack semi, backend = params
+    @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
+
+    u  = wrap_array(u_ode,  mesh, equations, solver, cache)
+    du = wrap_array(du_ode, mesh, equations, solver, cache)
+
+    # TODO: Taal decide, do we need to pass the mesh?
+    time_start = time_ns()
+    @trixi_timeit timer() "rhs_gpu!" rhs_gpu!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache, backend)
+    runtime = time_ns() - time_start
+    put!(semi.performance_counter, runtime)
+
+    return nothing
+end
+
+
 end # @muladd

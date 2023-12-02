@@ -63,7 +63,7 @@ end
     if !integrator.opts.adaptive
         t = integrator.t
         u_ode = integrator.u
-        semi = integrator.p
+        @unpack semi = integrator.p
         @unpack cfl_number = stepsize_callback
 
         # Dispatch based on semidiscretization

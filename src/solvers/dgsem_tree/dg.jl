@@ -15,6 +15,11 @@ function reset_du!(du, dg, cache)
     return du
 end
 
+function reset_du_gpu!(du, dg, cache)
+    fill!(du, 0)
+    return du
+end
+
 #     pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
 #
 # Given blending factors `alpha` and the solver `dg`, fill
@@ -39,7 +44,7 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
 end
 
 function volume_jacobian(element, mesh::TreeMesh, cache)
-    return inv(cache.elements.inverse_jacobian[element])^ndims(mesh)
+    return inv(@allowscalar cache.elements.inverse_jacobian[element])^ndims(mesh)
 end
 
 # Indicators used for shock-capturing and AMR
