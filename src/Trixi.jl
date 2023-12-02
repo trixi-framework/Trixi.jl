@@ -125,6 +125,7 @@ include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
+include("time_integration/time_integration.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
@@ -200,6 +201,8 @@ export boundary_condition_do_nothing,
        BoundaryConditionNavierStokesWall, NoSlip, Adiabatic, Isothermal,
        BoundaryConditionCoupled
 
+export coupling_converter_heaviside_2d
+
 export initial_condition_convergence_test, source_terms_convergence_test
 export source_terms_harmonic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic,
@@ -217,7 +220,8 @@ export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
 export lake_at_rest_error
 export ncomponents, eachcomponent
 
-export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh, T8codeMesh
+export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh, P4estMeshView,
+       T8codeMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
