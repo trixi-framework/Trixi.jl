@@ -45,7 +45,7 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
 coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = ( 1.0,  1.0,  1.0) .* pi
 
-trees_per_dimension = (4, 4, 4)
+trees_per_dimension = (2, 2, 2)
 
 mesh = P4estMesh(trees_per_dimension, polydeg=3,
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max,
@@ -58,7 +58,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 10.0)
+tspan = (0.0, 0.50)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
