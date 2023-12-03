@@ -182,7 +182,8 @@ end
             u_outer = get_boundary_outer_state(u_inner, cache, t,
                                                boundary_conditions[boundary_index],
                                                orientation, boundary_index,
-                                               equations, dg, index..., element)
+                                               mesh, equations, dg,
+                                               index..., element)
             var_outer = u_outer[variable]
 
             var_min[index..., element] = min(var_min[index..., element], var_outer)
@@ -280,7 +281,8 @@ end
                     u_outer = get_boundary_outer_state(u_inner, cache, t,
                                                        boundary_conditions[1],
                                                        orientation, 1,
-                                                       equations, dg, 1, j, element)
+                                                       mesh, equations, dg,
+                                                       1, j, element)
                     var_outer = variable(u_outer, equations)
 
                     var_minmax[1, j, element] = minmax(var_minmax[1, j, element],
@@ -292,8 +294,8 @@ end
                     u_outer = get_boundary_outer_state(u_inner, cache, t,
                                                        boundary_conditions[2],
                                                        orientation, 2,
-                                                       equations, dg, nnodes(dg), j,
-                                                       element)
+                                                       mesh, equations, dg,
+                                                       nnodes(dg), j, element)
                     var_outer = variable(u_outer, equations)
 
                     var_minmax[nnodes(dg), j, element] = minmax(var_minmax[nnodes(dg),
@@ -308,7 +310,8 @@ end
                     u_outer = get_boundary_outer_state(u_inner, cache, t,
                                                        boundary_conditions[3],
                                                        orientation, 3,
-                                                       equations, dg, i, 1, element)
+                                                       mesh, equations, dg,
+                                                       i, 1, element)
                     var_outer = variable(u_outer, equations)
 
                     var_minmax[i, 1, element] = minmax(var_minmax[i, 1, element],
@@ -320,8 +323,8 @@ end
                     u_outer = get_boundary_outer_state(u_inner, cache, t,
                                                        boundary_conditions[4],
                                                        orientation, 4,
-                                                       equations, dg, i, nnodes(dg),
-                                                       element)
+                                                       mesh, equations, dg,
+                                                       i, nnodes(dg), element)
                     var_outer = variable(u_outer, equations)
 
                     var_minmax[i, nnodes(dg), element] = minmax(var_minmax[i,

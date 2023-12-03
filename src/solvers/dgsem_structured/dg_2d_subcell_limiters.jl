@@ -245,7 +245,8 @@ end
                 u_inner = get_node_vars(u, equations, dg, 1, j, element)
                 u_outer = get_boundary_outer_state(u_inner, cache, t,
                                                    boundary_conditions[1], Ja1, 1,
-                                                   equations, dg, 1, j, element)
+                                                   mesh, equations, dg,
+                                                   1, j, element)
                 lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, Ja1,
                                                              equations)
 
@@ -270,8 +271,8 @@ end
                 u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
                 u_outer = get_boundary_outer_state(u_inner, cache, t,
                                                    boundary_conditions[2], Ja1, 2,
-                                                   equations, dg, nnodes(dg), j,
-                                                   element)
+                                                   mesh, equations, dg,
+                                                   nnodes(dg), j, element)
                 lambda1[nnodes(dg) + 1, j, element] = max_abs_speed_naive(u_inner,
                                                                           u_outer, Ja1,
                                                                           equations)
@@ -301,7 +302,8 @@ end
                 u_inner = get_node_vars(u, equations, dg, i, 1, element)
                 u_outer = get_boundary_outer_state(u_inner, cache, t,
                                                    boundary_conditions[3], Ja2, 3,
-                                                   equations, dg, i, 1, element)
+                                                   mesh, equations, dg,
+                                                   i, 1, element)
                 lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, Ja2,
                                                              equations)
 
@@ -326,8 +328,8 @@ end
                 u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
                 u_outer = get_boundary_outer_state(u_inner, cache, t,
                                                    boundary_conditions[4], Ja2, 4,
-                                                   equations, dg, i, nnodes(dg),
-                                                   element)
+                                                   mesh, equations, dg,
+                                                   i, nnodes(dg), element)
                 lambda2[i, nnodes(dg) + 1, element] = max_abs_speed_naive(u_inner,
                                                                           u_outer, Ja2,
                                                                           equations)

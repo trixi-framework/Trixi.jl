@@ -226,9 +226,10 @@ end
                                                                        x, t,
                                                                        surface_flux_function,
                                                                        equations)
-    u_boundary = characteristic_boundary_value_function(boundary_condition.outer_boundary_value_function,
-                                                        u_inner, orientation_or_normal,
-                                                        direction, x, t, equations)
+    u_boundary = boundary_condition.boundary_value_function(boundary_condition.outer_boundary_value_function,
+                                                            u_inner,
+                                                            orientation_or_normal,
+                                                            direction, x, t, equations)
 
     # Calculate boundary flux
     if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
