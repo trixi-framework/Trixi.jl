@@ -380,9 +380,8 @@ function create_cache(mesh::DGMultiMesh, equations,
 
     # specialized operators to perform tensor product interpolation to faces for Gauss nodes
     interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
-    projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{
-                                                                                Static.False()
-                                                                                }(), dg)
+    projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{Static.False()}(),
+                                                                     dg)
 
     # `LIFT` matrix for Gauss nodes - this is equivalent to `projection_matrix_gauss_to_face` scaled by `diagm(rd.wf)`,
     # where `rd.wf` are Gauss node face quadrature weights.

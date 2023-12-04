@@ -11,11 +11,10 @@
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis, bound_keys, bar_states)
-    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
-                                                                      }(0,
-                                                                        nnodes(basis),
-                                                                        bound_keys)
+                      basis::LobattoLegendreBasis, bound_keys)
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)}(0,
+                                                                                   nnodes(basis),
+                                                                                   bound_keys)
 
     cache = (;)
     if bar_states
@@ -903,10 +902,9 @@ end
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, positivity_limiter_pressure)
-    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterMCL2D{real(basis)
-                                                                      }(0,
-                                                                        nvariables(equations),
-                                                                        nnodes(basis))
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterMCL2D{real(basis)}(0,
+                                                                                   nvariables(equations),
+                                                                                   nnodes(basis))
     container_bar_states = Trixi.ContainerBarStates{real(basis)}(0,
                                                                  nvariables(equations),
                                                                  nnodes(basis))

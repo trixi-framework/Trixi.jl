@@ -58,19 +58,15 @@ struct CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <
     cv::SVector{NCOMP, RealT}
     cp::SVector{NCOMP, RealT}
 
-    function CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{
-                                                                                             NCOMP,
-                                                                                             RealT
-                                                                                             },
-                                                                             gas_constants::SVector{
-                                                                                                    NCOMP,
-                                                                                                    RealT
-                                                                                                    }) where {
-                                                                                                              NVARS,
-                                                                                                              NCOMP,
-                                                                                                              RealT <:
-                                                                                                              Real
-                                                                                                              }
+    function CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{NCOMP,
+                                                                                             RealT},
+                                                                             gas_constants::SVector{NCOMP,
+                                                                                                    RealT}) where {
+                                                                                                                   NVARS,
+                                                                                                                   NCOMP,
+                                                                                                                   RealT <:
+                                                                                                                   Real
+                                                                                                                   }
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `gas_constants` have to be filled with at least one value"))
 
