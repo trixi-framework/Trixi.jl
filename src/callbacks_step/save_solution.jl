@@ -39,8 +39,7 @@ end
 
 function Base.show(io::IO,
                    cb::DiscreteCallback{<:Any,
-                                        <:PeriodicCallbackAffect{<:SaveSolutionCallback
-                                                                 }})
+                                        <:PeriodicCallbackAffect{<:SaveSolutionCallback}})
     @nospecialize cb # reduce precompilation time
 
     save_solution_callback = cb.affect!.affect!
@@ -71,8 +70,7 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain",
                    cb::DiscreteCallback{<:Any,
-                                        <:PeriodicCallbackAffect{<:SaveSolutionCallback
-                                                                 }})
+                                        <:PeriodicCallbackAffect{<:SaveSolutionCallback}})
     @nospecialize cb # reduce precompilation time
 
     if get(io, :compact, false)

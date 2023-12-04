@@ -29,8 +29,8 @@ end
 # full FV element.
 #
 # TODO: TrixiShallowWater: move new indicator type
-function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{<:Any, 3
-                                                                                },
+function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{<:Any,
+                                                                                3},
                                                                mesh,
                                                                equations::ShallowWaterEquations1D,
                                                                dg::DGSEM, cache;
