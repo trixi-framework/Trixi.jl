@@ -706,7 +706,7 @@ end
                             7.75523532462757,
                             50.34978438323783,
                         ],
-                        cells_per_dimension = (4, 6),
+                        cells_per_dimension=(4, 6),
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -732,7 +732,7 @@ end
                             9.523570698421638,
                             50.004005679063496,
                         ],
-                        cells_per_dimension = (4, 6),
+                        cells_per_dimension=(4, 6),
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
