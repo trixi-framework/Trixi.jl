@@ -342,8 +342,7 @@ function InitNeighborRankConnectivityIterFaceUserData(mpi_interfaces, mpi_mortar
     global_mortar_ids = fill(-1, nmpimortars(mpi_mortars))
     neighbor_ranks_mortar = Vector{Vector{Int}}(undef, nmpimortars(mpi_mortars))
 
-    return InitNeighborRankConnectivityIterFaceUserData{
-                                                        typeof(mpi_interfaces),
+    return InitNeighborRankConnectivityIterFaceUserData{typeof(mpi_interfaces),
                                                         typeof(mpi_mortars),
                                                         typeof(mesh)}(mpi_interfaces, 1,
                                                                       global_interface_ids,
