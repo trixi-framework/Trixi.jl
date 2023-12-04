@@ -642,18 +642,18 @@ end
 @trixi_testset "elixir_euler_double_mach.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach.jl"),
                         l2=[
-                            0.8892711012596337,
-                            6.768939095393111,
-                            3.2588878985646255,
-                            77.16322087232443,
+                            0.87417841433288,
+                            6.669726935171785,
+                            3.4980245896465387,
+                            76.33557073534843,
                         ],
                         linf=[
-                            10.740469658192428,
-                            133.31243847865667,
-                            38.66587124337752,
-                            1470.9225424937222,
+                            11.428353671462515,
+                            142.73486852796972,
+                            38.91639544578682,
+                            1651.7541392659086,
                         ],
-                        initial_refinement_level=3,
+                        initial_refinement_level=2,
                         tspan=(0.0, 0.05))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -668,18 +668,18 @@ end
 @trixi_testset "elixir_euler_double_mach_MCL.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach_MCL.jl"),
                         l2=[
-                            0.9199296340616842,
-                            7.054039186151105,
-                            3.3554396452157937,
-                            79.79580531230015,
+                            0.8887316108902574,
+                            6.644244699117507,
+                            3.449004719354504,
+                            76.27064751067829,
                         ],
                         linf=[
-                            14.104646332033838,
-                            133.18960630718664,
-                            39.607867526776694,
-                            1476.9124768351937,
+                            11.047531144845593,
+                            121.9664993888814,
+                            35.74266955717666,
+                            1370.2362649787694,
                         ],
-                        initial_refinement_level=3,
+                        initial_refinement_level=2,
                         tspan=(0.0, 0.05))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -695,17 +695,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shock_upstream_sc_subcell.jl"),
                         l2=[
-                            1.2360964282793594,
-                            1.1280398030799386,
-                            1.7267648591561005,
-                            11.7190241252948,
+                            1.2251169601680385,
+                            1.1492245175358053,
+                            1.6159494561956207,
+                            11.595399424356522,
                         ],
                         linf=[
-                            5.393863681425582,
-                            6.476830142076269,
-                            10.13110957325047,
-                            49.922573759404,
+                            5.510615373248864,
+                            6.031732951057033,
+                            7.75523532462757,
+                            50.34978438323783,
                         ],
+                        cells_per_dimension = (4, 6),
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -720,17 +721,18 @@ end
 @trixi_testset "elixir_euler_shock_upstream_MCL.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shock_upstream_MCL.jl"),
                         l2=[
-                            1.2655219565562812,
-                            1.1981291403309833,
-                            1.7964926709729876,
-                            11.968876601483794,
+                            1.251060277251583,
+                            1.113113246031922,
+                            1.6514902305846646,
+                            11.691342485806103,
                         ],
                         linf=[
-                            5.675285252773072,
-                            10.063582862371597,
-                            12.3837111905078,
-                            51.34700027665198,
+                            5.893750268397502,
+                            5.620631940554678,
+                            9.523570698421638,
+                            50.004005679063496,
                         ],
+                        cells_per_dimension = (4, 6),
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
