@@ -266,8 +266,7 @@ end
 
 function ParallelInitSurfacesIterFaceUserData(interfaces, mortars, boundaries,
                                               mpi_interfaces, mpi_mortars, mesh)
-    return ParallelInitSurfacesIterFaceUserData{
-                                                typeof(interfaces), typeof(mortars),
+    return ParallelInitSurfacesIterFaceUserData{typeof(interfaces), typeof(mortars),
                                                 typeof(boundaries),
                                                 typeof(mpi_interfaces),
                                                 typeof(mpi_mortars), typeof(mesh)}(interfaces,

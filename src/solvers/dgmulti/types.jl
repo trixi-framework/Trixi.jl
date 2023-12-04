@@ -4,49 +4,46 @@
 
 # `DGMulti` refers to both multiple DG types (polynomial/SBP, simplices/quads/hexes) as well as
 # the use of multi-dimensional operators in the solver.
-const DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} = DG{
-                                                                                 <:RefElemData{
-                                                                                               NDIMS,
+const DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} = DG{<:RefElemData{NDIMS,
                                                                                                ElemType,
-                                                                                               ApproxType
-                                                                                               },
+                                                                                               ApproxType},
                                                                                  Mortar,
                                                                                  SurfaceIntegral,
-                                                                                 VolumeIntegral
-                                                                                 } where {
-                                                                                          Mortar
-                                                                                          }
+                                                                                 VolumeIntegral} where {
+                                                                                                        Mortar
+                                                                                                        }
 
 # Type aliases. The first parameter is `ApproxType` since it is more commonly used for dispatch.
 const DGMultiWeakForm{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                       <:SurfaceIntegralWeakForm,
-                                                      <:VolumeIntegralWeakForm
-                                                      } where {NDIMS}
+                                                      <:VolumeIntegralWeakForm} where {NDIMS
+                                                                                       }
 
 const DGMultiFluxDiff{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                       <:SurfaceIntegralWeakForm,
-                                                      <:Union{
-                                                              VolumeIntegralFluxDifferencing,
-                                                              VolumeIntegralShockCapturingHG
-                                                              }} where {NDIMS}
+                                                      <:Union{VolumeIntegralFluxDifferencing,
+                                                              VolumeIntegralShockCapturingHG}} where {
+                                                                                                      NDIMS
+                                                                                                      }
 
 const DGMultiFluxDiffSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                          <:SurfaceIntegralWeakForm,
-                                                         <:Union{
-                                                                 VolumeIntegralFluxDifferencing,
-                                                                 VolumeIntegralShockCapturingHG
-                                                                 }
-                                                         } where {NDIMS,
-                                                                  ApproxType <: Union{SBP,
-                                                                        AbstractDerivativeOperator
-                                                                        }}
+                                                         <:Union{VolumeIntegralFluxDifferencing,
+                                                                 VolumeIntegralShockCapturingHG}} where {
+                                                                                                         NDIMS,
+                                                                                                         ApproxType <:
+                                                                                                         Union{SBP,
+                                                                                                               AbstractDerivativeOperator}
+                                                                                                         }
 
 const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
-                                                 SurfaceIntegral, VolumeIntegral
-                                                 } where {NDIMS, ElemType,
-                                                          ApproxType <: Union{SBP,
-                                                                AbstractDerivativeOperator},
-                                                          SurfaceIntegral, VolumeIntegral}
+                                                 SurfaceIntegral,
+                                                 VolumeIntegral} where {NDIMS, ElemType,
+                                                                        ApproxType <:
+                                                                        Union{SBP,
+                                                                              AbstractDerivativeOperator},
+                                                                        SurfaceIntegral,
+                                                                        VolumeIntegral}
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,

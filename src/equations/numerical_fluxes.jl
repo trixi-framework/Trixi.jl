@@ -198,10 +198,7 @@ function max_abs_speed_naive end
 end
 
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central),
-                                                           DissipationLocalLaxFriedrichs{
-                                                                                         MaxAbsSpeed
-                                                                                         }
-                                                           }
+                                                           DissipationLocalLaxFriedrichs{MaxAbsSpeed}}
 """
     FluxLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
 
