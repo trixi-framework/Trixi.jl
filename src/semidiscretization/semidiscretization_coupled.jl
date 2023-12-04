@@ -41,8 +41,9 @@ function SemidiscretizationCoupled(semis...)
 
     performance_counter = PerformanceCounter()
 
-    SemidiscretizationCoupled{typeof(semis), typeof(u_indices), typeof(performance_counter)
-                              }(semis, u_indices, performance_counter)
+    SemidiscretizationCoupled{typeof(semis), typeof(u_indices),
+                              typeof(performance_counter)}(semis, u_indices,
+                                                           performance_counter)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupled)
@@ -432,8 +433,7 @@ function allocate_coupled_boundary_condition(boundary_condition, direction, mesh
 end
 
 # In 2D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2
-                                                                                          },
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2},
                                              direction, mesh, equations, dg::DGSEM)
     if direction in (1, 2)
         cell_size = size(mesh, 2)
