@@ -23,6 +23,12 @@ Additional errors can be computed, e.g. by passing
 `extra_analysis_errors = (:l2_error_primitive, :linf_error_primitive)`
 or `extra_analysis_errors = (:conservation_error,)`.
 
+If you want to omit the computation (to safe compute-time) of the [`default_analysis_errors`](@ref), specify
+`analysis_errors = Symbol[]`.
+Note: `default_analysis_errors` are `:l2_error`, `:linf_error` for all equations.
+If you want to include an `extra_analysis_error` such as `:conservation_error` you need to specify 
+`analysis_errors = [:conservation_error]` instead of `extra_analysis_errors = [:conservation_error]`.
+
 Further scalar functions `func` in `extra_analysis_integrals` are applied to the numerical
 solution and integrated over the computational domain. Some examples for this are
 [`entropy`](@ref), [`energy_kinetic`](@ref), [`energy_internal`](@ref), and [`energy_total`](@ref).
@@ -382,9 +388,6 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
         l2_error, linf_error = calc_error_norms(u_ode, t, analyzer, semi,
                                                 cache_analysis)
     else
-        # Names `l2_error`, `linf_error` need to be defined
-        #l2_error = nothing
-        #linf_error = nothing
         return nothing, nothing
     end
 
