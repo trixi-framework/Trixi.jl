@@ -60,85 +60,99 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    element,
                                    mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
                                                P4estMesh{2}, T8codeMesh{2}},
-                                   nonconservative_terms::False, equations,
+                                   nonconservative_terms::False,
+                                   equations::AbstractEquations{2},
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_dhat = dg.basis
     @unpack contravariant_vectors = cache.elements
 
-    if size(contravariant_vectors, 1) == 2
-        for j in eachnode(dg), i in eachnode(dg)
-            u_node = get_node_vars(u, equations, dg, i, j, element)
+    for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, element)
 
-            flux1 = flux(u_node, 1, equations)
-            flux2 = flux(u_node, 2, equations)
-            # Compute the contravariant flux by taking the scalar product of the
-            # first contravariant vector Ja^1 and the flux vector
-            #Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
-            Ja11 = contravariant_vectors[1, 1, i, j, element]
-            Ja12 = contravariant_vectors[2, 1, i, j, element]
-            contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
-            for ii in eachnode(dg)
-                multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
-                                           contravariant_flux1, equations, dg, ii, j,
-                                           element)
-            end
-
-            # Compute the contravariant flux by taking the scalar product of the
-            # second contravariant vector Ja^2 and the flux vector
-            #Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
-            Ja21 = contravariant_vectors[1, 2, i, j, element]
-            Ja22 = contravariant_vectors[2, 2, i, j, element]
-            contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
-            for jj in eachnode(dg)
-                multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
-                                           contravariant_flux2, equations, dg, i, jj,
-                                           element)
-            end
+        flux1 = flux(u_node, 1, equations)
+        flux2 = flux(u_node, 2, equations)
+        # Compute the contravariant flux by taking the scalar product of the
+        # first contravariant vector Ja^1 and the flux vector
+        #Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+        Ja11 = contravariant_vectors[1, 1, i, j, element]
+        Ja12 = contravariant_vectors[2, 1, i, j, element]
+        contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
+        for ii in eachnode(dg)
+            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
+                                       contravariant_flux1, equations, dg, ii, j,
+                                       element)
         end
-    else #size(contravariant_vectors,1) == 3
-        for j in eachnode(dg), i in eachnode(dg)
-            u_node = get_node_vars(u, equations, dg, i, j, element)
 
-            flux1 = flux(u_node, 1, equations)
-            flux2 = flux(u_node, 2, equations)
-            flux3 = flux(u_node, 3, equations)
+        # Compute the contravariant flux by taking the scalar product of the
+        # second contravariant vector Ja^2 and the flux vector
+        #Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+        Ja21 = contravariant_vectors[1, 2, i, j, element]
+        Ja22 = contravariant_vectors[2, 2, i, j, element]
+        contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
+        for jj in eachnode(dg)
+            multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
+                                       contravariant_flux2, equations, dg, i, jj,
+                                       element)
+        end
+    end
 
-            # Compute the contravariant flux by taking the scalar product of the
-            # first contravariant vector Ja^1 and the flux vector
-            #Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
-            Ja11 = contravariant_vectors[1, 1, i, j, element]
-            Ja12 = contravariant_vectors[2, 1, i, j, element]
-            Ja13 = contravariant_vectors[3, 1, i, j, element]
-            contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
-            for ii in eachnode(dg)
-                multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
-                                           contravariant_flux1, equations, dg, ii, j,
-                                           element)
-            end
+    return nothing
+end
 
-            # Compute the contravariant flux by taking the scalar product of the
-            # second contravariant vector Ja^2 and the flux vector
-            #Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
-            Ja21 = contravariant_vectors[1, 2, i, j, element]
-            Ja22 = contravariant_vectors[2, 2, i, j, element]
-            Ja23 = contravariant_vectors[3, 2, i, j, element]
-            contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
-            for jj in eachnode(dg)
-                multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
-                                           contravariant_flux2, equations, dg, i, jj,
-                                           element)
-            end
+@inline function weak_form_kernel!(du, u,
+                                   element,
+                                   mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+                                               P4estMesh{2}, T8codeMesh{2}},
+                                   nonconservative_terms::False,
+                                   equations::AbstractEquations{3},
+                                   dg::DGSEM, cache, alpha = true)
+    # true * [some floating point value] == [exactly the same floating point value]
+    # This can (hopefully) be optimized away due to constant propagation.
+    @unpack derivative_dhat = dg.basis
+    @unpack contravariant_vectors = cache.elements
 
-            #Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, element)
-            Ja31 = contravariant_vectors[1, 3, i, j, element]
-            Ja32 = contravariant_vectors[2, 3, i, j, element]
-            Ja33 = contravariant_vectors[3, 3, i, j, element]
-            for v in eachvariable(equations)
-                du[v, i, j, element] += (Ja31 * flux1[v] + Ja32 * flux2[v] +
-                                         Ja33 * flux3[v])
-            end
+    for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+
+        flux1 = flux(u_node, 1, equations)
+        flux2 = flux(u_node, 2, equations)
+        flux3 = flux(u_node, 3, equations)
+
+        # Compute the contravariant flux by taking the scalar product of the
+        # first contravariant vector Ja^1 and the flux vector
+        #Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+        Ja11 = contravariant_vectors[1, 1, i, j, element]
+        Ja12 = contravariant_vectors[2, 1, i, j, element]
+        Ja13 = contravariant_vectors[3, 1, i, j, element]
+        contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
+        for ii in eachnode(dg)
+            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
+                                       contravariant_flux1, equations, dg, ii, j,
+                                       element)
+        end
+
+        # Compute the contravariant flux by taking the scalar product of the
+        # second contravariant vector Ja^2 and the flux vector
+        #Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+        Ja21 = contravariant_vectors[1, 2, i, j, element]
+        Ja22 = contravariant_vectors[2, 2, i, j, element]
+        Ja23 = contravariant_vectors[3, 2, i, j, element]
+        contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
+        for jj in eachnode(dg)
+            multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
+                                       contravariant_flux2, equations, dg, i, jj,
+                                       element)
+        end
+
+        #Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, element)
+        Ja31 = contravariant_vectors[1, 3, i, j, element]
+        Ja32 = contravariant_vectors[2, 3, i, j, element]
+        Ja33 = contravariant_vectors[3, 3, i, j, element]
+        for v in eachvariable(equations)
+            du[v, i, j, element] += (Ja31 * flux1[v] + Ja32 * flux2[v] +
+                                     Ja33 * flux3[v])
         end
     end
 
