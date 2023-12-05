@@ -388,30 +388,30 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
         # Calculate L2/Linf errors, which are also returned
         l2_error, linf_error = calc_error_norms(u_ode, t, analyzer, semi,
                                                 cache_analysis)
+
+        if mpi_isroot()
+            # L2 error
+            if :l2_error in analysis_errors
+                print(" L2 error:    ")
+                for v in eachvariable(equations)
+                    @printf("  % 10.8e", l2_error[v])
+                    @printf(io, "  % 10.8e", l2_error[v])
+                end
+                println()
+            end
+
+            # Linf error
+            if :linf_error in analysis_errors
+                print(" Linf error:  ")
+                for v in eachvariable(equations)
+                    @printf("  % 10.8e", linf_error[v])
+                    @printf(io, "  % 10.8e", linf_error[v])
+                end
+                println()
+            end
+        end
     else
         return nothing
-    end
-
-    if mpi_isroot()
-        # L2 error
-        if :l2_error in analysis_errors
-            print(" L2 error:    ")
-            for v in eachvariable(equations)
-                @printf("  % 10.8e", l2_error[v])
-                @printf(io, "  % 10.8e", l2_error[v])
-            end
-            println()
-        end
-
-        # Linf error
-        if :linf_error in analysis_errors
-            print(" Linf error:  ")
-            for v in eachvariable(equations)
-                @printf("  % 10.8e", linf_error[v])
-                @printf(io, "  % 10.8e", linf_error[v])
-            end
-            println()
-        end
     end
 
     # Conservation error
