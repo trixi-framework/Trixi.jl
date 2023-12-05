@@ -339,7 +339,8 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
         u = wrap_array(u_ode, mesh, equations, solver, cache)
         du = wrap_array(du_ode, mesh, equations, solver, cache)
-        l2_error, linf_error = analysis_callback(io, du, u, u_ode, t, semi)
+        # Compute l2_error, linf_error
+        analysis_callback(io, du, u, u_ode, t, semi)
 
         mpi_println("─"^100)
         mpi_println()
@@ -361,8 +362,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     analysis_callback.start_time_last_analysis = time_ns()
     analysis_callback.ncalls_rhs_last_analysis = ncalls(semi.performance_counter)
 
-    # Return errors for EOC analysis
-    return l2_error, linf_error
+    return nothing
 end
 
 # This method is just called internally from `(analysis_callback::AnalysisCallback)(integrator)`
@@ -389,7 +389,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
         l2_error, linf_error = calc_error_norms(u_ode, t, analyzer, semi,
                                                 cache_analysis)
     else
-        return nothing, nothing
+        return nothing
     end
 
     if mpi_isroot()
@@ -489,7 +489,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
     # additional integrals
     analyze_integrals(analysis_integrals, io, du, u, t, semi)
 
-    return l2_error, linf_error
+    return nothing
 end
 
 # Print level information only if AMR is enabled
