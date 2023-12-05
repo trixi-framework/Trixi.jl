@@ -385,7 +385,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
     end
 
     if :l2_error in analysis_errors || :linf_error in analysis_errors
-        # Calculate L2/Linf errors, which are also returned
+        # Calculate L2/Linf errors
         l2_error, linf_error = calc_error_norms(u_ode, t, analyzer, semi,
                                                 cache_analysis)
 
