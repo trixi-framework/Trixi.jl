@@ -260,7 +260,13 @@ combined with certain solvers (e.g., subcell limiting).
 function n_nonconservative_terms end
 have_constant_speed(::AbstractEquations) = False()
 
+"""
+    default_analysis_errors(equations)
+
+Default analysis errors (l2_error and linf_error) used by the [`AnalysisCallback`](@ref).
+"""
 default_analysis_errors(::AbstractEquations) = (:l2_error, :linf_error)
+
 """
     default_analysis_integrals(equations)
 
