@@ -67,13 +67,41 @@ function source_terms_convert_to_linear_advection(u, du, x, t,
     return SVector(0.0, s2, s3, s4, s5)
 end
 
+# Custom RHS that applies a source term that depends on du (used to convert the 3D Euler equations into the 3D linear advection
+# equations with position-dependent advection speed)
+function rhs_semi_custom!(du_ode, u_ode, semi, t)
+    # Compute standard Trixi RHS
+    Trixi.rhs!(du_ode, u_ode, semi, t)
+
+    # Now apply the custom source term
+    Trixi.@trixi_timeit Trixi.timer() "custom source term" begin
+        @unpack solver, equations, cache = semi
+        @unpack node_coordinates = cache.elements
+
+        # Wrap the solution and RHS
+        u = Trixi.wrap_array(u_ode, semi)
+        du = Trixi.wrap_array(du_ode, semi)
+
+        Trixi.@threaded for element in eachelement(solver, cache)
+            for j in eachnode(solver), i in eachnode(solver)
+                u_local = Trixi.get_node_vars(u, equations, solver, i, j, element)
+                du_local = Trixi.get_node_vars(du, equations, solver, i, j, element)
+                x_local = Trixi.get_node_coords(node_coordinates, equations, solver,
+                                                i, j, element)
+                source = source_terms_convert_to_linear_advection(u_local, du_local,
+                                                                  x_local, t, equations)
+                Trixi.add_to_node_vars!(du, source, equations, solver, i, j, element)
+            end
+        end
+    end
+end
+
 initial_condition = initial_condition_advection_sphere
 
 mesh = Trixi.P4estMeshCubedSphere2D(5, 1.0, polydeg = polydeg, initial_refinement_level = 0)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_convert_to_linear_advection)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -81,6 +109,12 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # Create ODE problem with time span from 0.0 to π
 tspan = (0.0, pi)
 ode = semidiscretize(semi, tspan)
+
+# Create custom discretization that runs with the custom RHS
+ode_semi_custom = ODEProblem(rhs_semi_custom!,
+                             ode.u0,
+                             ode.tspan,
+                             semi)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -106,7 +140,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode_semi_custom, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 
