@@ -26,7 +26,8 @@ function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations, dg, cache)
     return nothing
 end
 
-function perform_idp_correction!(u, dt, mesh::StructuredMesh{2}, equations, dg, cache)
+function perform_idp_correction!(u, dt, mesh::Union{StructuredMesh{2}, P4estMesh{2}},
+                                 equations, dg, cache)
     if dg.volume_integral.limiter.smoothness_indicator
         elements = cache.element_ids_dgfv
     else

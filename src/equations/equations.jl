@@ -243,6 +243,22 @@ end
     return flux
 end
 
+# Characteristic-based boundary condition for use with P4estMesh
+@inline function (boundary_condition::BoundaryConditionCharacteristic)(u_inner,
+                                                                       normal_direction,
+                                                                       x, t,
+                                                                       surface_flux_function,
+                                                                       equations)
+    u_boundary = boundary_condition.boundary_value_function(boundary_condition.outer_boundary_value_function,
+                                                            u_inner, normal_direction,
+                                                            x, t, equations)
+
+    # Calculate boundary flux
+    flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+    return flux
+end
+
 # operator types used for dispatch on parabolic boundary fluxes
 struct Gradient end
 struct Divergence end

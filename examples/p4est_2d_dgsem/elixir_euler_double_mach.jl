@@ -47,10 +47,9 @@ boundary_condition_inflow_outflow = BoundaryConditionCharacteristic(initial_cond
 
 # Special mixed boundary condition type for the :y_neg of the domain.
 # It is charachteristic-based when x < 1/6 and a slip wall when x >= 1/6
-# Note: Only for StructuredMesh
+# Note: Only for P4estMesh
 @inline function boundary_condition_mixed_characteristic_wall(u_inner,
                                                               normal_direction::AbstractVector,
-                                                              direction,
                                                               x, t, surface_flux_function,
                                                               equations::CompressibleEulerEquations2D)
     if x[1] < 1 / 6
@@ -59,29 +58,24 @@ boundary_condition_inflow_outflow = BoundaryConditionCharacteristic(initial_cond
         u_boundary = Trixi.characteristic_boundary_value_function(initial_condition_double_mach_reflection,
                                                                   u_inner,
                                                                   normal_direction,
-                                                                  direction, x, t,
+                                                                  x, t,
                                                                   equations)
         # Calculate boundary flux
-        if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-            flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal,
-                                         equations)
-        else
-            flux = surface_flux_function(u_boundary, u_inner, normal_direction, equations)
-        end
+        flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
     else # x[1] >= 1 / 6
         # Use the free slip wall BC otherwise
-        flux = boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t,
+        flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
                                             surface_flux_function, equations)
     end
 
     return flux
 end
 
-# Note: Only for StructuredMesh
+# Note: Only for P4estMesh
 @inline function Trixi.get_boundary_outer_state(u_inner, cache, t,
                                                 boundary_condition::typeof(boundary_condition_mixed_characteristic_wall),
                                                 normal_direction::AbstractVector, direction,
-                                                mesh::StructuredMesh{2},
+                                                mesh::P4estMesh{2},
                                                 equations::CompressibleEulerEquations2D,
                                                 dg, indices...)
     x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, indices...)
@@ -89,7 +83,7 @@ end
         u_outer = Trixi.characteristic_boundary_value_function(initial_condition_double_mach_reflection,
                                                                u_inner,
                                                                normal_direction,
-                                                               direction, x, t, equations)
+                                                               x, t, equations)
 
     else # if x[1] >= 1 / 6 # boundary_condition_slip_wall
         factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
@@ -103,10 +97,10 @@ end
     return u_outer
 end
 
-boundary_conditions = (y_neg = boundary_condition_mixed_characteristic_wall,
-                       y_pos = boundary_condition_inflow_outflow,
-                       x_pos = boundary_condition_inflow_outflow,
-                       x_neg = boundary_condition_inflow_outflow)
+boundary_conditions = Dict(:y_neg => boundary_condition_mixed_characteristic_wall,
+                           :y_pos => boundary_condition_inflow_outflow,
+                           :x_pos => boundary_condition_inflow_outflow,
+                           :x_neg => boundary_condition_inflow_outflow)
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
@@ -125,11 +119,14 @@ volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 initial_refinement_level = 4
-cells_per_dimension = (4 * 2^initial_refinement_level, 2^initial_refinement_level)
+trees_per_dimension = (4 * 2^initial_refinement_level, 2^initial_refinement_level)
 coordinates_min = (0.0, 0.0)
 coordinates_max = (4.0, 1.0)
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
-                      periodicity = false)
+mesh = P4estMesh(trees_per_dimension, polydeg = polydeg,
+                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                 initial_refinement_level = 0,
+                 periodicity = false)
+
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
 

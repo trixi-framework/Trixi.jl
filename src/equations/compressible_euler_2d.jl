@@ -395,6 +395,7 @@ Should be used together with [`StructuredMesh`](@ref).
 end
 
 # TODO: Add docstring when about to merge.
+# Using with TreeMesh{2}
 @inline function characteristic_boundary_value_function(outer_boundary_value_function,
                                                         u_inner, orientation::Integer,
                                                         direction, x, t,
@@ -414,11 +415,12 @@ end
         vn = factor * u_inner[3] * srho
     end
 
-    return characteristic_boundary_value_function_inner(outer_boundary_value_function,
-                                                        u_inner, srho, vn, x, t,
-                                                        equations)
+    return calc_characteristic_boundary_value_function(outer_boundary_value_function,
+                                                       u_inner, srho, vn, x, t,
+                                                       equations)
 end
 
+# Using with StructuredMesh{2}
 @inline function characteristic_boundary_value_function(outer_boundary_value_function,
                                                         u_inner,
                                                         normal_direction::AbstractVector,
@@ -437,15 +439,34 @@ end
          (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3]) /
          norm(normal_direction)
 
-    return characteristic_boundary_value_function_inner(outer_boundary_value_function,
-                                                        u_inner, srho, vn, x, t,
-                                                        equations)
+    return calc_characteristic_boundary_value_function(outer_boundary_value_function,
+                                                       u_inner, srho, vn, x, t,
+                                                       equations)
 end
 
-# Inner function to distinguish between different mesh types.
-@inline function characteristic_boundary_value_function_inner(outer_boundary_value_function,
-                                                              u_inner, srho, vn, x, t,
-                                                              equations::CompressibleEulerEquations2D)
+# Using with P4estMesh{2}
+@inline function characteristic_boundary_value_function(outer_boundary_value_function,
+                                                        u_inner,
+                                                        normal_direction::AbstractVector,
+                                                        x, t,
+                                                        equations::CompressibleEulerEquations2D)
+    # Get inverse of density
+    srho = 1 / u_inner[1]
+
+    # Get normal velocity
+    vn = srho * (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3]) /
+         norm(normal_direction)
+
+    return calc_characteristic_boundary_value_function(outer_boundary_value_function,
+                                                       u_inner, srho, vn, x, t,
+                                                       equations)
+end
+
+# Function to compute the outer state of the characteristics-based boundary condition.
+# This function is called by all mesh types.
+@inline function calc_characteristic_boundary_value_function(outer_boundary_value_function,
+                                                             u_inner, srho, vn, x, t,
+                                                             equations::CompressibleEulerEquations2D)
     # get pressure and Mach from state
     p = pressure(u_inner, equations)
     a = sqrt(equations.gamma * p * srho)

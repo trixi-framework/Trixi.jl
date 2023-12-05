@@ -345,4 +345,21 @@ function register_error_hints()
 
     return nothing
 end
+
+# Same as `foreach(enumerate(something))`, but without allocations.
+#
+# Note that compile times may increase if this is used with big tuples.
+# TODO: Add comment in the respective PR (here and where it is used: `dg_p4est/dg_2d_subcell_limiters.jl`)
+@inline foreach_enumerate(func, collection) = foreach_enumerate(func, collection, 1)
+@inline foreach_enumerate(func, collection::Tuple{}, index) = nothing
+
+@inline function foreach_enumerate(func, collection, index)
+    element = first(collection)
+    remaining_collection = Base.tail(collection)
+
+    func((index, element))
+
+    # Process remaining collection
+    foreach_enumerate(func, remaining_collection, index + 1)
+end
 end # @muladd

@@ -10,8 +10,8 @@
 #
 # See also `flux_differencing_kernel!`.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::StructuredMesh{2}, nonconservative_terms::False,
-                                equations,
+                                mesh::Union{StructuredMesh{2}, P4estMesh{2}},
+                                nonconservative_terms::False, equations,
                                 volume_flux, dg::DGSEM, element, cache)
     (; contravariant_vectors) = cache.elements
     (; weights, derivative_split) = dg.basis
@@ -109,7 +109,8 @@
     return nothing
 end
 
-@inline function calc_lambdas_bar_states!(u, t, mesh::StructuredMesh{2},
+@inline function calc_lambdas_bar_states!(u, t,
+                                          mesh::Union{StructuredMesh{2}, P4estMesh{2}},
                                           nonconservative_terms, equations, limiter,
                                           dg, cache, boundary_conditions;
                                           calc_bar_states = true)
