@@ -410,8 +410,6 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 println()
             end
         end
-    else
-        return nothing
     end
 
     # Conservation error
