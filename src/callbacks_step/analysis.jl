@@ -25,7 +25,7 @@ or `extra_analysis_errors = (:conservation_error,)`.
 
 If you want to omit the computation (to safe compute-time) of the [`default_analysis_errors`](@ref), specify
 `analysis_errors = Symbol[]`.
-Note: `default_analysis_errors` are `:l2_error`, `:linf_error` for all equations.
+Note: `default_analysis_errors` are `:l2_error` and `:linf_error` for all equations.
 If you want to compute `extra_analysis_errors` such as `:conservation_error` solely, i.e., 
 without `:l2_error, :linf_error` you need to specify 
 `analysis_errors = [:conservation_error]` instead of `extra_analysis_errors = [:conservation_error]`.
