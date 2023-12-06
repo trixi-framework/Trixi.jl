@@ -22,11 +22,11 @@ function create_cache(mesh::StructuredMesh, equations::AbstractEquations, dg::DG
 end
 
 # Extract contravariant vector Ja^i (i = index) as SVector
-# TODO: Here, size() causes a lot of allocations! Find an alternative to improve performance
 @inline function get_contravariant_vector(index, contravariant_vectors, indices...)
     SVector(ntuple(@inline(dim->contravariant_vectors[dim, index, indices...]),
-                   Val(size(contravariant_vectors, 1))))
+                   Val(static_size(contravariant_vectors, 1))))
 end
+
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,

@@ -13,7 +13,7 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIM
     # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
     jacobian_matrix::Array{RealT, NDIMSP3}
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
-    contravariant_vectors::Array{RealT, NDIMSP3}   # [dimension, index, node_i, node_j, node_k, element]
+    contravariant_vectors::PtrArray{RealT, NDIMSP3}   # [dimension, index, node_i, node_j, node_k, element]
     # 1/J where J is the Jacobian determinant (determinant of Jacobian matrix)
     inverse_jacobian::Array{RealT, NDIMSP1}   # [node_i, node_j, node_k, element]
     # Buffer for calculated surface flux
@@ -106,10 +106,10 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, Re
     _contravariant_vectors = Vector{RealT}(undef,
                                            ndims_spa^2 * nnodes(basis)^NDIMS *
                                            nelements)
-    contravariant_vectors = unsafe_wrap(Array, pointer(_contravariant_vectors),
-                                        (ndims_spa, ndims_spa,
-                                         ntuple(_ -> nnodes(basis), NDIMS)...,
-                                         nelements))
+    contravariant_vectors = PtrArray(pointer(_contravariant_vectors),
+                                     (StaticInt(ndims_spa), ndims_spa,
+                                      ntuple(_ -> nnodes(basis), NDIMS)...,
+                                      nelements))
 
     _inverse_jacobian = Vector{RealT}(undef, nnodes(basis)^NDIMS * nelements)
     inverse_jacobian = unsafe_wrap(Array, pointer(_inverse_jacobian),
