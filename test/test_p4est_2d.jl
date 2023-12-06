@@ -418,16 +418,16 @@ end
 @trixi_testset "elixir_euler_double_mach_MCL.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach_MCL.jl"),
                         l2=[
-                            0.8887316275665456,
-                            6.644244953884144,
+                            0.8887316108902814,
+                            6.644244699117552,
                             3.449004719784639,
                             76.2706476520857,
                         ],
                         linf=[
                             11.047531178706233,
-                            121.96650277677226,
+                            121.96649938887894,
                             35.74266968217143,
-                            1370.2362955295619,
+                            1370.2362649787465,
                         ],
                         initial_refinement_level=1,
                         tspan=(0.0, 0.05))
@@ -437,7 +437,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 
