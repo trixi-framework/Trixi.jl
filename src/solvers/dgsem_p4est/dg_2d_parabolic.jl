@@ -803,8 +803,7 @@ end
 
 function calc_boundary_flux_gradients!(cache, t,
                                        boundary_condition::Union{BoundaryConditionPeriodic,
-                                                                 BoundaryConditionDoNothing
-                                                                 },
+                                                                 BoundaryConditionDoNothing},
                                        mesh::P4estMesh, equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
 end

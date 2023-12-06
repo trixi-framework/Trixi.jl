@@ -6,9 +6,7 @@
 #! format: noindent
 
 # Initialize node_indices of MPI interface container
-@inline function init_mpi_interface_node_indices!(mpi_interfaces::P4estMPIInterfaceContainer{
-                                                                                             3
-                                                                                             },
+@inline function init_mpi_interface_node_indices!(mpi_interfaces::P4estMPIInterfaceContainer{3},
                                                   faces, local_side, orientation,
                                                   mpi_interface_id)
     # Align interface at the primary element (primary element has surface indices (:i_forward, :j_forward)).
