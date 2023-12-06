@@ -13,16 +13,19 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
                                                                         nnodes(basis),
                                                                         bound_keys)
 
-    # Threaded memory for bounds checking routine with `BoundsCheckCallback`.
-    # The first entry of each vector contains the maximum deviation since the last export.
-    # In the second entry, the total maximum deviation is saved.
-    idp_bounds_delta_threaded = Dict{Symbol, Vector{Vector{real(basis)}}}()
+    # Memory for bounds checking routine with `BoundsCheckCallback`.
+    # Local variable contains the maximum deviation since the last export.
+    # Using threaded variable to parallelize bounds check.
+    idp_bounds_delta_local = Dict{Symbol, Vector{real(basis)}}()
+    # Global variable contains the total maximum deviation.
+    idp_bounds_delta_global = Dict{Symbol, real(basis)}()
     for key in bound_keys
-        idp_bounds_delta_threaded[key] = [zeros(real(basis), 2)
-                                          for _ in 1:Threads.nthreads()]
+        idp_bounds_delta_local[key] = [zero(real(basis)) for _ in 1:Threads.nthreads()]
+        idp_bounds_delta_global[key] = zero(real(basis))
     end
 
-    return (; subcell_limiter_coefficients, idp_bounds_delta_threaded)
+    return (; subcell_limiter_coefficients, idp_bounds_delta_local,
+            idp_bounds_delta_global)
 end
 
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
