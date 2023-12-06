@@ -179,6 +179,32 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_free_stream_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_MCL.jl"),
+                        l2=[
+                            1.5395023651392628e-16,
+                            5.707276922805213e-15,
+                            6.656058585297407e-15,
+                            5.171129126439075e-15,
+                        ],
+                        linf=[
+                            2.886579864025407e-15,
+                            5.384581669432009e-14,
+                            9.997558336749535e-14,
+                            6.217248937900877e-14,
+                        ],
+                        trees_per_dimension=(8, 8),
+                        atol=2.0e-12,)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
 @trixi_testset "elixir_euler_shockcapturing_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_ec.jl"),
                         l2=[
@@ -389,6 +415,32 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_double_mach_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach_MCL.jl"),
+                        l2=[
+                            0.8887316275665456,
+                            6.644244953884144,
+                            3.449004719784639,
+                            76.2706476520857,
+                        ],
+                        linf=[
+                            11.047531178706233,
+                            121.96650277677226,
+                            35.74266968217143,
+                            1370.2362955295619,
+                        ],
+                        initial_refinement_level=1,
+                        tspan=(0.0, 0.05))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+    end
+end
+
 @trixi_testset "elixir_euler_supersonic_cylinder.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_supersonic_cylinder.jl"),
                         l2=[
@@ -431,6 +483,35 @@ end
                             2.7694272511829157,
                             1.760899156958975,
                             7.7689019494557865,
+                        ],
+                        tspan=(0.0, 0.001),
+                        skip_coverage=true)
+    if @isdefined sol # Skipped in coverage run
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+        end
+    end
+end
+
+@trixi_testset "elixir_euler_supersonic_cylinder_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_supersonic_cylinder_MCL.jl"),
+                        l2=[
+                            0.01719185099537115,
+                            0.037755715231922615,
+                            0.018219844214522288,
+                            0.1211329583241979,
+                        ],
+                        linf=[
+                            1.36377851955985337,
+                            2.886724226405783,
+                            2.271954486109792,
+                            9.900660307619413,
                         ],
                         tspan=(0.0, 0.001),
                         skip_coverage=true)

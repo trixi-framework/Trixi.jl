@@ -177,7 +177,8 @@ end
 
 @inline function subcell_limiting_kernel!(du, u,
                                           element,
-                                          mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                                          mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                                      P4estMesh{2}},
                                           nonconservative_terms::False, equations,
                                           volume_integral, limiter::SubcellLimiterMCL,
                                           dg::DGSEM, cache)
