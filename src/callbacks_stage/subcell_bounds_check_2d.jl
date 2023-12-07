@@ -55,7 +55,7 @@
 
     for (key, _) in idp_bounds_delta_local
         # Reduce threaded local maximum deviations. Save in first entry.
-        idp_bounds_delta_local[key][1] = reduce(max, idp_bounds_delta_local[key])
+        idp_bounds_delta_local[key][1] = maximum(idp_bounds_delta_local[key])
         # Update global maximum deviations
         idp_bounds_delta_global[key] = max(idp_bounds_delta_global[key],
                                            idp_bounds_delta_local[key][1])
