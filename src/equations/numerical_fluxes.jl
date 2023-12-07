@@ -62,6 +62,23 @@ struct FluxRotated{NumericalFlux}
 end
 
 # Rotated surface flux computation (2D version)
+@inline function (flux_rotated::FluxRotated)(u,
+                                             normal_direction::AbstractVector,
+                                             equations::AbstractEquations{2})
+    @unpack numerical_flux = flux_rotated
+
+    norm_ = norm(normal_direction)
+    # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+    normal_vector = normal_direction / norm_
+
+    u_rotated = rotate_to_x(u, normal_vector, equations)
+
+    f = numerical_flux(u_rotated, 1, equations)
+
+    return rotate_from_x(f, normal_vector, equations) * norm_
+end
+
+# Rotated surface flux computation (2D version)
 @inline function (flux_rotated::FluxRotated)(u_ll, u_rr,
                                              normal_direction::AbstractVector,
                                              equations::AbstractEquations{2})
@@ -181,10 +198,7 @@ function max_abs_speed_naive end
 end
 
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central),
-                                                           DissipationLocalLaxFriedrichs{
-                                                                                         MaxAbsSpeed
-                                                                                         }
-                                                           }
+                                                           DissipationLocalLaxFriedrichs{MaxAbsSpeed}}
 """
     FluxLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
 
