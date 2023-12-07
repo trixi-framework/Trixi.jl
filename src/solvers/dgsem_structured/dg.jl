@@ -22,11 +22,11 @@ function create_cache(mesh::StructuredMesh, equations::AbstractEquations, dg::DG
 end
 
 # Extract contravariant vector Ja^i (i = index) as SVector
+static2val(::StaticInt{N}) where {N} = Val{N}()
 @inline function get_contravariant_vector(index, contravariant_vectors, indices...)
     SVector(ntuple(@inline(dim->contravariant_vectors[dim, index, indices...]),
-                   Val(static_size(contravariant_vectors, 1))))
+                   static2val(static_size(contravariant_vectors, StaticInt(1)))))
 end
-
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,
