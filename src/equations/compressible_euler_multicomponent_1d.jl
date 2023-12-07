@@ -54,19 +54,15 @@ struct CompressibleEulerMulticomponentEquations1D{NVARS, NCOMP, RealT <: Real} <
     cv::SVector{NCOMP, RealT}
     cp::SVector{NCOMP, RealT}
 
-    function CompressibleEulerMulticomponentEquations1D{NVARS, NCOMP, RealT}(gammas::SVector{
-                                                                                             NCOMP,
-                                                                                             RealT
-                                                                                             },
-                                                                             gas_constants::SVector{
-                                                                                                    NCOMP,
-                                                                                                    RealT
-                                                                                                    }) where {
-                                                                                                              NVARS,
-                                                                                                              NCOMP,
-                                                                                                              RealT <:
-                                                                                                              Real
-                                                                                                              }
+    function CompressibleEulerMulticomponentEquations1D{NVARS, NCOMP, RealT}(gammas::SVector{NCOMP,
+                                                                                             RealT},
+                                                                             gas_constants::SVector{NCOMP,
+                                                                                                    RealT}) where {
+                                                                                                                   NVARS,
+                                                                                                                   NCOMP,
+                                                                                                                   RealT <:
+                                                                                                                   Real
+                                                                                                                   }
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `gas_constants` have to be filled with at least one value"))
 
@@ -465,7 +461,7 @@ end
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::CompressibleEulerMulticomponentEquations1D)
     @unpack cv, gammas, gas_constants = equations
-    
+
     rho_v1, rho_e = u
 
     rho = density(u, equations)
@@ -486,8 +482,11 @@ end
     rho_p = rho / p
     T = (rho_e - 0.5 * rho * v_square) / (help1)
 
-    entrop_rho = SVector{ncomponents(equations), real(equations)}(
-        (cv[i]*(1-log(T))+gas_constants[i]*(1+log(u[i+2])) - v1^2/(2*T))
+    entrop_rho = SVector{ncomponents(equations), real(equations)}((cv[i] *
+                                                                   (1 - log(T)) +
+                                                                   gas_constants[i] *
+                                                                   (1 + log(u[i + 2])) -
+                                                                   v1^2 / (2 * T))
                                                                   for i in eachcomponent(equations))
 
     w1 = gas_constant * v1 * rho_p
@@ -501,12 +500,17 @@ end
 # Convert entropy variables to conservative variables
 @inline function entropy2cons(w, equations::CompressibleEulerMulticomponentEquations1D)
     @unpack gammas, gas_constants, cv, cp = equations
-    T = - 1/w[2]
-    v1 = w[1]*T
-    cons_rho = SVector{ncomponents(equations), real(equations)}(
-        exp( 1/gas_constants[i] * (-cv[i]*log(-w[2]) -cp[i] +w[i+2]-0.5*w[1]^2/w[2]))    
-    for i in eachcomponent(equations))
-    
+    T = -1 / w[2]
+    v1 = w[1] * T
+    cons_rho = SVector{ncomponents(equations), real(equations)}(exp(1 /
+                                                                    gas_constants[i] *
+                                                                    (-cv[i] *
+                                                                     log(-w[2]) -
+                                                                     cp[i] + w[i + 2] -
+                                                                     0.5 * w[1]^2 /
+                                                                     w[2]))
+                                                                for i in eachcomponent(equations))
+
     rho = zero(cons_rho[1])
     help1 = zero(cons_rho[1])
     help2 = zero(cons_rho[1])
@@ -517,9 +521,9 @@ end
         help2 += cons_rho[i] * cv[i]
         p += cons_rho[i] * gas_constants[i] * T
     end
-    u1 = rho*v1
-    gamma = help1/help2
-    u2 = p/(gamma - 1) + 0.5*rho*v1^2
+    u1 = rho * v1
+    gamma = help1 / help2
+    u2 = p / (gamma - 1) + 0.5 * rho * v1^2
     cons_other = SVector{2, real(equations)}(u1, u2)
     return vcat(cons_other, cons_rho)
 end
@@ -532,11 +536,10 @@ end
 
     total_entropy = zero(u[1])
     for i in eachcomponent(equations)
-        total_entropy -= u[i+2] * (cv[i]*log(T) - gas_constants[i] * log(u[i+2]))
+        total_entropy -= u[i + 2] * (cv[i] * log(T) - gas_constants[i] * log(u[i + 2]))
     end
 
     return total_entropy
-
 end
 
 @inline function temperature(u, equations::CompressibleEulerMulticomponentEquations1D)
