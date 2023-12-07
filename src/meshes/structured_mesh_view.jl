@@ -4,6 +4,8 @@
 mutable struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
     parent::StructuredMesh{NDIMS, RealT}
     mapping::Any # Not relevant for performance
+    mapping_as_string::String
+    current_filename::String
     index_min::NTuple{NDIMS, Int}
     index_max::NTuple{NDIMS, Int}
     unsaved_changes::Bool
@@ -16,8 +18,9 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
     @assert all(index_min .> 0)
     @assert index_max <= size(parent)
 
-    return StructuredMeshView{NDIMS, RealT}(parent, parent.mapping, index_min,
-                                            index_max, parent.unsaved_changes)
+    return StructuredMeshView{NDIMS, RealT}(parent, parent.mapping, parent.mapping_as_string,
+                                            parent.current_filename,
+                                            index_min, index_max, parent.unsaved_changes)
 end
 
 # Check if mesh is periodic

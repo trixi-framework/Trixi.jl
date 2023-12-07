@@ -6,7 +6,7 @@
 #! format: noindent
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::Union{SerialTreeMesh, StructuredMesh,
+                            mesh::Union{SerialTreeMesh, StructuredMesh, StructuredMeshView,
                                         UnstructuredMesh2D, SerialP4estMesh,
                                         SerialT8codeMesh},
                             equations, dg::DG, cache,

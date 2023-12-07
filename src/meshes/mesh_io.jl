@@ -255,7 +255,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         end
         mesh = TreeMesh(SerialTree{ndims}, max(n_cells_max, capacity))
         load_mesh!(mesh, mesh_file)
-    elseif mesh_type == "StructuredMesh"
+    elseif (mesh_type == "StructuredMesh") || (mesh_type == "StructuredMeshView")
         size_, mapping_as_string = h5open(mesh_file, "r") do file
             return read(attributes(file)["size"]),
                    read(attributes(file)["mapping"])
