@@ -402,9 +402,9 @@ end
 
     # If state is valid, perform initial check and return if correction is not needed
     if is_valid_state(u_curr, equations)
-        as = goal_function(variable, bound, u_curr, equations)
+        goal = goal_function(variable, bound, u_curr, equations)
 
-        initial_check(bound, as, newton_abstol) && return nothing
+        initial_check(bound, goal, newton_abstol) && return nothing
     end
 
     # Newton iterations
@@ -413,19 +413,19 @@ end
 
         # If the state is valid, evaluate d(goal)/d(beta)
         if is_valid_state(u_curr, equations)
-            dSdbeta = dgoal_function(variable, u_curr, dt, antidiffusive_flux,
-                                     equations)
+            dgoal_dbeta = dgoal_function(variable, u_curr, dt, antidiffusive_flux,
+                                         equations)
         else # Otherwise, perform a bisection step
-            dSdbeta = 0
+            dgoal_dbeta = 0
         end
 
-        if dSdbeta != 0
+        if dgoal_dbeta != 0
             # Update beta with Newton's method
-            beta = beta - as / dSdbeta
+            beta = beta - goal / dgoal_dbeta
         end
 
         # Check bounds
-        if (beta < beta_L) || (beta > beta_R) || (dSdbeta == 0) || isnan(beta)
+        if (beta < beta_L) || (beta > beta_R) || (dgoal_dbeta == 0) || isnan(beta)
             # Out of bounds, do a bisection step
             beta = 0.5 * (beta_L + beta_R)
             # Get new u
@@ -438,8 +438,8 @@ end
             end
 
             # Check new beta for condition and update bounds
-            as = goal_function(variable, bound, u_curr, equations)
-            if initial_check(bound, as, newton_abstol)
+            goal = goal_function(variable, bound, u_curr, equations)
+            if initial_check(bound, goal, newton_abstol)
                 # New beta fulfills condition
                 beta_L = beta
             else
@@ -457,7 +457,7 @@ end
             end
 
             # Evaluate goal function
-            as = goal_function(variable, bound, u_curr, equations)
+            goal = goal_function(variable, bound, u_curr, equations)
         end
 
         # Check relative tolerance
@@ -466,7 +466,7 @@ end
         end
 
         # Check absolute tolerance
-        if final_check(bound, as, newton_abstol)
+        if final_check(bound, goal, newton_abstol)
             break
         end
     end
