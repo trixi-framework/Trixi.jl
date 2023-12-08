@@ -54,6 +54,20 @@ end
     end
 end
 
+@trixi_testset "elixir_advection_basic.jl (No errors)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        analysis_callback=AnalysisCallback(semi, interval = 42,
+                                                           analysis_errors = Symbol[]))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_advection_finite_volume.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_finite_volume.jl"),
                         l2=[0.011662300515980219],
