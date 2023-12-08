@@ -2,6 +2,7 @@ module TestExamples1DEulerMulti
 
 using Test
 using Trixi
+using ForwardDiff
 
 include("test_trixi.jl")
 
@@ -9,6 +10,18 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
 @testset "Compressible Euler Multicomponent" begin
 #! format: noindent
+
+@trixi_testset "Testing entropy2cons and cons2entropy" begin
+    using ForwardDiff
+    gammas = (1.3272378792562836, 1.5269959187969864, 1.8362285750521512, 1.0409061360276926, 1.4652015053812224, 1.3626493264184423)
+    gas_constants = (1.817636851910076, 6.760820475922636, 5.588953939749113, 6.31574782981543, 3.362932038038397, 3.212779569399733)
+    equations = CompressibleEulerMulticomponentEquations1D(gammas=SVector{length(gammas)}(gammas...), 
+                                                                gas_constants=SVector{length(gas_constants)}(gas_constants...))
+    u = [-1.4632513788889214, 0.9908786980927811, 0.2909066990257628, 0.6256623915420473, 0.4905882754313441, 0.14481800501749112, 1.0333532872771651, 0.6805599818745411]
+    w = cons2entropy(u, equations)
+    @test w ≈ ForwardDiff.gradient(u -> total_entropy(u, equations), u)
+    @test entropy2cons(w, equations) ≈ u
+end
 
 @trixi_testset "elixir_eulermulti_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),

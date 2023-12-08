@@ -10,6 +10,18 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 @testset "Compressible Euler Multicomponent" begin
 #! format: noindent
 
+@trixi_testset "Testing entropy2cons and cons2entropy" begin
+    using ForwardDiff
+    gammas = (1.1546412974182538, 1.1171560258914812, 1.097107661471476, 1.0587601652669245, 1.6209889683979308, 1.6732209755396386, 1.2954303574165822)
+    gas_constants = (5.969461071171914, 3.6660802003290183, 6.639008614675539, 8.116604827140456, 6.190706056680031, 1.6795013743693712, 2.197737590916966)
+    equations = CompressibleEulerMulticomponentEquations2D(gammas=SVector{length(gammas)}(gammas...), 
+                                                                gas_constants=SVector{length(gas_constants)}(gas_constants...))
+    u = [-1.7433292819144075, 0.8844413258376495, 0.6050737175812364, 0.8261998359817043, 1.0801186290896465, 0.505654488367698, 0.6364415555805734, 0.851669392285058, 0.31219606420306223, 1.0930477805612038]
+    w = cons2entropy(u, equations)
+    @test w ≈ ForwardDiff.gradient(u -> total_entropy(u, equations), u)
+    @test entropy2cons(w, equations) ≈ u  
+end
+
 # NOTE: Some of the L2/Linf errors are comparably large. This is due to the fact that some of the
 #       simulations are set up with dimensional states. For example, the reference pressure in SI
 #       units is 101325 Pa, i.e., pressure has values of O(10^5)
