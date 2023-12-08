@@ -225,14 +225,14 @@ macro threaded(expr)
     # to reduce some overhead (and allocations) for serial execution.
     #
     return esc(quote
-      let
-        if Threads.nthreads() == 1
-          $(expr)
-        else
-          Threads.@threads $(expr)
-        end
-      end
-    end)
+                   let
+                       if Threads.nthreads() == 1
+                           $(expr)
+                       else
+                           Threads.@threads $(expr)
+                       end
+                   end
+               end)
     #
     # However, the code below using `@batch` from Polyester.jl is more efficient,
     # since this packages provides threads with less overhead. Since it is written
@@ -245,7 +245,7 @@ macro threaded(expr)
     return esc(quote
                    Trixi.@batch $(expr)
                end)
-    =#               
+    =#
 end
 
 #     @trixi_timeit timer() "some label" expression
