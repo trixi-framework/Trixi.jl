@@ -229,7 +229,7 @@ macro threaded(expr)
                        if Threads.nthreads() == 1
                            $(expr)
                        else
-                           Threads.@threads $(expr)
+                           Threads.@threads :static $(expr)
                        end
                    end
                end)
