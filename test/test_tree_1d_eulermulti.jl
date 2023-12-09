@@ -22,7 +22,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
     @test w ≈ ForwardDiff.gradient(u -> Trixi.total_entropy(u, equations), u)
     @test entropy2cons(w, equations) ≈ u
 end
-end
+
 @trixi_testset "elixir_eulermulti_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
                         l2=[0.15330089521538684, 0.4417674632047301,
