@@ -18,7 +18,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
                                                                 gas_constants=SVector{length(gas_constants)}(gas_constants...))
     u = [-1.7433292819144075, 0.8844413258376495, 0.6050737175812364, 0.8261998359817043, 1.0801186290896465, 0.505654488367698, 0.6364415555805734, 0.851669392285058, 0.31219606420306223, 1.0930477805612038]
     w = cons2entropy(u, equations)
-    @test w ≈ ForwardDiff.gradient(u -> total_entropy(u, equations), u)
+    @test w ≈ ForwardDiff.gradient(u -> Trixi.total_entropy(u, equations), u)
     @test entropy2cons(w, equations) ≈ u  
 end
 

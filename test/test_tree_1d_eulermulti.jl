@@ -19,10 +19,10 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
                                                                 gas_constants=SVector{length(gas_constants)}(gas_constants...))
     u = [-1.4632513788889214, 0.9908786980927811, 0.2909066990257628, 0.6256623915420473, 0.4905882754313441, 0.14481800501749112, 1.0333532872771651, 0.6805599818745411]
     w = cons2entropy(u, equations)
-    @test w ≈ ForwardDiff.gradient(u -> total_entropy(u, equations), u)
+    @test w ≈ ForwardDiff.gradient(u -> Trixi.total_entropy(u, equations), u)
     @test entropy2cons(w, equations) ≈ u
 end
-
+end
 @trixi_testset "elixir_eulermulti_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
                         l2=[0.15330089521538684, 0.4417674632047301,
