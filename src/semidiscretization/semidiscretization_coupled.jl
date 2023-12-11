@@ -168,7 +168,11 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
             semi.semis)
 
     # Call rhs! for each semidiscretization
-    rhs!(u_ode, du_ode, t, semi, 1, semi.semis...)
+    foreach_enumerate(semi.semis) do (i, semi_)
+        u_loc = get_system_u_ode(u_ode, i, semi)
+        du_loc = get_system_u_ode(du_ode, i, semi)
+        rhs!(du_loc, u_loc, semi_, t)
+    end
 
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
