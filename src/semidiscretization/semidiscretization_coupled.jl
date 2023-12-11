@@ -407,11 +407,10 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indic
             other_orientation = 3
         end
 
-        new{NDIMS, NDIMS * 2 - 1, uEltype, typeof(indices), typeof(coupling_converter)}(u_boundary,
-                                                                                        other_semi_index,
-                                                                                        other_orientation,
-                                                                                        indices,
-                                                                                        coupling_converter)
+        new{NDIMS, NDIMS * 2 - 1, uEltype, typeof(indices),
+            typeof(coupling_converter)}(u_boundary,
+                                        other_semi_index, other_orientation,
+                                        indices, coupling_converter)
     end
 end
 
