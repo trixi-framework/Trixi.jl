@@ -143,7 +143,6 @@ semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition_converg
 # system #4
 ###########
 
-# First mesh is the left half of a [-1,1]^2 square
 coordinates_min4 = (0.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max4 = (1.0, 0.0) # maximum coordinates (max(x), max(y))
 
