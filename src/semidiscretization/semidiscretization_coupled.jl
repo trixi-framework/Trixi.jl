@@ -389,10 +389,10 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indic
     # NDIMST2M1 == NDIMS * 2 - 1
     # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
     u_boundary::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-    other_semi_index::Int
-    other_orientation::Int
-    indices::Indices
-    coupling_converter::CouplingConverter
+    other_semi_index   :: Int
+    other_orientation  :: Int
+    indices            :: Indices
+    coupling_converter :: CouplingConverter
 
     function BoundaryConditionCoupled(other_semi_index, indices, uEltype,
                                       coupling_converter)
