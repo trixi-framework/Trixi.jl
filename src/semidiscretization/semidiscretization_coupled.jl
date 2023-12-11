@@ -148,7 +148,7 @@ end
     @view u_ode[semi.u_indices[index]]
 end
 
-# Rcursive call of the RHS for the semidiscretizations using Lispy tuple programming
+# Recursive call of the RHS for the semidiscretizations using Lispy tuple programming
 # to avoid type instability.
 @inline function rhs!(u_ode, du_ode, t, semi, i, semi_, semi_tuple...)
     u_loc = get_system_u_ode(u_ode, i, semi)
