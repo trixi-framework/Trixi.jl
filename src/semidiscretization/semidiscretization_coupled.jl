@@ -499,6 +499,7 @@ function mesh_equations_solver_cache(other_semi_index, i, semi_, semi_tuple...)
     if i == other_semi_index
         return mesh_equations_solver_cache(semi_)
     else
+    # Walk through semidiscretizations until we find `i`
         mesh_equations_solver_cache(other_semi_index, i + 1, semi_tuple...)
     end
 end
