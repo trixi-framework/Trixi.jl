@@ -545,9 +545,10 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         element_id = linear_indices[i_cell, j_cell]
 
         for element_id in eachnode(solver)
-            x = @view cache.elements.node_coordinates[:, i_node, j_node,
-                                                      linear_indices[i_cell, j_cell]]
-            u_node = u[:, i_node, j_node, linear_indices[i_cell, j_cell]]
+            x = get_node_coords(node_coordinates, equations, solver, i_node, j_node,
+                                linear_indices[i_cell, j_cell])
+            u_node = get_node_vars(u, equations, solver, i_node, j_node,
+                                   linear_indices[i_cell, j_cell]]
             converted_u = coupling_converter(x, u_node)
             u_boundary[:, element_id, cell] = converted_u
             i_node += i_node_step
