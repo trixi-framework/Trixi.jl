@@ -1473,7 +1473,7 @@ end
     v3 = rho_v3 / rho
     v_square = v1^2 + v2^2 + v3^2
     p = (equations.gamma - 1) * (rho_e - 0.5 * rho * v_square)
-    s = NaNMath.log(p) - equations.gamma * NaNMath.log(rho)
+    s = log_(p) - equations.gamma * log_(rho)
     rho_p = rho / p
 
     w1 = (equations.gamma - s) * equations.inv_gamma_minus_one - 0.5 * rho_p * v_square
@@ -1546,7 +1546,7 @@ end
     p = pressure(u, equations)
 
     # Thermodynamic entropy
-    s = NaNMath.log(p) - equations.gamma * NaNMath.log(rho)
+    s = log_(p) - equations.gamma * log_(rho)
 
     return s
 end

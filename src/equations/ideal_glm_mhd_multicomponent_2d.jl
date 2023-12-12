@@ -593,7 +593,7 @@ end
     gamma = totalgamma(u, equations)
     p = (gamma - 1) *
         (rho_e - 0.5 * rho * v_square - 0.5 * (B1^2 + B2^2 + B3^2) - 0.5 * psi^2)
-    s = NaNMath.log(p) - gamma * NaNMath.log(rho)
+    s = log_(p) - gamma * log_(rho)
     rho_p = rho / p
 
     # Multicomponent stuff
@@ -607,9 +607,9 @@ end
         (help1)
 
     entrop_rho = SVector{ncomponents(equations), real(equations)}(-1.0 *
-                                                                  (cv[i] * NaNMath.log(T) -
+                                                                  (cv[i] * log_(T) -
                                                                    gas_constants[i] *
-                                                                   NaNMath.log(u[i + 8])) +
+                                                                   log_(u[i + 8])) +
                                                                   gas_constants[i] +
                                                                   cv[i] -
                                                                   (v_square / (2 * T))

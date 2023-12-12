@@ -887,7 +887,7 @@ end
     v1 = rho_v1 / rho
     v_square = v1^2
     p = (equations.gamma - 1) * (rho_e - 0.5 * rho * v_square)
-    s = NaNMath.log(p) - equations.gamma * NaNMath.log(rho)
+    s = log_(p) - equations.gamma * log_(rho)
     rho_p = rho / p
 
     w1 = (equations.gamma - s) * equations.inv_gamma_minus_one - 0.5 * rho_p * v_square
@@ -951,7 +951,7 @@ end
     p = (equations.gamma - 1) * (cons[3] - 1 / 2 * (cons[2]^2) / cons[1])
 
     # Thermodynamic entropy
-    s = NaNMath.log(p) - equations.gamma * NaNMath.log(cons[1])
+    s = log_(p) - equations.gamma * log_(cons[1])
 
     return s
 end

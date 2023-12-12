@@ -5,6 +5,10 @@
 @muladd begin
 #! format: noindent
 
+# < 0 suffices since log(0) = -Inf
+log_(x::T) where {T<:AbstractFloat} = x < 0.0 ? T(NaN) : Base.log(x)
+log_(x::Real) = log(float(x))
+
 """
     ln_mean(x, y)
 
@@ -59,7 +63,7 @@ Given ε = 1.0e-4, we use the following algorithm.
     if f2 < epsilon_f2
         return (x + y) / @evalpoly(f2, 2, 2/3, 2/5, 2/7)
     else
-        return (y - x) / NaNMath.log(y / x)
+        return (y - x) / log_(y / x)
     end
 end
 
@@ -79,7 +83,7 @@ multiplication.
     if f2 < epsilon_f2
         return @evalpoly(f2, 2, 2/3, 2/5, 2/7) / (x + y)
     else
-        return NaNMath.log(y / x) / (y - x)
+        return log_(y / x) / (y - x)
     end
 end
 

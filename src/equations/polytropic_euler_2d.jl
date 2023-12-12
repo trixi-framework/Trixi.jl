@@ -321,7 +321,7 @@ end
     p = pressure(u, equations)
     # Form of the internal energy depends on gas type
     if equations.gamma == 1.0 # isothermal gas
-        internal_energy = equations.kappa * NaNMath.log(rho)
+        internal_energy = equations.kappa * log_(rho)
     else # equations.gamma > 1 # polytropic gas
         internal_energy = equations.kappa * rho^(equations.gamma - 1) /
                           (equations.gamma - 1.0)
