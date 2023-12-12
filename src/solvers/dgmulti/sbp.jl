@@ -40,26 +40,28 @@ end
 const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} = DGMulti{NDIMS, ElemType,
                                                                   ApproxType,
                                                                   SurfaceIntegral,
-                                                                  VolumeIntegral
-                                                                  } where {NDIMS, ElemType,
-                                                                           ApproxType <:
-                                                                           SummationByPartsOperators.AbstractPeriodicDerivativeOperator,
-                                                                           SurfaceIntegral,
-                                                                           VolumeIntegral}
+                                                                  VolumeIntegral} where {
+                                                                                         NDIMS,
+                                                                                         ElemType,
+                                                                                         ApproxType <:
+                                                                                         SummationByPartsOperators.AbstractPeriodicDerivativeOperator,
+                                                                                         SurfaceIntegral,
+                                                                                         VolumeIntegral
+                                                                                         }
 
 const DGMultiFluxDiffPeriodicFDSBP{NDIMS, ApproxType, ElemType} = DGMulti{NDIMS, ElemType,
                                                                           ApproxType,
                                                                           SurfaceIntegral,
-                                                                          VolumeIntegral
-                                                                          } where {NDIMS,
-                                                                                   ElemType,
-                                                                                   ApproxType <:
-                                                                                   SummationByPartsOperators.AbstractPeriodicDerivativeOperator,
-                                                                                   SurfaceIntegral <:
-                                                                                   SurfaceIntegralWeakForm,
-                                                                                   VolumeIntegral <:
-                                                                                   VolumeIntegralFluxDifferencing
-                                                                                   }
+                                                                          VolumeIntegral} where {
+                                                                                                 NDIMS,
+                                                                                                 ElemType,
+                                                                                                 ApproxType <:
+                                                                                                 SummationByPartsOperators.AbstractPeriodicDerivativeOperator,
+                                                                                                 SurfaceIntegral <:
+                                                                                                 SurfaceIntegralWeakForm,
+                                                                                                 VolumeIntegral <:
+                                                                                                 VolumeIntegralFluxDifferencing
+                                                                                                 }
 
 """
     DGMultiMesh(dg::DGMulti)

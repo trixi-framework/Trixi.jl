@@ -209,8 +209,8 @@ function rhs!(du, u, t,
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}
-                                           },
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3},
+                                           P4estMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -264,8 +264,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}
-                                           },
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3},
+                                           P4estMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -378,8 +378,8 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}
-                                           },
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3},
+                                           P4estMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
