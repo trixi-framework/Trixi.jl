@@ -21,6 +21,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
             0.6256623915420473, 0.4905882754313441, 0.14481800501749112,
             1.0333532872771651, 0.6805599818745411]
         w = cons2entropy(u, equations)
+        # test that the entropy variables match the gradients of the total entropy
         @test w ≈ ForwardDiff.gradient(u -> Trixi.total_entropy(u, equations), u)
         # test that `entropy2cons` is the inverse of `cons2entropy`
         @test entropy2cons(w, equations) ≈ u
