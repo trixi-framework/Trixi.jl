@@ -518,7 +518,7 @@ end
     v_square = v1^2 + v2^2 + v3^2
     p = (equations.gamma - 1) *
         (rho_e - 0.5 * rho * v_square - 0.5 * (B1^2 + B2^2 + B3^2))
-    s = log(p) - equations.gamma * log(rho)
+    s = NaNMath.log(p) - equations.gamma * NaNMath.log(rho)
     rho_p = rho / p
 
     w1 = (equations.gamma - s) / (equations.gamma - 1) - 0.5 * rho_p * v_square
@@ -578,14 +578,14 @@ end
     p = (equations.gamma - 1) *
         (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2))
     a_square = equations.gamma * p / rho
-    sqrt_rho = sqrt(rho)
+    sqrt_rho = NaNMath.sqrt(rho)
     b1 = B1 / sqrt_rho
     b2 = B2 / sqrt_rho
     b3 = B3 / sqrt_rho
     b_square = b1^2 + b2^2 + b3^2
 
     c_f = sqrt(0.5 * (a_square + b_square) +
-               0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+               0.5 * NaNMath.sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
     return c_f
 end
 
@@ -626,8 +626,8 @@ as given by
     p_total_rr = p_rr + 0.5 * mag_norm_rr
 
     # compute the Roe density averages
-    sqrt_rho_ll = sqrt(rho_ll)
-    sqrt_rho_rr = sqrt(rho_rr)
+    sqrt_rho_ll = NaNMath.sqrt(rho_ll)
+    sqrt_rho_rr = NaNMath.sqrt(rho_rr)
     inv_sqrt_rho_add = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
     inv_sqrt_rho_prod = 1.0 / (sqrt_rho_ll * sqrt_rho_rr)
     rho_ll_roe = sqrt_rho_ll * inv_sqrt_rho_add
@@ -656,7 +656,7 @@ as given by
     # finally compute the average wave speed and set the output velocity
     # Ignore orientation since it is always "1" in 1D
     c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
-    a_star_roe = sqrt((a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe)
+    a_star_roe = NaNMath.sqrt((a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe)
     c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
 
     return v1_roe, c_f_roe
@@ -671,7 +671,7 @@ end
          1 / 2 * (cons[6]^2 + cons[7]^2 + cons[8]^2))
 
     # Thermodynamic entropy
-    s = log(p) - equations.gamma * log(cons[1])
+    s = NaNMath.log(p) - equations.gamma * NaNMath.log(cons[1])
 
     return s
 end

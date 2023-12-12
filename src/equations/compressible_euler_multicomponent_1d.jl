@@ -400,8 +400,8 @@ end
 
     p_ll = (gamma_ll - 1) * (rho_e_ll - 1 / 2 * rho_ll * v_ll^2)
     p_rr = (gamma_rr - 1) * (rho_e_rr - 1 / 2 * rho_rr * v_rr^2)
-    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
-    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+    c_ll = NaNMath.sqrt(gamma_ll * p_ll / rho_ll)
+    c_rr = NaNMath.sqrt(gamma_rr * p_rr / rho_rr)
 
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
@@ -415,7 +415,7 @@ end
 
     gamma = totalgamma(u, equations)
     p = (gamma - 1) * (rho_e - 1 / 2 * rho * (v1^2))
-    c = sqrt(gamma * p / rho)
+    c = NaNMath.sqrt(gamma * p / rho)
 
     return (abs(v1) + c,)
 end
@@ -477,7 +477,7 @@ end
     gamma = totalgamma(u, equations)
 
     p = (gamma - 1) * (rho_e - 0.5 * rho * v_square)
-    s = log(p) - gamma * log(rho) - log(gas_constant)
+    s = NaNMath.log(p) - gamma * NaNMath.log(rho) - log(gas_constant)
     rho_p = rho / p
     T = (rho_e - 0.5 * rho * v_square) / (help1)
     entrop_rho = SVector{ncomponents(equations), real(equations)}(gas_constant *

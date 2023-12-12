@@ -37,7 +37,7 @@ function cons2entropy!(entropy_var_values::StructArray,
         v2 = rho_v2 / rho
         v_square = v1^2 + v2^2
         p = (gamma - 1) * (rho_e - 0.5 * rho * v_square)
-        s = log(p) - gamma * log(rho)
+        s = NaNMath.log(p) - gamma * NaNMath.log(rho)
         rho_p = rho / p
 
         w1_values[i] = (gamma - s) * inv_gamma_minus_one - 0.5 * rho_p * v_square
@@ -121,7 +121,7 @@ function cons2entropy!(entropy_var_values::StructArray,
         v3 = rho_v3 / rho
         v_square = v1^2 + v2^2 + v3^2
         p = (gamma - 1) * (rho_e - 0.5 * rho * v_square)
-        s = log(p) - gamma * log(rho)
+        s = NaNMath.log(p) - gamma * NaNMath.log(rho)
         rho_p = rho / p
 
         w1_values[i] = (gamma - s) * inv_gamma_minus_one - 0.5 * rho_p * v_square

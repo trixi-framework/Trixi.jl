@@ -215,8 +215,8 @@ end
     # Calculate the wave celerity on the left and right
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
-    c_ll = sqrt(equations.gravity * h_ll)
-    c_rr = sqrt(equations.gravity * h_rr)
+    c_ll = NaNMath.sqrt(equations.gravity * h_ll)
+    c_rr = NaNMath.sqrt(equations.gravity * h_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
@@ -236,7 +236,7 @@ end
     h = waterheight(u, equations)
     v = velocity(u, equations)
 
-    c = equations.gravity * sqrt(h)
+    c = equations.gravity * NaNMath.sqrt(h)
     return (abs(v) + c,)
 end
 

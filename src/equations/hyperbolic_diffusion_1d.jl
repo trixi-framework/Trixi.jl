@@ -165,13 +165,13 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::HyperbolicDiffusionEquations1D)
-    λ_max = sqrt(equations.nu * equations.inv_Tr)
+    λ_max = NaNMath.sqrt(equations.nu * equations.inv_Tr)
 end
 
 @inline have_constant_speed(::HyperbolicDiffusionEquations1D) = True()
 
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations1D)
-    return sqrt(eq.nu * eq.inv_Tr)
+    return NaNMath.sqrt(eq.nu * eq.inv_Tr)
 end
 
 # Convert conservative variables to primitive

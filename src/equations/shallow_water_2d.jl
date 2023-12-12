@@ -922,8 +922,8 @@ end
     # Calculate the wave celerity on the left and right
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
-    c_ll = sqrt(equations.gravity * h_ll)
-    c_rr = sqrt(equations.gravity * h_rr)
+    c_ll = NaNMath.sqrt(equations.gravity * h_ll)
+    c_rr = NaNMath.sqrt(equations.gravity * h_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
@@ -939,8 +939,8 @@ end
     # Compute the wave celerity on the left and right
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
-    c_ll = sqrt(equations.gravity * h_ll)
-    c_rr = sqrt(equations.gravity * h_rr)
+    c_ll = NaNMath.sqrt(equations.gravity * h_ll)
+    c_rr = NaNMath.sqrt(equations.gravity * h_rr)
 
     # The normal velocities are already scaled by the norm
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
@@ -988,11 +988,11 @@ end
     v1_rr, v2_rr = velocity(u_rr, equations)
 
     if orientation == 1 # x-direction
-        λ_min = v1_ll - sqrt(equations.gravity * h_ll)
-        λ_max = v1_rr + sqrt(equations.gravity * h_rr)
+        λ_min = v1_ll - NaNMath.sqrt(equations.gravity * h_ll)
+        λ_max = v1_rr + NaNMath.sqrt(equations.gravity * h_rr)
     else # y-direction
-        λ_min = v2_ll - sqrt(equations.gravity * h_ll)
-        λ_max = v2_rr + sqrt(equations.gravity * h_rr)
+        λ_min = v2_ll - NaNMath.sqrt(equations.gravity * h_ll)
+        λ_max = v2_rr + NaNMath.sqrt(equations.gravity * h_rr)
     end
 
     return λ_min, λ_max
@@ -1010,8 +1010,8 @@ end
 
     norm_ = norm(normal_direction)
     # The v_normals are already scaled by the norm
-    λ_min = v_normal_ll - sqrt(equations.gravity * h_ll) * norm_
-    λ_max = v_normal_rr + sqrt(equations.gravity * h_rr) * norm_
+    λ_min = v_normal_ll - NaNMath.sqrt(equations.gravity * h_ll) * norm_
+    λ_max = v_normal_rr + NaNMath.sqrt(equations.gravity * h_rr) * norm_
 
     return λ_min, λ_max
 end
@@ -1042,8 +1042,8 @@ the reference below. The definition of the wave speeds are given in Equation (2.
     h_rr = waterheight(u_rr, equations)
     v1_rr, v2_rr = velocity(u_rr, equations)
 
-    a_ll = sqrt(equations.gravity * h_ll)
-    a_rr = sqrt(equations.gravity * h_rr)
+    a_ll = NaNMath.sqrt(equations.gravity * h_ll)
+    a_rr = NaNMath.sqrt(equations.gravity * h_rr)
 
     if orientation == 1 # x-direction
         λ_min = min(v1_ll - a_ll, v1_rr - a_rr, zero(eltype(u_ll)))
@@ -1068,8 +1068,8 @@ end
 
     norm_ = norm(normal_direction)
 
-    a_ll = sqrt(equations.gravity * h_ll) * norm_
-    a_rr = sqrt(equations.gravity * h_rr) * norm_
+    a_ll = NaNMath.sqrt(equations.gravity * h_ll) * norm_
+    a_rr = NaNMath.sqrt(equations.gravity * h_rr) * norm_
 
     λ_min = min(v_normal_ll - a_ll, v_normal_rr - a_rr, zero(eltype(u_ll)))
     λ_max = max(v_normal_ll + a_ll, v_normal_rr + a_rr, zero(eltype(u_ll)))
@@ -1085,8 +1085,8 @@ end
     h_rr = waterheight(u_rr, equations)
     v1_rr, v2_rr = velocity(u_rr, equations)
 
-    c_ll = sqrt(equations.gravity * h_ll)
-    c_rr = sqrt(equations.gravity * h_rr)
+    c_ll = NaNMath.sqrt(equations.gravity * h_ll)
+    c_rr = NaNMath.sqrt(equations.gravity * h_rr)
 
     if orientation == 1 # x-direction
         λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
@@ -1107,8 +1107,8 @@ end
     v1_rr, v2_rr = velocity(u_rr, equations)
 
     norm_ = norm(normal_direction)
-    c_ll = sqrt(equations.gravity * h_ll) * norm_
-    c_rr = sqrt(equations.gravity * h_rr) * norm_
+    c_ll = NaNMath.sqrt(equations.gravity * h_ll) * norm_
+    c_rr = NaNMath.sqrt(equations.gravity * h_rr) * norm_
 
     v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
     v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
@@ -1127,8 +1127,8 @@ end
     h_rr = waterheight(u_rr, equations)
     v1_rr, v2_rr = velocity(u_rr, equations)
 
-    c_ll = sqrt(equations.gravity * h_ll)
-    c_rr = sqrt(equations.gravity * h_rr)
+    c_ll = NaNMath.sqrt(equations.gravity * h_ll)
+    c_rr = NaNMath.sqrt(equations.gravity * h_rr)
 
     if orientation == 1 # x-direction
         v_roe, c_roe = calc_wavespeed_roe(u_ll, u_rr, orientation, equations)
@@ -1152,8 +1152,8 @@ end
 
     norm_ = norm(normal_direction)
 
-    c_ll = sqrt(equations.gravity * h_ll) * norm_
-    c_rr = sqrt(equations.gravity * h_rr) * norm_
+    c_ll = NaNMath.sqrt(equations.gravity * h_ll) * norm_
+    c_rr = NaNMath.sqrt(equations.gravity * h_rr) * norm_
 
     v_normal_ll = (v1_ll * normal_direction[1] + v2_ll * normal_direction[2])
     v_normal_rr = (v1_rr * normal_direction[1] + v2_rr * normal_direction[2])
@@ -1169,7 +1169,7 @@ end
     h = waterheight(u, equations)
     v1, v2 = velocity(u, equations)
 
-    c = equations.gravity * sqrt(h)
+    c = equations.gravity * NaNMath.sqrt(h)
     return abs(v1) + c, abs(v2) + c
 end
 
@@ -1260,10 +1260,10 @@ slides 8 and 9.
     v1_rr, v2_rr = velocity(u_rr, equations)
 
     h_roe = 0.5 * (h_ll + h_rr)
-    c_roe = sqrt(equations.gravity * h_roe)
+    c_roe = NaNMath.sqrt(equations.gravity * h_roe)
 
-    h_ll_sqrt = sqrt(h_ll)
-    h_rr_sqrt = sqrt(h_rr)
+    h_ll_sqrt = NaNMath.sqrt(h_ll)
+    h_rr_sqrt = NaNMath.sqrt(h_rr)
 
     if orientation == 1 # x-direction
         v_roe = (h_ll_sqrt * v1_ll + h_rr_sqrt * v1_rr) / (h_ll_sqrt + h_rr_sqrt)
@@ -1284,10 +1284,10 @@ end
     norm_ = norm(normal_direction)
 
     h_roe = 0.5 * (h_ll + h_rr)
-    c_roe = sqrt(equations.gravity * h_roe) * norm_
+    c_roe = NaNMath.sqrt(equations.gravity * h_roe) * norm_
 
-    h_ll_sqrt = sqrt(h_ll)
-    h_rr_sqrt = sqrt(h_rr)
+    h_ll_sqrt = NaNMath.sqrt(h_ll)
+    h_rr_sqrt = NaNMath.sqrt(h_rr)
 
     v1_roe = (h_ll_sqrt * v1_ll + h_rr_sqrt * v1_rr) / (h_ll_sqrt + h_rr_sqrt)
     v2_roe = (h_ll_sqrt * v2_ll + h_rr_sqrt * v2_rr) / (h_ll_sqrt + h_rr_sqrt)

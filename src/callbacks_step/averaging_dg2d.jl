@@ -68,8 +68,8 @@ function calc_mean_values!(mean_values, averaging_callback_cache, u, u_prev,
             rho, v1, v2, p = u_node_prim
             rho_prev, v1_prev, v2_prev, p_prev = u_prev_node_prim
 
-            c = sqrt(equations.gamma * p / rho)
-            c_prev = sqrt(equations.gamma * p_prev / rho_prev)
+            c = NaNMath.sqrt(equations.gamma * p / rho)
+            c_prev = NaNMath.sqrt(equations.gamma * p_prev / rho_prev)
 
             # Calculate the contribution to the mean values using the trapezoidal rule
             vorticity_mean[i, j, element] += integration_constant *

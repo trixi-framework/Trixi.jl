@@ -393,8 +393,8 @@ end
     # Calculate the wave celerity on the left and right
     h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
     h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
-    c_ll = sqrt(equations.gravity * (h_upper_ll + h_lower_ll))
-    c_rr = sqrt(equations.gravity * (h_upper_rr + h_lower_rr))
+    c_ll = NaNMath.sqrt(equations.gravity * (h_upper_ll + h_lower_ll))
+    c_rr = NaNMath.sqrt(equations.gravity * (h_upper_rr + h_lower_rr))
 
     return (max(abs(v_m_ll) + c_ll, abs(v_m_rr) + c_rr))
 end
@@ -416,7 +416,7 @@ end
 
     # Calculate averaged velocity of both layers
     v_m = (h_v_upper + h_v_lower) / (h_upper + h_lower)
-    c = sqrt(equations.gravity * (h_upper + h_lower))
+    c = NaNMath.sqrt(equations.gravity * (h_upper + h_lower))
 
     return (abs(v_m) + c)
 end

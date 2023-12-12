@@ -241,8 +241,8 @@ end
 
     norm_ = norm(normal_direction)
     # The v_normals are already scaled by the norm
-    lambda_min = v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) * norm_
-    lambda_max = v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) * norm_
+    lambda_min = v_normal_ll - NaNMath.sqrt(equations.gamma * p_ll / rho_ll) * norm_
+    lambda_max = v_normal_rr + NaNMath.sqrt(equations.gamma * p_rr / rho_rr) * norm_
 
     return lambda_min, lambda_max
 end
@@ -256,8 +256,8 @@ end
     p_ll = equations.kappa * rho_ll^equations.gamma
     p_rr = equations.kappa * rho_rr^equations.gamma
 
-    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
-    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+    c_ll = NaNMath.sqrt(equations.gamma * p_ll / rho_ll)
+    c_rr = NaNMath.sqrt(equations.gamma * p_rr / rho_rr)
 
     if orientation == 1 # x-direction
         λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
@@ -281,8 +281,8 @@ end
 
     norm_ = norm(normal_direction)
 
-    c_ll = sqrt(equations.gamma * p_ll / rho_ll) * norm_
-    c_rr = sqrt(equations.gamma * p_rr / rho_rr) * norm_
+    c_ll = NaNMath.sqrt(equations.gamma * p_ll / rho_ll) * norm_
+    c_rr = NaNMath.sqrt(equations.gamma * p_rr / rho_rr) * norm_
 
     v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
     v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
@@ -296,7 +296,7 @@ end
 
 @inline function max_abs_speeds(u, equations::PolytropicEulerEquations2D)
     rho, v1, v2 = cons2prim(u, equations)
-    c = sqrt(equations.gamma * equations.kappa * rho^(equations.gamma - 1))
+    c = NaNMath.sqrt(equations.gamma * equations.kappa * rho^(equations.gamma - 1))
 
     return abs(v1) + c, abs(v2) + c
 end
@@ -321,7 +321,7 @@ end
     p = pressure(u, equations)
     # Form of the internal energy depends on gas type
     if equations.gamma == 1.0 # isothermal gas
-        internal_energy = equations.kappa * log(rho)
+        internal_energy = equations.kappa * NaNMath.log(rho)
     else # equations.gamma > 1 # polytropic gas
         internal_energy = equations.kappa * rho^(equations.gamma - 1) /
                           (equations.gamma - 1.0)

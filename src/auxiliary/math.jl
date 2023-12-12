@@ -59,7 +59,7 @@ Given ε = 1.0e-4, we use the following algorithm.
     if f2 < epsilon_f2
         return (x + y) / @evalpoly(f2, 2, 2/3, 2/5, 2/7)
     else
-        return (y - x) / log(y / x)
+        return (y - x) / NaNMath.log(y / x)
     end
 end
 
@@ -79,7 +79,7 @@ multiplication.
     if f2 < epsilon_f2
         return @evalpoly(f2, 2, 2/3, 2/5, 2/7) / (x + y)
     else
-        return log(y / x) / (y - x)
+        return NaNMath.log(y / x) / (y - x)
     end
 end
 

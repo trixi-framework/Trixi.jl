@@ -423,7 +423,7 @@ end
     v_square = v1^2 + v2^2 + v3^2
     gamma = totalgamma(u, equations)
     p = (gamma - 1) * (rho_e - 0.5 * rho * v_square - 0.5 * (B1^2 + B2^2 + B3^2))
-    s = log(p) - gamma * log(rho)
+    s = NaNMath.log(p) - gamma * NaNMath.log(rho)
     rho_p = rho / p
 
     # Multicomponent stuff
@@ -436,9 +436,9 @@ end
     T = (rho_e - 0.5 * rho * v_square - 0.5 * (B1^2 + B2^2 + B3^2)) / (help1)
 
     entrop_rho = SVector{ncomponents(equations), real(equations)}(-1.0 *
-                                                                  (cv[i] * log(T) -
+                                                                  (cv[i] * NaNMath.log(T) -
                                                                    gas_constants[i] *
-                                                                   log(u[i + 7])) +
+                                                                   NaNMath.log(u[i + 7])) +
                                                                   gas_constants[i] +
                                                                   cv[i] -
                                                                   (v_square / (2 * T))
@@ -500,14 +500,14 @@ end
     gamma = totalgamma(cons, equations)
     p = (gamma - 1) * (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2))
     a_square = gamma * p / rho
-    sqrt_rho = sqrt(rho)
+    sqrt_rho = NaNMath.sqrt(rho)
     b1 = B1 / sqrt_rho
     b2 = B2 / sqrt_rho
     b3 = B3 / sqrt_rho
     b_square = b1^2 + b2^2 + b3^2
 
     c_f = sqrt(0.5 * (a_square + b_square) +
-               0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+               0.5 * NaNMath.sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
 
     return c_f
 end

@@ -88,6 +88,8 @@ import SummationByPartsOperators: integrate, semidiscretize,
                            Quad, Hex, Tet, Wedge
 using StartUpDG: RefElemData, MeshData, AbstractElemShape
 
+import NaNMath
+
 # TODO: include_optimized
 # This should be used everywhere (except to `include("interpolations.jl")`)
 # once the upstream issue https://github.com/timholy/Revise.jl/issues/634
