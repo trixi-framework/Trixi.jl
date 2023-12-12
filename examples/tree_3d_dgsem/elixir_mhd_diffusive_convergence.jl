@@ -5,8 +5,8 @@ using Trixi
 # semidiscretization of the visco-resistive compressible MHD equations
 
 prandtl_number() = 0.72
-mu_const = 2e-2
-eta_const = 2e-2
+mu_const = 0e-2
+eta_const = 0e-2
 
 equations = IdealGlmMhdEquations3D(5 / 3)
 equations_parabolic = ViscoResistiveMhd3D(equations, mu = mu_const,
@@ -42,71 +42,69 @@ function initial_condition_constant_alfven(x, t, equations)
     Va = omega / (ny * sqr)
     phi_alv = omega / ny * (nx * (x[1] - 0.5 * r) + ny * (x[2] - 0.5 * r)) - Va * t
 
-#     rho = 1.0 + e*cos(phi_alv + 1.0)
-#     v1 = -e * ny * cos(phi_alv) / rho
-#     v2 = e * nx * cos(phi_alv) / rho
-#     v3 = e * sin(phi_alv) / rho
-#     p = 1.0
-#     B1 = nx - rho * v1 * sqr
-#     B2 = ny - rho * v2 * sqr
-#     B3 = -rho * v3 * sqr
-#     psi = 0.0
+    rho = 1.0 + e*cos(phi_alv + 1.0)
+    v1 = -e * ny * cos(phi_alv) / rho
+    v2 = e * nx * cos(phi_alv) / rho
+    v3 = e * sin(phi_alv) / rho
+    p = 1.0
+    B1 = nx - rho * v1 * sqr
+    B2 = ny - rho * v2 * sqr
+    B3 = -rho * v3 * sqr
+    psi = 0.0
 
-   k = 2*pi
-   rho = 1.0
-   v1 = 0
-   v2 = -e*sin(k*x[1])*sqrt(rho)
-   v3 = 0
-   B1 = 1
-   B2 = e*sin(k*x[1])
-   B3 = 0
-   p = 1
-   psi = 0
+#    k = 2*pi
+#    rho = 1.0
+#    v1 = 0
+#    v2 = -e*sin(k*x[1])*sqrt(rho)
+#    v3 = 0
+#    B1 = 1
+#    B2 = e*sin(k*x[1])
+#    B3 = 0
+#    p = 1
+#    psi = 0
 
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
 
 
 @inline function source_terms_mhd_convergence_test(u, x, t, equations)
-#      r_1 = 0.02*sqrt(5)*pi*sin(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1)
-#
-#      r_2 = sqrt(5)*pi^2*mu_const*(-0.04*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] +3.0)) + (0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)*(0.0012*cos(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) - 0.0004*cos(1)) + 3.2e-5*sin(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1)^2*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0)))/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1]+ 2*x[2] - 3.0) + 1) + 1)^3
-#
-#      r_3 = -sqrt(5)*pi^2*mu_const*(-0.02*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0)) + (0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)*(0.0006*cos(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) - 0.0002*cos(1)) + 1.6e-5*sin(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1)^2*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0)))/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^3
-#
-#      r_4 = -pi^2*mu_const*((0.003*sin(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) + 0.001*sin(1))*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1) + 0.1*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])) - 8.0e-5*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))*sin(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1)^2)/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^3
-#
-#      r_5 = 0.2*pi*(-0.00138888888888889*pi*mu_const^2*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1) + 0.0694444444444444*pi*mu_const^2*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 - 0.000694444444444444*pi*mu_const^2*cos(-sqrt(5)*pi*t+ pi*x[1] + 2*pi*x[2] + 1)^3 + 0.0694444444444444*pi*mu_const^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 - 1.73611111111111*pi*mu_const^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1) - 1.2e-5*pi*mu_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))^2*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 - 4.0e-6*pi*mu_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 + 0.0002*pi*mu_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1) - 1.2e-5*pi*mu_const*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0))^2 - 4.0e-6*pi*mu_const*cos(pi*(sqrt(5)*t - x[1] - 2*x[2]+ 3.0))^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 + 0.0002*pi*mu_const*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0))^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1) + 1.0e-7*sqrt(5)*(-sin(-4*sqrt(5)*pi*t + 4*pi*x[1] + 8*pi*x[2] + 2) + 2*sin(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 2) - sin(2)) + 1.0e-7*sqrt(5)*(sin(-4*sqrt(5)*pi*t + 4*pi*x[1] + 8*pi*x[2] + 2) + 2*sin(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 2) + sin(2)) - 8.0e-9*sqrt(5)*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))^2*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 - 2.0e-5*sqrt(5)*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))^2*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1) - 8.0e-9*sqrt(5)*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0))^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 - 2.0e-5*sqrt(5)*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0))^2)/(-0.04*sin(pi*x[2])*sin(-sqrt(5)*pi*t + pi*x[1] + pi*x[2] + 1) + 0.02*cos(-sqrt(5)*pi*t + pi*x[1] + 1) - 1.0)^4
-#
-#      r_6 = pi*(-0.04*(sqrt(5)*pi*eta_const*cos(pi*(-sqrt(5)*t + x[1] + 2*x[2])) + sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])))*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2 + 0.04*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])) +0.0004*sin(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) + 0.0004*sin(1))/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2
-#
-#      r_7 = pi*(0.02*(sqrt(5)*pi*eta_const*cos(pi*(-sqrt(5)*t + x[1] + 2*x[2])) + sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])))*(0.02*cos(-sqrt(5)*pi*t +pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2 - 0.02*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])) - 0.0002*sin(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) - 0.0002*sin(1))/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2
-#
-#      r_8 = pi*((0.1*pi*eta_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])) + 0.02*sqrt(5)*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0)))*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2 - 0.02*sqrt(5)*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0)) + 0.0002*sqrt(5)*(cos(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) - cos(1)))/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2
-#
-#      r_9 = 0.0
+     r_1 = 0.02*sqrt(5)*pi*sin(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1)
 
-    r_1 = 0.0
-    r_2 = 0.0004*pi*sin(4*pi*x[1])
-    r_3 = pi*(0.08*pi*mu_const*sin(2*pi*x[1]) - 0.04*cos(2*pi*x[1]))
-    r_4 = 0
-    r_5 = pi*(-0.0016*pi*eta_const*sin(2*pi*x[1])^2 + 0.0016*pi*eta_const*cos(2*pi*x[1])^2 + pi*mu_const*(0.0016 - 0.0111111111111111*mu_const)*cos(4*pi*x[1]) + 0.0008*sin(4*pi*x[1]))
-    r_6 = 0
-    r_7 = pi*(-0.08*pi*eta_const*sin(2*pi*x[1]) + 0.04*cos(2*pi*x[1]))
-    r_8 = 0
-    r_9 = 0.0
+     r_2 = sqrt(5)*pi^2*mu_const*(-0.04*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] +3.0)) + (0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)*(0.0012*cos(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) - 0.0004*cos(1)) + 3.2e-5*sin(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1)^2*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0)))/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1]+ 2*x[2] - 3.0) + 1) + 1)^3
+
+     r_3 = -sqrt(5)*pi^2*mu_const*(-0.02*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0)) + (0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)*(0.0006*cos(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) - 0.0002*cos(1)) + 1.6e-5*sin(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1)^2*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0)))/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^3
+
+     r_4 = -pi^2*mu_const*((0.003*sin(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) + 0.001*sin(1))*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1) + 0.1*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])) - 8.0e-5*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))*sin(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1)^2)/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^3
+
+     r_5 = 0.2*pi*(-0.00138888888888889*pi*mu_const^2*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1) + 0.0694444444444444*pi*mu_const^2*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 - 0.000694444444444444*pi*mu_const^2*cos(-sqrt(5)*pi*t+ pi*x[1] + 2*pi*x[2] + 1)^3 + 0.0694444444444444*pi*mu_const^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 - 1.73611111111111*pi*mu_const^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1) - 1.2e-5*pi*mu_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))^2*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 - 4.0e-6*pi*mu_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 + 0.0002*pi*mu_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1) - 1.2e-5*pi*mu_const*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0))^2 - 4.0e-6*pi*mu_const*cos(pi*(sqrt(5)*t - x[1] - 2*x[2]+ 3.0))^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 + 0.0002*pi*mu_const*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0))^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1) + 1.0e-7*sqrt(5)*(-sin(-4*sqrt(5)*pi*t + 4*pi*x[1] + 8*pi*x[2] + 2) + 2*sin(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 2) - sin(2)) + 1.0e-7*sqrt(5)*(sin(-4*sqrt(5)*pi*t + 4*pi*x[1] + 8*pi*x[2] + 2) + 2*sin(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 2) + sin(2)) - 8.0e-9*sqrt(5)*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))^2*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 - 2.0e-5*sqrt(5)*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2]))^2*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1) - 8.0e-9*sqrt(5)*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0))^2*cos(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)^2 - 2.0e-5*sqrt(5)*sin(-sqrt(5)*pi*t + pi*x[1] + 2*pi*x[2] + 1)*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0))^2)/(-0.04*sin(pi*x[2])*sin(-sqrt(5)*pi*t + pi*x[1] + pi*x[2] + 1) + 0.02*cos(-sqrt(5)*pi*t + pi*x[1] + 1) - 1.0)^4
+
+     r_6 = pi*(-0.04*(sqrt(5)*pi*eta_const*cos(pi*(-sqrt(5)*t + x[1] + 2*x[2])) + sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])))*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2 + 0.04*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])) +0.0004*sin(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) + 0.0004*sin(1))/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2
+
+     r_7 = pi*(0.02*(sqrt(5)*pi*eta_const*cos(pi*(-sqrt(5)*t + x[1] + 2*x[2])) + sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])))*(0.02*cos(-sqrt(5)*pi*t +pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2 - 0.02*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])) - 0.0002*sin(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) - 0.0002*sin(1))/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2
+
+     r_8 = pi*((0.1*pi*eta_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])) + 0.02*sqrt(5)*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0)))*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2 - 0.02*sqrt(5)*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0)) + 0.0002*sqrt(5)*(cos(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) - cos(1)))/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2
+
+     r_9 = 0.0
+
+#     r_1 = 0.0
+#     r_2 = 0.0004*pi*sin(4*pi*x[1])
+#     r_3 = pi*(0.08*pi*mu_const*sin(2*pi*x[1]) - 0.04*cos(2*pi*x[1]))
+#     r_4 = 0
+#     r_5 = pi*(-0.0016*pi*eta_const*sin(2*pi*x[1])^2 + 0.0016*pi*eta_const*cos(2*pi*x[1])^2 + pi*mu_const*(0.0016 - 0.0111111111111111*mu_const)*cos(4*pi*x[1]) + 0.0008*sin(4*pi*x[1]))
+#     r_6 = 0
+#     r_7 = pi*(-0.08*pi*eta_const*sin(2*pi*x[1]) + 0.04*cos(2*pi*x[1]))
+#     r_8 = 0
+#     r_9 = 0.0
 
     return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
 
+
 initial_condition = initial_condition_constant_alfven
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver)
-#                                              source_terms = source_terms_mhd_convergence_test)
-# semi = SemidiscretizationHyperbolic(mesh, equations,
-#                                     initial_condition, solver,
-#                                     source_terms = source_terms_mhd_convergence_test)
+                                             initial_condition, solver;
+                                             source_terms = source_terms_mhd_convergence_test)
 
 
 ###############################################################################
