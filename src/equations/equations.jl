@@ -42,6 +42,18 @@ Common choices of the `conversion_function` are [`cons2cons`](@ref) and
 """
 function varnames end
 
+# Return the index of `varname` in `varnames(solution_variables, equations)` if available.
+# Otherwise, throw an error.
+function get_variable_index(varname, equations;
+                            solution_variables = cons2cons)
+    index = findfirst(==(varname), varnames(solution_variables, equations))
+    if isnothing(index)
+        throw(ArgumentError("$varname is no valid variable."))
+    end
+
+    return index
+end
+
 # Add methods to show some information on systems of equations.
 function Base.show(io::IO, equations::AbstractEquations)
     # Since this is not performance-critical, we can use `@nospecialize` to reduce latency.
@@ -208,6 +220,24 @@ struct BoundaryConditionNeumann{B}
     boundary_normal_flux_function::B
 end
 
+"""
+    NonConservativeLocal()
+
+Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric".
+When the argument `nonconservative_type` is of type `NonConservativeLocal`,
+the function returns the local part of the non-conservative term.
+"""
+struct NonConservativeLocal end
+
+"""
+    NonConservativeSymmetric()
+
+Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric".
+When the argument `nonconservative_type` is of type `NonConservativeSymmetric`,
+the function returns the symmetric part of the non-conservative term.
+"""
+struct NonConservativeSymmetric end
+
 # set sensible default values that may be overwritten by specific equations
 """
     have_nonconservative_terms(equations)
@@ -220,9 +250,24 @@ example of equations with nonconservative terms.
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
 have_nonconservative_terms(::AbstractEquations) = False()
+"""
+    n_nonconservative_terms(equations)
+
+Number of nonconservative terms in the form local * symmetric for a particular equation.
+This function needs to be specialized only if equations with nonconservative terms are
+combined with certain solvers (e.g., subcell limiting).
+"""
+function n_nonconservative_terms end
 have_constant_speed(::AbstractEquations) = False()
 
+"""
+    default_analysis_errors(equations)
+
+Default analysis errors (`:l2_error` and `:linf_error`) used by the
+[`AnalysisCallback`](@ref).
+"""
 default_analysis_errors(::AbstractEquations) = (:l2_error, :linf_error)
+
 """
     default_analysis_integrals(equations)
 
@@ -453,6 +498,6 @@ abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("linearized_euler_2d.jl")
 
-abstract type AbstractEquationsParabolic{NDIMS, NVARS} <:
+abstract type AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} <:
               AbstractEquations{NDIMS, NVARS} end
 end # @muladd

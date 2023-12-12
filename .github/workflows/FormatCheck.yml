@@ -30,7 +30,7 @@ jobs:
         #       format(".")
         run: |
           julia  -e 'using Pkg; Pkg.add(PackageSpec(name = "JuliaFormatter"))'
-          julia  -e 'using JuliaFormatter; format(["benchmark", "ext", "src", "utils"])'
+          julia  -e 'using JuliaFormatter; format(["benchmark", "examples", "ext", "src", "test", "utils"])'
       - name: Format check
         run: |
           julia -e '

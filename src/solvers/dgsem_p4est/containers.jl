@@ -429,13 +429,17 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     @unpack boundaries = cache
     resize!(boundaries, required.boundaries)
 
-    # resize mortars container
-    @unpack mortars = cache
-    resize!(mortars, required.mortars)
+    # re-initialize mortars container
+    if hasproperty(cache, :mortars) # cache_parabolic does not carry mortars
+        @unpack mortars = cache
+        resize!(mortars, required.mortars)
 
-    # re-initialize containers together to reduce
-    # the number of iterations over the mesh in `p4est`
-    init_surfaces!(interfaces, mortars, boundaries, mesh)
+        # re-initialize containers together to reduce
+        # the number of iterations over the mesh in `p4est`
+        init_surfaces!(interfaces, mortars, boundaries, mesh)
+    else
+        init_surfaces!(interfaces, nothing, boundaries, mesh)
+    end
 end
 
 # A helper struct used in initialization methods below
@@ -450,8 +454,7 @@ mutable struct InitSurfacesIterFaceUserData{Interfaces, Mortars, Boundaries, Mes
 end
 
 function InitSurfacesIterFaceUserData(interfaces, mortars, boundaries, mesh)
-    return InitSurfacesIterFaceUserData{
-                                        typeof(interfaces), typeof(mortars),
+    return InitSurfacesIterFaceUserData{typeof(interfaces), typeof(mortars),
                                         typeof(boundaries), typeof(mesh)}(interfaces, 1,
                                                                           mortars, 1,
                                                                           boundaries, 1,
