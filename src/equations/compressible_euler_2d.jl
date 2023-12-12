@@ -615,6 +615,7 @@ See also
 """
 @inline function flux_ranocha(u_ll, u_rr, orientation::Integer,
                               equations::CompressibleEulerEquations2D)
+    @trixi_timeit timer() "flux_ranocha" begin                              
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
@@ -647,7 +648,7 @@ See also
              (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one) +
              0.5 * (p_ll * v2_rr + p_rr * v2_ll)
     end
-
+    end
     return SVector(f1, f2, f3, f4)
 end
 
@@ -1158,6 +1159,7 @@ Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827
 """
 function flux_hllc(u_ll, u_rr, orientation::Integer,
                    equations::CompressibleEulerEquations2D)
+    @trixi_timeit timer() "flux_hllc" begin
     # Calculate primitive variables and speed of sound
     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -1248,6 +1250,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
             f3 = f_rr[3] + Ssr * (UStar3 - rho_v2_rr)
             f4 = f_rr[4] + Ssr * (UStar4 - rho_e_rr)
         end
+    end
     end
     return SVector(f1, f2, f3, f4)
 end

@@ -35,7 +35,8 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
 end
 initial_condition = initial_condition_blast_wave
 
-surface_flux = flux_lax_friedrichs
+#surface_flux = flux_lax_friedrichs
+surface_flux = flux_hllc
 volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -69,11 +70,6 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
-
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max = 0.5,
                                           alpha_min = 0.001,
@@ -90,8 +86,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 stepsize_callback = StepsizeCallback(cfl = 0.9)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        save_solution,
+                        alive_callback,
                         amr_callback, stepsize_callback)
 
 ###############################################################################
