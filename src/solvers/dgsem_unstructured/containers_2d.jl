@@ -97,7 +97,8 @@ function init_elements!(elements::UnstructuredElementContainer2D, mesh, basis)
 end
 
 # initialize all the values in the container of a general element (either straight sided or curved)
-function init_element!(elements, element, basis::LobattoLegendreBasis, corners_or_surface_curves)
+function init_element!(elements, element, basis::LobattoLegendreBasis,
+                       corners_or_surface_curves)
     calc_node_coordinates!(elements.node_coordinates, element, get_nodes(basis),
                            corners_or_surface_curves)
 
