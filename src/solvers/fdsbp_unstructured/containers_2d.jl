@@ -77,12 +77,12 @@ function calc_normal_directions!(normal_directions, element, jacobian_matrix)
 
     # normal directions on the boundary for the left (local side 4) and right (local side 2)
     N = size(jacobian_matrix, 4)
-    for j in 1:N_
+    for j in 1:N
         # +x side or side 2 in the local indexing
-        X_xi = jacobian_matrix[1, 1, N_, j, element]
-        X_eta = jacobian_matrix[1, 2, N_, j, element]
-        Y_xi = jacobian_matrix[2, 1, N_, j, element]
-        Y_eta = jacobian_matrix[2, 2, N_, j, element]
+        X_xi = jacobian_matrix[1, 1, N, j, element]
+        X_eta = jacobian_matrix[1, 2, N, j, element]
+        Y_xi = jacobian_matrix[2, 1, N, j, element]
+        Y_eta = jacobian_matrix[2, 2, N, j, element]
         Jtemp = X_xi * Y_eta - X_eta * Y_xi
         normal_directions[1, j, 2, element] = sign(Jtemp) * (Y_eta)
         normal_directions[2, j, 2, element] = sign(Jtemp) * (-X_eta)
@@ -99,7 +99,7 @@ function calc_normal_directions!(normal_directions, element, jacobian_matrix)
 
     # normal directions on the boundary for the top (local side 3) and bottom (local side 1)
     N = size(jacobian_matrix, 3)
-    for i in 1:N_
+    for i in 1:N
         # -y side or side 1 in the local indexing
         X_xi = jacobian_matrix[1, 1, i, 1, element]
         X_eta = jacobian_matrix[1, 2, i, 1, element]
@@ -110,10 +110,10 @@ function calc_normal_directions!(normal_directions, element, jacobian_matrix)
         normal_directions[2, i, 1, element] = -sign(Jtemp) * (X_xi)
 
         # +y side or side 3 in the local indexing
-        X_xi = jacobian_matrix[1, 1, i, N_, element]
-        X_eta = jacobian_matrix[1, 2, i, N_, element]
-        Y_xi = jacobian_matrix[2, 1, i, N_, element]
-        Y_eta = jacobian_matrix[2, 2, i, N_, element]
+        X_xi = jacobian_matrix[1, 1, i, N, element]
+        X_eta = jacobian_matrix[1, 2, i, N, element]
+        Y_xi = jacobian_matrix[2, 1, i, N, element]
+        Y_eta = jacobian_matrix[2, 2, i, N, element]
         Jtemp = X_xi * Y_eta - X_eta * Y_xi
         normal_directions[1, i, 3, element] = sign(Jtemp) * (-Y_xi)
         normal_directions[2, i, 3, element] = sign(Jtemp) * (X_xi)
