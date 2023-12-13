@@ -31,7 +31,7 @@ mesh_file = default_mesh_file
 mesh = UnstructuredMesh2D(mesh_file, periodicity = true)
 
 ###############################################################################
-# create the semi discretization object
+# create the semidiscretization object
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
                                     solver)
@@ -40,7 +40,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0));
+ode = semidiscretize(semi, (0.0, 1.0))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers

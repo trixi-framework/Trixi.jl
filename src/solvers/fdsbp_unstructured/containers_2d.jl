@@ -76,7 +76,7 @@ end
 function calc_normal_directions!(normal_directions, element, jacobian_matrix)
 
     # normal directions on the boundary for the left (local side 4) and right (local side 2)
-    N_ = size(jacobian_matrix, 3)
+    N = size(jacobian_matrix, 4)
     for j in 1:N_
         # +x side or side 2 in the local indexing
         X_xi = jacobian_matrix[1, 1, N_, j, element]
@@ -98,7 +98,7 @@ function calc_normal_directions!(normal_directions, element, jacobian_matrix)
     end
 
     # normal directions on the boundary for the top (local side 3) and bottom (local side 1)
-    N_ = size(jacobian_matrix, 4)
+    N = size(jacobian_matrix, 3)
     for i in 1:N_
         # -y side or side 1 in the local indexing
         X_xi = jacobian_matrix[1, 1, i, 1, element]
