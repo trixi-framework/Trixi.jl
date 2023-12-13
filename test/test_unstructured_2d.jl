@@ -666,6 +666,21 @@ end
 end
 
 # TODO: FD; for now put the unstructured tests for the 2D FDSBP here.
+@trixi_testset "FDSBP (central): elixir_advection_basic.jl" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
+                                 "elixir_advection_basic.jl"),
+                        l2=[0.0001105211407319266],
+                        linf=[0.0004199363734466166])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "FDSBP (central): elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
                                  "elixir_euler_source_terms.jl"),
