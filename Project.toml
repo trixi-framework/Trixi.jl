@@ -52,7 +52,7 @@ TrixiMakieExt = "Makie"
 [compat]
 CodeTracking = "1.0.5"
 ConstructionBase = "1.3"
-DiffEqCallbacks = "2.25"
+DiffEqCallbacks = "2.31"
 EllipsisNotation = "1.0"
 FillArrays = "1.6"
 ForwardDiff = "0.10.24"
