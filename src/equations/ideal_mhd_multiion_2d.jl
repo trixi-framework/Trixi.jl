@@ -10,8 +10,8 @@
 
 The ideal compressible multi-ion MHD equations in two space dimensions.
 """
-mutable struct IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real, ElectronPressure
-                                           } <:
+mutable struct IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
+                                           ElectronPressure} <:
                AbstractIdealMhdMultiIonEquations{2, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT} # Heat capacity ratios
     charge_to_mass::SVector{NCOMP, RealT} # Charge to mass ratios
@@ -24,7 +24,7 @@ mutable struct IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real, Electron
                                                            ::SVector{NCOMP, RealT},
                                                            electron_pressure
                                                            ::ElectronPressure) where
-            {NVARS, NCOMP, RealT <: Real, ElectronPressure}
+             {NVARS, NCOMP, RealT <: Real, ElectronPressure}
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 
