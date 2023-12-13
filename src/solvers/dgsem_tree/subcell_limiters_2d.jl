@@ -238,9 +238,12 @@ end
 @inline function idp_positivity!(alpha, limiter, u, dt, semi)
     # Conservative variables
     for variable in limiter.positivity_variables_cons
-        @trixi_timeit timer() "conservative variables" idp_positivity!(alpha, limiter,
-                                                                       u, dt, semi,
-                                                                       variable)
+        @trixi_timeit timer() "conservative variables" idp_positivity_conservative!(alpha,
+                                                                                    limiter,
+                                                                                    u,
+                                                                                    dt,
+                                                                                    semi,
+                                                                                    variable)
     end
 
     # Nonlinear variables
@@ -258,7 +261,7 @@ end
 ###############################################################################
 # Global positivity limiting of conservative variables
 
-@inline function idp_positivity!(alpha, limiter, u, dt, semi, variable)
+@inline function idp_positivity_conservative!(alpha, limiter, u, dt, semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis

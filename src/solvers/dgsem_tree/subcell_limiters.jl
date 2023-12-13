@@ -36,8 +36,8 @@ The bounds are calculated using the low-order FV solution. The positivity limite
 `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
 The limiting of nonlinear variables uses a Newton-bisection method with a maximum of
 `max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`
-and a gamma constant of `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
-where `d = #dimensions`).
+and a provisional update constant `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
+where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) of Rueda-Ramírez et al. (2022).
 
 !!! note
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
