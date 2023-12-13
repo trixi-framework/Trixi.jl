@@ -53,29 +53,42 @@ a system-provided MPI installation with Trixi.jl can be found in the following s
 
 ### [Using a system-provided MPI installation](@id parallel_system_MPI)
 
-When using Trixi.jl with a system-provided MPI backend the underlying
-[`p4est`](https://github.com/cburstedde/p4est) and [`t8code`](https://github.com/DLR-AMR/t8code)
-libraries need to be compiled with the same MPI installation. Therefore, you also need to
-use system-provided `p4est` and `t8code` installations (for notes on how to install `p4est`
-and `t8code` see e.g. [here](https://github.com/cburstedde/p4est/blob/master/README) and
-[here](https://github.com/DLR-AMR/t8code/wiki/Installation), use the configure option
-`--enable-mpi`). Note that `t8code` already comes with a `p4est` installation, so it suffices
-to install `t8code`. In addition, [P4est.jl](https://github.com/trixi-framework/P4est.jl) and
-[T8code.jl](https://github.com/DLR-AMR/T8code.jl) need to be configured to use the custom
-installations. Follow the steps described
-[here](https://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation) and
-[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) for the
-configuration. The paths that point to `libp4est.so` (and potentially to `libsc.so`) need to be
-the same for P4est.jl and T8code.jl. This could e.g. be `libp4est.so` that usually can be found
-in `lib/` or `local/lib/` in the installation directory of `t8code`.
-In total, in your active Julia project you should have a LocalPreferences.toml file with sections
-`[MPIPreferences]`, `[T8code]` and `[P4est]` as well as an entry `MPIPreferences` in your
-Project.toml to use a custom MPI installation. A `LocalPreferences.toml` file 
+When using Trixi.jl with a system-provided MPI backend, the underlying
+[`p4est`](https://github.com/cburstedde/p4est), [`t8code`](https://github.com/DLR-AMR/t8code)
+and [`HDF5`](https://github.com/HDFGroup/hdf5) libraries need to be compiled with the same MPI
+installation. If you want to use `p4est` (via the `P4estMesh`) or `t8code` (via the `T8codeMesh`)
+from Trixi.jl, you also need to use system-provided `p4est` or `t8code` installations
+(for notes on how to install `p4est` and `t8code` see, e.g., [here](https://github.com/cburstedde/p4est/blob/master/README)
+and [here](https://github.com/DLR-AMR/t8code/wiki/Installation), use the configure option
+`--enable-mpi`). Otherwise, there will be warnings that no preference is set for P4est.jl and
+T8code.jl that can be ignored if you do not use these libraries from Trixi.jl. Note that
+`t8code` already comes with a `p4est` installation, so it suffices to install `t8code`.
+In order to use system-provided `p4est` and `t8code` installations, [P4est.jl](https://github.com/trixi-framework/P4est.jl)
+and [T8code.jl](https://github.com/DLR-AMR/T8code.jl) need to be configured to use the custom
+installations. Follow the steps described [here](https://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation) and
+[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) for the configuration.
+The paths that point to `libp4est.so` (and potentially to `libsc.so`) need to be
+the same for P4est.jl and T8code.jl. This could, e.g., be `libp4est.so` that usually can be found
+in `lib/` or `local/lib/` in the installation directory of `t8code`. Note that the `T8codeMesh`, however,
+does not support MPI yet.
+The preferences for [HDF5.jl](https://github.com/JuliaIO/HDF5.jl) always need to be set, even if you
+do not want to use `HDF5` from Trixi.jl, see also [issue #1079 in HDF5.jl](https://github.com/JuliaIO/HDF5.jl/issues/1079).
+To set the preferences for HDF5.jl, follow the instructions described
+[here](https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#Using-parallel-input-and-output).
+
+In total, in your active Julia project you should have a `LocalPreferences.toml` file with sections
+`[MPIPreferences]`, `[T8code]` (only needed if `T8codeMesh` is used), `[P4est]` (only needed if
+`P4estMesh` is used), and `[HDF5]` as well as an entry `MPIPreferences` in your
+`Project.toml` to use a custom MPI installation. A `LocalPreferences.toml` file 
 created as described above might look something like the following:
 ```toml
 [HDF5]
 libhdf5 = "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so"
 libhdf5_hl = "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so"
+
+[HDF5_jll]
+libhdf5_hl_path = "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so"
+libhdf5_path = "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so"
 
 [MPIPreferences]
 __clear__ = ["preloads_env_switch"]
@@ -97,6 +110,22 @@ libsc = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libsc.so"
 libt8 = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libt8.so"
 ```
 
+This file is created with the following sequence of commands:
+```julia
+julia> using MPIPreferences
+julia> MPIPreferences.use_system_binary()
+```
+Restart the Julia REPL
+```julia
+julia> using P4est
+julia> P4est.set_library_p4est!("/home/mschlott/hackathon/libtrixi/t8code/install/lib/libp4est.so")
+julia> P4est.set_library_sc!("/home/mschlott/hackathon/libtrixi/t8code/install/lib/libsc.so")
+julia> using T8code
+julia> T8code.set_libraries_path!("/home/mschlott/hackathon/libtrixi/t8code/install/lib/")
+julia> using HDF5
+julia> HDF5.API.set_libraries!("/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so", "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so")
+```
+After the preferences are set, restart the Julia REPL again.
 
 ### [Usage](@id parallel_usage)
 
@@ -218,7 +247,7 @@ julia> HDF5.API.set_libraries!("/path/to/your/libhdf5.so", "/path/to/your/libhdf
 ```
 For more information see also the
 [documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). In total, you should
-have a file called LocalPreferences.toml in the project directory that contains a section
+have a file called `LocalPreferences.toml` in the project directory that contains a section
 `[MPIPreferences]`, a section `[HDF5]` with entries `libhdf5` and `libhdf5_hl`, a section `[P4est]`
 with the entry `libp4est` as well as a section `[T8code]` with the entries `libt8`, `libp4est`
 and `libsc`.

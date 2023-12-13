@@ -79,14 +79,10 @@ where
 ```math
 w_2 = \frac{\rho v1}{p},\, w_3 = -\frac{\rho}{p}
 ```
-
-!!! warning "Experimental code"
-    This code is experimental and may be changed or removed in any future release.
 """
 struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real,
-                                           E <: AbstractCompressibleEulerEquations{1}
-                                           } <:
-       AbstractCompressibleNavierStokesDiffusion{1, 3}
+                                           E <: AbstractCompressibleEulerEquations{1}} <:
+       AbstractCompressibleNavierStokesDiffusion{1, 3, GradientVariables}
     # TODO: parabolic
     # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
     # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
@@ -133,14 +129,10 @@ end
 
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
-function gradient_variable_transformation(::CompressibleNavierStokesDiffusion1D{
-                                                                                GradientVariablesPrimitive
-                                                                                })
+function gradient_variable_transformation(::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
     cons2prim
 end
-function gradient_variable_transformation(::CompressibleNavierStokesDiffusion1D{
-                                                                                GradientVariablesEntropy
-                                                                                })
+function gradient_variable_transformation(::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
     cons2entropy
 end
 
@@ -205,17 +197,13 @@ end
 # For CNS, it is simplest to formulate the viscous terms in primitive variables, so we transform the transformed
 # variables into primitive variables.
 @inline function convert_transformed_to_primitive(u_transformed,
-                                                  equations::CompressibleNavierStokesDiffusion1D{
-                                                                                                 GradientVariablesPrimitive
-                                                                                                 })
+                                                  equations::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
     return u_transformed
 end
 
 # TODO: parabolic. Make this more efficient!
 @inline function convert_transformed_to_primitive(u_transformed,
-                                                  equations::CompressibleNavierStokesDiffusion1D{
-                                                                                                 GradientVariablesEntropy
-                                                                                                 })
+                                                  equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
     # note: this uses CompressibleNavierStokesDiffusion1D versions of cons2prim and entropy2cons
     return cons2prim(entropy2cons(u_transformed, equations), equations)
 end
@@ -226,17 +214,13 @@ end
 # Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
 # TODO: parabolic; entropy stable viscous terms
 @inline function convert_derivative_to_primitive(u, gradient,
-                                                 ::CompressibleNavierStokesDiffusion1D{
-                                                                                       GradientVariablesPrimitive
-                                                                                       })
+                                                 ::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
     return gradient
 end
 
 # the first argument is always the "transformed" variables.
 @inline function convert_derivative_to_primitive(w, gradient_entropy_vars,
-                                                 equations::CompressibleNavierStokesDiffusion1D{
-                                                                                                GradientVariablesEntropy
-                                                                                                })
+                                                 equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
 
     # TODO: parabolic. This is inefficient to pass in transformed variables but then transform them back.
     # We can fix this if we directly compute v1, v2, T from the entropy variables
@@ -275,9 +259,7 @@ end
                                                                                       x,
                                                                                       t,
                                                                                       operator_type::Gradient,
-                                                                                      equations::CompressibleNavierStokesDiffusion1D{
-                                                                                                                                     GradientVariablesPrimitive
-                                                                                                                                     })
+                                                                                      equations::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
     v1 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
                                                                                 equations)
     return SVector(u_inner[1], v1, u_inner[3])
@@ -291,9 +273,7 @@ end
                                                                                       x,
                                                                                       t,
                                                                                       operator_type::Divergence,
-                                                                                      equations::CompressibleNavierStokesDiffusion1D{
-                                                                                                                                     GradientVariablesPrimitive
-                                                                                                                                     })
+                                                                                      equations::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
     # rho, v1, v2, _ = u_inner
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
@@ -313,9 +293,7 @@ end
                                                                                        x,
                                                                                        t,
                                                                                        operator_type::Gradient,
-                                                                                       equations::CompressibleNavierStokesDiffusion1D{
-                                                                                                                                      GradientVariablesPrimitive
-                                                                                                                                      })
+                                                                                       equations::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
     v1 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
                                                                                 equations)
     T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t,
@@ -331,9 +309,7 @@ end
                                                                                        x,
                                                                                        t,
                                                                                        operator_type::Divergence,
-                                                                                       equations::CompressibleNavierStokesDiffusion1D{
-                                                                                                                                      GradientVariablesPrimitive
-                                                                                                                                      })
+                                                                                       equations::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
     return flux_inner
 end
 
@@ -353,9 +329,7 @@ end
                                                                                       x,
                                                                                       t,
                                                                                       operator_type::Gradient,
-                                                                                      equations::CompressibleNavierStokesDiffusion1D{
-                                                                                                                                     GradientVariablesEntropy
-                                                                                                                                     })
+                                                                                      equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
     v1 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
                                                                                 equations)
     negative_rho_inv_p = w_inner[3] # w_3 = -rho / p
@@ -371,9 +345,7 @@ end
                                                                                       x,
                                                                                       t,
                                                                                       operator_type::Divergence,
-                                                                                      equations::CompressibleNavierStokesDiffusion1D{
-                                                                                                                                     GradientVariablesEntropy
-                                                                                                                                     })
+                                                                                      equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
                                                                                                            equations)
@@ -392,9 +364,7 @@ end
                                                                                        x,
                                                                                        t,
                                                                                        operator_type::Gradient,
-                                                                                       equations::CompressibleNavierStokesDiffusion1D{
-                                                                                                                                      GradientVariablesEntropy
-                                                                                                                                      })
+                                                                                       equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
     v1 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
                                                                                 equations)
     T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t,
@@ -413,9 +383,7 @@ end
                                                                                        x,
                                                                                        t,
                                                                                        operator_type::Divergence,
-                                                                                       equations::CompressibleNavierStokesDiffusion1D{
-                                                                                                                                      GradientVariablesEntropy
-                                                                                                                                      })
+                                                                                       equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3])
 end
 end # @muladd

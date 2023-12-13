@@ -40,7 +40,6 @@ heat_bc = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_lid = BoundaryConditionNavierStokesWall(velocity_bc_lid, heat_bc)
 boundary_condition_cavity = BoundaryConditionNavierStokesWall(velocity_bc_cavity, heat_bc)
 
-# define periodic boundary conditions everywhere
 boundary_conditions = boundary_condition_slip_wall
 
 boundary_conditions_parabolic = (; x_neg = boundary_condition_cavity,
