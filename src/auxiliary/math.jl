@@ -5,9 +5,18 @@
 @muladd begin
 #! format: noindent
 
+
 # < 0 suffices since log(0) = -Inf
-log_(x::T) where {T<:AbstractFloat} = x < 0.0 ? T(NaN) : Base.log(x)
-log_(x::Real) = log(float(x))
+#log_(x::T) where {T<:AbstractFloat} = x < 0.0 ? T(NaN) : Base.log(x)
+#log_(x::Real) = log(float(x)) # Not sure if this is needed
+
+
+function log_(x::AbstractFloat)
+    if x < 0
+        return convert(typeof(x), NaN)
+    end
+    return Base.log(x)
+end
 
 """
     ln_mean(x, y)
