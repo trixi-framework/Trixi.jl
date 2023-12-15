@@ -50,7 +50,7 @@ For more details see e.g. arXiv:2012.12040.
 """
 struct ViscoResistiveMhd2D{GradientVariables, RealT <: Real,
                            E <: AbstractIdealGlmMhdEquations{2}} <:
-       AbstractViscoResistiveMhd{3, 9}
+       AbstractViscoResistiveMhd{2, 9}
     gamma::RealT               # ratio of specific heats
     inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
     mu::RealT                  # viscosity
@@ -86,29 +86,33 @@ end
 #  MHD Equations. Part II: Subcell Finite Volume Shock Capturing"
 function flux(u, gradients, orientation::Integer, equations::ViscoResistiveMhd2D)
     # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
-    rho, v1, v2, E, B1, B2, psi = convert_transformed_to_primitive(u, equations)
-    # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)
+    rho, v1, v2, v3, E, B1, B2, B3, psi = convert_transformed_to_primitive(u, equations)
+    # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, v3, T)
     # either computed directly or reverse engineered from the gradient of the entropy variables
     # by way of the `convert_gradient_variables` function.
 
     @unpack eta = equations
 
-    _, dv1dx, dv2dx, dTdx, dB1dx, dB2dx, _ = convert_derivative_to_primitive(u,
+    _, dv1dx, dv2dx, dv3dx, dTdx, dB1dx, dB2dx, dB3dx, _ = convert_derivative_to_primitive(u,
                                                                                            gradients[1],
                                                                                            equations)
-    _, dv1dy, dv2dy, dTdy, dB1dy, dB2dy, _ = convert_derivative_to_primitive(u,
+    _, dv1dy, dv2dy, dv3dy, dTdy, dB1dy, dB2dy, dB3dy, _ = convert_derivative_to_primitive(u,
                                                                                            gradients[2],
                                                                                            equations)
 
     # Components of viscous stress tensor
 
-    # (4/3 * (v1)_x - 2/3 * (v2)_y)
+    # Diagonal parts
     tau_11 = 4.0 / 3.0 * dv1dx - 2.0 / 3.0 * dv2dy
-    # ((v1)_y + (v2)_x)
-    # stress tensor is symmetric
-    tau_12 = dv1dy + dv2dx # = tau_21
-    # (4/3 * (v2)_y - 2/3 * (v1)_x)
     tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx
+
+    # Off diagonal parts, exploit that stress tensor is symmetric
+    # ((v1)_y + (v2)_x)
+    tau_12 = dv1dy + dv2dx # = tau_21
+    # ((v1)_z + (v3)_x)
+    tau_13 = dv3dx # = tau_31
+    # ((v2)_z + (v3)_y)
+    tau_23 = dv3dy # = tau_32
 
     # Fick's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
     # with thermal diffusivity constant kappa = gamma μ R / ((gamma-1) Pr)
@@ -127,18 +131,30 @@ function flux(u, gradients, orientation::Integer, equations::ViscoResistiveMhd2D
         f1 = zero(rho)
         f2 = tau_11 * mu
         f3 = tau_12 * mu
-        f4 = (v1 * tau_11 + v2 * tau_12 + q1) * mu
+        f4 = tau_13 * mu
+        f5 = (v1 * tau_11 + v2 * tau_12 + v3 * tau_13 + q1) * mu +
+             (B2 * (dB2dx - dB1dy) + B3 * dB3dx) * eta
+        f6 = zero(rho)
+        f7 = eta * (dB2dx - dB1dy)
+        f8 = eta * dB3dx
+        f9 = zero(rho)
 
-        return SVector(f1, f2, f3, f4, 0.0, 0.0, 0.0)
-    else # if orientation == 2
+        return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
+    elseif orientation == 2
         # viscous flux components in the y-direction
         # Note, symmetry is exploited for tau_12 = tau_21
         g1 = zero(rho)
         g2 = tau_12 * mu # tau_21 * mu
         g3 = tau_22 * mu
-        g4 = (v1 * tau_12 + v2 * tau_22 + q2) * mu
+        g4 = tau_23 * mu
+        g5 = (v1 * tau_12 + v2 * tau_22 + v3 * tau_23 + q2) * mu +
+             (B1 * (dB1dy - dB2dx) + B3 * dB3dy) * eta
+        g6 = eta * (dB1dy - dB2dx)
+        g7 = zero(rho)
+        g8 = eta * dB3dy
+        g9 = zero(rho)
 
-        return SVector(g1, g2, g3, g4, 0.0, 0.0, 0.0)
+        return SVector(g1, g2, g3, g4, g5, g6, g7, g8, g9)
     end
 end
 
