@@ -34,8 +34,8 @@ the [`AveragingCallback`](@ref).
   A direct-hybrid method for aeroacoustic analysis
   [DOI: 10.18154/RWTH-2017-04082](https://doi.org/10.18154/RWTH-2017-04082)
 """
-mutable struct EulerAcousticsCouplingCallback{RealT <: Real, MeanValues, IntegratorEuler
-                                              }
+mutable struct EulerAcousticsCouplingCallback{RealT <: Real, MeanValues,
+                                              IntegratorEuler}
     stepsize_callback_acoustics::StepsizeCallback{RealT}
     stepsize_callback_euler::StepsizeCallback{RealT}
     mean_values::MeanValues
@@ -85,8 +85,7 @@ The mean values for the acoustic perturbation equations are read from `averaging
 """
 function EulerAcousticsCouplingCallback(ode_euler,
                                         averaging_callback::DiscreteCallback{<:Any,
-                                                                             <:AveragingCallback
-                                                                             },
+                                                                             <:AveragingCallback},
                                         alg, cfl_acoustics::Real, cfl_euler::Real;
                                         kwargs...)
     @unpack mean_values = averaging_callback.affect!
