@@ -655,6 +655,19 @@ end
     end
 end
 
+@timed_testset "Consistency check for flux_chan_etal: CEEQ" begin
+
+    # Set up equations and dummy conservative variables state
+    equations = CompressibleEulerEquationsQuasi1D(1.4)
+    u = SVector(1.1, 2.34, 5.5, 2.73)
+
+    orientations = [1]
+    for orientation in orientations
+        @test flux_chan_etal(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+    end
+end
+
 @timed_testset "Consistency check for HLL flux (naive): LEE" begin
     flux_hll = FluxHLL(min_max_speed_naive)
 
