@@ -168,20 +168,20 @@ end
     end
 end
 
-@trixi_testset "elixir_shallowwater_source_terms.jl with FluxHLL(min_max_speed_naive)" begin
+@trixi_testset "elixir_shallowwater_source_terms.jl with flux_hll" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         l2=[
-                            0.0022758146627220154,
-                            0.015864082886204556,
+                            0.002275023323848826,
+                            0.015861093821754046,
                             4.436491725585346e-5,
                         ],
                         linf=[
-                            0.008457195427364006,
-                            0.057201667446161064,
+                            0.008461451098266792,
+                            0.05722331401673486,
                             9.098379777405796e-5,
                         ],
                         tspan=(0.0, 0.025),
-                        surface_flux=(FluxHLL(min_max_speed_naive),
+                        surface_flux=(flux_hll,
                                       flux_nonconservative_fjordholm_etal))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

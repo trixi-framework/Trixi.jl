@@ -402,18 +402,18 @@ end
 @trixi_testset "elixir_shallowwater_source_terms.jl with FluxHydrostaticReconstruction" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         l2=[
-                            0.0011197139793938152,
-                            0.015430259691310781,
-                            0.017081031802719724,
+                            0.001119678684752799,
+                            0.015429108794630785,
+                            0.01708275441241111,
                             5.089218476758271e-6,
                         ],
                         linf=[
-                            0.014300809338967824,
-                            0.12783372461225184,
-                            0.17625472321992852,
+                            0.014299564388827513,
+                            0.12785126473870534,
+                            0.17626788561725526,
                             2.6407324614341476e-5,
                         ],
-                        surface_flux=(FluxHydrostaticReconstruction(FluxHLL(min_max_speed_naive),
+                        surface_flux=(FluxHydrostaticReconstruction(flux_hll,
                                                                     hydrostatic_reconstruction_audusse_etal),
                                       flux_nonconservative_audusse_etal),
                         tspan=(0.0, 0.025))
@@ -456,21 +456,21 @@ end
     end
 end
 
-@trixi_testset "elixir_shallowwater_source_terms.jl with FluxHLL(min_max_speed_naive)" begin
+@trixi_testset "elixir_shallowwater_source_terms.jl with flux_hll" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         l2=[
-                            0.0011197139793938727,
-                            0.015430259691311309,
-                            0.017081031802719554,
+                            0.0011196786847528799,
+                            0.015429108794631075,
+                            0.017082754412411742,
                             5.089218476759981e-6,
                         ],
                         linf=[
-                            0.014300809338967824,
-                            0.12783372461224918,
-                            0.17625472321993918,
+                            0.014299564388830177,
+                            0.12785126473870667,
+                            0.17626788561728546,
                             2.6407324614341476e-5,
                         ],
-                        surface_flux=(FluxHLL(min_max_speed_naive),
+                        surface_flux=(flux_hll,
                                       flux_nonconservative_fjordholm_etal),
                         tspan=(0.0, 0.025))
     # Ensure that we do not have excessive memory allocations
