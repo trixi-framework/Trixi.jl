@@ -627,6 +627,30 @@ end
     end
 end
 
+@trixi_testset "elixir_eulerpolytropic_convergence.jl with FluxHLL(min_max_speed_naive)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_eulerpolytropic_convergence.jl"),
+                        solver=DGSEM(polydeg = 3,
+                                     surface_flux = FluxHLL(min_max_speed_naive),
+                                     volume_integral = VolumeIntegralFluxDifferencing(volume_flux)),
+                        l2=[
+                            0.001668882059653298, 0.002592168188567654,
+                            0.0032809503514328307,
+                        ],
+                        linf=[
+                            0.01099467966437917, 0.013311978456333584,
+                            0.020080117011337606,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_eulerpolytropic_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_ec.jl"),
                         l2=[
