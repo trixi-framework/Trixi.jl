@@ -5,8 +5,8 @@ using Trixi
 # semidiscretization of the visco-resistive compressible MHD equations
 
 prandtl_number() = 0.72
-mu_const = 0e-2
-eta_const = 0e-2
+mu_const = 2e-2
+eta_const = 2e-2
 prandtl_const = prandtl_number()
 
 equations = IdealGlmMhdEquations2D(5 / 3)
@@ -27,8 +27,8 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
 # Create a uniformly refined mesh
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 1,
-                n_cells_max = 5_000) # set maximum capacity of tree data structure
+                initial_refinement_level = 2,
+                n_cells_max = 500_000) # set maximum capacity of tree data structure
 
 function initial_condition_constant_alfven(x, t, equations)
     # Alfvén wave in three space dimensions modified by a periodic density variation.
@@ -55,28 +55,30 @@ function initial_condition_constant_alfven(x, t, equations)
 #     B3 = -rho * v3 * sqr
 #     psi = 0.0
 
-#    k = 2*pi
-#    rho = 1.0
-#    v1 = 0
-#    v2 = -e*sin(k*x[1])*sqrt(rho)
-#    v3 = 0
-#    B1 = 1
-#    B2 = e*sin(k*x[1])
-#    B3 = 0
-#    p = 1
-#    psi = 0
+   k = 2*pi
+   rho = 1.0
+   v1 = 0
+   v2 = -e*sin(k*x[1])*sqrt(rho)
+   v3 = 0
+   B1 = 1
+   B2 = e*sin(k*x[1])
+   B3 = 0
+   p = 1
+   psi = 0
 
-    alpha = 2.0*pi*(x[1] + x[2]) - 4.0*t
-    rho = sin(alpha) + 4.0
-    rho_v1 = sin(alpha) + 4.0
-    rho_v2 = sin(alpha) + 4.0
-    rho_e = 2.0*(sin(alpha) + 4.0)^2
-    B1 = sin(alpha) + 4.0
-    B2 = -sin(alpha) - 4.0
-    psi = 0.0
+#     alpha = 2.0*pi*(x[1] + x[2]) - 4.0*t
+#     rho = sin(alpha) + 4.0
+#     rho_v1 = sin(alpha) + 4.0
+#     rho_v2 = sin(alpha) + 4.0
+#     rho_v3 = 0.0
+#     rho_e = 2.0*(sin(alpha) + 4.0)^2
+#     B1 = sin(alpha) + 4.0
+#     B2 = -sin(alpha) - 4.0
+#     B3 = 0.0
+#     psi = 0.0
 
-#     return prim2cons(SVector(rho, v1, v2, p, B1, B2, psi), equations)
-    return SVector(rho, rho_v1, rho_v2, rho_e, B1, B2, psi)
+    return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
+#     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
 end
 
 
@@ -99,30 +101,35 @@ end
 #
 #      r_9 = 0.0
 
-#     r_1 = 0.0
-#     r_2 = 0.0004*pi*sin(4*pi*x[1])
-#     r_3 = pi*(0.08*pi*mu_const*sin(2*pi*x[1]) - 0.04*cos(2*pi*x[1]))
-#     r_4 = 0
-#     r_5 = pi*(-0.0016*pi*eta_const*sin(2*pi*x[1])^2 + 0.0016*pi*eta_const*cos(2*pi*x[1])^2 + pi*mu_const*(0.0016 - 0.0111111111111111*mu_const)*cos(4*pi*x[1]) + 0.0008*sin(4*pi*x[1]))
-#     r_6 = 0
-#     r_7 = pi*(-0.08*pi*eta_const*sin(2*pi*x[1]) + 0.04*cos(2*pi*x[1]))
-#     r_8 = 0
+    sm = -1
+    se = -1
+
+    r_1 = 0.0
+    r_2 = 0.0004*pi*sin(4*pi*x[1])
+    r_3 = pi*(0.08*pi*(sm*mu_const)*sin(2*pi*x[1]) - 0.04*cos(2*pi*x[1]))
+    r_4 = 0
+    r_5 = pi*(-0.0016*pi*(se*eta_const)*sin(2*pi*x[1])^2 + 0.0016*pi*(se*eta_const)*cos(2*pi*x[1])^2 + pi*(sm*mu_const)*(0.0016 - 0.0111111111111111*(sm*mu_const))*cos(4*pi*x[1]) + 0.0008*sin(4*pi*x[1]))
+    r_6 = 0
+    r_7 = pi*(-0.08*pi*(se*eta_const)*sin(2*pi*x[1]) + 0.04*cos(2*pi*x[1]))
+    r_8 = 0
+    r_9 = 0.0
+
+#     alpha = 2.0*pi*(x[1] + x[2]) - 4.0*t
+#     phi = sin(alpha) + 4.0
+#     phi_t = -4.0*cos(alpha)
+#     phi_x = 2.0*pi*cos(alpha)
+#     phi_xx = -4.0*pi^2*sin(alpha)
+#     r_1 = phi_t + 2.0*phi_x
+#     r_2 = phi_t + 4.0*phi*phi_x + phi_x
+#     r_3 = r_2
+#     r_4 = 0.0
+#     r_5 = 4.0*phi*phi_t + 16.0*phi*phi_x - 2.0*phi_x - 4.0*eta_const*(phi_x^2 + phi*phi_xx) - 4.0*mu_const/prandtl_const*phi_xx
+#     r_6 = r_1 - 2.0*eta_const*phi_xx
+#     r_7 = -r_6
+#     r_8 = 0.0
 #     r_9 = 0.0
 
-    alpha = 2.0*pi*(x[1] + x[2]) - 4.0*t
-    phi = sin(alpha) + 4.0
-    phi_t = -4.0*cos(alpha)
-    phi_x = 2.0*pi*cos(alpha)
-    phi_xx = -4.0*pi^2*sin(alpha)
-    r_1 = phi_t + 2.0*phi_x
-    r_2 = phi_t + 4.0*phi*phi_x + phi_x
-    r_3 = r_2
-    r_4 = 4.0*phi*phi_t + 16.0*phi*phi_x - 2.0*phi_x - 4.0*eta_const*(phi_x^2 + phi*phi_xx) - 4.0*mu_const/prandtl_const*phi_xx
-    r_5 = r_1 - 2.0*eta_const*phi_xx
-    r_6 = -r_6
-    r_7 = 0.0
-
-     return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7)
+     return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
 
 
