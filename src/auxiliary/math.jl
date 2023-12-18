@@ -5,18 +5,10 @@
 @muladd begin
 #! format: noindent
 
-
+sqrt_(x::T) where {T<:AbstractFloat} = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
 # < 0 suffices since log(0) = -Inf
-#log_(x::T) where {T<:AbstractFloat} = x < 0.0 ? T(NaN) : Base.log(x)
-#log_(x::Real) = log(float(x)) # Not sure if this is needed
+log_(x::T) where {T<:AbstractFloat} = x < zero(x) ? oftype(x, NaN) : Base.log(x)
 
-
-function log_(x::AbstractFloat)
-    if x < 0
-        return convert(typeof(x), NaN)
-    end
-    return Base.log(x)
-end
 
 """
     ln_mean(x, y)

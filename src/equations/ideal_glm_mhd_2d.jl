@@ -1139,17 +1139,17 @@ end
     mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
     p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5 * psi^2)
     a_square = equations.gamma * p / rho
-    sqrt_rho = NaNMath.sqrt(rho)
+    sqrt_rho = sqrt_(rho)
     b1 = B1 / sqrt_rho
     b2 = B2 / sqrt_rho
     b3 = B3 / sqrt_rho
     b_square = b1 * b1 + b2 * b2 + b3 * b3
     if orientation == 1 # x-direction
         c_f = sqrt(0.5 * (a_square + b_square) +
-                   0.5 * NaNMath.sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+                   0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b1^2))
     else
         c_f = sqrt(0.5 * (a_square + b_square) +
-                   0.5 * NaNMath.sqrt((a_square + b_square)^2 - 4.0 * a_square * b2^2))
+                   0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b2^2))
     end
     return c_f
 end
@@ -1164,7 +1164,7 @@ end
     mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
     p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5 * psi^2)
     a_square = equations.gamma * p / rho
-    sqrt_rho = NaNMath.sqrt(rho)
+    sqrt_rho = sqrt_(rho)
     b1 = B1 / sqrt_rho
     b2 = B2 / sqrt_rho
     b3 = B3 / sqrt_rho
@@ -1175,7 +1175,7 @@ end
                        b2 * normal_direction[2])^2 / norm_squared
 
     c_f = sqrt((0.5 * (a_square + b_square) +
-                0.5 * NaNMath.sqrt((a_square + b_square)^2 - 4 * a_square * b_dot_n_squared)) *
+                0.5 * sqrt_((a_square + b_square)^2 - 4 * a_square * b_dot_n_squared)) *
                norm_squared)
     return c_f
 end
@@ -1217,8 +1217,8 @@ as given by
     p_total_rr = p_rr + 0.5 * mag_norm_rr
 
     # compute the Roe density averages
-    sqrt_rho_ll = NaNMath.sqrt(rho_ll)
-    sqrt_rho_rr = NaNMath.sqrt(rho_rr)
+    sqrt_rho_ll = sqrt_(rho_ll)
+    sqrt_rho_rr = sqrt_(rho_rr)
     inv_sqrt_rho_add = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
     inv_sqrt_rho_prod = 1.0 / (sqrt_rho_ll * sqrt_rho_rr)
     rho_ll_roe = sqrt_rho_ll * inv_sqrt_rho_add
@@ -1247,13 +1247,13 @@ as given by
     # finally compute the average wave speed and set the output velocity (depends on orientation)
     if orientation == 1 # x-direction
         c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
-        a_star_roe = NaNMath.sqrt((a_square_roe + b_square_roe)^2 -
+        a_star_roe = sqrt_((a_square_roe + b_square_roe)^2 -
                           4.0 * a_square_roe * c_a_roe)
-        c_f_roe = NaNMath.sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
+        c_f_roe = sqrt_(0.5 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v1_roe
     else # y-direction
         c_a_roe = B2_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
-        a_star_roe = NaNMath.sqrt((a_square_roe + b_square_roe)^2 -
+        a_star_roe = sqrt_((a_square_roe + b_square_roe)^2 -
                           4.0 * a_square_roe * c_a_roe)
         c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v2_roe
@@ -1289,8 +1289,8 @@ end
     p_total_rr = p_rr + 0.5 * mag_norm_rr
 
     # compute the Roe density averages
-    sqrt_rho_ll = NaNMath.sqrt(rho_ll)
-    sqrt_rho_rr = NaNMath.sqrt(rho_rr)
+    sqrt_rho_ll = sqrt_(rho_ll)
+    sqrt_rho_rr = sqrt_(rho_rr)
     inv_sqrt_rho_add = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
     inv_sqrt_rho_prod = 1.0 / (sqrt_rho_ll * sqrt_rho_rr)
     rho_ll_roe = sqrt_rho_ll * inv_sqrt_rho_add
@@ -1324,7 +1324,7 @@ end
                            B2_roe * normal_direction[2])^2 / norm_squared
 
     c_a_roe = B_roe_dot_n_squared * inv_sqrt_rho_prod # (squared) Alfvén wave speed
-    a_star_roe = NaNMath.sqrt((a_square_roe + b_square_roe)^2 - 4 * a_square_roe * c_a_roe)
+    a_star_roe = sqrt_((a_square_roe + b_square_roe)^2 - 4 * a_square_roe * c_a_roe)
     c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe) * norm_squared)
     vel_out_roe = (v1_roe * normal_direction[1] +
                    v2_roe * normal_direction[2])

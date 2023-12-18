@@ -308,7 +308,7 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
     # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
     # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
     if v_normal <= 0.0
-        sound_speed = NaNMath.sqrt(equations.gamma * p_local / rho_local) # local sound speed
+        sound_speed = sqrt_(equations.gamma * p_local / rho_local) # local sound speed
         p_star = p_local *
                  (1 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2 *
                                                                              equations.gamma *
@@ -318,7 +318,7 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
         B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
         p_star = p_local +
                  0.5 * v_normal / A *
-                 (v_normal + NaNMath.sqrt(v_normal^2 + 4 * A * (p_local + B)))
+                 (v_normal + sqrt_(v_normal^2 + 4 * A * (p_local + B)))
     end
 
     # For the slip wall we directly set the flux as the normal velocity is zero
@@ -614,8 +614,7 @@ See also
   [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
 @inline function flux_ranocha(u_ll, u_rr, orientation::Integer,
-                              equations::CompressibleEulerEquations2D)
-    @trixi_timeit timer() "flux_ranocha" begin                              
+                              equations::CompressibleEulerEquations2D)                          
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
@@ -647,7 +646,6 @@ See also
         f4 = f1 *
              (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one) +
              0.5 * (p_ll * v2_rr + p_rr * v2_ll)
-    end
     end
     return SVector(f1, f2, f3, f4)
 end
@@ -720,7 +718,7 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
-    a = NaNMath.sqrt(equations.gamma * p / rho)
+    a = sqrt_(equations.gamma * p / rho)
 
     if orientation == 1
         lambda1 = v1
@@ -768,7 +766,7 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
-    a = NaNMath.sqrt(equations.gamma * p / rho)
+    a = sqrt_(equations.gamma * p / rho)
 
     if orientation == 1
         lambda1 = v1
@@ -858,7 +856,7 @@ end
     v2 = rho_v2 / rho
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
 
-    a = NaNMath.sqrt(equations.gamma * p / rho)
+    a = sqrt_(equations.gamma * p / rho)
     H = (rho_e + p) / rho
 
     if orientation == 1
@@ -888,7 +886,7 @@ end
     v2 = rho_v2 / rho
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
 
-    a = NaNMath.sqrt(equations.gamma * p / rho)
+    a = sqrt_(equations.gamma * p / rho)
     H = (rho_e + p) / rho
 
     if orientation == 1
@@ -944,9 +942,9 @@ end
     v2 = rho_v2 / rho
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
 
-    a = NaNMath.sqrt(equations.gamma * p / rho)
+    a = sqrt_(equations.gamma * p / rho)
     H = (rho_e + p) / rho
-    lambda = 0.5 * (NaNMath.sqrt(v1^2 + v2^2) + a)
+    lambda = 0.5 * (sqrt_(v1^2 + v2^2) + a)
 
     if orientation == 1
         #lambda = 0.5 * (abs(v1) + a)
@@ -971,9 +969,9 @@ end
     v2 = rho_v2 / rho
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
 
-    a = NaNMath.sqrt(equations.gamma * p / rho)
+    a = sqrt_(equations.gamma * p / rho)
     H = (rho_e + p) / rho
-    lambda = 0.5 * (NaNMath.sqrt(v1^2 + v2^2) + a)
+    lambda = 0.5 * (sqrt_(v1^2 + v2^2) + a)
 
     if orientation == 1
         #lambda = 0.5 * (abs(v1) + a)
@@ -1007,8 +1005,8 @@ end
         v_rr = v2_rr
     end
     # Calculate sound speeds
-    c_ll = NaNMath.sqrt(equations.gamma * p_ll / rho_ll)
-    c_rr = NaNMath.sqrt(equations.gamma * p_rr / rho_rr)
+    c_ll = sqrt_(equations.gamma * p_ll / rho_ll)
+    c_rr = sqrt_(equations.gamma * p_rr / rho_rr)
 
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
@@ -1023,12 +1021,12 @@ end
     v_ll = (v1_ll * normal_direction[1]
             +
             v2_ll * normal_direction[2])
-    c_ll = NaNMath.sqrt(equations.gamma * p_ll / rho_ll)
+    c_ll = sqrt_(equations.gamma * p_ll / rho_ll)
     # right
     v_rr = (v1_rr * normal_direction[1]
             +
             v2_rr * normal_direction[2])
-    c_rr = NaNMath.sqrt(equations.gamma * p_rr / rho_rr)
+    c_rr = sqrt_(equations.gamma * p_rr / rho_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
@@ -1040,11 +1038,11 @@ end
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
     if orientation == 1 # x-direction
-        λ_min = v1_ll - NaNMath.sqrt(equations.gamma * p_ll / rho_ll)
-        λ_max = v1_rr + NaNMath.sqrt(equations.gamma * p_rr / rho_rr)
+        λ_min = v1_ll - sqrt_(equations.gamma * p_ll / rho_ll)
+        λ_max = v1_rr + sqrt_(equations.gamma * p_rr / rho_rr)
     else # y-direction
-        λ_min = v2_ll - NaNMath.sqrt(equations.gamma * p_ll / rho_ll)
-        λ_max = v2_rr + NaNMath.sqrt(equations.gamma * p_rr / rho_rr)
+        λ_min = v2_ll - sqrt_(equations.gamma * p_ll / rho_ll)
+        λ_max = v2_rr + sqrt_(equations.gamma * p_rr / rho_rr)
     end
 
     return λ_min, λ_max
@@ -1060,8 +1058,8 @@ end
 
     norm_ = norm(normal_direction)
     # The v_normals are already scaled by the norm
-    λ_min = v_normal_ll - NaNMath.sqrt(equations.gamma * p_ll / rho_ll) * norm_
-    λ_max = v_normal_rr + NaNMath.sqrt(equations.gamma * p_rr / rho_rr) * norm_
+    λ_min = v_normal_ll - sqrt_(equations.gamma * p_ll / rho_ll) * norm_
+    λ_max = v_normal_rr + sqrt_(equations.gamma * p_rr / rho_rr) * norm_
 
     return λ_min, λ_max
 end
@@ -1072,8 +1070,8 @@ end
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
-    c_ll = NaNMath.sqrt(equations.gamma * p_ll / rho_ll)
-    c_rr = NaNMath.sqrt(equations.gamma * p_rr / rho_rr)
+    c_ll = sqrt_(equations.gamma * p_ll / rho_ll)
+    c_rr = sqrt_(equations.gamma * p_rr / rho_rr)
 
     if orientation == 1 # x-direction
         λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
@@ -1094,8 +1092,8 @@ end
 
     norm_ = norm(normal_direction)
 
-    c_ll = NaNMath.sqrt(equations.gamma * p_ll / rho_ll) * norm_
-    c_rr = NaNMath.sqrt(equations.gamma * p_rr / rho_rr) * norm_
+    c_ll = sqrt_(equations.gamma * p_ll / rho_ll) * norm_
+    c_rr = sqrt_(equations.gamma * p_rr / rho_rr) * norm_
 
     v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
     v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
@@ -1159,7 +1157,6 @@ Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827
 """
 function flux_hllc(u_ll, u_rr, orientation::Integer,
                    equations::CompressibleEulerEquations2D)
-    @trixi_timeit timer() "flux_hllc" begin
     # Calculate primitive variables and speed of sound
     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -1168,21 +1165,21 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     v2_ll = rho_v2_ll / rho_ll
     e_ll = rho_e_ll / rho_ll
     p_ll = (equations.gamma - 1) * (rho_e_ll - 1 / 2 * rho_ll * (v1_ll^2 + v2_ll^2))
-    c_ll = NaNMath.sqrt(equations.gamma * p_ll / rho_ll)
+    c_ll = sqrt_(equations.gamma * p_ll / rho_ll)
 
     v1_rr = rho_v1_rr / rho_rr
     v2_rr = rho_v2_rr / rho_rr
     e_rr = rho_e_rr / rho_rr
     p_rr = (equations.gamma - 1) * (rho_e_rr - 1 / 2 * rho_rr * (v1_rr^2 + v2_rr^2))
-    c_rr = NaNMath.sqrt(equations.gamma * p_rr / rho_rr)
+    c_rr = sqrt_(equations.gamma * p_rr / rho_rr)
 
     # Obtain left and right fluxes
     f_ll = flux(u_ll, orientation, equations)
     f_rr = flux(u_rr, orientation, equations)
 
     # Compute Roe averages
-    sqrt_rho_ll = NaNMath.sqrt(rho_ll)
-    sqrt_rho_rr = NaNMath.sqrt(rho_rr)
+    sqrt_rho_ll = sqrt_(rho_ll)
+    sqrt_rho_rr = sqrt_(rho_rr)
     sum_sqrt_rho = sqrt_rho_ll + sqrt_rho_rr
     if orientation == 1 # x-direction
         vel_L = v1_ll
@@ -1198,7 +1195,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     H_ll = (rho_e_ll + p_ll) / rho_ll
     H_rr = (rho_e_rr + p_rr) / rho_rr
     H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) / sum_sqrt_rho
-    c_roe = NaNMath.sqrt((equations.gamma - 1) * (H_roe - ekin_roe))
+    c_roe = sqrt_((equations.gamma - 1) * (H_roe - ekin_roe))
     Ssl = min(vel_L - c_ll, vel_roe - c_roe)
     Ssr = max(vel_R + c_rr, vel_roe + c_roe)
     sMu_L = Ssl - vel_L
@@ -1251,7 +1248,6 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
             f4 = f_rr[4] + Ssr * (UStar4 - rho_e_rr)
         end
     end
-    end
     return SVector(f1, f2, f3, f4)
 end
 
@@ -1278,15 +1274,15 @@ of the numerical flux.
 
     # `u_ll[4]` is total energy `rho_e_ll` on the left
     H_ll = (u_ll[4] + p_ll) / rho_ll
-    c_ll = NaNMath.sqrt(equations.gamma * p_ll / rho_ll)
+    c_ll = sqrt_(equations.gamma * p_ll / rho_ll)
 
     # `u_rr[4]` is total energy `rho_e_rr` on the right
     H_rr = (u_rr[4] + p_rr) / rho_rr
-    c_rr = NaNMath.sqrt(equations.gamma * p_rr / rho_rr)
+    c_rr = sqrt_(equations.gamma * p_rr / rho_rr)
 
     # Compute Roe averages
-    sqrt_rho_ll = NaNMath.sqrt(rho_ll)
-    sqrt_rho_rr = NaNMath.sqrt(rho_rr)
+    sqrt_rho_ll = sqrt_(rho_ll)
+    sqrt_rho_rr = sqrt_(rho_rr)
     inv_sum_sqrt_rho = inv(sqrt_rho_ll + sqrt_rho_rr)
 
     v1_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr) * inv_sum_sqrt_rho
@@ -1294,7 +1290,7 @@ of the numerical flux.
     v_roe_mag = v1_roe^2 + v2_roe^2
 
     H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) * inv_sum_sqrt_rho
-    c_roe = NaNMath.sqrt((equations.gamma - 1) * (H_roe - 0.5 * v_roe_mag))
+    c_roe = sqrt_((equations.gamma - 1) * (H_roe - 0.5 * v_roe_mag))
 
     # Compute convenience constant for positivity preservation, see
     # https://doi.org/10.1016/0021-9991(91)90211-3
@@ -1340,15 +1336,15 @@ of the numerical flux.
 
     # `u_ll[4]` is total energy `rho_e_ll` on the left
     H_ll = (u_ll[4] + p_ll) / rho_ll
-    c_ll = NaNMath.sqrt(equations.gamma * p_ll / rho_ll) * norm_
+    c_ll = sqrt_(equations.gamma * p_ll / rho_ll) * norm_
 
     # `u_rr[4]` is total energy `rho_e_rr` on the right
     H_rr = (u_rr[4] + p_rr) / rho_rr
-    c_rr = NaNMath.sqrt(equations.gamma * p_rr / rho_rr) * norm_
+    c_rr = sqrt_(equations.gamma * p_rr / rho_rr) * norm_
 
     # Compute Roe averages
-    sqrt_rho_ll = NaNMath.sqrt(rho_ll)
-    sqrt_rho_rr = NaNMath.sqrt(rho_rr)
+    sqrt_rho_ll = sqrt_(rho_ll)
+    sqrt_rho_rr = sqrt_(rho_rr)
     inv_sum_sqrt_rho = inv(sqrt_rho_ll + sqrt_rho_rr)
 
     v1_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr) * inv_sum_sqrt_rho
@@ -1357,7 +1353,7 @@ of the numerical flux.
     v_roe_mag = v1_roe^2 + v2_roe^2
 
     H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) * inv_sum_sqrt_rho
-    c_roe = NaNMath.sqrt((equations.gamma - 1) * (H_roe - 0.5 * v_roe_mag)) * norm_
+    c_roe = sqrt_((equations.gamma - 1) * (H_roe - 0.5 * v_roe_mag)) * norm_
 
     # Compute convenience constant for positivity preservation, see
     # https://doi.org/10.1016/0021-9991(91)90211-3
@@ -1372,7 +1368,7 @@ end
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations2D)
     rho, v1, v2, p = cons2prim(u, equations)
-    c = NaNMath.sqrt(equations.gamma * p / rho)
+    c = sqrt_(equations.gamma * p / rho)
 
     return abs(v1) + c, abs(v2) + c
 end

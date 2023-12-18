@@ -593,8 +593,8 @@ end
     # Calculate the wave celerity on the left and right
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
-    c_ll = NaNMath.sqrt(equations.gravity * h_ll)
-    c_rr = NaNMath.sqrt(equations.gravity * h_rr)
+    c_ll = sqrt_(equations.gravity * h_ll)
+    c_rr = sqrt_(equations.gravity * h_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
@@ -640,8 +640,8 @@ end
     h_rr = waterheight(u_rr, equations)
     v_rr = velocity(u_rr, equations)
 
-    λ_min = v_ll - NaNMath.sqrt(equations.gravity * h_ll)
-    λ_max = v_rr + NaNMath.sqrt(equations.gravity * h_rr)
+    λ_min = v_ll - sqrt_(equations.gravity * h_ll)
+    λ_max = v_rr + sqrt_(equations.gravity * h_rr)
 
     return λ_min, λ_max
 end
@@ -670,8 +670,8 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
 
-    a_ll = NaNMath.sqrt(equations.gravity * h_ll)
-    a_rr = NaNMath.sqrt(equations.gravity * h_rr)
+    a_ll = sqrt_(equations.gravity * h_ll)
+    a_rr = sqrt_(equations.gravity * h_rr)
 
     λ_min = min(v_ll - a_ll, v_rr - a_rr, zero(eltype(u_ll)))
     λ_max = max(v_ll + a_ll, v_rr + a_rr, zero(eltype(u_ll)))
@@ -687,8 +687,8 @@ end
     h_rr = waterheight(u_rr, equations)
     v_rr = velocity(u_rr, equations)
 
-    c_ll = NaNMath.sqrt(equations.gravity * h_ll)
-    c_rr = NaNMath.sqrt(equations.gravity * h_rr)
+    c_ll = sqrt_(equations.gravity * h_ll)
+    c_rr = sqrt_(equations.gravity * h_rr)
 
     λ_min = min(v_ll - c_ll, v_rr - c_rr)
     λ_max = max(v_ll + c_ll, v_rr + c_rr)
@@ -703,8 +703,8 @@ end
     h_rr = waterheight(u_rr, equations)
     v_rr = velocity(u_rr, equations)
 
-    c_ll = NaNMath.sqrt(equations.gravity * h_ll)
-    c_rr = NaNMath.sqrt(equations.gravity * h_rr)
+    c_ll = sqrt_(equations.gravity * h_ll)
+    c_rr = sqrt_(equations.gravity * h_rr)
 
     v_roe, c_roe = calc_wavespeed_roe(u_ll, u_rr, orientation, equations)
 
@@ -718,7 +718,7 @@ end
     h = waterheight(u, equations)
     v = velocity(u, equations)
 
-    c = equations.gravity * NaNMath.sqrt(h)
+    c = equations.gravity * sqrt_(h)
     return (abs(v) + c,)
 end
 
@@ -806,10 +806,10 @@ Or equation (9.17) in [this lecture notes](https://metaphor.ethz.ch/x/2019/hs/40
     v_rr = velocity(u_rr, equations)
 
     h_roe = 0.5 * (h_ll + h_rr)
-    c_roe = NaNMath.sqrt(equations.gravity * h_roe)
+    c_roe = sqrt_(equations.gravity * h_roe)
 
-    h_ll_sqrt = NaNMath.sqrt(h_ll)
-    h_rr_sqrt = NaNMath.sqrt(h_rr)
+    h_ll_sqrt = sqrt_(h_ll)
+    h_rr_sqrt = sqrt_(h_rr)
 
     v_roe = (h_ll_sqrt * v_ll + h_rr_sqrt * v_rr) / (h_ll_sqrt + h_rr_sqrt)
 

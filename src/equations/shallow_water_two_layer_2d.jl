@@ -628,8 +628,8 @@ end
     h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
     h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
 
-    c_ll = NaNMath.sqrt(equations.gravity * (h_upper_ll + h_lower_ll))
-    c_rr = NaNMath.sqrt(equations.gravity * (h_upper_rr + h_lower_rr))
+    c_ll = sqrt_(equations.gravity * (h_upper_ll + h_lower_ll))
+    c_rr = sqrt_(equations.gravity * (h_upper_rr + h_lower_rr))
 
     return (max(abs(v_m_ll), abs(v_m_rr)) + max(c_ll, c_rr))
 end
@@ -664,8 +664,8 @@ end
     h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
     h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
 
-    c_ll = NaNMath.sqrt(equations.gravity * (h_upper_ll + h_lower_ll))
-    c_rr = NaNMath.sqrt(equations.gravity * (h_upper_rr + h_lower_rr))
+    c_ll = sqrt_(equations.gravity * (h_upper_ll + h_lower_ll))
+    c_rr = sqrt_(equations.gravity * (h_upper_rr + h_lower_rr))
 
     # The normal velocities are already scaled by the norm
     return max(abs(v_m_ll), abs(v_m_rr)) + max(c_ll, c_rr) * norm(normal_direction)
@@ -693,7 +693,7 @@ end
     h_upper, h_lower = waterheight(u, equations)
     v1_upper, v2_upper, v1_lower, v2_lower = velocity(u, equations)
 
-    c = NaNMath.sqrt(equations.gravity * (h_upper + h_lower))
+    c = sqrt_(equations.gravity * (h_upper + h_lower))
     return (max(abs(v1_m) + c, abs(v1_upper), abs(v1_lower)),
             max(abs(v2_m) + c, abs(v2_upper), abs(v2_lower)))
 end

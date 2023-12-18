@@ -558,9 +558,9 @@ end
 
     # Compute the sound speeds on the left and right
     p_ll = (gamma_ll - 1) * (rho_e_ll - 1 / 2 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
-    c_ll = NaNMath.sqrt(gamma_ll * p_ll / rho_ll)
+    c_ll = sqrt_(gamma_ll * p_ll / rho_ll)
     p_rr = (gamma_rr - 1) * (rho_e_rr - 1 / 2 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
-    c_rr = NaNMath.sqrt(gamma_rr * p_rr / rho_rr)
+    c_rr = sqrt_(gamma_rr * p_rr / rho_rr)
 
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
@@ -575,7 +575,7 @@ end
 
     gamma = totalgamma(u, equations)
     p = (gamma - 1) * (rho_e - 1 / 2 * rho * (v1^2 + v2^2))
-    c = NaNMath.sqrt(gamma * p / rho)
+    c = sqrt_(gamma * p / rho)
 
     return (abs(v1) + c, abs(v2) + c)
 end

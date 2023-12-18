@@ -664,17 +664,17 @@ end
     p = (gamma - 1) *
         (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2) - 0.5 * psi^2)
     a_square = gamma * p / rho
-    sqrt_rho = NaNMath.sqrt(rho)
+    sqrt_rho = sqrt_(rho)
     b1 = B1 / sqrt_rho
     b2 = B2 / sqrt_rho
     b3 = B3 / sqrt_rho
     b_square = b1^2 + b2^2 + b3^2
     if direction == 1 # x-direction
         c_f = sqrt(0.5 * (a_square + b_square) +
-                   0.5 * NaNMath.sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+                   0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b1^2))
     else
         c_f = sqrt(0.5 * (a_square + b_square) +
-                   0.5 * NaNMath.sqrt((a_square + b_square)^2 - 4.0 * a_square * b2^2))
+                   0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b2^2))
     end
     return c_f
 end
