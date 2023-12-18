@@ -243,13 +243,13 @@ end
     v1_ll = a_rho_v1_ll / a_rho_ll
     v_mag_ll = abs(v1_ll)
     p_ll = (equations.gamma - 1) * (e_ll - 0.5 * rho_ll * v_mag_ll^2)
-    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    c_ll = sqrt_(equations.gamma * p_ll / rho_ll)
     rho_rr = a_rho_rr / a_rr
     e_rr = a_e_rr / a_rr
     v1_rr = a_rho_v1_rr / a_rho_rr
     v_mag_rr = abs(v1_rr)
     p_rr = (equations.gamma - 1) * (e_rr - 0.5 * rho_rr * v_mag_rr^2)
-    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+    c_rr = sqrt_(equations.gamma * p_rr / rho_rr)
 
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
@@ -260,7 +260,7 @@ end
     v1 = a_rho_v1 / a_rho
     e = a_e / a
     p = (equations.gamma - 1) * (e - 0.5 * rho * v1^2)
-    c = sqrt(equations.gamma * p / rho)
+    c = sqrt_(equations.gamma * p / rho)
 
     return (abs(v1) + c,)
 end
