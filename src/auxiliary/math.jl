@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-sqrt_(x::T) where {T <: AbstractFloat} = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
+# AbstractFloat clashes with ForwardDiff.Dual
+sqrt_(x::T) where {T <: Real} = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
 # < 0 suffices since log(0) = -Inf
 log_(x::T) where {T <: AbstractFloat} = x < zero(x) ? oftype(x, NaN) : Base.log(x)
 
