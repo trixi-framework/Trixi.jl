@@ -39,8 +39,7 @@ end
 
 function Base.show(io::IO,
                    cb::DiscreteCallback{<:Any,
-                                        <:PeriodicCallbackAffect{<:SaveSolutionCallback
-                                                                 }})
+                                        <:PeriodicCallbackAffect{<:SaveSolutionCallback}})
     @nospecialize cb # reduce precompilation time
 
     save_solution_callback = cb.affect!.affect!
@@ -71,8 +70,7 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain",
                    cb::DiscreteCallback{<:Any,
-                                        <:PeriodicCallbackAffect{<:SaveSolutionCallback
-                                                                 }})
+                                        <:PeriodicCallbackAffect{<:SaveSolutionCallback}})
     @nospecialize cb # reduce precompilation time
 
     if get(io, :compact, false)
@@ -211,32 +209,39 @@ end
         get_element_variables!(element_variables, u_ode, semi)
         callbacks = integrator.opts.callback
         if callbacks isa CallbackSet
-            for cb in callbacks.continuous_callbacks
+            foreach(callbacks.continuous_callbacks) do cb
                 get_element_variables!(element_variables, u_ode, semi, cb;
                                        t = integrator.t, iter = iter)
             end
-            for cb in callbacks.discrete_callbacks
+            foreach(callbacks.discrete_callbacks) do cb
                 get_element_variables!(element_variables, u_ode, semi, cb;
                                        t = integrator.t, iter = iter)
             end
         end
     end
 
+    node_variables = Dict{Symbol, Any}()
+    @trixi_timeit timer() "get node variables" get_node_variables!(node_variables,
+                                                                   semi)
+
     @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi,
                                                              solution_callback,
                                                              element_variables,
+                                                             node_variables,
                                                              system = system)
 end
 
 @inline function save_solution_file(u_ode, t, dt, iter,
                                     semi::AbstractSemidiscretization, solution_callback,
-                                    element_variables = Dict{Symbol, Any}();
+                                    element_variables = Dict{Symbol, Any}(),
+                                    node_variables = Dict{Symbol, Any}();
                                     system = "")
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array_native(u_ode, mesh, equations, solver, cache)
     save_solution_file(u, t, dt, iter, mesh, equations, solver, cache,
                        solution_callback,
-                       element_variables; system = system)
+                       element_variables,
+                       node_variables; system = system)
 end
 
 # TODO: Taal refactor, move save_mesh_file?

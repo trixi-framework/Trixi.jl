@@ -30,6 +30,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["n_cells"] = n_cells
+        attributes(file)["capacity"] = mesh.tree.capacity
         attributes(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
         attributes(file)["minimum_level"] = minimum_level(mesh.tree)
         attributes(file)["maximum_level"] = maximum_level(mesh.tree)
@@ -249,10 +250,10 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     end
 
     if mesh_type == "TreeMesh"
-        n_cells = h5open(mesh_file, "r") do file
-            return read(attributes(file)["n_cells"])
+        capacity = h5open(mesh_file, "r") do file
+            return read(attributes(file)["capacity"])
         end
-        mesh = TreeMesh(SerialTree{ndims}, max(n_cells, n_cells_max))
+        mesh = TreeMesh(SerialTree{ndims}, max(n_cells_max, capacity))
         load_mesh!(mesh, mesh_file)
     elseif mesh_type == "StructuredMesh"
         size_, mapping_as_string = h5open(mesh_file, "r") do file
@@ -263,32 +264,27 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         size = Tuple(size_)
 
         # TODO: `@eval` is evil
-        # A temporary workaround to evaluate the code that defines the domain mapping in a local scope.
-        # This prevents errors when multiple restart elixirs are executed in one session, where one
-        # defines `mapping` as a variable, while the other defines it as a function.
         #
         # This should be replaced with something more robust and secure,
         # see https://github.com/trixi-framework/Trixi.jl/issues/541).
-        expr = Meta.parse(mapping_as_string)
-        if expr.head == :toplevel
-            expr.head = :block
-        end
-
         if ndims == 1
-            mapping = @eval function (xi)
-                $expr
+            mapping = eval(Meta.parse("""function (xi)
+                $mapping_as_string
                 mapping(xi)
             end
+            """))
         elseif ndims == 2
-            mapping = @eval function (xi, eta)
-                $expr
+            mapping = eval(Meta.parse("""function (xi, eta)
+                $mapping_as_string
                 mapping(xi, eta)
             end
+            """))
         else # ndims == 3
-            mapping = @eval function (xi, eta, zeta)
-                $expr
+            mapping = eval(Meta.parse("""function (xi, eta, zeta)
+                $mapping_as_string
                 mapping(xi, eta, zeta)
             end
+            """))
         end
 
         mesh = StructuredMesh(size, mapping; RealT = RealT, unsaved_changes = false,
