@@ -2,12 +2,12 @@ using OrdinaryDiffEq
 using Trixi
 
 # Physical constants
-g::Float64   = 9.81           # gravity of earth
-p_0::Float64 = 100_000.0      # reference pressure
-c_p::Float64 = 1004.0         # heat capacity for constant pressure (dry air)
-c_v::Float64 = 717.0          # heat capacity for constant volume (dry air)
-R            = c_p - c_v      # gas constant (dry air)
-gamma        = c_p / c_v      # heat capacity ratio (dry air)
+g::Float64 = 9.81          # gravity of earth
+p_0::Float64 = 100_000.0   # reference pressure
+c_p::Float64 = 1004.0      # heat capacity for constant pressure (dry air)
+c_v::Float64 = 717.0       # heat capacity for constant volume (dry air)
+R = c_p - c_v              # gas constant (dry air)
+gamma = c_p / c_v          # heat capacity ratio (dry air)
 
 # Warm bubble test from
 # Wicker, L. J., and Skamarock, W. C., 1998: A time-splitting scheme
@@ -26,7 +26,7 @@ function initial_condition_warm_bubble(x, t, equations::CompressibleEulerEquatio
     θ_ref = 300.0
     Δθ = 0.0
     if r <= rc
-        Δθ = 2 * cospi(0.5*r/rc)^2
+        Δθ = 2 * cospi(0.5 * r / rc)^2
     end
     θ = θ_ref + Δθ # potential temperature
 
@@ -34,17 +34,17 @@ function initial_condition_warm_bubble(x, t, equations::CompressibleEulerEquatio
     exner = 1 - g / (c_p * θ) * x[2]
 
     # pressure
-    p = p_0 * exner^(c_p/R)
+    p = p_0 * exner^(c_p / R)
 
     # temperature
     T = θ * exner
-    
+
     # density
-    rho = p / (R*T)
-    
+    rho = p / (R * T)
+
     v1 = 20.0
     v2 = 0.0
-    E = c_v * T + 0.5 * (v1^2 + v2^2)  
+    E = c_v * T + 0.5 * (v1^2 + v2^2)
     return SVector(rho, rho * v1, rho * v2, rho * E)
 end
 
@@ -54,16 +54,15 @@ end
     return SVector(zero(eltype(u)), zero(eltype(u)), -g * rho, -g * rho_v2)
 end
 
-
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
 equations = CompressibleEulerEquations2D(gamma)
 
-boundary_conditions = (x_neg=boundary_condition_periodic,
-                       x_pos=boundary_condition_periodic,
-                       y_neg=boundary_condition_slip_wall,
-                       y_pos=boundary_condition_slip_wall)
+boundary_conditions = (x_neg = boundary_condition_periodic,
+                       x_pos = boundary_condition_periodic,
+                       y_neg = boundary_condition_slip_wall,
+                       y_pos = boundary_condition_slip_wall)
 
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
@@ -74,7 +73,7 @@ volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (     0.0,      0.0)
+coordinates_min = (0.0, 0.0)
 coordinates_max = (20_000.0, 10_000.0)
 
 cells_per_dimension = (64, 32)
@@ -95,18 +94,18 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 1000
 
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_errors=(:entropy_conservation_error,))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
+                                     extra_analysis_errors = (:entropy_conservation_error,))
 
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=analysis_interval,
-                                     save_initial_solution=true,
-                                     save_final_solution=true,
-                                     output_directory="out.struct_lmars_ra",
-                                     solution_variables=cons2prim)
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     output_directory = "out.struct_lmars_ra",
+                                     solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.2)
+stepsize_callback = StepsizeCallback(cfl = 0.2)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
@@ -116,9 +115,9 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), 
-            maxiters=1.0e7,
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            maxiters = 1.0e7,
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
 
 summary_callback()
