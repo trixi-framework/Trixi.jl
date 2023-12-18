@@ -944,11 +944,6 @@ References:
   Lagrangian Coordinate
   [DOI: 10.1175/MWR-D-12-00129.1](https://doi.org/10.1175/mwr-d-12-00129.1)
 """
-struct FluxLMARS{SpeedOfSound}
-    # Estimate for the speed of sound
-    speed_of_sound::SpeedOfSound
-end
-
 @inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, orientation::Integer,
                                          equations::CompressibleEulerEquations3D)
     c = flux_lmars.speed_of_sound
