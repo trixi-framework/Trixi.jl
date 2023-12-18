@@ -1248,13 +1248,13 @@ as given by
     if orientation == 1 # x-direction
         c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
         a_star_roe = sqrt_((a_square_roe + b_square_roe)^2 -
-                          4.0 * a_square_roe * c_a_roe)
+                           4.0 * a_square_roe * c_a_roe)
         c_f_roe = sqrt_(0.5 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v1_roe
     else # y-direction
         c_a_roe = B2_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
         a_star_roe = sqrt_((a_square_roe + b_square_roe)^2 -
-                          4.0 * a_square_roe * c_a_roe)
+                           4.0 * a_square_roe * c_a_roe)
         c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v2_roe
     end
