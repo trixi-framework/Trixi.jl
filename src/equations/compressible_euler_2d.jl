@@ -854,11 +854,11 @@ end
     end
 
     if orientation == 1
-        f2 += p
+        f2 = f2 + p
     else # orientation == 2
-        f3 += p
+        f3 = f3 + p
     end
-    f4 += p * v
+    f4 = f4 + p * v
 
     return SVector(f1, f2, f3, f4)
 end
