@@ -13,11 +13,6 @@ equations = CompressibleEulerEquations3D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu=mu(),
                                                           Prandtl=prandtl_number())
 
-"""
-    initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations3D)
-
-The classical Taylor-Green vortex.
-"""
 function initial_condition_3d_blast_wave(x, t, equations::CompressibleEulerEquations3D)
   
   rho_c = 1.0
