@@ -1,5 +1,10 @@
 mutable struct ViscousContainer3D{uEltype <: Real}
     u_transformed::Array{uEltype, 5}
+    # Using an outer fixed-size datastructure leads to nasty implementations,
+    # see https://github.com/trixi-framework/Trixi.jl/pull/1629#discussion_r1355293953.
+    # Also: This does not result in speed up compared to using tuples for the internal 
+    # datastructures, see 
+    # https://github.com/trixi-framework/Trixi.jl/pull/1629#discussion_r1363352188.
     gradients::Vector{Array{uEltype, 5}}
     flux_viscous::Vector{Array{uEltype, 5}}
 
