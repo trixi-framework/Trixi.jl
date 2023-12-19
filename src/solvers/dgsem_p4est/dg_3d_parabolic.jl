@@ -102,7 +102,6 @@ function rhs_parabolic!(du, u, t, mesh::P4estMesh{3},
                                        dg.surface_integral, dg)
     end
 
-
     # Prolong solution to mortars (specialized for AbstractEquationsParabolic)
     # !!! NOTE: we reuse the hyperbolic cache here since it contains "mortars" and "u_threaded"
     # !!! Is this OK?
@@ -242,7 +241,6 @@ function calc_gradient!(gradients, u_transformed, t,
         calc_boundary_flux_gradients!(cache_parabolic, t, boundary_conditions_parabolic,
                                       mesh, equations_parabolic, dg.surface_integral, dg)
     end
-
 
     # Prolong solution to mortars. These should reuse the hyperbolic version of `prolong2mortars`
     # !!! NOTE: we reuse the hyperbolic cache here, since it contains both `mortars` and `u_threaded`. 
