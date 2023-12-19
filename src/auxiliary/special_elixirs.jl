@@ -20,7 +20,7 @@ providing examples with sensible default values for users.
 
 Before replacing assignments in `elixir`, the keyword argument `maxiters` is inserted
 into calls to `solve` and `Trixi.solve` with it's default value used in the SciML ecosystem
-for ODEs, see the "Miscellaneous" section of the 
+for ODEs, see the "Miscellaneous" section of the
 [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
 
 # Examples
@@ -36,6 +36,16 @@ julia> redirect_stdout(devnull) do
 ```
 """
 function trixi_include(mod::Module, elixir::AbstractString; kwargs...)
+    # Check that all kwargs exist as assignments
+    code = read(elixir, String)
+    expr = Meta.parse("begin \n$code \nend")
+    expr = insert_maxiters(expr)
+
+    for (key, val) in kwargs
+        # This will throw an error when `key` is not found
+        find_assignment(expr, key)
+    end
+
     # Print information on potential wait time only in non-parallel case
     if !mpi_isparallel()
         @info "You just called `trixi_include`. Julia may now compile the code, please be patient."
@@ -243,6 +253,7 @@ end
 function find_assignment(expr, destination)
     # declare result to be able to assign to it in the closure
     local result
+    found = false
 
     # find explicit and keyword assignments
     walkexpr(expr) do x
@@ -250,10 +261,15 @@ function find_assignment(expr, destination)
             if (x.head === Symbol("=") || x.head === :kw) &&
                x.args[1] === Symbol(destination)
                 result = x.args[2]
+                found = true
                 # dump(x)
             end
         end
         return x
+    end
+
+    if !found
+        throw(ArgumentError("assignment `$destination` not found in expression"))
     end
 
     result
@@ -274,17 +290,28 @@ function extract_initial_resolution(elixir, kwargs)
             return initial_refinement_level
         end
     catch e
-        if isa(e, UndefVarError)
-            # get cells_per_dimension from the elixir
-            cells_per_dimension = eval(find_assignment(expr, :cells_per_dimension))
+        # If `initial_refinement_level` is not found, we will get an `ArgumentError`
+        if isa(e, ArgumentError)
+            try
+                # get cells_per_dimension from the elixir
+                cells_per_dimension = eval(find_assignment(expr, :cells_per_dimension))
 
-            if haskey(kwargs, :cells_per_dimension)
-                return kwargs[:cells_per_dimension]
-            else
-                return cells_per_dimension
+                if haskey(kwargs, :cells_per_dimension)
+                    return kwargs[:cells_per_dimension]
+                else
+                    return cells_per_dimension
+                end
+            catch e2
+                # If `cells_per_dimension` is not found either
+                if isa(e2, ArgumentError)
+                    throw(ArgumentError("`convergence_test` requires the elixir to define " *
+                                        "`initial_refinement_level` or `cells_per_dimension`"))
+                else
+                    rethrow()
+                end
             end
         else
-            throw(e)
+            rethrow()
         end
     end
 end

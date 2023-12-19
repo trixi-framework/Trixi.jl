@@ -32,8 +32,8 @@ end
                                                                       xmax = 1.0,
                                                                       N = 10)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                        l2=[1.3819894522373702e-8],
-                        linf=[3.381866298113323e-8],
+                        l2=[5.228248923012878e-9],
+                        linf=[9.24430243465224e-9],
                         D_SBP=D,
                         initial_refinement_level=0,
                         tspan=(0.0, 5.0))

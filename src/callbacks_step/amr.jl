@@ -528,6 +528,7 @@ function copy_to_quad_iter_volume(info, user_data)
     return nothing
 end
 
+# specialized callback which includes the `cache_parabolic` argument
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                                      equations, dg::DG, cache, cache_parabolic,
                                      semi,
@@ -547,7 +548,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
     # Copy controller value of each quad to the quad's user data storage
     iter_volume_c = cfunction(copy_to_quad_iter_volume, Val(ndims(mesh)))
 
-    # The pointer to lambda will be interpreted as Ptr{Int} above
+    # The pointer to lambda will be interpreted as Ptr{Int} below
     @assert lambda isa Vector{Int}
     iterate_p4est(mesh.p4est, lambda; iter_volume_c = iter_volume_c)
 
@@ -613,6 +614,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         end
 
         reinitialize_boundaries!(semi.boundary_conditions, cache)
+        # if the semidiscretization also stores parabolic boundary conditions, 
+        # reinitialize them after each refinement step as well.
         if hasproperty(semi, :boundary_conditions_parabolic)
             reinitialize_boundaries!(semi.boundary_conditions_parabolic, cache)
         end

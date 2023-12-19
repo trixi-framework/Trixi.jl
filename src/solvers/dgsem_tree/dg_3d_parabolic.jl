@@ -454,10 +454,8 @@ function calc_boundary_flux_gradients!(cache, t,
                                               6, firsts[6], lasts[6])
 end
 
-function calc_boundary_flux_by_direction_gradient!(surface_flux_values::AbstractArray{
-                                                                                      <:Any,
-                                                                                      5
-                                                                                      },
+function calc_boundary_flux_by_direction_gradient!(surface_flux_values::AbstractArray{<:Any,
+                                                                                      5},
                                                    t,
                                                    boundary_condition,
                                                    equations_parabolic::AbstractEquationsParabolic,
@@ -546,10 +544,8 @@ function calc_boundary_flux_divergence!(cache, t,
                                                 dg, cache,
                                                 6, firsts[6], lasts[6])
 end
-function calc_boundary_flux_by_direction_divergence!(surface_flux_values::AbstractArray{
-                                                                                        <:Any,
-                                                                                        5
-                                                                                        },
+function calc_boundary_flux_by_direction_divergence!(surface_flux_values::AbstractArray{<:Any,
+                                                                                        5},
                                                      t,
                                                      boundary_condition,
                                                      equations_parabolic::AbstractEquationsParabolic,

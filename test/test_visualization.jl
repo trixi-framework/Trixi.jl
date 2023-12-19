@@ -243,7 +243,6 @@ end
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "tree_2d_dgsem",
                                             "elixir_advection_basic.jl"),
-                                   tspan = (0, 0.1),
                                    analysis_callback = Trixi.TrivialCallback())
     @test adapt_to_mesh_level(sol, 5) isa Tuple
 
@@ -259,7 +258,6 @@ end
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "tree_3d_dgsem",
                                             "elixir_advection_basic.jl"),
-                                   tspan = (0, 0.1),
                                    analysis_callback = Trixi.TrivialCallback(),
                                    initial_refinement_level = 1)
     @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
@@ -288,8 +286,7 @@ end
 
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "structured_3d_dgsem",
-                                            "elixir_advection_basic.jl"),
-                                   tspan = (0, 0.1))
+                                            "elixir_advection_basic.jl"))
 
     @testset "1D plot from 3D solution and general mesh" begin
         @testset "Create 1D plot as slice" begin
