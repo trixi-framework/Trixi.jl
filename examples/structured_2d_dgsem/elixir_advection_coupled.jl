@@ -56,8 +56,8 @@ coordinates_max1 = (0.0, 1.0) # maximum coordinates (max(x), max(y))
 mesh1 = StructuredMesh(cells_per_dimension, coordinates_min1, coordinates_max1)
 
 # Define the coupling functions
-coupling_function12 = (x, u) -> u
-coupling_function13 = (x, u) -> u
+coupling_function12 = (x, u, equations_other, equations_own) -> u
+coupling_function13 = (x, u, equations_other, equations_own) -> u
 
 # Define the coupling boundary conditions and the system it is coupled to.
 boundary_conditions_x_neg1 = BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
@@ -87,8 +87,8 @@ coordinates_max2 = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 mesh2 = StructuredMesh(cells_per_dimension, coordinates_min2, coordinates_max2)
 
 # Define the coupling functions
-coupling_function21 = (x, u) -> u
-coupling_function24 = (x, u) -> u
+coupling_function21 = (x, u, equations_other, equations_own) -> u
+coupling_function24 = (x, u, equations_other, equations_own) -> u
 
 # Define the coupling boundary conditions and the system it is coupled to.
 boundary_conditions_x_neg2 = BoundaryConditionCoupled(1, (:end, :i_forward), Float64,
@@ -118,8 +118,8 @@ coordinates_max3 = (0.0, 0.0) # maximum coordinates (max(x), max(y))
 mesh3 = StructuredMesh(cells_per_dimension, coordinates_min3, coordinates_max3)
 
 # Define the coupling functions
-coupling_function34 = (x, u) -> u
-coupling_function31 = (x, u) -> u
+coupling_function34 = (x, u, equations_other, equations_own) -> u
+coupling_function31 = (x, u, equations_other, equations_own) -> u
 
 # Define the coupling boundary conditions and the system it is coupled to.
 boundary_conditions_x_neg3 = BoundaryConditionCoupled(4, (:end, :i_forward), Float64,
@@ -149,8 +149,8 @@ coordinates_max4 = (1.0, 0.0) # maximum coordinates (max(x), max(y))
 mesh4 = StructuredMesh(cells_per_dimension, coordinates_min4, coordinates_max4)
 
 # Define the coupling functions
-coupling_function43 = (x, u) -> u
-coupling_function42 = (x, u) -> u
+coupling_function43 = (x, u, equations_other, equations_own) -> u
+coupling_function42 = (x, u, equations_other, equations_own) -> u
 
 # Define the coupling boundary conditions and the system it is coupled to.
 boundary_conditions_x_neg4 = BoundaryConditionCoupled(3, (:end, :i_forward), Float64,
