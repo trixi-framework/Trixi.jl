@@ -14,7 +14,7 @@ function create_cache_parabolic(mesh::P4estMesh{2}, equations_hyperbolic::Abstra
                                                   nnodes(dg.basis), nelements(elements),
                                                   uEltype)
 
-    cache = (; elements, interfaces, boundaries, mortars, viscous_container)
+    cache = (; elements, interfaces, boundaries, viscous_container)
 
     return cache
 end
