@@ -16,29 +16,31 @@ mutable struct IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
     gammas::SVector{NCOMP, RealT} # Heat capacity ratios
     charge_to_mass::SVector{NCOMP, RealT} # Charge to mass ratios
     electron_pressure::ElectronPressure       # Function to compute the electron pressure
-
+    c_h::RealT                 # GLM cleaning speed
     function IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT,
                                          ElectronPressure}(gammas
                                                            ::SVector{NCOMP, RealT},
                                                            charge_to_mass
                                                            ::SVector{NCOMP, RealT},
                                                            electron_pressure
-                                                           ::ElectronPressure) where
+                                                           ::ElectronPressure,
+                                                           c_h::RealT) where
              {NVARS, NCOMP, RealT <: Real, ElectronPressure}
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 
-        new(gammas, charge_to_mass, electron_pressure)
+        new(gammas, charge_to_mass, electron_pressure, c_h)
     end
 end
 
 function IdealMhdMultiIonEquations2D(; gammas, charge_to_mass,
-                                     electron_pressure = electron_pressure_zero)
+                                     electron_pressure = electron_pressure_zero,
+                                     initial_c_h = convert(eltype(gammas), NaN))
     _gammas = promote(gammas...)
     _charge_to_mass = promote(charge_to_mass...)
     RealT = promote_type(eltype(_gammas), eltype(_charge_to_mass))
 
-    NVARS = length(_gammas) * 5 + 3
+    NVARS = length(_gammas) * 5 + 4
     NCOMP = length(_gammas)
 
     __gammas = SVector(map(RealT, _gammas))
@@ -46,7 +48,8 @@ function IdealMhdMultiIonEquations2D(; gammas, charge_to_mass,
 
     return IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT, typeof(electron_pressure)}(__gammas,
                                                                                        __charge_to_mass,
-                                                                                       electron_pressure)
+                                                                                       electron_pressure,
+                                                                                       initial_c_h)
 end
 
 @inline function Base.real(::IdealMhdMultiIonEquations2D{NVARS, NCOMP, RealT}) where {
@@ -66,6 +69,7 @@ function varnames(::typeof(cons2cons), equations::IdealMhdMultiIonEquations2D)
                 tuple("rho_" * string(i), "rho_v1_" * string(i), "rho_v2_" * string(i),
                       "rho_v3_" * string(i), "rho_e_" * string(i))...)
     end
+    cons = (cons..., "psi")
 
     return cons
 end
@@ -77,6 +81,7 @@ function varnames(::typeof(cons2prim), equations::IdealMhdMultiIonEquations2D)
                 tuple("rho_" * string(i), "v1_" * string(i), "v2_" * string(i),
                       "v3_" * string(i), "p_" * string(i))...)
     end
+    prim = (prim..., "psi")
 
     return prim
 end
@@ -155,16 +160,18 @@ end
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::IdealMhdMultiIonEquations2D)
     B1, B2, B3 = magnetic_field(u, equations)
-
+    psi = divergence_cleaning_field(u, equations)
+    
     v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,
                                                                                          equations)
 
     mag_en = 0.5 * (B1^2 + B2^2 + B3^2)
+    div_clean_energy = 0.5 * psi^2
 
     f = zero(MVector{nvariables(equations), eltype(u)})
 
     if orientation == 1
-        f[1] = 0
+        f[1] = equations.c_h * psi
         f[2] = v1_plus * B2 - v2_plus * B1
         f[3] = v1_plus * B3 - v3_plus * B1
 
@@ -176,21 +183,21 @@ end
             kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
 
             gamma = equations.gammas[k]
-            p = (gamma - 1) * (rho_e - kin_en - mag_en)
+            p = (gamma - 1) * (rho_e - kin_en - mag_en - div_clean_energy)
 
             f1 = rho_v1
             f2 = rho_v1 * v1 + p
             f3 = rho_v1 * v2
             f4 = rho_v1 * v3
             f5 = (kin_en + gamma * p / (gamma - 1)) * v1 + 2 * mag_en * vk1_plus[k] -
-                 B1 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3)
+                 B1 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) + equations.c_h * psi * B1
 
             set_component!(f, k, f1, f2, f3, f4, f5, equations)
         end
-
+        f[end] = equations.c_h * B1
     else #if orientation == 2
         f[1] = v2_plus * B1 - v1_plus * B2
-        f[2] = 0
+        f[2] = equations.c_h * psi
         f[3] = v2_plus * B3 - v3_plus * B2
 
         for k in eachcomponent(equations)
@@ -201,17 +208,18 @@ end
             kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
 
             gamma = equations.gammas[k]
-            p = (gamma - 1) * (rho_e - kin_en - mag_en)
+            p = (gamma - 1) * (rho_e - kin_en - mag_en - div_clean_energy)
 
             f1 = rho_v2
             f2 = rho_v2 * v1
             f3 = rho_v2 * v2 + p
             f4 = rho_v2 * v3
             f5 = (kin_en + gamma * p / (gamma - 1)) * v2 + 2 * mag_en * vk2_plus[k] -
-                 B2 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3)
+                 B2 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) + equations.c_h * psi * B2
 
             set_component!(f, k, f1, f2, f3, f4, f5, equations)
         end
+        f[end] = equations.c_h * B2
     end
 
     return SVector(f)
@@ -271,6 +279,8 @@ The term is composed of three parts
     # Unpack left and right states to get the magnetic field
     B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
     B1_rr, B2_rr, B3_rr = magnetic_field(u_rr, equations)
+    psi_ll = divergence_cleaning_field(u_ll, equations)
+    psi_rr = divergence_cleaning_field(u_rr, equations)
 
     # Compute important averages
     B1_avg = 0.5 * (B1_ll + B1_rr)
@@ -342,9 +352,14 @@ The term is composed of three parts
             f4 += charge_ratio_ll[k] * B3_ll * B1_rr
             f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B1_rr
 
+            # Compute GLM term for the energy
+            f5 += v1_plus_ll * psi_ll * psi_rr
+
             # Append to the flux vector
             set_component!(f, k, 0, f2, f3, f4, f5, equations)
         end
+        # Compute GLM term for psi
+        f[end] = v1_plus_ll * psi_rr
 
     else #if orientation == 2
         # Entries of Powell term for induction equation (already in Trixi's non-conservative form)
@@ -386,9 +401,14 @@ The term is composed of three parts
             f4 += charge_ratio_ll[k] * B3_ll * B2_rr
             f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B2_rr
 
+            # Compute GLM term for the energy
+            f5 += v2_plus_ll * psi_ll * psi_rr
+
             # Append to the flux vector
             set_component!(f, k, 0, f2, f3, f4, f5, equations)
         end
+        # Compute GLM term for psi
+        f[end] = v2_plus_ll * psi_rr
     end
 
     return SVector(f)
@@ -407,6 +427,8 @@ The term is composed of three parts
     # Unpack left and right states to get the magnetic field
     B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
     B1_rr, B2_rr, B3_rr = magnetic_field(u_rr, equations)
+    psi_ll = divergence_cleaning_field(u_ll, equations)
+    psi_rr = divergence_cleaning_field(u_rr, equations)
 
     # Compute important averages
     mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
@@ -457,11 +479,17 @@ The term is composed of three parts
             f4 += charge_ratio_ll[k] * B3_ll * B1_rr
             f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B1_rr
 
+            # Compute GLM term for the energy
+            f5 += v1_plus_ll * psi_ll * psi_rr
+
             # It's not needed to adjust to Trixi's non-conservative form
 
             # Append to the flux vector
             set_component!(f, k, 0, f2, f3, f4, f5, equations)
         end
+        # Compute GLM term for psi
+        f[end] = v1_plus_ll * psi_rr
+
     else #if orientation == 2
         # Entries of Powell term for induction equation (already in Trixi's non-conservative form)
         f[1] = v1_plus_ll * B2_rr
@@ -488,11 +516,16 @@ The term is composed of three parts
             f4 += charge_ratio_ll[k] * B3_ll * B2_rr
             f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B2_rr
 
+            # Compute GLM term for the energy
+            f5 += v2_plus_ll * psi_ll * psi_rr
+
             # It's not needed to adjust to Trixi's non-conservative form
 
             # Append to the flux vector
             set_component!(f, k, 0, f2, f3, f4, f5, equations)
         end
+        # Compute GLM term for psi
+        f[end] = v2_plus_ll * psi_rr
     end
 
     return SVector(f)
@@ -515,6 +548,8 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
     # Unpack left and right states to get the magnetic field
     B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
     B1_rr, B2_rr, B3_rr = magnetic_field(u_rr, equations)
+    psi_ll = divergence_cleaning_field(u_ll, equations)
+    psi_rr = divergence_cleaning_field(u_rr, equations)
 
     v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll,
                                                                                                            equations)
@@ -533,17 +568,22 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
     mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
     mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
     mag_norm_avg = 0.5 * (mag_norm_ll + mag_norm_rr)
+    psi_avg = 0.5 * (psi_ll + psi_rr)
 
     if orientation == 1
+        psi_B1_avg = 0.5 * (B1_ll * psi_ll + B1_rr * psi_rr)
+
         # Magnetic field components from f^MHD
-        f6 = 0
+        f6 = equations.c_h * psi_avg
         f7 = v1_plus_avg * B2_avg - v2_plus_avg * B1_avg
         f8 = v1_plus_avg * B3_avg - v3_plus_avg * B1_avg
+        f9 = equations.c_h * B1_avg
 
         # Start building the flux
         f[1] = f6
         f[2] = f7
         f[3] = f8
+        f[end] = f9
 
         # Iterate over all components
         for k in eachcomponent(equations)
@@ -563,9 +603,9 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
             p_ll = (gammas[k] - 1) *
-                   (rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll)
+                   (rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll - 0.5 * psi_ll^2)
             p_rr = (gammas[k] - 1) *
-                   (rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr)
+                   (rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr - 0.5 * psi_rr^2)
             beta_ll = 0.5 * rho_ll / p_ll
             beta_rr = 0.5 * rho_rr / p_rr
             # for convenience store vk_plus⋅B
@@ -614,6 +654,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             # MHD part
             f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5 * v1_plus_mag_avg +
                    B1_avg * vel_dot_mag_avg                                               # Same terms as in Derigs (but with v_plus)
+                   + f9 * psi_avg - equations.c_h * psi_B1_avg # GLM term
                    + 0.5 * vk1_plus_avg * mag_norm_avg -
                    vk1_plus_avg * B1_avg * B1_avg - vk2_plus_avg * B1_avg * B2_avg -
                    vk3_plus_avg * B1_avg * B3_avg   # Additional terms coming from the MHD non-conservative term (momentum eqs)
@@ -624,15 +665,19 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             set_component!(f, k, f1, f2, f3, f4, f5, equations)
         end
     else #if orientation == 2
+        psi_B2_avg = 0.5 * (B2_ll * psi_ll + B2_rr * psi_rr)
+
         # Magnetic field components from f^MHD
         f6 = v2_plus_avg * B1_avg - v1_plus_avg * B2_avg
-        f7 = 0
+        f7 = equations.c_h * psi_avg
         f8 = v2_plus_avg * B3_avg - v3_plus_avg * B2_avg
-
+        f9 = equations.c_h * B2_avg
+        
         # Start building the flux
         f[1] = f6
         f[2] = f7
         f[3] = f8
+        f[end] = f9
 
         # Iterate over all components
         for k in eachcomponent(equations)
@@ -652,9 +697,9 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
             p_ll = (gammas[k] - 1) *
-                   (rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll)
+                   (rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll - 0.5 * psi_ll^2)
             p_rr = (gammas[k] - 1) *
-                   (rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr)
+                   (rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr - 0.5 * psi_rr^2)
             beta_ll = 0.5 * rho_ll / p_ll
             beta_rr = 0.5 * rho_rr / p_rr
             # for convenience store vk_plus⋅B
@@ -703,6 +748,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             # MHD part
             f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5 * v2_plus_mag_avg +
                    B2_avg * vel_dot_mag_avg                                               # Same terms as in Derigs (but with v_plus)
+                   + f9 * psi_avg - equations.c_h * psi_B2_avg # GLM term
                    + 0.5 * vk2_plus_avg * mag_norm_avg -
                    vk1_plus_avg * B2_avg * B1_avg - vk2_plus_avg * B2_avg * B2_avg -
                    vk3_plus_avg * B2_avg * B3_avg   # Additional terms coming from the MHD non-conservative term (momentum eqs)
@@ -772,6 +818,7 @@ Convert conservative variables to primitive
 function cons2prim(u, equations::IdealMhdMultiIonEquations2D)
     @unpack gammas = equations
     B1, B2, B3 = magnetic_field(u, equations)
+    psi = divergence_cleaning_field(u, equations)
 
     prim = zero(MVector{nvariables(equations), eltype(u)})
     prim[1] = B1
@@ -786,10 +833,12 @@ function cons2prim(u, equations::IdealMhdMultiIonEquations2D)
 
         p = (gammas[k] - 1) * (rho_e -
              0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
-              + B1 * B1 + B2 * B2 + B3 * B3))
+              + B1 * B1 + B2 * B2 + B3 * B3
+              + psi * psi))
 
         set_component!(prim, k, rho, v1, v2, v3, p, equations)
     end
+    prim[end] = psi
 
     return SVector(prim)
 end
@@ -800,6 +849,7 @@ Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::IdealMhdMultiIonEquations2D)
     @unpack gammas = equations
     B1, B2, B3 = magnetic_field(u, equations)
+    psi = divergence_cleaning_field(u, equations)
 
     prim = cons2prim(u, equations)
     entropy = zero(MVector{nvariables(equations), eltype(u)})
@@ -822,6 +872,7 @@ Convert conservative variables to entropy
     entropy[1] = rho_p_plus * B1
     entropy[2] = rho_p_plus * B2
     entropy[3] = rho_p_plus * B3
+    entropy[end] = rho_p_plus * psi
 
     return SVector(entropy)
 end
@@ -832,6 +883,7 @@ Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::IdealMhdMultiIonEquations2D)
     @unpack gammas = equations
     B1, B2, B3 = magnetic_field(prim, equations)
+    psi = divergence_cleaning_field(prim, equations)
 
     cons = zero(MVector{nvariables(equations), eltype(prim)})
     cons[1] = B1
@@ -845,10 +897,12 @@ Convert primitive to conservative variables
 
         rho_e = p / (gammas[k] - 1.0) +
                 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
-                0.5 * (B1^2 + B2^2 + B3^2)
+                0.5 * (B1^2 + B2^2 + B3^2) +
+                0.5 * psi^2
 
         set_component!(cons, k, rho, rho_v1, rho_v2, rho_v3, rho_e, equations)
     end
+    cons[end] = psi
 
     return SVector(cons)
 end
@@ -860,6 +914,7 @@ Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoaco
 @inline function calc_fast_wavespeed(cons, orientation::Integer,
                                      equations::IdealMhdMultiIonEquations2D)
     B1, B2, B3 = magnetic_field(cons, equations)
+    psi = divergence_cleaning_field(cons, equations)
 
     c_f = zero(real(equations))
     for k in eachcomponent(equations)
@@ -870,7 +925,7 @@ Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoaco
         v3 = rho_v3 / rho
         v_mag = sqrt(v1^2 + v2^2 + v3^2)
         gamma = equations.gammas[k]
-        p = (gamma - 1) * (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2))
+        p = (gamma - 1) * (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2) - 0.5 * psi^2)
         a_square = gamma * p / rho
         sqrt_rho = sqrt(rho)
 
@@ -953,6 +1008,7 @@ Set the flow variables of component k
 end
 
 magnetic_field(u, equations::IdealMhdMultiIonEquations2D) = SVector(u[1], u[2], u[3])
+divergence_cleaning_field(u, equations::IdealMhdMultiIonEquations2D) = u[end]
 
 @inline function density(u, equations::IdealMhdMultiIonEquations2D)
     rho = zero(real(equations))
@@ -967,6 +1023,8 @@ Computes the sum of the densities times the sum of the pressures
 """
 @inline function density_pressure(u, equations::IdealMhdMultiIonEquations2D)
     B1, B2, B3 = magnetic_field(u, equations)
+    psi = divergence_cleaning_field(cons, equations)
+
     rho_total = zero(real(equations))
     p_total = zero(real(equations))
     for k in eachcomponent(equations)
@@ -978,7 +1036,7 @@ Computes the sum of the densities times the sum of the pressures
         v_mag = sqrt(v1^2 + v2^2 + v3^2)
         gamma = equations.gammas[k]
 
-        p = (gamma - 1) * (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2))
+        p = (gamma - 1) * (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2) - 0.5 * psi^2)
 
         rho_total += rho
         p_total += p
