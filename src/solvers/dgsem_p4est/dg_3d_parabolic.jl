@@ -102,8 +102,6 @@ function rhs_parabolic!(du, u, t, mesh::P4estMesh{3},
                                        dg.surface_integral, dg)
     end
 
-    # # TODO: parabolic; extend to mortars
-    # @assert nmortars(dg, cache) == 0
 
     # Prolong solution to mortars (specialized for AbstractEquationsParabolic)
     # !!! NOTE: we reuse the hyperbolic cache here since it contains "mortars" and "u_threaded"
