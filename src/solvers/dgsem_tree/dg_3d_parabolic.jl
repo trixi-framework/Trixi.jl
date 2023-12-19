@@ -263,7 +263,7 @@ function calc_interface_flux!(surface_flux_values,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2boundaries!(cache_parabolic, flux_viscous::Vector{Array{uEltype, 5}},
+function prolong2boundaries!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG, cache) where {uEltype <: Real}
