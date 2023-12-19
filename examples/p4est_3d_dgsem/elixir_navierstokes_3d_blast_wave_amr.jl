@@ -102,7 +102,9 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval,)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
-                        alive_callback,amr_callback,save_solution)
+                        alive_callback,
+                        amr_callback,
+                        save_solution)
 
 ###############################################################################
 # run the simulation
