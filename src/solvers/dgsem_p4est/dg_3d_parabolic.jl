@@ -719,10 +719,10 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function prolong2mortars_divergence!(cache, flux_viscous::Vector{Array{uEltype, 5}},
+function prolong2mortars_divergence!(cache, flux_viscous,
                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
                                      mortar_l2::LobattoLegendreMortarL2,
-                                     surface_integral, dg::DGSEM) where {uEltype <: Real}
+                                     surface_integral, dg::DGSEM)
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack fstar_tmp_threaded = cache
     @unpack contravariant_vectors = cache.elements
