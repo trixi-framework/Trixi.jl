@@ -243,8 +243,6 @@ function calc_gradient!(gradients, u_transformed, t,
                                       mesh, equations_parabolic, dg.surface_integral, dg)
     end
 
-    # # TODO: parabolic; mortars
-    # @assert nmortars(dg, cache) == 0
 
     # Prolong solution to mortars. These should reuse the hyperbolic version of `prolong2mortars`
     # !!! NOTE: we reuse the hyperbolic cache here, since it contains both `mortars` and `u_threaded`. 
