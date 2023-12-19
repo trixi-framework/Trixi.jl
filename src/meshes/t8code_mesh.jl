@@ -7,8 +7,6 @@ to manage trees and mesh refinement.
 """
 mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
-    cmesh       :: Ptr{t8_cmesh} # cpointer to coarse mesh
-    scheme      :: Ptr{t8_eclass_scheme} # cpointer to element scheme
     forest      :: Ptr{t8_forest} # cpointer to forest
     is_parallel :: IsParallel
 
@@ -27,14 +25,16 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     nmortars    :: Int
     nboundaries :: Int
 
-    function T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes,
+    nmpiinterfaces :: Int
+    nmpimortars    :: Int
+
+    function T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
                                boundary_names,
                                current_filename) where {NDIMS}
-        is_parallel = False()
 
-        mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS + 2, length(nodes)}(cmesh,
-                                                                                  scheme,
-                                                                                  forest,
+        is_parallel = mpi_isparallel()
+
+        mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS + 2, length(nodes)}(forest,
                                                                                   is_parallel)
 
         mesh.nodes = nodes
@@ -74,7 +74,9 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
 end
 
 const SerialT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
+const ParallelT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
 @inline mpi_parallel(mesh::SerialT8codeMesh) = False()
+@inline mpi_parallel(mesh::ParallelT8codeMesh) = True()
 
 @inline Base.ndims(::T8codeMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
@@ -260,7 +262,7 @@ function T8codeMesh(trees_per_dimension; polydeg,
         end
     end
 
-    return T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes,
+    return T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
                              boundary_names, "")
 end
 
@@ -367,7 +369,7 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
     # There's no simple and generic way to distinguish boundaries. Name all of them :all.
     boundary_names = fill(:all, 2 * NDIMS, num_local_trees)
 
-    return T8codeMesh{NDIMS}(cmesh, scheme, forest, tree_node_coordinates, nodes,
+    return T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
                              boundary_names, "")
 end
 
