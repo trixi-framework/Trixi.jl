@@ -79,10 +79,6 @@ save_solution = SaveSolutionCallback(interval = 100,
 
 amr_indicator = IndicatorLöhner(semi, variable = vel_mag)
 
-# amr_controller = ControllerThreeLevel(semi, amr_indicator,
-#                                       base_level=0,
-#                                       med_level=2, med_threshold=0.002,
-#                                       max_level=4, max_threshold=0.004)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 0,
                                       med_level = 1, med_threshold = 0.1,
