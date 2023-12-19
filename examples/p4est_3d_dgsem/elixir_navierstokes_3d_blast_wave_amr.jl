@@ -23,8 +23,8 @@ function initial_condition_3d_blast_wave(x, t, equations::CompressibleEulerEquat
   p_o   = 0.1
   u_o   = 0.0
 
-  rc    = 0.5
-  r = sqrt(x[1]^2+x[2]^2+x[3]^2)
+  rc = 0.5
+  r  = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
   if r < rc
     rho = rho_c
     v1  = u_c
