@@ -168,7 +168,7 @@ end
 function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache) where {uEltype <: Real}
+                             surface_integral, dg::DG, cache)
     @unpack interfaces = cache_parabolic
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
