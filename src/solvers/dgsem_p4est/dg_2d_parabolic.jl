@@ -708,6 +708,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
         # Choose thread-specific pre-allocated container
         fstar = (fstar_lower_threaded[Threads.threadid()],
                  fstar_upper_threaded[Threads.threadid()])
+
         for position in 1:2
             for node in eachnode(dg)
                 for v in eachvariable(equations)
