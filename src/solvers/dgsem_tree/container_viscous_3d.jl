@@ -22,8 +22,12 @@ mutable struct ViscousContainer3D{uEltype <: Real}
             [Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)
              for _ in 1:3],
             Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
-            [Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements) for _ in 1:3],
-            [Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements) for _ in 1:3])
+            (Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
+             Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
+             Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements)),
+            (Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
+             Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
+             Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements)))
     end
 end
 
