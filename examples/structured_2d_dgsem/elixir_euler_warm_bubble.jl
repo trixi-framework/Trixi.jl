@@ -9,10 +9,11 @@ c_v::Float64 = 717.0       # heat capacity for constant volume (dry air)
 R = c_p - c_v              # gas constant (dry air)
 gamma = c_p / c_v          # heat capacity ratio (dry air)
 
-# Warm bubble test from
-# Wicker, L. J., and Skamarock, W. C., 1998: A time-splitting scheme
-# for the elastic equations incorporating second-order Runge–Kutta
-# time differencing. Mon. Wea. Rev., 126, 1992–1999.
+# Warm bubble test case from
+# Wicker, L. J., and Skamarock, W. C.
+# A time-splitting scheme for the elastic equations incorporating second-order Runge–Kutta
+# time differencing
+# [DOI: 10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2](https://doi.org/10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2)
 function initial_condition_warm_bubble(x, t, equations::CompressibleEulerEquations2D)
     # center of perturbation
     xc = 10000.0
