@@ -93,10 +93,6 @@ save_solution = SaveSolutionCallback(interval=20,
 
 amr_indicator = IndicatorLöhner(semi, variable=Trixi.density)
 
-# amr_controller = ControllerThreeLevel(semi, amr_indicator,
-#                                       base_level=0,
-#                                       med_level=2, med_threshold=0.05,
-#                                       max_level=5, max_threshold=0.1)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=0,
                                       med_level=1, med_threshold=0.05,
