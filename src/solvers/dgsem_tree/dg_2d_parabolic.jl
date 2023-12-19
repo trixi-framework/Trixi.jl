@@ -245,7 +245,7 @@ end
 function prolong2boundaries!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache) where {uEltype <: Real}
+                             surface_integral, dg::DG, cache)
     @unpack boundaries = cache_parabolic
     @unpack orientations, neighbor_sides, neighbor_ids = boundaries
     boundaries_u = boundaries.u
