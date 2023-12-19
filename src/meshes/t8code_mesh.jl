@@ -32,7 +32,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                                boundary_names,
                                current_filename) where {NDIMS}
 
-        is_parallel = mpi_isparallel()
+        is_parallel = mpi_isparallel() ? True() : False()
 
         mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS + 2, length(nodes)}(forest,
                                                                                   is_parallel)
@@ -81,7 +81,7 @@ const ParallelT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
 @inline Base.ndims(::T8codeMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
-@inline ntrees(mesh::T8codeMesh) = Int(t8_forest_get_num_local_trees(mesh.forest))
+@inline ntrees(mesh::T8codeMesh) = size(mesh.tree_node_coordinates)[end]
 @inline ncells(mesh::T8codeMesh) = Int(t8_forest_get_local_num_elements(mesh.forest))
 @inline ninterfaces(mesh::T8codeMesh) = mesh.ninterfaces
 @inline nmortars(mesh::T8codeMesh) = mesh.nmortars
@@ -188,20 +188,21 @@ function T8codeMesh(trees_per_dimension; polydeg,
         T8code.Libt8.p8est_connectivity_destroy(conn)
     end
 
+    do_face_ghost = mpi_isparallel()
     scheme = t8_scheme_new_default_cxx()
-    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, 0, mpi_comm())
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost, mpi_comm())
 
     basis = LobattoLegendreBasis(RealT, polydeg)
     nodes = basis.nodes
 
+    num_trees = t8_cmesh_get_num_trees(cmesh)
+
     tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
                                                     ntuple(_ -> length(nodes), NDIMS)...,
-                                                    prod(trees_per_dimension))
+                                                    num_trees)
 
     # Get cell length in reference mesh: Omega_ref = [-1,1]^2.
     dx = [2 / n for n in trees_per_dimension]
-
-    num_local_trees = t8_cmesh_get_num_local_trees(cmesh)
 
     # Non-periodic boundaries.
     boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
@@ -212,12 +213,12 @@ function T8codeMesh(trees_per_dimension; polydeg,
         mapping_ = mapping
     end
 
-    for itree in 1:num_local_trees
+    for itree in 1:num_trees
         veptr = t8_cmesh_get_tree_vertices(cmesh, itree - 1)
         verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))
 
         if NDIMS == 2
-            # Calculate node coordinates of reference mesh.
+            # Calculate node coordinates of reference mesh for 2D.
             cell_x_offset = (verts[1, 1] - 0.5 * (trees_per_dimension[1] - 1)) * dx[1]
             cell_y_offset = (verts[2, 1] - 0.5 * (trees_per_dimension[2] - 1)) * dx[2]
 
@@ -228,6 +229,7 @@ function T8codeMesh(trees_per_dimension; polydeg,
                                                                   dx[2] * nodes[j] / 2)
             end
         elseif NDIMS == 3
+            # Calculate node coordinates of reference mesh for 2D.
             cell_x_offset = (verts[1, 1] - 0.5 * (trees_per_dimension[1] - 1)) * dx[1]
             cell_y_offset = (verts[2, 1] - 0.5 * (trees_per_dimension[2] - 1)) * dx[2]
             cell_z_offset = (verts[3, 1] - 0.5 * (trees_per_dimension[3] - 1)) * dx[3]
@@ -289,17 +291,19 @@ conforming mesh from a `t8_cmesh` data structure.
 function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
                            mapping = nothing, polydeg = 1, RealT = Float64,
                            initial_refinement_level = 0) where {NDIMS}
+
+    do_face_ghost = mpi_isparallel()
     scheme = t8_scheme_new_default_cxx()
-    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, 0, mpi_comm())
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost, mpi_comm())
 
     basis = LobattoLegendreBasis(RealT, polydeg)
     nodes = basis.nodes
 
-    num_local_trees = t8_cmesh_get_num_local_trees(cmesh)
+    num_trees = t8_cmesh_get_num_trees(cmesh)
 
     tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
                                                     ntuple(_ -> length(nodes), NDIMS)...,
-                                                    num_local_trees)
+                                                    num_trees)
 
     nodes_in = [-1.0, 1.0]
     matrix = polynomial_interpolation_matrix(nodes_in, nodes)
@@ -308,7 +312,7 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
         data_in = Array{RealT, 3}(undef, 2, 2, 2)
         tmp1 = zeros(RealT, 2, length(nodes), length(nodes_in))
 
-        for itree in 0:(num_local_trees - 1)
+        for itree in 0:(num_trees - 1)
             veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
             verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))
 
@@ -339,7 +343,7 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
         data_in = Array{RealT, 4}(undef, 3, 2, 2, 2)
         tmp1 = zeros(RealT, 3, length(nodes), length(nodes_in), length(nodes_in))
 
-        for itree in 0:(num_local_trees - 1)
+        for itree in 0:(num_trees - 1)
             veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
             verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))
 
@@ -367,7 +371,7 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
     map_node_coordinates!(tree_node_coordinates, mapping)
 
     # There's no simple and generic way to distinguish boundaries. Name all of them :all.
-    boundary_names = fill(:all, 2 * NDIMS, num_local_trees)
+    boundary_names = fill(:all, 2 * NDIMS, num_trees)
 
     return T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
                              boundary_names, "")
@@ -465,4 +469,8 @@ end
 # TODO: Just a placeholder. Will be implemented later when MPI is supported.
 function partition!(mesh::T8codeMesh; allow_coarsening = true, weight_fn = C_NULL)
     return nothing
+end
+
+function update_ghost_layer!(mesh::ParallelT8codeMesh)
+  return nothing
 end

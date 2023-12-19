@@ -60,6 +60,21 @@ end
     return nothing
 end
 
+@inline function mpi_println_serial(args...)
+    if mpi_rank() > 0
+      MPI.recv(mpi_rank()-1, 42, mpi_comm())
+    end
+
+    println("rank = $(mpi_rank()) | ", args...)
+    flush(stdout)
+
+    if mpi_rank() < mpi_nranks() - 1
+      MPI.send(undef, mpi_rank()+1, 42, mpi_comm())
+    end
+
+    return nothing
+end
+
 """
     ode_norm(u, t)
 

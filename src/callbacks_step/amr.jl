@@ -726,7 +726,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
     return has_changed
 end
 
-function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::SerialT8codeMesh,
+function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
                                      equations, dg::DG, cache, semi,
                                      t, iter;
                                      only_refine = false, only_coarsen = false,
@@ -754,21 +754,22 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::SerialT8codeMe
     @trixi_timeit timer() "adapt" begin
         difference = @trixi_timeit timer() "mesh" trixi_t8_adapt!(mesh, indicators)
 
-        @trixi_timeit timer() "solver" adapt!(u_ode, adaptor, mesh, equations, dg,
-                                              cache, difference)
+        # Store whether there were any cells coarsened or refined and perform load balancing.
+        has_changed = any(difference .!= 0)
+
+        # Check if mesh changed on other processes
+        if mpi_isparallel()
+          has_changed = MPI.Allreduce!(Ref(has_changed), |, mpi_comm())[]
+        end
+
+        if has_changed
+          @trixi_timeit timer() "solver" adapt!(u_ode, adaptor, mesh, equations, dg,
+                                                cache, difference)
+        end
     end
 
-    # Store whether there were any cells coarsened or refined and perform load balancing.
-    has_changed = any(difference .!= 0)
-
-    # TODO: T8codeMesh for MPI not implemented yet.
-    # Check if mesh changed on other processes
-    # if mpi_isparallel()
-    #   has_changed = MPI.Allreduce!(Ref(has_changed), |, mpi_comm())[]
-    # end
-
     if has_changed
-        # TODO: T8codeMesh for MPI not implemented yet.
+        # # TODO: T8codeMesh for rebalance/partition not implemented yet.
         # if mpi_isparallel() && amr_callback.dynamic_load_balancing
         #   @trixi_timeit timer() "dynamic load balancing" begin
         #     global_first_quadrant = unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)

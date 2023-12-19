@@ -314,11 +314,6 @@ end
 function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
                 dg::DGSEM, cache, difference)
 
-    # Return early if there is nothing to do.
-    if !any(difference .!= 0)
-        return nothing
-    end
-
     # Number of (local) cells/elements.
     old_nelems = nelements(dg, cache)
     new_nelems = ncells(mesh)

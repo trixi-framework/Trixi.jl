@@ -22,8 +22,23 @@ mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
                   coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                   initial_refinement_level = 1)
 
+function my_initial_condition(x, t,
+                                            equation::LinearScalarAdvectionEquation2D)
+    # Store translated coordinate for easy use of exact solution
+    x_trans = x - equation.advection_velocity * t
+
+    c = 1.0
+    A = 0.5
+    L = 2
+    f = 1 / L
+    omega = 2 * pi * f
+    scalar = c + A * sin(omega * sum(x_trans))
+
+    return SVector(scalar)
+end
+
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
+semi = SemidiscretizationHyperbolic(mesh, equations, my_initial_condition,
                                     solver)
 
 ###############################################################################
