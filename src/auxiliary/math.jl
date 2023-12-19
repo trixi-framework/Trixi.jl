@@ -10,7 +10,7 @@ sqrt_(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
 #sqrt_(x) = Base.sqrt(x)
 # < 0 suffices since log(0) = -Inf
 # `AbstractFloat` clashes with `ForwardDiff.Dual` => use `Real`
-log_(x::T) where {T <: Real} = x < zero(x) ? oftype(x, NaN) : Base.log(x)
+log_(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.log(x)
 #log_(x) = Base.log(x)
 
 """
