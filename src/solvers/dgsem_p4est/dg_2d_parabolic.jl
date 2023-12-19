@@ -632,6 +632,7 @@ function prolong2mortars_divergence!(cache, flux_viscous::Vector{Array{uEltype, 
                 normal_direction = get_normal_direction(direction_index,
                                                         contravariant_vectors,
                                                         i_small, j_small, element)
+
                 for v in eachvariable(equations)
                     flux_viscous = SVector(flux_viscous_x[v, i_small, j_small, element],
                                            flux_viscous_y[v, i_small, j_small, element])
