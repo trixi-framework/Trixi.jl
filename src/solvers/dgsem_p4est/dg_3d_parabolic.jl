@@ -940,9 +940,6 @@ end
 
     # TODO: parabolic; only BR1 at the moment
     flux_ = 0.5 * (u_ll + u_rr)
-    # # Copy flux to buffer
-    # set_node_vars!(fstar, flux, equations, dg, i_node_index, j_node_index,
-    # position_index)
     # Copy flux to buffer
     set_node_vars!(fstar, flux_, equations, dg, i_node_index, j_node_index, position_index)
 end
