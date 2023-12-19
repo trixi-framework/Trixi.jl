@@ -164,17 +164,6 @@ end
     foreach_enumerate(func, remaining_collection, index + 1)
 end
 
-# Recursive call of the RHS for the semidiscretizations using Lispy tuple programming
-# to avoid type instability.
-@inline function rhs!(u_ode, du_ode, t, semi, i, semi_, semi_tuple...)
-    u_loc = get_system_u_ode(u_ode, i, semi)
-    du_loc = get_system_u_ode(du_ode, i, semi)
-    rhs!(du_loc, u_loc, semi_, t)
-    if i < nsystems(semi)
-        rhs!(u_ode, du_ode, t, semi, i + 1, semi_tuple...)
-    end
-end
-
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     @unpack u_indices = semi
 
