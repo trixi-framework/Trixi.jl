@@ -77,7 +77,8 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (0.0, 0.0)
 coordinates_max = (20_000.0, 10_000.0)
 
-cells_per_dimension = (64, 32)
+# increase resolution to (64, 32)
+cells_per_dimension = (32, 16)
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_warm_bubble, solver,
@@ -87,7 +88,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_warm_bubb
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1000.0)
+# change final time to 1000.0
+tspan = (0.0, 10.0)
 
 ode = semidiscretize(semi, tspan)
 
@@ -103,7 +105,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     output_directory = "out.struct_lmars_ra",
+                                     output_directory = "out",
                                      solution_variables = cons2prim)
 
 stepsize_callback = StepsizeCallback(cfl = 0.2)
