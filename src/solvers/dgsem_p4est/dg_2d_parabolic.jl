@@ -732,6 +732,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
 
     return nothing
 end
+
 # We structure `calc_interface_flux!` similarly to "calc_mortar_flux!" for 
 # hyperbolic  equations with no nonconservative terms. 
 # The reasoning is that parabolic fluxes are treated like conservative 
