@@ -2,12 +2,10 @@ using OrdinaryDiffEq
 using Trixi
 
 # Physical constants
-g::Float64 = 9.81          # gravity of earth
-p_0::Float64 = 100_000.0   # reference pressure
-c_p::Float64 = 1004.0      # heat capacity for constant pressure (dry air)
-c_v::Float64 = 717.0       # heat capacity for constant volume (dry air)
-R = c_p - c_v              # gas constant (dry air)
-gamma = c_p / c_v          # heat capacity ratio (dry air)
+g::Float64 = 9.81            # gravity of earth
+c_p::Float64 = 1004.0        # heat capacity for constant pressure (dry air)
+c_v::Float64 = 717.0         # heat capacity for constant volume (dry air)
+gamma::Float64 = c_p / c_v   # heat capacity ratio (dry air)
 
 # Warm bubble test case from
 # Wicker, L. J., and Skamarock, W. C.
@@ -16,29 +14,31 @@ gamma = c_p / c_v          # heat capacity ratio (dry air)
 # [DOI: 10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2](https://doi.org/10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2)
 function initial_condition_warm_bubble(x, t, equations::CompressibleEulerEquations2D)
     # center of perturbation
-    xc = 10000.0
-    zc = 2000.0
+    center_x = 10000.0
+    center_z = 2000.0
     # radius of perturbation
-    rc = 2000.0
+    radius = 2000.0
     # distance of current x to center of perturbation
-    r = sqrt((x[1] - xc)^2 + (x[2] - zc)^2)
+    r = sqrt((x[1] - center_x)^2 + (x[2] - center_z)^2)
 
     # perturbation in potential temperature
-    θ_ref = 300.0
-    Δθ = 0.0
-    if r <= rc
-        Δθ = 2 * cospi(0.5 * r / rc)^2
+    potential_temperature_ref = 300.0
+    potential_temperature_perturbation = 0.0
+    if r <= radius
+        potential_temperature_perturbation = 2 * cospi(0.5 * r / radius)^2
     end
-    θ = θ_ref + Δθ # potential temperature
+    potential_temperature = potential_temperature_ref + potential_temperature_perturbation
 
     # Exner pressure, solves hydrostatic equation for x[2]
-    exner = 1 - g / (c_p * θ) * x[2]
+    exner = 1 - g / (c_p * potential_temperature) * x[2]
 
     # pressure
+    p_0 = 100_000.0  # reference pressure
+    R = c_p - c_v    # gas constant (dry air)
     p = p_0 * exner^(c_p / R)
 
     # temperature
-    T = θ * exner
+    T = potential_temperature * exner
 
     # density
     rho = p / (R * T)
