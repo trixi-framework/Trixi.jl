@@ -9,7 +9,6 @@ function create_cache_parabolic(mesh::P4estMesh{2}, equations_hyperbolic::Abstra
     elements = init_elements(mesh, equations_hyperbolic, dg.basis, uEltype)
     interfaces = init_interfaces(mesh, equations_hyperbolic, dg.basis, elements)
     boundaries = init_boundaries(mesh, equations_hyperbolic, dg.basis, elements)
-    mortars = init_mortars(mesh, equations_hyperbolic, dg.basis, elements)
 
     viscous_container = init_viscous_container_2d(nvariables(equations_hyperbolic),
                                                   nnodes(dg.basis), nelements(elements),
