@@ -445,6 +445,14 @@ end
       l2 = [0.000355780485397024],
       linf = [0.0010810770271614256]
     )
+    # Ensure that we do not have excessive memory allocations 
+    # (e.g., from type instabilities) 
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
   end
 
   @trixi_testset "TreeMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
