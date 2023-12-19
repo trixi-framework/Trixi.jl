@@ -396,7 +396,7 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indic
                                         CouplingConverter}
     # NDIMST2M1 == NDIMS * 2 - 1
     # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
-    u_boundary::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
+    u_boundary         :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
     other_semi_index   :: Int
     other_orientation  :: Int
     indices            :: Indices
@@ -518,7 +518,8 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
 
     node_coordinates_other = cache_other.elements.node_coordinates
     u_ode_other = get_system_u_ode(u_ode, other_semi_index, semi_coupled)
-    u_other = wrap_array(u_ode_other, mesh_other, equations_other, solver_other, cache_other)
+    u_other = wrap_array(u_ode_other, mesh_other, equations_other, solver_other,
+                         cache_other)
 
     linear_indices = LinearIndices(size(mesh_other))
 
@@ -546,11 +547,13 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         element_id = linear_indices[i_cell, j_cell]
 
         for element_id in eachnode(solver_other)
-            x_other = get_node_coords(node_coordinates_other, equations_other, solver_other,
+            x_other = get_node_coords(node_coordinates_other, equations_other,
+                                      solver_other,
                                       i_node, j_node, linear_indices[i_cell, j_cell])
             u_node_other = get_node_vars(u_other, equations_other, solver_other, i_node,
                                          j_node, linear_indices[i_cell, j_cell])
-            u_node_converted = coupling_converter(x_other, u_node_other, equations_other,
+            u_node_converted = coupling_converter(x_other, u_node_other,
+                                                  equations_other,
                                                   equations_own)
 
             for i in eachindex(u_node_converted)
