@@ -10,8 +10,9 @@ mutable struct ViscousContainer3D{uEltype <: Real}
 
     # internal `resize!`able storage
     _u_transformed::Vector{uEltype}
-    _gradients::Vector{Vector{uEltype}}
-    _flux_viscous::Vector{Vector{uEltype}}
+    # Use Tuple for outer, fixed-size datastructure
+    _gradients::Tuple{Vector{uEltype}, Vector{uEltype}, Vector{uEltype}}
+    _flux_viscous::Tuple{Vector{uEltype}, Vector{uEltype}, Vector{uEltype}}
 
     function ViscousContainer3D{uEltype}(n_vars::Integer, n_nodes::Integer,
                                          n_elements::Integer) where {uEltype <: Real}
