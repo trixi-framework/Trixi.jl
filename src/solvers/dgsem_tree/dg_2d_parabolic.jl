@@ -136,7 +136,7 @@ end
 function calc_volume_integral!(du, flux_viscous,
                                mesh::TreeMesh{2},
                                equations_parabolic::AbstractEquationsParabolic,
-                               dg::DGSEM, cache) where {uEltype <: Real}
+                               dg::DGSEM, cache)
     @unpack derivative_dhat = dg.basis
     flux_viscous_x, flux_viscous_y = flux_viscous
 
