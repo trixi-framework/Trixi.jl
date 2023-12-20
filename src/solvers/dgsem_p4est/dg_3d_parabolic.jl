@@ -795,7 +795,7 @@ function prolong2mortars_divergence!(cache, flux_viscous,
         i_large = i_large_start
         j_large = j_large_start
         k_large = k_large_start
-        element = neighbor_ids[5, mortar]
+        element = neighbor_ids[5, mortar] # Large element
         for j in eachnode(dg)
             for i in eachnode(dg)
                 normal_direction = get_normal_direction(direction_index,
