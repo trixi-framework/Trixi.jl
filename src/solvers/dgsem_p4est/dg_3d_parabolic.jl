@@ -366,7 +366,7 @@ end
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
 
-    for position in 1:4
+    for position in 1:4 # Loop over small elements
         element = neighbor_ids[position, mortar]
         for j in eachnode(dg), i in eachnode(dg)
             for v in eachvariable(equations)
