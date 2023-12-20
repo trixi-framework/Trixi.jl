@@ -741,7 +741,7 @@ function prolong2mortars_divergence!(cache, flux_viscous,
         k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
                                                                                index_range)
 
-        for position in 1:4
+        for position in 1:4 # Loop over small elements
             i_small = i_small_start
             j_small = j_small_start
             k_small = k_small_start
