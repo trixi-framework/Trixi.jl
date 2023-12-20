@@ -172,9 +172,6 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_es_ersing_etal, flux_nonconservative_ersing_etal,
        flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
-# TODO: TrixiShallowWater: move anything with "chen_noelle" to new file
-       hydrostatic_reconstruction_chen_noelle, flux_nonconservative_chen_noelle,
-       flux_hll_chen_noelle,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
@@ -229,8 +226,6 @@ export DG,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
-# TODO: TrixiShallowWater: move new indicator
-       IndicatorHennemannGassnerShallowWater,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
@@ -266,8 +261,7 @@ export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax
 
-# TODO: TrixiShallowWater: move new limiter
-export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterShallowWater
+export PositivityPreservingLimiterZhangShu
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options

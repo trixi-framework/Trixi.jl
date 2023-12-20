@@ -1,7 +1,5 @@
 module TestExamplesUnstructuredMesh2D
 
-# TODO: TrixiShallowWater: move any wet/dry and two layer tests
-
 using Test
 using Trixi
 
@@ -555,33 +553,6 @@ end
                             3.3330308209196224,
                             2.052861364219655,
                         ],
-                        tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_three_mound_dam_break.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_shallowwater_three_mound_dam_break.jl"),
-                        l2=[
-                            0.0892957892027502,
-                            0.30648836484407915,
-                            2.28712547616214e-15,
-                            0.0008778654298684622,
-                        ],
-                        linf=[
-                            0.850329472915091,
-                            2.330631694956507,
-                            5.783660020252348e-14,
-                            0.04326237921249021,
-                        ],
-                        basis=LobattoLegendreBasis(3),
                         tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
