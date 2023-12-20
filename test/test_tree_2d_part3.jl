@@ -26,9 +26,6 @@ isdir(outdir) && rm(outdir, recursive = true)
     # Shallow water
     include("test_tree_2d_shallowwater.jl")
 
-    # Two-Layer Shallow Water
-    include("test_tree_2d_shallowwater_twolayer.jl")
-
     # FDSBP methods on the TreeMesh
     include("test_tree_2d_fdsbp.jl")
 end

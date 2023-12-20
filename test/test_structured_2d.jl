@@ -1,7 +1,5 @@
 module TestExamplesStructuredMesh2D
 
-# TODO: TrixiShallowWater: move any wet/dry tests to new package
-
 using Test
 using Trixi
 
