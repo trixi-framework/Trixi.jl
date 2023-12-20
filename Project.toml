@@ -54,6 +54,7 @@ TrixiMakieExt = "Makie"
 CodeTracking = "1.0.5"
 ConstructionBase = "1.3"
 DataStructures = "0.18.15"
+DiffEqBase = "6 - 6.143"
 DiffEqCallbacks = "2.25"
 EllipsisNotation = "1.0"
 FillArrays = "0.13.2, 1"
@@ -94,4 +95,5 @@ TriplotRecipes = "0.1"
 julia = "1.8"
 
 [extras]
+DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
