@@ -4,6 +4,11 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.5 lifecycle
+
+#### Added
+- AMR for hyperbolic-parabolic equations on 3D `P4estMesh`
+
 ## Changes when updating to v0.6 from v0.5.x
 
 #### Added
