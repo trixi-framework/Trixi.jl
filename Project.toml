@@ -7,6 +7,7 @@ version = "0.6.6-pre"
 CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
+DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 DiffEqCallbacks = "459566f4-90b8-5000-8ac3-15dfb0a30def"
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
@@ -95,5 +96,4 @@ TriplotRecipes = "0.1"
 julia = "1.8"
 
 [extras]
-DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
