@@ -847,10 +847,14 @@ end
     p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll)
     v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll)
 
+    # We treat the energy term in analogy to the potential temperature term in the paper by
+    # Chen et al., i.e. we use p_ll and p_rr, and not p
     if v >= 0
         f1, f2, f3, f4 = v * u_ll
+        f4 = f4 + p_ll * v
     else
         f1, f2, f3, f4 = v * u_rr
+        f4 = f4 + p_rr * v
     end
 
     if orientation == 1
@@ -858,7 +862,6 @@ end
     else # orientation == 2
         f3 = f3 + p
     end
-    f4 = f4 + p * v
 
     return SVector(f1, f2, f3, f4)
 end
@@ -882,18 +885,20 @@ end
     p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll) / norm_
     v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll) * norm_
 
+    # We treat the energy term in analogy to the potential temperature term in the paper by
+    # Chen et al., i.e. we use p_ll and p_rr, and not p
     if v >= 0
         f1, f2, f3, f4 = u_ll * v
-        # f4 += p_ll * v ???
+        f4 = f4 + p_ll * v
     else
         f1, f2, f3, f4 = u_rr * v
-        # f4 += p_rr * v ???
+        f4 = f4 + p_rr * v
     end
 
     return SVector(f1,
                    f2 + p * normal_direction[1],
                    f3 + p * normal_direction[2],
-                   f4 + p * v)
+                   f4)
 end
 
 """
