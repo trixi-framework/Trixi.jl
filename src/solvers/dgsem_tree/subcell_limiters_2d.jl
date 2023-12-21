@@ -8,10 +8,9 @@
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, bound_keys)
-    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
-                                                                      }(0,
-                                                                        nnodes(basis),
-                                                                        bound_keys)
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)}(0,
+                                                                                   nnodes(basis),
+                                                                                   bound_keys)
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # The first entry of each vector contains the maximum deviation since the last export.

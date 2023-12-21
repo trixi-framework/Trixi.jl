@@ -63,7 +63,10 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
     @trixi_testset "elixir_advection_restart.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                             l2=[0.002590388934758452],
-                            linf=[0.01840757696885409])
+                            linf=[0.01840757696885409],
+                            # With the default `maxiters = 1` in coverage tests,
+                            # there would be no time steps after the restart.
+                            coverage_override=(maxiters = 100_000,))
     end
 
     @trixi_testset "elixir_advection_cubed_sphere.jl" begin
