@@ -69,7 +69,7 @@ polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 
 surface_flux = FluxLMARS(340.0)
-volume_flux = flux_ranocha
+volume_flux = flux_kennedy_gruber
 volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
