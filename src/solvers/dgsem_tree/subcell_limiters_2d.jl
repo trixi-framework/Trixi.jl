@@ -561,10 +561,14 @@ end
 
     # Conservative variables
     for variable in limiter.positivity_variables_cons
-        @trixi_timeit timer() "conservative variables" idp_positivity!(alpha, limiter,
-                                                                       u, dt, semi,
-                                                                       mesh, elements,
-                                                                       variable)
+        @trixi_timeit timer() "conservative variables" idp_positivity_conservative!(alpha,
+                                                                                    limiter,
+                                                                                    u,
+                                                                                    dt,
+                                                                                    semi,
+                                                                                    mesh,
+                                                                                    elements,
+                                                                                    variable)
     end
 
     # Nonlinear variables
@@ -584,8 +588,8 @@ end
 ###############################################################################
 # Global positivity limiting of conservative variables
 
-@inline function idp_positivity!(alpha, limiter, u, dt, semi, mesh::TreeMesh{2},
-                                 elements, variable)
+@inline function idp_positivity_conservative!(alpha, limiter, u, dt, semi,
+                                              mesh::TreeMesh{2}, elements, variable)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
@@ -602,9 +606,10 @@ end
     return nothing
 end
 
-@inline function idp_positivity!(alpha, limiter, u, dt, semi,
-                                 mesh::Union{StructuredMesh{2}, P4estMesh{2}},
-                                 elements, variable)
+@inline function idp_positivity_conservative!(alpha, limiter, u, dt, semi,
+                                              mesh::Union{StructuredMesh{2},
+                                                          P4estMesh{2}},
+                                              elements, variable)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
@@ -753,37 +758,37 @@ end
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[i] *
                          get_node_vars(antidiffusive_flux1_R, equations, dg, i, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, equations, dt, limiter,
-                 antidiffusive_flux, variable, initial_check, final_check)
+    newton_loop!(alpha, bound, u, i, j, element, variable, initial_check, final_check,
+                 equations, dt, limiter, antidiffusive_flux)
 
     # positive xi direction
     antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
                          inverse_weights[i] *
                          get_node_vars(antidiffusive_flux1_L, equations, dg, i + 1, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, equations, dt, limiter,
-                 antidiffusive_flux, variable, initial_check, final_check)
+    newton_loop!(alpha, bound, u, i, j, element, variable, initial_check, final_check,
+                 equations, dt, limiter, antidiffusive_flux)
 
     # negative eta direction
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[j] *
                          get_node_vars(antidiffusive_flux2_R, equations, dg, i, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, equations, dt, limiter,
-                 antidiffusive_flux, variable, initial_check, final_check)
+    newton_loop!(alpha, bound, u, i, j, element, variable, initial_check, final_check,
+                 equations, dt, limiter, antidiffusive_flux)
 
     # positive eta direction
     antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
                          inverse_weights[j] *
                          get_node_vars(antidiffusive_flux2_L, equations, dg, i, j + 1,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, equations, dt, limiter,
-                 antidiffusive_flux, variable, initial_check, final_check)
+    newton_loop!(alpha, bound, u, i, j, element, variable, initial_check, final_check,
+                 equations, dt, limiter, antidiffusive_flux)
 
     return nothing
 end
 
-@inline function newton_loop!(alpha, bound, u, i, j, element, equations, dt, limiter,
-                              antidiffusive_flux, variable, initial_check, final_check)
+@inline function newton_loop!(alpha, bound, u, i, j, element, variable, initial_check,
+                              final_check, equations, dt, limiter, antidiffusive_flux)
     newton_reltol, newton_abstol = limiter.newton_tolerances
 
     beta = 1 - alpha[i, j, element]
@@ -795,9 +800,9 @@ end
 
     # If state is valid, perform initial check and return if correction is not needed
     if is_valid_state(u_curr, equations)
-        as = goal_function(variable, bound, u_curr, equations)
+        goal = goal_function(variable, bound, u_curr, equations)
 
-        initial_check(bound, as, newton_abstol) && return nothing
+        initial_check(bound, goal, newton_abstol) && return nothing
     end
 
     # Newton iterations
@@ -806,19 +811,19 @@ end
 
         # If the state is valid, evaluate d(goal)/d(beta)
         if is_valid_state(u_curr, equations)
-            dSdbeta = dgoal_function(variable, u_curr, dt, antidiffusive_flux,
-                                     equations)
+            dgoal_dbeta = dgoal_function(variable, u_curr, dt, antidiffusive_flux,
+                                         equations)
         else # Otherwise, perform a bisection step
-            dSdbeta = 0
+            dgoal_dbeta = 0
         end
 
-        if dSdbeta != 0
+        if dgoal_dbeta != 0
             # Update beta with Newton's method
-            beta = beta - as / dSdbeta
+            beta = beta - goal / dgoal_dbeta
         end
 
         # Check bounds
-        if (beta < beta_L) || (beta > beta_R) || (dSdbeta == 0) || isnan(beta)
+        if (beta < beta_L) || (beta > beta_R) || (dgoal_dbeta == 0) || isnan(beta)
             # Out of bounds, do a bisection step
             beta = 0.5 * (beta_L + beta_R)
             # Get new u
@@ -831,8 +836,8 @@ end
             end
 
             # Check new beta for condition and update bounds
-            as = goal_function(variable, bound, u_curr, equations)
-            if initial_check(bound, as, newton_abstol)
+            goal = goal_function(variable, bound, u_curr, equations)
+            if initial_check(bound, goal, newton_abstol)
                 # New beta fulfills condition
                 beta_L = beta
             else
@@ -850,7 +855,7 @@ end
             end
 
             # Evaluate goal function
-            as = goal_function(variable, bound, u_curr, equations)
+            goal = goal_function(variable, bound, u_curr, equations)
         end
 
         # Check relative tolerance
@@ -859,7 +864,7 @@ end
         end
 
         # Check absolute tolerance
-        if final_check(bound, as, newton_abstol)
+        if final_check(bound, goal, newton_abstol)
             break
         end
     end
@@ -888,7 +893,7 @@ end
 # Goal and d(Goal)d(u) function
 @inline goal_function(variable, bound, u, equations) = bound - variable(u, equations)
 @inline function dgoal_function(variable, u, dt, antidiffusive_flux, equations)
-    -dot(variable(u, equations, True()), dt * antidiffusive_flux)
+    -dot(variable_derivative(variable, u, equations), dt * antidiffusive_flux)
 end
 
 # Final check

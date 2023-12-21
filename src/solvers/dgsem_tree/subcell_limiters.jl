@@ -37,7 +37,8 @@ end
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
 - Local maximum/minimum Zalesak-type limiting for conservative variables (`local_minmax_variables_cons`)
-- Positivity limiting for conservative (`positivity_variables_cons`) and nonlinear variables (`positivity_variables_nonlinear`)
+- Positivity limiting for conservative variables (`positivity_variables_cons`) and nonlinear variables
+(`positivity_variables_nonlinear`)
 - One-sided limiting for specific and mathematical entropy (`spec_entropy`, `math_entropy`)
 
 Conservative variables to be limited are passed as a vector of strings, e.g. `local_minmax_variables_cons = ["rho"]`
@@ -46,9 +47,10 @@ passed in a vector, e.g. `positivity_variables_nonlinear = [pressure]`.
 
 The bounds can be calculated using the `bar_states` or the low-order FV solution. The positivity
 limiter uses `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
-The Newton-bisection method for the limiting of nonlinear variables uses maximal `max_iterations_newton`
-iterations, tolerances `newton_tolerances` and the gamma constant `gamma_constant_newton`
-(gamma_constant_newton>=2*d, where d=#dimensions).
+The limiting of nonlinear variables uses a Newton-bisection method with a maximum of
+`max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`
+and a provisional update constant `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
+where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) of Rueda-Ramírez et al. (2022).
 
 A hard-switch [`IndicatorHennemannGassner`](@ref) can be activated (`smoothness_indicator`) with
 `variable_smoothness_indicator`, which disables subcell blending for element-wise
