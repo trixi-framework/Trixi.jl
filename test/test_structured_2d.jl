@@ -627,7 +627,7 @@ end
                             307.76174927831744,
                         ],
                         cells_per_dimension=(32, 16),
-                        tspan=(0.0, 10.))
+                        tspan=(0.0, 10.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
