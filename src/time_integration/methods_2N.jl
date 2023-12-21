@@ -204,6 +204,11 @@ function set_proposed_dt!(integrator::SimpleIntegrator2N, dt)
     integrator.dt = dt
 end
 
+# Required e.g. for `glm_speed_callback` 
+function get_proposed_dt(integrator::SimpleIntegrator2N)
+    return integrator.dt
+end
+
 # stop the time integration
 function terminate!(integrator::SimpleIntegrator2N)
     integrator.finalstep = true

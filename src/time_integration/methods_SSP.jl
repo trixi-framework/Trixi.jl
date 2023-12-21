@@ -55,17 +55,25 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
-mutable struct SimpleIntegratorSSPOptions{Callback}
+mutable struct SimpleIntegratorSSPOptions{Callback, TStops}
     callback::Callback # callbacks; used in Trixi
     adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
     maxiters::Int # maximal number of time steps
-    tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
+    tstops::TStops # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
 function SimpleIntegratorSSPOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
-    SimpleIntegratorSSPOptions{typeof(callback)}(callback, false, Inf, maxiters,
-                                                 [last(tspan)])
+    tstops_internal = BinaryHeap{eltype(tspan)}(FasterForward())
+    # We add last(tspan) to make sure that the time integration stops at the end time
+    push!(tstops_internal, last(tspan))
+    # We add 2 * last(tspan) because add_tstop!(integrator, t) is only called by DiffEqCallbacks.jl if tstops contains a time that is larger than t
+    # (https://github.com/SciML/DiffEqCallbacks.jl/blob/025dfe99029bd0f30a2e027582744528eb92cd24/src/iterative_and_periodic.jl#L92)
+    push!(tstops_internal, 2 * last(tspan))
+    SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback,
+                                                                          false, Inf,
+                                                                          maxiters,
+                                                                          tstops_internal)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
@@ -78,6 +86,7 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
     du::uType
     r0::uType
     t::RealT
+    tdir::RealT
     dt::RealT # current time step
     dtcache::RealT # ignored
     iter::Int # current number of time steps (iteration)
@@ -87,7 +96,28 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
     alg::Alg
     opts::SimpleIntegratorSSPOptions
     finalstep::Bool # added for convenience
+    dtchangeable::Bool
+    force_stepfail::Bool
 end
+
+"""
+    add_tstop!(integrator::SimpleIntegratorSSP, t)
+Add a time stop during the time integration process. 
+This function is called after the periodic SaveSolutionCallback to specify the next stop to save the solution.
+"""
+function add_tstop!(integrator::SimpleIntegratorSSP, t)
+    integrator.tdir * (t - integrator.t) < zero(integrator.t) &&
+        error("Tried to add a tstop that is behind the current time. This is strictly forbidden")
+    # We need to remove the first entry of tstops when a new entry is added.
+    # Otherwise, the simulation gets stuck at the previous tstop and dt is adjusted to zero.
+    if length(integrator.opts.tstops) > 1
+        pop!(integrator.opts.tstops)
+    end
+    push!(integrator.opts.tstops, integrator.tdir * t)
+end
+
+has_tstop(integrator::SimpleIntegratorSSP) = !isempty(integrator.opts.tstops)
+first_tstop(integrator::SimpleIntegratorSSP) = first(integrator.opts.tstops)
 
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
 function Base.getproperty(integrator::SimpleIntegratorSSP, field::Symbol)
@@ -113,11 +143,13 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
     du = similar(u)
     r0 = similar(u)
     t = first(ode.tspan)
+    tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
-    integrator = SimpleIntegratorSSP(u, du, r0, t, dt, zero(dt), iter, ode.p,
+    integrator = SimpleIntegratorSSP(u, du, r0, t, tdir, dt, zero(dt), iter, ode.p,
                                      (prob = ode,), ode.f, alg,
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
-                                                                kwargs...), false)
+                                                                kwargs...),
+                                     false, true, false)
 
     # resize container
     resize!(integrator.p, nelements(integrator.p.solver, integrator.p.cache))
@@ -160,6 +192,8 @@ function solve!(integrator::SimpleIntegratorSSP)
             terminate!(integrator)
         end
 
+        modify_dt_for_tstops!(integrator)
+
         @. integrator.r0 = integrator.u
         for stage in eachindex(alg.c)
             t_stage = integrator.t + integrator.dt * alg.c[stage]
@@ -198,6 +232,10 @@ function solve!(integrator::SimpleIntegratorSSP)
         end
     end
 
+    # Empty the tstops array. 
+    # This cannot be done in terminate!(integrator::SimpleIntegratorSSP) because DiffEqCallbacks.PeriodicCallbackAffect would return at error.
+    extract_all!(integrator.opts.tstops)
+
     for stage_callback in alg.stage_callbacks
         finalize_callback(stage_callback, integrator.p)
     end
@@ -226,7 +264,30 @@ end
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
     integrator.finalstep = true
-    empty!(integrator.opts.tstops)
+end
+
+"""
+    modify_dt_for_tstops!(integrator::SimpleIntegratorSSP)
+Modify the time-step size to match the time stops specified in integrator.opts.tstops.
+To avoid adding OrdinaryDiffEq to Trixi's dependencies, this routine is a copy of
+https://github.com/SciML/OrdinaryDiffEq.jl/blob/d76335281c540ee5a6d1bd8bb634713e004f62ee/src/integrators/integrator_utils.jl#L38-L54
+"""
+function modify_dt_for_tstops!(integrator::SimpleIntegratorSSP)
+    if has_tstop(integrator)
+        tdir_t = integrator.tdir * integrator.t
+        tdir_tstop = first_tstop(integrator)
+        if integrator.opts.adaptive
+            integrator.dt = integrator.tdir *
+                            min(abs(integrator.dt), abs(tdir_tstop - tdir_t)) # step! to the end
+        elseif iszero(integrator.dtcache) && integrator.dtchangeable
+            integrator.dt = integrator.tdir * abs(tdir_tstop - tdir_t)
+        elseif integrator.dtchangeable && !integrator.force_stepfail
+            # always try to step! with dtcache, but lower if a tstop
+            # however, if force_stepfail then don't set to dtcache, and no tstop worry
+            integrator.dt = integrator.tdir *
+                            min(abs(integrator.dtcache), abs(tdir_tstop - tdir_t)) # step! to the end
+        end
+    end
 end
 
 # used for AMR
