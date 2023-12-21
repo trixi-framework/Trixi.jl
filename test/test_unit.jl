@@ -1261,12 +1261,12 @@ end
 
     for u in u_values, orientation in orientations
         @test flux_lmars(u, u, orientation, equations) ≈
-              flux_lmars(u, orientation, equations)
+              flux(u, orientation, equations)
     end
 
     for u in u_values, normal_direction in normal_directions
         @test flux_lmars(u, u, normal_direction, equations) ≈
-              flux_lmars(u, normal_direction, equations)
+              flux(u, normal_direction, equations)
     end
 
     equations = CompressibleEulerEquations3D(1.4)
@@ -1281,12 +1281,12 @@ end
 
     for u in u_values, orientation in orientations
         @test flux_lmars(u, u, orientation, equations) ≈
-              flux_lmars(u, orientation, equations)
+              flux(u, orientation, equations)
     end
 
     for u in u_values, normal_direction in normal_directions
         @test flux_lmars(u, u, normal_direction, equations) ≈
-              flux_lmars(u, normal_direction, equations)
+              flux(u, normal_direction, equations)
     end
 end
 
