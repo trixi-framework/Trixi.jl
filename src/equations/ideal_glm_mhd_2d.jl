@@ -1062,20 +1062,6 @@ end
     return SVector(w1, w2, w3, w4, w5, w6, w7, w8, w9)
 end
 
-# Transformation from conservative variables u to d(p)/d(u)
-@inline function variable_derivative(::typeof(pressure),
-                                     u, equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v3 = rho_v3 / rho
-    v_square = v1^2 + v2^2 + v3^2
-
-    return (equations.gamma - 1.0) *
-           SVector(0.5 * v_square, -v1, -v2, -v3, 1.0, -B1, -B2, -B3, -psi)
-end
-
 # Convert entropy variables to conservative variables
 @inline function entropy2cons(w, equations::IdealGlmMhdEquations2D)
     w1, w2, w3, w4, w5, w6, w7, w8, w9 = w
@@ -1101,14 +1087,6 @@ end
     p = -rho / w5
 
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
-end
-
-@inline function is_valid_state(cons, equations::IdealGlmMhdEquations2D)
-    p = pressure(cons, equations)
-    if cons[1] <= 0.0 || p <= 0.0
-        return false
-    end
-    return true
 end
 
 # Convert primitive to conservative variables
@@ -1138,6 +1116,20 @@ end
          -
          0.5 * psi^2)
     return p
+end
+
+# Transformation from conservative variables u to d(p)/d(u)
+@inline function variable_derivative(::typeof(pressure),
+                                     u, equations::IdealGlmMhdEquations2D)
+    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    v_square = v1^2 + v2^2 + v3^2
+
+    return (equations.gamma - 1.0) *
+           SVector(0.5 * v_square, -v1, -v2, -v3, 1.0, -B1, -B2, -B3, -psi)
 end
 
 @inline function density_pressure(u, equations::IdealGlmMhdEquations2D)
@@ -1404,6 +1396,15 @@ end
             energy_magnetic(cons, equations)
             -
             cons[9]^2 / 2)
+end
+
+# State validation for subcell limiting using Newton-bisection method
+@inline function is_valid_state(cons, equations::IdealGlmMhdEquations2D)
+    p = pressure(cons, equations)
+    if cons[1] <= 0.0 || p <= 0.0
+        return false
+    end
+    return true
 end
 
 # Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'

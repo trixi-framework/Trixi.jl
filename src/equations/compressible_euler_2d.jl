@@ -1529,7 +1529,6 @@ end
 
     return SVector(w1, w2, w3, w4)
 end
-@inline entropy_math(u, equations, derivative::True) = cons2entropy(u, equations)
 
 # Transformation from conservative variables u to entropy vector dSdu, S = -rho*s/(gamma-1), s=ln(p)-gamma*ln(rho)
 @inline function cons2entropy_spec(u, equations::CompressibleEulerEquations2D)
@@ -1556,19 +1555,6 @@ end
 
     return SVector(w1, w2, w3, w4)
 end
-@inline entropy_spec(u, equations, derivative::True) = cons2entropy_spec(u, equations)
-
-# Transformation from conservative variables u to d(p)/d(u)
-@inline function variable_derivative(::typeof(pressure),
-                                     u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
-
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v_square = v1^2 + v2^2
-
-    return (equations.gamma - 1.0) * SVector(0.5 * v_square, -v1, -v2, 1.0)
-end
 
 @inline function entropy2cons(w, equations::CompressibleEulerEquations2D)
     # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
@@ -1594,14 +1580,6 @@ end
     return SVector(rho, rho_v1, rho_v2, rho_e)
 end
 
-@inline function is_valid_state(cons, equations::CompressibleEulerEquations2D)
-    p = pressure(cons, equations)
-    if cons[1] <= 0.0 || p <= 0.0
-        return false
-    end
-    return true
-end
-
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::CompressibleEulerEquations2D)
     rho, v1, v2, p = prim
@@ -1620,6 +1598,18 @@ end
     rho, rho_v1, rho_v2, rho_e = u
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
     return p
+end
+
+# Transformation from conservative variables u to d(p)/d(u)
+@inline function variable_derivative(::typeof(pressure),
+                                     u, equations::CompressibleEulerEquations2D)
+    rho, rho_v1, rho_v2, rho_e = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v_square = v1^2 + v2^2
+
+    return (equations.gamma - 1.0) * SVector(0.5 * v_square, -v1, -v2, 1.0)
 end
 
 @inline function density_pressure(u, equations::CompressibleEulerEquations2D)
@@ -1671,6 +1661,12 @@ end
     return S
 end
 
+# Transformation from conservative variables u to d(s)/d(u)
+@inline function variable_derivative(::typeof(entropy_math),
+                                     u, equations::CompressibleEulerEquations2D)
+    return cons2entropy(u, equations)
+end
+
 # Calculate specific entropy for conservative variable u
 @inline function entropy_spec(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
@@ -1682,6 +1678,12 @@ end
     # rho_sp = rho/((equations.gamma - 1.0) * (rho_e - 0.5 * rho * v_square))
     # s = log(p) - (equaions.gamma + 1) * log(rho)
     return s
+end
+
+# Transformation from conservative variables u to d(s)/d(u)
+@inline function variable_derivative(::typeof(entropy_spec),
+                                     u, equations::CompressibleEulerEquations2D)
+    return cons2entropy_spec(u, equations)
 end
 
 # Default entropy is the mathematical entropy
@@ -1701,5 +1703,14 @@ end
 # Calculate internal energy for a conservative state `cons`
 @inline function energy_internal(cons, equations::CompressibleEulerEquations2D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
+end
+
+# State validation for subcell limiting using Newton-bisection method
+@inline function is_valid_state(cons, equations::CompressibleEulerEquations2D)
+    p = pressure(cons, equations)
+    if cons[1] <= 0.0 || p <= 0.0
+        return false
+    end
+    return true
 end
 end # @muladd
