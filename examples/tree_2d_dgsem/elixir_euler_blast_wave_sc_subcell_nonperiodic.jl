@@ -42,6 +42,7 @@ volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_minmax_variables_cons = ["rho"],
+                                math_entropy = true,
                                 bar_states = false)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
