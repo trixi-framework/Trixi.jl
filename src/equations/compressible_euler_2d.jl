@@ -1530,7 +1530,8 @@ end
     return SVector(w1, w2, w3, w4)
 end
 
-# Transformation from conservative variables u to entropy vector dSdu, S = -rho*s/(gamma-1), s=ln(p)-gamma*ln(rho)
+# Transformation from conservative variables u to entropy vector dSdu,
+# S = -rho*s/(gamma-1), s=ln(p)-gamma*ln(rho)
 @inline function cons2entropy_spec(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
 
