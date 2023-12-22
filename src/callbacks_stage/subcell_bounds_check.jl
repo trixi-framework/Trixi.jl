@@ -77,7 +77,7 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
         return nothing
     end
 
-    (; local_minmax, positivity) = limiter
+    (; local_minmax, positivity, spec_entropy, math_entropy) = limiter
     (; output_directory) = callback
     variables = varnames(cons2cons, semi.equations)
 
@@ -89,6 +89,12 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
                 variable_string = string(variables[v])
                 print(f, ", " * variable_string * "_min, " * variable_string * "_max")
             end
+        end
+        if spec_entropy
+            print(f, ", specEntr_min")
+        end
+        if math_entropy
+            print(f, ", mathEntr_max")
         end
         if positivity
             for v in limiter.positivity_variables_cons
@@ -120,7 +126,7 @@ end
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    limiter::SubcellLimiterIDP)
-    (; local_minmax, positivity) = limiter
+    (; local_minmax, positivity, spec_entropy, math_entropy) = limiter
     (; idp_bounds_delta) = limiter.cache
     variables = varnames(cons2cons, semi.equations)
 
@@ -134,6 +140,14 @@ end
             println("-lower bound: ", idp_bounds_delta[Symbol(v_string, "_min")][2])
             println("-upper bound: ", idp_bounds_delta[Symbol(v_string, "_max")][2])
         end
+    end
+    if spec_entropy
+        println("spec. entropy:\n- lower bound: ",
+                idp_bounds_delta[:spec_entropy_min][2])
+    end
+    if math_entropy
+        println("math. entropy:\n- upper bound: ",
+                idp_bounds_delta[:math_entropy_max][2])
     end
     if positivity
         for v in limiter.positivity_variables_cons

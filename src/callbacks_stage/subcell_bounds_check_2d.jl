@@ -8,7 +8,7 @@
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
                               limiter::SubcellLimiterIDP,
                               time, iter, output_directory, save_errors)
-    (; local_minmax, positivity) = solver.volume_integral.limiter
+    (; local_minmax, positivity, spec_entropy, math_entropy) = solver.volume_integral.limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta) = limiter.cache
 
@@ -31,6 +31,30 @@
             deviation_min[2] = max(deviation_min[2], deviation_min[1])
             deviation_max[2] = max(deviation_max[2], deviation_max[1])
         end
+    end
+    if spec_entropy
+        key = :spec_entropy_min
+        deviation = idp_bounds_delta[key]
+        for element in eachelement(solver, cache), j in eachnode(solver),
+            i in eachnode(solver)
+
+            s = entropy_spec(get_node_vars(u, equations, solver, i, j, element),
+                             equations)
+            deviation[1] = max(deviation[1], variable_bounds[key][i, j, element] - s)
+        end
+        deviation[2] = max(deviation[2], deviation[1])
+    end
+    if math_entropy
+        key = :math_entropy_max
+        deviation = idp_bounds_delta[key]
+        for element in eachelement(solver, cache), j in eachnode(solver),
+            i in eachnode(solver)
+
+            s = entropy_math(get_node_vars(u, equations, solver, i, j, element),
+                             equations)
+            deviation[1] = max(deviation[1], s - variable_bounds[key][i, j, element])
+        end
+        deviation[2] = max(deviation[2], deviation[1])
     end
     if positivity
         for v in limiter.positivity_variables_cons
@@ -72,6 +96,12 @@
                     print(f, ", ", idp_bounds_delta[Symbol(v_string, "_min")][1], ", ",
                           idp_bounds_delta[Symbol(v_string, "_max")][1])
                 end
+            end
+            if spec_entropy
+                print(f, ", ", idp_bounds_delta[:spec_entropy_min][1])
+            end
+            if math_entropy
+                print(f, ", ", idp_bounds_delta[:math_entropy_max][1])
             end
             if positivity
                 for v in limiter.positivity_variables_cons
