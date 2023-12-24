@@ -45,7 +45,7 @@ end
     eachelement(elements::UnstructuredElementContainer2D)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the elements in `elements`. 
+for the elements in `elements`.
 In particular, not the elements themselves are returned.
 """
 @inline function eachelement(elements::UnstructuredElementContainer2D)
@@ -84,24 +84,25 @@ function init_elements!(elements::UnstructuredElementContainer2D, mesh, basis)
     # loop through elements and call the correct constructor based on whether the element is curved
     for element in eachelement(elements)
         if mesh.element_is_curved[element]
-            init_element!(elements, element, basis.nodes,
+            init_element!(elements, element, basis,
                           view(mesh.surface_curves, :, element))
         else # straight sided element
             for i in 1:4, j in 1:2
                 # pull the (x,y) values of these corners out of the global corners array
                 four_corners[i, j] = mesh.corners[j, mesh.element_node_ids[i, element]]
             end
-            init_element!(elements, element, basis.nodes, four_corners)
+            init_element!(elements, element, basis, four_corners)
         end
     end
 end
 
 # initialize all the values in the container of a general element (either straight sided or curved)
-function init_element!(elements, element, nodes, corners_or_surface_curves)
-    calc_node_coordinates!(elements.node_coordinates, element, nodes,
+function init_element!(elements, element, basis::LobattoLegendreBasis,
+                       corners_or_surface_curves)
+    calc_node_coordinates!(elements.node_coordinates, element, get_nodes(basis),
                            corners_or_surface_curves)
 
-    calc_metric_terms!(elements.jacobian_matrix, element, nodes,
+    calc_metric_terms!(elements.jacobian_matrix, element, get_nodes(basis),
                        corners_or_surface_curves)
 
     calc_inverse_jacobian!(elements.inverse_jacobian, element, elements.jacobian_matrix)
@@ -109,7 +110,7 @@ function init_element!(elements, element, nodes, corners_or_surface_curves)
     calc_contravariant_vectors!(elements.contravariant_vectors, element,
                                 elements.jacobian_matrix)
 
-    calc_normal_directions!(elements.normal_directions, element, nodes,
+    calc_normal_directions!(elements.normal_directions, element, get_nodes(basis),
                             corners_or_surface_curves)
 
     return elements
