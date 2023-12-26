@@ -355,7 +355,7 @@ end
             u_local = get_node_vars(u, equations, dg, i, j, element)
             newton_loops_alpha!(alpha, s_min[i, j, element], u_local, i, j, element,
                                 entropy_spec, initial_check_entropy_spec,
-                                final_check_nonnegative, inverse_jacobian,
+                                final_check_standard, inverse_jacobian,
                                 dt, equations, dg, cache, limiter)
         end
     end
@@ -379,7 +379,7 @@ end
             u_local = get_node_vars(u, equations, dg, i, j, element)
             newton_loops_alpha!(alpha, s_max[i, j, element], u_local, i, j, element,
                                 entropy_math, initial_check_entropy_math,
-                                final_check_nonnegative, inverse_jacobian,
+                                final_check_standard, inverse_jacobian,
                                 dt, equations, dg, cache, limiter)
         end
     end
@@ -656,11 +656,13 @@ end
     -dot(variable_derivative(variable, u, equations), dt * antidiffusive_flux)
 end
 
-# Final check
+# Final checks
+# final check for entropy limiting
 @inline function final_check_standard(bound, goal, newton_abstol)
     abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
 end
 
+# final check for nonnegativity limiting
 @inline function final_check_nonnegative(bound, goal, newton_abstol)
     (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 end
