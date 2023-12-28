@@ -1192,7 +1192,7 @@ end
 end
 
 """
-    flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
+    flux_hllc(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations3D)
 
 Computes the HLLC flux (HLL with Contact) for compressible Euler equations developed by E.F. Toro
 [Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
