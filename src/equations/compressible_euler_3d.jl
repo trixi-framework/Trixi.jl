@@ -1331,7 +1331,7 @@ function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
 
     norm_ = norm(normal_direction)
     norm_sq = norm_ * norm_
-    inv_norm_sq = 1.0 / norm_sq
+    inv_norm_sq = inv(norm_sq)
 
     c_ll = sqrt(equations.gamma * p_ll / rho_ll) * norm_
     c_rr = sqrt(equations.gamma * p_rr / rho_rr) * norm_
