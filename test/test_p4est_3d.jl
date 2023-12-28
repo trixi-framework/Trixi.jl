@@ -249,7 +249,7 @@ end
                           2.9790059308254513e-13,
                           1.057154364048074e-12,
                           1.6271428648906294e-12
-                          ],
+                      ],
                       tspan=(0.0, 0.1),
                       surface_flux = flux_hllc)
   # Ensure that we do not have excessive memory allocations
