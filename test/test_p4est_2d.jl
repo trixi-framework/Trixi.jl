@@ -204,20 +204,21 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov.jl with HLLC Flux" begin
-@test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
-                    l2=[
-                        0.4229948321239887,
-                        0.2559038337457483,
-                        0.2559038337457484,
-                        1.2990046683564136
-                    ],
-                    linf=[
-                        1.4989357969730492,
-                        1.325456585141623,
-                        1.3254565851416251,
-                        6.331283015053501],
-                    surface_flux = flux_hllc,
-                    tspan = (0.0, 0.3))
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
+                        l2=[
+                            0.4229948321239887,
+                            0.2559038337457483,
+                            0.2559038337457484,
+                            1.2990046683564136
+                        ],
+                        linf=[
+                            1.4989357969730492,
+                            1.325456585141623,
+                            1.3254565851416251,
+                            6.331283015053501
+                        ],
+                        surface_flux = flux_hllc,
+                        tspan = (0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
