@@ -8,6 +8,7 @@ for human readability.
 
 #### Added
 - AMR for hyperbolic-parabolic equations on 3D `P4estMesh`
+- `flux_hllc` on non-cartesian meshes for `CompressibleEulerEquations{2,3}D`
 
 ## Changes when updating to v0.6 from v0.5.x
 
