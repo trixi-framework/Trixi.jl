@@ -1307,9 +1307,8 @@ function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
         f3 = f_rr[3]
         f4 = f_rr[4]
     else
-        SStar = (rho_ll * v_dot_n_ll * sMu_L - rho_rr * v_dot_n_rr * sMu_R
-                 +
-                 (p_rr - p_ll) * norm_sq) / (rho_ll * sMu_L - rho_rr * sMu_R)
+        SStar = (rho_ll * v_dot_n_ll * sMu_L - rho_rr * v_dot_n_rr * sMu_R +
+                (p_rr - p_ll) * norm_sq) / (rho_ll * sMu_L - rho_rr * sMu_R)
         if Ssl <= 0.0 <= SStar
             densStar = rho_ll * sMu_L / (Ssl - SStar)
             enerStar = e_ll +
