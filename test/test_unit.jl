@@ -1077,6 +1077,46 @@ end
     end
 end
 
+@timed_testset "Consistency check for HLLC flux: CEE" begin
+    # Set up equations and dummy conservative variables state
+    equations = CompressibleEulerEquations2D(1.4)
+    u = SVector(1.1, -0.5, 2.34, 5.5)
+
+    orientations = [1, 2]
+    for orientation in orientations
+        @test flux_hllc(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
+    normal_directions = [SVector(1.0, 0.0),
+        SVector(0.0, 1.0),
+        SVector(0.5, -0.5),
+        SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+        @test flux_hllc(u, u, normal_direction, equations) ≈
+              flux(u, normal_direction, equations)
+    end
+
+    equations = CompressibleEulerEquations3D(1.4)
+    u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
+
+    orientations = [1, 2, 3]
+    for orientation in orientations
+        @test flux_hllc(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
+    normal_directions = [SVector(1.0, 0.0, 0.0),
+        SVector(0.0, 1.0, 0.0),
+        SVector(0.0, 0.0, 1.0),
+        SVector(0.5, -0.5, 0.2),
+        SVector(-1.2, 0.3, 1.4)]
+
+    for normal_direction in normal_directions
+        @test flux_hllc(u, u, normal_direction, equations) ≈
+              flux(u, normal_direction, equations)
+    end
+end
+
 @timed_testset "Consistency check for Godunov flux" begin
     # Set up equations and dummy conservative variables state
     # Burgers' Equation
@@ -1301,7 +1341,7 @@ end
         u_values = [SVector(1.0, 0.5, -0.7, 1.0),
             SVector(1.5, -0.2, 0.1, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            flux_hll, FluxHLL(min_max_speed_davis), flux_hlle]
+            flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc]
 
         for f_std in fluxes
             f_rot = FluxRotated(f_std)
@@ -1324,8 +1364,8 @@ end
         u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
             SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            FluxLMARS(340),
-            flux_hll, FluxHLL(min_max_speed_davis), flux_hlle]
+            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc,
+        ]
 
         for f_std in fluxes
             f_rot = FluxRotated(f_std)
