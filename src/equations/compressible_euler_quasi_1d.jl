@@ -194,13 +194,16 @@ Further details are available in the paper:
     return SVector(z, a_ll * p_avg, z, z)
 end
 
-@inline function flux_nonconservative_chan_etal(u_ll, u_rr, normal_direction::AbstractVector, 
+@inline function flux_nonconservative_chan_etal(u_ll, u_rr,
+                                                normal_direction::AbstractVector,
                                                 equations::CompressibleEulerEquationsQuasi1D)
-    return normal_direction[1] * flux_nonconservative_chan_etal(u_ll, u_rr, 1, equations)
+    return normal_direction[1] *
+           flux_nonconservative_chan_etal(u_ll, u_rr, 1, equations)
 end
 
-@inline function flux_nonconservative_chan_etal(u_ll, u_rr, 
-                                                normal_ll::AbstractVector, normal_rr::AbstractVector, 
+@inline function flux_nonconservative_chan_etal(u_ll, u_rr,
+                                                normal_ll::AbstractVector,
+                                                normal_rr::AbstractVector,
                                                 equations::CompressibleEulerEquationsQuasi1D)
     # normal_ll should be equal to normal_rr in 1D
     return flux_nonconservative_chan_etal(u_ll, u_rr, normal_ll, equations)
@@ -246,7 +249,7 @@ Further details are available in the paper:
     return SVector(f1, f2, f3, zero(eltype(u_ll)))
 end
 
-@inline function flux_chan_etal(u_ll, u_rr, normal_direction::AbstractVector, 
+@inline function flux_chan_etal(u_ll, u_rr, normal_direction::AbstractVector,
                                 equations::CompressibleEulerEquationsQuasi1D)
     return normal_direction[1] * flux_chan_etal(u_ll, u_rr, 1, equations)
 end
