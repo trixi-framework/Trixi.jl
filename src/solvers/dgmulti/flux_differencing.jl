@@ -60,7 +60,7 @@ end
         for j in col_ids
             u_j = u[j]
             f_ij = volume_flux(u_i, u_j, orientation, equations)
-            du_i = du_i + 2 * A[i, j] * f_ij 
+            du_i = du_i + 2 * A[i, j] * f_ij
         end
         du[i] = du_i
     end
