@@ -163,6 +163,7 @@ end
     @test maximum(dg.basis.rst[1])≈1 atol=0.35
 end
 
+# tests a non-conservative system
 @trixi_testset "elixir_euler_quasi_1d.jl (SBP) " begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d.jl"),
                         cells_per_dimension=(8,),
