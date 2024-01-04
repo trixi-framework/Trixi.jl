@@ -242,7 +242,7 @@ Should be used together with [`TreeMesh`](@ref).
     else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
     end
-    
+
     return flux
 end
 
