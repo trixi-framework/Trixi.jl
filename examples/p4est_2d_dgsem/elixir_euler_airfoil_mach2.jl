@@ -47,8 +47,8 @@ end
 
 d = 3
 
-surface_flux = flux_lax_friedrichs # LOCAL Lax-Friedrichs = Rusanov flux
-volume_flux  = flux_ranocha # For advanced DG technique (flux splitting)
+surface_flux = flux_lax_friedrichs
+volume_flux  = flux_ranocha
 
 basis = LobattoLegendreBasis(d)
 shock_indicator = IndicatorHennemannGassner(equations, basis,
@@ -99,7 +99,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-# positivity limiter necessary for this example with strong shocks. Very sensitive
+# Positivity limiter might be necessary for examples with strong shocks. Very sensitive
 # to the order of the limiter variables, pressure must come first.
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-7, 1.0e-6),
                                                      variables = (pressure, Trixi.density))
