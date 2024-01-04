@@ -152,6 +152,11 @@ end
 """
     flux_nonconservative_chan_etal(u_ll, u_rr, orientation::Integer,
                                    equations::ShallowWaterEquationsQuasi1D)
+    flux_nonconservative_chan_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                   equations::ShallowWaterEquationsQuasi1D)    
+    flux_nonconservative_chan_etal(u_ll, u_rr, 
+                                   normal_ll::AbstractVector, normal_rr::AbstractVector,
+                                   equations::ShallowWaterEquationsQuasi1D)    
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the bottom topography [`ShallowWaterEquationsQuasi1D`](@ref) 
