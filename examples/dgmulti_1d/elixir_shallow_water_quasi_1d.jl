@@ -20,7 +20,8 @@ dg = DGMulti(polydeg = 4, element_type = Line(), approximation_type = SBP(),
 
 cells_per_dimension = (8,)
 mesh = DGMultiMesh(dg, cells_per_dimension,
-                   coordinates_min = (0.0,), coordinates_max = (sqrt(2),), periodicity = true)
+                   coordinates_min = (0.0,), coordinates_max = (sqrt(2),),
+                   periodicity = true)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     source_terms = source_terms_convergence_test)
 
