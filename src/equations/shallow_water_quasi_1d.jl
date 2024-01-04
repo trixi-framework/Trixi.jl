@@ -181,6 +181,11 @@ Further details are available in the paper:
     return SVector(z, equations.gravity * a_ll * h_ll * (h_rr + b_rr), z, z)
 end
 
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
+# the normal component is incorporated into the numerical flux. 
+# 
+# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a 
+# similar implementation.
 @inline function flux_nonconservative_chan_etal(u_ll, u_rr,
                                                 normal_direction::AbstractVector,
                                                 equations::ShallowWaterEquationsQuasi1D)
@@ -224,6 +229,11 @@ Further details are available in the paper:
     return SVector(f1, f2, zero(eltype(u_ll)), zero(eltype(u_ll)))
 end
 
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
+# the normal component is incorporated into the numerical flux. 
+# 
+# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a 
+# similar implementation.
 @inline function flux_chan_etal(u_ll, u_rr, normal_direction::AbstractVector,
                                 equations::ShallowWaterEquationsQuasi1D)
     return normal_direction[1] * flux_chan_etal(u_ll, u_rr, 1, equations)
