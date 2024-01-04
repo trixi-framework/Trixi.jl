@@ -345,11 +345,14 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 - `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
                                                 independent of domain partitioning. Should be `false` for static meshes
                                                 to permit more fine-grained partitioning.
+- `boundary_symbols::Vector{Symbol}`: A vector of symbols that correspond to the boundary names in the `meshfile`.
+                                      If `nothing` is passed then all boundaries are named `:all`.                                                
 """
 function P4estMesh{NDIMS}(meshfile::String;
                           mapping = nothing, polydeg = 1, RealT = Float64,
                           initial_refinement_level = 0, unsaved_changes = true,
-                          p4est_partition_allow_for_coarsening = true) where {NDIMS}
+                          p4est_partition_allow_for_coarsening = true,
+                          boundary_symbols = nothing) where {NDIMS}
     # Prevent `p4est` from crashing Julia if the file doesn't exist
     @assert isfile(meshfile)
 
@@ -367,13 +370,24 @@ function P4estMesh{NDIMS}(meshfile::String;
                                                                                               NDIMS,
                                                                                               RealT)
     else
-        # Mesh curvature is handled directly by applying the mapping keyword argument
-        p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_standard_abaqus(meshfile,
-                                                                                              mapping,
-                                                                                              polydeg,
-                                                                                              initial_refinement_level,
-                                                                                              NDIMS,
-                                                                                              RealT)
+        if boundary_symbols === nothing
+            # Mesh curvature is handled directly by applying the mapping keyword argument
+            p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_standard_abaqus(meshfile,
+                                                                                                mapping,
+                                                                                                polydeg,
+                                                                                                initial_refinement_level,
+                                                                                                NDIMS,
+                                                                                                RealT)
+        else
+            # Mesh curvature is handled directly by applying the mapping keyword argument
+            p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_standard_abaqus(meshfile,
+                                                                                                mapping,
+                                                                                                polydeg,
+                                                                                                initial_refinement_level,
+                                                                                                NDIMS,
+                                                                                                RealT,
+                                                                                                boundary_symbols)
+        end
     end
 
     return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
@@ -471,6 +485,148 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
 
     # There's no simple and generic way to distinguish boundaries. Name all of them :all.
     boundary_names = fill(:all, 2 * n_dimensions, n_trees)
+
+    return p4est, tree_node_coordinates, nodes, boundary_names
+end
+
+function parse_elements(meshfile, n_trees)
+    element_node_matrix = Matrix{Int64}(undef, n_trees, 4)
+    el_list_follows = false
+
+    tree_id = 1
+    open(meshfile, "r") do file
+        for line in eachline(file)
+            # Check if the line contains nodes assembled in special set, i.e., boundary
+            if startswith(line, "*ELEMENT, type=CPS4")
+                el_list_follows = true
+            elseif el_list_follows
+                content = split(line, ",")
+                if length(content) == 5
+                    content_int = parse.(Int64, content)
+                    element_node_matrix[tree_id, :] = content_int[2:end]
+                    tree_id += 1
+                else
+                    el_list_follows = false
+                end
+            end
+        end
+    end
+
+    return element_node_matrix
+end
+
+# TODO: NSET probably sufficient
+function parse_sets(set_type , meshfile, boundary_symbols)
+    @assert set_type == "NSET" || set_type == "ELSET" "Only NSET and ELSET are supported"
+    nodes_dict = Dict{Symbol, Vector{Int64}}()
+    current_symbol = nothing
+    current_nodes = Int64[]
+
+    other_set_type = set_type == "NSET" ? "ELSET" : "NSET"
+
+    open(meshfile, "r") do file
+        for line in eachline(file)
+            # Check if the line contains nodes assembled in special set, i.e., boundary
+            if startswith(line, "*" * set_type * "," * set_type * "=")
+                # Safe the previous nodeset
+                if current_symbol !== nothing
+                    nodes_dict[current_symbol] = current_nodes
+                end
+                current_symbol = Symbol(split(line, "=")[2])
+                current_nodes = Int64[]
+            elseif startswith(line, "*" * other_set_type * "," * other_set_type * "=")
+                # Safe the previous nodeset
+                if current_symbol !== nothing
+                    nodes_dict[current_symbol] = current_nodes
+                end
+                # Ignore the other set type
+                current_symbol = nothing
+            elseif current_symbol !== nothing # Read only if there was already a nodeset specified
+                append!(current_nodes, parse.(Int64, split(line, ",")[1:end-1]))
+            end
+        end
+        if current_symbol !== nothing
+            nodes_dict[current_symbol] = current_nodes
+        end
+    end
+
+    for key in keys(nodes_dict)
+        if key ∉ boundary_symbols
+            delete!(nodes_dict, key)
+        end
+    end
+
+    return nodes_dict
+end
+
+# Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
+# and a list of boundary names for the `P4estMesh`. The tree node coordinates are computed according to
+# the `mapping` passed to this function using polynomial interpolants of degree `polydeg`. All boundary
+# names are given the name `:all`.
+function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
+                                         initial_refinement_level, n_dimensions, RealT,
+                                         boundary_symbols)
+    # Create the mesh connectivity using `p4est`
+    connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
+    connectivity_pw = PointerWrapper(connectivity)
+
+    # These need to be of the type Int for unsafe_wrap below to work
+    n_trees::Int = connectivity_pw.num_trees[]
+    n_vertices::Int = connectivity_pw.num_vertices[]
+
+    vertices = unsafe_wrap(Array, connectivity_pw.vertices, (3, n_vertices))
+    tree_to_vertex = unsafe_wrap(Array, connectivity_pw.tree_to_vertex,
+                                 (2^n_dimensions, n_trees))
+
+    basis = LobattoLegendreBasis(RealT, polydeg)
+    nodes = basis.nodes
+
+    tree_node_coordinates = Array{RealT, n_dimensions + 2}(undef, n_dimensions,
+                                                           ntuple(_ -> length(nodes),
+                                                                  n_dimensions)...,
+                                                           n_trees)
+    calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices,
+                                tree_to_vertex)
+
+    p4est = new_p4est(connectivity, initial_refinement_level)
+
+    node_set_dict = parse_sets("NSET", meshfile, boundary_symbols)
+    #println(node_set_dict)
+
+    element_set_dict = parse_sets("ELSET", meshfile, boundary_symbols)
+    #println(element_set_dict)
+
+    element_node_matrix = parse_elements(meshfile, n_trees)
+
+    boundary_names = fill(Symbol("---"), 2 * n_dimensions, n_trees)
+
+    for tree in 1:n_trees
+        tree_nodes = element_node_matrix[tree, :]
+        for boundary in keys(node_set_dict)
+            # Check bottom edge
+            if tree_nodes[1] in node_set_dict[boundary] && tree_nodes[2] in node_set_dict[boundary]
+                # Bottom boundary is position 3 in p4est indexing
+                boundary_names[3, tree] = boundary
+            end
+            # Check right edge
+            if tree_nodes[2] in node_set_dict[boundary] && tree_nodes[3] in node_set_dict[boundary]
+                # Right boundary is position 2 in p4est indexing
+                boundary_names[2, tree] = boundary
+            end
+            # Check top edge
+            if tree_nodes[3] in node_set_dict[boundary] && tree_nodes[4] in node_set_dict[boundary]
+                # Top boundary is position 4 in p4est indexing
+                boundary_names[4, tree] = boundary
+            end
+            # Check left edge
+            if tree_nodes[4] in node_set_dict[boundary] && tree_nodes[1] in node_set_dict[boundary]
+                # Left boundary is position 1 in p4est indexing
+                boundary_names[1, tree] = boundary
+            end
+        end
+    end
+
+    println(boundary_names)
 
     return p4est, tree_node_coordinates, nodes, boundary_names
 end
