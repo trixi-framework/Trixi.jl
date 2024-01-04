@@ -496,16 +496,18 @@ function parse_elements(meshfile, n_trees)
     tree_id = 1
     open(meshfile, "r") do file
         for line in eachline(file)
-            # Check if the line contains nodes assembled in special set, i.e., boundary
-            if startswith(line, "*ELEMENT, type=CPS4")
+            # Check for quadrilateral elements
+            if startswith(line, "*ELEMENT, type=CPS4") || startswith(line, "*ELEMENT, type=C2D4") || 
+               startswith(line, "*ELEMENT, type=S4") # TODO: 3D: C3D8
                 el_list_follows = true
             elseif el_list_follows
                 content = split(line, ",")
-                if length(content) == 5
+                if length(content) == 5 # Check that we still read in connectivity data
                     content_int = parse.(Int64, content)
-                    element_node_matrix[tree_id, :] = content_int[2:end]
+                    # Add constituent nodes to the element_node_matrix
+                    element_node_matrix[tree_id, :] = content_int[2:end] # First entry is element id
                     tree_id += 1
-                else
+                else # Read all elements for this ELSET
                     el_list_follows = false
                 end
             end
@@ -591,6 +593,9 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
 
     for tree in 1:n_trees
         tree_nodes = element_node_matrix[tree, :]
+        # For node labeling, see 
+        # https://docs.software.vt.edu/abaqusv2022/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
+        # and search for "Node ordering and face numbering on elements"
         for boundary in keys(node_set_dict)
             # Check bottom edge
             if tree_nodes[1] in node_set_dict[boundary] && tree_nodes[2] in node_set_dict[boundary]
@@ -614,6 +619,10 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
             end
         end
     end
+    # TODO: 3D
+    # Admitted 3D element: C3D8
+    # See for node numbering:
+    # https://web.mit.edu/calculix_v2.7/CalculiX/ccx_2.7/doc/ccx/node26.html
 
     return p4est, tree_node_coordinates, nodes, boundary_names
 end
