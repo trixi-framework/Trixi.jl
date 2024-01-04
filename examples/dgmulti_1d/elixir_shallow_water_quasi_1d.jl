@@ -1,6 +1,5 @@
 using OrdinaryDiffEq
 using Trixi
-using ForwardDiff
 
 ###############################################################################
 # Semidiscretization of the quasi 1d shallow water equations
