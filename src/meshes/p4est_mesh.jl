@@ -515,33 +515,24 @@ function parse_elements(meshfile, n_trees)
     return element_node_matrix
 end
 
-# TODO: NSET probably sufficient
-function parse_sets(set_type , meshfile, boundary_symbols)
-    @assert set_type == "NSET" || set_type == "ELSET" "Only NSET and ELSET are supported"
+function parse_node_sets(meshfile, boundary_symbols)
     nodes_dict = Dict{Symbol, Vector{Int64}}()
     current_symbol = nothing
     current_nodes = Int64[]
 
-    other_set_type = set_type == "NSET" ? "ELSET" : "NSET"
-
     open(meshfile, "r") do file
         for line in eachline(file)
             # Check if the line contains nodes assembled in special set, i.e., boundary
-            if startswith(line, "*" * set_type * "," * set_type * "=")
+            if startswith(line, "*NSET,NSET=")
                 # Safe the previous nodeset
                 if current_symbol !== nothing
                     nodes_dict[current_symbol] = current_nodes
                 end
+                # New nodeset
                 current_symbol = Symbol(split(line, "=")[2])
                 current_nodes = Int64[]
-            elseif startswith(line, "*" * other_set_type * "," * other_set_type * "=")
-                # Safe the previous nodeset
-                if current_symbol !== nothing
-                    nodes_dict[current_symbol] = current_nodes
-                end
-                # Ignore the other set type
-                current_symbol = nothing
             elseif current_symbol !== nothing # Read only if there was already a nodeset specified
+                # There is always a trailing comma, remove the corresponding empty string
                 append!(current_nodes, parse.(Int64, split(line, ",")[1:end-1]))
             end
         end
@@ -550,6 +541,7 @@ function parse_sets(set_type , meshfile, boundary_symbols)
         end
     end
 
+    # Remove all nodesets that are not boundaries
     for key in keys(nodes_dict)
         if key ∉ boundary_symbols
             delete!(nodes_dict, key)
@@ -590,12 +582,9 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
 
     p4est = new_p4est(connectivity, initial_refinement_level)
 
-    node_set_dict = parse_sets("NSET", meshfile, boundary_symbols)
-    #println(node_set_dict)
-
-    element_set_dict = parse_sets("ELSET", meshfile, boundary_symbols)
-    #println(element_set_dict)
-
+    # Read in nodes belonging to boundaries
+    node_set_dict = parse_node_sets(meshfile, boundary_symbols)
+    # Read in all elements with associated nodes to specify the boundaries
     element_node_matrix = parse_elements(meshfile, n_trees)
 
     boundary_names = fill(Symbol("---"), 2 * n_dimensions, n_trees)
@@ -625,8 +614,6 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
             end
         end
     end
-
-    println(boundary_names)
 
     return p4est, tree_node_coordinates, nodes, boundary_names
 end
