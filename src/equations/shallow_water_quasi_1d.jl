@@ -176,6 +176,18 @@ Further details are available in the paper:
     return SVector(z, equations.gravity * a_ll * h_ll * (h_rr + b_rr), z, z)
 end
 
+@inline function flux_nonconservative_chan_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                                equations::ShallowWaterEquationsQuasi1D)    
+    return normal_direction[1] * flux_nonconservative_chan_etal(u_ll, u_rr, 1, equations)
+end
+
+@inline function flux_nonconservative_chan_etal(u_ll, u_rr, 
+                                                normal_ll::AbstractVector, normal_rr::AbstractVector,
+                                                equations::ShallowWaterEquationsQuasi1D)    
+    # normal_ll should be equal to normal_rr                                                
+    return flux_nonconservative_chan_etal(u_ll, u_rr, normal_ll, equations) 
+end
+
 """
     flux_chan_etal(u_ll, u_rr, orientation,
                    equations::ShallowWaterEquationsQuasi1D)
@@ -202,6 +214,11 @@ Further details are available in the paper:
     f2 = f1 * 0.5 * (v_ll + v_rr)
 
     return SVector(f1, f2, zero(eltype(u_ll)), zero(eltype(u_ll)))
+end
+
+@inline function flux_chan_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                equations::ShallowWaterEquationsQuasi1D)    
+    return normal_direction[1] * flux_chan_etal(u_ll, u_rr, 1, equations)
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
