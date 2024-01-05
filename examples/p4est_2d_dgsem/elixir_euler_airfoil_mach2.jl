@@ -50,7 +50,7 @@ polydeg = 3
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 
-basis = LobattoLegendreBasis(d)
+basis = LobattoLegendreBasis(polydeg)
 shock_indicator = IndicatorHennemannGassner(equations, basis,
                                             alpha_max = 0.5,
                                             alpha_min = 0.001,
