@@ -152,6 +152,11 @@ end
 """
     flux_nonconservative_chan_etal(u_ll, u_rr, orientation::Integer,
                                    equations::ShallowWaterEquationsQuasi1D)
+    flux_nonconservative_chan_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                   equations::ShallowWaterEquationsQuasi1D)    
+    flux_nonconservative_chan_etal(u_ll, u_rr, 
+                                   normal_ll::AbstractVector, normal_rr::AbstractVector,
+                                   equations::ShallowWaterEquationsQuasi1D)    
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the bottom topography [`ShallowWaterEquationsQuasi1D`](@ref) 
@@ -174,6 +179,26 @@ Further details are available in the paper:
     z = zero(eltype(u_ll))
 
     return SVector(z, equations.gravity * a_ll * h_ll * (h_rr + b_rr), z, z)
+end
+
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
+# the normal component is incorporated into the numerical flux. 
+# 
+# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a 
+# similar implementation.
+@inline function flux_nonconservative_chan_etal(u_ll, u_rr,
+                                                normal_direction::AbstractVector,
+                                                equations::ShallowWaterEquationsQuasi1D)
+    return normal_direction[1] *
+           flux_nonconservative_chan_etal(u_ll, u_rr, 1, equations)
+end
+
+@inline function flux_nonconservative_chan_etal(u_ll, u_rr,
+                                                normal_ll::AbstractVector,
+                                                normal_rr::AbstractVector,
+                                                equations::ShallowWaterEquationsQuasi1D)
+    # normal_ll should be equal to normal_rr                                                
+    return flux_nonconservative_chan_etal(u_ll, u_rr, normal_ll, equations)
 end
 
 """
@@ -202,6 +227,16 @@ Further details are available in the paper:
     f2 = f1 * 0.5 * (v_ll + v_rr)
 
     return SVector(f1, f2, zero(eltype(u_ll)), zero(eltype(u_ll)))
+end
+
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
+# the normal component is incorporated into the numerical flux. 
+# 
+# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a 
+# similar implementation.
+@inline function flux_chan_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                equations::ShallowWaterEquationsQuasi1D)
+    return normal_direction[1] * flux_chan_etal(u_ll, u_rr, 1, equations)
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
