@@ -2,8 +2,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the shallow water equations with a discontinuous
-# bottom topography function
+# Semidiscretization of the shallow water equations
 
 equations = ShallowWaterEquations2D(gravity_constant = 9.81, H0 = 3.25)
 
@@ -37,7 +36,7 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
-# Get the TreeMesh and setup a periodic mesh
+# Get the TreeMesh and setup a non-periodic mesh
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
@@ -62,8 +61,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 1000
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_integrals = (lake_at_rest_error,))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
