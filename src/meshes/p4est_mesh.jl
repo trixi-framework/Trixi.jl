@@ -372,12 +372,12 @@ function P4estMesh{NDIMS}(meshfile::String;
     else
         # Mesh curvature is handled directly by applying the mapping keyword argument
         p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_standard_abaqus(meshfile,
-                                                                                            mapping,
-                                                                                            polydeg,
-                                                                                            initial_refinement_level,
-                                                                                            NDIMS,
-                                                                                            RealT,
-                                                                                            boundary_symbols)
+                                                                                              mapping,
+                                                                                              polydeg,
+                                                                                              initial_refinement_level,
+                                                                                              NDIMS,
+                                                                                              RealT,
+                                                                                              boundary_symbols)
     end
 
     return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
