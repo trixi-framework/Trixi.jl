@@ -42,7 +42,7 @@ function initial_condition_constant_alfven(x, t, equations)
     Va = omega / (ny * sqr)
     phi_alv = omega / ny * (nx * (x[1] - 0.5 * r) + ny * (x[2] - 0.5 * r)) - Va * t
 
-    rho = 1.0 + e*cos(phi_alv + 1.0)
+    rho = 1.0 + e * cos(phi_alv + 1.0)
     v1 = -e * ny * cos(phi_alv) / rho
     v2 = e * nx * cos(phi_alv) / rho
     v3 = e * sin(phi_alv) / rho
@@ -59,7 +59,6 @@ initial_condition = initial_condition_constant_alfven
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver)
-
 
 ###############################################################################
 # ODE solvers, callbacks etc.

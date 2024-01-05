@@ -43,45 +43,46 @@ function initial_condition_constant_alfven(x, t, equations)
     Va = omega / (ny * sqr)
     phi_alv = omega / ny * (nx * (x[1] - 0.5 * r) + ny * (x[2] - 0.5 * r)) - Va * t
 
-   k = 2*pi
-   rho = 1.0
-   v1 = 0
-   v2 = -e*sin(k*x[1])*sqrt(rho)
-   v3 = 0
-   B1 = 1
-   B2 = e*sin(k*x[1])
-   B3 = 0
-   p = 1
-   psi = 0
+    k = 2 * pi
+    rho = 1.0
+    v1 = 0
+    v2 = -e * sin(k * x[1]) * sqrt(rho)
+    v3 = 0
+    B1 = 1
+    B2 = e * sin(k * x[1])
+    B3 = 0
+    p = 1
+    psi = 0
 
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
-
 
 @inline function source_terms_mhd_convergence_test(u, x, t, equations)
     sm = -1
     se = -1
 
     r_1 = 0.0
-    r_2 = 0.0004*pi*sin(4*pi*x[1])
-    r_3 = pi*(0.08*pi*sm*mu_const*sin(2*pi*x[1]) - 0.04*cos(2*pi*x[1]))
+    r_2 = 0.0004 * pi * sin(4 * pi * x[1])
+    r_3 = pi * (0.08 * pi * sm * mu_const * sin(2 * pi * x[1]) - 0.04 * cos(2 * pi * x[1]))
     r_4 = 0.0
-    r_5 = pi*(-0.0016*pi*se*eta_const*sin(2*pi*x[1])^2 + 0.0016*pi*se*eta_const*cos(2*pi*x[1])^2 + pi*sm*mu_const*(0.0016 - 0.0111111111111111*sm*mu_const)*cos(4*pi*x[1]) + 0.0008*sin(4*pi*x[1]))
+    r_5 = pi * (-0.0016 * pi * se * eta_const * sin(2 * pi * x[1])^2 +
+           0.0016 * pi * se * eta_const * cos(2 * pi * x[1])^2 +
+           pi * sm * mu_const * (0.0016 - 0.0111111111111111 * sm * mu_const) *
+           cos(4 * pi * x[1]) + 0.0008 * sin(4 * pi * x[1]))
     r_6 = 0.0
-    r_7 = pi*(-0.08*pi*se*eta_const*sin(2*pi*x[1]) + 0.04*cos(2*pi*x[1]))
+    r_7 = pi *
+          (-0.08 * pi * se * eta_const * sin(2 * pi * x[1]) + 0.04 * cos(2 * pi * x[1]))
     r_8 = 0.0
     r_9 = 0.0
 
-     return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
+    return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
-
 
 initial_condition = initial_condition_constant_alfven
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
                                              source_terms = source_terms_mhd_convergence_test)
-
 
 ###############################################################################
 # ODE solvers, callbacks etc.
