@@ -18,6 +18,20 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
     @assert all(index_min .> 0)
     @assert index_max <= size(parent)
 
+#    # Calculate the domain boundaries.
+#    coordinates_min = 
+#    coordinates_max = 
+#    mapping = coordinates2mapping(coordinates_min, coordinates_max)
+#    mapping_as_string = """
+#        coordinates_min = $coordinates_min
+#        coordinates_max = $coordinates_max
+#        mapping = coordinates2mapping(coordinates_min, coordinates_max)
+#        """
+#
+#    return StructuredMeshView{NDIMS, RealT}(parent, mapping, mapping_as_string,
+#                                            parent.current_filename,
+#                                            index_min, index_max, parent.unsaved_changes)
+#
     return StructuredMeshView{NDIMS, RealT}(parent, parent.mapping, parent.mapping_as_string,
                                             parent.current_filename,
                                             index_min, index_max, parent.unsaved_changes)
