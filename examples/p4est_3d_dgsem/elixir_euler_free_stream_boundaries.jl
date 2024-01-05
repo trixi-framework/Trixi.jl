@@ -10,8 +10,8 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_constant
 
-d = 2
-solver = DGSEM(polydeg = d, surface_flux = flux_lax_friedrichs)
+polydeg = 3
+solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
 
 ###############################################################################
 # Get the uncurved mesh from a file (downloads the file if not available locally)
@@ -25,7 +25,7 @@ mesh_file = default_mesh_file
 boundary_symbols = [:PhysicalSurface1]
 
 # Map the unstructured mesh with the mapping above
-mesh = P4estMesh{3}(mesh_file, polydeg = d, boundary_symbols = boundary_symbols)
+mesh = P4estMesh{3}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
 
 boundary_conditions = Dict(:PhysicalSurface1 => BoundaryConditionDirichlet(initial_condition))
 
@@ -45,7 +45,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 2.0)
+stepsize_callback = StepsizeCallback(cfl = 1.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
