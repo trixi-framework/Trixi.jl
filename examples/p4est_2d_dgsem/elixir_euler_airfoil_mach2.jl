@@ -45,7 +45,7 @@ end
     return flux
 end
 
-d = 3
+polydeg = 3
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
@@ -61,7 +61,7 @@ volume_integral = VolumeIntegralShockCapturingHG(shock_indicator;
                                                  volume_flux_fv = surface_flux)
 
 # DG Solver                                                 
-solver = DGSEM(polydeg = d, surface_flux = surface_flux,
+solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
 mesh_file = joinpath(@__DIR__, "NACA6412.inp")
@@ -71,7 +71,7 @@ isfile(mesh_file) ||
 
 boundary_symbols = [:PhysicalLine10, :PhysicalLine20, :PhysicalLine30, :PhysicalLine40]
 
-mesh = P4estMesh{2}(mesh_file, polydeg = d, boundary_symbols = boundary_symbols)
+mesh = P4estMesh{2}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
 
 boundary_conditions = Dict(:PhysicalLine10 => boundary_condition_supersonic_inflow, # Left boundary
                            :PhysicalLine20 => boundary_condition_outflow, # Right boundary
