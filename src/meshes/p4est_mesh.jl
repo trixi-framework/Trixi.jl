@@ -370,24 +370,14 @@ function P4estMesh{NDIMS}(meshfile::String;
                                                                                               NDIMS,
                                                                                               RealT)
     else
-        if boundary_symbols === nothing
-            # Mesh curvature is handled directly by applying the mapping keyword argument
-            p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_standard_abaqus(meshfile,
-                                                                                                mapping,
-                                                                                                polydeg,
-                                                                                                initial_refinement_level,
-                                                                                                NDIMS,
-                                                                                                RealT)
-        else
-            # Mesh curvature is handled directly by applying the mapping keyword argument
-            p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_standard_abaqus(meshfile,
-                                                                                                mapping,
-                                                                                                polydeg,
-                                                                                                initial_refinement_level,
-                                                                                                NDIMS,
-                                                                                                RealT,
-                                                                                                boundary_symbols)
-        end
+        # Mesh curvature is handled directly by applying the mapping keyword argument
+        p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_standard_abaqus(meshfile,
+                                                                                            mapping,
+                                                                                            polydeg,
+                                                                                            initial_refinement_level,
+                                                                                            NDIMS,
+                                                                                            RealT,
+                                                                                            boundary_symbols)
     end
 
     return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
@@ -458,7 +448,8 @@ end
 # the `mapping` passed to this function using polynomial interpolants of degree `polydeg`. All boundary
 # names are given the name `:all`.
 function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
-                                         initial_refinement_level, n_dimensions, RealT)
+                                         initial_refinement_level, n_dimensions, RealT,
+                                         boundary_symbols)
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
     connectivity_pw = PointerWrapper(connectivity)
@@ -483,8 +474,51 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
 
     p4est = new_p4est(connectivity, initial_refinement_level)
 
-    # There's no simple and generic way to distinguish boundaries. Name all of them :all.
-    boundary_names = fill(:all, 2 * n_dimensions, n_trees)
+    if boundary_symbols === nothing
+        # There's no simple and generic way to distinguish boundaries. Name all of them :all.
+        boundary_names = fill(:all, 2 * n_dimensions, n_trees)
+    else # Boundary information supplied
+        # Read in nodes belonging to boundaries
+        node_set_dict = parse_node_sets(meshfile, boundary_symbols)
+        # Read in all elements with associated nodes to specify the boundaries
+        element_node_matrix = parse_elements(meshfile, n_trees)
+        
+        # Initialize boundary information matrix with symbol for no boundary / internal connection
+        boundary_names = fill(Symbol("---"), 2 * n_dimensions, n_trees)
+
+        for tree in 1:n_trees
+            tree_nodes = element_node_matrix[tree, :]
+            # For node labeling, see 
+            # https://docs.software.vt.edu/abaqusv2022/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
+            # and search for "Node ordering and face numbering on elements"
+            for boundary in keys(node_set_dict)
+                # Check bottom edge
+                if tree_nodes[1] in node_set_dict[boundary] && tree_nodes[2] in node_set_dict[boundary]
+                    # Bottom boundary is position 3 in p4est indexing
+                    boundary_names[3, tree] = boundary
+                end
+                # Check right edge
+                if tree_nodes[2] in node_set_dict[boundary] && tree_nodes[3] in node_set_dict[boundary]
+                    # Right boundary is position 2 in p4est indexing
+                    boundary_names[2, tree] = boundary
+                end
+                # Check top edge
+                if tree_nodes[3] in node_set_dict[boundary] && tree_nodes[4] in node_set_dict[boundary]
+                    # Top boundary is position 4 in p4est indexing
+                    boundary_names[4, tree] = boundary
+                end
+                # Check left edge
+                if tree_nodes[4] in node_set_dict[boundary] && tree_nodes[1] in node_set_dict[boundary]
+                    # Left boundary is position 1 in p4est indexing
+                    boundary_names[1, tree] = boundary
+                end
+            end
+        end
+        # TODO: 3D
+        # Admitted 3D element: C3D8
+        # See for node numbering:
+        # https://web.mit.edu/calculix_v2.7/CalculiX/ccx_2.7/doc/ccx/node26.html
+    end
 
     return p4est, tree_node_coordinates, nodes, boundary_names
 end
@@ -551,80 +585,6 @@ function parse_node_sets(meshfile, boundary_symbols)
     end
 
     return nodes_dict
-end
-
-# Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
-# and a list of boundary names for the `P4estMesh`. The tree node coordinates are computed according to
-# the `mapping` passed to this function using polynomial interpolants of degree `polydeg`. All boundary
-# names are given the name `:all`.
-function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
-                                         initial_refinement_level, n_dimensions, RealT,
-                                         boundary_symbols)
-    # Create the mesh connectivity using `p4est`
-    connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
-    connectivity_pw = PointerWrapper(connectivity)
-
-    # These need to be of the type Int for unsafe_wrap below to work
-    n_trees::Int = connectivity_pw.num_trees[]
-    n_vertices::Int = connectivity_pw.num_vertices[]
-
-    vertices = unsafe_wrap(Array, connectivity_pw.vertices, (3, n_vertices))
-    tree_to_vertex = unsafe_wrap(Array, connectivity_pw.tree_to_vertex,
-                                 (2^n_dimensions, n_trees))
-
-    basis = LobattoLegendreBasis(RealT, polydeg)
-    nodes = basis.nodes
-
-    tree_node_coordinates = Array{RealT, n_dimensions + 2}(undef, n_dimensions,
-                                                           ntuple(_ -> length(nodes),
-                                                                  n_dimensions)...,
-                                                           n_trees)
-    calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices,
-                                tree_to_vertex)
-
-    p4est = new_p4est(connectivity, initial_refinement_level)
-
-    # Read in nodes belonging to boundaries
-    node_set_dict = parse_node_sets(meshfile, boundary_symbols)
-    # Read in all elements with associated nodes to specify the boundaries
-    element_node_matrix = parse_elements(meshfile, n_trees)
-
-    boundary_names = fill(Symbol("---"), 2 * n_dimensions, n_trees)
-
-    for tree in 1:n_trees
-        tree_nodes = element_node_matrix[tree, :]
-        # For node labeling, see 
-        # https://docs.software.vt.edu/abaqusv2022/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
-        # and search for "Node ordering and face numbering on elements"
-        for boundary in keys(node_set_dict)
-            # Check bottom edge
-            if tree_nodes[1] in node_set_dict[boundary] && tree_nodes[2] in node_set_dict[boundary]
-                # Bottom boundary is position 3 in p4est indexing
-                boundary_names[3, tree] = boundary
-            end
-            # Check right edge
-            if tree_nodes[2] in node_set_dict[boundary] && tree_nodes[3] in node_set_dict[boundary]
-                # Right boundary is position 2 in p4est indexing
-                boundary_names[2, tree] = boundary
-            end
-            # Check top edge
-            if tree_nodes[3] in node_set_dict[boundary] && tree_nodes[4] in node_set_dict[boundary]
-                # Top boundary is position 4 in p4est indexing
-                boundary_names[4, tree] = boundary
-            end
-            # Check left edge
-            if tree_nodes[4] in node_set_dict[boundary] && tree_nodes[1] in node_set_dict[boundary]
-                # Left boundary is position 1 in p4est indexing
-                boundary_names[1, tree] = boundary
-            end
-        end
-    end
-    # TODO: 3D
-    # Admitted 3D element: C3D8
-    # See for node numbering:
-    # https://web.mit.edu/calculix_v2.7/CalculiX/ccx_2.7/doc/ccx/node26.html
-
-    return p4est, tree_node_coordinates, nodes, boundary_names
 end
 
 """
