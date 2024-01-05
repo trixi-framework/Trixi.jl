@@ -481,7 +481,7 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
         # Read in nodes belonging to boundaries
         node_set_dict = parse_node_sets(meshfile, boundary_symbols)
         # Read in all elements with associated nodes to specify the boundaries
-        element_node_matrix = parse_elements(meshfile, n_trees)
+        element_node_matrix = parse_elements(meshfile, n_trees, n_dimensions)
         
         # Initialize boundary information matrix with symbol for no boundary / internal connection
         boundary_names = fill(Symbol("---"), 2 * n_dimensions, n_trees)
@@ -523,20 +523,24 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
     return p4est, tree_node_coordinates, nodes, boundary_names
 end
 
-function parse_elements(meshfile, n_trees)
+function parse_elements(meshfile, n_trees, n_dims)
     element_node_matrix = Matrix{Int64}(undef, n_trees, 4)
     el_list_follows = false
-
     tree_id = 1
+
+    @assert n_dims ∈ [2, 3] "Only 2D and 3D meshes are supported"
+    element_types = n_dims == 2 ? ["*ELEMENT, type=CPS4", "*ELEMENT, type=C2D4", "*ELEMENT, type=S4"] : 
+                                  ["*ELEMENT, type=C3D8"]
+    # 2D quads: 4 nodes + element index, 3D hexes: 8 nodes + element index                                                               
+    expected_content_length = n_dims == 2 ? 5 : 9
+
     open(meshfile, "r") do file
         for line in eachline(file)
-            # Check for quadrilateral elements
-            if startswith(line, "*ELEMENT, type=CPS4") || startswith(line, "*ELEMENT, type=C2D4") || 
-               startswith(line, "*ELEMENT, type=S4") # TODO: 3D: C3D8
+            if any(startswith(line, el_type) for el_type in element_types)
                 el_list_follows = true
             elseif el_list_follows
                 content = split(line, ",")
-                if length(content) == 5 # Check that we still read in connectivity data
+                if length(content) == expected_content_length # Check that we still read in connectivity data
                     content_int = parse.(Int64, content)
                     # Add constituent nodes to the element_node_matrix
                     element_node_matrix[tree_id, :] = content_int[2:end] # First entry is element id
@@ -564,6 +568,12 @@ function parse_node_sets(meshfile, boundary_symbols)
                 if current_symbol !== nothing
                     nodes_dict[current_symbol] = current_nodes
                 end
+
+                # Read only boundary node sets
+                if current_symbol ∉ boundary_symbols
+                    current_symbol = nothing
+                end
+
                 # New nodeset
                 current_symbol = Symbol(split(line, "=")[2])
                 current_nodes = Int64[]
@@ -576,14 +586,14 @@ function parse_node_sets(meshfile, boundary_symbols)
             nodes_dict[current_symbol] = current_nodes
         end
     end
-
+    #=
     # Remove all nodesets that are not boundaries
     for key in keys(nodes_dict)
         if key ∉ boundary_symbols
             delete!(nodes_dict, key)
         end
     end
-
+    =#
     return nodes_dict
 end
 
