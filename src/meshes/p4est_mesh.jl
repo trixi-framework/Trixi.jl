@@ -645,6 +645,7 @@ function parse_node_sets(meshfile, boundary_symbols)
                 append!(current_nodes, parse.(Int64, split(line, ",")[1:(end - 1)]))
             end
         end
+        # Safe the previous nodeset
         if current_symbol !== nothing
             nodes_dict[current_symbol] = current_nodes
         end
