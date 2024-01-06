@@ -24,7 +24,6 @@ mesh_file = default_mesh_file
 
 boundary_symbols = [:PhysicalSurface1]
 
-# Map the unstructured mesh with the mapping above
 mesh = P4estMesh{3}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
 
 boundary_conditions = Dict(:PhysicalSurface1 => BoundaryConditionDirichlet(initial_condition))
