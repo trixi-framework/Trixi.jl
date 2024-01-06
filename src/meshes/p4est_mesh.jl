@@ -626,7 +626,7 @@ function parse_node_sets(meshfile, boundary_symbols)
 
     open(meshfile, "r") do file
         for line in eachline(file)
-            # Check if the line contains nodes assembled in special set, i.e., boundary
+            # Check if the line contains nodes assembled in a special set, i.e., a physical boundary
             if startswith(line, "*NSET,NSET=")
                 # Safe the previous nodeset
                 if current_symbol !== nothing
