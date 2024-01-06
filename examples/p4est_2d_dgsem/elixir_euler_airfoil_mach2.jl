@@ -37,7 +37,7 @@ end
 # Supersonic outflow boundary condition.
 # Calculate the boundary flux entirely from the internal solution state. Analogous to supersonic inflow
 # except all the solution state values are set from the internal solution as everything leaves the domain
-@inline function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x, t,
+@inline function boundary_condition_supersonic_outflow(u_inner, normal_direction::AbstractVector, x, t,
                                             surface_flux_function,
                                             equations::CompressibleEulerEquations2D)
     flux = Trixi.flux(u_inner, normal_direction, equations)
