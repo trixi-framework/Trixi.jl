@@ -74,9 +74,9 @@ boundary_symbols = [:PhysicalLine10, :PhysicalLine20, :PhysicalLine30, :Physical
 mesh = P4estMesh{2}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
 
 boundary_conditions = Dict(:PhysicalLine10 => boundary_condition_supersonic_inflow, # Left boundary
-                           :PhysicalLine20 => boundary_condition_outflow, # Right boundary
+                           :PhysicalLine20 => boundary_condition_supersonic_outflow, # Right boundary
                            :PhysicalLine30 => boundary_condition_slip_wall, # Airfoil
-                           :PhysicalLine40 => boundary_condition_outflow) # Top and bottom boundary
+                           :PhysicalLine40 => boundary_condition_supersonic_outflow) # Top and bottom boundary
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
