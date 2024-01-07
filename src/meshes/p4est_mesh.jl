@@ -577,7 +577,7 @@ function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
         # For node labeling, see 
         # https://docs.software.vt.edu/abaqusv2022/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
         # and search for "Node ordering and face numbering on elements"
-        for boundary in keys(node_set_dict)
+        for boundary in keys(node_set_dict) # Loop over specified boundaries
             # Check bottom edge
             if tree_nodes[1] in node_set_dict[boundary] &&
                tree_nodes[2] in node_set_dict[boundary]
@@ -617,7 +617,7 @@ function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
         tree_nodes = element_node_matrix[tree, :]
         # For node labeling, see 
         # https://web.mit.edu/calculix_v2.7/CalculiX/ccx_2.7/doc/ccx/node26.html
-        for boundary in keys(node_set_dict)
+        for boundary in keys(node_set_dict) # Loop over specified boundaries
             # Check "front face" (y_min)
             if tree_nodes[1] in node_set_dict[boundary] &&
                tree_nodes[2] in node_set_dict[boundary] &&
