@@ -16,17 +16,18 @@ solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
 ###############################################################################
 # Get the uncurved mesh from a file (downloads the file if not available locally)
 
-default_mesh_file = joinpath(@__DIR__, "cube_boundaries.inp")
+default_mesh_file = joinpath(@__DIR__, "mesh_cube_with_boundaries.inp")
 isfile(default_mesh_file) ||
-    download("https://gist.github.com/DanielDoehring/eefe73ae5d113bc3944a518b6e88e663/raw/359a58a808790f3c3efc050273270eb1cc8ee353/cube_boundaries.inp",
+    download("https://gist.githubusercontent.com/DanielDoehring/710eab379fe3042dc08af6f2d1076e49/raw/38e9803bc0dab9b32a61d9542feac5343c3e6f4b/mesh_cube_with_boundaries.inp",
              default_mesh_file)
 mesh_file = default_mesh_file
 
-boundary_symbols = [:PhysicalSurface1]
+boundary_symbols = [:PhysicalSurface1, :PhysicalSurface2]
 
 mesh = P4estMesh{3}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
 
-boundary_conditions = Dict(:PhysicalSurface1 => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = Dict(:PhysicalSurface1 => BoundaryConditionDirichlet(initial_condition),
+                           :PhysicalSurface2 => BoundaryConditionDirichlet(initial_condition))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
