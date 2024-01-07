@@ -479,7 +479,7 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
         # There's no simple and generic way to distinguish boundaries without any information given.
         # Name all of them :all.
         boundary_names = fill(:all, 2 * n_dimensions, n_trees)
-    else # Boundary information supplied
+    else # Boundary information given
         # Read in nodes belonging to boundaries
         node_set_dict = parse_node_sets(meshfile, boundary_symbols)
         # Read in all elements with associated nodes to specify the boundaries
