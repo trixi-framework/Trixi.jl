@@ -100,7 +100,7 @@ callbacks = CallbackSet(summary_callback,
 # Run the simulation
 ###############################################################################
 sol = solve(ode, SSPRK104(; thread = OrdinaryDiffEq.True());
-            dt = 42.0, # overwritten
+            dt = 1.0, # overwritten by the `stepsize_callback`
             callback = callbacks);
 
 summary_callback() # print the timer summary

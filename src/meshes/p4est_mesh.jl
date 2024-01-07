@@ -476,7 +476,8 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
     p4est = new_p4est(connectivity, initial_refinement_level)
 
     if boundary_symbols === nothing
-        # There's no simple and generic way to distinguish boundaries. Name all of them :all.
+        # There's no simple and generic way to distinguish boundaries without any information given.
+        # Name all of them :all.
         boundary_names = fill(:all, 2 * n_dimensions, n_trees)
     else # Boundary information supplied
         # Read in nodes belonging to boundaries
@@ -487,97 +488,10 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
         # Initialize boundary information matrix with symbol for no boundary / internal connection
         boundary_names = fill(Symbol("---"), 2 * n_dimensions, n_trees)
 
-        if n_dimensions == 2
-            for tree in 1:n_trees
-                tree_nodes = element_node_matrix[tree, :]
-                # For node labeling, see 
-                # https://docs.software.vt.edu/abaqusv2022/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
-                # and search for "Node ordering and face numbering on elements"
-                for boundary in keys(node_set_dict)
-                    # Check bottom edge
-                    if tree_nodes[1] in node_set_dict[boundary] &&
-                       tree_nodes[2] in node_set_dict[boundary]
-                        # Bottom boundary is position 3 in p4est indexing
-                        boundary_names[3, tree] = boundary
-                    end
-                    # Check right edge
-                    if tree_nodes[2] in node_set_dict[boundary] &&
-                       tree_nodes[3] in node_set_dict[boundary]
-                        # Right boundary is position 2 in p4est indexing
-                        boundary_names[2, tree] = boundary
-                    end
-                    # Check top edge
-                    if tree_nodes[3] in node_set_dict[boundary] &&
-                       tree_nodes[4] in node_set_dict[boundary]
-                        # Top boundary is position 4 in p4est indexing
-                        boundary_names[4, tree] = boundary
-                    end
-                    # Check left edge
-                    if tree_nodes[4] in node_set_dict[boundary] &&
-                       tree_nodes[1] in node_set_dict[boundary]
-                        # Left boundary is position 1 in p4est indexing
-                        boundary_names[1, tree] = boundary
-                    end
-                end
-            end
-        else # n_dimensions == 3
-            # Admitted 3D element: C3D8
-            for tree in 1:n_trees
-                tree_nodes = element_node_matrix[tree, :]
-                # For node labeling, see 
-                # https://web.mit.edu/calculix_v2.7/CalculiX/ccx_2.7/doc/ccx/node26.html
-                for boundary in keys(node_set_dict)
-                    # Check "front face" (y_min)
-                    if tree_nodes[1] in node_set_dict[boundary] &&
-                       tree_nodes[2] in node_set_dict[boundary] &&
-                       tree_nodes[5] in node_set_dict[boundary] &&
-                       tree_nodes[6] in node_set_dict[boundary]
-                        # Front face is position 3 in p4est indexing
-                        boundary_names[3, tree] = boundary
-                    end
-                    # Check "back face" (y_max)
-                    if tree_nodes[3] in node_set_dict[boundary] &&
-                       tree_nodes[4] in node_set_dict[boundary] &&
-                       tree_nodes[7] in node_set_dict[boundary] &&
-                       tree_nodes[8] in node_set_dict[boundary]
-                        # Front face is position 4 in p4est indexing
-                        boundary_names[4, tree] = boundary
-                    end
-                    # Check "left face" (x_min)
-                    if tree_nodes[1] in node_set_dict[boundary] &&
-                       tree_nodes[4] in node_set_dict[boundary] &&
-                       tree_nodes[5] in node_set_dict[boundary] &&
-                       tree_nodes[8] in node_set_dict[boundary]
-                        # Left face is position 1 in p4est indexing
-                        boundary_names[1, tree] = boundary
-                    end
-                    # Check "right face" (x_max)
-                    if tree_nodes[2] in node_set_dict[boundary] &&
-                       tree_nodes[3] in node_set_dict[boundary] &&
-                       tree_nodes[6] in node_set_dict[boundary] &&
-                       tree_nodes[7] in node_set_dict[boundary]
-                        # Right face is position 2 in p4est indexing
-                        boundary_names[2, tree] = boundary
-                    end
-                    # Check "bottom face" (z_min)
-                    if tree_nodes[1] in node_set_dict[boundary] &&
-                       tree_nodes[2] in node_set_dict[boundary] &&
-                       tree_nodes[3] in node_set_dict[boundary] &&
-                       tree_nodes[4] in node_set_dict[boundary]
-                        # Bottom face is position 5 in p4est indexing
-                        boundary_names[5, tree] = boundary
-                    end
-                    # Check "top face" (z_max)
-                    if tree_nodes[5] in node_set_dict[boundary] &&
-                       tree_nodes[6] in node_set_dict[boundary] &&
-                       tree_nodes[7] in node_set_dict[boundary] &&
-                       tree_nodes[8] in node_set_dict[boundary]
-                        # Top face is position 6 in p4est indexing
-                        boundary_names[6, tree] = boundary
-                    end
-                end
-            end
-        end
+        # Fill `boundary_names` such that it can be processed by p4est
+        assign_boundaries_standard_abaqus!(boundary_names, n_trees,
+                                           element_node_matrix, node_set_dict,
+                                           Val(n_dimensions))
     end
 
     return p4est, tree_node_coordinates, nodes, boundary_names
@@ -604,7 +518,8 @@ function parse_elements(meshfile, n_trees, n_dims)
                 content = split(line, ",")
                 if length(content) == expected_content_length # Check that we still read in connectivity data
                     content_int = parse.(Int64, content)
-                    # Add constituent nodes to the element_node_matrix
+                    # Add constituent nodes to the element_node_matrix.
+                    # Important: Do not use idex form the Abaqus file, but the one from p4est
                     element_node_matrix[tree_id, :] = content_int[2:end] # First entry is element id
                     tree_id += 1
                 else # Read all elements for this ELSET
@@ -650,6 +565,107 @@ function parse_node_sets(meshfile, boundary_symbols)
     end
 
     return nodes_dict
+end
+
+function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
+                                            element_node_matrix, node_set_dict,
+                                            ::Val{2}) # 2D version
+    for tree in 1:n_trees
+        tree_nodes = element_node_matrix[tree, :]
+        # For node labeling, see 
+        # https://docs.software.vt.edu/abaqusv2022/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
+        # and search for "Node ordering and face numbering on elements"
+        for boundary in keys(node_set_dict)
+            # Check bottom edge
+            if tree_nodes[1] in node_set_dict[boundary] &&
+               tree_nodes[2] in node_set_dict[boundary]
+                # Bottom boundary is position 3 in p4est indexing
+                boundary_names[3, tree] = boundary
+            end
+            # Check right edge
+            if tree_nodes[2] in node_set_dict[boundary] &&
+               tree_nodes[3] in node_set_dict[boundary]
+                # Right boundary is position 2 in p4est indexing
+                boundary_names[2, tree] = boundary
+            end
+            # Check top edge
+            if tree_nodes[3] in node_set_dict[boundary] &&
+               tree_nodes[4] in node_set_dict[boundary]
+                # Top boundary is position 4 in p4est indexing
+                boundary_names[4, tree] = boundary
+            end
+            # Check left edge
+            if tree_nodes[4] in node_set_dict[boundary] &&
+               tree_nodes[1] in node_set_dict[boundary]
+                # Left boundary is position 1 in p4est indexing
+                boundary_names[1, tree] = boundary
+            end
+        end
+    end
+
+    return boundary_names
+end
+
+function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
+                                            element_node_matrix, node_set_dict,
+                                            ::Val{3}) # 3D version
+    for tree in 1:n_trees
+        tree_nodes = element_node_matrix[tree, :]
+        # For node labeling, see 
+        # https://web.mit.edu/calculix_v2.7/CalculiX/ccx_2.7/doc/ccx/node26.html
+        for boundary in keys(node_set_dict)
+            # Check "front face" (y_min)
+            if tree_nodes[1] in node_set_dict[boundary] &&
+               tree_nodes[2] in node_set_dict[boundary] &&
+               tree_nodes[5] in node_set_dict[boundary] &&
+               tree_nodes[6] in node_set_dict[boundary]
+                # Front face is position 3 in p4est indexing
+                boundary_names[3, tree] = boundary
+            end
+            # Check "back face" (y_max)
+            if tree_nodes[3] in node_set_dict[boundary] &&
+               tree_nodes[4] in node_set_dict[boundary] &&
+               tree_nodes[7] in node_set_dict[boundary] &&
+               tree_nodes[8] in node_set_dict[boundary]
+                # Front face is position 4 in p4est indexing
+                boundary_names[4, tree] = boundary
+            end
+            # Check "left face" (x_min)
+            if tree_nodes[1] in node_set_dict[boundary] &&
+               tree_nodes[4] in node_set_dict[boundary] &&
+               tree_nodes[5] in node_set_dict[boundary] &&
+               tree_nodes[8] in node_set_dict[boundary]
+                # Left face is position 1 in p4est indexing
+                boundary_names[1, tree] = boundary
+            end
+            # Check "right face" (x_max)
+            if tree_nodes[2] in node_set_dict[boundary] &&
+               tree_nodes[3] in node_set_dict[boundary] &&
+               tree_nodes[6] in node_set_dict[boundary] &&
+               tree_nodes[7] in node_set_dict[boundary]
+                # Right face is position 2 in p4est indexing
+                boundary_names[2, tree] = boundary
+            end
+            # Check "bottom face" (z_min)
+            if tree_nodes[1] in node_set_dict[boundary] &&
+               tree_nodes[2] in node_set_dict[boundary] &&
+               tree_nodes[3] in node_set_dict[boundary] &&
+               tree_nodes[4] in node_set_dict[boundary]
+                # Bottom face is position 5 in p4est indexing
+                boundary_names[5, tree] = boundary
+            end
+            # Check "top face" (z_max)
+            if tree_nodes[5] in node_set_dict[boundary] &&
+               tree_nodes[6] in node_set_dict[boundary] &&
+               tree_nodes[7] in node_set_dict[boundary] &&
+               tree_nodes[8] in node_set_dict[boundary]
+                # Top face is position 6 in p4est indexing
+                boundary_names[6, tree] = boundary
+            end
+        end
+    end
+
+    return boundary_names
 end
 
 """
