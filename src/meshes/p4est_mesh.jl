@@ -289,7 +289,8 @@ end
     P4estMesh{NDIMS}(meshfile::String;
                      mapping=nothing, polydeg=1, RealT=Float64,
                      initial_refinement_level=0, unsaved_changes=true,
-                     p4est_partition_allow_for_coarsening=true)
+                     p4est_partition_allow_for_coarsening=true,
+                     boundary_symbols = nothing)
 
 Main mesh constructor for the `P4estMesh` that imports an unstructured, conforming
 mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
@@ -584,13 +585,10 @@ end
 
 function parse_elements(meshfile, n_trees, n_dims)
     @assert n_dims ∈ [2, 3] "Only 2D and 3D meshes are supported"
+    # Valid element types (that can be processed by p4est) based on dimension
     element_types = n_dims == 2 ?
-                    [
-        "*ELEMENT, type=CPS4",
-        "*ELEMENT, type=C2D4",
-        "*ELEMENT, type=S4",
-    ] :
-                    ["*ELEMENT, type=C3D8"]
+                    ["*ELEMENT, type=CPS4", "*ELEMENT, type=C2D4",
+        "*ELEMENT, type=S4"] : ["*ELEMENT, type=C3D8"]
     # 2D quads: 4 nodes + element index, 3D hexes: 8 nodes + element index                                                               
     expected_content_length = n_dims == 2 ? 5 : 9
 
