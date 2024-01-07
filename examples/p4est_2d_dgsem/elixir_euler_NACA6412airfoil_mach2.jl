@@ -66,6 +66,8 @@ volume_integral = VolumeIntegralShockCapturingHG(shock_indicator;
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
+# Mesh generated from the following gmsh geometry input file:
+# https://gist.githubusercontent.com/DanielDoehring/5ade6d93629f0d8c23a598812dbee2a9/raw/d2bc904fe92146eae1a36156e7f5c535dc1a80f1/NACA6412.geo
 mesh_file = joinpath(@__DIR__, "mesh_NACA6412.inp")
 isfile(mesh_file) ||
     download("https://gist.githubusercontent.com/DanielDoehring/e2a389f04f1e37b33819b9637e8ee4c3/raw/4bf7607a2ce4432fdb5cb87d5e264949b11bd5d7/mesh_NACA6412.inp",
