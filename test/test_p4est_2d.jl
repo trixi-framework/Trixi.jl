@@ -391,15 +391,15 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_airfoil_mach2.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_airfoil_mach2.jl"),
+@trixi_testset "elixir_euler_NACA6412airfoil_mach2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_NACA6412airfoil_mach2.jl"),
                         l2=[
-                            1.682112049215034e-10, 3.439606229463632e-10,
-                            1.973815936404324e-10, 7.666245265417042e-10,
+                            1.9752162683735258e-9, 3.150450205812513e-9,
+                            1.8885499402935914e-9, 7.273629602920966e-9,
                         ],
                         linf=[
-                            2.636251394960709e-8, 4.4272578936244145e-8,
-                            2.8049958258193942e-8, 1.0125492977408612e-7,
+                            6.007577890709825e-7, 1.005273289944597e-6,
+                            5.948514542597182e-7, 2.3111764217986774e-6,
                         ],
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations

@@ -66,19 +66,19 @@ volume_integral = VolumeIntegralShockCapturingHG(shock_indicator;
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-mesh_file = joinpath(@__DIR__, "NACA6412.inp")
+mesh_file = joinpath(@__DIR__, "mesh_NACA6412.inp")
 isfile(mesh_file) ||
-    download("https://gist.github.com/DanielDoehring/b434005800a1b0c0b4b50a8772283019/raw/1f6649b3370163d75d268176b51775f8685dd81d/NACA6412.inp",
+    download("https://gist.githubusercontent.com/DanielDoehring/e2a389f04f1e37b33819b9637e8ee4c3/raw/4bf7607a2ce4432fdb5cb87d5e264949b11bd5d7/mesh_NACA6412.inp",
              mesh_file)
 
-boundary_symbols = [:PhysicalLine10, :PhysicalLine20, :PhysicalLine30, :PhysicalLine40]
+boundary_symbols = [:PhysicalLine1, :PhysicalLine2, :PhysicalLine3, :PhysicalLine4]
 
 mesh = P4estMesh{2}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
 
-boundary_conditions = Dict(:PhysicalLine10 => boundary_condition_supersonic_inflow, # Left boundary
-                           :PhysicalLine20 => boundary_condition_supersonic_outflow, # Right boundary
-                           :PhysicalLine30 => boundary_condition_slip_wall, # Airfoil
-                           :PhysicalLine40 => boundary_condition_supersonic_outflow) # Top and bottom boundary
+boundary_conditions = Dict(:PhysicalLine1 => boundary_condition_supersonic_inflow, # Left boundary
+                           :PhysicalLine2 => boundary_condition_supersonic_outflow, # Right boundary
+                           :PhysicalLine3 => boundary_condition_slip_wall, # Airfoil
+                           :PhysicalLine4 => boundary_condition_supersonic_outflow) # Top and bottom boundary
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
