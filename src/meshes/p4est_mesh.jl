@@ -567,6 +567,8 @@ function parse_node_sets(meshfile, boundary_symbols)
     return nodes_dict
 end
 
+# This function assigns the edges of elements to boundaries by
+# checking if the nodes of the edges are part of nodesets which correspond to boundaries.
 function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                                             element_node_matrix, node_set_dict,
                                             ::Val{2}) # 2D version
@@ -606,6 +608,8 @@ function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
     return boundary_names
 end
 
+# This function assigns the edges of elements to boundaries by
+# checking if the nodes of the edges are part of nodesets which correspond to boundaries.
 function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                                             element_node_matrix, node_set_dict,
                                             ::Val{3}) # 3D version
