@@ -8,27 +8,6 @@
 using OrdinaryDiffEq
 using Trixi
 
-using MPI
-using T8code
-using T8code.Libt8: SC_LP_ESSENTIAL
-using T8code.Libt8: SC_LP_PRODUCTION
-
-#
-# Initialization.
-#
-
-# Initialize MPI. This has to happen before we initialize sc or t8code.
-# mpiret = MPI.Init()
-
-# We will use MPI_COMM_WORLD as a communicator.
-comm = MPI.COMM_WORLD
-
-# Initialize the sc library, has to happen before we initialize t8code.
-T8code.Libt8.sc_init(comm, 1, 1, C_NULL, SC_LP_ESSENTIAL)
-# Initialize t8code with log level SC_LP_PRODUCTION. See sc.h for more info on the log levels.
-t8_init(SC_LP_PRODUCTION)
-
-
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 gamma = 1.4
@@ -99,11 +78,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
-
-#
-# Clean-up
-#
-
-t8_forest_unref(Ref(mesh.forest))
-T8code.Libt8.sc_finalize()
-# MPI.Finalize()
