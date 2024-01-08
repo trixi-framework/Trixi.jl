@@ -6,24 +6,23 @@ using Trixi
 
 equations = ShallowWaterEquations2D(gravity_constant = 9.81, H0 = 3.25)
 
-# An initial condition with a perturbation in the waterheight to test boundary_condition_slip_wall
-function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquations2D)
+# An initial condition with a bottom topography and a perturbation in the waterheight to test 
+# boundary_condition_slip_wall
+function initial_condition_perturbation(x, t, equations::ShallowWaterEquations2D)
     # Set the background values
     H = equations.H0
     v1 = 0.0
     v2 = 0.0
 
-    x1, x2 = x
-    b = 0.0
-
+    # Bottom topography
+    b = 1.5 * exp(-0.5 * ((x[1])^2 + (x[2])^2))
     # Waterheight perturbation
-    r = (x[1])^2 + (x[2])^2
-    H = H + 0.5 * exp(-10 * r)
+    H = H + 0.5 * exp(-10.0 * ((x[1])^2 + (x[2])^2))
 
     return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
-initial_condition = initial_condition_well_balancedness
+initial_condition = initial_condition_perturbation
 
 boundary_condition = boundary_condition_slip_wall
 
