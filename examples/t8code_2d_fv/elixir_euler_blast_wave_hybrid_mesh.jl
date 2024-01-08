@@ -55,7 +55,7 @@ initial_condition = initial_condition_blast_wave
 solver = FV(order = 1, surface_flux = flux_lax_friedrichs)
 
 initial_refinement_level = 4
-mesh = T8codeMesh{2}(Trixi.cmesh_new_periodic_hybrid2, initial_refinement_level)
+mesh = T8codeFVMesh{2}(Trixi.cmesh_new_periodic_hybrid2, initial_refinement_level)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 

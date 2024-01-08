@@ -6,12 +6,12 @@
 #! format: noindent
 
 """
-    T8codeMesh{NDIMS} <: AbstractMesh{NDIMS}
+    T8codeFVMesh{NDIMS} <: AbstractMesh{NDIMS}
 
 An unstructured curved mesh based on trees that uses the library `t8code`
 to manage trees and mesh refinement.
 """
-mutable struct T8codeMesh{NDIMS, RealT <: Real, Forest} <: AbstractMesh{NDIMS}
+mutable struct T8codeFVMesh{NDIMS, RealT <: Real, Forest} <: AbstractMesh{NDIMS}
     forest::Forest
     number_trees_global::Int
     number_trees_local::Int
@@ -22,7 +22,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, Forest} <: AbstractMesh{NDIMS}
     current_filename::String
     unsaved_changes::Bool
 
-    function T8codeMesh{NDIMS}(mesh_function, initial_refinement_level;
+    function T8codeFVMesh{NDIMS}(mesh_function, initial_refinement_level;
                                current_filename = "",
                                unsaved_changes = true) where {NDIMS}
         @assert NDIMS == 2
@@ -68,41 +68,41 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, Forest} <: AbstractMesh{NDIMS}
     end
 end
 
-@inline Base.ndims(::T8codeMesh{NDIMS}) where {NDIMS} = NDIMS
-@inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
+@inline Base.ndims(::T8codeFVMesh{NDIMS}) where {NDIMS} = NDIMS
+@inline Base.real(::T8codeFVMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
-@inline function nelements(mesh::T8codeMesh, solver, cache)
+@inline function nelements(mesh::T8codeFVMesh, solver, cache)
     nelementsglobal(mesh, solver, cache)
 end
 
-@inline function eachelement(mesh::T8codeMesh, solver, cache)
+@inline function eachelement(mesh::T8codeFVMesh, solver, cache)
     eachelement(mesh, solver)
 end
 
-@inline function eachelement(mesh::T8codeMesh, solver)
+@inline function eachelement(mesh::T8codeFVMesh, solver)
     Base.OneTo(mesh.number_elements)
 end
 
-@inline function nelementsglobal(mesh::T8codeMesh, solver, cache)
+@inline function nelementsglobal(mesh::T8codeFVMesh, solver, cache)
     nelementsglobal(mesh)
 end
 
-@inline function nelementsglobal(mesh::T8codeMesh)
+@inline function nelementsglobal(mesh::T8codeFVMesh)
     t8_forest_get_global_num_elements(mesh.forest)
 end
 
-function Base.show(io::IO, mesh::T8codeMesh)
-    print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}(")
+function Base.show(io::IO, mesh::T8codeFVMesh)
+    print(io, "T8codeFVMesh{", ndims(mesh), ", ", real(mesh), "}(")
     print(io, "#trees: ", mesh.number_trees_global)
     print(io, ", #elements: ", nelementsglobal(mesh))
 end
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
+function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeFVMesh)
     if get(io, :compact, false)
         show(io, mesh)
     else
         summary_header(io,
-                       "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
+                       "T8codeFVMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
                        "}")
         summary_line(io, "#trees", mesh.number_trees_global)
         summary_line(io, "#elements", nelementsglobal(mesh))
@@ -110,7 +110,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
     end
 end
 
-function create_cache(mesh::T8codeMesh, equations,
+function create_cache(mesh::T8codeFVMesh, equations,
                       solver, RealT, uEltype)
     elements = init_elements(mesh, RealT, uEltype)
 
@@ -130,7 +130,7 @@ end
 # array of length num_local_elements.
 # We support two types: T8_VTK_SCALAR - One double per element.
 #                  and  T8_VTK_VECTOR - Three doubles per element.
-function output_data_to_vtu(mesh::T8codeMesh, equations, solver, u_, out)
+function output_data_to_vtu(mesh::T8codeFVMesh, equations, solver, u_, out)
     vars = varnames(cons2cons, equations)
 
     vtk_data = Vector{t8_vtk_data_field_t}(undef, nvariables(equations))

@@ -220,7 +220,7 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
     return filename
 end
 
-function save_mesh_file(mesh::T8codeMesh, output_directory,
+function save_mesh_file(mesh::T8codeFVMesh, output_directory,
                         timestep = 0)
     "empty_mesh_file"
 end

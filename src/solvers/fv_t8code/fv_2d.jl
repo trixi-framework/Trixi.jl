@@ -45,7 +45,7 @@ Base.summary(io::IO, solver::FV) = print(io, "FV(order=$(solver.order))")
     ndofs(mesh, solver, cache)
 end
 
-function compute_coefficients!(u, func, t, mesh::T8codeMesh, equations,
+function compute_coefficients!(u, func, t, mesh::T8codeFVMesh, equations,
                                solver::FV, cache)
     for element in eachelement(mesh, solver, cache)
         x_node = SVector(cache.elements[element].midpoint) # Save t8code variables as SVector?
@@ -54,7 +54,7 @@ function compute_coefficients!(u, func, t, mesh::T8codeMesh, equations,
     end
 end
 
-function allocate_coefficients(mesh::T8codeMesh, equations, solver::FV, cache)
+function allocate_coefficients(mesh::T8codeFVMesh, equations, solver::FV, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
     zeros(eltype(cache.elements[1].volume),
@@ -102,7 +102,7 @@ end
                 (nvariables(equations), nelements(mesh, solver, cache)))
 end
 
-function rhs!(du, u, t, mesh::T8codeMesh, equations, initial_condition,
+function rhs!(du, u, t, mesh::T8codeFVMesh, equations, initial_condition,
               boundary_conditions, source_terms::Source, solver::FV,
               cache) where {Source}
     @trixi_timeit timer() "update neighbor data" exchange_solution!(u, mesh, equations,
@@ -166,7 +166,7 @@ function evaluate_interface_values!(mesh, equations, solver, cache)
     return nothing
 end
 
-function get_element_variables!(element_variables, u, mesh::T8codeMesh, equations,
+function get_element_variables!(element_variables, u, mesh::T8codeFVMesh, equations,
                                 solver, cache)
     return nothing
 end
