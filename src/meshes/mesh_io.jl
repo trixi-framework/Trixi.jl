@@ -230,7 +230,7 @@ end
 
 function save_mesh_file(mesh::T8codeFVMesh, output_directory,
                         timestep = 0)
-    "empty_mesh_file"
+    joinpath(output_directory, "dummy_mesh.h5")
 end
 
 """

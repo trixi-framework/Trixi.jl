@@ -76,8 +76,7 @@ function init_elements(mesh::T8codeFVMesh)
 
     # Build an array of our data that is as long as the number of elements plus
     # the number of ghosts.
-    elements = Array{
-                     T8codeElementContainer{n_dims, max_number_faces,
+    elements = Array{T8codeElementContainer{n_dims, max_number_faces,
                                             n_dims * max_number_faces}}(undef,
                                                                         num_local_elements +
                                                                         num_ghost_elements)
@@ -298,8 +297,7 @@ function init_solution!(mesh::T8codeFVMesh, equations)
 
     # Build an array of our data that is as long as the number of elements plus
     # the number of ghosts.
-    u_ = Vector{
-                T8codeSolutionContainer{nvariables(equations)}}(undef,
+    u_ = Vector{T8codeSolutionContainer{nvariables(equations)}}(undef,
                                                                 num_local_elements +
                                                                 num_ghost_elements)
 

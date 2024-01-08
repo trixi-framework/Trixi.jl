@@ -24,9 +24,9 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
 
     # Calculate primitive variables
     rho = r > 0.5 ? 1.0 : 1.1691
-    v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-    v2  = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-    p   = r > 0.5 ? 1.0E-3 : 1.245
+    v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+    v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
+    p = r > 0.5 ? 1.0E-3 : 1.245
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
@@ -44,22 +44,22 @@ ode = semidiscretize(semi, (0.0, 2.0));
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=10,
-                                     solution_variables=cons2prim)
+save_solution = SaveSolutionCallback(interval = 10,
+                                     solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl = 0.5)
 
-callbacks = CallbackSet(summary_callback, save_solution, analysis_callback, alive_callback, stepsize_callback)
-
+callbacks = CallbackSet(summary_callback, save_solution, analysis_callback, alive_callback,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
 summary_callback()
