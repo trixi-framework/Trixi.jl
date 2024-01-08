@@ -198,6 +198,57 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
     return prim2cons(SVector(rho, v1, p), equations)
 end
 
+"""
+    boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                 surface_flux_function, equations::CompressibleEulerEquations1D)
+Determine the boundary numerical surface flux for a slip wall condition.
+Imposes a zero normal velocity at the wall.
+Density is taken from the internal solution state and pressure is computed as an
+exact solution of a 1D Riemann problem. Further details about this boundary state
+are available in the paper:
+- J. J. W. van der Vegt and H. van der Ven (2002)
+  Slip flow boundary conditions in discontinuous Galerkin discretizations of
+  the Euler equations of gas dynamics
+  [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
+
+  Should be used together with [`TreeMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, orientation,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations1D)
+    # compute the primitive variables
+    rho_local, v_normal, p_local = cons2prim(u_inner, equations)
+
+    if isodd(direction) # flip sign of normal to make it outward pointing
+        v_normal *= -1
+    end
+
+    # Get the solution of the pressure Riemann problem
+    # See Section 6.3.3 of
+    # Eleuterio F. Toro (2009)
+    # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
+    # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+    if v_normal <= 0.0
+        sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
+        p_star = p_local *
+                 (1 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2 *
+                                                                             equations.gamma *
+                                                                             equations.inv_gamma_minus_one)
+    else # v_normal > 0.0
+        A = 2 / ((equations.gamma + 1) * rho_local)
+        B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
+        p_star = p_local +
+                 0.5 * v_normal / A *
+                 (v_normal + sqrt(v_normal^2 + 4 * A * (p_local + B)))
+    end
+
+    # For the slip wall we directly set the flux as the normal velocity is zero
+    return SVector(zero(eltype(u_inner)),
+                   p_star,
+                   zero(eltype(u_inner)))
+end
+
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations1D)
     rho, rho_v1, rho_e = u
@@ -357,6 +408,11 @@ See also
     return SVector(f1, f2, f3)
 end
 
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
+# the normal component is incorporated into the numerical flux. 
+# 
+# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a 
+# similar implementation.
 @inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector,
                               equations::CompressibleEulerEquations1D)
     return normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)
@@ -374,7 +430,7 @@ Splitting of the compressible Euler flux of Steger and Warming.
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
-function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -462,7 +518,7 @@ it proved the most robust in practice.
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
-function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -555,7 +611,7 @@ are to handle flows at the low Mach number limit.
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
-function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -628,7 +684,7 @@ end
     return SVector(f1m, f2m, f3m)
 end
 
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# Calculate estimates for maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations1D)
@@ -648,7 +704,7 @@ end
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
-# Calculate minimum and maximum wave speeds for HLL-type fluxes
+# Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations1D)
     rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
@@ -656,6 +712,21 @@ end
 
     λ_min = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
     λ_max = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
+
+    return λ_min, λ_max
+end
+
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
+                                     equations::CompressibleEulerEquations1D)
+    rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
+
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
+    λ_max = max(v1_ll + c_ll, v1_rr + c_rr)
 
     return λ_min, λ_max
 end
@@ -742,7 +813,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
 end
 
 """
-    flux_hlle(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+    min_max_speed_einfeldt(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
 Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
 Special estimates of the signal velocites and linearization of the Riemann problem developed
@@ -759,8 +830,8 @@ Compactly summarized:
   Numerical methods for conservation laws and related equations.
   [Link](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf)
 """
-function flux_hlle(u_ll, u_rr, orientation::Integer,
-                   equations::CompressibleEulerEquations1D)
+@inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
+                                        equations::CompressibleEulerEquations1D)
     # Calculate primitive variables, enthalpy and speed of sound
     rho_ll, v_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v_rr, p_rr = cons2prim(u_rr, equations)
@@ -792,35 +863,7 @@ function flux_hlle(u_ll, u_rr, orientation::Integer,
     SsL = min(v_roe - c_roe, v_ll - beta * c_ll, zero(v_roe))
     SsR = max(v_roe + c_roe, v_rr + beta * c_rr, zero(v_roe))
 
-    if SsL >= 0.0 && SsR > 0.0
-        # Positive supersonic speed
-        f_ll = flux(u_ll, orientation, equations)
-
-        f1 = f_ll[1]
-        f2 = f_ll[2]
-        f3 = f_ll[3]
-    elseif SsR <= 0.0 && SsL < 0.0
-        # Negative supersonic speed
-        f_rr = flux(u_rr, orientation, equations)
-
-        f1 = f_rr[1]
-        f2 = f_rr[2]
-        f3 = f_rr[3]
-    else
-        # Subsonic case
-        # Compute left and right fluxes
-        f_ll = flux(u_ll, orientation, equations)
-        f_rr = flux(u_rr, orientation, equations)
-
-        f1 = (SsR * f_ll[1] - SsL * f_rr[1] + SsL * SsR * (u_rr[1] - u_ll[1])) /
-             (SsR - SsL)
-        f2 = (SsR * f_ll[2] - SsL * f_rr[2] + SsL * SsR * (u_rr[2] - u_ll[2])) /
-             (SsR - SsL)
-        f3 = (SsR * f_ll[3] - SsL * f_rr[3] + SsL * SsR * (u_rr[3] - u_ll[3])) /
-             (SsR - SsL)
-    end
-
-    return SVector(f1, f2, f3)
+    return SsL, SsR
 end
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations1D)

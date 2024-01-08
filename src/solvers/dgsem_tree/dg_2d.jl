@@ -37,14 +37,14 @@ end
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}},
+                                  P4estMesh{2}, T8codeMesh{2}},
                       equations, volume_integral::VolumeIntegralFluxDifferencing,
                       dg::DG, uEltype)
     NamedTuple()
 end
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}}, equations,
+                                  P4estMesh{2}, T8codeMesh{2}}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
     element_ids_dg = Int[]
     element_ids_dgfv = Int[]
@@ -70,7 +70,7 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
 end
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}}, equations,
+                                  P4estMesh{2}, T8codeMesh{2}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
                       uEltype)
     A3dp1_x = Array{uEltype, 3}
@@ -92,7 +92,7 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}},
+                                  P4estMesh{2}, T8codeMesh{2}},
                       equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2,
@@ -110,7 +110,7 @@ end
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
-              mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations,
+              mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, equations,
               initial_condition, boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
@@ -180,7 +180,8 @@ end
 
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           UnstructuredMesh2D, P4estMesh{2}},
+                                           UnstructuredMesh2D, P4estMesh{2},
+                                           T8codeMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -193,6 +194,13 @@ function calc_volume_integral!(du, u,
     return nothing
 end
 
+#=
+`weak_form_kernel!` is only implemented for conserved terms as 
+non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
+see `flux_differencing_kernel!`.
+This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
+See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
+=#
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::TreeMesh{2},
                                    nonconservative_terms::False, equations,
@@ -226,7 +234,8 @@ end
 # from the evaluation of the physical fluxes in each Cartesian direction
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           UnstructuredMesh2D, P4estMesh{2}},
+                                           UnstructuredMesh2D, P4estMesh{2},
+                                           T8codeMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -322,7 +331,8 @@ end
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           UnstructuredMesh2D, P4estMesh{2}},
+                                           UnstructuredMesh2D, P4estMesh{2},
+                                           T8codeMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
@@ -381,7 +391,8 @@ end
 
 @inline function fv_kernel!(du, u,
                             mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                        UnstructuredMesh2D, P4estMesh{2}},
+                                        UnstructuredMesh2D, P4estMesh{2},
+                                        T8codeMesh{2}},
                             nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
@@ -529,23 +540,24 @@ end
 function prolong2interfaces!(cache, u,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
     @unpack interfaces = cache
-    @unpack orientations = interfaces
+    @unpack orientations, neighbor_ids = interfaces
+    interfaces_u = interfaces.u
 
     @threaded for interface in eachinterface(dg, cache)
-        left_element = interfaces.neighbor_ids[1, interface]
-        right_element = interfaces.neighbor_ids[2, interface]
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
 
         if orientations[interface] == 1
             # interface in x-direction
             for j in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[1, v, j, interface] = u[v, nnodes(dg), j, left_element]
-                interfaces.u[2, v, j, interface] = u[v, 1, j, right_element]
+                interfaces_u[1, v, j, interface] = u[v, nnodes(dg), j, left_element]
+                interfaces_u[2, v, j, interface] = u[v, 1, j, right_element]
             end
         else # if orientations[interface] == 2
             # interface in y-direction
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[1, v, i, interface] = u[v, i, nnodes(dg), left_element]
-                interfaces.u[2, v, i, interface] = u[v, i, 1, right_element]
+                interfaces_u[1, v, i, interface] = u[v, i, nnodes(dg), left_element]
+                interfaces_u[2, v, i, interface] = u[v, i, 1, right_element]
             end
         end
     end
@@ -1116,8 +1128,10 @@ end
 
 function apply_jacobian!(du, mesh::TreeMesh{2},
                          equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+
     @threaded for element in eachelement(dg, cache)
-        factor = -cache.elements.inverse_jacobian[element]
+        factor = -inverse_jacobian[element]
 
         for j in eachnode(dg), i in eachnode(dg)
             for v in eachvariable(equations)
@@ -1137,11 +1151,13 @@ end
 
 function calc_sources!(du, u, t, source_terms,
                        equations::AbstractEquations{2}, dg::DG, cache)
+    @unpack node_coordinates = cache.elements
+
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, element)
-            x_local = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
-                                      j, element)
+            x_local = get_node_coords(node_coordinates, equations, dg,
+                                      i, j, element)
             du_local = source_terms(u_local, x_local, t, equations)
             add_to_node_vars!(du, du_local, equations, dg, i, j, element)
         end

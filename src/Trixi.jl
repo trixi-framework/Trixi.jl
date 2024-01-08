@@ -37,7 +37,8 @@ using SciMLBase: CallbackSet, DiscreteCallback,
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
                   AbstractODEIntegrator, init, step!, check_error,
                   get_proposed_dt, set_proposed_dt!,
-                  terminate!, remake
+                  terminate!, remake, add_tstop!, has_tstop, first_tstop
+
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
@@ -51,7 +52,7 @@ using LoopVectorization: LoopVectorization, @turbo, indices
 using StaticArrayInterface: static_length # used by LoopVectorization
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
-using Polyester: @batch # You know, the cheapest threads you can find...
+using Polyester: Polyester, @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
 using T8code
@@ -70,6 +71,7 @@ using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 @reexport using SimpleUnPack: @unpack
 using SimpleUnPack: @pack!
+using DataStructures: BinaryHeap, FasterForward, extract_all!
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,
@@ -111,6 +113,7 @@ include("basic_types.jl")
 include("auxiliary/auxiliary.jl")
 include("auxiliary/mpi.jl")
 include("auxiliary/p4est.jl")
+include("auxiliary/t8code.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
@@ -120,10 +123,10 @@ include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
-include("time_integration/time_integration.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
@@ -138,6 +141,7 @@ export AcousticPerturbationEquations2D,
        CompressibleEulerEquations3D,
        CompressibleEulerMulticomponentEquations1D,
        CompressibleEulerMulticomponentEquations2D,
+       CompressibleEulerEquationsQuasi1D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D,
@@ -148,24 +152,33 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
        ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
-       LinearizedEulerEquations2D
+       ShallowWaterEquationsQuasi1D,
+       LinearizedEulerEquations2D,
+       PolytropicEulerEquations2D
 
-export LaplaceDiffusion1D, LaplaceDiffusion2D,
-       CompressibleNavierStokesDiffusion2D, CompressibleNavierStokesDiffusion3D
+export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
+       CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
+       CompressibleNavierStokesDiffusion3D
 
-export GradientVariablesPrimitive, GradientVariablesEntropy
+export GradientVariablesConservative, GradientVariablesPrimitive, GradientVariablesEntropy
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
-       flux_nonconservative_powell,
+       flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
-       flux_fjordholm_etal, flux_nonconservative_fjordholm_etal, flux_es_fjordholm_etal,
+       flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
+       flux_es_ersing_etal, flux_nonconservative_ersing_etal,
+       flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
+# TODO: TrixiShallowWater: move anything with "chen_noelle" to new file
+       hydrostatic_reconstruction_chen_noelle, flux_nonconservative_chen_noelle,
+       flux_hll_chen_noelle,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
-       FluxHLL, min_max_speed_naive,
+       FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
+       min_max_speed_chen_noelle,
        FluxLMARS,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
@@ -207,7 +220,7 @@ export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
 export lake_at_rest_error
 export ncomponents, eachcomponent
 
-export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh, T8codeFVMesh
+export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh, T8codeMesh, T8codeFVMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
@@ -216,12 +229,17 @@ export DG,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+# TODO: TrixiShallowWater: move new indicator
+       IndicatorHennemannGassnerShallowWater,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
 
 export FV
+
+export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
+       SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
@@ -244,14 +262,14 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled
 
-export load_mesh, load_time
+export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
+       load_adaptive_time_integrator!
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax,
-       IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven,
-       NeuralNetworkCNN
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax
 
-export PositivityPreservingLimiterZhangShu
+# TODO: TrixiShallowWater: move new limiter
+export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterShallowWater
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options
@@ -273,6 +291,7 @@ function __init__()
     init_mpi()
 
     init_p4est()
+    init_t8code()
 
     register_error_hints()
 
@@ -286,10 +305,6 @@ function __init__()
         @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
             include("../ext/TrixiMakieExt.jl")
         end
-    end
-
-    @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
-        using .Flux: params
     end
 
     # FIXME upstream. This is a hacky workaround for

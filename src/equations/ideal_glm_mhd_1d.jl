@@ -259,6 +259,152 @@ Hindenlang and Gassner (2019), extending [`flux_ranocha`](@ref) to the MHD equat
     return SVector(f1, f2, f3, f4, f5, f6, f7, f8)
 end
 
+"""
+    flux_hllc(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations1D)
+
+- Li (2005)
+An HLLC Riemann solver for magneto-hydrodynamics
+[DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020).
+"""
+function flux_hllc(u_ll, u_rr, orientation::Integer,
+                   equations::IdealGlmMhdEquations1D)
+    # Unpack left and right states
+    rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr = cons2prim(u_rr, equations)
+
+    # Total pressure, i.e., thermal + magnetic pressures (eq. (12))
+    p_tot_ll = p_ll + 0.5 * (B1_ll^2 + B2_ll^2 + B3_ll^2)
+    p_tot_rr = p_rr + 0.5 * (B1_rr^2 + B2_rr^2 + B3_rr^2)
+
+    # Conserved variables
+    rho_v1_ll = u_ll[2]
+    rho_v2_ll = u_ll[3]
+    rho_v3_ll = u_ll[4]
+
+    rho_v1_rr = u_rr[2]
+    rho_v2_rr = u_rr[3]
+    rho_v3_rr = u_rr[4]
+
+    # Obtain left and right fluxes
+    f_ll = flux(u_ll, orientation, equations)
+    f_rr = flux(u_rr, orientation, equations)
+
+    SsL, SsR = min_max_speed_einfeldt(u_ll, u_rr, orientation, equations)
+    sMu_L = SsL - v1_ll
+    sMu_R = SsR - v1_rr
+    if SsL >= 0
+        f1 = f_ll[1]
+        f2 = f_ll[2]
+        f3 = f_ll[3]
+        f4 = f_ll[4]
+        f5 = f_ll[5]
+        f6 = f_ll[6]
+        f7 = f_ll[7]
+        f8 = f_ll[8]
+    elseif SsR <= 0
+        f1 = f_rr[1]
+        f2 = f_rr[2]
+        f3 = f_rr[3]
+        f4 = f_rr[4]
+        f5 = f_rr[5]
+        f6 = f_rr[6]
+        f7 = f_rr[7]
+        f8 = f_rr[8]
+    else
+        # Compute the "HLLC-speed", eq. (14) from paper mentioned above
+        #=
+        SStar = (rho_rr * v1_rr * sMu_R - rho_ll * v1_ll * sMu_L + p_tot_ll - p_tot_rr - B1_ll^2 + B1_rr^2 ) /
+                (rho_rr * sMu_R - rho_ll * sMu_L)
+        =#
+        # Simplification for 1D: B1 is constant
+        SStar = (rho_rr * v1_rr * sMu_R - rho_ll * v1_ll * sMu_L + p_tot_ll - p_tot_rr) /
+                (rho_rr * sMu_R - rho_ll * sMu_L)
+
+        Sdiff = SsR - SsL
+
+        # Compute HLL values for vStar, BStar
+        # These correspond to eq. (28) and (30) from the referenced paper 
+        # and the classic HLL intermediate state given by (2)
+        rho_HLL = (SsR * rho_rr - SsL * rho_ll - (f_rr[1] - f_ll[1])) / Sdiff
+
+        v1Star = (SsR * rho_v1_rr - SsL * rho_v1_ll - (f_rr[2] - f_ll[2])) /
+                 (Sdiff * rho_HLL)
+        v2Star = (SsR * rho_v2_rr - SsL * rho_v2_ll - (f_rr[3] - f_ll[3])) /
+                 (Sdiff * rho_HLL)
+        v3Star = (SsR * rho_v3_rr - SsL * rho_v3_ll - (f_rr[4] - f_ll[4])) /
+                 (Sdiff * rho_HLL)
+
+        #B1Star = (SsR * B1_rr - SsL * B1_ll - (f_rr[6] - f_ll[6])) / Sdiff
+        # 1D B1 = constant => B1_ll = B1_rr = B1Star
+        B1Star = B1_ll
+
+        B2Star = (SsR * B2_rr - SsL * B2_ll - (f_rr[7] - f_ll[7])) / Sdiff
+        B3Star = (SsR * B3_rr - SsL * B3_ll - (f_rr[8] - f_ll[8])) / Sdiff
+        if SsL <= SStar
+            SdiffStar = SsL - SStar
+
+            densStar = rho_ll * sMu_L / SdiffStar # (19)
+
+            mom_1_Star = densStar * SStar # (20)
+            mom_2_Star = densStar * v2_ll -
+                         (B1Star * B2Star - B1_ll * B2_ll) / SdiffStar # (21)
+            mom_3_Star = densStar * v3_ll -
+                         (B1Star * B3Star - B1_ll * B3_ll) / SdiffStar # (22)
+
+            #p_tot_Star = rho_ll * sMu_L * (SStar - v1_ll) + p_tot_ll - B1_ll^2 + B1Star^2 # (17)
+            # 1D B1 = constant => B1_ll = B1_rr = B1Star
+            p_tot_Star = rho_ll * sMu_L * (SStar - v1_ll) + p_tot_ll # (17)
+
+            enerStar = u_ll[5] * sMu_L / SdiffStar +
+                       (p_tot_Star * SStar - p_tot_ll * v1_ll - (B1Star *
+                         (B1Star * v1Star + B2Star * v2Star + B3Star * v3Star) -
+                         B1_ll * (B1_ll * v1_ll + B2_ll * v2_ll + B3_ll * v3_ll))) /
+                       SdiffStar # (23)
+
+            # Classic HLLC update (32)
+            f1 = f_ll[1] + SsL * (densStar - u_ll[1])
+            f2 = f_ll[2] + SsL * (mom_1_Star - u_ll[2])
+            f3 = f_ll[3] + SsL * (mom_2_Star - u_ll[3])
+            f4 = f_ll[4] + SsL * (mom_3_Star - u_ll[4])
+            f5 = f_ll[5] + SsL * (enerStar - u_ll[5])
+            f6 = f_ll[6] + SsL * (B1Star - u_ll[6])
+            f7 = f_ll[7] + SsL * (B2Star - u_ll[7])
+            f8 = f_ll[8] + SsL * (B3Star - u_ll[8])
+        else # SStar <= Ssr
+            SdiffStar = SsR - SStar
+
+            densStar = rho_rr * sMu_R / SdiffStar # (19)
+
+            mom_1_Star = densStar * SStar # (20)
+            mom_2_Star = densStar * v2_rr -
+                         (B1Star * B2Star - B1_rr * B2_rr) / SdiffStar # (21)
+            mom_3_Star = densStar * v3_rr -
+                         (B1Star * B3Star - B1_rr * B3_rr) / SdiffStar # (22)
+
+            #p_tot_Star = rho_rr * sMu_R * (SStar - v1_rr) + p_tot_rr - B1_rr^2 + B1Star^2 # (17)
+            # 1D B1 = constant => B1_ll = B1_rr = B1Star
+            p_tot_Star = rho_rr * sMu_R * (SStar - v1_rr) + p_tot_rr # (17)
+
+            enerStar = u_rr[5] * sMu_R / SdiffStar +
+                       (p_tot_Star * SStar - p_tot_rr * v1_rr - (B1Star *
+                         (B1Star * v1Star + B2Star * v2Star + B3Star * v3Star) -
+                         B1_rr * (B1_rr * v1_rr + B2_rr * v2_rr + B3_rr * v3_rr))) /
+                       SdiffStar # (23)
+
+            # Classic HLLC update (32)           
+            f1 = f_rr[1] + SsR * (densStar - u_rr[1])
+            f2 = f_rr[2] + SsR * (mom_1_Star - u_rr[2])
+            f3 = f_rr[3] + SsR * (mom_2_Star - u_rr[3])
+            f4 = f_rr[4] + SsR * (mom_3_Star - u_rr[4])
+            f5 = f_rr[5] + SsR * (enerStar - u_rr[5])
+            f6 = f_rr[6] + SsR * (B1Star - u_rr[6])
+            f7 = f_rr[7] + SsR * (B2Star - u_rr[7])
+            f8 = f_rr[8] + SsR * (B3Star - u_rr[8])
+        end
+    end
+    return SVector(f1, f2, f3, f4, f5, f6, f7, f8)
+end
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::IdealGlmMhdEquations1D)
@@ -277,16 +423,52 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
+# Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::IdealGlmMhdEquations1D)
+    rho_ll, rho_v1_ll, _ = u_ll
+    rho_rr, rho_v1_rr, _ = u_rr
+
+    # Calculate primitive variables
+    v1_ll = rho_v1_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+
+    λ_min = v1_ll - calc_fast_wavespeed(u_ll, orientation, equations)
+    λ_max = v1_rr + calc_fast_wavespeed(u_rr, orientation, equations)
+
+    return λ_min, λ_max
+end
+
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
+                                     equations::IdealGlmMhdEquations1D)
+    rho_ll, rho_v1_ll, _ = u_ll
+    rho_rr, rho_v1_rr, _ = u_rr
+
+    # Calculate primitive variables
+    v1_ll = rho_v1_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+
+    # Approximate the left-most and right-most eigenvalues in the Riemann fan
+    c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+    c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+
+    λ_min = min(v1_ll - c_f_ll, v1_rr - c_f_rr)
+    λ_max = max(v1_ll + c_f_ll, v1_rr + c_f_rr)
+
+    return λ_min, λ_max
+end
+
 """
-    min_max_speed_naive(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations1D)
+    min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations1D)
 
 Calculate minimum and maximum wave speeds for HLL-type fluxes as in
 - Li (2005)
   An HLLC Riemann solver for magneto-hydrodynamics
-  [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
+  [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020).
 """
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
-                                     equations::IdealGlmMhdEquations1D)
+@inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
+                                        equations::IdealGlmMhdEquations1D)
     rho_ll, rho_v1_ll, _ = u_ll
     rho_rr, rho_v1_rr, _ = u_rr
 

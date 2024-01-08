@@ -22,7 +22,7 @@ julia --threads=4
 If both the environment variable and the command line argument are specified at
 the same time, the latter takes precedence.
 
-If you use time integration methods from 
+If you use time integration methods from
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 and want to use multiple threads therein, you need to set the keyword argument
 `thread=OrdinaryDiffEq.True()` of the algorithms, as described in the
@@ -53,17 +53,79 @@ a system-provided MPI installation with Trixi.jl can be found in the following s
 
 ### [Using a system-provided MPI installation](@id parallel_system_MPI)
 
-When using Trixi.jl with a system-provided MPI backend the underlying [`p4est`](https://github.com/cburstedde/p4est)
-library needs to be compiled with the same MPI installation. Therefore, you also need to use
-a system-provided `p4est` installation (for notes on how to install `p4est` see e.g.
-[here](https://github.com/cburstedde/p4est/blob/master/README), use the configure option
-`--enable-mpi`). In addition, [P4est.jl](https://github.com/trixi-framework/P4est.jl) needs to
-be configured to use the custom `p4est` installation. Follow the steps described
-[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md) for the configuration.
-In total, in your active Julia project you should have a LocalPreferences.toml file with sections
-`[MPIPreferences]` and `[P4est]` as well as an entry `MPIPreferences` in your Project.toml to
-use a custom MPI installation.
+When using Trixi.jl with a system-provided MPI backend, the underlying
+[`p4est`](https://github.com/cburstedde/p4est), [`t8code`](https://github.com/DLR-AMR/t8code)
+and [`HDF5`](https://github.com/HDFGroup/hdf5) libraries need to be compiled with the same MPI
+installation. If you want to use `p4est` (via the `P4estMesh`) or `t8code` (via the `T8codeMesh`)
+from Trixi.jl, you also need to use system-provided `p4est` or `t8code` installations
+(for notes on how to install `p4est` and `t8code` see, e.g., [here](https://github.com/cburstedde/p4est/blob/master/README)
+and [here](https://github.com/DLR-AMR/t8code/wiki/Installation), use the configure option
+`--enable-mpi`). Otherwise, there will be warnings that no preference is set for P4est.jl and
+T8code.jl that can be ignored if you do not use these libraries from Trixi.jl. Note that
+`t8code` already comes with a `p4est` installation, so it suffices to install `t8code`.
+In order to use system-provided `p4est` and `t8code` installations, [P4est.jl](https://github.com/trixi-framework/P4est.jl)
+and [T8code.jl](https://github.com/DLR-AMR/T8code.jl) need to be configured to use the custom
+installations. Follow the steps described [here](https://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation) and
+[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) for the configuration.
+The paths that point to `libp4est.so` (and potentially to `libsc.so`) need to be
+the same for P4est.jl and T8code.jl. This could, e.g., be `libp4est.so` that usually can be found
+in `lib/` or `local/lib/` in the installation directory of `t8code`. Note that the `T8codeMesh`, however,
+does not support MPI yet.
+The preferences for [HDF5.jl](https://github.com/JuliaIO/HDF5.jl) always need to be set, even if you
+do not want to use `HDF5` from Trixi.jl, see also [issue #1079 in HDF5.jl](https://github.com/JuliaIO/HDF5.jl/issues/1079).
+To set the preferences for HDF5.jl, follow the instructions described
+[here](https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#Using-parallel-input-and-output).
 
+In total, in your active Julia project you should have a `LocalPreferences.toml` file with sections
+`[MPIPreferences]`, `[T8code]` (only needed if `T8codeMesh` is used), `[P4est]` (only needed if
+`P4estMesh` is used), and `[HDF5]` as well as an entry `MPIPreferences` in your
+`Project.toml` to use a custom MPI installation. A `LocalPreferences.toml` file 
+created as described above might look something like the following:
+```toml
+[HDF5]
+libhdf5 = "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so"
+libhdf5_hl = "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so"
+
+[HDF5_jll]
+libhdf5_hl_path = "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so"
+libhdf5_path = "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so"
+
+[MPIPreferences]
+__clear__ = ["preloads_env_switch"]
+_format = "1.0"
+abi = "OpenMPI"
+binary = "system"
+cclibs = []
+libmpi = "/lib/x86_64-linux-gnu/libmpi.so"
+mpiexec = "mpiexec"
+preloads = []
+
+[P4est]
+libp4est = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libp4est.so"
+libsc = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libsc.so"
+
+[T8code]
+libp4est = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libp4est.so"
+libsc = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libsc.so"
+libt8 = "/home/mschlott/hackathon/libtrixi/t8code/install/lib/libt8.so"
+```
+
+This file is created with the following sequence of commands:
+```julia
+julia> using MPIPreferences
+julia> MPIPreferences.use_system_binary()
+```
+Restart the Julia REPL
+```julia
+julia> using P4est
+julia> P4est.set_library_p4est!("/home/mschlott/hackathon/libtrixi/t8code/install/lib/libp4est.so")
+julia> P4est.set_library_sc!("/home/mschlott/hackathon/libtrixi/t8code/install/lib/libsc.so")
+julia> using T8code
+julia> T8code.set_libraries_path!("/home/mschlott/hackathon/libtrixi/t8code/install/lib/")
+julia> using HDF5
+julia> HDF5.API.set_libraries!("/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so", "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so")
+```
+After the preferences are set, restart the Julia REPL again.
 
 ### [Usage](@id parallel_usage)
 
@@ -135,7 +197,7 @@ To start Trixi.jl in parallel with MPI, there are three options:
    Switching between panes can be done by `Ctrl+b` followed by `o`.
    As of March 2022, newer versions of tmpi also support mpich, which is the default
    backend of MPI.jl (via MPICH_Jll.jl). To use this setup, you need to install
-   `mpiexecjl` as described in the 
+   `mpiexecjl` as described in the
    [documentation of MPI.jl](https://juliaparallel.org/MPI.jl/v0.20/usage/#Julia-wrapper-for-mpiexec)
    and make it available as `mpirun`, e.g., via a symlink of the form
    ```bash
@@ -153,22 +215,46 @@ To start Trixi.jl in parallel with MPI, there are three options:
 
 ### [Performance](@id parallel_performance)
 For information on how to evaluate the parallel performance of Trixi.jl, please
-have a look at the [Performance metrics of the `AnalysisCallback`](@ref)
+have a look at the [Performance metrics of the `AnalysisCallback`](@ref performance-metrics)
 section, specifically at the descriptions of the performance index (PID).
 
 
 ### Using error-based step size control with MPI
-If you use error-based step size control (see also the section on [error-based adaptive step sizes](@ref adaptive_step_sizes))
-together with MPI you need to pass `internalnorm=ode_norm` and you should pass
-`unstable_check=ode_unstable_check` to OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/),
+If you use error-based step size control (see also the section on
+[error-based adaptive step sizes](@ref adaptive_step_sizes)) together with MPI you need to pass
+`internalnorm=ode_norm` and you should pass `unstable_check=ode_unstable_check` to
+OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/),
 which are both included in [`ode_default_options`](@ref).
 
 ### Using parallel input and output
-Trixi.jl allows parallel I/O using MPI by leveraging parallel HDF5.jl. To enable this, you first need
-to use a system-provided MPI library, see also [here](@ref parallel_system_MPI) and you need to tell
-[HDF5.jl](https://github.com/JuliaIO/HDF5.jl) to use this library.
-To do so, set the environment variable `JULIA_HDF5_PATH` to the local path
-that contains the `libhdf5.so` shared object file and build HDF5.jl by executing `using Pkg; Pkg.build("HDF5")`.
-For more information see also the [documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/).
+Trixi.jl allows parallel I/O using MPI by leveraging parallel HDF5.jl. On most systems, this is
+enabled by default. Additionally, you can also use a local installation of the HDF5 library
+(with MPI support). For this, you first need to use a system-provided MPI library, see also
+[here](@ref parallel_system_MPI) and you need to tell [HDF5.jl](https://github.com/JuliaIO/HDF5.jl)
+to use this library. To do so with HDF5.jl v0.17 and newer, set the preferences `libhdf5` and
+`libhdf5_hl` to the local paths of the libraries `libhdf5` and `libhdf5_hl`, which can be done by
+```julia
+julia> using Preferences, UUIDs
+julia> set_preferences!(
+           UUID("f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"), # UUID of HDF5.jl
+           "libhdf5" => "/path/to/your/libhdf5.so",
+           "libhdf5_hl" => "/path/to/your/libhdf5_hl.so", force = true)
+```
+Alternatively, with HDF5.jl v0.17.1 or higher you can use
+```julia
+julia> using HDF5
+julia> HDF5.API.set_libraries!("/path/to/your/libhdf5.so", "/path/to/your/libhdf5_hl.so")
+```
+For more information see also the
+[documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). In total, you should
+have a file called `LocalPreferences.toml` in the project directory that contains a section
+`[MPIPreferences]`, a section `[HDF5]` with entries `libhdf5` and `libhdf5_hl`, a section `[P4est]`
+with the entry `libp4est` as well as a section `[T8code]` with the entries `libt8`, `libp4est`
+and `libsc`.
+If you use HDF5.jl v0.16 or older, instead of setting the preferences for HDF5.jl, you need to set
+the environment variable `JULIA_HDF5_PATH` to the path, where the HDF5 binaries are located and
+then call `]build HDF5` from Julia.
 
-If you do not perform these steps to use parallel HDF5 or if the HDF5 is not MPI-enabled, Trixi.jl will fall back on a less efficient I/O mechanism. In that case, all disk I/O is performed only on rank zero and data is distributed to/gathered from the other ranks using regular MPI communication.
+If HDF5 is not MPI-enabled, Trixi.jl will fall back on a less efficient I/O mechanism. In that
+case, all disk I/O is performed only on rank zero and data is distributed to/gathered from the
+other ranks using regular MPI communication.

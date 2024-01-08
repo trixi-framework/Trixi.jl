@@ -81,7 +81,8 @@ function Base.resize!(elements::P4estElementContainer, capacity)
 end
 
 # Create element container and initialize element data
-function init_elements(mesh::P4estMesh{NDIMS, RealT}, equations,
+function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, RealT}},
+                       equations,
                        basis,
                        ::Type{uEltype}) where {NDIMS, RealT <: Real, uEltype <: Real}
     nelements = ncells(mesh)
@@ -165,7 +166,7 @@ function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
 end
 
 # Create interface container and initialize interface data.
-function init_interfaces(mesh::P4estMesh, equations, basis, elements)
+function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
@@ -240,7 +241,7 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
 end
 
 # Create interface container and initialize interface data in `elements`.
-function init_boundaries(mesh::P4estMesh, equations, basis, elements)
+function init_boundaries(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
@@ -371,7 +372,7 @@ function Base.resize!(mortars::P4estMortarContainer, capacity)
 end
 
 # Create mortar container and initialize mortar data.
-function init_mortars(mesh::P4estMesh, equations, basis, elements)
+function init_mortars(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
@@ -428,13 +429,17 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     @unpack boundaries = cache
     resize!(boundaries, required.boundaries)
 
-    # resize mortars container
-    @unpack mortars = cache
-    resize!(mortars, required.mortars)
+    # re-initialize mortars container
+    if hasproperty(cache, :mortars) # cache_parabolic does not carry mortars
+        @unpack mortars = cache
+        resize!(mortars, required.mortars)
 
-    # re-initialize containers together to reduce
-    # the number of iterations over the mesh in `p4est`
-    init_surfaces!(interfaces, mortars, boundaries, mesh)
+        # re-initialize containers together to reduce
+        # the number of iterations over the mesh in `p4est`
+        init_surfaces!(interfaces, mortars, boundaries, mesh)
+    else
+        init_surfaces!(interfaces, nothing, boundaries, mesh)
+    end
 end
 
 # A helper struct used in initialization methods below
@@ -449,8 +454,7 @@ mutable struct InitSurfacesIterFaceUserData{Interfaces, Mortars, Boundaries, Mes
 end
 
 function InitSurfacesIterFaceUserData(interfaces, mortars, boundaries, mesh)
-    return InitSurfacesIterFaceUserData{
-                                        typeof(interfaces), typeof(mortars),
+    return InitSurfacesIterFaceUserData{typeof(interfaces), typeof(mortars),
                                         typeof(boundaries), typeof(mesh)}(interfaces, 1,
                                                                           mortars, 1,
                                                                           boundaries, 1,

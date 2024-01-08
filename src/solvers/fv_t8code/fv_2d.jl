@@ -171,6 +171,10 @@ function get_element_variables!(element_variables, u, mesh::T8codeFVMesh, equati
     return nothing
 end
 
+function get_node_variables!(node_variables, mesh, equations, dg::FV, cache)
+    return nothing
+end
+
 function SolutionAnalyzer(solver::FV; kwargs...)
 end
 
