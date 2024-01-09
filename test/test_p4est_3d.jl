@@ -110,7 +110,10 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[0.002590388934758452],
-                        linf=[0.01840757696885409])
+                        linf=[0.01840757696885409],
+                        # With the default `maxiters = 1` in coverage tests,
+                        # there would be no time steps after the restart.
+                        coverage_override=(maxiters = 100_000,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -231,6 +234,34 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_free_stream_extruded.jl with HLLC FLux" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_extruded.jl"),
+                        l2=[
+                            8.444868392439035e-16,
+                            4.889826056731442e-15,
+                            2.2921260987087585e-15,
+                            4.268460455702414e-15,
+                            1.1356712092620279e-14,
+                        ],
+                        linf=[
+                            7.749356711883593e-14,
+                            4.513472928735496e-13,
+                            2.9790059308254513e-13,
+                            1.057154364048074e-12,
+                            1.6271428648906294e-12,
+                        ],
+                        tspan=(0.0, 0.1),
+                        surface_flux=flux_hllc)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
@@ -305,8 +336,8 @@ end
                         ],
                         tspan=(0.0, 0.3),
                         surface_flux=flux_hlle)
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]

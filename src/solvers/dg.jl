@@ -41,8 +41,8 @@ standard textbooks.
   Applications
   [doi: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
 
-`VolumeIntegralWeakForm()` is only implemented for conserved terms as 
-non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
+`VolumeIntegralWeakForm()` is only implemented for conserved terms as
+non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
 see [`VolumeIntegralFluxDifferencing`](@ref).
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 """
@@ -190,6 +190,12 @@ end
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
 with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
+
+!!! note
+    Subcell limiting methods are not fully functional on non-conforming meshes. This is
+    mainly because the implementation assumes that low- and high-order schemes have the same
+    surface terms, which is not guaranteed for non-conforming meshes. The low-order scheme
+    with a high-order mortar is not invariant domain preserving.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -409,7 +415,8 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
         summary_line(io, "surface integral", dg.surface_integral |> typeof |> nameof)
         show(increment_indent(io), mime, dg.surface_integral)
         summary_line(io, "volume integral", dg.volume_integral |> typeof |> nameof)
-        if !(dg.volume_integral isa VolumeIntegralWeakForm)
+        if !(dg.volume_integral isa VolumeIntegralWeakForm) &&
+           !(dg.volume_integral isa VolumeIntegralStrongForm)
             show(increment_indent(io), mime, dg.volume_integral)
         end
         summary_footer(io)
@@ -592,6 +599,7 @@ include("dgsem/dgsem.jl")
 # and boundary conditions weakly. Thus, these methods can re-use a lot of
 # functionality implemented for DGSEM.
 include("fdsbp_tree/fdsbp.jl")
+include("fdsbp_unstructured/fdsbp.jl")
 
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
