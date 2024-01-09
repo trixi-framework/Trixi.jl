@@ -236,8 +236,12 @@ Should be used together with [`TreeMesh`](@ref).
         u_boundary = SVector(u_inner[1], u_inner[2], -u_inner[3], u_inner[4])
     end
 
-    # compute and return the flux using `boundary_condition_slip_wall` routine above
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+    # Calculate boundary flux
+    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+    end
 
     return flux
 end
