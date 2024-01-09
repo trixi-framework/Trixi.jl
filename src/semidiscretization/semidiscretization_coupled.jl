@@ -506,37 +506,34 @@ end
 # In 2D
 function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2},
                                    u_ode,
-                                   semi_coupled, semi)
-    @unpack u_indices = semi_coupled
+                                   semi)
+    @unpack u_indices = semi
     @unpack other_semi_index, other_orientation, indices = boundary_condition
     @unpack coupling_converter, u_boundary = boundary_condition
 
-    mesh_own, equations_own, solver_own, cache_own = mesh_equations_solver_cache(semi)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(other_semi_index, 1,
+                                                                 semi.semis...)
+    @unpack node_coordinates = cache.elements
+    u = wrap_array(get_system_u_ode(u_ode, other_semi_index, semi), mesh, equations,
+                   solver,
+                   cache)
 
-    semi_other = semi_coupled.semis[other_semi_index]
-    mesh_other, equations_other, solver_other, cache_other = mesh_equations_solver_cache(semi_other)
-
-    node_coordinates_other = cache_other.elements.node_coordinates
-    u_ode_other = get_system_u_ode(u_ode, other_semi_index, semi_coupled)
-    u_other = wrap_array(u_ode_other, mesh_other, equations_other, solver_other,
-                         cache_other)
-
-    linear_indices = LinearIndices(size(mesh_other))
+    linear_indices = LinearIndices(size(mesh))
 
     if other_orientation == 1
-        cells = axes(mesh_other, 2)
+        cells = axes(mesh, 2)
     else # other_orientation == 2
-        cells = axes(mesh_other, 1)
+        cells = axes(mesh, 1)
     end
 
     # Copy solution data to the coupled boundary using "delayed indexing" with
     # a start value and a step size to get the correct face and orientation.
-    node_index_range = eachnode(solver_other)
+    node_index_range = eachnode(solver)
     i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
     j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
 
-    i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh_other, 1))
-    j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh_other, 2))
+    i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh, 1))
+    j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh, 2))
 
     i_cell = i_cell_start
     j_cell = j_cell_start
@@ -546,20 +543,12 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         j_node = j_node_start
         element_id = linear_indices[i_cell, j_cell]
 
-        for element_id in eachnode(solver_other)
-            x_other = get_node_coords(node_coordinates_other, equations_other,
-                                      solver_other,
-                                      i_node, j_node, linear_indices[i_cell, j_cell])
-            u_node_other = get_node_vars(u_other, equations_other, solver_other, i_node,
-                                         j_node, linear_indices[i_cell, j_cell])
-            u_node_converted = coupling_converter(x_other, u_node_other,
-                                                  equations_other,
-                                                  equations_own)
-
-            for i in eachindex(u_node_converted)
-                u_boundary[i, element_id, cell] = u_node_converted[i]
-            end
-
+        for element_id in eachnode(solver)
+            x = @view cache.elements.node_coordinates[:, i_node, j_node,
+                                                      linear_indices[i_cell, j_cell]]
+            u_node = u[:, i_node, j_node, linear_indices[i_cell, j_cell]]
+            converted_u = coupling_converter(x, u_node)
+            u_boundary[:, element_id, cell] = converted_u
             i_node += i_node_step
             j_node += j_node_step
         end
