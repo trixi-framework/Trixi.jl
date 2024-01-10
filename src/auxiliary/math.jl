@@ -6,8 +6,9 @@
 #! format: noindent
 
 # `AbstractFloat` clashes with `ForwardDiff.Dual` => use `Real`
-#sqrt_(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
-@inline sqrt_(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt_llvm(x)
+@inline sqrt_(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
+# sqrt_llvm returns garbage for ints, prevent that from happening
+@inline sqrt_(x::Union{Float64, Float32}) = Base.sqrt_llvm(x)
 #@inline sqrt_(x) = Base.sqrt(x) # For benchmarking
 
 # < 0 suffices since log(0) = -Inf
