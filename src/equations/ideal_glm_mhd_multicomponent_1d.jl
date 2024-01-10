@@ -507,7 +507,7 @@ end
     b_square = b1^2 + b2^2 + b3^2
 
     c_f = sqrt_(0.5 * (a_square + b_square) +
-               0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+                0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b1^2))
 
     return c_f
 end

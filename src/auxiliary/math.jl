@@ -87,9 +87,9 @@ When debugging code, it might be useful to change the implementation of this fun
 the Julia built-in `log` function, as this reports the exact place in code where the domain is violated 
 in the stacktrace.
 """
-@inline log_(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64, ), x)
-@inline log_(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32, ), x)
-@inline log_(x::Float16) = ccall("llvm.log.f32", llvmcall, Float32, (Float32, ), x)
+@inline log_(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64,), x)
+@inline log_(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
+@inline log_(x::Float16) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
 #@inline log_(x) = Base.log(x) # For benchmarking and debugging
 
 """

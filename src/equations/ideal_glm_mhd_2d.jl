@@ -1146,10 +1146,10 @@ end
     b_square = b1 * b1 + b2 * b2 + b3 * b3
     if orientation == 1 # x-direction
         c_f = sqrt_(0.5 * (a_square + b_square) +
-                   0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+                    0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b1^2))
     else
         c_f = sqrt_(0.5 * (a_square + b_square) +
-                   0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b2^2))
+                    0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b2^2))
     end
     return c_f
 end
@@ -1175,8 +1175,8 @@ end
                        b2 * normal_direction[2])^2 / norm_squared
 
     c_f = sqrt_((0.5 * (a_square + b_square) +
-                0.5 * sqrt_((a_square + b_square)^2 - 4 * a_square * b_dot_n_squared)) *
-               norm_squared)
+                 0.5 * sqrt_((a_square + b_square)^2 - 4 * a_square * b_dot_n_squared)) *
+                norm_squared)
     return c_f
 end
 
