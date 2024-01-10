@@ -219,6 +219,7 @@ export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
        enstrophy
 export lake_at_rest_error
 export ncomponents, eachcomponent
+export sqrt_, log_
 
 export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh, T8codeMesh
 
