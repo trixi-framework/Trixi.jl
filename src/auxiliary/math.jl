@@ -6,12 +6,17 @@
 #! format: noindent
 
 # `AbstractFloat` clashes with `ForwardDiff.Dual` => use `Real`
-sqrt_(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
-#sqrt_(x) = Base.sqrt(x)
+#sqrt_(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
+@inline sqrt_(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt_llvm(x)
+#@inline sqrt_(x) = Base.sqrt(x) # For benchmarking
+
 # < 0 suffices since log(0) = -Inf
 # `AbstractFloat` clashes with `ForwardDiff.Dual` => use `Real`
-log_(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.log(x)
-#log_(x) = Base.log(x)
+@inline log_(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.log(x)
+# See https://github.com/JuliaLang/julia/issues/8869#issuecomment-596165947
+@inline log_(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64, ), x)
+@inline log_(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32, ), x)
+#@inline log_(x) = Base.log(x) # For benchmarking
 
 """
     ln_mean(x, y)
