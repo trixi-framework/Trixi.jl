@@ -393,8 +393,8 @@ end
         u_prim[i, j, k, 3] = v2
         u_prim[i, j, k, 4] = v3
         u_prim[i, j, k, 5] = p
-        u_prim[i, j, k, 6] = log_(rho)
-        u_prim[i, j, k, 7] = log_(p)
+        u_prim[i, j, k, 6] = log(rho)
+        u_prim[i, j, k, 7] = log(p)
     end
 
     # x direction
