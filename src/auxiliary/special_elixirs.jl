@@ -119,7 +119,7 @@ function analyze_convergence(errors, iterations,
 
     # Calculate EOCs where the columns represent the variables
     # As dx halves in every iteration the denominator needs to be log(1/2)
-    eocs = Dict(kind => log.(error[2:end, :] ./ error[1:(end - 1), :]) ./ log(1 / 2)
+    eocs = Dict(kind => log_.(error[2:end, :] ./ error[1:(end - 1), :]) ./ log_(1 / 2)
                 for (kind, error) in errorsmatrix)
 
     eoc_mean_values = Dict{Symbol, Any}()

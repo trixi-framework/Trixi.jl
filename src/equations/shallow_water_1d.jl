@@ -100,12 +100,12 @@ A smooth initial condition used for convergence tests in combination with
 function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations1D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
     c = 7.0
-    omega_x = 2.0 * pi * sqrt(2.0)
+    omega_x = 2.0 * pi * sqrt_(2.0)
     omega_t = 2.0 * pi
 
     H = c + cos(omega_x * x[1]) * cos(omega_t * t)
     v = 0.5
-    b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x[1])
+    b = 2.0 + 0.5 * sin(sqrt_(2.0) * pi * x[1])
     return prim2cons(SVector(H, v, b), equations)
 end
 
@@ -117,7 +117,7 @@ Source terms used for convergence tests in combination with
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 
 This manufactured solution source term is specifically designed for the bottom topography function
-`b(x) = 2.0 + 0.5 * sin(sqrt(2.0)*pi*x[1])`
+`b(x) = 2.0 + 0.5 * sin(sqrt_(2.0)*pi*x[1])`
 as defined in [`initial_condition_convergence_test`](@ref).
 """
 
@@ -126,9 +126,9 @@ as defined in [`initial_condition_convergence_test`](@ref).
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocity is taken to be constant
     c = 7.0
-    omega_x = 2.0 * pi * sqrt(2.0)
+    omega_x = 2.0 * pi * sqrt_(2.0)
     omega_t = 2.0 * pi
-    omega_b = sqrt(2.0) * pi
+    omega_b = sqrt_(2.0) * pi
     v = 0.5
 
     sinX, cosX = sincos(omega_x * x[1])
@@ -141,7 +141,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
     H_t = -omega_t * cosX * sinT
 
     # bottom topography and its spatial derivative
-    b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x[1])
+    b = 2.0 + 0.5 * sin(sqrt_(2.0) * pi * x[1])
     b_x = 0.5 * omega_b * cos(omega_b * x[1])
 
     du1 = H_t + v * (H_x - b_x)

@@ -15,7 +15,7 @@ solver = DGSEM(polydeg = 3,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0.0, 0.0)
-coordinates_max = (sqrt(2.0), sqrt(2.0))
+coordinates_max = (sqrt_(2.0), sqrt_(2.0))
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 10_000)

@@ -39,7 +39,7 @@ initial_condition = initial_condition_taylor_green_vortex
 
 @inline function vel_mag(u, equations::CompressibleEulerEquations3D)
     rho, rho_v1, rho_v2, rho_v3, _ = u
-    return sqrt(rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
+    return sqrt_(rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
 end
 
 volume_flux = flux_ranocha

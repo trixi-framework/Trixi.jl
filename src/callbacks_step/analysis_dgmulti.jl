@@ -24,7 +24,7 @@ function calc_error_norms(func, u, t, analyzer,
         component_linf_errors = max.(component_linf_errors, abs.(error_at_node))
     end
     total_volume = sum(md.wJq)
-    return sqrt.(component_l2_errors ./ total_volume), component_linf_errors
+    return sqrt_.(component_l2_errors ./ total_volume), component_linf_errors
 end
 
 function integrate(func::Func, u,
@@ -112,7 +112,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
         l2norm_divB += local_l2norm_divB
     end
 
-    return sqrt(l2norm_divB)
+    return sqrt_(l2norm_divB)
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,

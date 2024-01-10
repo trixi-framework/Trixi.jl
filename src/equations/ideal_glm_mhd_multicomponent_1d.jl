@@ -116,7 +116,7 @@ function initial_condition_weak_blast_wave(x, t,
     # Set up polar coordinates
     inicenter = (0)
     x_norm = x[1] - inicenter[1]
-    r = sqrt(x_norm^2)
+    r = sqrt_(x_norm^2)
     phi = atan(x_norm)
 
     # Calculate primitive variables
@@ -306,8 +306,8 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
     # Compute the necessary mean values needed for either direction
     # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
     # in exact arithmetic since
-    #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
-    #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+    #     log_((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+    #   = pₗ pᵣ log_((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
     inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
     v1_avg = 0.5 * (v1_ll + v1_rr)
     v2_avg = 0.5 * (v2_ll + v2_rr)
@@ -496,7 +496,7 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
-    v_mag = sqrt(v1^2 + v2^2 + v3^2)
+    v_mag = sqrt_(v1^2 + v2^2 + v3^2)
     gamma = totalgamma(cons, equations)
     p = (gamma - 1) * (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2))
     a_square = gamma * p / rho
@@ -506,7 +506,7 @@ end
     b3 = B3 / sqrt_rho
     b_square = b1^2 + b2^2 + b3^2
 
-    c_f = sqrt(0.5 * (a_square + b_square) +
+    c_f = sqrt_(0.5 * (a_square + b_square) +
                0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b1^2))
 
     return c_f

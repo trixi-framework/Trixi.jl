@@ -42,7 +42,7 @@ defined below.
     smoothed_heaviside(x, left, right) = left + 0.5 * (1 + tanh(slope * x)) * (right - left)
     rho = smoothed_heaviside(x[2] - 0.5, 2.0, 1.0)
 
-    c = sqrt(equations.gamma * p / rho)
+    c = sqrt_(equations.gamma * p / rho)
     # the velocity is multiplied by sin(pi*y)^6 as in Remacle et al. 2003 to ensure that the
     # initial condition satisfies reflective boundary conditions at the top/bottom boundaries.
     v = -0.025 * c * cos(8 * pi * x[1]) * sin(pi * x[2])^6

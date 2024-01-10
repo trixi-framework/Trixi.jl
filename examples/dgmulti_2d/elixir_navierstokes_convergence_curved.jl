@@ -48,7 +48,7 @@ function initial_condition_navier_stokes_convergence_test(x, t, equations)
     pi_t = pi * t
 
     rho = c + A * sin(pi_x) * cos(pi_y) * cos(pi_t)
-    v1 = sin(pi_x) * log(x[2] + 2.0) * (1.0 - exp(-A * (x[2] - 1.0))) * cos(pi_t)
+    v1 = sin(pi_x) * log_(x[2] + 2.0) * (1.0 - exp(-A * (x[2] - 1.0))) * cos(pi_t)
     v2 = v1
     p = rho^2
 
@@ -83,19 +83,19 @@ end
     rho_xx = -pi * pi * A * sin(pi_x) * cos(pi_y) * cos(pi_t)
     rho_yy = -pi * pi * A * sin(pi_x) * cos(pi_y) * cos(pi_t)
 
-    v1 = sin(pi_x) * log(y + 2.0) * (1.0 - exp(-A * (y - 1.0))) * cos(pi_t)
-    v1_t = -pi * sin(pi_x) * log(y + 2.0) * (1.0 - exp(-A * (y - 1.0))) * sin(pi_t)
-    v1_x = pi * cos(pi_x) * log(y + 2.0) * (1.0 - exp(-A * (y - 1.0))) * cos(pi_t)
+    v1 = sin(pi_x) * log_(y + 2.0) * (1.0 - exp(-A * (y - 1.0))) * cos(pi_t)
+    v1_t = -pi * sin(pi_x) * log_(y + 2.0) * (1.0 - exp(-A * (y - 1.0))) * sin(pi_t)
+    v1_x = pi * cos(pi_x) * log_(y + 2.0) * (1.0 - exp(-A * (y - 1.0))) * cos(pi_t)
     v1_y = sin(pi_x) *
-           (A * log(y + 2.0) * exp(-A * (y - 1.0)) +
+           (A * log_(y + 2.0) * exp(-A * (y - 1.0)) +
             (1.0 - exp(-A * (y - 1.0))) / (y + 2.0)) * cos(pi_t)
-    v1_xx = -pi * pi * sin(pi_x) * log(y + 2.0) * (1.0 - exp(-A * (y - 1.0))) * cos(pi_t)
+    v1_xx = -pi * pi * sin(pi_x) * log_(y + 2.0) * (1.0 - exp(-A * (y - 1.0))) * cos(pi_t)
     v1_xy = pi * cos(pi_x) *
-            (A * log(y + 2.0) * exp(-A * (y - 1.0)) +
+            (A * log_(y + 2.0) * exp(-A * (y - 1.0)) +
              (1.0 - exp(-A * (y - 1.0))) / (y + 2.0)) * cos(pi_t)
     v1_yy = (sin(pi_x) *
              (2.0 * A * exp(-A * (y - 1.0)) / (y + 2.0) -
-              A * A * log(y + 2.0) * exp(-A * (y - 1.0)) -
+              A * A * log_(y + 2.0) * exp(-A * (y - 1.0)) -
               (1.0 - exp(-A * (y - 1.0))) / ((y + 2.0) * (y + 2.0))) * cos(pi_t))
     v2 = v1
     v2_t = v1_t

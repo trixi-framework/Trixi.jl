@@ -22,7 +22,7 @@ function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations3D)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
     z_norm = x[3] - inicenter[3]
-    r = sqrt(x_norm^2 + y_norm^2 + z_norm^2)
+    r = sqrt_(x_norm^2 + y_norm^2 + z_norm^2)
 
     delta_0 = 0.1
     r_0 = 0.3

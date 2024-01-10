@@ -39,7 +39,7 @@ function initial_condition_navier_stokes_convergence_test(x, t, equations)
     pi_t = pi * t
 
     rho = c + A * cos(pi_x) * cos(pi_t)
-    v1 = log(x[1] + 2.0) * (1.0 - exp(-A * (x[1] - 1.0))) * cos(pi_t)
+    v1 = log_(x[1] + 2.0) * (1.0 - exp(-A * (x[1] - 1.0))) * cos(pi_t)
     p = rho^2
 
     return prim2cons(SVector(rho, v1, p), equations)
@@ -70,12 +70,12 @@ end
     rho_x = -pi * A * sin(pi_x) * cos(pi_t)
     rho_xx = -pi * pi * A * cos(pi_x) * cos(pi_t)
 
-    v1 = log(x + 2.0) * (1.0 - exp(-A * (x - 1.0))) * cos(pi_t)
-    v1_t = -pi * log(x + 2.0) * (1.0 - exp(-A * (x - 1.0))) * sin(pi_t)
-    v1_x = (A * log(x + 2.0) * exp(-A * (x - 1.0)) +
+    v1 = log_(x + 2.0) * (1.0 - exp(-A * (x - 1.0))) * cos(pi_t)
+    v1_t = -pi * log_(x + 2.0) * (1.0 - exp(-A * (x - 1.0))) * sin(pi_t)
+    v1_x = (A * log_(x + 2.0) * exp(-A * (x - 1.0)) +
             (1.0 - exp(-A * (x - 1.0))) / (x + 2.0)) * cos(pi_t)
     v1_xx = ((2.0 * A * exp(-A * (x - 1.0)) / (x + 2.0) -
-              A * A * log(x + 2.0) * exp(-A * (x - 1.0)) -
+              A * A * log_(x + 2.0) * exp(-A * (x - 1.0)) -
               (1.0 - exp(-A * (x - 1.0))) / ((x + 2.0) * (x + 2.0))) * cos(pi_t))
 
     p = rho * rho

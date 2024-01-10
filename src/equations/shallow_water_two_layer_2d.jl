@@ -121,7 +121,7 @@ A smooth initial condition used for convergence tests in combination with
 function initial_condition_convergence_test(x, t,
                                             equations::ShallowWaterTwoLayerEquations2D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2]
-    ω = 2.0 * pi * sqrt(2.0)
+    ω = 2.0 * pi * sqrt_(2.0)
 
     H_lower = 2.0 + 0.1 * sin(ω * x[1] + t) * cos(ω * x[2] + t)
     H_upper = 4.0 + 0.1 * cos(ω * x[1] + t) * sin(ω * x[2] + t)
@@ -144,8 +144,8 @@ Source terms used for convergence tests in combination with
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::ShallowWaterTwoLayerEquations2D)
     # Same settings as in `initial_condition_convergence_test`.
-    # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2]
-    ω = 2.0 * pi * sqrt(2.0)
+    # some constants are chosen such that the function is periodic on the domain [0,sqrt_(2)]^2]
+    ω = 2.0 * pi * sqrt_(2.0)
 
     # Source terms obtained with SymPy
     du1 = 0.01 * ω * cos(t + ω * x[1]) * cos(t + ω * x[2]) +

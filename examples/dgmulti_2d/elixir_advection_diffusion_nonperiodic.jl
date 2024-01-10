@@ -18,10 +18,10 @@ equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 function initial_condition_erikkson_johnson(x, t, equations)
     l = 4
     epsilon = diffusivity() # Note: this requires epsilon < 0.6 due to the sqrt
-    lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
-    lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
-    r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
-    s1 = (1 - sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
+    lambda_1 = (-1 + sqrt_(1 - 4 * epsilon * l)) / (-2 * epsilon)
+    lambda_2 = (-1 - sqrt_(1 - 4 * epsilon * l)) / (-2 * epsilon)
+    r1 = (1 + sqrt_(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
+    s1 = (1 - sqrt_(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
     u = exp(-l * t) * (exp(lambda_1 * x[1]) - exp(lambda_2 * x[1])) +
         cos(pi * x[2]) * (exp(s1 * x[1]) - exp(r1 * x[1])) / (exp(-s1) - exp(-r1))
     return SVector{1}(u)

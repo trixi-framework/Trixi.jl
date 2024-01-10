@@ -177,7 +177,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                                     1.1707525976456523e-5,
                                     4.8869615580926506e-5,
                                 ],
-                                rtol=2000 * sqrt(eps()))
+                                rtol=2000 * sqrt_(eps()))
         end
     end
 

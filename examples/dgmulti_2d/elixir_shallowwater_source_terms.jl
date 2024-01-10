@@ -16,7 +16,7 @@ dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = SBP(),
 
 cells_per_dimension = (8, 8)
 mesh = DGMultiMesh(dg, cells_per_dimension,
-                   coordinates_min = (0.0, 0.0), coordinates_max = (sqrt(2), sqrt(2)),
+                   coordinates_min = (0.0, 0.0), coordinates_max = (sqrt_(2), sqrt_(2)),
                    periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;

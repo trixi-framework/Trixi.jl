@@ -109,7 +109,7 @@ A smooth initial condition used for convergence tests in combination with
 function initial_condition_convergence_test(x, t,
                                             equations::ShallowWaterTwoLayerEquations1D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
-    ω = 2.0 * pi * sqrt(2.0)
+    ω = 2.0 * pi * sqrt_(2.0)
 
     H_lower = 2.0 + 0.1 * sin(ω * x[1] + t)
     H_upper = 4.0 + 0.1 * cos(ω * x[1] + t)
@@ -132,7 +132,7 @@ in non-periodic domains).
                                                equations::ShallowWaterTwoLayerEquations1D)
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocity is taken to be constant
-    ω = 2 * pi * sqrt(2.0)
+    ω = 2 * pi * sqrt_(2.0)
 
     du1 = (-0.1 * cos(t + ω * x[1]) - 0.1 * sin(t + ω * x[1]) -
            0.09 * ω * cos(t + ω * x[1]) +

@@ -44,7 +44,7 @@ function calc_error_norms(func, u, t, analyzer,
 
         # For L2 error, divide by total volume
         total_volume_ = total_volume(mesh)
-        l2_error = @. sqrt(l2_error / total_volume_)
+        l2_error = @. sqrt_(l2_error / total_volume_)
     else
         l2_error = convert(eltype(l2_errors), NaN * zero(eltype(l2_errors)))
         linf_error = convert(eltype(linf_errors), NaN * zero(eltype(linf_errors)))
@@ -136,7 +136,7 @@ function calc_error_norms(func, u, t, analyzer,
         l2_error = convert(typeof(l2_error), global_l2_error)
         linf_error = convert(typeof(linf_error), global_linf_error)
         # For L2 error, divide by total volume
-        l2_error = @. sqrt(l2_error / total_volume)
+        l2_error = @. sqrt_(l2_error / total_volume)
     else
         l2_error = convert(typeof(l2_error), NaN * global_l2_error)
         linf_error = convert(typeof(linf_error), NaN * global_linf_error)

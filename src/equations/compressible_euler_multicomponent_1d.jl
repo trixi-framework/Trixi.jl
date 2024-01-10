@@ -478,14 +478,14 @@ end
     gamma = totalgamma(u, equations)
 
     p = (gamma - 1) * (rho_e - 0.5 * rho * v_square)
-    s = log_(p) - gamma * log_(rho) - log(gas_constant)
+    s = log_(p) - gamma * log_(rho) - log_(gas_constant)
     rho_p = rho / p
     T = (rho_e - 0.5 * rho * v_square) / (help1)
 
     entrop_rho = SVector{ncomponents(equations), real(equations)}((cv[i] *
-                                                                   (1 - log(T)) +
+                                                                   (1 - log_(T)) +
                                                                    gas_constants[i] *
-                                                                   (1 + log(u[i + 2])) -
+                                                                   (1 + log_(u[i + 2])) -
                                                                    v1^2 / (2 * T))
                                                                   for i in eachcomponent(equations))
 
@@ -505,7 +505,7 @@ end
     cons_rho = SVector{ncomponents(equations), real(equations)}(exp(1 /
                                                                     gas_constants[i] *
                                                                     (-cv[i] *
-                                                                     log(-w[2]) -
+                                                                     log_(-w[2]) -
                                                                      cp[i] + w[i + 2] -
                                                                      0.5 * w[1]^2 /
                                                                      w[2]))
@@ -536,7 +536,7 @@ end
 
     total_entropy = zero(u[1])
     for i in eachcomponent(equations)
-        total_entropy -= u[i + 2] * (cv[i] * log(T) - gas_constants[i] * log(u[i + 2]))
+        total_entropy -= u[i + 2] * (cv[i] * log_(T) - gas_constants[i] * log_(u[i + 2]))
     end
 
     return total_entropy

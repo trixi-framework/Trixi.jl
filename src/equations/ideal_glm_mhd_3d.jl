@@ -73,8 +73,8 @@ function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquation
     r = 2
     # e: epsilon = 0.2
     e = 0.2
-    nx = 1 / sqrt(r^2 + 1)
-    ny = r / sqrt(r^2 + 1)
+    nx = 1 / sqrt_(r^2 + 1)
+    ny = r / sqrt_(r^2 + 1)
     sqr = 1
     Va = omega / (ny * sqr)
     phi_alv = omega / ny * (nx * (x[1] - 0.5 * r) + ny * (x[2] - 0.5 * r)) - Va * t
@@ -107,7 +107,7 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
     z_norm = x[3] - inicenter[3]
-    r = sqrt(x_norm^2 + y_norm^2 + z_norm^2)
+    r = sqrt_(x_norm^2 + y_norm^2 + z_norm^2)
     phi = atan(y_norm, x_norm)
     theta = iszero(r) ? 0.0 : acos(z_norm / r)
 
@@ -1038,13 +1038,13 @@ end
     b3 = B3 / sqrt_rho
     b_square = b1 * b1 + b2 * b2 + b3 * b3
     if orientation == 1 # x-direction
-        c_f = sqrt(0.5 * (a_square + b_square) +
+        c_f = sqrt_(0.5 * (a_square + b_square) +
                    0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b1^2))
     elseif orientation == 2 # y-direction
-        c_f = sqrt(0.5 * (a_square + b_square) +
+        c_f = sqrt_(0.5 * (a_square + b_square) +
                    0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b2^2))
     else # z-direction
-        c_f = sqrt(0.5 * (a_square + b_square) +
+        c_f = sqrt_(0.5 * (a_square + b_square) +
                    0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b3^2))
     end
     return c_f
@@ -1072,7 +1072,7 @@ end
                        b2 * normal_direction[2] +
                        b3 * normal_direction[3])^2 / norm_squared
 
-    c_f = sqrt((0.5 * (a_square + b_square) +
+    c_f = sqrt_((0.5 * (a_square + b_square) +
                 0.5 * sqrt_((a_square + b_square)^2 - 4 * a_square * b_dot_n_squared)) *
                norm_squared)
     return c_f
@@ -1146,19 +1146,19 @@ Compute the fast magnetoacoustic wave speed using Roe averages as given by
         c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
         a_star_roe = sqrt_((a_square_roe + b_square_roe)^2 -
                            4.0 * a_square_roe * c_a_roe)
-        c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
+        c_f_roe = sqrt_(0.5 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v1_roe
     elseif orientation == 2 # y-direction
         c_a_roe = B2_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
         a_star_roe = sqrt_((a_square_roe + b_square_roe)^2 -
                            4.0 * a_square_roe * c_a_roe)
-        c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
+        c_f_roe = sqrt_(0.5 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v2_roe
     else # z-direction
         c_a_roe = B3_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
         a_star_roe = sqrt_((a_square_roe + b_square_roe)^2 -
                            4.0 * a_square_roe * c_a_roe)
-        c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
+        c_f_roe = sqrt_(0.5 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v3_roe
     end
 
@@ -1230,7 +1230,7 @@ end
 
     c_a_roe = B_roe_dot_n_squared * inv_sqrt_rho_prod # (squared) Alfvén wave speed
     a_star_roe = sqrt_((a_square_roe + b_square_roe)^2 - 4 * a_square_roe * c_a_roe)
-    c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe) * norm_squared)
+    c_f_roe = sqrt_(0.5 * (a_square_roe + b_square_roe + a_star_roe) * norm_squared)
     vel_out_roe = (v1_roe * normal_direction[1] +
                    v2_roe * normal_direction[2] +
                    v3_roe * normal_direction[3])

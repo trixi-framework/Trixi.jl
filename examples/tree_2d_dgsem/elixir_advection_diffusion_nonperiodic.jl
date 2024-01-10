@@ -30,10 +30,10 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 function initial_condition_eriksson_johnson(x, t, equations)
     l = 4
     epsilon = diffusivity() # TODO: this requires epsilon < .6 due to sqrt
-    lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
-    lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
-    r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
-    s1 = (1 - sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
+    lambda_1 = (-1 + sqrt_(1 - 4 * epsilon * l)) / (-2 * epsilon)
+    lambda_2 = (-1 - sqrt_(1 - 4 * epsilon * l)) / (-2 * epsilon)
+    r1 = (1 + sqrt_(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
+    s1 = (1 - sqrt_(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
     u = exp(-l * t) * (exp(lambda_1 * x[1]) - exp(lambda_2 * x[1])) +
         cos(pi * x[2]) * (exp(s1 * x[1]) - exp(r1 * x[1])) / (exp(-s1) - exp(-r1))
     return SVector{1}(u)

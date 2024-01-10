@@ -206,7 +206,7 @@ function jacobian_fd(semi::AbstractSemidiscretization;
     # use second order finite difference to estimate Jacobian matrix
     for idx in eachindex(u0_ode)
         # determine size of fluctuation
-        epsilon = sqrt(eps(u0_ode[idx]))
+        epsilon = sqrt_(eps(u0_ode[idx]))
 
         # plus fluctuation
         u_ode[idx] = u0_ode[idx] + epsilon

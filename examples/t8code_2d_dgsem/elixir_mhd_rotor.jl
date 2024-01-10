@@ -19,7 +19,7 @@ function initial_condition_rotor(x, t, equations::IdealGlmMhdEquations2D)
     # domain must be [0, 1] x [0, 1], γ = 1.4
     dx = x[1] - 0.5
     dy = x[2] - 0.5
-    r = sqrt(dx^2 + dy^2)
+    r = sqrt_(dx^2 + dy^2)
     f = (0.115 - r) / 0.015
     if r <= 0.1
         rho = 10.0
@@ -36,7 +36,7 @@ function initial_condition_rotor(x, t, equations::IdealGlmMhdEquations2D)
     end
     v3 = 0.0
     p = 1.0
-    B1 = 5.0 / sqrt(4.0 * pi)
+    B1 = 5.0 / sqrt_(4.0 * pi)
     B2 = 0.0
     B3 = 0.0
     psi = 0.0

@@ -21,16 +21,16 @@ solver = DGSEM(polydeg = 3,
 function mapping(xi_, eta_)
     # Transform input variables between -1 and 1 onto [0, sqrt(2)]
     # Note, we use the domain [0, sqrt(2)]^2 for the Alfvén wave convergence test case
-    xi = 0.5 * sqrt(2) * xi_ + 0.5 * sqrt(2)
-    eta = 0.5 * sqrt(2) * eta_ + 0.5 * sqrt(2)
+    xi = 0.5 * sqrt_(2) * xi_ + 0.5 * sqrt_(2)
+    eta = 0.5 * sqrt_(2) * eta_ + 0.5 * sqrt_(2)
 
     y = eta +
-        sqrt(2) / 12 * (cos(1.5 * pi * (2 * xi - sqrt(2)) / sqrt(2)) *
-         cos(0.5 * pi * (2 * eta - sqrt(2)) / sqrt(2)))
+        sqrt_(2) / 12 * (cos(1.5 * pi * (2 * xi - sqrt_(2)) / sqrt_(2)) *
+         cos(0.5 * pi * (2 * eta - sqrt_(2)) / sqrt_(2)))
 
     x = xi +
-        sqrt(2) / 12 * (cos(0.5 * pi * (2 * xi - sqrt(2)) / sqrt(2)) *
-         cos(2 * pi * (2 * y - sqrt(2)) / sqrt(2)))
+        sqrt_(2) / 12 * (cos(0.5 * pi * (2 * xi - sqrt_(2)) / sqrt_(2)) *
+         cos(2 * pi * (2 * y - sqrt_(2)) / sqrt_(2)))
 
     return SVector(x, y)
 end

@@ -15,7 +15,7 @@ solver = DGSEM(polydeg = 4, surface_flux = (flux_hlle, flux_nonconservative_powe
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0.0, 0.0)
-coordinates_max = (sqrt(2.0), sqrt(2.0))
+coordinates_max = (sqrt_(2.0), sqrt_(2.0))
 
 mapping = Trixi.coordinates2mapping(coordinates_min, coordinates_max)
 

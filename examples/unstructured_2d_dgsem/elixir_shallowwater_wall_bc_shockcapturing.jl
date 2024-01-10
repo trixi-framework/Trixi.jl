@@ -14,7 +14,7 @@ function initial_condition_stone_throw(x, t, equations::ShallowWaterEquations2D)
     inicenter = SVector(0.15, 0.15)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
+    r = sqrt_(x_norm^2 + y_norm^2)
 
     # Calculate primitive variables
     H = equations.H0

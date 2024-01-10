@@ -857,7 +857,7 @@ Compactly summarized:
 
     # Compute convenience constant for positivity preservation, see
     # https://doi.org/10.1016/0021-9991(91)90211-3
-    beta = sqrt(0.5 * (equations.gamma - 1) / equations.gamma)
+    beta = sqrt_(0.5 * (equations.gamma - 1) / equations.gamma)
 
     # Estimate the edges of the Riemann fan (with positivity conservation)
     SsL = min(v_roe - c_roe, v_ll - beta * c_ll, zero(v_roe))

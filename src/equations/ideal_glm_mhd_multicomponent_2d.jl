@@ -125,7 +125,7 @@ function initial_condition_weak_blast_wave(x, t,
     inicenter = SVector(0.0, 0.0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
+    r = sqrt_(x_norm^2 + y_norm^2)
     phi = atan(y_norm, x_norm)
     sin_phi, cos_phi = sincos(phi)
 
@@ -659,7 +659,7 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
-    v_mag = sqrt(v1^2 + v2^2 + v3^2)
+    v_mag = sqrt_(v1^2 + v2^2 + v3^2)
     gamma = totalgamma(cons, equations)
     p = (gamma - 1) *
         (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2) - 0.5 * psi^2)
@@ -670,10 +670,10 @@ end
     b3 = B3 / sqrt_rho
     b_square = b1^2 + b2^2 + b3^2
     if direction == 1 # x-direction
-        c_f = sqrt(0.5 * (a_square + b_square) +
+        c_f = sqrt_(0.5 * (a_square + b_square) +
                    0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b1^2))
     else
-        c_f = sqrt(0.5 * (a_square + b_square) +
+        c_f = sqrt_(0.5 * (a_square + b_square) +
                    0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b2^2))
     end
     return c_f

@@ -28,7 +28,7 @@ A Gaussian pulse, used in the `gauss_wall` example elixir in combination with
 function initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquations2D)
     v1_prime = 0.0
     v2_prime = 0.0
-    p_prime = exp(-log(2) * (x[1]^2 + (x[2] - 25)^2) / 25)
+    p_prime = exp(-log_(2) * (x[1]^2 + (x[2] - 25)^2) / 25)
 
     prim = SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
 

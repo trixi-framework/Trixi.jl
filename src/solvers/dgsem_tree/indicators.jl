@@ -191,7 +191,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
 
     # magic parameters
     threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-    parameter_s = log((1 - 0.0001) / 0.0001)
+    parameter_s = log_((1 - 0.0001) / 0.0001)
 
     @threaded for element in eachelement(dg, cache)
         # This is dispatched by mesh dimension.

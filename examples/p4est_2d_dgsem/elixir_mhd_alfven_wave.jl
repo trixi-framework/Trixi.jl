@@ -18,7 +18,7 @@ solver = DGSEM(polydeg = 4,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0.0, 0.0)
-coordinates_max = (sqrt(2.0), sqrt(2.0))
+coordinates_max = (sqrt_(2.0), sqrt_(2.0))
 
 trees_per_dimension = (8, 8)
 mesh = P4estMesh(trees_per_dimension,

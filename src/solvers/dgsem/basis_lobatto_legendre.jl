@@ -625,7 +625,7 @@ function gauss_nodes_weights(n_nodes::Integer)
         weights .= 2.0
         return nodes, weights
     elseif N == 1
-        nodes[1] = -sqrt(1 / 3)
+        nodes[1] = -sqrt_(1 / 3)
         nodes[end] = -nodes[1]
         weights .= 1.0
         return nodes, weights
@@ -692,8 +692,8 @@ function legendre_polynomial_and_derivative(N::Int, x::Real)
     end
 
     # Normalize
-    poly = poly * sqrt(N + 0.5)
-    deriv = deriv * sqrt(N + 0.5)
+    poly = poly * sqrt_(N + 0.5)
+    deriv = deriv * sqrt_(N + 0.5)
 
     return poly, deriv
 end

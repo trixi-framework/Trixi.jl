@@ -29,13 +29,13 @@ function initial_condition_composite(x, t, equations::LinearScalarAdvectionEquat
     end
 
     if x_ > -0.8 && x_ < -0.6
-        value = exp(-log(2.0) * (x_ + 0.7)^2 / 0.0009)
+        value = exp(-log_(2.0) * (x_ + 0.7)^2 / 0.0009)
     elseif x_ > -0.4 && x_ < -0.2
         value = 1.0
     elseif x_ > 0.0 && x_ < 0.2
         value = 1.0 - abs(10.0 * (x_ - 0.1))
     elseif x_ > 0.4 && x_ < 0.6
-        value = sqrt(1.0 - 100.0 * (x_ - 0.5)^2)
+        value = sqrt_(1.0 - 100.0 * (x_ - 0.5)^2)
     else
         value = 0.0
     end

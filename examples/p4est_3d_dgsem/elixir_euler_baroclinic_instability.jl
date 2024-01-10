@@ -132,7 +132,7 @@ function basic_state_baroclinic_instability_longitudinal_velocity(lon, lat, z)
     big_u = gravitational_acceleration / radius_earth * k * temperature * inttau2 *
             (temp3^(k - 1) - temp3^(k + 1))
     temp5 = radius_earth * cos(lat)
-    u = -angular_velocity * temp5 + sqrt(angular_velocity^2 * temp5^2 + temp5 * big_u)
+    u = -angular_velocity * temp5 + sqrt_(angular_velocity^2 * temp5^2 + temp5 * big_u)
 
     # Hydrostatic pressure
     p = surface_pressure *
@@ -173,7 +173,7 @@ function perturbation_stream_function(lon, lat, z)
     sin_, cos_ = sincos(0.5 * pi * great_circle_distance_by_a / perturbation_radius)
 
     # Common factor for both u and v
-    factor = 16 / (3 * sqrt(3)) * perturbed_wind_amplitude * perttaper * cos_^3 * sin_
+    factor = 16 / (3 * sqrt_(3)) * perturbed_wind_amplitude * perttaper * cos_^3 * sin_
 
     u_perturbation = -factor * (-sin(perturbation_lat) * cos(lat) +
                       cos(perturbation_lat) * sin(lat) * cos(lon - perturbation_lon)) /

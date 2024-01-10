@@ -52,7 +52,7 @@ function initial_condition_shock_bubble(x, t,
     inicenter = SVector(zero(delta), zero(delta))
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
+    r = sqrt_(x_norm^2 + y_norm^2)
 
     if (x[1] > 0.50)
         # Set up Region III

@@ -141,7 +141,7 @@ function LatticeBoltzmannEquations3D(; Ma, Re, collision_op = collision_bgk,
     # The relation between the isothermal speed of sound `c_s` and the mean thermal molecular velocity
     # `c` depends on the used phase space discretization, and is valid for D3Q27 (and others). For
     # details, see, e.g., [3] in the docstring above.
-    c_s = c / sqrt(3)
+    c_s = c / sqrt_(3)
 
     # Calculate missing quantities
     if isnothing(Ma)

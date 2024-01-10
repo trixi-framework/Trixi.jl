@@ -14,7 +14,7 @@ function initial_condition_shifted_weak_blast_wave(x, t, equations::IdealGlmMhdE
     inicenter = (1.5, 1.5)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
+    r = sqrt_(x_norm^2 + y_norm^2)
     phi = atan(y_norm, x_norm)
 
     # Calculate primitive variables

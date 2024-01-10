@@ -58,7 +58,7 @@ function periodic_distance_2d(coordinates, center, domain_length)
     dx = coordinates .- center
     dx_shifted = abs.(dx .% domain_length)
     dx_periodic = min.(dx_shifted, domain_length .- dx_shifted)
-    return sqrt(sum(dx_periodic .^ 2))
+    return sqrt_(sum(dx_periodic .^ 2))
 end
 
 #This takes a cells coordinates and transforms them into the coordinates of a parent-cell it originally refined from.

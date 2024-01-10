@@ -244,7 +244,7 @@ end
                             1.1343911906935844e-5,
                             3.679582619220412e-5,
                         ],
-                        rtol=2 * sqrt(eps()))
+                        rtol=2 * sqrt_(eps()))
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
     let

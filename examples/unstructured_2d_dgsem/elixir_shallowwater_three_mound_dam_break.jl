@@ -31,9 +31,9 @@ function initial_condition_three_mounds(x, t, equations::ShallowWaterEquations2D
     v2 = 0.0
 
     x1, x2 = x
-    M_1 = 1 - 0.1 * sqrt((x1 - 30.0)^2 + (x2 - 22.5)^2)
-    M_2 = 1 - 0.1 * sqrt((x1 - 30.0)^2 + (x2 - 7.5)^2)
-    M_3 = 2.8 - 0.28 * sqrt((x1 - 47.5)^2 + (x2 - 15.0)^2)
+    M_1 = 1 - 0.1 * sqrt_((x1 - 30.0)^2 + (x2 - 22.5)^2)
+    M_2 = 1 - 0.1 * sqrt_((x1 - 30.0)^2 + (x2 - 7.5)^2)
+    M_3 = 2.8 - 0.28 * sqrt_((x1 - 47.5)^2 + (x2 - 15.0)^2)
 
     b = max(0.0, M_1, M_2, M_3)
 

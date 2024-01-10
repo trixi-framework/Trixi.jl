@@ -16,7 +16,7 @@ equations = ShallowWaterTwoLayerEquations2D(gravity_constant = 1.0, rho_upper = 
 # condition is reset with the true discontinuous values from initial_condition_discontinuous_dam_break.
 
 function initial_condition_dam_break(x, t, equations::ShallowWaterTwoLayerEquations2D)
-    if x[1] < sqrt(2) / 2
+    if x[1] < sqrt_(2) / 2
         H_upper = 1.0
         H_lower = 0.6
         b = 0.1

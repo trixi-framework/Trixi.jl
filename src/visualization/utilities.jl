@@ -742,7 +742,7 @@ function calc_arc_length(coordinates)
     arc_length = zeros(n_points)
     for i in 1:(n_points - 1)
         arc_length[i + 1] = arc_length[i] +
-                            sqrt(sum((coordinates[:, i] - coordinates[:, i + 1]) .^ 2))
+                            sqrt_(sum((coordinates[:, i] - coordinates[:, i + 1]) .^ 2))
     end
     return arc_length
 end
