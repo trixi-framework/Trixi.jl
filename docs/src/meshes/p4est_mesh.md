@@ -256,7 +256,8 @@ By doing so, only nodesets with label in `boundary_symbols` are treated as bound
 Note that there is a leading double-colon `:` compared to the label in the `.inp` mesh file.
 This is required to turn the label into a [`Symbol`](https://docs.julialang.org/en/v1/manual/metaprogramming/#Symbols).
 
-A 2D example for this mesh generation is presented in `examples/p4est_2d_dgsem/elixir_euler_NACA6412airfoil_mach2.jl`.
+A 2D example for this mesh generation is presented in 
+`examples/p4est_2d_dgsem/elixir_euler_NACA6412airfoil_mach2.jl`.
 
 ### Mesh in three spatial dimensions
 
