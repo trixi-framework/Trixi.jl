@@ -2,10 +2,18 @@ using OrdinaryDiffEq
 using Trixi
 
 # Warm bubble test case from
-# Wicker, L. J., and Skamarock, W. C.
-# A time-splitting scheme for the elastic equations incorporating second-order Runge–Kutta
-# time differencing
-# [DOI: 10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2](https://doi.org/10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2)
+# - Wicker, L. J., and Skamarock, W. C.
+#   A time-splitting scheme for the elastic equations incorporating 
+#   second-order Runge–Kutta time differencing
+#   [DOI: 10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2](https://doi.org/10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2)
+# See also
+# - Bryan and Fritsch (2002)
+#   A Benchmark Simulation for Moist Nonhydrostatic Numerical Models
+#   [DOI: 10.1175/1520-0493(2002)130<2917:ABSFMN>2.0.CO;2](https://doi.org/10.1175/1520-0493(2002)130<2917:ABSFMN>2.0.CO;2)
+# - Carpenter, Droegemeier, Woodward, Hane (1990)
+#   Application of the Piecewise Parabolic Method (PPM) to 
+#   Meteorological Modeling
+#   [DOI: 10.1175/1520-0493(1990)118<0586:AOTPPM>2.0.CO;2](https://doi.org/10.1175/1520-0493(1990)118<0586:AOTPPM>2.0.CO;2)
 struct WarmBubbleSetup
     # Physical constants
     g::Float64       # gravity of earth
