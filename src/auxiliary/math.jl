@@ -26,24 +26,6 @@ in the stacktrace.
 """
 @inline sqrt_(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
 
-"""
-    sqrt_(x::Union{Float64, Float32, Float16})
-
-Custom square root function which returns `NaN` for negative arguments instead of throwing an error.
-This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
-when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
-i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
-
-For `Float64, Float32, Float16` the LLVM intrinsic `sqrt_llvm` function can be used out-of the box,
-i.e., it returns `NaN` for negative arguments.
-For other types, such as integers or dual numbers required for algorithmic differentiation, we
-fall back to the Julia built-in `sqrt` function after a check for negative arguments, 
-see [`sqrt_(x::Real)`](@ref).
-
-When debugging code, it might be useful to change the implementation of this function to redirect to 
-the Julia built-in `sqrt` function, as this reports the exact place in code where the domain is violated 
-in the stacktrace.
-"""
 @inline sqrt_(x::Union{Float64, Float32, Float16}) = Base.sqrt_llvm(x)
 #@inline sqrt_(x) = Base.sqrt(x) # For benchmarking and debugging
 
@@ -69,24 +51,6 @@ in the stacktrace.
 """
 @inline log_(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.log(x)
 
-"""
-    log_(x::Float64_or_Float32_or_Float16)
-
-Custom natural logarithm function which returns `NaN` for negative arguments instead of throwing an error.
-This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
-when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
-i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
-
-For `Float64, Float32, Float16` the respective LLVM intrinsic `llvm.log.f64/f32/f16` function can be used out-of the box,
-i.e., it returns `NaN` for negative arguments.
-For other types, such as integers or dual numbers required for algorithmic differentiation, we
-fall back to the Julia built-in `log` function after a check for negative arguments, 
-see [`log_(x::Real)`](@ref).
-
-When debugging code, it might be useful to change the implementation of this function to redirect to 
-the Julia built-in `log` function, as this reports the exact place in code where the domain is violated 
-in the stacktrace.
-"""
 @inline log_(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64,), x)
 @inline log_(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
 @inline log_(x::Float16) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
