@@ -4,7 +4,8 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::ParallelT8codeMesh, equations::AbstractEquations, dg::DG, ::Any,
+function create_cache(mesh::ParallelT8codeMesh, equations::AbstractEquations, dg::DG,
+                      ::Any,
                       ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance and partition the forest before creating any
     # containers in case someone has tampered with the p4est after creating the
@@ -22,19 +23,21 @@ function create_cache(mesh::ParallelT8codeMesh, equations::AbstractEquations, dg
     mpi_mortars = init_mpi_mortars(mesh, equations, dg.basis, elements)
     mpi_interfaces = init_mpi_interfaces(mesh, equations, dg.basis, elements)
 
-    mpi_mesh_info = (
-      mpi_mortars = mpi_mortars,
-      mpi_interfaces = mpi_interfaces,
-      global_mortar_ids = fill(UInt64(0), nmpimortars(mpi_mortars)),
-      global_interface_ids = fill(UInt64(0), nmpiinterfaces(mpi_interfaces)),
-      neighbor_ranks_mortar = Vector{Vector{Int}}(undef, nmpimortars(mpi_mortars)),
-      neighbor_ranks_interface = fill(-1, nmpiinterfaces(mpi_interfaces)),
-    )
+    mpi_mesh_info = (mpi_mortars = mpi_mortars,
+                     mpi_interfaces = mpi_interfaces,
+                     global_mortar_ids = fill(UInt64(0), nmpimortars(mpi_mortars)),
+                     global_interface_ids = fill(UInt64(0),
+                                                 nmpiinterfaces(mpi_interfaces)),
+                     neighbor_ranks_mortar = Vector{Vector{Int}}(undef,
+                                                                 nmpimortars(mpi_mortars)),
+                     neighbor_ranks_interface = fill(-1,
+                                                     nmpiinterfaces(mpi_interfaces)))
 
     trixi_t8_fill_mesh_info(mesh, elements, interfaces, mortars, boundaries,
                             mesh.boundary_names; mpi_mesh_info = mpi_mesh_info)
 
-    mpi_cache = init_mpi_cache(mesh, mpi_mesh_info, nvariables(equations), nnodes(dg), uEltype)
+    mpi_cache = init_mpi_cache(mesh, mpi_mesh_info, nvariables(equations), nnodes(dg),
+                               uEltype)
 
     empty!(mpi_mesh_info.global_mortar_ids)
     empty!(mpi_mesh_info.global_interface_ids)
@@ -61,8 +64,10 @@ function init_mpi_cache(mesh::ParallelT8codeMesh, mpi_mesh_info, nvars, nnodes, 
     return mpi_cache
 end
 
-function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelT8codeMesh, mpi_mesh_info, nvars, nnodes, uEltype)
-    mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = init_mpi_neighbor_connectivity(mpi_mesh_info, mesh)
+function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelT8codeMesh,
+                         mpi_mesh_info, nvars, nnodes, uEltype)
+    mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = init_mpi_neighbor_connectivity(mpi_mesh_info,
+                                                                                                       mesh)
 
     mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests = init_mpi_data_structures(mpi_neighbor_interfaces,
                                                                                                         mpi_neighbor_mortars,
@@ -76,13 +81,13 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelT8codeMesh, mpi
 
     n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
     n_elements_by_rank[mpi_rank() + 1] = n_elements_local
-    
+
     MPI.Allgather!(MPI.UBuffer(n_elements_by_rank, 1), mpi_comm())
 
     n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
 
     # Account for 1-based indexing in Julia.
-    first_element_global_id = sum(n_elements_by_rank[0:(mpi_rank()-1)]) + 1
+    first_element_global_id = sum(n_elements_by_rank[0:(mpi_rank() - 1)]) + 1
 
     @assert n_elements_global==sum(n_elements_by_rank) "error in total number of elements"
 
@@ -97,10 +102,10 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelT8codeMesh, mpi
 end
 
 function init_mpi_neighbor_connectivity(mpi_mesh_info, mesh::ParallelT8codeMesh)
-
     @unpack mpi_interfaces, mpi_mortars, global_interface_ids, neighbor_ranks_interface, global_mortar_ids, neighbor_ranks_mortar = mpi_mesh_info
 
-    mpi_neighbor_ranks = vcat(neighbor_ranks_interface, neighbor_ranks_mortar...) |> sort |> unique
+    mpi_neighbor_ranks = vcat(neighbor_ranks_interface, neighbor_ranks_mortar...) |>
+                         sort |> unique
 
     p = sortperm(global_interface_ids)
 
@@ -127,5 +132,4 @@ function init_mpi_neighbor_connectivity(mpi_mesh_info, mesh::ParallelT8codeMesh)
 
     return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
 end
-
 end # @muladd

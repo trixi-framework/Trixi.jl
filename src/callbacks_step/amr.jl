@@ -759,12 +759,12 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
 
         # Check if mesh changed on other processes
         if mpi_isparallel()
-          has_changed = MPI.Allreduce!(Ref(has_changed), |, mpi_comm())[]
+            has_changed = MPI.Allreduce!(Ref(has_changed), |, mpi_comm())[]
         end
 
         if has_changed
-          @trixi_timeit timer() "solver" adapt!(u_ode, adaptor, mesh, equations, dg,
-                                                cache, difference)
+            @trixi_timeit timer() "solver" adapt!(u_ode, adaptor, mesh, equations, dg,
+                                                  cache, difference)
         end
     end
 

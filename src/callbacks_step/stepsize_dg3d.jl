@@ -182,5 +182,4 @@ function max_dt(u, t, mesh::ParallelT8codeMesh{3},
 
     return dt
 end
-
 end # @muladd

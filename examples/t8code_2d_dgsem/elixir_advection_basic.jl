@@ -23,7 +23,7 @@ mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
                   initial_refinement_level = 1)
 
 function my_initial_condition(x, t,
-                                            equation::LinearScalarAdvectionEquation2D)
+                              equation::LinearScalarAdvectionEquation2D)
     # Store translated coordinate for easy use of exact solution
     x_trans = x - equation.advection_velocity * t
 

@@ -230,5 +230,4 @@ function init_mortar_neighbor_ids!(mortars::P4estMortarContainer{3}, my_face,
         end
     end
 end
-
 end # @muladd

@@ -31,7 +31,6 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     function T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
                                boundary_names,
                                current_filename) where {NDIMS}
-
         is_parallel = mpi_isparallel() ? True() : False()
 
         mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS + 2, length(nodes)}(forest,
@@ -190,7 +189,8 @@ function T8codeMesh(trees_per_dimension; polydeg,
 
     do_face_ghost = mpi_isparallel()
     scheme = t8_scheme_new_default_cxx()
-    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost, mpi_comm())
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
+                                   mpi_comm())
 
     basis = LobattoLegendreBasis(RealT, polydeg)
     nodes = basis.nodes
@@ -291,10 +291,10 @@ conforming mesh from a `t8_cmesh` data structure.
 function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
                            mapping = nothing, polydeg = 1, RealT = Float64,
                            initial_refinement_level = 0) where {NDIMS}
-
     do_face_ghost = mpi_isparallel()
     scheme = t8_scheme_new_default_cxx()
-    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost, mpi_comm())
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
+                                   mpi_comm())
 
     basis = LobattoLegendreBasis(RealT, polydeg)
     nodes = basis.nodes
@@ -472,5 +472,5 @@ function partition!(mesh::T8codeMesh; allow_coarsening = true, weight_fn = C_NUL
 end
 
 function update_ghost_layer!(mesh::ParallelT8codeMesh)
-  return nothing
+    return nothing
 end

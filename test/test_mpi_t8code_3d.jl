@@ -120,7 +120,6 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
                             tspan=(0.0, 0.2),
                             coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
     end
-
 end
 end # T8codeMesh MPI
 

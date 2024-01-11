@@ -21,22 +21,22 @@ function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM
     @unpack mpi_mortars = cache
     resize!(mpi_mortars, required.mpi_mortars)
 
-    mpi_mesh_info = (
-      mpi_mortars = mpi_mortars,
-      mpi_interfaces = mpi_interfaces,
+    mpi_mesh_info = (mpi_mortars = mpi_mortars,
+                     mpi_interfaces = mpi_interfaces,
 
-      # Temporary arrays for updating `mpi_cache`.
-      global_mortar_ids = fill(UInt64(0), nmpimortars(mpi_mortars)),
-      global_interface_ids = fill(UInt64(0), nmpiinterfaces(mpi_interfaces)),
-      neighbor_ranks_mortar = Vector{Vector{Int}}(undef, nmpimortars(mpi_mortars)),
-      neighbor_ranks_interface = fill(-1, nmpiinterfaces(mpi_interfaces)),
-    )
+                     # Temporary arrays for updating `mpi_cache`.
+                     global_mortar_ids = fill(UInt64(0), nmpimortars(mpi_mortars)),
+                     global_interface_ids = fill(UInt64(0), nmpiinterfaces(mpi_interfaces)),
+                     neighbor_ranks_mortar = Vector{Vector{Int}}(undef,
+                                                                 nmpimortars(mpi_mortars)),
+                     neighbor_ranks_interface = fill(-1, nmpiinterfaces(mpi_interfaces)))
 
     trixi_t8_fill_mesh_info(mesh, elements, interfaces, mortars, boundaries,
                             mesh.boundary_names; mpi_mesh_info = mpi_mesh_info)
 
     @unpack mpi_cache = cache
-    init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info, nvariables(equations), nnodes(dg), eltype(elements))
+    init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info, nvariables(equations), nnodes(dg),
+                    eltype(elements))
 
     empty!(mpi_mesh_info.global_mortar_ids)
     empty!(mpi_mesh_info.global_interface_ids)
