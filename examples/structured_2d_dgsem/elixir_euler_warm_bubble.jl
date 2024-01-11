@@ -87,7 +87,10 @@ boundary_conditions = (x_neg = boundary_condition_periodic,
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
+# This is a good estimate for the speed of sound in this example.
+# Other values between 300 and 400 should work as well.
 surface_flux = FluxLMARS(340.0)
+
 volume_flux = flux_kennedy_gruber
 volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
 
