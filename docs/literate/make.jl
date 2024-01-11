@@ -11,16 +11,16 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
 
     binder_logo   = "https://mybinder.org/badge_logo.svg"
     nbviewer_logo = "https://github.com/trixi-framework/Trixi.jl/assets/74359358/fb572b02-9329-48c1-8f19-9140f5dcd4be"
-    download_logo = "https://github.com/trixi-framework/Trixi.jl/assets/74359358/5364d4b9-6db5-4b54-92f9-95319a8b469c"
+    raw_notebook_logo = "https://github.com/trixi-framework/Trixi.jl/assets/74359358/5e7c2f38-28b5-4dde-a6b6-50829615d24d"
 
     notebook_path = "tutorials/notebooks/$notebook_filename"
     binder_url   = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=$notebook_path"
     nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/$notebook_path"
-    download_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/$notebook_path"
+    raw_notebook_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/$notebook_path"
 
     binder_badge   = "# [![]($binder_logo)]($binder_url)"
     nbviewer_badge = "# [![]($nbviewer_logo)]($nbviewer_url)"
-    download_badge = "# [![]($download_logo)]($download_url)"
+    raw_notebook_badge = "# [![]($raw_notebook_logo)]($raw_notebook_url)"
 
     # Generate notebook file
     function preprocess_notebook(content)
@@ -32,7 +32,7 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
 
     # Generate markdown file
     function preprocess_docs(content)
-        return string("# # [$title](@id $(splitext(file)[1]))\n $binder_badge\n $nbviewer_badge\n $download_badge\n\n", content)
+        return string("# # [$title](@id $(splitext(file)[1]))\n $binder_badge\n $nbviewer_badge\n $raw_notebook_badge\n\n", content)
     end
     Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder); preprocess=preprocess_docs,)
 end
