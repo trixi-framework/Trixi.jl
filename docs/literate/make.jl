@@ -45,7 +45,6 @@ function create_tutorials(files)
     notebooks_dir   = joinpath(pages_dir, "notebooks")
 
     Sys.rm(pages_dir;       recursive=true, force=true)
-
     Sys.rm("out"; recursive=true, force=true)
 
     # Run tests on all tutorial files
