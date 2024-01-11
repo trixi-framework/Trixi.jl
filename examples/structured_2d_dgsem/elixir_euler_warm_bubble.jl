@@ -2,7 +2,7 @@ using OrdinaryDiffEq
 using Trixi
 
 # Warm bubble test case from
-# - Wicker, L. J., and Skamarock, W. C.
+# - Wicker, L. J., and Skamarock, W. C. (1998)
 #   A time-splitting scheme for the elastic equations incorporating 
 #   second-order Runge–Kutta time differencing
 #   [DOI: 10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2](https://doi.org/10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2)
@@ -106,7 +106,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, warm_bubble_setup, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1000.0)
+tspan = (0.0, 1000.0)  # 1000 seconds final time
 
 ode = semidiscretize(semi, tspan)
 
