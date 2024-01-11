@@ -6,7 +6,8 @@
 #! format: noindent
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::Union{SerialTreeMesh, StructuredMesh, StructuredMeshView,
+                            mesh::Union{SerialTreeMesh, StructuredMesh,
+                                        StructuredMeshView,
                                         UnstructuredMesh2D, SerialP4estMesh,
                                         SerialT8codeMesh},
                             equations, dg::DG, cache,
@@ -33,7 +34,8 @@ function save_solution_file(u, time, dt, timestep,
         # compute the solution variables via broadcasting, and reinterpret the
         # result as a plain array of floating point numbers
         data = Array(reinterpret(eltype(u),
-                                 solution_variables.(reinterpret(SVector{nvariables(equations),
+                                 solution_variables.(reinterpret(SVector{
+                                                                         nvariables(equations),
                                                                          eltype(u)}, u),
                                                      Ref(equations))))
 
@@ -115,7 +117,8 @@ function save_solution_file(u, time, dt, timestep,
         # compute the solution variables via broadcasting, and reinterpret the
         # result as a plain array of floating point numbers
         data = Array(reinterpret(eltype(u),
-                                 solution_variables.(reinterpret(SVector{nvariables(equations),
+                                 solution_variables.(reinterpret(SVector{
+                                                                         nvariables(equations),
                                                                          eltype(u)}, u),
                                                      Ref(equations))))
 

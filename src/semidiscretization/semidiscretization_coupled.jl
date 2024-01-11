@@ -296,7 +296,8 @@ function save_mesh(semi::SemidiscretizationCoupled, output_directory, timestep =
         mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
 
         if mesh.unsaved_changes
-            mesh.current_filename = save_mesh_file(mesh, output_directory; system = i, timestep = timestep)
+            mesh.current_filename = save_mesh_file(mesh, output_directory; system = i,
+                                                   timestep = timestep)
             mesh.unsaved_changes = false
         end
     end
@@ -433,7 +434,8 @@ function allocate_coupled_boundary_condition(boundary_condition, direction, mesh
 end
 
 # In 2D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2},
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2
+                                                                                          },
                                              direction, mesh, equations, dg::DGSEM)
     if direction in (1, 2)
         cell_size = size(mesh, 2)

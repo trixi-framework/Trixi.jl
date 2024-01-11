@@ -96,7 +96,8 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::StructuredMesh, output_directory; system = "", timestep = 0)
+function save_mesh_file(mesh::StructuredMesh, output_directory; system = "",
+                        timestep = 0)
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
@@ -122,12 +123,13 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::StructuredMeshView, output_directory; system = "", timestep = 0)
+function save_mesh_file(mesh::StructuredMeshView, output_directory; system = "",
+                        timestep = 0)
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
     # filename = joinpath(output_directory, @sprintf("mesh_%s.h5", system))
-    filename = joinpath(output_directory, @sprintf("mesh_%s_%06d.h5", system, timestep))        
+    filename = joinpath(output_directory, @sprintf("mesh_%s_%06d.h5", system, timestep))
 
     # Open file (clobber existing content)
     h5open(filename, "w") do file
