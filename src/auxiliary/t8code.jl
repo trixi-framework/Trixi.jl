@@ -340,7 +340,6 @@ function trixi_t8_fill_mesh_info(mesh, elements, interfaces, mortars, boundaries
 
                       # else: `level > neighbor_level` is skipped since we visit the mortar interface only once.
                       end
-
                     else # MPI interfaces/mortars.
                       # Conforming MPI interface.
                       if level == neighbor_level
