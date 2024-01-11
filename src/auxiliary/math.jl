@@ -11,7 +11,7 @@
 Custom square root function which returns `NaN` for negative arguments instead of throwing an error.
 This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
 when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
-i.e., using the @batch macro instead of the Julia built-in @threads macro, see [`@threaded`](@ref).
+i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
 
 We dispatch this function for `Float64, Float32, Float16` to the LLVM intrinsic `sqrt_llvm` as for this the 
 `sqrt_llvm` function can be used out-of the box, i.e., it returns `NaN` for negative arguments.
