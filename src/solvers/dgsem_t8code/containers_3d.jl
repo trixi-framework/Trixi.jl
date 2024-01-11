@@ -69,9 +69,9 @@ function calc_node_coordinates!(node_coordinates,
 end
 
 # This routine was copied and adapted from `src/dgsem_p4est/containers_3d.jl`: `orientation_to_indices_p4est`.
-function trixi_t8_init_mortar_neighbor_ids!(mortars::P4estMortarContainer{3}, my_face,
-                                            other_face, orientation, neighbor_ielements,
-                                            mortar_id)
+function init_mortar_neighbor_ids!(mortars::P4estMortarContainer{3}, my_face,
+                                   other_face, orientation, neighbor_ielements,
+                                   mortar_id)
     # my_face and other_face are the face directions (zero-based)
     # of "my side" and "other side" respectively.
     # Face corner 0 of the face with the lower face direction connects to a corner of the other face.

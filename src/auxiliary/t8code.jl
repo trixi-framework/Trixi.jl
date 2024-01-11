@@ -233,9 +233,9 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
                         mortars.neighbor_ids[end, mortar_id] = current_index + 1
 
                         # Fill in the `mortars.neighbor_ids` array and reorder if necessary.
-                        trixi_t8_init_mortar_neighbor_ids!(mortars, faces[2], faces[1],
-                                                           orientation, neighbor_ielements,
-                                                           mortar_id)
+                        init_mortar_neighbor_ids!(mortars, faces[2], faces[1],
+                                                  orientation, neighbor_ielements,
+                                                  mortar_id)
 
                         # Fill in the `mortars.node_indices` array.
                         init_mortar_node_indices!(mortars, faces, orientation, mortar_id)
