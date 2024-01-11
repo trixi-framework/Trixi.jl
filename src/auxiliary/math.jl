@@ -11,7 +11,7 @@
 Custom square root function which returns `NaN` for negative arguments instead of throwing an error.
 This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
 when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
-i.e., using the @batch macro instead of the Julia built-in @threads macro, see [`threaded`](@ref).
+i.e., using the @batch macro instead of the Julia built-in @threads macro, see [`@threaded`](@ref).
 
 We dispatch this function for `Float64, Float32, Float16` to the LLVM intrinsic `sqrt_llvm` as for this the 
 `sqrt_llvm` function can be used out-of the box, i.e., it returns `NaN` for negative arguments.
@@ -32,7 +32,7 @@ in the stacktrace.
 Custom square root function which returns `NaN` for negative arguments instead of throwing an error.
 This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
 when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
-i.e., using the @batch macro instead of the Julia built-in @threads macro, see [`threaded`](@ref).
+i.e., using the @batch macro instead of the Julia built-in @threads macro, see [`@threaded`](@ref).
 
 For `Float64, Float32, Float16` the LLVM intrinsic `sqrt_llvm` function can be used out-of the box,
 i.e., it returns `NaN` for negative arguments.
@@ -53,7 +53,7 @@ in the stacktrace.
 Custom natural logarithm function which returns `NaN` for negative arguments instead of throwing an error.
 This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
 when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
-i.e., using the @batch macro instead of the Julia built-in @threads macro, see [`threaded`](@ref).
+i.e., using the @batch macro instead of the Julia built-in @threads macro, see [`@threaded`](@ref).
 
 We dispatch this function for `Float64, Float32, Float16` to the respective LLVM intrinsics 
 `llvm.log.f64`, `llvm.log.f32`, `llvm.log.f16"` as for this the LLVM functions can be used out-of the box, i.e., 
@@ -75,7 +75,7 @@ in the stacktrace.
 Custom natural logarithm function which returns `NaN` for negative arguments instead of throwing an error.
 This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
 when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
-i.e., using the @batch macro instead of the Julia built-in @threads macro, see [`threaded`](@ref).
+i.e., using the @batch macro instead of the Julia built-in @threads macro, see [`@threaded`](@ref).
 
 For `Float64, Float32, Float16` the respective LLVM intrinsic `llvm.log.f64/f32/f16` function can be used out-of the box,
 i.e., it returns `NaN` for negative arguments.
