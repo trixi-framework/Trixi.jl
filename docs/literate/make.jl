@@ -10,8 +10,8 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     end
 
     binder_logo   = "https://mybinder.org/badge_logo.svg"
-    nbviewer_logo = "https://github.com/trixi-framework/Trixi.jl/assets/74359358/fb572b02-9329-48c1-8f19-9140f5dcd4be"
-    raw_notebook_logo = "https://github.com/trixi-framework/Trixi.jl/assets/74359358/5e7c2f38-28b5-4dde-a6b6-50829615d24d"
+    nbviewer_logo = "https://img.shields.io/badge/render-nbviewer-f37726"
+    raw_notebook_logo = "https://img.shields.io/badge/raw-notebook-4cc61e"
 
     notebook_path = "tutorials/notebooks/$notebook_filename"
     binder_url   = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=$notebook_path"
