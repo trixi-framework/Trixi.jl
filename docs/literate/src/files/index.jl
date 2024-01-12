@@ -5,9 +5,9 @@
 
 # Right now, you are using the classic documentation. The corresponding interactive notebooks can
 # be opened in [Binder](https://mybinder.org/) and viewed in [nbviewer](https://nbviewer.jupyter.org/)
-# via the icons ![](https://mybinder.org/badge_logo.svg) and ![](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)
+# via the icons ![](https://mybinder.org/badge_logo.svg) and ![](https://img.shields.io/badge/render-nbviewer-f37726)
 # in the respective tutorial.
-# You can download the raw notebooks from GitHub via ![](https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e).
+# You can also open the raw notebook files via ![](https://img.shields.io/badge/raw-notebook-4cc61e).
 
 # **Note:** To improve responsiveness via caching, the notebooks are updated only once a week. They are only
 # available for the latest stable release of Trixi.jl at the time of caching.
