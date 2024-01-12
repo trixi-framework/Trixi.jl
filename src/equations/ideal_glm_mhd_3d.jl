@@ -1039,13 +1039,13 @@ end
     b_square = b1 * b1 + b2 * b2 + b3 * b3
     if orientation == 1 # x-direction
         c_f = sqrt(0.5 * (a_square + b_square) +
-                    0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+                   0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
     elseif orientation == 2 # y-direction
         c_f = sqrt(0.5 * (a_square + b_square) +
-                    0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b2^2))
+                   0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b2^2))
     else # z-direction
         c_f = sqrt(0.5 * (a_square + b_square) +
-                    0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b3^2))
+                   0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b3^2))
     end
     return c_f
 end
@@ -1073,8 +1073,8 @@ end
                        b3 * normal_direction[3])^2 / norm_squared
 
     c_f = sqrt((0.5 * (a_square + b_square) +
-                 0.5 * sqrt((a_square + b_square)^2 - 4 * a_square * b_dot_n_squared)) *
-                norm_squared)
+                0.5 * sqrt((a_square + b_square)^2 - 4 * a_square * b_dot_n_squared)) *
+               norm_squared)
     return c_f
 end
 
@@ -1145,19 +1145,19 @@ Compute the fast magnetoacoustic wave speed using Roe averages as given by
     if orientation == 1 # x-direction
         c_a_roe = B1_roe^2 * inv_sqrtrho_prod # (squared) Alfvén wave speed
         a_star_roe = sqrt((a_square_roe + b_square_roe)^2 -
-                           4.0 * a_square_roe * c_a_roe)
+                          4.0 * a_square_roe * c_a_roe)
         c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v1_roe
     elseif orientation == 2 # y-direction
         c_a_roe = B2_roe^2 * inv_sqrtrho_prod # (squared) Alfvén wave speed
         a_star_roe = sqrt((a_square_roe + b_square_roe)^2 -
-                           4.0 * a_square_roe * c_a_roe)
+                          4.0 * a_square_roe * c_a_roe)
         c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v2_roe
     else # z-direction
         c_a_roe = B3_roe^2 * inv_sqrtrho_prod # (squared) Alfvén wave speed
         a_star_roe = sqrt((a_square_roe + b_square_roe)^2 -
-                           4.0 * a_square_roe * c_a_roe)
+                          4.0 * a_square_roe * c_a_roe)
         c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v3_roe
     end

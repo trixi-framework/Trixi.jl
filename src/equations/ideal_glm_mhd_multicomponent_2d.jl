@@ -671,10 +671,10 @@ end
     b_square = b1^2 + b2^2 + b3^2
     if direction == 1 # x-direction
         c_f = sqrt(0.5 * (a_square + b_square) +
-                    0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+                   0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
     else
         c_f = sqrt(0.5 * (a_square + b_square) +
-                    0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b2^2))
+                   0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b2^2))
     end
     return c_f
 end
