@@ -6,7 +6,9 @@
 #! format: noindent
 
 # Redistribute data for load balancing after partitioning the mesh
-function rebalance_solver!(u_ode::AbstractVector, mesh::Union{ParallelP4estMesh,ParallelT8codeMesh}, equations,
+function rebalance_solver!(u_ode::AbstractVector,
+                           mesh::Union{ParallelP4estMesh, ParallelT8codeMesh},
+                           equations,
                            dg::DGSEM, cache, old_global_first_quadrant)
 
     # MPI ranks are 0-based. This array uses 1-based indices.

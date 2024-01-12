@@ -466,7 +466,7 @@ function get_global_first_element_ids(mesh::T8codeMesh)
     n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
     n_elements_by_rank[mpi_rank() + 1] = n_elements_local
     MPI.Allgather!(MPI.UBuffer(n_elements_by_rank, 1), mpi_comm())
-    return [sum(n_elements_by_rank[1:(rank - 1)]) for rank in 1:mpi_nranks()+1]
+    return [sum(n_elements_by_rank[1:(rank - 1)]) for rank in 1:(mpi_nranks() + 1)]
 end
 
 function balance!(mesh::T8codeMesh)

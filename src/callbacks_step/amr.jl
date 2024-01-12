@@ -770,11 +770,12 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
 
     if has_changed
         if mpi_isparallel() && amr_callback.dynamic_load_balancing
-          @trixi_timeit timer() "dynamic load balancing" begin
-            old_global_first_element_ids = get_global_first_element_ids(mesh)
-            partition!(mesh)
-            rebalance_solver!(u_ode, mesh, equations, dg, cache, old_global_first_element_ids)
-          end
+            @trixi_timeit timer() "dynamic load balancing" begin
+                old_global_first_element_ids = get_global_first_element_ids(mesh)
+                partition!(mesh)
+                rebalance_solver!(u_ode, mesh, equations, dg, cache,
+                                  old_global_first_element_ids)
+            end
         end
 
         reinitialize_boundaries!(semi.boundary_conditions, cache)
