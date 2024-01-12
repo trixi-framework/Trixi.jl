@@ -611,6 +611,33 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_warm_bubble.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_warm_bubble.jl"),
+                        l2=[
+                            0.00019387402388722496,
+                            0.03086514388623955,
+                            0.04541427917165,
+                            43.892826583444716,
+                        ],
+                        linf=[
+                            0.0015942305974430138,
+                            0.17449778969139373,
+                            0.3729704262394843,
+                            307.6706958565337,
+                        ],
+                        cells_per_dimension=(32, 16),
+                        tspan=(0.0, 10.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 100
+    end
+end
+
 @trixi_testset "elixir_eulerpolytropic_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_convergence.jl"),
                         l2=[
