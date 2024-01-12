@@ -536,8 +536,7 @@ end
 
     total_entropy = zero(u[1])
     for i in eachcomponent(equations)
-        total_entropy -= u[i + 2] *
-                         (cv[i] * log(T) - gas_constants[i] * log(u[i + 2]))
+        total_entropy -= u[i + 2] * (cv[i] * log(T) - gas_constants[i] * log(u[i + 2]))
     end
 
     return total_entropy

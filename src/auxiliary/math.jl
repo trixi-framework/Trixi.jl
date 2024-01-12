@@ -26,6 +26,7 @@ in the stacktrace.
 """
 @inline sqrt(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
 
+# For the `sqrt` we could use the `sqrt_llvm` call, but for transparency we use the direct LLVM calls here.
 #@inline sqrt(x::Union{Float64, Float32, Float16}) = Base.sqrt_llvm(x)
 @inline sqrt(x::Float64) = ccall("llvm.sqrt.f64", llvmcall, Float64, (Float64,), x)
 @inline sqrt(x::Float32) = ccall("llvm.sqrt.f32", llvmcall, Float32, (Float32,), x)
