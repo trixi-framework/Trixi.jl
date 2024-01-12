@@ -824,7 +824,7 @@ function prolong2mortars!(cache,
     return nothing
 end
 
-# NOTE: Use analog_y to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
+# NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
 # Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
 function calc_mortar_flux!(surface_flux_values,
