@@ -59,7 +59,7 @@ boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition_mach3_f
     # rho_local, v_normal, v_tangent, p_local = cons2prim(u_local, equations)
 
     # # Compute local Mach number
-    # a_local = sqrt_( equations.gamma * p_local / rho_local )
+    # a_local = sqrt( equations.gamma * p_local / rho_local )
     # Mach_local = abs( v_normal / a_local )
     # if Mach_local <= 1.0
     #   p_local = # Set to the external reference pressure value (somehow? maybe stored in `equations`)

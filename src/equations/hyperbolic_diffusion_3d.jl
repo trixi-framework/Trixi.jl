@@ -170,7 +170,7 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::HyperbolicDiffusionEquations3D)
-    λ_max = sqrt_(equations.nu * equations.inv_Tr)
+    λ_max = sqrt(equations.nu * equations.inv_Tr)
 end
 
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer,
@@ -183,7 +183,7 @@ end
 
     # this is an optimized version of the application of the upwind dissipation matrix:
     #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
-    λ_max = sqrt_(equations.nu * equations.inv_Tr)
+    λ_max = sqrt(equations.nu * equations.inv_Tr)
     f1 = 1 / 2 * (f_ll[1] + f_rr[1]) - 1 / 2 * λ_max * (phi_rr - phi_ll)
     if orientation == 1 # x-direction
         f2 = 1 / 2 * (f_ll[2] + f_rr[2]) - 1 / 2 * λ_max * (q1_rr - q1_ll)
@@ -205,7 +205,7 @@ end
 @inline have_constant_speed(::HyperbolicDiffusionEquations3D) = True()
 
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations3D)
-    λ = sqrt_(eq.nu * eq.inv_Tr)
+    λ = sqrt(eq.nu * eq.inv_Tr)
     return λ, λ, λ
 end
 

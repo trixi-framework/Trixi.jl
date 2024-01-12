@@ -19,7 +19,7 @@ This setup needs a positivity limiter for the density.
 function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
     # setup taken from Derigs et al. DMV article (2018)
     # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
-    r = sqrt_(x[1]^2 + x[2]^2)
+    r = sqrt(x[1]^2 + x[2]^2)
 
     pmax = 10.0
     pmin = 1.0
@@ -38,7 +38,7 @@ function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
     v1 = 0.0
     v2 = 0.0
     v3 = 0.0
-    B1 = 1.0 / sqrt_(4.0 * pi)
+    B1 = 1.0 / sqrt(4.0 * pi)
     B2 = 0.0
     B3 = 0.0
     psi = 0.0

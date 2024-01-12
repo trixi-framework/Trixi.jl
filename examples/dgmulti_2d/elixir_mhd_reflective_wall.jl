@@ -21,7 +21,7 @@ function initial_condition_perturbation(x, t, equations::IdealGlmMhdEquations2D)
     # the pressure and magnetic field are chosen to be strongly
     # magnetized, such that p / ||B||^2 ≈ 0.01.
     B1 = 0.0
-    B2 = 40.0 / sqrt_(4.0 * pi)
+    B2 = 40.0 / sqrt(4.0 * pi)
     B3 = 0.0
 
     psi = 0.0

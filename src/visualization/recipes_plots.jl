@@ -89,7 +89,7 @@ RecipesBase.@recipe function f(pd::AbstractPlotData)
         cols = length(pd)
         rows = 1
     else
-        cols = ceil(Int, sqrt_(length(pd)))
+        cols = ceil(Int, sqrt(length(pd)))
         rows = ceil(Int, length(pd) / cols)
     end
 

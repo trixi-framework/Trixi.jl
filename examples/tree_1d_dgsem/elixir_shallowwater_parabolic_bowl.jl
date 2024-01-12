@@ -32,7 +32,7 @@ function initial_condition_parabolic_bowl(x, t, equations::ShallowWaterEquations
     a = 1
     h_0 = 0.1
     sigma = 0.5
-    ω = sqrt_(2 * equations.gravity * h_0) / a
+    ω = sqrt(2 * equations.gravity * h_0) / a
 
     v = -sigma * ω * sin(ω * t)
 

@@ -28,7 +28,7 @@ function initial_condition_ryujones_shock_tube(x, t, equations::IdealGlmMhdEquat
     v2 = x[1] <= 0.5 ? 0.01 : 0.0
     v3 = x[1] <= 0.5 ? 0.5 : 0.0
     p = x[1] <= 0.5 ? 0.95 : 1.0
-    inv_sqrt4pi = 1.0 / sqrt_(4 * pi)
+    inv_sqrt4pi = 1.0 / sqrt(4 * pi)
     B1 = 2 * inv_sqrt4pi
     B2 = x[1] <= 0.5 ? 3.6 * inv_sqrt4pi : 4.0 * inv_sqrt4pi
     B3 = B1

@@ -47,7 +47,7 @@ function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{
 
     # magic parameters
     threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-    parameter_s = log_((1 - 0.0001) / 0.0001)
+    parameter_s = log((1 - 0.0001) / 0.0001)
 
     # If the water height `h` at one LGL node is lower than `threshold_partially_wet`
     # the indicator sets the element-wise blending factor alpha[element] = 1

@@ -42,7 +42,7 @@ function initial_condition_navier_stokes_convergence_test(x, t, equations)
     pi_t = pi * t
 
     rho = c + A1 * sin(pi_x) * cos(pi_y) * sin(pi_z) * cos(pi_t)
-    v1 = A2 * sin(pi_x) * log_(x[2] + 2.0) * (1.0 - exp(-A3 * (x[2] - 1.0))) * sin(pi_z) *
+    v1 = A2 * sin(pi_x) * log(x[2] + 2.0) * (1.0 - exp(-A3 * (x[2] - 1.0))) * sin(pi_z) *
          cos(pi_t)
     v2 = v1
     v3 = v1
@@ -73,12 +73,12 @@ end
 
     # Define auxiliary functions for the strange function of the y variable
     # to make expressions easier to read
-    g = log_(x[2] + 2.0) * (1.0 - exp(-A3 * (x[2] - 1.0)))
-    g_y = (A3 * log_(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0)) +
+    g = log(x[2] + 2.0) * (1.0 - exp(-A3 * (x[2] - 1.0)))
+    g_y = (A3 * log(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0)) +
            (1.0 - exp(-A3 * (x[2] - 1.0))) / (x[2] + 2.0))
     g_yy = (2.0 * A3 * exp(-A3 * (x[2] - 1.0)) / (x[2] + 2.0) -
             (1.0 - exp(-A3 * (x[2] - 1.0))) / ((x[2] + 2.0)^2) -
-            A3^2 * log_(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0)))
+            A3^2 * log(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0)))
 
     # Density and its derivatives
     rho = c + A1 * sin(pi_x) * cos(pi_y) * sin(pi_z) * cos(pi_t)

@@ -88,7 +88,7 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations
     # Set up polar coordinates
     inicenter = (0,)
     x_norm = x[1] - inicenter[1]
-    r = sqrt_(x_norm^2)
+    r = sqrt(x_norm^2)
     phi = atan(x_norm)
 
     # Calculate primitive variables
@@ -518,7 +518,7 @@ end
     v_square = v1^2 + v2^2 + v3^2
     p = (equations.gamma - 1) *
         (rho_e - 0.5 * rho * v_square - 0.5 * (B1^2 + B2^2 + B3^2))
-    s = log_(p) - equations.gamma * log_(rho)
+    s = log(p) - equations.gamma * log(rho)
     rho_p = rho / p
 
     w1 = (equations.gamma - s) / (equations.gamma - 1) - 0.5 * rho_p * v_square
@@ -574,18 +574,18 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
-    v_mag = sqrt_(v1^2 + v2^2 + v3^2)
+    v_mag = sqrt(v1^2 + v2^2 + v3^2)
     p = (equations.gamma - 1) *
         (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2))
     a_square = equations.gamma * p / rho
-    sqrt_rho = sqrt_(rho)
-    b1 = B1 / sqrt_rho
-    b2 = B2 / sqrt_rho
-    b3 = B3 / sqrt_rho
+    sqrtrho = sqrt(rho)
+    b1 = B1 / sqrtrho
+    b2 = B2 / sqrtrho
+    b3 = B3 / sqrtrho
     b_square = b1^2 + b2^2 + b3^2
 
-    c_f = sqrt_(0.5 * (a_square + b_square) +
-                0.5 * sqrt_((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+    c_f = sqrt(0.5 * (a_square + b_square) +
+                0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
     return c_f
 end
 
@@ -626,12 +626,12 @@ as given by
     p_total_rr = p_rr + 0.5 * mag_norm_rr
 
     # compute the Roe density averages
-    sqrt_rho_ll = sqrt_(rho_ll)
-    sqrt_rho_rr = sqrt_(rho_rr)
-    inv_sqrt_rho_add = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
-    inv_sqrt_rho_prod = 1.0 / (sqrt_rho_ll * sqrt_rho_rr)
-    rho_ll_roe = sqrt_rho_ll * inv_sqrt_rho_add
-    rho_rr_roe = sqrt_rho_rr * inv_sqrt_rho_add
+    sqrtrho_ll = sqrt(rho_ll)
+    sqrtrho_rr = sqrt(rho_rr)
+    inv_sqrtrho_add = 1.0 / (sqrtrho_ll + sqrtrho_rr)
+    inv_sqrtrho_prod = 1.0 / (sqrtrho_ll * sqrtrho_rr)
+    rho_ll_roe = sqrtrho_ll * inv_sqrtrho_add
+    rho_rr_roe = sqrtrho_rr * inv_sqrtrho_add
     # Roe averages
     # velocities and magnetic fields
     v1_roe = v1_ll * rho_ll_roe + v1_rr * rho_rr_roe
@@ -646,18 +646,18 @@ as given by
     H_roe = H_ll * rho_ll_roe + H_rr * rho_rr_roe
     # temporary variable see equations (4.12) in Cargo and Gallice
     X = 0.5 * ((B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2) *
-        inv_sqrt_rho_add^2
+        inv_sqrtrho_add^2
     # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
-    b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
+    b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrtrho_prod # scaled magnectic sum
     a_square_roe = ((2.0 - equations.gamma) * X +
                     (equations.gamma - 1.0) *
                     (H_roe - 0.5 * (v1_roe^2 + v2_roe^2 + v3_roe^2) -
                      b_square_roe)) # acoustic speed
     # finally compute the average wave speed and set the output velocity
     # Ignore orientation since it is always "1" in 1D
-    c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
-    a_star_roe = sqrt_((a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe)
-    c_f_roe = sqrt_(0.5 * (a_square_roe + b_square_roe + a_star_roe))
+    c_a_roe = B1_roe^2 * inv_sqrtrho_prod # (squared) Alfvén wave speed
+    a_star_roe = sqrt((a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe)
+    c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
 
     return v1_roe, c_f_roe
 end
@@ -671,7 +671,7 @@ end
          1 / 2 * (cons[6]^2 + cons[7]^2 + cons[8]^2))
 
     # Thermodynamic entropy
-    s = log_(p) - equations.gamma * log_(cons[1])
+    s = log(p) - equations.gamma * log(cons[1])
 
     return s
 end

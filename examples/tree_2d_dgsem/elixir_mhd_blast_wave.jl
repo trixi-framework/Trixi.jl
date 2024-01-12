@@ -18,7 +18,7 @@ An MHD blast wave taken from
 function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
     # setup taken from Derigs et al. DMV article (2018)
     # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
-    r = sqrt_(x[1]^2 + x[2]^2)
+    r = sqrt(x[1]^2 + x[2]^2)
     f = (0.1 - r) / 0.01
     if r <= 0.09
         p = 1000.0
@@ -31,7 +31,7 @@ function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
     v1 = 0.0
     v2 = 0.0
     v3 = 0.0
-    B1 = 100.0 / sqrt_(4.0 * pi)
+    B1 = 100.0 / sqrt(4.0 * pi)
     B2 = 0.0
     B3 = 0.0
     psi = 0.0

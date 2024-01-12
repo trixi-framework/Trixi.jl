@@ -20,7 +20,7 @@ solver = DGSEM(polydeg = 3,
 # Get the P4estMesh and setup a periodic mesh
 
 coordinates_min = (0.0, 0.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (sqrt_(2.0), sqrt_(2.0))  # maximum coordinates (max(x), max(y))
+coordinates_max = (sqrt(2.0), sqrt(2.0))  # maximum coordinates (max(x), max(y))
 
 mapping = Trixi.coordinates2mapping(coordinates_min, coordinates_max)
 

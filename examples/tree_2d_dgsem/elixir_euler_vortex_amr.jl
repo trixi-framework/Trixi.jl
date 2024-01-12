@@ -54,7 +54,7 @@ end
 function periodic_distance_2d(coordinates, center, domain_length)
     dx = @. abs(coordinates - center)
     dx_periodic = @. min(dx, domain_length - dx)
-    return sqrt_(sum(abs2, dx_periodic))
+    return sqrt(sum(abs2, dx_periodic))
 end
 
 end # module TrixiExtension

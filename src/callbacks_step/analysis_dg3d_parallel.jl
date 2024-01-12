@@ -54,7 +54,7 @@ function calc_error_norms(func, u, t, analyzer,
         l2_error = convert(typeof(l2_error), global_l2_error)
         linf_error = convert(typeof(linf_error), global_linf_error)
         # For L2 error, divide by total volume
-        l2_error = @. sqrt_(l2_error / total_volume)
+        l2_error = @. sqrt(l2_error / total_volume)
     else
         l2_error = convert(typeof(l2_error), NaN * global_l2_error)
         linf_error = convert(typeof(linf_error), NaN * global_linf_error)

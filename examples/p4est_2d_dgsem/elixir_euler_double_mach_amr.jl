@@ -23,7 +23,7 @@ See Section IV c on the paper below for details.
 """
 @inline function initial_condition_double_mach_reflection(x, t,
                                                           equations::CompressibleEulerEquations2D)
-    if x[1] < 1 / 6 + (x[2] + 20 * t) / sqrt_(3)
+    if x[1] < 1 / 6 + (x[2] + 20 * t) / sqrt(3)
         phi = pi / 6
         sin_phi, cos_phi = sincos(phi)
 

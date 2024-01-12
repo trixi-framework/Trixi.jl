@@ -1217,7 +1217,7 @@ function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
                         SVector(x, y, 1))
 
     # Radius on cube surface
-    r = sqrt_(1 + x^2 + y^2)
+    r = sqrt(1 + x^2 + y^2)
 
     # Radius of the sphere
     R = inner_radius + thickness * (0.5 * (zeta + 1))

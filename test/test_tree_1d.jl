@@ -256,7 +256,7 @@ end
     function initial_condition_sine(x, t,
                                     equation::NonconservativeLinearAdvectionEquation)
         x0 = -2 *
-             atan(sqrt_(3) * tan(sqrt_(3) / 2 * t - atan(tan(x[1] / 2) / sqrt_(3))))
+             atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
         scalar = sin(x0)
         advection_velocity = 2 + cos(x[1])
         SVector(scalar, advection_velocity)

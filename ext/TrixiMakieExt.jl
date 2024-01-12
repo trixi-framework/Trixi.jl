@@ -392,7 +392,7 @@ function Makie.plot!(fig, pd::PlotData2DTriangulated;
         cols = length(pd)
         rows = 1
     else
-        cols = ceil(Int, sqrt_(length(pd)))
+        cols = ceil(Int, sqrt(length(pd)))
         rows = cld(length(pd), cols)
     end
 

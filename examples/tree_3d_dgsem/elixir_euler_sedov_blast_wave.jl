@@ -20,7 +20,7 @@ Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
 """
 function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations3D)
     # Calculate radius as distance from origin
-    r = sqrt_(x[1]^2 + x[2]^2 + x[3]^2)
+    r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
 
     # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
     r0 = 0.25 # = 4.0 * smallest dx (for domain length=8 and max-ref=7)

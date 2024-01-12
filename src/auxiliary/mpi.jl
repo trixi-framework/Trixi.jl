@@ -81,9 +81,9 @@ function ode_norm(u::AbstractArray, t)
     if mpi_isparallel()
         global_sumabs2, global_length = MPI.Allreduce([local_sumabs2, local_length], +,
                                                       mpi_comm())
-        return sqrt_(global_sumabs2 / global_length)
+        return sqrt(global_sumabs2 / global_length)
     else
-        return sqrt_(local_sumabs2 / local_length)
+        return sqrt(local_sumabs2 / local_length)
     end
 end
 

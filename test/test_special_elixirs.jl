@@ -119,7 +119,7 @@ end
                   tspan = (0.0, 0.0), initial_refinement_level = 2)
     A, b = linear_structure(semi)
     λ = eigvals(Matrix(A))
-    @test maximum(real, λ) < 10 * sqrt_(eps(real(semi)))
+    @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
 
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
@@ -127,7 +127,7 @@ end
                   tspan = (0.0, 0.0), initial_refinement_level = 2)
     A, b = linear_structure(semi)
     λ = eigvals(Matrix(A))
-    @test maximum(real, λ) < 10 * sqrt_(eps(real(semi)))
+    @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
 
     # check whether the user can modify `b` without changing `A`
     x = vec(ode.u0)
@@ -147,12 +147,12 @@ end
         J = jacobian_ad_forward(semi)
         @test Matrix(A) ≈ J
         λ = eigvals(J)
-        @test maximum(real, λ) < 10 * sqrt_(eps(real(semi)))
+        @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
 
         J = jacobian_fd(semi)
         @test Matrix(A) ≈ J
         λ = eigvals(J)
-        @test maximum(real, λ) < 10 * sqrt_(eps(real(semi)))
+        @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
     end
 
     @timed_testset "Linear advection-diffusion" begin
@@ -163,7 +163,7 @@ end
 
         J = jacobian_ad_forward(semi)
         λ = eigvals(J)
-        @test maximum(real, λ) < 10 * sqrt_(eps(real(semi)))
+        @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
     end
 
     @timed_testset "Compressible Euler equations" begin
@@ -263,7 +263,7 @@ end
                   tspan = (0.0, 0.0), initial_refinement_level = 1)
     A, b = linear_structure(semi)
     λ = eigvals(Matrix(A))
-    @test maximum(real, λ) < 10 * sqrt_(eps(real(semi)))
+    @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
 end
 
 @timed_testset "Test Jacobian of DG (3D)" begin

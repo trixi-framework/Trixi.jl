@@ -25,8 +25,8 @@ found in section 5.2 of the paper:
 function initial_condition_beach(x, t, equations::ShallowWaterEquations1D)
     D = 1
     delta = 0.02
-    gamma = sqrt_((3 * delta) / (4 * D))
-    x_a = sqrt_((4 * D) / (3 * delta)) * acosh(sqrt_(20))
+    gamma = sqrt((3 * delta) / (4 * D))
+    x_a = sqrt((4 * D) / (3 * delta)) * acosh(sqrt(20))
 
     f = D + 40 * delta * sech(gamma * (8 * x[1] - x_a))^2
 
@@ -38,7 +38,7 @@ function initial_condition_beach(x, t, equations::ShallowWaterEquations1D)
         v = 0.0
     else
         H = f
-        v = sqrt_(equations.gravity / D) * H
+        v = sqrt(equations.gravity / D) * H
     end
 
     # It is mandatory to shift the water level at dry areas to make sure the water height h

@@ -53,7 +53,7 @@ function initial_condition_ec_discontinuous_bottom(x, t, element_id,
     inicenter = SVector(0.7, 0.7)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
-    r = sqrt_(x_norm^2 + y_norm^2)
+    r = sqrt(x_norm^2 + y_norm^2)
     phi = atan(y_norm, x_norm)
     sin_phi, cos_phi = sincos(phi)
 

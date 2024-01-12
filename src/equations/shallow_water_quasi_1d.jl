@@ -95,7 +95,7 @@ function initial_condition_convergence_test(x, t,
                                             equations::ShallowWaterEquationsQuasi1D)
     # generates a manufactured solution. 
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
-    Omega = sqrt_(2) * pi
+    Omega = sqrt(2) * pi
     H = 2.0 + 0.5 * sin(Omega * x[1] - t)
     v = 0.25
     b = 0.2 - 0.05 * sin(Omega * x[1])
@@ -118,7 +118,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
                                                equations::ShallowWaterEquationsQuasi1D)
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocity is taken to be constant
-    Omega = sqrt_(2) * pi
+    Omega = sqrt(2) * pi
     H = 2.0 + 0.5 * sin(Omega * x[1] - t)
     H_x = 0.5 * cos(Omega * x[1] - t) * Omega
     H_t = -0.5 * cos(Omega * x[1] - t)
@@ -250,8 +250,8 @@ end
     # Calculate the wave celerity on the left and right
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
-    c_ll = sqrt_(equations.gravity * h_ll)
-    c_rr = sqrt_(equations.gravity * h_rr)
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
@@ -271,7 +271,7 @@ end
     h = waterheight(u, equations)
     v = velocity(u, equations)
 
-    c = equations.gravity * sqrt_(h)
+    c = equations.gravity * sqrt(h)
     return (abs(v) + c,)
 end
 

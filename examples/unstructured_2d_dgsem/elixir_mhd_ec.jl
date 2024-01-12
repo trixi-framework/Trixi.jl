@@ -11,10 +11,10 @@ equations = IdealGlmMhdEquations2D(5 / 3)
 function initial_condition_shifted_weak_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
     # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
     # Shift blastwave to center of domain
-    inicenter = (sqrt_(2) / 2, sqrt_(2) / 2)
+    inicenter = (sqrt(2) / 2, sqrt(2) / 2)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
-    r = sqrt_(x_norm^2 + y_norm^2)
+    r = sqrt(x_norm^2 + y_norm^2)
     phi = atan(y_norm, x_norm)
 
     # Calculate primitive variables

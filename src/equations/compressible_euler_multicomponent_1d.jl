@@ -400,8 +400,8 @@ end
 
     p_ll = (gamma_ll - 1) * (rho_e_ll - 1 / 2 * rho_ll * v_ll^2)
     p_rr = (gamma_rr - 1) * (rho_e_rr - 1 / 2 * rho_rr * v_rr^2)
-    c_ll = sqrt_(gamma_ll * p_ll / rho_ll)
-    c_rr = sqrt_(gamma_rr * p_rr / rho_rr)
+    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
@@ -415,7 +415,7 @@ end
 
     gamma = totalgamma(u, equations)
     p = (gamma - 1) * (rho_e - 1 / 2 * rho * (v1^2))
-    c = sqrt_(gamma * p / rho)
+    c = sqrt(gamma * p / rho)
 
     return (abs(v1) + c,)
 end
@@ -478,14 +478,14 @@ end
     gamma = totalgamma(u, equations)
 
     p = (gamma - 1) * (rho_e - 0.5 * rho * v_square)
-    s = log_(p) - gamma * log_(rho) - log_(gas_constant)
+    s = log(p) - gamma * log(rho) - log(gas_constant)
     rho_p = rho / p
     T = (rho_e - 0.5 * rho * v_square) / (help1)
 
     entrop_rho = SVector{ncomponents(equations), real(equations)}((cv[i] *
-                                                                   (1 - log_(T)) +
+                                                                   (1 - log(T)) +
                                                                    gas_constants[i] *
-                                                                   (1 + log_(u[i + 2])) -
+                                                                   (1 + log(u[i + 2])) -
                                                                    v1^2 / (2 * T))
                                                                   for i in eachcomponent(equations))
 
@@ -505,7 +505,7 @@ end
     cons_rho = SVector{ncomponents(equations), real(equations)}(exp(1 /
                                                                     gas_constants[i] *
                                                                     (-cv[i] *
-                                                                     log_(-w[2]) -
+                                                                     log(-w[2]) -
                                                                      cp[i] + w[i + 2] -
                                                                      0.5 * w[1]^2 /
                                                                      w[2]))
@@ -537,7 +537,7 @@ end
     total_entropy = zero(u[1])
     for i in eachcomponent(equations)
         total_entropy -= u[i + 2] *
-                         (cv[i] * log_(T) - gas_constants[i] * log_(u[i + 2]))
+                         (cv[i] * log(T) - gas_constants[i] * log(u[i + 2]))
     end
 
     return total_entropy

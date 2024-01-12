@@ -121,7 +121,7 @@ A smooth initial condition used for convergence tests in combination with
 function initial_condition_convergence_test(x, t,
                                             equations::ShallowWaterTwoLayerEquations2D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2]
-    ω = 2.0 * pi * sqrt_(2.0)
+    ω = 2.0 * pi * sqrt(2.0)
 
     H_lower = 2.0 + 0.1 * sin(ω * x[1] + t) * cos(ω * x[2] + t)
     H_upper = 4.0 + 0.1 * cos(ω * x[1] + t) * sin(ω * x[2] + t)
@@ -144,8 +144,8 @@ Source terms used for convergence tests in combination with
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::ShallowWaterTwoLayerEquations2D)
     # Same settings as in `initial_condition_convergence_test`.
-    # some constants are chosen such that the function is periodic on the domain [0,sqrt_(2)]^2]
-    ω = 2.0 * pi * sqrt_(2.0)
+    # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2]
+    ω = 2.0 * pi * sqrt(2.0)
 
     # Source terms obtained with SymPy
     du1 = 0.01 * ω * cos(t + ω * x[1]) * cos(t + ω * x[2]) +
@@ -628,8 +628,8 @@ end
     h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
     h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
 
-    c_ll = sqrt_(equations.gravity * (h_upper_ll + h_lower_ll))
-    c_rr = sqrt_(equations.gravity * (h_upper_rr + h_lower_rr))
+    c_ll = sqrt(equations.gravity * (h_upper_ll + h_lower_ll))
+    c_rr = sqrt(equations.gravity * (h_upper_rr + h_lower_rr))
 
     return (max(abs(v_m_ll), abs(v_m_rr)) + max(c_ll, c_rr))
 end
@@ -664,8 +664,8 @@ end
     h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
     h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
 
-    c_ll = sqrt_(equations.gravity * (h_upper_ll + h_lower_ll))
-    c_rr = sqrt_(equations.gravity * (h_upper_rr + h_lower_rr))
+    c_ll = sqrt(equations.gravity * (h_upper_ll + h_lower_ll))
+    c_rr = sqrt(equations.gravity * (h_upper_rr + h_lower_rr))
 
     # The normal velocities are already scaled by the norm
     return max(abs(v_m_ll), abs(v_m_rr)) + max(c_ll, c_rr) * norm(normal_direction)
@@ -693,7 +693,7 @@ end
     h_upper, h_lower = waterheight(u, equations)
     v1_upper, v2_upper, v1_lower, v2_lower = velocity(u, equations)
 
-    c = sqrt_(equations.gravity * (h_upper + h_lower))
+    c = sqrt(equations.gravity * (h_upper + h_lower))
     return (max(abs(v1_m) + c, abs(v1_upper), abs(v1_lower)),
             max(abs(v2_m) + c, abs(v2_upper), abs(v2_lower)))
 end

@@ -213,7 +213,7 @@ function initial_condition_weak_blast_wave(x, t,
     inicenter = SVector(0.0, 0.0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
-    r = sqrt_(x_norm^2 + y_norm^2)
+    r = sqrt(x_norm^2 + y_norm^2)
     phi = atan(y_norm, x_norm)
     sin_phi, cos_phi = sincos(phi)
 
@@ -558,9 +558,9 @@ end
 
     # Compute the sound speeds on the left and right
     p_ll = (gamma_ll - 1) * (rho_e_ll - 1 / 2 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
-    c_ll = sqrt_(gamma_ll * p_ll / rho_ll)
+    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
     p_rr = (gamma_rr - 1) * (rho_e_rr - 1 / 2 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
-    c_rr = sqrt_(gamma_rr * p_rr / rho_rr)
+    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
@@ -575,7 +575,7 @@ end
 
     gamma = totalgamma(u, equations)
     p = (gamma - 1) * (rho_e - 1 / 2 * rho * (v1^2 + v2^2))
-    c = sqrt_(gamma * p / rho)
+    c = sqrt(gamma * p / rho)
 
     return (abs(v1) + c, abs(v2) + c)
 end
@@ -662,14 +662,14 @@ end
     gamma = totalgamma(u, equations)
 
     p = (gamma - 1) * (rho_e - 0.5 * rho * v_square)
-    s = log_(p) - gamma * log_(rho) - log_(gas_constant)
+    s = log(p) - gamma * log(rho) - log(gas_constant)
     rho_p = rho / p
     T = (rho_e - 0.5 * rho * v_square) / (help1)
 
     entrop_rho = SVector{ncomponents(equations), real(equations)}((cv[i] *
-                                                                   (1 - log_(T)) +
+                                                                   (1 - log(T)) +
                                                                    gas_constants[i] *
-                                                                   (1 + log_(u[i + 3])) -
+                                                                   (1 + log(u[i + 3])) -
                                                                    v_square / (2 * T))
                                                                   for i in eachcomponent(equations))
 
@@ -691,7 +691,7 @@ end
     v_squared = v1^2 + v2^2
     cons_rho = SVector{ncomponents(equations), real(equations)}(exp((w[i + 3] -
                                                                      cv[i] *
-                                                                     (1 - log_(T)) +
+                                                                     (1 - log(T)) +
                                                                      v_squared /
                                                                      (2 * T)) /
                                                                     gas_constants[i] -
@@ -743,7 +743,7 @@ end
     total_entropy = zero(u[1])
     for i in eachcomponent(equations)
         total_entropy -= u[i + 3] *
-                         (cv[i] * log_(T) - gas_constants[i] * log_(u[i + 3]))
+                         (cv[i] * log(T) - gas_constants[i] * log(u[i + 3]))
     end
 
     return total_entropy

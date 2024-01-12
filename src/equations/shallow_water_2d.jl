@@ -102,7 +102,7 @@ A smooth initial condition used for convergence tests in combination with
 function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations2D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
     c = 7.0
-    omega_x = 2.0 * pi * sqrt_(2.0)
+    omega_x = 2.0 * pi * sqrt(2.0)
     omega_t = 2.0 * pi
 
     x1, x2 = x
@@ -110,7 +110,7 @@ function initial_condition_convergence_test(x, t, equations::ShallowWaterEquatio
     H = c + cos(omega_x * x1) * sin(omega_x * x2) * cos(omega_t * t)
     v1 = 0.5
     v2 = 1.5
-    b = 2.0 + 0.5 * sin(sqrt_(2.0) * pi * x1) + 0.5 * sin(sqrt_(2.0) * pi * x2)
+    b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x1) + 0.5 * sin(sqrt(2.0) * pi * x2)
     return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
@@ -122,7 +122,7 @@ Source terms used for convergence tests in combination with
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 
 This manufactured solution source term is specifically designed for the bottom topography function
-`b(x,y) = 2 + 0.5 * sin(sqrt_(2)*pi*x) + 0.5 * sin(sqrt_(2)*pi*y)`
+`b(x,y) = 2 + 0.5 * sin(sqrt(2)*pi*x) + 0.5 * sin(sqrt(2)*pi*y)`
 as defined in [`initial_condition_convergence_test`](@ref).
 """
 @inline function source_terms_convergence_test(u, x, t,
@@ -130,9 +130,9 @@ as defined in [`initial_condition_convergence_test`](@ref).
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocities are taken to be constants
     c = 7.0
-    omega_x = 2.0 * pi * sqrt_(2.0)
+    omega_x = 2.0 * pi * sqrt(2.0)
     omega_t = 2.0 * pi
-    omega_b = sqrt_(2.0) * pi
+    omega_b = sqrt(2.0) * pi
     v1 = 0.5
     v2 = 1.5
 
@@ -150,7 +150,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
     H_t = -omega_t * cosX * sinY * sinT
 
     # bottom topography and its gradient
-    b = 2.0 + 0.5 * sin(sqrt_(2.0) * pi * x1) + 0.5 * sin(sqrt_(2.0) * pi * x2)
+    b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x1) + 0.5 * sin(sqrt(2.0) * pi * x2)
     tmp1 = 0.5 * omega_b
     b_x = tmp1 * cos(omega_b * x1)
     b_y = tmp1 * cos(omega_b * x2)
@@ -172,7 +172,7 @@ function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquation
     inicenter = SVector(0.7, 0.7)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
-    r = sqrt_(x_norm^2 + y_norm^2)
+    r = sqrt(x_norm^2 + y_norm^2)
     phi = atan(y_norm, x_norm)
     sin_phi, cos_phi = sincos(phi)
 
@@ -926,8 +926,8 @@ end
     # Calculate the wave celerity on the left and right
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
-    c_ll = sqrt_(equations.gravity * h_ll)
-    c_rr = sqrt_(equations.gravity * h_rr)
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
@@ -943,8 +943,8 @@ end
     # Compute the wave celerity on the left and right
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
-    c_ll = sqrt_(equations.gravity * h_ll)
-    c_rr = sqrt_(equations.gravity * h_rr)
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
 
     # The normal velocities are already scaled by the norm
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
@@ -992,11 +992,11 @@ end
     v1_rr, v2_rr = velocity(u_rr, equations)
 
     if orientation == 1 # x-direction
-        λ_min = v1_ll - sqrt_(equations.gravity * h_ll)
-        λ_max = v1_rr + sqrt_(equations.gravity * h_rr)
+        λ_min = v1_ll - sqrt(equations.gravity * h_ll)
+        λ_max = v1_rr + sqrt(equations.gravity * h_rr)
     else # y-direction
-        λ_min = v2_ll - sqrt_(equations.gravity * h_ll)
-        λ_max = v2_rr + sqrt_(equations.gravity * h_rr)
+        λ_min = v2_ll - sqrt(equations.gravity * h_ll)
+        λ_max = v2_rr + sqrt(equations.gravity * h_rr)
     end
 
     return λ_min, λ_max
@@ -1014,8 +1014,8 @@ end
 
     norm_ = norm(normal_direction)
     # The v_normals are already scaled by the norm
-    λ_min = v_normal_ll - sqrt_(equations.gravity * h_ll) * norm_
-    λ_max = v_normal_rr + sqrt_(equations.gravity * h_rr) * norm_
+    λ_min = v_normal_ll - sqrt(equations.gravity * h_ll) * norm_
+    λ_max = v_normal_rr + sqrt(equations.gravity * h_rr) * norm_
 
     return λ_min, λ_max
 end
@@ -1046,8 +1046,8 @@ the reference below. The definition of the wave speeds are given in Equation (2.
     h_rr = waterheight(u_rr, equations)
     v1_rr, v2_rr = velocity(u_rr, equations)
 
-    a_ll = sqrt_(equations.gravity * h_ll)
-    a_rr = sqrt_(equations.gravity * h_rr)
+    a_ll = sqrt(equations.gravity * h_ll)
+    a_rr = sqrt(equations.gravity * h_rr)
 
     if orientation == 1 # x-direction
         λ_min = min(v1_ll - a_ll, v1_rr - a_rr, zero(eltype(u_ll)))
@@ -1072,8 +1072,8 @@ end
 
     norm_ = norm(normal_direction)
 
-    a_ll = sqrt_(equations.gravity * h_ll) * norm_
-    a_rr = sqrt_(equations.gravity * h_rr) * norm_
+    a_ll = sqrt(equations.gravity * h_ll) * norm_
+    a_rr = sqrt(equations.gravity * h_rr) * norm_
 
     λ_min = min(v_normal_ll - a_ll, v_normal_rr - a_rr, zero(eltype(u_ll)))
     λ_max = max(v_normal_ll + a_ll, v_normal_rr + a_rr, zero(eltype(u_ll)))
@@ -1089,8 +1089,8 @@ end
     h_rr = waterheight(u_rr, equations)
     v1_rr, v2_rr = velocity(u_rr, equations)
 
-    c_ll = sqrt_(equations.gravity * h_ll)
-    c_rr = sqrt_(equations.gravity * h_rr)
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
 
     if orientation == 1 # x-direction
         λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
@@ -1111,8 +1111,8 @@ end
     v1_rr, v2_rr = velocity(u_rr, equations)
 
     norm_ = norm(normal_direction)
-    c_ll = sqrt_(equations.gravity * h_ll) * norm_
-    c_rr = sqrt_(equations.gravity * h_rr) * norm_
+    c_ll = sqrt(equations.gravity * h_ll) * norm_
+    c_rr = sqrt(equations.gravity * h_rr) * norm_
 
     v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
     v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
@@ -1131,8 +1131,8 @@ end
     h_rr = waterheight(u_rr, equations)
     v1_rr, v2_rr = velocity(u_rr, equations)
 
-    c_ll = sqrt_(equations.gravity * h_ll)
-    c_rr = sqrt_(equations.gravity * h_rr)
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
 
     if orientation == 1 # x-direction
         v_roe, c_roe = calc_wavespeed_roe(u_ll, u_rr, orientation, equations)
@@ -1156,8 +1156,8 @@ end
 
     norm_ = norm(normal_direction)
 
-    c_ll = sqrt_(equations.gravity * h_ll) * norm_
-    c_rr = sqrt_(equations.gravity * h_rr) * norm_
+    c_ll = sqrt(equations.gravity * h_ll) * norm_
+    c_rr = sqrt(equations.gravity * h_rr) * norm_
 
     v_normal_ll = (v1_ll * normal_direction[1] + v2_ll * normal_direction[2])
     v_normal_rr = (v1_rr * normal_direction[1] + v2_rr * normal_direction[2])
@@ -1173,7 +1173,7 @@ end
     h = waterheight(u, equations)
     v1, v2 = velocity(u, equations)
 
-    c = equations.gravity * sqrt_(h)
+    c = equations.gravity * sqrt(h)
     return abs(v1) + c, abs(v2) + c
 end
 
@@ -1264,10 +1264,10 @@ slides 8 and 9.
     v1_rr, v2_rr = velocity(u_rr, equations)
 
     h_roe = 0.5 * (h_ll + h_rr)
-    c_roe = sqrt_(equations.gravity * h_roe)
+    c_roe = sqrt(equations.gravity * h_roe)
 
-    h_ll_sqrt = sqrt_(h_ll)
-    h_rr_sqrt = sqrt_(h_rr)
+    h_ll_sqrt = sqrt(h_ll)
+    h_rr_sqrt = sqrt(h_rr)
 
     if orientation == 1 # x-direction
         v_roe = (h_ll_sqrt * v1_ll + h_rr_sqrt * v1_rr) / (h_ll_sqrt + h_rr_sqrt)
@@ -1288,10 +1288,10 @@ end
     norm_ = norm(normal_direction)
 
     h_roe = 0.5 * (h_ll + h_rr)
-    c_roe = sqrt_(equations.gravity * h_roe) * norm_
+    c_roe = sqrt(equations.gravity * h_roe) * norm_
 
-    h_ll_sqrt = sqrt_(h_ll)
-    h_rr_sqrt = sqrt_(h_rr)
+    h_ll_sqrt = sqrt(h_ll)
+    h_rr_sqrt = sqrt(h_rr)
 
     v1_roe = (h_ll_sqrt * v1_ll + h_rr_sqrt * v1_rr) / (h_ll_sqrt + h_rr_sqrt)
     v2_roe = (h_ll_sqrt * v2_ll + h_rr_sqrt * v2_rr) / (h_ll_sqrt + h_rr_sqrt)

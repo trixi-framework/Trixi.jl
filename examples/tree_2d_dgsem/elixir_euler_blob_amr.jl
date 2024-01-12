@@ -31,7 +31,7 @@ function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
     tau_kh = 1.0
     tau_cr = tau_kh / 1.6 # crushing time
     # determine background velocity
-    velx0 = 2 * R * sqrt_(Chi) / tau_cr
+    velx0 = 2 * R * sqrt(Chi) / tau_cr
     vely0 = 0.0
     Ma0 = 2.7 # background flow Mach number Ma=v/c
     c = velx0 / Ma0 # sound speed
@@ -40,7 +40,7 @@ function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
     # initial center of the blob
     inicenter = [-15, 0]
     x_rel = x - inicenter
-    r = sqrt_(x_rel[1]^2 + x_rel[2]^2)
+    r = sqrt(x_rel[1]^2 + x_rel[2]^2)
     # steepness of the tanh transition zone
     slope = 2
     # density blob

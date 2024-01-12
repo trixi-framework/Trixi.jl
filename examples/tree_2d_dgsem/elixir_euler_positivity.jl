@@ -18,7 +18,7 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
     inicenter = SVector(0.0, 0.0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
-    r = sqrt_(x_norm^2 + y_norm^2)
+    r = sqrt(x_norm^2 + y_norm^2)
 
     # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
     r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)

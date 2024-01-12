@@ -319,7 +319,7 @@ function calc_error_norms(func, u, t, analyzer,
 
     # For L2 error, divide by total volume
     total_volume_ = total_volume(mesh)
-    l2_error = @. sqrt_(l2_error / total_volume_)
+    l2_error = @. sqrt(l2_error / total_volume_)
 
     return l2_error, linf_error
 end

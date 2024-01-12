@@ -109,7 +109,7 @@ A smooth initial condition used for convergence tests in combination with
 function initial_condition_convergence_test(x, t,
                                             equations::ShallowWaterTwoLayerEquations1D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
-    ω = 2.0 * pi * sqrt_(2.0)
+    ω = 2.0 * pi * sqrt(2.0)
 
     H_lower = 2.0 + 0.1 * sin(ω * x[1] + t)
     H_upper = 4.0 + 0.1 * cos(ω * x[1] + t)
@@ -132,7 +132,7 @@ in non-periodic domains).
                                                equations::ShallowWaterTwoLayerEquations1D)
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocity is taken to be constant
-    ω = 2 * pi * sqrt_(2.0)
+    ω = 2 * pi * sqrt(2.0)
 
     du1 = (-0.1 * cos(t + ω * x[1]) - 0.1 * sin(t + ω * x[1]) -
            0.09 * ω * cos(t + ω * x[1]) +
@@ -393,8 +393,8 @@ end
     # Calculate the wave celerity on the left and right
     h_upper_ll, h_lower_ll = waterheight(u_ll, equations)
     h_upper_rr, h_lower_rr = waterheight(u_rr, equations)
-    c_ll = sqrt_(equations.gravity * (h_upper_ll + h_lower_ll))
-    c_rr = sqrt_(equations.gravity * (h_upper_rr + h_lower_rr))
+    c_ll = sqrt(equations.gravity * (h_upper_ll + h_lower_ll))
+    c_rr = sqrt(equations.gravity * (h_upper_rr + h_lower_rr))
 
     return (max(abs(v_m_ll) + c_ll, abs(v_m_rr) + c_rr))
 end
@@ -416,7 +416,7 @@ end
 
     # Calculate averaged velocity of both layers
     v_m = (h_v_upper + h_v_lower) / (h_upper + h_lower)
-    c = sqrt_(equations.gravity * (h_upper + h_lower))
+    c = sqrt(equations.gravity * (h_upper + h_lower))
 
     return (abs(v_m) + c)
 end

@@ -68,7 +68,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
 
     # magic parameters
     threshold = 0.5 * 10^(-1.8 * (dg.basis.N + 1)^0.25)
-    parameter_s = log_((1 - 0.0001) / 0.0001)
+    parameter_s = log((1 - 0.0001) / 0.0001)
 
     @threaded for element in eachelement(mesh, dg)
         indicator = indicator_threaded[Threads.threadid()]

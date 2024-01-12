@@ -22,7 +22,7 @@ solver = DGSEM(polydeg = 3,
 # Get the TreeMesh and setup a periodic mesh
 
 coordinates_min = 0.0
-coordinates_max = sqrt_(2.0)
+coordinates_max = sqrt(2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 n_cells_max = 10_000,

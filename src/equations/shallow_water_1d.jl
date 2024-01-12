@@ -100,12 +100,12 @@ A smooth initial condition used for convergence tests in combination with
 function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations1D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
     c = 7.0
-    omega_x = 2.0 * pi * sqrt_(2.0)
+    omega_x = 2.0 * pi * sqrt(2.0)
     omega_t = 2.0 * pi
 
     H = c + cos(omega_x * x[1]) * cos(omega_t * t)
     v = 0.5
-    b = 2.0 + 0.5 * sin(sqrt_(2.0) * pi * x[1])
+    b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x[1])
     return prim2cons(SVector(H, v, b), equations)
 end
 
@@ -117,7 +117,7 @@ Source terms used for convergence tests in combination with
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 
 This manufactured solution source term is specifically designed for the bottom topography function
-`b(x) = 2.0 + 0.5 * sin(sqrt_(2.0)*pi*x[1])`
+`b(x) = 2.0 + 0.5 * sin(sqrt(2.0)*pi*x[1])`
 as defined in [`initial_condition_convergence_test`](@ref).
 """
 
@@ -126,9 +126,9 @@ as defined in [`initial_condition_convergence_test`](@ref).
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocity is taken to be constant
     c = 7.0
-    omega_x = 2.0 * pi * sqrt_(2.0)
+    omega_x = 2.0 * pi * sqrt(2.0)
     omega_t = 2.0 * pi
-    omega_b = sqrt_(2.0) * pi
+    omega_b = sqrt(2.0) * pi
     v = 0.5
 
     sinX, cosX = sincos(omega_x * x[1])
@@ -141,7 +141,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
     H_t = -omega_t * cosX * sinT
 
     # bottom topography and its spatial derivative
-    b = 2.0 + 0.5 * sin(sqrt_(2.0) * pi * x[1])
+    b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x[1])
     b_x = 0.5 * omega_b * cos(omega_b * x[1])
 
     du1 = H_t + v * (H_x - b_x)
@@ -593,8 +593,8 @@ end
     # Calculate the wave celerity on the left and right
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
-    c_ll = sqrt_(equations.gravity * h_ll)
-    c_rr = sqrt_(equations.gravity * h_rr)
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
@@ -640,8 +640,8 @@ end
     h_rr = waterheight(u_rr, equations)
     v_rr = velocity(u_rr, equations)
 
-    λ_min = v_ll - sqrt_(equations.gravity * h_ll)
-    λ_max = v_rr + sqrt_(equations.gravity * h_rr)
+    λ_min = v_ll - sqrt(equations.gravity * h_ll)
+    λ_max = v_rr + sqrt(equations.gravity * h_rr)
 
     return λ_min, λ_max
 end
@@ -670,8 +670,8 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
 
-    a_ll = sqrt_(equations.gravity * h_ll)
-    a_rr = sqrt_(equations.gravity * h_rr)
+    a_ll = sqrt(equations.gravity * h_ll)
+    a_rr = sqrt(equations.gravity * h_rr)
 
     λ_min = min(v_ll - a_ll, v_rr - a_rr, zero(eltype(u_ll)))
     λ_max = max(v_ll + a_ll, v_rr + a_rr, zero(eltype(u_ll)))
@@ -687,8 +687,8 @@ end
     h_rr = waterheight(u_rr, equations)
     v_rr = velocity(u_rr, equations)
 
-    c_ll = sqrt_(equations.gravity * h_ll)
-    c_rr = sqrt_(equations.gravity * h_rr)
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
 
     λ_min = min(v_ll - c_ll, v_rr - c_rr)
     λ_max = max(v_ll + c_ll, v_rr + c_rr)
@@ -703,8 +703,8 @@ end
     h_rr = waterheight(u_rr, equations)
     v_rr = velocity(u_rr, equations)
 
-    c_ll = sqrt_(equations.gravity * h_ll)
-    c_rr = sqrt_(equations.gravity * h_rr)
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
 
     v_roe, c_roe = calc_wavespeed_roe(u_ll, u_rr, orientation, equations)
 
@@ -718,7 +718,7 @@ end
     h = waterheight(u, equations)
     v = velocity(u, equations)
 
-    c = equations.gravity * sqrt_(h)
+    c = equations.gravity * sqrt(h)
     return (abs(v) + c,)
 end
 
@@ -806,10 +806,10 @@ Or equation (9.17) in [this lecture notes](https://metaphor.ethz.ch/x/2019/hs/40
     v_rr = velocity(u_rr, equations)
 
     h_roe = 0.5 * (h_ll + h_rr)
-    c_roe = sqrt_(equations.gravity * h_roe)
+    c_roe = sqrt(equations.gravity * h_roe)
 
-    h_ll_sqrt = sqrt_(h_ll)
-    h_rr_sqrt = sqrt_(h_rr)
+    h_ll_sqrt = sqrt(h_ll)
+    h_rr_sqrt = sqrt(h_rr)
 
     v_roe = (h_ll_sqrt * v_ll + h_rr_sqrt * v_rr) / (h_ll_sqrt + h_rr_sqrt)
 

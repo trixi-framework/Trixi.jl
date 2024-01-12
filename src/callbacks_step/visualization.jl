@@ -204,13 +204,13 @@ function show_plot(plot_data, variable_names;
     #   cols = length(plots)
     #   rows = 1
     # else
-    #   cols = ceil(Int, sqrt_(length(plots)))
+    #   cols = ceil(Int, sqrt(length(plots)))
     #   rows = div(length(plots), cols, RoundUp)
     # end
     # layout = (rows, cols)
 
     # Determine layout
-    cols = ceil(Int, sqrt_(length(plots)))
+    cols = ceil(Int, sqrt(length(plots)))
     rows = div(length(plots), cols, RoundUp)
     layout = (rows, cols)
 
@@ -248,7 +248,7 @@ function save_plot(plot_data, variable_names;
     end
 
     # Determine layout
-    cols = ceil(Int, sqrt_(length(plots)))
+    cols = ceil(Int, sqrt(length(plots)))
     rows = div(length(plots), cols, RoundUp)
     layout = (rows, cols)
 

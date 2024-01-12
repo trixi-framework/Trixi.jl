@@ -20,7 +20,7 @@ Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
 """
 function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations2D)
     # Set up polar coordinates
-    r = sqrt_(x[1]^2 + x[2]^2)
+    r = sqrt(x[1]^2 + x[2]^2)
 
     # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114100000000000000
     r0 = 0.125 # = 4.0 * smallest dx (for domain length=8 and max-ref=8)

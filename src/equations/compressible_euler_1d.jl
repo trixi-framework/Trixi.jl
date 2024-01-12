@@ -230,7 +230,7 @@ are available in the paper:
     # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
     # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
     if v_normal <= 0.0
-        sound_speed = sqrt_(equations.gamma * p_local / rho_local) # local sound speed
+        sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
         p_star = p_local *
                  (1 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2 *
                                                                              equations.gamma *
@@ -240,7 +240,7 @@ are available in the paper:
         B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
         p_star = p_local +
                  0.5 * v_normal / A *
-                 (v_normal + sqrt_(v_normal^2 + 4 * A * (p_local + B)))
+                 (v_normal + sqrt(v_normal^2 + 4 * A * (p_local + B)))
     end
 
     # For the slip wall we directly set the flux as the normal velocity is zero
@@ -454,7 +454,7 @@ end
     rho, rho_v1, rho_e = u
     v1 = rho_v1 / rho
     p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
-    a = sqrt_(equations.gamma * p / rho)
+    a = sqrt(equations.gamma * p / rho)
 
     lambda1 = v1
     lambda2 = v1 + a
@@ -480,7 +480,7 @@ end
     rho, rho_v1, rho_e = u
     v1 = rho_v1 / rho
     p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
-    a = sqrt_(equations.gamma * p / rho)
+    a = sqrt(equations.gamma * p / rho)
 
     lambda1 = v1
     lambda2 = v1 + a
@@ -549,7 +549,7 @@ end
     p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
 
     # sound speed and enthalpy
-    a = sqrt_(equations.gamma * p / rho)
+    a = sqrt(equations.gamma * p / rho)
     H = (rho_e + p) / rho
 
     # signed Mach number
@@ -571,7 +571,7 @@ end
     p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
 
     # sound speed and enthalpy
-    a = sqrt_(equations.gamma * p / rho)
+    a = sqrt(equations.gamma * p / rho)
     H = (rho_e + p) / rho
 
     # signed Mach number
@@ -637,7 +637,7 @@ end
     p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
 
     # sound speed and enthalpy
-    a = sqrt_(equations.gamma * p / rho)
+    a = sqrt(equations.gamma * p / rho)
     H = (rho_e + p) / rho
 
     # signed Mach number
@@ -664,7 +664,7 @@ end
     p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
 
     # sound speed and enthalpy
-    a = sqrt_(equations.gamma * p / rho)
+    a = sqrt(equations.gamma * p / rho)
     H = (rho_e + p) / rho
 
     # signed Mach number
@@ -695,11 +695,11 @@ end
     v1_ll = rho_v1_ll / rho_ll
     v_mag_ll = abs(v1_ll)
     p_ll = (equations.gamma - 1) * (rho_e_ll - 1 / 2 * rho_ll * v_mag_ll^2)
-    c_ll = sqrt_(equations.gamma * p_ll / rho_ll)
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
     v1_rr = rho_v1_rr / rho_rr
     v_mag_rr = abs(v1_rr)
     p_rr = (equations.gamma - 1) * (rho_e_rr - 1 / 2 * rho_rr * v_mag_rr^2)
-    c_rr = sqrt_(equations.gamma * p_rr / rho_rr)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
@@ -710,8 +710,8 @@ end
     rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
 
-    λ_min = v1_ll - sqrt_(equations.gamma * p_ll / rho_ll)
-    λ_max = v1_rr + sqrt_(equations.gamma * p_rr / rho_rr)
+    λ_min = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
+    λ_max = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
 
     return λ_min, λ_max
 end
@@ -722,8 +722,8 @@ end
     rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
 
-    c_ll = sqrt_(equations.gamma * p_ll / rho_ll)
-    c_rr = sqrt_(equations.gamma * p_rr / rho_rr)
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
     λ_max = max(v1_ll + c_ll, v1_rr + c_rr)
@@ -747,29 +747,29 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     v1_ll = rho_v1_ll / rho_ll
     e_ll = rho_e_ll / rho_ll
     p_ll = (equations.gamma - 1) * (rho_e_ll - 1 / 2 * rho_ll * v1_ll^2)
-    c_ll = sqrt_(equations.gamma * p_ll / rho_ll)
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
 
     v1_rr = rho_v1_rr / rho_rr
     e_rr = rho_e_rr / rho_rr
     p_rr = (equations.gamma - 1) * (rho_e_rr - 1 / 2 * rho_rr * v1_rr^2)
-    c_rr = sqrt_(equations.gamma * p_rr / rho_rr)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     # Obtain left and right fluxes
     f_ll = flux(u_ll, orientation, equations)
     f_rr = flux(u_rr, orientation, equations)
 
     # Compute Roe averages
-    sqrt_rho_ll = sqrt_(rho_ll)
-    sqrt_rho_rr = sqrt_(rho_rr)
-    sum_sqrt_rho = sqrt_rho_ll + sqrt_rho_rr
+    sqrtrho_ll = sqrt(rho_ll)
+    sqrtrho_rr = sqrt(rho_rr)
+    sum_sqrtrho = sqrtrho_ll + sqrtrho_rr
     vel_L = v1_ll
     vel_R = v1_rr
-    vel_roe = (sqrt_rho_ll * vel_L + sqrt_rho_rr * vel_R) / sum_sqrt_rho
+    vel_roe = (sqrtrho_ll * vel_L + sqrtrho_rr * vel_R) / sum_sqrtrho
     ekin_roe = 0.5 * vel_roe^2
     H_ll = (rho_e_ll + p_ll) / rho_ll
     H_rr = (rho_e_rr + p_rr) / rho_rr
-    H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) / sum_sqrt_rho
-    c_roe = sqrt_((equations.gamma - 1) * (H_roe - ekin_roe))
+    H_roe = (sqrtrho_ll * H_ll + sqrtrho_rr * H_rr) / sum_sqrtrho
+    c_roe = sqrt((equations.gamma - 1) * (H_roe - ekin_roe))
 
     Ssl = min(vel_L - c_ll, vel_roe - c_roe)
     Ssr = max(vel_R + c_rr, vel_roe + c_roe)
@@ -838,26 +838,26 @@ Compactly summarized:
 
     # `u_ll[3]` is total energy `rho_e_ll` on the left
     H_ll = (u_ll[3] + p_ll) / rho_ll
-    c_ll = sqrt_(equations.gamma * p_ll / rho_ll)
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
 
     # `u_rr[3]` is total energy `rho_e_rr` on the right
     H_rr = (u_rr[3] + p_rr) / rho_rr
-    c_rr = sqrt_(equations.gamma * p_rr / rho_rr)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     # Compute Roe averages
-    sqrt_rho_ll = sqrt_(rho_ll)
-    sqrt_rho_rr = sqrt_(rho_rr)
-    inv_sum_sqrt_rho = inv(sqrt_rho_ll + sqrt_rho_rr)
+    sqrtrho_ll = sqrt(rho_ll)
+    sqrtrho_rr = sqrt(rho_rr)
+    inv_sum_sqrtrho = inv(sqrtrho_ll + sqrtrho_rr)
 
-    v_roe = (sqrt_rho_ll * v_ll + sqrt_rho_rr * v_rr) * inv_sum_sqrt_rho
+    v_roe = (sqrtrho_ll * v_ll + sqrtrho_rr * v_rr) * inv_sum_sqrtrho
     v_roe_mag = v_roe^2
 
-    H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) * inv_sum_sqrt_rho
-    c_roe = sqrt_((equations.gamma - 1) * (H_roe - 0.5 * v_roe_mag))
+    H_roe = (sqrtrho_ll * H_ll + sqrtrho_rr * H_rr) * inv_sum_sqrtrho
+    c_roe = sqrt((equations.gamma - 1) * (H_roe - 0.5 * v_roe_mag))
 
     # Compute convenience constant for positivity preservation, see
     # https://doi.org/10.1016/0021-9991(91)90211-3
-    beta = sqrt_(0.5 * (equations.gamma - 1) / equations.gamma)
+    beta = sqrt(0.5 * (equations.gamma - 1) / equations.gamma)
 
     # Estimate the edges of the Riemann fan (with positivity conservation)
     SsL = min(v_roe - c_roe, v_ll - beta * c_ll, zero(v_roe))
@@ -870,7 +870,7 @@ end
     rho, rho_v1, rho_e = u
     v1 = rho_v1 / rho
     p = (equations.gamma - 1) * (rho_e - 1 / 2 * rho * v1^2)
-    c = sqrt_(equations.gamma * p / rho)
+    c = sqrt(equations.gamma * p / rho)
 
     return (abs(v1) + c,)
 end
@@ -892,7 +892,7 @@ end
     v1 = rho_v1 / rho
     v_square = v1^2
     p = (equations.gamma - 1) * (rho_e - 0.5 * rho * v_square)
-    s = log_(p) - equations.gamma * log_(rho)
+    s = log(p) - equations.gamma * log(rho)
     rho_p = rho / p
 
     w1 = (equations.gamma - s) * equations.inv_gamma_minus_one - 0.5 * rho_p * v_square
@@ -956,7 +956,7 @@ end
     p = (equations.gamma - 1) * (cons[3] - 1 / 2 * (cons[2]^2) / cons[1])
 
     # Thermodynamic entropy
-    s = log_(p) - equations.gamma * log_(cons[1])
+    s = log(p) - equations.gamma * log(cons[1])
 
     return s
 end

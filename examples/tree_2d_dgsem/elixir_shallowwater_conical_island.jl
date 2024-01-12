@@ -27,14 +27,14 @@ function initial_condition_conical_island(x, t, equations::ShallowWaterEquations
     v2 = 0.0
 
     x1, x2 = x
-    b = max(0.1, 1.0 - 4.0 * sqrt_(x1^2 + x2^2))
+    b = max(0.1, 1.0 - 4.0 * sqrt(x1^2 + x2^2))
 
     # use a logistic function to transfer water height value smoothly
     L = equations.H0    # maximum of function
     x0 = 0.3   # center point of function
     k = -25.0 # sharpness of transfer
 
-    H = max(b, L / (1.0 + exp(-k * (sqrt_(x1^2 + x2^2) - x0))))
+    H = max(b, L / (1.0 + exp(-k * (sqrt(x1^2 + x2^2) - x0))))
 
     # It is mandatory to shift the water level at dry areas to make sure the water height h
     # stays positive. The system would not be stable for h set to a hard 0 due to division by h in

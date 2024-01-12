@@ -224,19 +224,19 @@ function init_interfaces!(interfaces, edge_information, boundary_names, n_elemen
             #       structured mesh where the element local surface numbering is right-handed
             if boundary_names[primary_side, primary_element] === :Bottom
                 secondary_element = primary_element +
-                                    (n_elements - convert(Int, sqrt_(n_elements)))
+                                    (n_elements - convert(Int, sqrt(n_elements)))
                 secondary_side = 3
             elseif boundary_names[primary_side, primary_element] === :Top
                 secondary_element = primary_element -
-                                    (n_elements - convert(Int, sqrt_(n_elements)))
+                                    (n_elements - convert(Int, sqrt(n_elements)))
                 secondary_side = 1
             elseif boundary_names[primary_side, primary_element] === :Left
                 secondary_element = primary_element +
-                                    (convert(Int, sqrt_(n_elements)) - 1)
+                                    (convert(Int, sqrt(n_elements)) - 1)
                 secondary_side = 2
             elseif boundary_names[primary_side, primary_element] === :Right
                 secondary_element = primary_element -
-                                    (convert(Int, sqrt_(n_elements)) - 1)
+                                    (convert(Int, sqrt(n_elements)) - 1)
                 secondary_side = 4
             end
             interfaces.element_ids[1, j] = primary_element
