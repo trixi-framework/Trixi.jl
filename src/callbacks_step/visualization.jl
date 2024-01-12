@@ -89,7 +89,7 @@ function VisualizationCallback(; interval = 0,
                                plot_data_creator = PlotData2D,
                                plot_creator = show_plot,
                                plot_arguments...)
-    mpi_isparallel() && error("this callback does not work in parallel yet")
+    # mpi_isparallel() && error("this callback does not work in parallel yet")
 
     if variable_names isa String
         variable_names = String[variable_names]

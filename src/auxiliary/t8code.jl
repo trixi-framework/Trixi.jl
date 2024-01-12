@@ -573,10 +573,6 @@ function adapt_callback(forest,
 end
 
 function trixi_t8_adapt_new(old_forest, indicators)
-    # Check that forest is a committed, that is valid and usable, forest.
-    @assert t8_forest_is_committed(old_forest) != 0
-
-    # Init new forest.
     new_forest_ref = Ref{t8_forest_t}()
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
@@ -588,7 +584,6 @@ function trixi_t8_adapt_new(old_forest, indicators)
         t8_forest_set_adapt(new_forest, old_forest, @t8_adapt_callback(adapt_callback),
                             recursive)
         t8_forest_set_balance(new_forest, set_from, no_repartition)
-        # t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
         t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
 
         t8_forest_commit(new_forest)

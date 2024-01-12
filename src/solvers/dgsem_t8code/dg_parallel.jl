@@ -8,7 +8,7 @@ function create_cache(mesh::ParallelT8codeMesh, equations::AbstractEquations, dg
                       ::Any,
                       ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance and partition the forest before creating any
-    # containers in case someone has tampered with the p4est after creating the
+    # containers in case someone has tampered with forest after creating the
     # mesh.
     balance!(mesh)
     partition!(mesh)

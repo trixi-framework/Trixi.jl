@@ -769,15 +769,13 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
     end
 
     if has_changed
-        # # TODO: T8codeMesh for rebalance/partition not implemented yet.
-        # if mpi_isparallel() && amr_callback.dynamic_load_balancing
-        #   @trixi_timeit timer() "dynamic load balancing" begin
-        #     global_first_quadrant = unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
-        #     old_global_first_quadrant = copy(global_first_quadrant)
-        #     partition!(mesh)
-        #     rebalance_solver!(u_ode, mesh, equations, dg, cache, old_global_first_quadrant)
-        #   end
-        # end
+        if mpi_isparallel() && amr_callback.dynamic_load_balancing
+          @trixi_timeit timer() "dynamic load balancing" begin
+            old_global_first_element_ids = get_global_first_element_ids(mesh)
+            partition!(mesh)
+            rebalance_solver!(u_ode, mesh, equations, dg, cache, old_global_first_element_ids)
+          end
+        end
 
         reinitialize_boundaries!(semi.boundary_conditions, cache)
     end

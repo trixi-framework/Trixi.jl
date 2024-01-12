@@ -450,7 +450,6 @@ mesh from a Gmsh mesh file (`.msh`).
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 """
 function T8codeMesh{NDIMS}(meshfile::String; kwargs...) where {NDIMS}
-
     # Prevent `t8code` from crashing Julia if the file doesn't exist.
     @assert isfile(meshfile)
 
@@ -461,16 +460,43 @@ function T8codeMesh{NDIMS}(meshfile::String; kwargs...) where {NDIMS}
     return T8codeMesh{NDIMS}(cmesh; kwargs...)
 end
 
-# TODO: Just a placeholder. Will be implemented later when MPI is supported.
-function balance!(mesh::T8codeMesh, init_fn = C_NULL)
+# Compute the global ids (zero-indexed) of first element in each MPI rank.
+function get_global_first_element_ids(mesh::T8codeMesh)
+    n_elements_local = Int(t8_forest_get_local_num_elements(mesh.forest))
+    n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
+    n_elements_by_rank[mpi_rank() + 1] = n_elements_local
+    MPI.Allgather!(MPI.UBuffer(n_elements_by_rank, 1), mpi_comm())
+    return [sum(n_elements_by_rank[1:(rank - 1)]) for rank in 1:mpi_nranks()+1]
+end
+
+function balance!(mesh::T8codeMesh)
+    new_forest_ref = Ref{t8_forest_t}()
+    t8_forest_init(new_forest_ref)
+    new_forest = new_forest_ref[]
+
+    let set_from = mesh.forest, no_repartition = 1, do_ghost = 1
+        t8_forest_set_balance(new_forest, set_from, no_repartition)
+        t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
+        t8_forest_commit(new_forest)
+    end
+
+    mesh.forest = new_forest
+
     return nothing
 end
 
-# TODO: Just a placeholder. Will be implemented later when MPI is supported.
 function partition!(mesh::T8codeMesh; allow_coarsening = true, weight_fn = C_NULL)
-    return nothing
-end
+    new_forest_ref = Ref{t8_forest_t}()
+    t8_forest_init(new_forest_ref)
+    new_forest = new_forest_ref[]
 
-function update_ghost_layer!(mesh::ParallelT8codeMesh)
+    let set_from = mesh.forest, set_for_coarsening = 1, do_ghost = 1
+        t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
+        t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
+        t8_forest_commit(new_forest)
+    end
+
+    mesh.forest = new_forest
+
     return nothing
 end
