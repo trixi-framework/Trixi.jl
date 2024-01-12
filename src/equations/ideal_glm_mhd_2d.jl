@@ -1139,10 +1139,10 @@ end
     mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
     p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5 * psi^2)
     a_square = equations.gamma * p / rho
-    sqrtrho = sqrt(rho)
-    b1 = B1 / sqrtrho
-    b2 = B2 / sqrtrho
-    b3 = B3 / sqrtrho
+    sqrt_rho = sqrt(rho)
+    b1 = B1 / sqrt_rho
+    b2 = B2 / sqrt_rho
+    b3 = B3 / sqrt_rho
     b_square = b1 * b1 + b2 * b2 + b3 * b3
     if orientation == 1 # x-direction
         c_f = sqrt(0.5 * (a_square + b_square) +
@@ -1164,10 +1164,10 @@ end
     mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
     p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5 * psi^2)
     a_square = equations.gamma * p / rho
-    sqrtrho = sqrt(rho)
-    b1 = B1 / sqrtrho
-    b2 = B2 / sqrtrho
-    b3 = B3 / sqrtrho
+    sqrt_rho = sqrt(rho)
+    b1 = B1 / sqrt_rho
+    b2 = B2 / sqrt_rho
+    b3 = B3 / sqrt_rho
     b_square = b1 * b1 + b2 * b2 + b3 * b3
     norm_squared = (normal_direction[1] * normal_direction[1] +
                     normal_direction[2] * normal_direction[2])
@@ -1217,12 +1217,12 @@ as given by
     p_total_rr = p_rr + 0.5 * mag_norm_rr
 
     # compute the Roe density averages
-    sqrtrho_ll = sqrt(rho_ll)
-    sqrtrho_rr = sqrt(rho_rr)
-    inv_sqrtrho_add = 1.0 / (sqrtrho_ll + sqrtrho_rr)
-    inv_sqrtrho_prod = 1.0 / (sqrtrho_ll * sqrtrho_rr)
-    rho_ll_roe = sqrtrho_ll * inv_sqrtrho_add
-    rho_rr_roe = sqrtrho_rr * inv_sqrtrho_add
+    sqrt_rho_ll = sqrt(rho_ll)
+    sqrt_rho_rr = sqrt(rho_rr)
+    inv_sqrt_rho_add = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
+    inv_sqrt_rho_prod = 1.0 / (sqrt_rho_ll * sqrt_rho_rr)
+    rho_ll_roe = sqrt_rho_ll * inv_sqrt_rho_add
+    rho_rr_roe = sqrt_rho_rr * inv_sqrt_rho_add
     # Roe averages
     # velocities and magnetic fields
     v1_roe = v1_ll * rho_ll_roe + v1_rr * rho_rr_roe
@@ -1237,22 +1237,22 @@ as given by
     H_roe = H_ll * rho_ll_roe + H_rr * rho_rr_roe
     # temporary variable see equation (4.12) in Cargo and Gallice
     X = 0.5 * ((B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2) *
-        inv_sqrtrho_add^2
+        inv_sqrt_rho_add^2
     # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
-    b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrtrho_prod # scaled magnectic sum
+    b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
     a_square_roe = ((2.0 - equations.gamma) * X +
                     (equations.gamma - 1.0) *
                     (H_roe - 0.5 * (v1_roe^2 + v2_roe^2 + v3_roe^2) -
                      b_square_roe)) # acoustic speed
     # finally compute the average wave speed and set the output velocity (depends on orientation)
     if orientation == 1 # x-direction
-        c_a_roe = B1_roe^2 * inv_sqrtrho_prod # (squared) Alfvén wave speed
+        c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
         a_star_roe = sqrt((a_square_roe + b_square_roe)^2 -
                           4.0 * a_square_roe * c_a_roe)
         c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v1_roe
     else # y-direction
-        c_a_roe = B2_roe^2 * inv_sqrtrho_prod # (squared) Alfvén wave speed
+        c_a_roe = B2_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
         a_star_roe = sqrt((a_square_roe + b_square_roe)^2 -
                           4.0 * a_square_roe * c_a_roe)
         c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
@@ -1289,12 +1289,12 @@ end
     p_total_rr = p_rr + 0.5 * mag_norm_rr
 
     # compute the Roe density averages
-    sqrtrho_ll = sqrt(rho_ll)
-    sqrtrho_rr = sqrt(rho_rr)
-    inv_sqrtrho_add = 1.0 / (sqrtrho_ll + sqrtrho_rr)
-    inv_sqrtrho_prod = 1.0 / (sqrtrho_ll * sqrtrho_rr)
-    rho_ll_roe = sqrtrho_ll * inv_sqrtrho_add
-    rho_rr_roe = sqrtrho_rr * inv_sqrtrho_add
+    sqrt_rho_ll = sqrt(rho_ll)
+    sqrt_rho_rr = sqrt(rho_rr)
+    inv_sqrt_rho_add = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
+    inv_sqrt_rho_prod = 1.0 / (sqrt_rho_ll * sqrt_rho_rr)
+    rho_ll_roe = sqrt_rho_ll * inv_sqrt_rho_add
+    rho_rr_roe = sqrt_rho_rr * inv_sqrt_rho_add
     # Roe averages
     # velocities and magnetic fields
     v1_roe = v1_ll * rho_ll_roe + v1_rr * rho_rr_roe
@@ -1309,9 +1309,9 @@ end
     H_roe = H_ll * rho_ll_roe + H_rr * rho_rr_roe
     # temporary variable see equation (4.12) in Cargo and Gallice
     X = 0.5 * ((B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2) *
-        inv_sqrtrho_add^2
+        inv_sqrt_rho_add^2
     # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
-    b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrtrho_prod # scaled magnectic sum
+    b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
     a_square_roe = ((2.0 - equations.gamma) * X +
                     (equations.gamma - 1.0) *
                     (H_roe - 0.5 * (v1_roe^2 + v2_roe^2 + v3_roe^2) -
@@ -1323,7 +1323,7 @@ end
     B_roe_dot_n_squared = (B1_roe * normal_direction[1] +
                            B2_roe * normal_direction[2])^2 / norm_squared
 
-    c_a_roe = B_roe_dot_n_squared * inv_sqrtrho_prod # (squared) Alfvén wave speed
+    c_a_roe = B_roe_dot_n_squared * inv_sqrt_rho_prod # (squared) Alfvén wave speed
     a_star_roe = sqrt((a_square_roe + b_square_roe)^2 - 4 * a_square_roe * c_a_roe)
     c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe) * norm_squared)
     vel_out_roe = (v1_roe * normal_direction[1] +

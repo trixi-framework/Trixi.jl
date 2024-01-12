@@ -15,8 +15,8 @@ function init_t8code()
         end
 
         # Initialize the sc library, has to happen before we initialize t8code.
-        let catch_signals = 0, print_backtrace = 0, loghandler = C_NULL
-            T8code.Libt8.sc_init(mpi_comm(), catch_signals, print_backtrace, loghandler,
+        let catch_signals = 0, print_backtrace = 0, log_handler = C_NULL
+            T8code.Libt8.sc_init(mpi_comm(), catch_signals, print_backtrace, log_handler,
                                  T8code.Libt8.SC_LP_ERROR)
         end
 

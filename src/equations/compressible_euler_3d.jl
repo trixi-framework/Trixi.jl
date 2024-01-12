@@ -1225,9 +1225,9 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     f_rr = flux(u_rr, orientation, equations)
 
     # Compute Roe averages
-    sqrtrho_ll = sqrt(rho_ll)
-    sqrtrho_rr = sqrt(rho_rr)
-    sum_sqrtrho = sqrtrho_ll + sqrtrho_rr
+    sqrt_rho_ll = sqrt(rho_ll)
+    sqrt_rho_rr = sqrt(rho_rr)
+    sum_sqrt_rho = sqrt_rho_ll + sqrt_rho_rr
     if orientation == 1 # x-direction
         vel_L = v1_ll
         vel_R = v1_rr
@@ -1238,14 +1238,14 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
         vel_L = v3_ll
         vel_R = v3_rr
     end
-    vel_roe = (sqrtrho_ll * vel_L + sqrtrho_rr * vel_R) / sum_sqrtrho
-    v1_roe = sqrtrho_ll * v1_ll + sqrtrho_rr * v1_rr
-    v2_roe = sqrtrho_ll * v2_ll + sqrtrho_rr * v2_rr
-    v3_roe = sqrtrho_ll * v3_ll + sqrtrho_rr * v3_rr
-    vel_roe_mag = (v1_roe^2 + v2_roe^2 + v3_roe^2) / sum_sqrtrho^2
+    vel_roe = (sqrt_rho_ll * vel_L + sqrt_rho_rr * vel_R) / sum_sqrt_rho
+    v1_roe = sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr
+    v2_roe = sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr
+    v3_roe = sqrt_rho_ll * v3_ll + sqrt_rho_rr * v3_rr
+    vel_roe_mag = (v1_roe^2 + v2_roe^2 + v3_roe^2) / sum_sqrt_rho^2
     H_ll = (rho_e_ll + p_ll) / rho_ll
     H_rr = (rho_e_rr + p_rr) / rho_rr
-    H_roe = (sqrtrho_ll * H_ll + sqrtrho_rr * H_rr) / sum_sqrtrho
+    H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) / sum_sqrt_rho
     c_roe = sqrt((equations.gamma - 1) * (H_roe - 0.5 * vel_roe_mag))
     Ssl = min(vel_L - c_ll, vel_roe - c_roe)
     Ssr = max(vel_R + c_rr, vel_roe + c_roe)
@@ -1341,13 +1341,13 @@ function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
     f_rr = flux(u_rr, normal_direction, equations)
 
     # Compute Roe averages
-    sqrtrho_ll = sqrt(rho_ll)
-    sqrtrho_rr = sqrt(rho_rr)
-    sum_sqrtrho = sqrtrho_ll + sqrtrho_rr
+    sqrt_rho_ll = sqrt(rho_ll)
+    sqrt_rho_rr = sqrt(rho_rr)
+    sum_sqrt_rho = sqrt_rho_ll + sqrt_rho_rr
 
-    v1_roe = (sqrtrho_ll * v1_ll + sqrtrho_rr * v1_rr) / sum_sqrtrho
-    v2_roe = (sqrtrho_ll * v2_ll + sqrtrho_rr * v2_rr) / sum_sqrtrho
-    v3_roe = (sqrtrho_ll * v3_ll + sqrtrho_rr * v3_rr) / sum_sqrtrho
+    v1_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr) / sum_sqrt_rho
+    v2_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr) / sum_sqrt_rho
+    v3_roe = (sqrt_rho_ll * v3_ll + sqrt_rho_rr * v3_rr) / sum_sqrt_rho
     vel_roe = v1_roe * normal_direction[1] + v2_roe * normal_direction[2] +
               v3_roe * normal_direction[3]
     vel_roe_mag = v1_roe^2 + v2_roe^2 + v3_roe^2
@@ -1358,7 +1358,7 @@ function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
     H_ll = (u_ll[5] + p_ll) / rho_ll
     H_rr = (u_rr[5] + p_rr) / rho_rr
 
-    H_roe = (sqrtrho_ll * H_ll + sqrtrho_rr * H_rr) / sum_sqrtrho
+    H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) / sum_sqrt_rho
     c_roe = sqrt((equations.gamma - 1) * (H_roe - 0.5 * vel_roe_mag)) * norm_
 
     Ssl = min(v_dot_n_ll - c_ll, vel_roe - c_roe)
@@ -1452,16 +1452,16 @@ of the numerical flux.
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     # Compute Roe averages
-    sqrtrho_ll = sqrt(rho_ll)
-    sqrtrho_rr = sqrt(rho_rr)
-    inv_sum_sqrtrho = inv(sqrtrho_ll + sqrtrho_rr)
+    sqrt_rho_ll = sqrt(rho_ll)
+    sqrt_rho_rr = sqrt(rho_rr)
+    inv_sum_sqrt_rho = inv(sqrt_rho_ll + sqrt_rho_rr)
 
-    v1_roe = (sqrtrho_ll * v1_ll + sqrtrho_rr * v1_rr) * inv_sum_sqrtrho
-    v2_roe = (sqrtrho_ll * v2_ll + sqrtrho_rr * v2_rr) * inv_sum_sqrtrho
-    v3_roe = (sqrtrho_ll * v3_ll + sqrtrho_rr * v3_rr) * inv_sum_sqrtrho
+    v1_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr) * inv_sum_sqrt_rho
+    v2_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr) * inv_sum_sqrt_rho
+    v3_roe = (sqrt_rho_ll * v3_ll + sqrt_rho_rr * v3_rr) * inv_sum_sqrt_rho
     v_roe_mag = v1_roe^2 + v2_roe^2 + v3_roe^2
 
-    H_roe = (sqrtrho_ll * H_ll + sqrtrho_rr * H_rr) * inv_sum_sqrtrho
+    H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) * inv_sum_sqrt_rho
     c_roe = sqrt((equations.gamma - 1) * (H_roe - 0.5 * v_roe_mag))
 
     # Compute convenience constant for positivity preservation, see
@@ -1520,18 +1520,18 @@ of the numerical flux.
     c_rr = sqrt(equations.gamma * p_rr / rho_rr) * norm_
 
     # Compute Roe averages
-    sqrtrho_ll = sqrt(rho_ll)
-    sqrtrho_rr = sqrt(rho_rr)
-    inv_sum_sqrtrho = inv(sqrtrho_ll + sqrtrho_rr)
+    sqrt_rho_ll = sqrt(rho_ll)
+    sqrt_rho_rr = sqrt(rho_rr)
+    inv_sum_sqrt_rho = inv(sqrt_rho_ll + sqrt_rho_rr)
 
-    v1_roe = (sqrtrho_ll * v1_ll + sqrtrho_rr * v1_rr) * inv_sum_sqrtrho
-    v2_roe = (sqrtrho_ll * v2_ll + sqrtrho_rr * v2_rr) * inv_sum_sqrtrho
-    v3_roe = (sqrtrho_ll * v3_ll + sqrtrho_rr * v3_rr) * inv_sum_sqrtrho
+    v1_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr) * inv_sum_sqrt_rho
+    v2_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr) * inv_sum_sqrt_rho
+    v3_roe = (sqrt_rho_ll * v3_ll + sqrt_rho_rr * v3_rr) * inv_sum_sqrt_rho
     v_roe = v1_roe * normal_direction[1] + v2_roe * normal_direction[2] +
             v3_roe * normal_direction[3]
     v_roe_mag = v1_roe^2 + v2_roe^2 + v3_roe^2
 
-    H_roe = (sqrtrho_ll * H_ll + sqrtrho_rr * H_rr) * inv_sum_sqrtrho
+    H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) * inv_sum_sqrt_rho
     c_roe = sqrt((equations.gamma - 1) * (H_roe - 0.5 * v_roe_mag)) * norm_
 
     # Compute convenience constant for positivity preservation, see

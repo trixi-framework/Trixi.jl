@@ -759,16 +759,16 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     f_rr = flux(u_rr, orientation, equations)
 
     # Compute Roe averages
-    sqrtrho_ll = sqrt(rho_ll)
-    sqrtrho_rr = sqrt(rho_rr)
-    sum_sqrtrho = sqrtrho_ll + sqrtrho_rr
+    sqrt_rho_ll = sqrt(rho_ll)
+    sqrt_rho_rr = sqrt(rho_rr)
+    sum_sqrt_rho = sqrt_rho_ll + sqrt_rho_rr
     vel_L = v1_ll
     vel_R = v1_rr
-    vel_roe = (sqrtrho_ll * vel_L + sqrtrho_rr * vel_R) / sum_sqrtrho
+    vel_roe = (sqrt_rho_ll * vel_L + sqrt_rho_rr * vel_R) / sum_sqrt_rho
     ekin_roe = 0.5 * vel_roe^2
     H_ll = (rho_e_ll + p_ll) / rho_ll
     H_rr = (rho_e_rr + p_rr) / rho_rr
-    H_roe = (sqrtrho_ll * H_ll + sqrtrho_rr * H_rr) / sum_sqrtrho
+    H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) / sum_sqrt_rho
     c_roe = sqrt((equations.gamma - 1) * (H_roe - ekin_roe))
 
     Ssl = min(vel_L - c_ll, vel_roe - c_roe)
@@ -845,14 +845,14 @@ Compactly summarized:
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     # Compute Roe averages
-    sqrtrho_ll = sqrt(rho_ll)
-    sqrtrho_rr = sqrt(rho_rr)
-    inv_sum_sqrtrho = inv(sqrtrho_ll + sqrtrho_rr)
+    sqrt_rho_ll = sqrt(rho_ll)
+    sqrt_rho_rr = sqrt(rho_rr)
+    inv_sum_sqrt_rho = inv(sqrt_rho_ll + sqrt_rho_rr)
 
-    v_roe = (sqrtrho_ll * v_ll + sqrtrho_rr * v_rr) * inv_sum_sqrtrho
+    v_roe = (sqrt_rho_ll * v_ll + sqrt_rho_rr * v_rr) * inv_sum_sqrt_rho
     v_roe_mag = v_roe^2
 
-    H_roe = (sqrtrho_ll * H_ll + sqrtrho_rr * H_rr) * inv_sum_sqrtrho
+    H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) * inv_sum_sqrt_rho
     c_roe = sqrt((equations.gamma - 1) * (H_roe - 0.5 * v_roe_mag))
 
     # Compute convenience constant for positivity preservation, see
