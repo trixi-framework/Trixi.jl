@@ -170,7 +170,7 @@ function trixi_t8_count_interfaces(mesh)
                             local_num_conform += 1
                         elseif level < neighbor_level
                             local_num_mortars += 1
-                            # else `level > neigbor_level` is ignored.
+                            # else `level > neighbor_level` is ignored.
                         end
                     else
                         if level == neighbor_level
