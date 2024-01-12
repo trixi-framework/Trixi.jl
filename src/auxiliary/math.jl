@@ -26,11 +26,14 @@ in the stacktrace.
 """
 @inline sqrt(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
 
-# For the `sqrt` we could use the `sqrt_llvm` call, but for transparency we use the direct LLVM calls here.
+# For `sqrt` we could use the `sqrt_llvm` call, ...
 #@inline sqrt(x::Union{Float64, Float32, Float16}) = Base.sqrt_llvm(x)
+
+# ... but for transparency and consistency we use the direct LLVM calls here.
 @inline sqrt(x::Float64) = ccall("llvm.sqrt.f64", llvmcall, Float64, (Float64,), x)
 @inline sqrt(x::Float32) = ccall("llvm.sqrt.f32", llvmcall, Float32, (Float32,), x)
 @inline sqrt(x::Float16) = ccall("llvm.sqrt.f16", llvmcall, Float16, (Float16,), x)
+
 #@inline sqrt(x) = Base.sqrt(x) # For benchmarking and debugging (shows up in stacktrace)
 
 """
@@ -58,6 +61,7 @@ in the stacktrace.
 @inline log(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64,), x)
 @inline log(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
 @inline log(x::Float16) = ccall("llvm.log.f16", llvmcall, Float16, (Float16,), x)
+
 #@inline log(x) = Base.log(x) # For benchmarking and debugging (shows up in stacktrace)
 
 """
