@@ -342,7 +342,7 @@ end
             v2_ll = u_prim_permuted[jk, i, 3]
             v3_ll = u_prim_permuted[jk, i, 4]
             p_ll = u_prim_permuted[jk, i, 5]
-            logrho_ll = u_prim_permuted[jk, i, 6]
+            log_rho_ll = u_prim_permuted[jk, i, 6]
             logp_ll = u_prim_permuted[jk, i, 7]
 
             rho_rr = u_prim_permuted[jk, ii, 1]
@@ -350,7 +350,7 @@ end
             v2_rr = u_prim_permuted[jk, ii, 3]
             v3_rr = u_prim_permuted[jk, ii, 4]
             p_rr = u_prim_permuted[jk, ii, 5]
-            logrho_rr = u_prim_permuted[jk, ii, 6]
+            log_rho_rr = u_prim_permuted[jk, ii, 6]
             logp_rr = u_prim_permuted[jk, ii, 7]
 
             # Compute required mean values
@@ -358,9 +358,9 @@ end
             # it efficiently. This is equivalent to
             #   rho_mean = ln_mean(rho_ll, rho_rr)
             x1 = rho_ll
-            logx1 = logrho_ll
+            logx1 = log_rho_ll
             y1 = rho_rr
-            logy1 = logrho_rr
+            logy1 = log_rho_rr
             x1_plus_y1 = x1 + y1
             y1_minus_x1 = y1 - x1
             z1 = y1_minus_x1^2 / x1_plus_y1^2
@@ -374,9 +374,9 @@ end
             #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
             # inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
             x2 = rho_ll * p_rr
-            logx2 = logrho_ll + logp_rr
+            logx2 = log_rho_ll + logp_rr
             y2 = rho_rr * p_ll
-            logy2 = logrho_rr + logp_ll
+            logy2 = log_rho_rr + logp_ll
             x2_plus_y2 = x2 + y2
             y2_minus_x2 = y2 - x2
             z2 = y2_minus_x2^2 / x2_plus_y2^2
@@ -436,7 +436,7 @@ end
             v2_ll = u_prim[i, j, k, 3]
             v3_ll = u_prim[i, j, k, 4]
             p_ll = u_prim[i, j, k, 5]
-            logrho_ll = u_prim[i, j, k, 6]
+            log_rho_ll = u_prim[i, j, k, 6]
             logp_ll = u_prim[i, j, k, 7]
 
             rho_rr = u_prim[i, jj, k, 1]
@@ -444,7 +444,7 @@ end
             v2_rr = u_prim[i, jj, k, 3]
             v3_rr = u_prim[i, jj, k, 4]
             p_rr = u_prim[i, jj, k, 5]
-            logrho_rr = u_prim[i, jj, k, 6]
+            log_rho_rr = u_prim[i, jj, k, 6]
             logp_rr = u_prim[i, jj, k, 7]
 
             # Compute required mean values
@@ -452,9 +452,9 @@ end
             # it efficiently. This is equivalent to
             #   rho_mean = ln_mean(rho_ll, rho_rr)
             x1 = rho_ll
-            logx1 = logrho_ll
+            logx1 = log_rho_ll
             y1 = rho_rr
-            logy1 = logrho_rr
+            logy1 = log_rho_rr
             x1_plus_y1 = x1 + y1
             y1_minus_x1 = y1 - x1
             z1 = y1_minus_x1^2 / x1_plus_y1^2
@@ -468,9 +468,9 @@ end
             #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
             # inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
             x2 = rho_ll * p_rr
-            logx2 = logrho_ll + logp_rr
+            logx2 = log_rho_ll + logp_rr
             y2 = rho_rr * p_ll
-            logy2 = logrho_rr + logp_ll
+            logy2 = log_rho_rr + logp_ll
             x2_plus_y2 = x2 + y2
             y2_minus_x2 = y2 - x2
             z2 = y2_minus_x2^2 / x2_plus_y2^2
@@ -529,7 +529,7 @@ end
                 v2_ll = u_prim_reshaped[ij, k, 3]
                 v3_ll = u_prim_reshaped[ij, k, 4]
                 p_ll = u_prim_reshaped[ij, k, 5]
-                logrho_ll = u_prim_reshaped[ij, k, 6]
+                log_rho_ll = u_prim_reshaped[ij, k, 6]
                 logp_ll = u_prim_reshaped[ij, k, 7]
 
                 rho_rr = u_prim_reshaped[ij, kk, 1]
@@ -537,7 +537,7 @@ end
                 v2_rr = u_prim_reshaped[ij, kk, 3]
                 v3_rr = u_prim_reshaped[ij, kk, 4]
                 p_rr = u_prim_reshaped[ij, kk, 5]
-                logrho_rr = u_prim_reshaped[ij, kk, 6]
+                log_rho_rr = u_prim_reshaped[ij, kk, 6]
                 logp_rr = u_prim_reshaped[ij, kk, 7]
 
                 # Compute required mean values
@@ -545,9 +545,9 @@ end
                 # it efficiently. This is equivalent to
                 #   rho_mean = ln_mean(rho_ll, rho_rr)
                 x1 = rho_ll
-                logx1 = logrho_ll
+                logx1 = log_rho_ll
                 y1 = rho_rr
-                logy1 = logrho_rr
+                logy1 = log_rho_rr
                 x1_plus_y1 = x1 + y1
                 y1_minus_x1 = y1 - x1
                 z1 = y1_minus_x1^2 / x1_plus_y1^2
@@ -561,9 +561,9 @@ end
                 #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
                 # inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
                 x2 = rho_ll * p_rr
-                logx2 = logrho_ll + logp_rr
+                logx2 = log_rho_ll + logp_rr
                 y2 = rho_rr * p_ll
-                logy2 = logrho_rr + logp_ll
+                logy2 = log_rho_rr + logp_ll
                 x2_plus_y2 = x2 + y2
                 y2_minus_x2 = y2 - x2
                 z2 = y2_minus_x2^2 / x2_plus_y2^2
