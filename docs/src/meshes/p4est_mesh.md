@@ -387,7 +387,7 @@ The most notable difference is that boundaries are formed in 3D by faces defined
 A simple mesh file used also in `examples/p4est_3d_dgsem/elixir_euler_free_stream_boundaries.jl` is given below:
 ```
 *Heading
- Something DIFFERENT FROM ** ***** HOHQMesh boundary information ***** **
+<SOMETHING DIFFERENT FROM "File created by HOHQMesh">
 *NODE
 1, -2, 0, 0
 2, -1, 0, 0
