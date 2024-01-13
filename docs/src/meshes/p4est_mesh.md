@@ -257,7 +257,7 @@ Other nodesets that could be used for diagnostics are not treated as external bo
 Note that there is a leading colon `:` compared to the label in the `.inp` mesh file.
 This is required to turn the label into a [`Symbol`](https://docs.julialang.org/en/v1/manual/metaprogramming/#Symbols).
 
-A 2D example for this mesh generation is presented in 
+A 2D example for this mesh read-in for an unstructured mesh file created with `gmsh` is presented in 
 `examples/p4est_2d_dgsem/elixir_euler_NACA6412airfoil_mach2.jl`.
 
 ### Mesh in three spatial dimensions
