@@ -252,7 +252,8 @@ boundary_symbols = [:PhysicalLine1]
 
 mesh = P4estMesh{2}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
 ```
-By doing so, only nodesets with label in `boundary_symbols` are treated as boundaries and other nodesets which could be used for diagnostics are not treated as boundary.
+By doing so, only nodesets with a label present in `boundary_symbols` are treated as physical boundaries.
+Other nodesets that could be used for diagnostics are not treated as external boundary.
 Note that there is a leading colon `:` compared to the label in the `.inp` mesh file.
 This is required to turn the label into a [`Symbol`](https://docs.julialang.org/en/v1/manual/metaprogramming/#Symbols).
 
