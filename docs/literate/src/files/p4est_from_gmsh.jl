@@ -33,7 +33,7 @@ end #hide #md
 # The creation of an unstructured quadrilateral mesh using `gmsh` is driven by a **geometry file**. 
 # There are plenty of possibilities for the user, see the [documentation](https://gmsh.info/doc/texinfo/gmsh.html) and [tutorials](https://gitlab.onelab.info/gmsh/gmsh/tree/master/tutorials).
 
-# To begin, we provide a complete geometry file in this tutorial. After this we give a breakdown
+# To begin, we provide a complete geometry file for the NACA6412 airfoil bounded by a rectangular box in this tutorial. After this we give a breakdown
 # of the most important parts required for successful mesh generation that can later be used by the `p4est` library
 # and `Trixi.jl`.
 
