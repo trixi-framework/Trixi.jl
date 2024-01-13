@@ -245,7 +245,7 @@ In addition to the list of [nodes](#nodes) and [elements](#elements) given above
 required which are used to associate the edges defined through their corner nodes with a label, in this case `PhysicalLine1`.
 By looping over every element and its associated edges, consisting of two nodes, we query the read in `NSET`s if the current node pair is present.
 
-To prevent that every nodeset following `*NSET,NSET=` is treated as a boundary, the user has to supply the `boundary_symbols` keyword to the [`P4estMesh`](@ref) constructor:
+To prevent that every nodeset following `*NSET,NSET=` is treated as a boundary, the user must supply a `boundary_symbols` keyword to the [`P4estMesh`](@ref) constructor:
 
 ```julia
 boundary_symbols = [:PhysicalLine1]
