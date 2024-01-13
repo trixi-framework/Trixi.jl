@@ -20,7 +20,7 @@ redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying st
 trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_euler_NACA6412airfoil_mach2.jl"), tspan=(0.0, 0.5))
 end #hide #md
 
-# Conveniently, we can use the Plots package to have a first look at the results:
+# Conveniently, we use the Plots package to have a first look at the results:
 # ```julia
 # using Plots
 # pd = PlotData2D(sol)
