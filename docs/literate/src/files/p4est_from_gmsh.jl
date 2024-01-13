@@ -340,10 +340,10 @@ end #hide #md
 # At the end of the file the physical groups are defined:
 # ```c++
 # // labeling of the boundary parts
-#  Physical Line(1) = {4};      // inflow
-#  Physical Line(2) = {2};      // outflow
-#  Physical Line(3) = {1, 3};   // airfoil
-#  Physical Line(4) = {5, 6};   // upper/lower wall
+#  Physical Line(1) = {4};      // Inflow. Label in Abaqus .inp file: PhysicalLine1
+#  Physical Line(2) = {2};      // Outflow. Label in Abaqus .inp file: PhysicalLine2
+#  Physical Line(3) = {1, 3};   // Airfoil. Label in Abaqus .inp file: PhysicalLine3
+#  Physical Line(4) = {5, 6};   //Upper and lower wall/farfield/... Label in Abaqus .inp file: PhysicalLine4
 # ```
 # which are crucial for the correct assignment of boundary conditions in `Trixi.jl`.
 #
