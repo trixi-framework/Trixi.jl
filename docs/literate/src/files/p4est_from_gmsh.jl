@@ -65,7 +65,7 @@ end #hide #md
 #  Mesh.ColorCarousel = 0;
 #  
 #  // points of the airfoil contour
-#  // Format: {x, y, z, DesiredCellSize}. See the [documentation](https://gmsh.info/doc/texinfo/gmsh.html#Points).
+#  // Format: {x, y, z, DesiredCellSize}. See the documentation: https://gmsh.info/doc/texinfo/gmsh.html#Points
 #  Point(5) = {-0.4900332889206208, 0.09933466539753061, 0, 0.125};
 #  Point(6) = {-0.4900274857651495, 0.1021542752054094, 0, 0.125};
 #  Point(7) = {-0.4894921489729144, 0.1049830248247787, 0, 0.125};
