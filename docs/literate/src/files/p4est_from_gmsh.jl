@@ -39,7 +39,8 @@ end #hide #md
 
 # The associated `NACA6412.geo` file is given below:
 # ```c++
-#  // GMSH geometry script for a NACA 6412 airfoil in a box
+#  // GMSH geometry script for a NACA 6412 airfoil with 11 degree angle of attack 
+#  // in a box (near-field mesh)
 #  // see https://github.com/cfsengineering/GMSH-Airfoil-2D
 #  
 #  // outer bounding box
