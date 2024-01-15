@@ -195,14 +195,14 @@ end
                                                                                 Prandtl = prandtl_number(),
                                                                                 gradient_variables = GradientVariablesEntropy()),
                         l2=[
-                            2.459359632523962e-5,
-                            2.3928390718460263e-5,
-                            0.00011252414117082376,
+                            2.4593501090944024e-5,
+                            2.3928163240907908e-5,
+                            0.00011252309905552921,
                         ],
                         linf=[
-                            0.0001185052018830568,
-                            0.00018987717854305393,
-                            0.0009597503607920999,
+                            0.0001185048754512863,
+                            0.0001898766501935486,
+                            0.0009597450028770993,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
