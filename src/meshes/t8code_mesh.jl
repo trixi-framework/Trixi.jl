@@ -214,8 +214,8 @@ function T8codeMesh(trees_per_dimension; polydeg,
         veptr = t8_cmesh_get_tree_vertices(cmesh, itree - 1)
         verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))
 
+        # Calculate node coordinates of reference mesh.
         if NDIMS == 2
-            # Calculate node coordinates of reference mesh.
             cell_x_offset = (verts[1, 1] - 0.5 * (trees_per_dimension[1] - 1)) * dx[1]
             cell_y_offset = (verts[2, 1] - 0.5 * (trees_per_dimension[2] - 1)) * dx[2]
 
