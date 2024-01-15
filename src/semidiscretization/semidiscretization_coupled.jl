@@ -123,14 +123,6 @@ end
     sum(ndofs, semi.semis)
 end
 
-@inline function nelements(semi::SemidiscretizationCoupled)
-    return sum(semi.semis) do semi_
-        mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
-
-        nelements(mesh, solver, cache)
-    end
-end
-
 function compute_coefficients(t, semi::SemidiscretizationCoupled)
     @unpack u_indices = semi
 
