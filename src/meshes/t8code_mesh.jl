@@ -159,7 +159,7 @@ function T8codeMesh(trees_per_dimension; polydeg,
     end
 
     NDIMS = length(trees_per_dimension)
-    @assert (NDIMS == 2 || NDIMS == 3) "NDIMS should be 2 or 3."
+    @assert (NDIMS == 2||NDIMS == 3) "NDIMS should be 2 or 3."
 
     # Convert periodicity to a Tuple of a Bool for every dimension
     if all(periodicity)
@@ -286,7 +286,7 @@ conforming mesh from a `t8_cmesh` data structure.
 function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
                            mapping = nothing, polydeg = 1, RealT = Float64,
                            initial_refinement_level = 0) where {NDIMS}
-    @assert (NDIMS == 2 || NDIMS == 3) "NDIMS should be 2 or 3."
+    @assert (NDIMS == 2||NDIMS == 3) "NDIMS should be 2 or 3."
 
     scheme = t8_scheme_new_default_cxx()
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, 0, mpi_comm())
