@@ -281,10 +281,16 @@ conforming mesh from a `t8_cmesh` data structure.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 """
-function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
-                           mapping = nothing, polydeg = 1, RealT = Float64,
-                           initial_refinement_level = 0) where {NDIMS}
-    @assert (NDIMS == 2||NDIMS == 3) "NDIMS should be 2 or 3."
+function T8codeMesh(cmesh::Ptr{t8_cmesh};
+                    mapping = nothing, polydeg = 1, RealT = Float64,
+                    initial_refinement_level = 0)
+
+    @assert (t8_cmesh_get_num_trees(cmesh) > 0) "Given `cmesh` does not contain any trees."
+
+    # Infer NDIMS from the geometry of the first tree.
+    NDIMS = Int(t8_geom_get_dimension(t8_cmesh_get_tree_geometry(cmesh, 0)))
+
+    @assert (NDIMS == 2 || NDIMS == 3) "NDIMS should be 2 or 3."
 
     scheme = t8_scheme_new_default_cxx()
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, 0, mpi_comm())
@@ -313,10 +319,8 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
             v = verts[:, 3] - verts[:, 1]
             w = [0.0, 0.0, 1.0]
 
-            # triple product gives volume of spanned parallelepiped
-            vol = dot(cross(u, v), w)
-
-            if vol < 0.0
+            # Triple product gives signed volume of spanned parallelepiped.
+            if dot(cross(u, v), w) < 0.0
                 @warn "Discovered negative volumes in `cmesh`: vol = $vol"
             end
 
@@ -390,7 +394,7 @@ conforming mesh from a `p4est_connectivity` data structure.
 function T8codeMesh(conn::Ptr{p4est_connectivity}; kwargs...)
     cmesh = t8_cmesh_new_from_p4est(conn, mpi_comm(), 0)
 
-    return T8codeMesh{2}(cmesh; kwargs...)
+    return T8codeMesh(cmesh; kwargs...)
 end
 
 """
@@ -414,7 +418,7 @@ conforming mesh from a `p4est_connectivity` data structure.
 function T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
     cmesh = t8_cmesh_new_from_p8est(conn, mpi_comm(), 0)
 
-    return T8codeMesh{3}(cmesh; kwargs...)
+    return T8codeMesh(cmesh; kwargs...)
 end
 
 """
@@ -435,16 +439,16 @@ mesh from a Gmsh mesh file (`.msh`).
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 """
-function T8codeMesh{NDIMS}(meshfile::String; kwargs...) where {NDIMS}
+function T8codeMesh(meshfile::String, ndims; kwargs...)
 
     # Prevent `t8code` from crashing Julia if the file doesn't exist.
     @assert isfile(meshfile)
 
     meshfile_prefix, meshfile_suffix = splitext(meshfile)
 
-    cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), NDIMS, 0, 0)
+    cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), ndims, 0, 0)
 
-    return T8codeMesh{NDIMS}(cmesh; kwargs...)
+    return T8codeMesh(cmesh; kwargs...)
 end
 
 # TODO: Just a placeholder. Will be implemented later when MPI is supported.
