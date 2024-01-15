@@ -12,8 +12,6 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     forest      :: Ptr{t8_forest} # cpointer to forest
     is_parallel :: IsParallel
 
-    unsaved_changes::Bool
-
     # This specifies the geometry interpolation for each tree.
     tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
 
