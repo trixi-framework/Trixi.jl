@@ -38,7 +38,7 @@ function calc_node_coordinates!(node_coordinates,
             # "integer" length to a float in relation to the unit interval [0,1].
             element_length = t8_hex_len(element_level) / t8_hex_root_len
 
-            element_coords = Vector{Cdouble}(undef, 3)
+            element_coords = Vector{Float64}(undef, 3)
             t8_element_vertex_reference_coords(eclass_scheme, element, 0,
                                                pointer(element_coords))
 
