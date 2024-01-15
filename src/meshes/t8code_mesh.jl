@@ -195,7 +195,7 @@ function T8codeMesh(trees_per_dimension; polydeg,
                                                     ntuple(_ -> length(nodes), NDIMS)...,
                                                     prod(trees_per_dimension))
 
-    # Get cell length in reference mesh: Omega_ref = [-1,1]^2.
+    # Get cell length in reference mesh: Omega_ref = [-1,1]^NDIMS.
     dx = [2 / n for n in trees_per_dimension]
 
     num_local_trees = t8_cmesh_get_num_local_trees(cmesh)

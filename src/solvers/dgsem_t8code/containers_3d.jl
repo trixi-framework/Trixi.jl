@@ -33,6 +33,9 @@ function calc_node_coordinates!(node_coordinates,
             element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)
             element_level = t8_element_level(eclass_scheme, element)
 
+            # Note, `t8_hex_len` is encoded as an integer (Morton encoding) in
+            # relation to `t8_hex_root_len`. This line transforms the
+            # "integer" length to a float in relation to the unit interval [0,1].
             element_length = t8_hex_len(element_level) / t8_hex_root_len
 
             element_coords = Vector{Cdouble}(undef, 3)
