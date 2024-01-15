@@ -171,16 +171,15 @@ function T8codeMesh(trees_per_dimension; polydeg,
         periodicity = Tuple(periodicity)
     end
 
+    do_partition = 0
     if NDIMS == 2
         conn = T8code.Libt8.p4est_connectivity_new_brick(trees_per_dimension...,
                                                          periodicity...)
-        do_partition = 0
         cmesh = t8_cmesh_new_from_p4est(conn, mpi_comm(), do_partition)
         T8code.Libt8.p4est_connectivity_destroy(conn)
     elseif NDIMS == 3
         conn = T8code.Libt8.p8est_connectivity_new_brick(trees_per_dimension...,
                                                          periodicity...)
-        do_partition = 0
         cmesh = t8_cmesh_new_from_p8est(conn, mpi_comm(), do_partition)
         T8code.Libt8.p8est_connectivity_destroy(conn)
     end
