@@ -284,13 +284,12 @@ conforming mesh from a `t8_cmesh` data structure.
 function T8codeMesh(cmesh::Ptr{t8_cmesh};
                     mapping = nothing, polydeg = 1, RealT = Float64,
                     initial_refinement_level = 0)
-
-    @assert (t8_cmesh_get_num_trees(cmesh) > 0) "Given `cmesh` does not contain any trees."
+    @assert (t8_cmesh_get_num_trees(cmesh)>0) "Given `cmesh` does not contain any trees."
 
     # Infer NDIMS from the geometry of the first tree.
     NDIMS = Int(t8_geom_get_dimension(t8_cmesh_get_tree_geometry(cmesh, 0)))
 
-    @assert (NDIMS == 2 || NDIMS == 3) "NDIMS should be 2 or 3."
+    @assert (NDIMS == 2||NDIMS == 3) "NDIMS should be 2 or 3."
 
     scheme = t8_scheme_new_default_cxx()
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, 0, mpi_comm())
