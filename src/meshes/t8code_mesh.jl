@@ -159,6 +159,7 @@ function T8codeMesh(trees_per_dimension; polydeg,
     end
 
     NDIMS = length(trees_per_dimension)
+    @assert (NDIMS == 2 || NDIMS == 3) "NDIMS should be 2 or 3."
 
     # Convert periodicity to a Tuple of a Bool for every dimension
     if all(periodicity)
@@ -238,8 +239,6 @@ function T8codeMesh(trees_per_dimension; polydeg,
                                                                      cell_z_offset +
                                                                      dx[3] * nodes[k] / 2)
             end
-        else
-            throw(ArgumentError("NDIMS should be 2 or 3."))
         end
 
         if !periodicity[1]
@@ -287,6 +286,8 @@ conforming mesh from a `t8_cmesh` data structure.
 function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
                            mapping = nothing, polydeg = 1, RealT = Float64,
                            initial_refinement_level = 0) where {NDIMS}
+    @assert (NDIMS == 2 || NDIMS == 3) "NDIMS should be 2 or 3."
+
     scheme = t8_scheme_new_default_cxx()
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, 0, mpi_comm())
 
@@ -314,6 +315,7 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
             v = verts[:, 3] - verts[:, 1]
             w = [0.0, 0.0, 1.0]
 
+            # triple product gives volume of spanned parallelepiped
             vol = dot(cross(u, v), w)
 
             if vol < 0.0
@@ -358,8 +360,6 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
                                     data_in,
                                     tmp1)
         end
-    else
-        throw(ArgumentError("NDIMS should be 2 or 3."))
     end
 
     map_node_coordinates!(tree_node_coordinates, mapping)
@@ -372,9 +372,7 @@ function T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh};
 end
 
 """
-    T8codeMesh{NDIMS}(conn::Ptr{p4est_connectivity},
-                      mapping=nothing, polydeg=1, RealT=Float64,
-                      initial_refinement_level=0)
+    T8codeMesh(conn::Ptr{p4est_connectivity}; kwargs...)
 
 Main mesh constructor for the `T8codeMesh` that imports an unstructured,
 conforming mesh from a `p4est_connectivity` data structure.
@@ -398,9 +396,7 @@ function T8codeMesh(conn::Ptr{p4est_connectivity}; kwargs...)
 end
 
 """
-    T8codeMesh{NDIMS}(conn::Ptr{p8est_connectivity},
-                      mapping=nothing, polydeg=1, RealT=Float64,
-                      initial_refinement_level=0)
+    T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
 
 Main mesh constructor for the `T8codeMesh` that imports an unstructured,
 conforming mesh from a `p4est_connectivity` data structure.
@@ -424,9 +420,7 @@ function T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
 end
 
 """
-    T8codeMesh{NDIMS}(meshfile::String;
-                     mapping=nothing, polydeg=1, RealT=Float64,
-                     initial_refinement_level=0)
+    T8codeMesh{NDIMS}(meshfile::String; kwargs...)
 
 Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
 mesh from a Gmsh mesh file (`.msh`).
