@@ -350,7 +350,7 @@ end #hide #md
 #  Physical Line(4) = {5, 6};   //Upper and lower wall/farfield/... Label in Abaqus .inp file: PhysicalLine4
 # ```
 # which are crucial for the correct assignment of boundary conditions in `Trixi.jl`.
-# In particular, it is the users responsibility to keep track on the physical boundary names between the mesh generation and assignment of boundary condition functions in an elixir.
+# In particular, it is the responsibility of a user to keep track on the physical boundary names between the mesh generation and assignment of boundary condition functions in an elixir.
 #
 # After opening this file in `gmsh`, meshing the geometry and exporting to Abaqus `.inp` format, 
 # we can have a look at the input file:
