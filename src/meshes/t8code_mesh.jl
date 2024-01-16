@@ -314,10 +314,10 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
             verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))
 
             # Check if tree's node ordering is right-handed or print a warning.
-            let z = zero(eltype(verts))
+            let z = zero(eltype(verts)), o = one(eltype(verts))
                 u = verts[:, 2] - verts[:, 1]
                 v = verts[:, 3] - verts[:, 1]
-                w = [z, z, z]
+                w = [z, z, o]
 
                 # Triple product gives signed volume of spanned parallelepiped.
                 vol = dot(cross(u, v), w)
