@@ -11,7 +11,7 @@
 
 # ## Running the simulation of a near-field flow around an airfoil
 
-# Trixi.jl supports solving hyperbolic problems on several mesh types.
+# Trixi.jl supports solving hyperbolic-parabolic problems on several mesh types.
 # A somewhat complex example that employs the `P4estMesh` is the near-field simulation of a
 # Mach 2 flow around the NACA6412 airfoil. 
 
@@ -33,15 +33,17 @@ end #hide #md
 # The creation of an unstructured quadrilateral mesh using `gmsh` is driven by a **geometry file**. 
 # There are plenty of possibilities for the user, see the [documentation](https://gmsh.info/doc/texinfo/gmsh.html) and [tutorials](https://gitlab.onelab.info/gmsh/gmsh/tree/master/tutorials).
 
-# To begin, we provide a complete geometry file for the NACA6412 airfoil bounded by a rectangular box in this tutorial. After this we give a breakdown
+# To begin, we provide a complete geometry file for the NACA6412 airfoil bounded by a rectangular box. After this we give a breakdown
 # of the most important parts required for successful mesh generation that can later be used by the `p4est` library
 # and `Trixi.jl`.
+# We emphasize that this near-field mesh should only be used for instructive purposes and not for actual production runs.
 
 # The associated `NACA6412.geo` file is given below:
 # ```c++
 #  // GMSH geometry script for a NACA 6412 airfoil with 11 degree angle of attack 
-#  // in a box (near-field mesh)
+#  // in a box (near-field mesh).
 #  // see https://github.com/cfsengineering/GMSH-Airfoil-2D
+#  // for software to generate gmsh `.geo` geometry files for NACA airfoils.
 #  
 #  // outer bounding box
 #  Point(1) = {-1.25, -0.5, 0, 1.0};
@@ -365,20 +367,20 @@ end #hide #md
 # *ELEMENT, type=T3D2, ELSET=Line1
 # 1, 1, 7
 # ...
-# *ELEMENT, type=CPS4, ELSET=Surface10
+# *ELEMENT, type=CPS4, ELSET=Surface1
 # 191, 272, 46, 263, 807
 # ...
-# *NSET,NSET=PhysicalLine10
+# *NSET,NSET=PhysicalLine1
 # 1, 4, 52, 53, 54, 55, 56, 57, 58, 
-# *NSET,NSET=PhysicalLine20
+# *NSET,NSET=PhysicalLine2
 # 2, 3, 26, 27, 28, 29, 30, 31, 32, 
-# *NSET,NSET=PhysicalLine30
+# *NSET,NSET=PhysicalLine3
 # 1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 
 # 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 
 # 23, 24, 25, 33, 34, 35, 36, 37, 38, 39, 
 # 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 
 # 50, 51, 
-# *NSET,NSET=PhysicalLine40
+# *NSET,NSET=PhysicalLine4
 # 5, 6, 59, 60, 61, 62, 63, 64, 65, 66, 
 # 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 
 # 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 
@@ -403,7 +405,7 @@ end #hide #md
 # the supplied `boundary_symbols` that have to be supplied to the `P4estMesh` constructor:
 # ```julia
 # # boundary symbols
-# boundary_symbols = [:PhysicalLine10, :PhysicalLine20, :PhysicalLine30, :PhysicalLine40]
+# boundary_symbols = [:PhysicalLine1, :PhysicalLine2, :PhysicalLine3, :PhysicalLine4]
 # mesh = P4estMesh{2}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
 # ```
 # The same boundary symbols have then also be supplied to the semidiscretization alongside the
@@ -432,16 +434,17 @@ end #hide #md
 #                                                        equations::CompressibleEulerEquations2D)
 # flux = Trixi.flux(u_inner, normal_direction, equations)
 #
-# boundary_conditions = Dict(:PhysicalLine10 => boundary_condition_supersonic_inflow, # Left boundary
-#                            :PhysicalLine20 => boundary_condition_supersonic_outflow, # Right boundary
-#                            :PhysicalLine30 => boundary_condition_slip_wall, # Airfoil
-#                            :PhysicalLine40 => boundary_condition_supersonic_outflow) # Top and bottom boundary
+# boundary_conditions = Dict(:PhysicalLine1 => boundary_condition_supersonic_inflow, # Left boundary
+#                            :PhysicalLine2 => boundary_condition_supersonic_outflow, # Right boundary
+#                            :PhysicalLine3 => boundary_condition_slip_wall, # Airfoil
+#                            :PhysicalLine4 => boundary_condition_supersonic_outflow) # Top and bottom boundary
 # 
 # semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 #                                     boundary_conditions = boundary_conditions)
 # ```
 # Note that you **have to** supply the `boundary_symbols` keyword to the `P4estMesh` constructor 
 # to select the boundaries from the available nodesets in the `.inp` file.
+# If the `boundary_symbols` keyword is not supplied, all boundaries will be assigned to the default set `:all`.
 
 # ## Package versions
 
