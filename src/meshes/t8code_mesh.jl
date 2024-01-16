@@ -314,13 +314,18 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
             veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
             verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))
 
-            u = verts[:, 2] - verts[:, 1]
-            v = verts[:, 3] - verts[:, 1]
-            w = [0.0, 0.0, 1.0]
+            # Check if tree's node ordering is right-handed or print a warning.
+            let z = zero(eltype(verts))
+              u = verts[:, 2] - verts[:, 1]
+              v = verts[:, 3] - verts[:, 1]
+              w = [z, z, z]
 
-            # Triple product gives signed volume of spanned parallelepiped.
-            if dot(cross(u, v), w) < 0.0
-                @warn "Discovered negative volumes in `cmesh`: vol = $vol"
+              # Triple product gives signed volume of spanned parallelepiped.
+              vol = dot(cross(u, v), w)
+
+              if vol < z
+                  @warn "Discovered negative volumes in `cmesh`: vol = $vol"
+              end
             end
 
             # Tree vertices are stored in z-order.
