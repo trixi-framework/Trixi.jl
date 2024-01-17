@@ -18,6 +18,14 @@ mkdir(outdir)
                             # Expected errors are exactly the same as with TreeMesh!
                             l2=[0.00016263963870641478],
                             linf=[0.0014537194925779984])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
     @trixi_testset "elixir_advection_unstructured_curved.jl" begin
@@ -25,6 +33,14 @@ mkdir(outdir)
                                      "elixir_advection_unstructured_curved.jl"),
                             l2=[0.0004750004258546538],
                             linf=[0.026527551737137167])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
     @trixi_testset "elixir_advection_nonconforming.jl" begin
