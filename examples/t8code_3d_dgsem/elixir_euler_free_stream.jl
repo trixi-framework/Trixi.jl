@@ -92,7 +92,7 @@ function adapt_callback(forest,
     end
 end
 
-@assert(Trixi.t8_forest_is_committed(mesh.forest)!=0);
+@assert(Trixi.t8_forest_is_committed(mesh.forest)!=0)
 
 # Init new forest.
 new_forest_ref = Ref{Trixi.t8_forest_t}()
