@@ -519,10 +519,10 @@ function parse_elements(meshfile, n_trees, n_dims)
                 if length(content) == expected_content_length # Check that we still read in connectivity data
                     content_int = parse.(Int64, content)
                     # Add constituent nodes to the element_node_matrix.
-                    # Important: Do not use idex form the Abaqus file, but the one from p4est
+                    # Important: Do not use index form the Abaqus file, but the one from p4est
                     element_node_matrix[tree_id, :] = content_int[2:end] # First entry is element id
                     tree_id += 1
-                else # Read all elements for this ELSET
+                else # Processed all elements for this ELSET
                     el_list_follows = false
                 end
             end
@@ -568,7 +568,7 @@ function parse_node_sets(meshfile, boundary_symbols)
 end
 
 # This function assigns the edges of elements to boundaries by
-# checking if the nodes of the edges are part of nodesets which correspond to boundaries.
+# checking if the nodes that define the edges are part of nodesets which correspond to boundaries.
 function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                                             element_node_matrix, node_set_dict,
                                             ::Val{2}) # 2D version
@@ -609,7 +609,7 @@ function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
 end
 
 # This function assigns the edges of elements to boundaries by
-# checking if the nodes of the edges are part of nodesets which correspond to boundaries.
+# checking if the nodes that define the faces are part of nodesets which correspond to boundaries.
 function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                                             element_node_matrix, node_set_dict,
                                             ::Val{3}) # 3D version
