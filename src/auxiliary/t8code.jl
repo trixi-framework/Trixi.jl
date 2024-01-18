@@ -421,8 +421,3 @@ function trixi_t8_adapt!(mesh, indicators)
 
     return differences
 end
-
-trixi_t8_msh_file_negative_volume = """
-
-
-"""
