@@ -30,8 +30,9 @@ end
     when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
     i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
 
-    We dispatch this function for `Float64, Float32, Float16` to the LLVM intrinsic `sqrtllvm` as for this the 
-    `sqrtllvm` function can be used out-of the box, i.e., it returns `NaN` for negative arguments.
+    We dispatch this function for `Float64, Float32, Float16` to the LLVM intrinsics 
+    `llvm.log.f64`, `llvm.log.f32`, `llvm.log.f16` as for these the LLVM functions can be used out-of the box, 
+    i.e., they return `NaN` for negative arguments.
     For other types, such as integers or dual numbers required for algorithmic differentiation, we
     fall back to the Julia built-in `sqrt` function after a check for negative arguments.
     Since these cases are not performance critical, the check for negativity does not hurt here 
@@ -78,7 +79,7 @@ end
     i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
 
     We dispatch this function for `Float64, Float32, Float16` to the respective LLVM intrinsics 
-    `llvm.log.f64`, `llvm.log.f32`, `llvm.log.f16"` as for this the LLVM functions can be used out-of the box, i.e., 
+    `llvm.log.f64`, `llvm.log.f32`, `llvm.log.f16` as for this the LLVM functions can be used out-of the box, i.e., 
     they return `NaN` for negative arguments.
     For other types, such as integers or dual numbers required for algorithmic differentiation, we
     fall back to the Julia built-in `log` function after a check for negative arguments.
