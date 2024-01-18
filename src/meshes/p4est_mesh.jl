@@ -311,8 +311,9 @@ To create a curved unstructured mesh `P4estMesh` two strategies are available:
                                      straight-sided from the information parsed from the `meshfile`. If a mapping
                                      function is specified then it computes the mapped tree coordinates via polynomial
                                      interpolants with degree `polydeg`. The mesh created by this function will only
-                                     have one boundary `:all`, as distinguishing different physical boundaries is
-                                     non-trivial.
+                                     have one boundary `:all` if `boundary_symbols` is not specified.
+                                     If `boundary_symbols` is specified the mesh file will be parsed for nodesets defining
+                                     the boundary nodes from which boundary edges (2D) and faces (3D) will be assigned.
 
 Note that the `mapping` and `polydeg` keyword arguments are only used by the `p4est_mesh_from_standard_abaqus`
 function. The `p4est_mesh_from_hohqmesh_abaqus` function obtains the mesh `polydeg` directly from the `meshfile`
