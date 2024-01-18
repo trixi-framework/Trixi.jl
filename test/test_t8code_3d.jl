@@ -13,6 +13,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 mkdir(outdir)
 
 @testset "T8codeMesh3D" begin
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_advection_basic.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
@@ -28,6 +29,7 @@ mkdir(outdir)
         end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_advection_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_unstructured_curved.jl"),
@@ -43,6 +45,7 @@ mkdir(outdir)
         end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_advection_nonconforming.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
                             l2=[0.00253595715323843],
@@ -57,6 +60,8 @@ mkdir(outdir)
         end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl` besides minor
+    # deviations from the expected error norms.
     @trixi_testset "elixir_advection_amr.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
@@ -74,6 +79,8 @@ mkdir(outdir)
         end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl` besides minor
+    # deviations from the expected error norms.
     @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_unstructured_curved.jl"),
@@ -92,6 +99,7 @@ mkdir(outdir)
         end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
@@ -120,6 +128,7 @@ mkdir(outdir)
         end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_source_terms_nonperiodic.jl"),
@@ -148,6 +157,7 @@ mkdir(outdir)
         end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_euler_free_stream.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                             l2=[
@@ -175,6 +185,7 @@ mkdir(outdir)
         end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_euler_free_stream_extruded.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_extruded.jl"),
                             l2=[
@@ -202,6 +213,7 @@ mkdir(outdir)
         end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_euler_ec.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                             l2=[
@@ -230,6 +242,8 @@ mkdir(outdir)
         end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl` besides minor
+    # deviations in the expected error norms.
     @trixi_testset "elixir_euler_sedov.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                             l2=[

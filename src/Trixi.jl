@@ -222,6 +222,8 @@ export ncomponents, eachcomponent
 
 export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh, T8codeMesh
 
+export adapt!
+
 export DG,
        DGSEM, LobattoLegendreBasis,
        FDSBP,

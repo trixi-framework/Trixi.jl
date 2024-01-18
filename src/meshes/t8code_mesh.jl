@@ -308,10 +308,18 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
     if NDIMS == 2
         data_in = Array{RealT, 3}(undef, 2, 2, 2)
         tmp1 = zeros(RealT, 2, length(nodes), length(nodes_in))
+        verts = zeros(3, 4)
 
         for itree in 0:(num_local_trees - 1)
             veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
-            verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))
+
+            # Note, `verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))`
+            # sometimes does not work since `veptr` is not necessarily properly
+            # aligned to 8 bytes.
+            for icorner in 1:4
+                verts[1, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 1)
+                verts[2, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 2)
+            end
 
             # Check if tree's node ordering is right-handed or print a warning.
             let z = zero(eltype(verts)), o = one(eltype(verts))
@@ -343,10 +351,19 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
     elseif NDIMS == 3
         data_in = Array{RealT, 4}(undef, 3, 2, 2, 2)
         tmp1 = zeros(RealT, 3, length(nodes), length(nodes_in), length(nodes_in))
+        verts = zeros(3, 4)
 
         for itree in 0:(num_local_trees - 1)
             veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
-            verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))
+
+            # Note, `verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))`
+            # sometimes does not work since `veptr` is not necessarily properly
+            # aligned to 8 bytes.
+            for icorner in 1:8
+                verts[1, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 1)
+                verts[2, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 2)
+                verts[3, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 3)
+            end
 
             # Tree vertices are stored in z-order.
             @views data_in[:, 1, 1, 1] .= verts[1:3, 1]
@@ -452,6 +469,85 @@ function T8codeMesh(meshfile::String, ndims; kwargs...)
     cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), ndims, 0, 0)
 
     return T8codeMesh(cmesh; kwargs...)
+end
+
+struct adapt_callback_passthrough
+    adapt_callback::Function
+    user_data::Any
+end
+
+# Callback function prototype to decide for refining and coarsening.
+# If `is_family` equals 1, the first `num_elements` in elements
+# form a family and we decide whether this family should be coarsened
+# or only the first element should be refined.
+# Otherwise `is_family` must equal zero and we consider the first entry
+# of the element array for refinement. 
+# Entries of the element array beyond the first `num_elements` are undefined.
+# \param [in] forest       the forest to which the new elements belong
+# \param [in] forest_from  the forest that is adapted.
+# \param [in] which_tree   the local tree containing `elements`
+# \param [in] lelement_id  the local element id in `forest_old` in the tree of the current element
+# \param [in] ts           the eclass scheme of the tree
+# \param [in] is_family    if 1, the first `num_elements` entries in `elements` form a family. If 0, they do not.
+# \param [in] num_elements the number of entries in `elements` that are defined
+# \param [in] elements     Pointers to a family or, if `is_family` is zero,
+#                          pointer to one element.
+# \return greater zero if the first entry in `elements` should be refined,
+#         smaller zero if the family `elements` shall be coarsened,
+#         zero else.
+function adapt_callback_wrapper(forest,
+                                forest_from,
+                                which_tree,
+                                lelement_id,
+                                ts,
+                                is_family,
+                                num_elements,
+                                elements_ptr)::Cint
+    passthrough = unsafe_pointer_to_objref(t8_forest_get_user_data(forest))[]
+
+    elements = unsafe_wrap(Array, elements_ptr, num_elements)
+
+    return passthrough.adapt_callback(forest_from, which_tree, ts, lelement_id, elements,
+                                      Bool(is_family), passthrough.user_data)
+end
+
+function adapt!(mesh::T8codeMesh, adapt_callback; recursive = true, balance = true,
+                partition = true, ghost = true, user_data = C_NULL)
+    # Check that forest is a committed, that is valid and usable, forest.
+    @assert t8_forest_is_committed(mesh.forest) != 0
+
+    # Init new forest.
+    new_forest_ref = Ref{t8_forest_t}()
+    t8_forest_init(new_forest_ref)
+    new_forest = new_forest_ref[]
+
+    # Check out `examples/t8_step4_partition_balance_ghost.jl` in
+    # https://github.com/DLR-AMR/T8code.jl for detailed explanations.
+    let set_from = C_NULL, set_for_coarsening = 0, no_repartition = !partition
+        t8_forest_set_user_data(new_forest,
+                                pointer_from_objref(Ref(adapt_callback_passthrough(adapt_callback,
+                                                                                   user_data))))
+        t8_forest_set_adapt(new_forest, mesh.forest,
+                            @t8_adapt_callback(adapt_callback_wrapper),
+                            recursive)
+        if balance
+            t8_forest_set_balance(new_forest, set_from, no_repartition)
+        end
+
+        if partition
+            t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
+        end
+
+        t8_forest_set_ghost(new_forest, ghost, T8_GHOST_FACES) # Note: MPI support not available yet so it is a dummy call.
+
+        # The old forest is destroyed here.
+        # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
+        t8_forest_commit(new_forest)
+    end
+
+    mesh.forest = new_forest
+
+    return nothing
 end
 
 # TODO: Just a placeholder. Will be implemented later when MPI is supported.

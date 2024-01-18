@@ -71,18 +71,11 @@ struct t8_dhex_t
 end
 
 # Refine bottom left quadrant of each second tree to level 2
-function adapt_callback(forest,
-                        forest_from,
-                        which_tree,
-                        lelement_id,
-                        ts,
-                        is_family,
-                        num_elements,
-                        elements_ptr)::Cint
-    elements = unsafe_wrap(Array, elements_ptr, num_elements)
+function adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family,
+                        user_data)
     el = unsafe_load(Ptr{t8_dhex_t}(elements[1]))
 
-    if iseven(convert(Int, which_tree)) && el.x == 0 && el.y == 0 && el.z == 0 &&
+    if iseven(convert(Int, ltreeid)) && el.x == 0 && el.y == 0 && el.z == 0 &&
        el.level < 2
         # return true (refine)
         return 1
@@ -92,28 +85,7 @@ function adapt_callback(forest,
     end
 end
 
-@assert(Trixi.t8_forest_is_committed(mesh.forest)!=0)
-
-# Init new forest.
-new_forest_ref = Ref{Trixi.t8_forest_t}()
-Trixi.t8_forest_init(new_forest_ref);
-new_forest = new_forest_ref[]
-
-# Check out `examples/t8_step4_partition_balance_ghost.jl` in
-# https://github.com/DLR-AMR/T8code.jl for detailed explanations.
-let set_from = C_NULL, recursive = 1, set_for_coarsening = 0, no_repartition = 0,
-    do_ghost = 1
-
-    Trixi.t8_forest_set_user_data(new_forest, C_NULL)
-    Trixi.t8_forest_set_adapt(new_forest, mesh.forest,
-                              Trixi.@t8_adapt_callback(adapt_callback), recursive)
-    Trixi.t8_forest_set_balance(new_forest, set_from, no_repartition)
-    Trixi.t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
-    Trixi.t8_forest_set_ghost(new_forest, do_ghost, Trixi.T8_GHOST_FACES)
-    Trixi.t8_forest_commit(new_forest)
-end
-
-mesh.forest = new_forest
+adapt!(mesh, adapt_callback)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
