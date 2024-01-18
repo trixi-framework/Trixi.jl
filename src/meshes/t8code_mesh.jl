@@ -351,7 +351,7 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
     elseif NDIMS == 3
         data_in = Array{RealT, 4}(undef, 3, 2, 2, 2)
         tmp1 = zeros(RealT, 3, length(nodes), length(nodes_in), length(nodes_in))
-        verts = zeros(3, 4)
+        verts = zeros(3, 8)
 
         for itree in 0:(num_local_trees - 1)
             veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
