@@ -38,7 +38,7 @@ end
     For other types, such as integers or dual numbers required for algorithmic differentiation, we
     fall back to the Julia built-in `sqrt` function after a check for negative arguments.
     Since these cases are not performance critical, the check for negativity does not hurt here 
-    and can (as of now) optimized away by the compiler.
+    and can (as of now) even be optimized away by the compiler due to the implementation of `sqrt` in Julia.
 
     When debugging code, it might be useful to change the implementation of this function to redirect to 
     the Julia built-in `sqrt` function, as this reports the exact place in code where the domain is violated 
@@ -85,8 +85,7 @@ end
     they return `NaN` for negative arguments.
     For other types, such as integers or dual numbers required for algorithmic differentiation, we
     fall back to the Julia built-in `log` function after a check for negative arguments.
-    Since these cases are not performance critical, the check for negativity does not hurt here 
-    and can (as of now) optimized away by the compiler.
+    Since these cases are not performance critical, the check for negativity does not hurt here.
 
     When debugging code, it might be useful to change the implementation of this function to redirect to 
     the Julia built-in `log` function, as this reports the exact place in code where the domain is violated 
