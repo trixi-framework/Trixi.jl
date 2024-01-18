@@ -5,64 +5,98 @@
 @muladd begin
 #! format: noindent
 
-"""
-    sqrt(x::Real)
-
-Custom square root function which returns `NaN` for negative arguments instead of throwing an error.
-This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
-when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
-i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
-
-We dispatch this function for `Float64, Float32, Float16` to the LLVM intrinsic `sqrtllvm` as for this the 
-`sqrtllvm` function can be used out-of the box, i.e., it returns `NaN` for negative arguments.
-For other types, such as integers or dual numbers required for algorithmic differentiation, we
-fall back to the Julia built-in `sqrt` function after a check for negative arguments.
-Since these cases are not performance critical, the check for negativity does not hurt here 
-and can (as of now) optimized away by the compiler.
-
-When debugging code, it might be useful to change the implementation of this function to redirect to 
-the Julia built-in `sqrt` function, as this reports the exact place in code where the domain is violated 
-in the stacktrace.
-"""
-@inline sqrt(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
-
-# For `sqrt` we could use the `sqrt_llvm` call, ...
-#@inline sqrt(x::Union{Float64, Float32, Float16}) = Base.sqrt_llvm(x)
-
-# ... but for transparency and consistency we use the direct LLVM calls here.
-@inline sqrt(x::Float64) = ccall("llvm.sqrt.f64", llvmcall, Float64, (Float64,), x)
-@inline sqrt(x::Float32) = ccall("llvm.sqrt.f32", llvmcall, Float32, (Float32,), x)
-@inline sqrt(x::Float16) = ccall("llvm.sqrt.f16", llvmcall, Float16, (Float16,), x)
-
-#@inline sqrt(x) = Base.sqrt(x) # For benchmarking and debugging (shows up in stacktrace)
+const TRIXI_UUID = UUID("a7f1ee26-1774-49b1-8366-f1abc58fbfcb")
 
 """
-    log(x::Real)
+    set_sqrt_type(type; force = true)
 
-Custom natural logarithm function which returns `NaN` for negative arguments instead of throwing an error.
-This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
-when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
-i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
-
-We dispatch this function for `Float64, Float32, Float16` to the respective LLVM intrinsics 
-`llvm.log.f64`, `llvm.log.f32`, `llvm.log.f16"` as for this the LLVM functions can be used out-of the box, i.e., 
-they return `NaN` for negative arguments.
-For other types, such as integers or dual numbers required for algorithmic differentiation, we
-fall back to the Julia built-in `log` function after a check for negative arguments.
-Since these cases are not performance critical, the check for negativity does not hurt here 
-and can (as of now) optimized away by the compiler.
-
-When debugging code, it might be useful to change the implementation of this function to redirect to 
-the Julia built-in `log` function, as this reports the exact place in code where the domain is violated 
-in the stacktrace.
+Set the `type` of the square root function to be used in `Trixi.jl`.
+The default is `sqrt_Trixi_NaN` which returns `NaN` for negative arguments instead of throwing an error.
+Alternatively, you can set `type` to `sqrt_Base` to use the Julia built-in `sqrt` function 
+which provides a stack-trace of the error which might come in handy when debugging code.
 """
-@inline log(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.log(x)
+function set_sqrt_type(type; force = true)
+    @assert type == "sqrt_Trixi_NaN" || type == "sqrt_Base" "Only allowed `sqrt` function types are `sqrt_Trixi_NaN` and `sqrt_Base`."
+    set_preferences!(TRIXI_UUID, "sqrt" => type, force = force)
+    @info "Please restart Julia and reload Trixi.jl for the sqrt computation change to take effect"
+end
 
-@inline log(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64,), x)
-@inline log(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
-@inline log(x::Float16) = ccall("llvm.log.f16", llvmcall, Float16, (Float16,), x)
+@static if _PREFERENCE_SQRT == "sqrt_Trixi_NaN"
+    """
+        sqrt(x::Real)
 
-#@inline log(x) = Base.log(x) # For benchmarking and debugging (shows up in stacktrace)
+    Custom square root function which returns `NaN` for negative arguments instead of throwing an error.
+    This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
+    when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
+    i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
+
+    We dispatch this function for `Float64, Float32, Float16` to the LLVM intrinsic `sqrtllvm` as for this the 
+    `sqrtllvm` function can be used out-of the box, i.e., it returns `NaN` for negative arguments.
+    For other types, such as integers or dual numbers required for algorithmic differentiation, we
+    fall back to the Julia built-in `sqrt` function after a check for negative arguments.
+    Since these cases are not performance critical, the check for negativity does not hurt here 
+    and can (as of now) optimized away by the compiler.
+
+    When debugging code, it might be useful to change the implementation of this function to redirect to 
+    the Julia built-in `sqrt` function, as this reports the exact place in code where the domain is violated 
+    in the stacktrace.
+    """
+    @inline sqrt(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
+
+    # For `sqrt` we could use the `sqrt_llvm` call, ...
+    #@inline sqrt(x::Union{Float64, Float32, Float16}) = Base.sqrt_llvm(x)
+
+    # ... but for transparency and consistency we use the direct LLVM calls here.
+    @inline sqrt(x::Float64) = ccall("llvm.sqrt.f64", llvmcall, Float64, (Float64,), x)
+    @inline sqrt(x::Float32) = ccall("llvm.sqrt.f32", llvmcall, Float32, (Float32,), x)
+    @inline sqrt(x::Float16) = ccall("llvm.sqrt.f16", llvmcall, Float16, (Float16,), x)
+elseif _PREFERENCE_SQRT == "sqrt_Base"
+    @inline sqrt(x) = Base.sqrt(x) # For benchmarking and debugging (shows up in stacktrace)
+end
+
+"""
+    set_log_type(type; force = true)
+
+Set the `type` of the (natural) `log` function to be used in `Trixi.jl`.
+The default is `sqrt_Trixi_NaN` which returns `NaN` for negative arguments instead of throwing an error.
+Alternatively, you can set `type` to `sqrt_Base` to use the Julia built-in `sqrt` function 
+which provides a stack-trace of the error which might come in handy when debugging code.
+"""
+function set_log_type(type; force = true)
+    @assert type == "log_Trixi_NaN" || type == "log_Base" "Only allowed log function types are `log_Trixi_NaN` and `log_Bases`."
+    set_preferences!(TRIXI_UUID, "log" => type, force = force)
+    @info "Please restart Julia and reload Trixi.jl for the log computation change to take effect"
+end
+
+@static if _PREFERENCE_LOG == "log_Trixi_NaN"
+    """
+        log(x::Real)
+
+    Custom natural logarithm function which returns `NaN` for negative arguments instead of throwing an error.
+    This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
+    when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
+    i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
+
+    We dispatch this function for `Float64, Float32, Float16` to the respective LLVM intrinsics 
+    `llvm.log.f64`, `llvm.log.f32`, `llvm.log.f16"` as for this the LLVM functions can be used out-of the box, i.e., 
+    they return `NaN` for negative arguments.
+    For other types, such as integers or dual numbers required for algorithmic differentiation, we
+    fall back to the Julia built-in `log` function after a check for negative arguments.
+    Since these cases are not performance critical, the check for negativity does not hurt here 
+    and can (as of now) optimized away by the compiler.
+
+    When debugging code, it might be useful to change the implementation of this function to redirect to 
+    the Julia built-in `log` function, as this reports the exact place in code where the domain is violated 
+    in the stacktrace.
+    """
+    @inline log(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.log(x)
+
+    @inline log(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64,), x)
+    @inline log(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
+    @inline log(x::Float16) = ccall("llvm.log.f16", llvmcall, Float16, (Float16,), x)
+elseif _PREFERENCE_LOG == "log_Base"
+    @inline log(x) = Base.log(x) # For benchmarking and debugging (shows up in stacktrace)
+end
 
 """
     ln_mean(x, y)
