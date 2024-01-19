@@ -101,7 +101,8 @@ end
     alpha[element] = min(alpha_max, alpha_element)
 end
 
-function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}}, alpha, alpha_tmp, dg,
+function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}}, alpha,
+                          alpha_tmp, dg,
                           cache)
 
     # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha

@@ -396,7 +396,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
     old_index = 1
     new_index = 1
 
-    # Note: This is true for `quads` only.
+    # Note: This is true for `quads`.
     T8_CHILDREN = 4
 
     # Retain current solution data.
