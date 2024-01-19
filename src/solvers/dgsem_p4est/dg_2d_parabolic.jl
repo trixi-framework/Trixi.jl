@@ -2,7 +2,7 @@
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-@muladd begin
+#@muladd begin
 #! format: noindent
 
 # This method is called when a SemidiscretizationHyperbolicParabolic is constructed.
@@ -993,4 +993,4 @@ function apply_jacobian_parabolic!(du, mesh::P4estMesh{2},
 
     return nothing
 end
-end # @muladd
+#end # @muladd
