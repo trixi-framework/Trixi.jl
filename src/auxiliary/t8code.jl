@@ -35,7 +35,7 @@ function init_t8code()
             # production runs this is not mandatory, but is helpful during
             # development. Hence, this option is only activated when environment
             # variable TRIXI_T8CODE_SC_FINALIZE exists.
-            @warn "T8code.jl: sc_finalize will be called during shutdown of Trixi.jl."
+            @info "T8code.jl: `sc_finalize` will be called during shutdown of Trixi.jl."
             MPI.add_finalize_hook!(T8code.Libt8.sc_finalize)
         end
     else
