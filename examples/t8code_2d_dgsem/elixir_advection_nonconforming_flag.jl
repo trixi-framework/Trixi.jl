@@ -50,7 +50,7 @@ function adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_
     end
 end
 
-adapt!(mesh, adapt_callback)
+Trixi.adapt!(mesh, adapt_callback)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,

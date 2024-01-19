@@ -73,7 +73,7 @@ function adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_
     end
 end
 
-adapt!(mesh, adapt_callback)
+Trixi.adapt!(mesh, adapt_callback)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
