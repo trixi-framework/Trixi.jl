@@ -350,8 +350,7 @@ function trixi_t8_fill_mesh_info(mesh, elements, interfaces, mortars, boundaries
                             init_interface_node_indices!(interfaces, (iface, dual_faces[1]),
                                                          orientation,
                                                          local_num_conform)
-
-                            # Non-conforming interface.
+                        # Non-conforming interface.
                         elseif level < neighbor_level
                             local_num_mortars += 1
 
@@ -365,7 +364,7 @@ function trixi_t8_fill_mesh_info(mesh, elements, interfaces, mortars, boundaries
                             init_mortar_node_indices!(mortars, (dual_faces[1], iface),
                                                       orientation, local_num_mortars)
 
-                            # else: `level > neighbor_level` is skipped since we visit the mortar interface only once.
+                        # else: `level > neighbor_level` is skipped since we visit the mortar interface only once.
                         end
                     else # MPI interfaces/mortars.
                         # Conforming MPI interface.
@@ -587,7 +586,6 @@ function trixi_t8_adapt_new(old_forest, indicators)
                             recursive)
         t8_forest_set_balance(new_forest, set_from, no_repartition)
         t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
-
         t8_forest_commit(new_forest)
     end
 

@@ -315,7 +315,7 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
         tmp1 = zeros(RealT, 2, length(nodes), length(nodes_in))
         verts = zeros(3, 4)
 
-        for itree in 0:(num_trees - 1)
+        for itree in 0:(num_local_trees - 1)
             veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
 
             # Note, `verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))`
@@ -447,7 +447,7 @@ function T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
 end
 
 """
-    T8codeMesh{NDIMS}(meshfile::String; kwargs...)
+    T8codeMesh{NDIMS}(meshfile::String, ndims; kwargs...)
 
 Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
 mesh from a Gmsh mesh file (`.msh`).
@@ -514,6 +514,80 @@ function adapt_callback_wrapper(forest,
 
     return passthrough.adapt_callback(forest_from, which_tree, ts, lelement_id, elements,
                                       Bool(is_family), passthrough.user_data)
+end
+
+"""
+    Trixi.adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
+
+Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
+
+# Arguments
+- `mesh::T8codeMesh`: Initialized mesh object.
+- `adapt_callback`: A user-defined callback which tells the adaption routines
+                    if an element should be refined, coarsened or stay unchanged.
+
+    The expected callback signature is as follows:
+
+      `adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family, user_data)`
+        # Arguments
+        - `forest`: Pointer to the analyzed forest.
+        - `ltreeid`: Local index of the current tree where the analyzed elements are part of.
+        - `eclass_scheme`: Element class of `elements`.
+        - `lelemntid`: Local index of the first element in `elements`.
+        - `elements`: Array of elements. If consecutive elements form a family
+                      they are passed together, otherwise `elements` consists of just one element.
+        - `is_family`: Boolean signifying if `elements` represents a family or not.
+        - `user_data`: Void pointer to some arbitrary user data. Default value is `C_NULL`.
+        # Returns
+          -1 : Coarsen family of elements.
+           0 : Stay unchanged.
+           1 : Refine element.
+
+- `kwargs`: 
+    - `recursive = true`: Adapt the forest recursively. If true the caller must ensure that the callback 
+                          returns 0 for every analyzed element at some point to stop the recursion.
+    - `balance = true`: Make sure the adapted forest is 2^(NDIMS-1):1 balanced.
+    - `partition = true`: Partition the forest to redistribute elements evenly among MPI ranks.
+    - `ghost = true`: Create a ghost layer for MPI data exchange.
+    - `user_data = C_NULL`: Pointer to some arbitrary user-defined data.
+"""
+function adapt!(mesh::T8codeMesh, adapt_callback; recursive = true, balance = true,
+                partition = true, ghost = true, user_data = C_NULL)
+    # Check that forest is a committed, that is valid and usable, forest.
+    @assert t8_forest_is_committed(mesh.forest) != 0
+
+    # Init new forest.
+    new_forest_ref = Ref{t8_forest_t}()
+    t8_forest_init(new_forest_ref)
+    new_forest = new_forest_ref[]
+
+    # Check out `examples/t8_step4_partition_balance_ghost.jl` in
+    # https://github.com/DLR-AMR/T8code.jl for detailed explanations.
+    let set_from = C_NULL, set_for_coarsening = 0, no_repartition = !partition
+        t8_forest_set_user_data(new_forest,
+                                pointer_from_objref(Ref(adapt_callback_passthrough(adapt_callback,
+                                                                                   user_data))))
+        t8_forest_set_adapt(new_forest, mesh.forest,
+                            @t8_adapt_callback(adapt_callback_wrapper),
+                            recursive)
+        if balance
+            t8_forest_set_balance(new_forest, set_from, no_repartition)
+        end
+
+        if partition
+            t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
+        end
+
+        t8_forest_set_ghost(new_forest, ghost, T8_GHOST_FACES) # Note: MPI support not available yet so it is a dummy call.
+
+        # The old forest is destroyed here.
+        # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
+        t8_forest_commit(new_forest)
+    end
+
+    mesh.forest = new_forest
+
+    return nothing
 end
 
 """
