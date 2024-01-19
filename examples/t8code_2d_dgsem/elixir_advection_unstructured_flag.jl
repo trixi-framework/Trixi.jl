@@ -38,9 +38,9 @@ isfile(mesh_file) ||
 # we can create a t8code mesh.
 conn = Trixi.read_inp_p4est(mesh_file, Val(2))
 
-mesh = T8codeMesh{2}(conn, polydeg = 3,
-                     mapping = mapping_flag,
-                     initial_refinement_level = 2)
+mesh = T8codeMesh(conn, polydeg = 3,
+                  mapping = mapping_flag,
+                  initial_refinement_level = 2)
 
 # A semidiscretization collects data structures and functions for the spatial discretization.
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

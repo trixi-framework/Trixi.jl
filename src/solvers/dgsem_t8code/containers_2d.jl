@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
 
@@ -27,6 +31,9 @@ function calc_node_coordinates!(node_coordinates,
             element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)
             element_level = t8_element_level(eclass_scheme, element)
 
+            # Note, `t8_quad_len` is encoded as an integer (Morton encoding) in
+            # relation to `t8_quad_root_len`. This line transforms the
+            # "integer" length to a float in relation to the unit interval [0,1].
             element_length = t8_quad_len(element_level) / t8_quad_root_len
 
             element_coords = Array{Float64}(undef, 3)
@@ -54,5 +61,17 @@ function calc_node_coordinates!(node_coordinates,
     end
 
     return node_coordinates
+end
+
+function init_mortar_neighbor_ids!(mortars::P4estMortarContainer{2}, my_face,
+                                   other_face, orientation, neighbor_ielements,
+                                   mortar_id)
+    if orientation == 0
+        mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[1] + 1
+        mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[2] + 1
+    else
+        mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[2] + 1
+        mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[1] + 1
+    end
 end
 end # @muladd
