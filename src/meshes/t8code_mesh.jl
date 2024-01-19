@@ -511,6 +511,41 @@ function adapt_callback_wrapper(forest,
                                       Bool(is_family), passthrough.user_data)
 end
 
+"""
+    adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
+
+Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
+
+# Arguments
+- `mesh::T8codeMesh`: Initialized mesh object.
+- `adapt_callback`: A user-defined callback which tells the adaption routines
+                    if an element should be refined, coarsend or stay unchanged.
+
+    The expected callback signature is as follows:
+
+      `adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family, user_data)`
+        # Arguments
+        - `forest`: Pointer to the analyzed forest.
+        - `ltreeid`: Local index of the current tree where the analyzed elements are part of.
+        - `eclass_scheme`: Element class of `elements`.
+        - `lelemntid`: Local index of the first element in `elements`.
+        - `elements`: Array of elements. If consecutive elements form a family
+                      they are passed together, otherwise `elements` consists of just one element.
+        - `is_family`: Boolean signifying if `elements` represents a family or not.
+        - `user_data`: Void pointer to some arbitrary user data. Default value is `C_NULL`.
+        # Returns
+          -1 : Coarsen family of elements.
+           0 : Stay unchanged.
+           1 : Refine element.
+
+- `kwargs`: 
+    - `recursive = true`: Adapt the forest recursively. If true the caller must ensure that the callback 
+                          returns 0 for every analyzed element at some point to stop the recursion.
+    - `balance = true`: Make sure the adapted forest is 2^(NDIMS-1):1 balanced.
+    - `partition = true`: Partition the forest to redistribute elements evenly among MPI ranks.
+    - `ghost = true`: Create a ghost layer for MPI data exchange.
+    - `user_data = C_NULL`: Pointer to some arbitrary user-defined data.
+"""
 function adapt!(mesh::T8codeMesh, adapt_callback; recursive = true, balance = true,
                 partition = true, ghost = true, user_data = C_NULL)
     # Check that forest is a committed, that is valid and usable, forest.
