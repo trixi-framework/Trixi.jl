@@ -58,7 +58,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 =#
 @inline function weak_form_kernel!(du, u,
                                    element,
-                                   mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                   mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                               T8codeMesh{3}},
                                    nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -115,7 +116,8 @@ end
 # the physical fluxes in each Cartesian direction
 @inline function flux_differencing_kernel!(du, u,
                                            element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                           mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                                       T8codeMesh{3}},
                                            nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -189,7 +191,8 @@ end
 
 @inline function flux_differencing_kernel!(du, u,
                                            element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                           mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                                       T8codeMesh{3}},
                                            nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
@@ -274,7 +277,8 @@ end
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
                               fstar3_R, u,
-                              mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                              mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                          T8codeMesh{3}},
                               nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
@@ -369,7 +373,8 @@ end
 # # Calculate the finite volume fluxes inside curvilinear elements (**with non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
                               fstar3_R, u,
-                              mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                              mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                          T8codeMesh{3}},
                               nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
@@ -783,7 +788,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
 end
 
 function apply_jacobian!(du,
-                         mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                         mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
