@@ -44,7 +44,7 @@ end
     When debugging code, it might be useful to change the implementation of this function to redirect to 
     the Julia built-in `sqrt` function, as this reports the exact place in code where the domain is violated 
     in the stacktrace.
-    
+
     See also [`Trixi.set_sqrt_type`](@ref).
     """
     @inline sqrt(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
@@ -92,7 +92,7 @@ end
     When debugging code, it might be useful to change the implementation of this function to redirect to 
     the Julia built-in `log` function, as this reports the exact place in code where the domain is violated 
     in the stacktrace.
-    
+
     See also [`Trixi.set_log_type`](@ref).
     """
     @inline log(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.log(x)
