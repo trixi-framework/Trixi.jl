@@ -620,7 +620,7 @@ Partition a `T8codeMesh` in order to redistribute elements evenly among MPI rank
 
 # Arguments
 - `mesh::T8codeMesh`: Initialized mesh object.
-""" 
+"""
 function partition!(mesh::T8codeMesh)
     new_forest_ref = Ref{t8_forest_t}()
     t8_forest_init(new_forest_ref)
