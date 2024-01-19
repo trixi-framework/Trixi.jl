@@ -17,7 +17,7 @@ Alternatively, you can set `type` to `"sqrt_Base"` to use the Julia built-in `sq
 which provides a stack-trace of the error which might come in handy when debugging code.
 """
 function set_sqrt_type(type; force = true)
-    @assert type == "sqrt_Trixi_NaN"||type == "sqrt_Base" "Only allowed `sqrt` function types are `"sqrt_Trixi_NaN"` and `"sqrt_Base"`."
+    @assert type == "sqrt_Trixi_NaN"||type == "sqrt_Base" "Only allowed `sqrt` function types are `\"sqrt_Trixi_NaN\"` and `\"sqrt_Base`\""
     set_preferences!(TRIXI_UUID, "sqrt" => type, force = force)
     @info "Please restart Julia and reload Trixi.jl for the `sqrt` computation change to take effect"
 end
@@ -68,7 +68,7 @@ Alternatively, you can set `type` to `"sqrt_Base"` to use the Julia built-in `sq
 which provides a stack-trace of the error which might come in handy when debugging code.
 """
 function set_log_type(type; force = true)
-    @assert type == "log_Trixi_NaN"||type == "log_Base" "Only allowed log function types are `"log_Trixi_NaN"` and `"log_Base"`."
+    @assert type == "log_Trixi_NaN"||type == "log_Base" "Only allowed log function types are `\"log_Trixi_NaN\"` and `\"log_Base\"`."
     set_preferences!(TRIXI_UUID, "log" => type, force = force)
     @info "Please restart Julia and reload Trixi.jl for the `log` computation change to take effect"
 end
