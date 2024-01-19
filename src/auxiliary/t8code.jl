@@ -35,7 +35,7 @@ function init_t8code()
             # production runs this is not mandatory, but is helpful during
             # development. Hence, this option is only activated when environment
             # variable TRIXI_T8CODE_SC_FINALIZE exists.
-            @warn "T8code.jl: sc_finalize will be called during shutdown of Trixi.jl."
+            @info "T8code.jl: `sc_finalize` will be called during shutdown of Trixi.jl."
             MPI.add_finalize_hook!(T8code.Libt8.sc_finalize)
         end
     else
@@ -228,19 +228,21 @@ function trixi_t8_fill_mesh_info(mesh, elements, interfaces, mortars, boundaries
     max_tree_num_elements = UInt64(2^ndims(mesh))^max_level
 
     if mpi_isparallel()
+        #! format: off
         remotes = t8_forest_ghost_get_remotes(mesh.forest)
+        ghost_num_trees = t8_forest_ghost_num_trees(mesh.forest)
+
         ghost_remote_first_elem = [num_local_elements +
                                    t8_forest_ghost_remote_first_elem(mesh.forest, remote)
                                    for remote in remotes]
 
-        ghost_num_trees = t8_forest_ghost_num_trees(mesh.forest)
-
         ghost_tree_element_offsets = [num_local_elements +
-                                      t8_forest_ghost_get_tree_element_offset(mesh.forest,
-                                                                              itree)
+                                      t8_forest_ghost_get_tree_element_offset(mesh.forest, itree)
                                       for itree in 0:(ghost_num_trees - 1)]
+
         ghost_global_treeids = [t8_forest_ghost_get_global_treeid(mesh.forest, itree)
                                 for itree in 0:(ghost_num_trees - 1)]
+        #! format: on
     end
 
     local_num_conform = 0

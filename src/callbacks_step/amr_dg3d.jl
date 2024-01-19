@@ -334,7 +334,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
         reinitialize_containers!(mesh, equations, dg, cache)
 
         resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+                nvariables(equations) * ndofs(mesh, dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         u_tmp1 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg),

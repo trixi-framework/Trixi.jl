@@ -13,20 +13,39 @@ isdir(outdir) && rm(outdir, recursive = true)
 mkdir(outdir)
 
 @testset "T8codeMesh3D" begin
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_advection_basic.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
                             l2=[0.00016263963870641478],
                             linf=[0.0014537194925779984])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_advection_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_unstructured_curved.jl"),
                             l2=[0.0004750004258546538],
                             linf=[0.026527551737137167])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_advection_nonconforming.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
                             l2=[0.00253595715323843],
@@ -41,6 +60,8 @@ mkdir(outdir)
         end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl` besides minor
+    # deviations from the expected error norms.
     @trixi_testset "elixir_advection_amr.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
@@ -48,8 +69,18 @@ mkdir(outdir)
                             linf=[0.0007889950196294793],
                             coverage_override=(maxiters = 6, initial_refinement_level = 1,
                                                base_level = 1, med_level = 2, max_level = 3))
+        # Ensure that we do not have excessive memory allocations 
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl` besides minor
+    # deviations from the expected error norms.
     @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_unstructured_curved.jl"),
@@ -58,8 +89,17 @@ mkdir(outdir)
                             tspan=(0.0, 1.0),
                             coverage_override=(maxiters = 6, initial_refinement_level = 0,
                                                base_level = 0, med_level = 1, max_level = 2))
+        # Ensure that we do not have excessive memory allocations 
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
@@ -78,8 +118,17 @@ mkdir(outdir)
                                 0.008526972236273522,
                             ],
                             tspan=(0.0, 0.01))
+        # Ensure that we do not have excessive memory allocations 
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_source_terms_nonperiodic.jl"),
@@ -98,8 +147,17 @@ mkdir(outdir)
                                 0.01562861968368434,
                             ],
                             tspan=(0.0, 1.0))
+        # Ensure that we do not have excessive memory allocations 
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_euler_free_stream.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                             l2=[
@@ -117,8 +175,17 @@ mkdir(outdir)
                                 9.412914891981927e-12,
                             ],
                             tspan=(0.0, 0.03))
+        # Ensure that we do not have excessive memory allocations 
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_euler_free_stream_extruded.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_extruded.jl"),
                             l2=[
@@ -136,8 +203,17 @@ mkdir(outdir)
                                 9.592326932761353e-13,
                             ],
                             tspan=(0.0, 0.1))
+        # Ensure that we do not have excessive memory allocations 
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_euler_ec.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                             l2=[
@@ -156,8 +232,18 @@ mkdir(outdir)
                             ],
                             tspan=(0.0, 0.2),
                             coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+        # Ensure that we do not have excessive memory allocations 
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
+    # This test is identical to the one in `test_p4est_3d.jl` besides minor
+    # deviations in the expected error norms.
     @trixi_testset "elixir_euler_sedov.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                             l2=[
@@ -176,6 +262,14 @@ mkdir(outdir)
                             ],
                             tspan=(0.0, 0.3),
                             coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+        # Ensure that we do not have excessive memory allocations 
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 end
 
