@@ -513,14 +513,14 @@ function adapt_callback_wrapper(forest,
 end
 
 """
-    adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
+    Trixi.adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
 
 Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
 
 # Arguments
 - `mesh::T8codeMesh`: Initialized mesh object.
 - `adapt_callback`: A user-defined callback which tells the adaption routines
-                    if an element should be refined, coarsend or stay unchanged.
+                    if an element should be refined, coarsened or stay unchanged.
 
     The expected callback signature is as follows:
 
