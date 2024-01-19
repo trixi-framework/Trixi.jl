@@ -52,17 +52,7 @@ function Base.show(container::T8codeElementContainer)
     println("neighbor_faces     = ", container.neighbor_faces[1:num_faces])
 end
 
-function init_elements(mesh::T8codeFVMesh, RealT, uEltype)
-    # Initialize container
-    elements = init_elements(mesh)
-
-    # Exchange the neighboring data at MPI process boundaries.
-    exchange_ghost_data(mesh, elements)
-
-    return elements
-end
-
-function init_elements(mesh::T8codeFVMesh)
+function init_elements(mesh::T8codeFVMesh, uEltype)
     @unpack forest = mesh
     # Check that the forest is a committed.
     @assert(t8_forest_is_committed(forest)==1)
@@ -80,6 +70,19 @@ function init_elements(mesh::T8codeFVMesh)
                                             n_dims * max_number_faces}}(undef,
                                                                         num_local_elements +
                                                                         num_ghost_elements)
+
+    init_elements!(elements, mesh)
+
+    # Exchange the neighboring data at MPI process boundaries.
+    exchange_ghost_data(mesh, elements)
+
+    return elements
+end
+
+function init_elements!(elements, mesh::T8codeFVMesh)
+    @unpack forest = mesh
+    n_dims = ndims(mesh)
+    @unpack max_number_faces = mesh
 
     midpoint = Vector{Cdouble}(undef, n_dims)
 
@@ -175,7 +178,7 @@ function init_elements(mesh::T8codeFVMesh)
         end
     end
 
-    return elements
+    return nothing
 end
 
 mutable struct T8codeInterfaceContainer{NDIMS, uEltype <: Real} <: AbstractContainer

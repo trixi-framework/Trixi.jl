@@ -111,19 +111,6 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeFVMesh)
     end
 end
 
-function create_cache(mesh::T8codeFVMesh, equations,
-                      solver, RealT, uEltype)
-    elements = init_elements(mesh, RealT, uEltype)
-
-    interfaces = init_interfaces(mesh, equations, elements)
-
-    u_ = init_solution!(mesh, equations)
-
-    cache = (; elements, interfaces, u_)
-
-    return cache
-end
-
 # Write the forest as vtu and also write the element's volumes in the file.
 #
 # t8code supports writing element based data to vtu as long as its stored
