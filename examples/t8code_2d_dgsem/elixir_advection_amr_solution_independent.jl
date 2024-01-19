@@ -93,12 +93,10 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-5.0, -5.0)
 coordinates_max = (5.0, 5.0)
 
-mapping = Trixi.coordinates2mapping(coordinates_min, coordinates_max)
-
 trees_per_dimension = (1, 1)
 
 mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
-                  mapping = mapping,
+                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                   initial_refinement_level = 1)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

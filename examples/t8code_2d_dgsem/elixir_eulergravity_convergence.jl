@@ -16,10 +16,8 @@ coordinates_max = (2.0, 2.0)
 
 trees_per_dimension = (1, 1)
 
-mapping = Trixi.coordinates2mapping(coordinates_min, coordinates_max)
-
 mesh = T8codeMesh(trees_per_dimension, polydeg = 1,
-                  mapping = mapping,
+                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                   initial_refinement_level = 2)
 
 semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition,

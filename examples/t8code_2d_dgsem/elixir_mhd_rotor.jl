@@ -78,9 +78,9 @@ isfile(mesh_file) ||
 # we can create a t8code mesh.
 conn = Trixi.read_inp_p4est(mesh_file, Val(2))
 
-mesh = T8codeMesh{2}(conn, polydeg = 4,
-                     mapping = mapping_twist,
-                     initial_refinement_level = 1)
+mesh = T8codeMesh(conn, polydeg = 4,
+                  mapping = mapping_twist,
+                  initial_refinement_level = 1)
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(:all => boundary_condition)

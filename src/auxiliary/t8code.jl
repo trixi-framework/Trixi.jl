@@ -35,7 +35,7 @@ function init_t8code()
             # production runs this is not mandatory, but is helpful during
             # development. Hence, this option is only activated when environment
             # variable TRIXI_T8CODE_SC_FINALIZE exists.
-            @warn "T8code.jl: sc_finalize will be called during shutdown of Trixi.jl."
+            @info "T8code.jl: `sc_finalize` will be called during shutdown of Trixi.jl."
             MPI.add_finalize_hook!(T8code.Libt8.sc_finalize)
         end
     else
@@ -116,7 +116,6 @@ function trixi_t8_count_interfaces(forest)
                     elseif level < neighbor_level
                         local_num_mortars += 1
                     end
-
                 else
                     local_num_boundary += 1
                 end
@@ -219,38 +218,9 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
                         interfaces.neighbor_ids[1, interface_id] = current_index + 1
                         interfaces.neighbor_ids[2, interface_id] = neighbor_ielements[1] + 1
 
-                        # Iterate over primary and secondary element.
-                        for side in 1:2
-                            # Align interface in positive coordinate direction of primary element.
-                            # For orientation == 1, the secondary element needs to be indexed backwards
-                            # relative to the interface.
-                            if side == 1 || orientation == 0
-                                # Forward indexing
-                                indexing = :i_forward
-                            else
-                                # Backward indexing
-                                indexing = :i_backward
-                            end
-
-                            if faces[side] == 0
-                                # Index face in negative x-direction
-                                interfaces.node_indices[side, interface_id] = (:begin,
-                                                                               indexing)
-                            elseif faces[side] == 1
-                                # Index face in positive x-direction
-                                interfaces.node_indices[side, interface_id] = (:end,
-                                                                               indexing)
-                            elseif faces[side] == 2
-                                # Index face in negative y-direction
-                                interfaces.node_indices[side, interface_id] = (indexing,
-                                                                               :begin)
-                            else # faces[side] == 3
-                                # Index face in positive y-direction
-                                interfaces.node_indices[side, interface_id] = (indexing,
-                                                                               :end)
-                            end
-                        end
-
+                        # Save interfaces.node_indices dimension specific in containers_3d.jl.
+                        init_interface_node_indices!(interfaces, faces, orientation,
+                                                     interface_id)
                         # Non-conforming interface.
                     elseif level < neighbor_level
                         local_num_mortars += 1
@@ -262,42 +232,13 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
                         # Last entry is the large element.
                         mortars.neighbor_ids[end, mortar_id] = current_index + 1
 
-                        # First `1:end-1` entries are the smaller elements.
-                        mortars.neighbor_ids[1:(end - 1), mortar_id] .= neighbor_ielements .+
-                                                                        1
+                        # Fill in the `mortars.neighbor_ids` array and reorder if necessary.
+                        init_mortar_neighbor_ids!(mortars, faces[2], faces[1],
+                                                  orientation, neighbor_ielements,
+                                                  mortar_id)
 
-                        for side in 1:2
-                            # Align mortar in positive coordinate direction of small side.
-                            # For orientation == 1, the large side needs to be indexed backwards
-                            # relative to the mortar.
-                            if side == 1 || orientation == 0
-                                # Forward indexing for small side or orientation == 0.
-                                indexing = :i_forward
-                            else
-                                # Backward indexing for large side with reversed orientation.
-                                indexing = :i_backward
-                                # Since the orientation is reversed we have to account for this
-                                # when filling the `neighbor_ids` array.
-                                mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[2] +
-                                                                     1
-                                mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[1] +
-                                                                     1
-                            end
-
-                            if faces[side] == 0
-                                # Index face in negative x-direction
-                                mortars.node_indices[side, mortar_id] = (:begin, indexing)
-                            elseif faces[side] == 1
-                                # Index face in positive x-direction
-                                mortars.node_indices[side, mortar_id] = (:end, indexing)
-                            elseif faces[side] == 2
-                                # Index face in negative y-direction
-                                mortars.node_indices[side, mortar_id] = (indexing, :begin)
-                            else # faces[side] == 3
-                                # Index face in positive y-direction
-                                mortars.node_indices[side, mortar_id] = (indexing, :end)
-                            end
-                        end
+                        # Fill in the `mortars.node_indices` array.
+                        init_mortar_node_indices!(mortars, faces, orientation, mortar_id)
 
                         # else: "level > neighbor_level" is skipped since we visit the mortar interface only once.
                     end
@@ -309,19 +250,7 @@ function trixi_t8_fill_mesh_info(forest, elements, interfaces, mortars, boundari
 
                     boundaries.neighbor_ids[boundary_id] = current_index + 1
 
-                    if iface == 0
-                        # Index face in negative x-direction.
-                        boundaries.node_indices[boundary_id] = (:begin, :i_forward)
-                    elseif iface == 1
-                        # Index face in positive x-direction.
-                        boundaries.node_indices[boundary_id] = (:end, :i_forward)
-                    elseif iface == 2
-                        # Index face in negative y-direction.
-                        boundaries.node_indices[boundary_id] = (:i_forward, :begin)
-                    else # iface == 3
-                        # Index face in positive y-direction.
-                        boundaries.node_indices[boundary_id] = (:i_forward, :end)
-                    end
+                    init_boundary_node_indices!(boundaries, iface, boundary_id)
 
                     # One-based indexing.
                     boundaries.name[boundary_id] = boundary_names[iface + 1, itree + 1]
@@ -420,13 +349,15 @@ function trixi_t8_adapt_new(old_forest, indicators)
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
 
-    let set_from = C_NULL, recursive = 0, set_for_coarsening = 0, no_repartition = 0
+    let set_from = C_NULL, recursive = 0, set_for_coarsening = 0, no_repartition = 0,
+        do_ghost = 1
+
         t8_forest_set_user_data(new_forest, pointer(indicators))
         t8_forest_set_adapt(new_forest, old_forest, @t8_adapt_callback(adapt_callback),
                             recursive)
         t8_forest_set_balance(new_forest, set_from, no_repartition)
         t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
-        t8_forest_set_ghost(new_forest, 1, T8_GHOST_FACES) # Note: MPI support not available yet so it is a dummy call.
+        t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES) # Note: MPI support not available yet so it is a dummy call.
         t8_forest_commit(new_forest)
     end
 
