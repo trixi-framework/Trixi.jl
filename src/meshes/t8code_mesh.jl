@@ -138,7 +138,7 @@ Non-periodic boundaries will be called ':x_neg', ':x_pos', ':y_neg', ':y_pos', '
 - 'periodicity': either a 'Bool' deciding if all of the boundaries are periodic or an 'NTuple{NDIMS, Bool}'
                  deciding for each dimension if the boundaries in this dimension are periodic.
 """
-function T8codeMesh(trees_per_dimension; polydeg,
+function T8codeMesh(trees_per_dimension; polydeg = 1,
                     mapping = nothing, faces = nothing, coordinates_min = nothing,
                     coordinates_max = nothing,
                     RealT = Float64, initial_refinement_level = 0,
@@ -261,9 +261,9 @@ function T8codeMesh(trees_per_dimension; polydeg,
 end
 
 """
-    T8codeMesh{NDIMS}(cmesh::Ptr{t8_cmesh},
-                     mapping=nothing, polydeg=1, RealT=Float64,
-                     initial_refinement_level=0)
+    T8codeMesh(cmesh::Ptr{t8_cmesh},
+               mapping=nothing, polydeg=1, RealT=Float64,
+               initial_refinement_level=0)
 
 Main mesh constructor for the `T8codeMesh` that imports an unstructured,
 conforming mesh from a `t8_cmesh` data structure.
@@ -449,6 +449,7 @@ mesh from a Gmsh mesh file (`.msh`).
 
 # Arguments
 - `meshfile::String`: path to a Gmsh mesh file.
+- `ndims`: Mesh file dimension: `2` or `3`.
 - `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
              the imported mesh to the physical domain. Use `nothing` for the identity map.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
@@ -594,3 +595,8 @@ end
 function partition!(mesh::T8codeMesh; allow_coarsening = true, weight_fn = C_NULL)
     return nothing
 end
+
+@deprecate T8codeMesh{2}(conn::Ptr{p4est_connectivity}; kwargs...) T8codeMesh(conn::Ptr{p4est_connectivity}; kwargs...)
+@deprecate T8codeMesh{3}(conn::Ptr{p8est_connectivity}; kwargs...) T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
+@deprecate T8codeMesh{2}(meshfile::String; kwargs...) T8codeMesh(meshfile::String, 2; kwargs...)
+@deprecate T8codeMesh{3}(meshfile::String; kwargs...) T8codeMesh(meshfile::String, 3; kwargs...)
