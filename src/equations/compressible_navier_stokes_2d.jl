@@ -212,11 +212,11 @@ struct CompressibleNavierStokesVarMuDiffusion2D{GradientVariables, RealT <: Real
     gamma::RealT               # ratio of specific heats
     inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
 
-    mu_0::RealT                # viscosity at Tref
+    mu_0::RealT                # viscosity at T_0
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fick's law
-    T_0::RealT                 # Tref
-    inv_T_0::RealT             # 1.0/Tref
+    T_0::RealT                 # T_0
+    inv_T_0::RealT             # 1.0/T_0
     S::RealT                   # Sutherland's temperature/constant
     omega::RealT               # viscosity exponent (mu=mu0*(T/Tref)^omega)
 
@@ -324,11 +324,6 @@ function flux(u, gradients, orientation::Integer,
     end
 end
 
-# Explicit formulas for the diffusive Navier-Stokes fluxes are available, e.g., in Section 2
-# of the paper by Rueda-Ramírez, Hennemann, Hindenlang, Winters, and Gassner
-# "An Entropy Stable Nodal Discontinuous Galerkin Method for the resistive
-#  MHD Equations. Part II: Subcell Finite Volume Shock Capturing"
-# where one sets the magnetic field components equal to 0.
 function flux(u, gradients, orientation::Integer,
               equations::CompressibleNavierStokesVarMuDiffusion2D)
     # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
