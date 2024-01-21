@@ -231,8 +231,6 @@ function CompressibleNavierStokesVarMuDiffusion2D(equations::CompressibleEulerEq
     gamma = equations.gamma
     inv_gamma_minus_one = equations.inv_gamma_minus_one
 
-    Pr = promote(Prandtl)
-
     mu_0, Pr, T_0, S, omega = promote(mu_0, Prandtl, T_0, S, omega)
     kappa = gamma * inv_gamma_minus_one / Pr
 

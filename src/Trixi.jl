@@ -158,7 +158,9 @@ export AcousticPerturbationEquations2D,
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
-       CompressibleNavierStokesDiffusion3D
+       CompressibleNavierStokesDiffusion3D,
+       CompressibleNavierStokesVarMuDiffusion1D, CompressibleNavierStokesVarMuDiffusion2D,
+         CompressibleNavierStokesVarMuDiffusion3D
 
 export GradientVariablesConservative, GradientVariablesPrimitive, GradientVariablesEntropy
 

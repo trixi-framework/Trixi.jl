@@ -118,7 +118,7 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
 end
 
 @doc raw"""
-    CompressibleNavierStokesDiffusion1D(equations; mu, Pr,
+    CompressibleNavierStokesVarMuDiffusion1D(equations; mu, Pr,
                                         gradient_variables=GradientVariablesPrimitive())
 
 Contains the diffusion (i.e. parabolic) terms applied
@@ -227,8 +227,6 @@ function CompressibleNavierStokesVarMuDiffusion1D(equations::CompressibleEulerEq
     gamma = equations.gamma
     inv_gamma_minus_one = equations.inv_gamma_minus_one
 
-    Pr = promote(Prandtl)
-
     mu_0, Pr, T_0, S, omega = promote(mu_0, Prandtl, T_0, S, omega)
     kappa = gamma * inv_gamma_minus_one / Pr
 
@@ -247,16 +245,19 @@ end
 # varnames(::typeof(cons2entropy), ::CompressibleNavierStokesDiffusion1D) = ("w2", "w3", "w4")
 
 function varnames(variable_mapping,
-                  equations_parabolic::CompressibleNavierStokesDiffusion1D)
+                  equations_parabolic::Union{CompressibleNavierStokesDiffusion1D,
+                                             CompressibleNavierStokesVarMuDiffusion1D})
     varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
-function gradient_variable_transformation(::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
+function gradient_variable_transformation(::Union{CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive},
+                                                  CompressibleNavierStokesVarMuDiffusion1D{GradientVariablesPrimitive}})
     cons2prim
 end
-function gradient_variable_transformation(::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
+function gradient_variable_transformation(::Union{CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy},
+                                                  CompressibleNavierStokesVarMuDiffusion1D{GradientVariablesEntropy}})
     cons2entropy
 end
 
