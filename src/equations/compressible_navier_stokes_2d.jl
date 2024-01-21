@@ -129,7 +129,7 @@ the [`CompressibleEulerEquations2D`](@ref).
 - `equations`: instance of the [`CompressibleEulerEquations2D`](@ref)
 - `mu_0`: reference dynamic viscosity at `T_Ref` used in Sutherland's law for computation of temperature-dependent viscosity
 - `Pr`: Prandtl number,
-- `T_0`: reference temperature at which `mu_Ref` is specified, reqiured for temperature-dependent viscosity via Sutherland's law
+- `T_0`: reference temperature at which `mu_Ref` is specified, required for temperature-dependent viscosity via Sutherland's law
 - `S`: Sutherland's temperature/constant
 - `omega`: viscosity exponent in Sutherlands law
 - `gradient_variables`: which variables the gradients are taken with respect to.
