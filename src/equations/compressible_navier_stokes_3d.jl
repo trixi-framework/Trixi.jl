@@ -420,8 +420,9 @@ function flux(u, gradients, orientation::Integer,
 end
 
 # Convert conservative variables to primitive
-@inline function cons2prim(u, equations::Union{CompressibleNavierStokesDiffusion3D,
-                                               CompressibleNavierStokesVarMuDiffusion3D})
+@inline function cons2prim(u,
+                           equations::Union{CompressibleNavierStokesDiffusion3D,
+                                            CompressibleNavierStokesVarMuDiffusion3D})
     rho, rho_v1, rho_v2, rho_v3, _ = u
 
     v1 = rho_v1 / rho
@@ -436,12 +437,14 @@ end
 # TODO: parabolic. We can improve efficiency by not computing w_1, which involves logarithms
 # This can be done by specializing `cons2entropy` and `entropy2cons` to `CompressibleNavierStokesDiffusion2D`,
 # but this may be confusing to new users.
-function cons2entropy(u, equations::Union{CompressibleNavierStokesDiffusion3D,
-                                          CompressibleNavierStokesVarMuDiffusion3D})
+function cons2entropy(u,
+                      equations::Union{CompressibleNavierStokesDiffusion3D,
+                                       CompressibleNavierStokesVarMuDiffusion3D})
     cons2entropy(u, equations.equations_hyperbolic)
 end
-function entropy2cons(w, equations::Union{CompressibleNavierStokesDiffusion3D,
-                                          CompressibleNavierStokesVarMuDiffusion3D})
+function entropy2cons(w,
+                      equations::Union{CompressibleNavierStokesDiffusion3D,
+                                       CompressibleNavierStokesVarMuDiffusion3D})
     entropy2cons(w, equations.equations_hyperbolic)
 end
 
@@ -469,7 +472,7 @@ end
 # TODO: parabolic; entropy stable viscous terms
 @inline function convert_derivative_to_primitive(u, gradient,
                                                  ::Union{CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive},
-                                                          CompressibleNavierStokesVarMuDiffusion3D{GradientVariablesPrimitive}})
+                                                         CompressibleNavierStokesVarMuDiffusion3D{GradientVariablesPrimitive}})
     return gradient
 end
 
@@ -499,13 +502,15 @@ end
 # is called with `equations::CompressibleEulerEquations3D`. This means it is inconsistent
 # with `cons2prim(..., ::CompressibleNavierStokesDiffusion3D)` as defined above.
 # TODO: parabolic. Is there a way to clean this up?
-@inline function prim2cons(u, equations::Union{CompressibleNavierStokesDiffusion3D,
-                                               CompressibleNavierStokesVarMuDiffusion3D})
+@inline function prim2cons(u,
+                           equations::Union{CompressibleNavierStokesDiffusion3D,
+                                            CompressibleNavierStokesVarMuDiffusion3D})
     prim2cons(u, equations.equations_hyperbolic)
 end
 
-@inline function temperature(u, equations::Union{CompressibleNavierStokesDiffusion3D,
-                                                 CompressibleNavierStokesVarMuDiffusion3D})
+@inline function temperature(u,
+                             equations::Union{CompressibleNavierStokesDiffusion3D,
+                                              CompressibleNavierStokesVarMuDiffusion3D})
     rho, rho_v1, rho_v2, rho_v3, rho_e = u
 
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
@@ -513,16 +518,18 @@ end
     return T
 end
 
-@inline function enstrophy(u, gradients, equations::Union{CompressibleNavierStokesDiffusion3D,
-                                                          CompressibleNavierStokesVarMuDiffusion3D})
+@inline function enstrophy(u, gradients,
+                           equations::Union{CompressibleNavierStokesDiffusion3D,
+                                            CompressibleNavierStokesVarMuDiffusion3D})
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
     omega = vorticity(u, gradients, equations)
     return 0.5 * u[1] * (omega[1]^2 + omega[2]^2 + omega[3]^2)
 end
 
-@inline function vorticity(u, gradients, equations::Union{CompressibleNavierStokesDiffusion3D,
-                                                          CompressibleNavierStokesVarMuDiffusion3D})
+@inline function vorticity(u, gradients,
+                           equations::Union{CompressibleNavierStokesDiffusion3D,
+                                            CompressibleNavierStokesVarMuDiffusion3D})
     # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
     _, dv1dx, dv2dx, dv3dx, _ = convert_derivative_to_primitive(u, gradients[1],
                                                                 equations)
