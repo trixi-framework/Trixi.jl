@@ -345,4 +345,16 @@ function register_error_hints()
 
     return nothing
 end
+
+function retrieve(file_path, src_url)
+    if mpi_isroot()
+        isfile(file_path) || download(src_url, file_path)
+    end
+
+    if mpi_isparallel()
+        MPI.Barrier(mpi_comm())
+    end
+
+    return file_path
+end
 end # @muladd
