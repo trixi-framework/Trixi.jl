@@ -161,7 +161,7 @@ end
 
 function max_dt(u, t, mesh::ParallelT8codeMesh{2},
                 constant_speed::False, equations, dg::DG, cache)
-    # call the method accepting a general `mesh::P4estMesh{2}`
+    # call the method accepting a general `mesh::T8codeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
@@ -193,7 +193,7 @@ end
 
 function max_dt(u, t, mesh::ParallelT8codeMesh{2},
                 constant_speed::True, equations, dg::DG, cache)
-    # call the method accepting a general `mesh::P4estMesh{2}`
+    # call the method accepting a general `mesh::T8codeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
