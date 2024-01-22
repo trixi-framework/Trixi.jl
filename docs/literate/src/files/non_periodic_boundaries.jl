@@ -17,7 +17,7 @@
 # hence stabilization) at the boundary. Hence, the performance of the Dirichlet BC depends on the
 # fidelity of the numerical surface flux.
 # An easy-to read introductory reference on this topic is the paper by 
-# [Mengaldo et. al.](https://doi.org/10.2514/6.2014-2923).
+# [Mengaldo et al.](https://doi.org/10.2514/6.2014-2923).
 
 # The passed boundary value function is called with the same arguments as an initial condition
 # function, i.e.
