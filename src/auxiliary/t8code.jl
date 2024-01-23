@@ -647,7 +647,5 @@ function trixi_t8_adapt!(mesh, indicators)
 
     mesh.forest = forest_cached
 
-    t8_forest_write_vtk(mesh.forest, "forest")
-
     return differences
 end
