@@ -571,6 +571,12 @@ function parse_node_sets(meshfile, boundary_symbols)
         end
     end
 
+    for symbol in boundary_symbols
+        if !haskey(nodes_dict, symbol)
+            @warn "No nodes found for nodeset :" * "$symbol" * " !"
+        end
+    end
+
     return nodes_dict
 end
 
