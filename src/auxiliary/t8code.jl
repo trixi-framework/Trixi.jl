@@ -101,11 +101,6 @@ function trixi_t8_count_interfaces(mesh)
     max_tree_num_elements = UInt64(2^ndims(mesh))^max_level
 
     if mpi_isparallel()
-        remotes = t8_forest_ghost_get_remotes(mesh.forest)
-        ghost_remote_first_elem = [num_local_elements +
-                                   t8_forest_ghost_remote_first_elem(mesh.forest, remote)
-                                   for remote in remotes]
-
         ghost_num_trees = t8_forest_ghost_num_trees(mesh.forest)
 
         ghost_tree_element_offsets = [num_local_elements +
