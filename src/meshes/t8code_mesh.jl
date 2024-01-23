@@ -519,7 +519,7 @@ function adapt_callback_wrapper(forest,
 end
 
 """
-    adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
+    Trixi.adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
 
 Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
 

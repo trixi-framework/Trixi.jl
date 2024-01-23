@@ -1,7 +1,7 @@
 @muladd begin
 #! format: noindent
 
-# This method is called when a SemidiscretizationHyperbolic is constructed.
+# This method is called when a `SemidiscretizationHyperbolic` is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache(mesh::ParallelT8codeMesh, equations::AbstractEquations, dg::DG,

@@ -1,24 +1,19 @@
 function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM, cache)
-    @unpack elements = cache
+    @unpack elements, interfaces, boundaries, mortars, mpi_interfaces, mpi_mortars, mpi_cache = cache
     resize!(elements, ncells(mesh))
     init_elements!(elements, mesh, dg.basis)
 
     count_required_surfaces!(mesh)
     required = count_required_surfaces(mesh)
 
-    @unpack interfaces = cache
     resize!(interfaces, required.interfaces)
 
-    @unpack boundaries = cache
     resize!(boundaries, required.boundaries)
 
-    @unpack mortars = cache
     resize!(mortars, required.mortars)
 
-    @unpack mpi_interfaces = cache
     resize!(mpi_interfaces, required.mpi_interfaces)
 
-    @unpack mpi_mortars = cache
     resize!(mpi_mortars, required.mpi_mortars)
 
     mpi_mesh_info = (mpi_mortars = mpi_mortars,
@@ -34,7 +29,6 @@ function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM
     trixi_t8_fill_mesh_info(mesh, elements, interfaces, mortars, boundaries,
                             mesh.boundary_names; mpi_mesh_info = mpi_mesh_info)
 
-    @unpack mpi_cache = cache
     init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info, nvariables(equations), nnodes(dg),
                     eltype(elements))
 
