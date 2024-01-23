@@ -346,6 +346,12 @@ function register_error_hints()
     return nothing
 end
 
+"""
+    retrieve(file_path, src_url)
+
+Download file from given url to given path.
+Avoids race condition when multiple MPI ranks are used.
+"""
 function retrieve(file_path, src_url)
     if mpi_isroot()
         isfile(file_path) || download(src_url, file_path)
