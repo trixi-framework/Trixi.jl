@@ -35,7 +35,7 @@ end #hide #md
 
 # To begin, we provide a complete geometry file for the NACA6412 airfoil bounded by a rectangular box. After this we give a breakdown
 # of the most important parts required for successful mesh generation that can later be used by the `p4est` library
-# and `Trixi.jl`.
+# and Trixi.jl.
 # We emphasize that this near-field mesh should only be used for instructive purposes and not for actual production runs.
 
 # The associated `NACA6412.geo` file is given below:
