@@ -520,7 +520,7 @@ function parse_elements(meshfile, n_trees, n_dims)
                 if length(content) == expected_content_length # Check that we still read in connectivity data
                     content_int = parse.(Int64, content)
                     # Add constituent nodes to the element_node_matrix.
-                    # Important: Do not use index form the Abaqus file, but the one from p4est
+                    # Important: Do not use index from the Abaqus file, but the one from p4est.
                     element_node_matrix[tree_id, :] = content_int[2:end] # First entry is element id
                     tree_id += 1
                 else # Processed all elements for this ELSET
