@@ -342,10 +342,10 @@ function trixi_t8_fill_mesh_info(mesh, elements, interfaces, mortars, boundaries
                         if level == neighbor_level && current_index <= neighbor_ielements[1]
                             local_num_conform += 1
 
-                            interfaces.neighbor_ids[1, local_num_conform] = current_index +
-                                                                            1
-                            interfaces.neighbor_ids[2, local_num_conform] = neighbor_ielements[1] +
-                                                                            1
+                            interfaces.neighbor_ids[1, local_num_conform] =
+                                current_index + 1
+                            interfaces.neighbor_ids[2, local_num_conform] =
+                                neighbor_ielements[1] + 1
 
                             init_interface_node_indices!(interfaces, (iface, dual_faces[1]),
                                                          orientation,
@@ -371,8 +371,8 @@ function trixi_t8_fill_mesh_info(mesh, elements, interfaces, mortars, boundaries
                         if level == neighbor_level
                             local_num_mpi_conform += 1
 
-                            neighbor_global_ghost_itree = ghost_global_treeids[findlast(ghost_tree_element_offsets .<=
-                                                                                        neighbor_ielements[1])]
+                            neighbor_global_ghost_itree = ghost_global_treeids[findlast(
+                                ghost_tree_element_offsets .<= neighbor_ielements[1])]
 
                             neighbor_linear_id = neighbor_global_ghost_itree *
                                                  max_tree_num_elements +
@@ -395,19 +395,22 @@ function trixi_t8_fill_mesh_info(mesh, elements, interfaces, mortars, boundaries
                             global_interface_id = 2 * ndims(mesh) * smaller_linear_id +
                                                   smaller_iface
 
-                            mpi_mesh_info.mpi_interfaces.local_neighbor_ids[local_num_mpi_conform] = current_index +
-                                                                                                     1
-                            mpi_mesh_info.mpi_interfaces.local_sides[local_num_mpi_conform] = local_side
+                            mpi_mesh_info.mpi_interfaces.local_neighbor_ids[
+                                local_num_mpi_conform] = current_index + 1
+                            mpi_mesh_info.mpi_interfaces.local_sides[
+                                local_num_mpi_conform] = local_side
 
                             init_mpi_interface_node_indices!(mpi_mesh_info.mpi_interfaces,
                                                              faces, local_side, orientation,
                                                              local_num_mpi_conform)
 
-                            neighbor_rank = remotes[findlast(ghost_remote_first_elem .<=
-                                                             neighbor_ielements[1])]
-                            mpi_mesh_info.neighbor_ranks_interface[local_num_mpi_conform] = neighbor_rank
+                            neighbor_rank = remotes[findlast(
+                                ghost_remote_first_elem .<= neighbor_ielements[1])]
+                            mpi_mesh_info.neighbor_ranks_interface[
+                                local_num_mpi_conform] = neighbor_rank
 
-                            mpi_mesh_info.global_interface_ids[local_num_mpi_conform] = global_interface_id
+                            mpi_mesh_info.global_interface_ids[
+                                local_num_mpi_conform] = global_interface_id
 
                             # MPI Mortar.
                         elseif level < neighbor_level
@@ -417,72 +420,85 @@ function trixi_t8_fill_mesh_info(mesh, elements, interfaces, mortars, boundaries
 
                             neighbor_ids = neighbor_ielements .+ 1
 
-                            local_neighbor_positions = findall(neighbor_ids .<=
-                                                               num_local_elements)
+                            local_neighbor_positions = findall(
+                                neighbor_ids .<= num_local_elements)
                             local_neighbor_ids = [neighbor_ids[i]
                                                   for i in local_neighbor_positions]
-                            local_neighbor_positions = [map_iface_to_ichild_to_position[dual_faces[1] + 1][t8_element_child_id(neighbor_scheme, neighbor_leafs[i]) + 1]
-                                                        for i in local_neighbor_positions]
+                            local_neighbor_positions = [
+                                map_iface_to_ichild_to_position[dual_faces[1] + 1][
+                                t8_element_child_id(neighbor_scheme, neighbor_leafs[i])+ 1]
+                                for i in local_neighbor_positions]
 
                             # Last entry is the large element.
                             push!(local_neighbor_ids, current_index + 1)
                             push!(local_neighbor_positions, 2^(ndims(mesh) - 1) + 1)
 
-                            mpi_mesh_info.mpi_mortars.local_neighbor_ids[local_num_mpi_mortars] = local_neighbor_ids
-                            mpi_mesh_info.mpi_mortars.local_neighbor_positions[local_num_mpi_mortars] = local_neighbor_positions
+                            mpi_mesh_info.mpi_mortars.local_neighbor_ids[
+                                local_num_mpi_mortars] = local_neighbor_ids
+                            mpi_mesh_info.mpi_mortars.local_neighbor_positions[
+                                local_num_mpi_mortars] = local_neighbor_positions
 
                             init_mortar_node_indices!(mpi_mesh_info.mpi_mortars,
                                                       (dual_faces[1], iface), orientation,
                                                       local_num_mpi_mortars)
 
-                            neighbor_ranks = [remotes[findlast(ghost_remote_first_elem .<=
-                                                               ineighbor_ghost)]
-                                              for ineighbor_ghost in filter(x -> x >=
-                                                                                 num_local_elements,
-                                                                            neighbor_ielements)]
-                            mpi_mesh_info.neighbor_ranks_mortar[local_num_mpi_mortars] = neighbor_ranks
+                            neighbor_ranks = [remotes[findlast(
+                                              ghost_remote_first_elem .<= ineighbor_ghost)]
+                                              for ineighbor_ghost in filter(
+                                                x -> x >= num_local_elements,
+                                                neighbor_ielements)]
+                            mpi_mesh_info.neighbor_ranks_mortar[
+                                local_num_mpi_mortars] = neighbor_ranks
 
-                            mpi_mesh_info.global_mortar_ids[local_num_mpi_mortars] = global_mortar_id
+                            mpi_mesh_info.global_mortar_ids[
+                                local_num_mpi_mortars] = global_mortar_id
 
                             # MPI Mortar: larger element is ghost
                         else
-                            neighbor_global_ghost_itree = ghost_global_treeids[findlast(ghost_tree_element_offsets .<=
-                                                                                        neighbor_ielements[1])]
+                            neighbor_global_ghost_itree = ghost_global_treeids[findlast(
+                                ghost_tree_element_offsets .<= neighbor_ielements[1])]
                             neighbor_linear_id = neighbor_global_ghost_itree *
                                                  max_tree_num_elements +
                                                  t8_element_get_linear_id(neighbor_scheme,
                                                                           neighbor_leafs[1],
-                                                                          max_level) #UInt64
+                                                                          max_level)
                             global_mortar_id = 2 * ndims(mesh) * neighbor_linear_id +
                                                dual_faces[1]
 
                             if global_mortar_id in visited_global_mortar_ids
-                                local_mpi_mortar_id = global_mortar_id_to_local[global_mortar_id]
+                                local_mpi_mortar_id =
+                                    global_mortar_id_to_local[global_mortar_id]
 
-                                push!(mpi_mesh_info.mpi_mortars.local_neighbor_ids[local_mpi_mortar_id],
-                                      current_index + 1)
-                                push!(mpi_mesh_info.mpi_mortars.local_neighbor_positions[local_mpi_mortar_id],
-                                      map_iface_to_ichild_to_position[iface + 1][t8_element_child_id(eclass_scheme, element) + 1])
+                                push!(mpi_mesh_info.mpi_mortars.local_neighbor_ids[
+                                    local_mpi_mortar_id], current_index + 1)
+                                push!(mpi_mesh_info.mpi_mortars.local_neighbor_positions[
+                                    local_mpi_mortar_id], map_iface_to_ichild_to_position[
+                                    iface + 1][
+                                    t8_element_child_id(eclass_scheme, element) + 1])
                             else
                                 local_num_mpi_mortars += 1
                                 local_mpi_mortar_id = local_num_mpi_mortars
                                 push!(visited_global_mortar_ids, global_mortar_id)
-                                global_mortar_id_to_local[global_mortar_id] = local_mpi_mortar_id
+                                global_mortar_id_to_local[global_mortar_id] =
+                                    local_mpi_mortar_id
 
-                                mpi_mesh_info.mpi_mortars.local_neighbor_ids[local_mpi_mortar_id] = [
-                                    current_index + 1,]
-                                mpi_mesh_info.mpi_mortars.local_neighbor_positions[local_mpi_mortar_id] = [
-                                    map_iface_to_ichild_to_position[iface + 1][t8_element_child_id(eclass_scheme, element) + 1],]
+                                mpi_mesh_info.mpi_mortars.local_neighbor_ids[
+                                    local_mpi_mortar_id] = [current_index + 1,]
+                                mpi_mesh_info.mpi_mortars.local_neighbor_positions[
+                                    local_mpi_mortar_id] = [map_iface_to_ichild_to_position[
+                                    iface + 1][
+                                    t8_element_child_id(eclass_scheme, element) + 1],]
                                 init_mortar_node_indices!(mpi_mesh_info.mpi_mortars,
                                                           (iface, dual_faces[1]),
                                                           orientation, local_mpi_mortar_id)
 
-                                neighbor_ranks = [
-                                    remotes[findlast(ghost_remote_first_elem .<=
-                                                     neighbor_ielements[1])],]
-                                mpi_mesh_info.neighbor_ranks_mortar[local_mpi_mortar_id] = neighbor_ranks
+                                neighbor_ranks = [remotes[findlast(
+                                    ghost_remote_first_elem .<= neighbor_ielements[1])],]
+                                mpi_mesh_info.neighbor_ranks_mortar[local_mpi_mortar_id] =
+                                    neighbor_ranks
 
-                                mpi_mesh_info.global_mortar_ids[local_mpi_mortar_id] = global_mortar_id
+                                mpi_mesh_info.global_mortar_ids[local_mpi_mortar_id] =
+                                    global_mortar_id
                             end
                         end
                     end

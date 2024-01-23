@@ -449,7 +449,7 @@ function T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
 end
 
 """
-    T8codeMesh{NDIMS}(meshfile::String, ndims; kwargs...)
+    T8codeMesh(meshfile::String, ndims; kwargs...)
 
 Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
 mesh from a Gmsh mesh file (`.msh`).

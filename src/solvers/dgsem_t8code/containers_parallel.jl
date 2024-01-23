@@ -1,5 +1,6 @@
 function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM, cache)
-    @unpack elements, interfaces, boundaries, mortars, mpi_interfaces, mpi_mortars, mpi_cache = cache
+    @unpack elements, interfaces, boundaries, mortars, mpi_interfaces, mpi_mortars,
+        mpi_cache = cache
     resize!(elements, ncells(mesh))
     init_elements!(elements, mesh, dg.basis)
 
