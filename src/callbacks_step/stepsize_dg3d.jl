@@ -119,7 +119,7 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::Union{ParallelP4estMesh{3},ParallelT8codeMesh{3}},
+function max_dt(u, t, mesh::Union{ParallelP4estMesh{3}, ParallelT8codeMesh{3}},
                 constant_speed, equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
