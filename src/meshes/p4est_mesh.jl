@@ -499,7 +499,7 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
 end
 
 function parse_elements(meshfile, n_trees, n_dims)
-    @assert n_dims in [2, 3] "Only 2D and 3D meshes are supported"
+    @assert n_dims in (2, 3) "Only 2D and 3D meshes are supported"
     # Valid element types (that can be processed by p4est) based on dimension
     element_types = n_dims == 2 ?
                     ["*ELEMENT, type=CPS4", "*ELEMENT, type=C2D4",
