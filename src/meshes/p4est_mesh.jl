@@ -555,8 +555,14 @@ function parse_node_sets(meshfile, boundary_symbols)
                     current_symbol = nothing
                 end
             elseif current_symbol !== nothing # Read only if there was already a nodeset specified
-                # There is always a trailing comma, remove the corresponding empty string
-                append!(current_nodes, parse.(Int64, split(line, ",")[1:(end - 1)]))
+                try # Check if line contains nodes
+                    # There is always a trailing comma, remove the corresponding empty string
+                    append!(current_nodes, parse.(Int64, split(line, ",")[1:(end - 1)]))
+                catch # Something different, stop reading in nodes
+                    # If parsing fails, set current_symbol to nothing
+                    nodes_dict[current_symbol] = current_nodes
+                    current_symbol = nothing
+                end
             end
         end
         # Safe the previous nodeset
