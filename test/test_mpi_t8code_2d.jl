@@ -33,6 +33,15 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
                 @test errors.linf≈[0.00011787417954578494] rtol=1.0e-4
             end
         end
+
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
     @trixi_testset "elixir_advection_nonconforming_flag.jl" begin
@@ -40,6 +49,15 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
                                      "elixir_advection_nonconforming_flag.jl"),
                             l2=[3.198940059144588e-5],
                             linf=[0.00030636069494005547])
+
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
     @trixi_testset "elixir_advection_unstructured_flag.jl" begin
@@ -47,6 +65,15 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
                                      "elixir_advection_unstructured_flag.jl"),
                             l2=[0.0005379687442422346],
                             linf=[0.007438525029884735])
+
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
     @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
@@ -56,6 +83,15 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
                             l2=[4.933027431215839e-5],
                             linf=[0.00048678461161243136],
                             coverage_override=(maxiters = 6,))
+
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
     @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
@@ -64,6 +100,15 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
                             l2=[0.001980652042312077],
                             linf=[0.0328882442132265],
                             coverage_override=(maxiters = 6,))
+
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 
     @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
@@ -81,6 +126,15 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
                                 0.03759938693042297,
                                 0.08039824959535657,
                             ])
+
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 end
 end # T8codeMesh MPI
