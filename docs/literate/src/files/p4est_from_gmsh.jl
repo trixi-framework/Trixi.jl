@@ -400,8 +400,8 @@ end #hide #md
 # First, the coordinates of the nodes are listed, followed by the elements.
 # Note that `gmsh` exports also line elements of type `T3D2` which are ignored by `p4est`.
 # The relevant elements in 2D which form the gridcells are of type `CPS4` which are defined by their four corner nodes.
-# This is followed by the nodesets encoded via `*NSET` which are used to assign boundary conditions in `Trixi.jl`.
-# `Trixi.jl` parses the `.inp` file and assigns the edges (in 2D, surfaces in 3D) of elements to the corresponding boundary condition based on 
+# This is followed by the nodesets encoded via `*NSET` which are used to assign boundary conditions in Trixi.jl.
+# Trixi.jl parses the `.inp` file and assigns the edges (in 2D, surfaces in 3D) of elements to the corresponding boundary condition based on 
 # the supplied `boundary_symbols` that have to be supplied to the `P4estMesh` constructor:
 # ```julia
 # # boundary symbols
