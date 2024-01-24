@@ -347,14 +347,18 @@ function register_error_hints()
 end
 
 """
-    retrieve(file_path, src_url)
+    Trixi.download(src_url, file_path)
 
-Download file from given url to given path.
-Avoids race condition when multiple MPI ranks are used.
+Download a file from given `src_url` to given `file_path` if
+`file_path` is not already a file.
+This is a small wrapper of `Downloads.download(src_url, file_path)`
+that avoids race conditions when multiple MPI ranks are used.
 """
-function retrieve(file_path, src_url)
+function download(src_url, file_path)
+    # Note that `mpi_isroot()` is also `true` if running
+    # in serial (without MPI).
     if mpi_isroot()
-        isfile(file_path) || download(src_url, file_path)
+        isfile(file_path) || Downloads.download(src_url, file_path)
     end
 
     if mpi_isparallel()
