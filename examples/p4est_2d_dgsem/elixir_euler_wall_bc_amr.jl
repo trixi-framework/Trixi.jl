@@ -39,7 +39,7 @@ solver = DGSEM(polydeg = 5, surface_flux = flux_lax_friedrichs,
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/0e9e990a04b5105d1d2e3096a6e41272/raw/0d924b1d7e7d3cc1070a6cc22fe1d501687aa6dd/abaqus_gingerbread_man.inp",
-joinpath(@__DIR__, "abaqus_gingerbread_man.inp"))
+                           joinpath(@__DIR__, "abaqus_gingerbread_man.inp"))
 
 mesh = P4estMesh{2}(mesh_file)
 

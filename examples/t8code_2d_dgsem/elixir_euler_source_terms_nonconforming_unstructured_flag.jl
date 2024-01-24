@@ -30,7 +30,7 @@ mapping_flag = Trixi.transfinite_mapping(faces)
 # Get the uncurved mesh from a file (downloads the file if not available locally)
 # Unstructured mesh with 24 cells of the square domain [-1, 1]^n
 mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
-joinpath(@__DIR__, "square_unstructured_2.inp"))
+                           joinpath(@__DIR__, "square_unstructured_2.inp"))
 
 # INP mesh files are only support by p4est. Hence, we
 # create a p4est connecvity object first from which

@@ -99,7 +99,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/a0806ef0d03cf5ea221af523167b6e32/raw/61ed0eb017eb432d996ed119a52fb041fe363e8c/abaqus_double_mach.inp",
-joinpath(@__DIR__, "abaqus_double_mach.inp"))
+                           joinpath(@__DIR__, "abaqus_double_mach.inp"))
 
 mesh = P4estMesh{2}(mesh_file)
 

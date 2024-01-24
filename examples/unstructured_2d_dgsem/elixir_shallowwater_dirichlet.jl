@@ -38,7 +38,7 @@ solver = DGSEM(polydeg = 4, surface_flux = (flux_hll, flux_nonconservative_fjord
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/9beddd9cd00e2a0a15865129eeb24928/raw/be71e67fa48bc4e1e97f5f6cd77c3ed34c6ba9be/mesh_outer_circle.mesh",
-joinpath(@__DIR__, "mesh_outer_circle.mesh"))
+                           joinpath(@__DIR__, "mesh_outer_circle.mesh"))
 
 mesh = UnstructuredMesh2D(mesh_file)
 

@@ -19,7 +19,7 @@ solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
 
 # Unstructured 3D half circle mesh from HOHQMesh
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/11461efbfb02c42e06aca338b3d0b645/raw/81deeb1ebc4945952c30af5bb75fe222a18d975c/abaqus_half_circle_3d.inp",
-joinpath(@__DIR__, "abaqus_half_circle_3d.inp"))
+                           joinpath(@__DIR__, "abaqus_half_circle_3d.inp"))
 
 mesh = P4estMesh{3}(mesh_file, initial_refinement_level = 0)
 

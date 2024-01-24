@@ -34,8 +34,8 @@ function mapping(xi, eta_, zeta_)
 end
 
 # Unstructured mesh with 48 cells of the cube domain [-1, 1]^3
-mesh_file = Trixi.retrieve(joinpath(@__DIR__, "cube_unstructured_2.inp"),
-                           "https://gist.githubusercontent.com/efaulhaber/b8df0033798e4926dec515fc045e8c2c/raw/b9254cde1d1fb64b6acc8416bc5ccdd77a240227/cube_unstructured_2.inp")
+mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/b8df0033798e4926dec515fc045e8c2c/raw/b9254cde1d1fb64b6acc8416bc5ccdd77a240227/cube_unstructured_2.inp",
+                           joinpath(@__DIR__, "cube_unstructured_2.inp"))
 
 # INP mesh files are only support by p4est. Hence, we
 # create a p4est connecvity object first from which

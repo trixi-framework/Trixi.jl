@@ -49,7 +49,7 @@ end
 
 # Unstructured mesh with 48 cells of the cube domain [-1, 1]^3
 mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/b8df0033798e4926dec515fc045e8c2c/raw/b9254cde1d1fb64b6acc8416bc5ccdd77a240227/cube_unstructured_2.inp",
-joinpath(@__DIR__, "cube_unstructured_2.inp"))
+                           joinpath(@__DIR__, "cube_unstructured_2.inp"))
 
 # Mesh polydeg of 2 (half the solver polydeg) to ensure FSP (see above).
 mesh = P4estMesh{3}(mesh_file, polydeg = 2,

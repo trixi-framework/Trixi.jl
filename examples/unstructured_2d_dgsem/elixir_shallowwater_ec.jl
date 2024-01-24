@@ -25,7 +25,7 @@ solver = DGSEM(polydeg = 6,
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/8f8cd23df27fcd494553f2a89f3c1ba4/raw/85e3c8d976bbe57ca3d559d653087b0889535295/mesh_alfven_wave_with_twist_and_flip.mesh",
-joinpath(@__DIR__, "mesh_alfven_wave_with_twist_and_flip.mesh"))
+                           joinpath(@__DIR__, "mesh_alfven_wave_with_twist_and_flip.mesh"))
 
 mesh = UnstructuredMesh2D(mesh_file, periodicity = true)
 
