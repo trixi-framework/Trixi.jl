@@ -33,9 +33,8 @@ end
 @trixi_testset "test check_for_negative_volumes" begin
     @test_warn "Discovered negative volumes" begin
         # Unstructured mesh with six cells which have left-handed node ordering.
-        mesh_file = Trixi.retrieve(joinpath(EXAMPLES_DIR,
-                                            "rectangle_with_negative_volumes.msh"),
-                                   "https://gist.githubusercontent.com/jmark/bfe0d45f8e369298d6cc637733819013/raw/cecf86edecc736e8b3e06e354c494b2052d41f7a/rectangle_with_negative_volumes.msh")
+        mesh_file = Trixi.download("https://gist.githubusercontent.com/jmark/bfe0d45f8e369298d6cc637733819013/raw/cecf86edecc736e8b3e06e354c494b2052d41f7a/rectangle_with_negative_volumes.msh",
+        joinpath(EXAMPLES_DIR, "rectangle_with_negative_volumes.msh"))
 
         # This call should throw a warning about negative volumes detected.
         mesh = T8codeMesh(mesh_file, 2)
