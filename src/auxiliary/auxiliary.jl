@@ -346,7 +346,6 @@ function register_error_hints()
     return nothing
 end
 
-<<<<<<< HEAD
 """
     Trixi.download(src_url, file_path)
 
@@ -358,9 +357,6 @@ that avoids race conditions when multiple MPI ranks are used.
 function download(src_url, file_path)
     # Note that `mpi_isroot()` is also `true` if running
     # in serial (without MPI).
-=======
-function retrieve(file_path, src_url)
->>>>>>> parent of a438547e2 (use retrieve everywhere for downloading)
     if mpi_isroot()
         isfile(file_path) || Downloads.download(src_url, file_path)
     end
