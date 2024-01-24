@@ -531,6 +531,33 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_euler_subsonic_cylinder.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_subsonic_cylinder.jl"),
+                        l2=[
+                            0.0001191438553219565,
+                            0.00010775987550586874,
+                            6.139942108660038e-5,
+                            0.0003067690221489065],
+                        linf=[
+                            0.16530830127928575,
+                            0.18684298318465908,
+                            0.09772804813504012,
+                            0.43118129113312076], tspan=(0.0, 0.001))
+
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode) # Just a placeholder in this case
+
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+    drag = Trixi.analyze(drag_coefficient, du, u, tspan[2], mesh, equations, solver,
+                         semi.cache)
+    lift = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
+                         semi.cache)
+
+    @test isapprox(lift, 2.6395869624301843e-15, atol = 1e-13)
+    @test isapprox(drag, 2.5885879058648857, atol = 1e-13)
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

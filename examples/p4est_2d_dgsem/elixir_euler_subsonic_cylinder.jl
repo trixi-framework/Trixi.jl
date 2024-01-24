@@ -2,6 +2,8 @@ using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
+using Trixi: AnalysisSurfaceIntegral, DragCoefficient, LiftCoefficient
+
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
@@ -91,19 +93,17 @@ U_inf = 0.38
 linf = 1.0 # Diameter of circle
 
 indices = semi_ -> semi.boundary_conditions.boundary_indices[2] # TODO - Really needs fixing!
-my_drag_force = Trixi.AnalysisSurfaceIntegral(indices,
-                                              Trixi.DragForcePressure(aoa, rho_inf, U_inf,
-                                                                      linf))
 
-my_lift_force = Trixi.AnalysisSurfaceIntegral(indices,
-                                              Trixi.LiftForcePressure(aoa, rho_inf, U_inf,
-                                                                      linf))
+drag_coefficient = AnalysisSurfaceIntegral(indices,
+                                           DragCoefficient(aoa, rho_inf, U_inf, linf))
+lift_coefficient = AnalysisSurfaceIntegral(indices,
+                                           LiftCoefficient(aoa, rho_inf, U_inf, linf))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     analysis_errors = Symbol[],
                                      output_directory = "analysis_results",
                                      save_analysis = true,
-                                     analysis_integrals = (my_drag_force, my_lift_force))
+                                     analysis_integrals = (drag_coefficient,
+                                                           lift_coefficient))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 

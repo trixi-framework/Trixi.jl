@@ -5,7 +5,7 @@ struct AnalysisSurfaceIntegral{Indices, Variable}
 end
 
 struct ForceState{RealT <: Real}
-    Ψl::Tuple{RealT, RealT}
+    Ψ::Tuple{RealT, RealT} # Unit vector normal or parallel to freestream
     rhoinf::RealT
     uinf::RealT
     linf::RealT
@@ -18,38 +18,38 @@ struct FreeStreamVariables{RealT <: Real}
     linf::RealT
 end
 
-struct LiftForcePressure{RealT <: Real}
+struct LiftCoefficient{RealT <: Real}
     force_state::ForceState{RealT}
 end
 
-struct DragForcePressure{RealT <: Real}
+struct DragCoefficient{RealT <: Real}
     force_state::ForceState{RealT}
 end
 
-function LiftForcePressure(aoa::Real, rhoinf::Real, uinf::Real, linf::Real)
+function LiftCoefficient(aoa, rhoinf, uinf, linf)
     # Ψl is the normal unit vector to the freestream direction
     Ψl = (-sin(aoa), cos(aoa))
     force_state = ForceState(Ψl, rhoinf, uinf, linf)
-    return LiftForcePressure(force_state)
+    return LiftCoefficient(force_state)
 end
 
-function DragForcePressure(aoa::Real, rhoinf::Real, uinf::Real, linf::Real)
+function DragCoefficient(aoa, rhoinf, uinf, linf)
     # Ψd is the unit vector parallel to the freestream direction
     Ψd = (cos(aoa), sin(aoa))
-    return DragForcePressure(ForceState(Ψd, rhoinf, uinf, linf))
+    return DragCoefficient(ForceState(Ψd, rhoinf, uinf, linf))
 end
 
-function (lift_force::LiftForcePressure)(u, normal_direction, equations)
+function (lift_coefficient::LiftCoefficient)(u, normal_direction, equations)
     p = pressure(u, equations)
-    @unpack Ψl, rhoinf, uinf, linf = lift_force.force_state
-    n = dot(normal_direction, Ψl) / norm(normal_direction)
+    @unpack Ψ, rhoinf, uinf, linf = lift_coefficient.force_state
+    n = dot(normal_direction, Ψ) / norm(normal_direction)
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
 end
 
-function (drag_force::DragForcePressure)(u, normal_direction, equations)
+function (drag_coefficient::DragCoefficient)(u, normal_direction, equations)
     p = pressure(u, equations)
-    @unpack Ψl, rhoinf, uinf, linf = drag_force.force_state
-    n = dot(normal_direction, Ψl) / norm(normal_direction)
+    @unpack Ψ, rhoinf, uinf, linf = drag_coefficient.force_state
+    n = dot(normal_direction, Ψ) / norm(normal_direction)
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
 end
 
@@ -99,15 +99,15 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
     return surface_integral
 end
 
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any, <:LiftForcePressure{<:Any}})
-    "Pressure_lift"
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any, <:LiftCoefficient{<:Any}})
+    "CL"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any, <:LiftForcePressure{<:Any}})
-    "Pressure_lift"
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any, <:LiftCoefficient{<:Any}})
+    "CL"
 end
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any, <:DragForcePressure{<:Any}})
-    "Pressure_drag"
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any, <:DragCoefficient{<:Any}})
+    "CD"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any, <:DragForcePressure{<:Any}})
-    "Pressure_drag"
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any, <:DragCoefficient{<:Any}})
+    "CD"
 end
