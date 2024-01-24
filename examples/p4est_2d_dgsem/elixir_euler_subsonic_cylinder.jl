@@ -92,8 +92,15 @@ rho_inf = 1.4
 U_inf = 0.38
 linf = 1.0 # Diameter of circle
 
+<<<<<<< HEAD
 drag_coefficient = AnalysisSurfaceIntegral(semi, boundary_condition_slip_wall,
                                            DragCoefficient(aoa, rho_inf, U_inf, linf))
+=======
+indices = semi_ -> semi.boundary_conditions.boundary_indices[2] # TODO - Really needs fixing!
+my_drag_force = Trixi.AnalysisSurfaceIntegral(indices,
+                                              Trixi.DragForcePressure(aoa, rho_inf, U_inf,
+                                                                      linf))
+>>>>>>> d89082be (Minor change)
 
 lift_coefficient = AnalysisSurfaceIntegral(semi, boundary_condition_slip_wall,
                                            LiftCoefficient(aoa, rho_inf, U_inf, linf))
