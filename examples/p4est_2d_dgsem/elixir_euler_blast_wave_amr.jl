@@ -1,4 +1,5 @@
 
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -49,8 +50,10 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 # Unstructured mesh with 48 cells of the square domain [-1, 1]^n
-mesh_file = Trixi.retrieve(joinpath(@__DIR__, "square_unstructured_1.inp"),
-                           "https://gist.githubusercontent.com/efaulhaber/a075f8ec39a67fa9fad8f6f84342cbca/raw/a7206a02ed3a5d3cadacd8d9694ac154f9151db7/square_unstructured_1.inp")
+mesh_file = joinpath(@__DIR__, "square_unstructured_1.inp")
+isfile(mesh_file) ||
+    download("https://gist.githubusercontent.com/efaulhaber/a075f8ec39a67fa9fad8f6f84342cbca/raw/a7206a02ed3a5d3cadacd8d9694ac154f9151db7/square_unstructured_1.inp",
+             mesh_file)
 
 mesh = P4estMesh{2}(mesh_file, polydeg = 3, initial_refinement_level = 1)
 

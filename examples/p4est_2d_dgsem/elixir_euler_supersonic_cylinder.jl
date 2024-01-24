@@ -13,6 +13,7 @@
 #
 # Keywords: supersonic flow, shock capturing, AMR, unstructured curved mesh, positivity preservation, compressible Euler, 2D
 
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -81,8 +82,11 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
-mesh_file = Trixi.retrieve(joinpath(@__DIR__, "abaqus_cylinder_in_channel.inp"),
-                           "https://gist.githubusercontent.com/andrewwinters5000/a08f78f6b185b63c3baeff911a63f628/raw/addac716ea0541f588b9d2bd3f92f643eb27b88f/abaqus_cylinder_in_channel.inp")
+default_mesh_file = joinpath(@__DIR__, "abaqus_cylinder_in_channel.inp")
+isfile(default_mesh_file) ||
+    download("https://gist.githubusercontent.com/andrewwinters5000/a08f78f6b185b63c3baeff911a63f628/raw/addac716ea0541f588b9d2bd3f92f643eb27b88f/abaqus_cylinder_in_channel.inp",
+             default_mesh_file)
+mesh_file = default_mesh_file
 
 mesh = P4estMesh{2}(mesh_file)
 

@@ -1,4 +1,5 @@
 
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -13,8 +14,11 @@ equations = AcousticPerturbationEquations2D(v_mean_global = (0.0, -0.5),
 solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
 
 # Create unstructured quadrilateral mesh from a file
-mesh_file = Trixi.retrieve(joinpath(@__DIR__, "mesh_five_circles_in_circle.mesh"),
-                           "https://gist.githubusercontent.com/andrewwinters5000/3c79baad6b4d73bb26ec6420b5d16f45/raw/22aefc4ec2107cf0bffc40e81dfbc52240c625b1/mesh_five_circles_in_circle.mesh")
+default_mesh_file = joinpath(@__DIR__, "mesh_five_circles_in_circle.mesh")
+isfile(default_mesh_file) ||
+    download("https://gist.githubusercontent.com/andrewwinters5000/3c79baad6b4d73bb26ec6420b5d16f45/raw/22aefc4ec2107cf0bffc40e81dfbc52240c625b1/mesh_five_circles_in_circle.mesh",
+             default_mesh_file)
+mesh_file = default_mesh_file
 
 mesh = UnstructuredMesh2D(mesh_file)
 

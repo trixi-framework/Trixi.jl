@@ -1,4 +1,5 @@
 
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -33,8 +34,11 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 # This setup is for the curved, split form entropy conservation testing (needs periodic BCs)
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
-mesh_file = Trixi.retrieve(joinpath(@__DIR__, "mesh_alfven_wave_with_twist_and_flip.mesh"),
-                           "https://gist.githubusercontent.com/andrewwinters5000/8f8cd23df27fcd494553f2a89f3c1ba4/raw/85e3c8d976bbe57ca3d559d653087b0889535295/mesh_alfven_wave_with_twist_and_flip.mesh")
+default_mesh_file = joinpath(@__DIR__, "mesh_alfven_wave_with_twist_and_flip.mesh")
+isfile(default_mesh_file) ||
+    download("https://gist.githubusercontent.com/andrewwinters5000/8f8cd23df27fcd494553f2a89f3c1ba4/raw/85e3c8d976bbe57ca3d559d653087b0889535295/mesh_alfven_wave_with_twist_and_flip.mesh",
+             default_mesh_file)
+mesh_file = default_mesh_file
 
 mesh = UnstructuredMesh2D(mesh_file, periodicity = true)
 

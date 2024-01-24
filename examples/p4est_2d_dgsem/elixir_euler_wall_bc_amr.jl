@@ -1,4 +1,5 @@
 
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -38,8 +39,11 @@ solver = DGSEM(polydeg = 5, surface_flux = flux_lax_friedrichs,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
-mesh_file = Trixi.retrieve(joinpath(@__DIR__, "abaqus_gingerbread_man.inp"),
-                           "https://gist.githubusercontent.com/andrewwinters5000/0e9e990a04b5105d1d2e3096a6e41272/raw/0d924b1d7e7d3cc1070a6cc22fe1d501687aa6dd/abaqus_gingerbread_man.inp")
+default_mesh_file = joinpath(@__DIR__, "abaqus_gingerbread_man.inp")
+isfile(default_mesh_file) ||
+    download("https://gist.githubusercontent.com/andrewwinters5000/0e9e990a04b5105d1d2e3096a6e41272/raw/0d924b1d7e7d3cc1070a6cc22fe1d501687aa6dd/abaqus_gingerbread_man.inp",
+             default_mesh_file)
+mesh_file = default_mesh_file
 
 mesh = P4estMesh{2}(mesh_file)
 
