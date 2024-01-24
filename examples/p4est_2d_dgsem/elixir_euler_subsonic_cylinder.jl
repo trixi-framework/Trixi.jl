@@ -1,7 +1,6 @@
 using Downloads: download
 using OrdinaryDiffEq
 using Trixi
-# include("analysis_surface_2d.jl")
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -91,7 +90,7 @@ rho_inf = 1.4
 U_inf = 0.38
 linf = 1.0 # Diameter of circle
 
-indices = semi_ -> semi.boundary_conditions.boundary_indices[2]
+indices = semi_ -> semi.boundary_conditions.boundary_indices[2] # TODO - Really needs fixing!
 my_drag_force = Trixi.AnalysisSurfaceIntegral(indices,
                                               Trixi.DragForcePressure(aoa, rho_inf, U_inf,
                                                                       linf))
