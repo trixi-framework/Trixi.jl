@@ -1,8 +1,3 @@
-using Trixi
-using Trixi: integrate_via_indices, norm, apply_jacobian_parabolic!, @threaded,
-             indices2direction,
-             index_to_start_step_2d, get_normal_direction, dot, get_node_coords
-import Trixi: analyze, pretty_form_ascii, pretty_form_utf
 
 struct AnalysisSurfaceIntegral{Indices, Variable}
     indices::Indices
@@ -32,12 +27,14 @@ struct DragForcePressure{RealT <: Real}
 end
 
 function LiftForcePressure(aoa::Real, rhoinf::Real, uinf::Real, linf::Real)
+    # Ψl is the normal unit vector to the freestream direction
     Ψl = (-sin(aoa), cos(aoa))
     force_state = ForceState(Ψl, rhoinf, uinf, linf)
     return LiftForcePressure(force_state)
 end
 
 function DragForcePressure(aoa::Real, rhoinf::Real, uinf::Real, linf::Real)
+    # Ψd is the unit vector parallel to the freestream direction
     Ψd = (cos(aoa), sin(aoa))
     return DragForcePressure(ForceState(Ψd, rhoinf, uinf, linf))
 end
