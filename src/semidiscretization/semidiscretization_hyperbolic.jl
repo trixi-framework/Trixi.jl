@@ -41,7 +41,7 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
                                                                       SourceTerms,
                                                                       Solver,
                                                                       Cache}
-        @assert ndims(mesh) == ndims(equations)
+        #@assert ndims(mesh) == ndims(equations)
 
         performance_counter = PerformanceCounter()
 
