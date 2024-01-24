@@ -166,10 +166,10 @@ function max_dt(u, t, mesh::ParallelP4estMesh{2},
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
-        Tuple{typeof(u), typeof(t), P4estMesh{2},
-              typeof(constant_speed), typeof(equations), typeof(dg),
-              typeof(cache)},
-        u, t, mesh, constant_speed, equations, dg, cache)
+                Tuple{typeof(u), typeof(t), P4estMesh{2},
+                      typeof(constant_speed), typeof(equations), typeof(dg),
+                      typeof(cache)},
+                u, t, mesh, constant_speed, equations, dg, cache)
     dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
 
     return dt
@@ -198,13 +198,12 @@ function max_dt(u, t, mesh::ParallelT8codeMesh{2},
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
-        Tuple{typeof(u), typeof(t), T8codeMesh{2},
-              typeof(constant_speed), typeof(equations), typeof(dg),
-              typeof(cache)},
-        u, t, mesh, constant_speed, equations, dg, cache)
+                Tuple{typeof(u), typeof(t), T8codeMesh{2},
+                      typeof(constant_speed), typeof(equations), typeof(dg),
+                      typeof(cache)},
+                u, t, mesh, constant_speed, equations, dg, cache)
     dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
 
     return dt
 end
-
 end # @muladd
