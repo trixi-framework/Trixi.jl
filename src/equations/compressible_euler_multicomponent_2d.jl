@@ -109,6 +109,7 @@ Calculate temperature.
 """
 @inline function temperature(u, equations::CompressibleEulerMulticomponentEquations2D)
     rho_v1, rho_v2, rho_e = u
+    @unpack cv = equations
 
     rho = density(u, equations)
     help1 = zero(rho)
