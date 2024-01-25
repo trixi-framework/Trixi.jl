@@ -614,14 +614,17 @@ end
 end
 
 @timed_testset "Consistency check for single point flux: CEMCE" begin
-    equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
-                                                           gas_constants = (0.4, 0.4))
+    equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.2),
+                                                           gas_constants = (0.4, 0.6))
     u = SVector(0.1, -0.5, 1.0, 1.0, 2.0)
 
     orientations = [1, 2]
-    for orientation in orientations
-        @test flux(u, orientation, equations) ≈
-              flux_ranocha(u, u, orientation, equations)
+    fluxes = [flux_ranocha, flux_shima_etal, flux_kennedy_gruber, FluxLMARS(340)]
+    for f_test in fluxes
+        for orientation in orientations
+            @test flux(u, orientation, equations) ≈
+                  f_test(u, u, orientation, equations)
+        end
     end
 end
 
@@ -1332,25 +1335,26 @@ end
 
 @testset "FluxRotated vs. direct implementation" begin
     @timed_testset "CompressibleEulerMulticomponentEquations2D" begin
-        equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
+        equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.2),
                                                                gas_constants = (0.4,
-                                                                                0.4))
+                                                                                0.6))
         normal_directions = [SVector(1.0, 0.0),
             SVector(0.0, 1.0),
             SVector(0.5, -0.5),
             SVector(-1.2, 0.3)]
         u_values = [SVector(0.1, -0.5, 1.0, 1.0, 2.0),
             SVector(-0.1, -0.3, 1.2, 1.3, 1.4)]
+        fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
+                  FluxLMARS(340)]
 
-        f_std = flux
-        f_rot = FluxRotated(f_std)
-        println(typeof(f_std))
-        println(typeof(f_rot))
-        for u in u_values,
-            normal_direction in normal_directions
+        for f_std in fluxes
+            f_rot = FluxRotated(f_std)
+            for u_ll in u_values, u_rr in u_values,
+                normal_direction in normal_directions
 
-            @test f_rot(u, normal_direction, equations) ≈
-                  f_std(u, normal_direction, equations)
+                @test f_rot(u_ll, u_rr, normal_direction, equations) ≈
+                      f_std(u_ll, u_rr, normal_direction, equations)
+            end
         end
     end
 

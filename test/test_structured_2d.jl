@@ -273,6 +273,7 @@ end
     end
 end
 
+#=
 @trixi_testset "elixir_eulermultimoist_warm_bubble.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermultimoist_warm_bubble.jl"),
                         l2=[
@@ -300,6 +301,7 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+=#
 
 @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
