@@ -164,7 +164,6 @@ Function that calculates overall density times overall gas constant.
     return help
 end
 
-
 """
 cons2entropy(u, equations::CompressibleMoistEulerEquations2D)
 

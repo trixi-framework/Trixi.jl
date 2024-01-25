@@ -92,9 +92,9 @@ end
 # Initial condition
 struct AtmossphereLayers{RealT <: Real}
     setup::WarmBubbleSetup
-    # structure:  1--> i-layer (z = total_hight/precision *(i-1)),  2--> rho, rho_theta, rho_qv, rho_ql
+    # structure:  1--> i-layer (z = total_height/precision *(i-1)),  2--> rho, rho_theta, rho_qv, rho_ql
     LayerData::Matrix{RealT}
-    total_hight::RealT
+    total_height::RealT
     preciseness::Int
     layers::Int
     ground_state::NTuple{2, RealT}
@@ -102,7 +102,7 @@ struct AtmossphereLayers{RealT <: Real}
     mixing_ratios::NTuple{2, RealT}
 end
 
-function AtmossphereLayers(setup; total_hight = 10010.0, preciseness = 10,
+function AtmossphereLayers(setup; total_height = 10010.0, preciseness = 10,
                            ground_state = (1.4, 100000.0),
                            equivalentpotential_temperature = 320,
                            mixing_ratios = (0.02, 0.02), RealT = Float64)
@@ -115,7 +115,7 @@ function AtmossphereLayers(setup; total_hight = 10010.0, preciseness = 10,
     T0 = theta_e0
     y0 = [p0, rho0, T0, r_t0, r_v0, rho_qv0, theta_e0]
 
-    n = convert(Int, total_hight / preciseness)
+    n = convert(Int, total_height / preciseness)
     dz = 0.01
     LayerData = zeros(RealT, n + 1, 4)
 
@@ -145,7 +145,7 @@ function AtmossphereLayers(setup; total_hight = 10010.0, preciseness = 10,
         LayerData[i + 1, :] = [rho, rho_theta, rho_qv, rho_ql]
     end
 
-    return AtmossphereLayers{RealT}(setup, LayerData, total_hight, dz, n, ground_state,
+    return AtmossphereLayers{RealT}(setup, LayerData, total_height, dz, n, ground_state,
                                     theta_e0, mixing_ratios)
 end
 
@@ -190,17 +190,17 @@ end
 # https://journals.ametsoc.org/view/journals/mwre/130/12/1520-0493_2002_130_2917_absfmn_2.0.co_2.xml.
 function initial_condition_moist_bubble(x, t, setup::WarmBubbleSetup,
                                         AtmosphereLayers::AtmossphereLayers)
-    @unpack LayerData, preciseness, total_hight = AtmosphereLayers
+    @unpack LayerData, preciseness, total_height = AtmosphereLayers
     dz = preciseness
     z = x[2]
-    if (z > total_hight && !(isapprox(z, total_hight)))
+    if (z > total_height && !(isapprox(z, total_height)))
         error("The atmossphere does not match the simulation domain")
     end
     n = convert(Int, floor((z + eps()) / dz)) + 1
     z_l = (n - 1) * dz
     (rho_l, rho_theta_l, rho_qv_l, rho_ql_l) = LayerData[n, :]
     z_r = n * dz
-    if (z_l == total_hight)
+    if (z_l == total_height)
         z_r = z_l + dz
         n = n - 1
     end
