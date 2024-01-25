@@ -493,8 +493,8 @@ the Euler Equations Using Summation-by-Parts Operators
     velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
 
     # helpful variables
-    enth_ll = density_gas_constant(u_ll)
-    enth_rr = density_gas_constant(u_rr)
+    enth_ll = density_gas_constant(u_ll, equations)
+    enth_rr = density_gas_constant(u_rr, equations)
 
     # temperature and pressure
     T_ll = temperature(u_ll, equations)
@@ -562,8 +562,8 @@ end
     v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
 
     # helpful variables
-    enth_ll = density_gas_constant(u_ll)
-    enth_rr = density_gas_constant(u_rr)
+    enth_ll = density_gas_constant(u_ll, equations)
+    enth_rr = density_gas_constant(u_rr, equations)
 
     # temperature and pressure
     T_ll = temperature(u_ll, equations)

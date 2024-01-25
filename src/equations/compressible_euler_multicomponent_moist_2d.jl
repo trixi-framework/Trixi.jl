@@ -245,7 +245,7 @@ Convert entropy variables to conservative variables
 end
 
 """
-    flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleMoistEulerEquations2D)
+    flux_chandrashekar(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleMoistEulerEquations2D)
 
 Adaption of the entropy conserving two-point flux by
 - Ayoub Gouasmi, Karthik Duraisamy (2020)
