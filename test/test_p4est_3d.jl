@@ -234,6 +234,29 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_free_stream_boundaries.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_boundaries.jl"),
+                        l2=[
+                            6.530157034651212e-16, 1.6057829680004379e-15,
+                            3.31107455378537e-15, 3.908829498281281e-15,
+                            5.048390610424672e-15,
+                        ],
+                        linf=[
+                            4.884981308350689e-15, 1.1921019726912618e-14,
+                            1.5432100042289676e-14, 2.298161660974074e-14,
+                            6.039613253960852e-14,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_free_stream_extruded.jl with HLLC FLux" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_extruded.jl"),
                         l2=[
