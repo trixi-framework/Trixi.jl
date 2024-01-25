@@ -130,8 +130,8 @@ temperature(u, equations::CompressibleMoistEulerEquations2D)
 Calculate temperature. Account for latent heat.
 """
 @inline function temperature(u, equations::CompressibleMoistEulerEquations2D)
-    @unpack c_v, gammas, gas_constants, L_00 = equations
-    rho_v1, rho_v2, rho_e, rho_d, rho_v = u
+    @unpack c_v, L_00 = equations
+    rho_v1, rho_v2, rho_e = u
 
     rho = density(u, equations)
     help1 = zero(rho)
@@ -159,7 +159,7 @@ Function that calculates overall density times overall gas constant.
     @unpack gas_constants = equations
     help = zero(u[1])
     for i in eachcomponent(equations)
-        help += u[i + 3] * gas_constant[i]
+        help += u[i + 3] * gas_constants[i]
     end
     return help
 end
@@ -170,7 +170,7 @@ cons2entropy(u, equations::CompressibleMoistEulerEquations2D)
 Convert conservative variables to entropy.
 """
 @inline function cons2entropy(u, equations::CompressibleMoistEulerEquations2D)
-    @unpack c_v, gammas, gas_constants = equations
+    @unpack c_v, gas_constants = equations
     rho_v1, rho_v2, rho_e = u
 
     rho = density(u, equations)
@@ -212,7 +212,7 @@ entropy2cons(w, equations::CompressibleMoistEulerEquations2D)
 Convert entropy variables to conservative variables
 """
 @inline function entropy2cons(w, equations::CompressibleMoistEulerEquations2D)
-    @unpack gammas, gas_constants, cp, cv = equations
+    @unpack gammas, gas_constants, cv = equations
     T = -1 / w[3]
     v1 = w[1] * T
     v2 = w[2] * T

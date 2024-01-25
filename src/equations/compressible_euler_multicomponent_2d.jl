@@ -108,9 +108,7 @@ end
 Calculate temperature.
 """
 @inline function temperature(u, equations::CompressibleEulerMulticomponentEquations2D)
-    @unpack cv, gammas, gas_constants = equations
-
-    rho_v1, rho_v2, rho_e, rho_d, rho_v = u
+    rho_v1, rho_v2, rho_e = u
 
     rho = density(u, equations)
     help1 = zero(rho)
@@ -257,7 +255,7 @@ Function that calculates overall density times overall gas constant.
     @unpack gas_constants = equations
     help = zero(u[1])
     for i in eachcomponent(equations)
-        help += u[i + 3] * gas_constant[i]
+        help += u[i + 3] * gas_constants[i]
     end
     return help
 end
