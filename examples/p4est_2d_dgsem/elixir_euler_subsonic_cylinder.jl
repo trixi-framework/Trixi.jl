@@ -77,7 +77,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers
 
-# Run for a long time to reach state state
+# Run for a long time to reach a steady state
 tspan = (0.0, 100.0)
 ode = semidiscretize(semi, tspan)
 
@@ -92,11 +92,10 @@ rho_inf = 1.4
 U_inf = 0.38
 linf = 1.0 # Diameter of circle
 
-indices = semi_ -> semi.boundary_conditions.boundary_indices[2] # TODO - Really needs fixing!
-
-drag_coefficient = AnalysisSurfaceIntegral(indices,
+drag_coefficient = AnalysisSurfaceIntegral(semi, boundary_condition_slip_wall,
                                            DragCoefficient(aoa, rho_inf, U_inf, linf))
-lift_coefficient = AnalysisSurfaceIntegral(indices,
+
+lift_coefficient = AnalysisSurfaceIntegral(semi, boundary_condition_slip_wall,
                                            LiftCoefficient(aoa, rho_inf, U_inf, linf))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
