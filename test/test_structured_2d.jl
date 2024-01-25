@@ -273,6 +273,32 @@ end
     end
 end
 
+@trixi_testset "elixir_eulermultimoist_warm_bubble.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermultimoist_warm_bubble.jl"),
+                        l2=[
+                            1.5123651627525257e-5,
+                            1.51236516273878e-5,
+                            2.4544918394022538e-5,
+                            5.904791661362391e-6,
+                            1.1809583322724782e-5,
+                        ],
+                        linf=[
+                            8.393471747591974e-5,
+                            8.393471748258108e-5,
+                            0.00015028562494778797,
+                            3.504466610437795e-5,
+                            7.00893322087559e-5,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
