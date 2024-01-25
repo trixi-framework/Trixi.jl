@@ -15,13 +15,14 @@ struct AnalysisSurfaceIntegral{SemiDiscretization, Indices, Variable}
         ordered_bc = semi.boundary_conditions.boundary_condition_types
 
         # The set of all indices that gives the bc where the surface integral is to be computed
-        index = sort(findall(x->x==boundary_condition_type,  ordered_bc))
+        index = sort(findall(x -> x == boundary_condition_type, ordered_bc))
 
         # Put the bc in function form as they might change under AMR
         indices = semi -> Vector([semi.boundary_conditions.boundary_indices[i]
-                                 for i in index])[1] # TODO - Should not need Vector and the [1]
+                                  for i in index])[1] # TODO - Should not need Vector and the [1]
 
-        return new{typeof(semi), typeof(indices), typeof(variable)}(semi, indices, variable)
+        return new{typeof(semi), typeof(indices), typeof(variable)}(semi, indices,
+                                                                    variable)
     end
 end
 
@@ -118,17 +119,20 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
     return surface_integral
 end
 
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any, <:Any, <:LiftCoefficient{<:Any}})
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any, <:Any,
+                                                     <:LiftCoefficient{<:Any}})
     "CL"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any, <:Any, <:LiftCoefficient{<:Any}})
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any, <:Any,
+                                                   <:LiftCoefficient{<:Any}})
     "CL"
 end
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any, <:Any, <:DragCoefficient{<:Any}})
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any, <:Any,
+                                                     <:DragCoefficient{<:Any}})
     "CD"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any, <:Any, <:DragCoefficient{<:Any}})
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any, <:Any,
+                                                   <:DragCoefficient{<:Any}})
     "CD"
 end
-
 end # muladd
