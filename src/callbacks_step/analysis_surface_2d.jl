@@ -6,8 +6,8 @@
 #! format: noindent
 # TODO - Add explanation for what this file contains
 
-struct AnalysisSurfaceIntegral{SemiDiscretization, Indices, Variable}
-    semi::SemiDiscretization
+struct AnalysisSurfaceIntegral{Semidiscretization, Indices, Variable}
+    semi::Semidiscretization
     indices::Indices
     variable::Variable # Quantity of interest, like lift or drag
     function AnalysisSurfaceIntegral(semi, boundary_condition_type, variable)
@@ -15,7 +15,6 @@ struct AnalysisSurfaceIntegral{SemiDiscretization, Indices, Variable}
         ordered_bc = semi.boundary_conditions.boundary_condition_types
 
         # The set of all indices that gives the bc where the surface integral is to be computed
-<<<<<<< HEAD
         index = sort(findall(x -> x == boundary_condition_type, ordered_bc))
 
         # Put the bc in function form as they might change under AMR
@@ -24,15 +23,6 @@ struct AnalysisSurfaceIntegral{SemiDiscretization, Indices, Variable}
 
         return new{typeof(semi), typeof(indices), typeof(variable)}(semi, indices,
                                                                     variable)
-=======
-        index = sort(findall(x->x==boundary_condition_type,  ordered_bc))
-
-        # Put the bc in function form as they might change under AMR
-        indices = semi -> Vector([semi.boundary_conditions.boundary_indices[i]
-                                 for i in index])[1] # TODO - Should not need Vector and the [1]
-
-        return new{typeof(semi), typeof(indices), typeof(variable)}(semi, indices, variable)
->>>>>>> 5d22bb6d (Obtain indices from user chosen function)
     end
 end
 

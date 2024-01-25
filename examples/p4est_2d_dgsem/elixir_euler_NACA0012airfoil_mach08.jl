@@ -1,0 +1,139 @@
+using Downloads: download
+using OrdinaryDiffEq
+using Trixi
+
+using Trixi: AnalysisSurfaceIntegral, DragCoefficient, LiftCoefficient
+
+###############################################################################
+# semidiscretization of the compressible Euler equations
+
+equations = CompressibleEulerEquations2D(1.4)
+
+pre_inf() = 1.0
+rho_inf() = pre_inf() / (1.0 * 287.87) # pre_inf = 1.0,  T = 1, R = 287.87
+mach_inf() = 0.85
+aoa() = pi / 180.0
+c_inf(equations) = sqrt(equations.gamma * pre_inf() / rho_inf())
+U_inf(equations) = mach_inf() * c_inf(equations)
+
+@inline function initial_condition_mach085_flow(x, t,
+                                                equations::CompressibleEulerEquations2D)
+    # set the freestream flow parameters
+    gasGam = equations.gamma
+
+    v1 = U_inf(equations) * cos(aoa())
+    v2 = U_inf(equations) * sin(aoa())
+
+    prim = SVector(rho_inf(), v1, v2, pre_inf())
+    return prim2cons(prim, equations)
+end
+
+initial_condition = initial_condition_mach085_flow
+
+volume_flux = flux_ranocha_turbo
+surface_flux = flux_lax_friedrichs
+
+polydeg = 3
+basis = LobattoLegendreBasis(polydeg)
+shock_indicator = IndicatorHennemannGassner(equations, basis,
+                                            alpha_max = 0.5,
+                                            alpha_min = 0.001,
+                                            alpha_smooth = true,
+                                            variable = density_pressure)
+volume_integral = VolumeIntegralShockCapturingHG(shock_indicator;
+                                                 volume_flux_dg = volume_flux,
+                                                 volume_flux_fv = surface_flux)
+solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
+               volume_integral = volume_integral)
+
+#=
+mesh_file = Trixi.download("",
+                           joinpath(@__DIR__, "NACA0012.inp"))
+=#
+mesh_file = "NACA0012.inp"
+
+mesh = P4estMesh{2}(mesh_file)
+
+# The boundary of the outer cylinder is constant but subsonic, so we cannot compute the
+# boundary flux for the external information alone. Thus, we use the numerical flux to distinguish
+# between inflow and outflow characteristics
+@inline function boundary_condition_subsonic_constant(u_inner,
+                                                      normal_direction::AbstractVector, x,
+                                                      t,
+                                                      surface_flux_function,
+                                                      equations::CompressibleEulerEquations2D)
+    u_boundary = initial_condition_mach085_flow(x, t, equations)
+
+    return Trixi.flux_hll(u_inner, u_boundary, normal_direction, equations)
+end
+
+boundary_conditions = Dict(:Left => boundary_condition_subsonic_constant,
+                           :Right => boundary_condition_subsonic_constant,
+                           :Top => boundary_condition_subsonic_constant,
+                           :Bottom => boundary_condition_subsonic_constant,
+                           :AirfoilBottom => boundary_condition_slip_wall,
+                           :AirfoilTop => boundary_condition_slip_wall)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions = boundary_conditions)
+
+###############################################################################
+# ODE solvers
+
+# Run for a long time to reach a steady state
+tspan = (0.0, 20.0)
+ode = semidiscretize(semi, tspan)
+
+# Callbacks
+
+summary_callback = SummaryCallback()
+
+analysis_interval = 2000
+
+linf = 1.0 # Length of airfoil
+
+drag_coefficient = AnalysisSurfaceIntegral(semi, boundary_condition_slip_wall,
+                                           DragCoefficient(aoa(), rho_inf(),
+                                                           U_inf(equations), linf))
+
+lift_coefficient = AnalysisSurfaceIntegral(semi, boundary_condition_slip_wall,
+                                           LiftCoefficient(aoa(), rho_inf(),
+                                                           U_inf(equations), linf))
+
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
+                                     output_directory = "analysis_results",
+                                     save_analysis = true,
+                                     analysis_integrals = (drag_coefficient,
+                                                           lift_coefficient))
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
+
+save_solution = SaveSolutionCallback(interval = 500,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
+
+# Small time step should be used to reach steady state
+stepsize_callback = StepsizeCallback(cfl = 0.25)
+
+amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
+
+amr_controller = ControllerThreeLevel(semi, amr_indicator,
+                                      base_level = 1,
+                                      med_level = 3, med_threshold = 0.05,
+                                      max_level = 4, max_threshold = 0.1)
+
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval = 100,
+                           adapt_initial_condition = true,
+                           adapt_initial_condition_only_refine = true)
+
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
+                        stepsize_callback, amr_callback)
+
+###############################################################################
+# run the simulation
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
+summary_callback() # print the timer summary
