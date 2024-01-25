@@ -1345,7 +1345,7 @@ end
         u_values = [SVector(0.1, -0.5, 1.0, 1.0, 2.0),
             SVector(-0.1, -0.3, 1.2, 1.3, 1.4)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-                  FluxLMARS(340)]
+            FluxLMARS(340)]
 
         for f_std in fluxes
             f_rot = FluxRotated(f_std)
