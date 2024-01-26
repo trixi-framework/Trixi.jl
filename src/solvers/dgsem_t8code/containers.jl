@@ -18,14 +18,14 @@ function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
     @unpack boundaries = cache
     resize!(boundaries, mesh.nboundaries)
 
-    trixi_t8_fill_mesh_info(mesh, elements, interfaces, mortars, boundaries,
-                            mesh.boundary_names)
+    fill_mesh_info(mesh, elements, interfaces, mortars, boundaries,
+                   mesh.boundary_names)
 
     return nothing
 end
 
 function count_required_surfaces!(mesh::T8codeMesh)
-    counts = trixi_t8_count_interfaces(mesh)
+    counts = count_interfaces(mesh)
 
     mesh.nmortars = counts.mortars
     mesh.ninterfaces = counts.interfaces
