@@ -33,7 +33,7 @@ function create_cache(mesh::ParallelT8codeMesh, equations::AbstractEquations, dg
                      neighbor_ranks_interface = fill(-1,
                                                      nmpiinterfaces(mpi_interfaces)))
 
-    fill_mesh_info(mesh, elements, interfaces, mortars, boundaries,
+    fill_mesh_info(mesh, interfaces, mortars, boundaries,
                    mesh.boundary_names; mpi_mesh_info = mpi_mesh_info)
 
     mpi_cache = init_mpi_cache(mesh, mpi_mesh_info, nvariables(equations), nnodes(dg),

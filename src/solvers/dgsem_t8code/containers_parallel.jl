@@ -27,7 +27,7 @@ function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM
                                                                  nmpimortars(mpi_mortars)),
                      neighbor_ranks_interface = fill(-1, nmpiinterfaces(mpi_interfaces)))
 
-    fill_mesh_info(mesh, elements, interfaces, mortars, boundaries,
+    fill_mesh_info(mesh, interfaces, mortars, boundaries,
                    mesh.boundary_names; mpi_mesh_info = mpi_mesh_info)
 
     init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info, nvariables(equations), nnodes(dg),
