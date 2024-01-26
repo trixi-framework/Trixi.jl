@@ -265,7 +265,7 @@ function temperature end
 """
     pressure(u, equations::AbstractCompressibleEulerMulticomponentEquations{2})
 
-Function that calculates the overall pressure.
+Calculates overall pressure.
 """
 @inline function pressure(u,
                           equations::AbstractCompressibleEulerMulticomponentEquations{2})
@@ -277,6 +277,22 @@ Function that calculates the overall pressure.
 
     p = (gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
     return p
+end
+
+"""
+    density_pressure(u, equations::AbstractCompressibleEulerMulticomponentEquations{2})
+
+Calculates overall density times overall pressure.
+"""
+@inline function density_pressure(u,
+                                  equations::AbstractCompressibleEulerMulticomponentEquations{2})
+    rho_v1, rho_v2, rho_e = u
+
+    rho = density(u, equations)
+    gamma = totalgamma(u, equations)
+
+    rho_times_p = (gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2))
+    return rho_times_p
 end
 
 """
@@ -617,7 +633,9 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
     inv_gamma_minus_one = 1 / (gamma - 1)
 
     # Average each factor of products in flux
-    f_rho = 0.5 * (u_ll[4:end] + u_rr[4:end])
+    f_rho = SVector{ncomponents(equations),
+                    real(equations)}(0.5 * (u_ll[i + 3] + u_rr[i + 3])
+                                     for i in eachcomponent(equations))
     rho_avg = 0.5 * (rho_ll + rho_rr)
     v1_avg = 0.5 * (v1_ll + v1_rr)
     v2_avg = 0.5 * (v2_ll + v2_rr)
@@ -663,7 +681,9 @@ end
     inv_gamma_minus_one = 1 / (gamma - 1)
 
     # Average each factor of products in flux
-    f_rho = 0.5 * (u_ll[4:end] + u_rr[4:end])
+    f_rho = SVector{ncomponents(equations),
+                    real(equations)}(0.5 * (u_ll[i + 3] + u_rr[i + 3])
+                                     for i in eachcomponent(equations))
     rho_avg = 0.5 * (rho_ll + rho_rr)
     v1_avg = 0.5 * (v1_ll + v1_rr)
     v2_avg = 0.5 * (v2_ll + v2_rr)
@@ -708,7 +728,9 @@ Kinetic energy preserving two-point flux by
     rho_rr = density(u_rr, equations)
 
     # Average each factor of products in flux
-    f_rho = 0.5 * (u_ll[4:end] + u_rr[4:end])
+    f_rho = SVector{ncomponents(equations),
+                    real(equations)}(0.5 * (u_ll[i + 3] + u_rr[i + 3])
+                                     for i in eachcomponent(equations))
     rho_avg = 0.5 * (rho_ll + rho_rr)
     v1_avg = 0.5 * (v1_ll + v1_rr)
     v2_avg = 0.5 * (v2_ll + v2_rr)
@@ -746,7 +768,9 @@ end
     rho_rr = density(u_rr, equations)
 
     # Average each factor of products in flux
-    f_rho = 0.5 * (u_ll[4:end] + u_rr[4:end])
+    f_rho = SVector{ncomponents(equations),
+                    real(equations)}(0.5 * (u_ll[i + 3] + u_rr[i + 3])
+                                     for i in eachcomponent(equations))
     rho_avg = 0.5 * (rho_ll + rho_rr)
     v1_avg = 0.5 * (v1_ll + v1_rr)
     v2_avg = 0.5 * (v2_ll + v2_rr)
@@ -810,12 +834,16 @@ References:
         f1, f2, f3 = v * u_ll
         f3 = f3 + p_ll * v
         # density fluxes
-        f_rho = u_ll[4:end] .* v
+        f_rho = SVector{ncomponents(equations),
+                        real(equations)}(u_ll[i + 3] * v
+                                         for i in eachcomponent(equations))
     else
         f1, f2, f3 = v * u_rr
         f3 = f3 + p_rr * v
         # density fluxes
-        f_rho = u_rr[4:end] .* v
+        f_rho = SVector{ncomponents(equations),
+                        real(equations)}(u_rr[i + 3] * v
+                                         for i in eachcomponent(equations))
     end
 
     if orientation == 1
@@ -858,12 +886,16 @@ end
         f1, f2, f3 = u_ll * v
         f3 = f3 + p_ll * v
         # density fluxes
-        f_rho = u_ll[4:end] .* v
+        f_rho = SVector{ncomponents(equations),
+                        real(equations)}(u_ll[i + 3] * v
+                                         for i in eachcomponent(equations))
     else
         f1, f2, f3 = u_rr * v
         f3 = f3 + p_rr * v
         # density fluxes
-        f_rho = u_rr[4:end] .* v
+        f_rho = SVector{ncomponents(equations),
+                        real(equations)}(u_rr[i + 3] * v
+                                         for i in eachcomponent(equations))
     end
     f1 = f1 + p * normal_direction[1]
     f2 = f2 + p * normal_direction[2]

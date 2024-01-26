@@ -125,13 +125,25 @@ Calculate pressure. This differs from the calculation in `AbstractCompressibleEu
 end
 
 """
+    density_pressure(u, equations::CompressibleMoistEulerEquations2D)
+
+Calculates overall density times overall pressure.
+"""
+@inline function density_pressure(u,
+                                  equations::CompressibleMoistEulerEquations2D)
+    rho = density(u, equations)
+    p = pressure(u, equations)
+    return rho * p
+end
+
+"""
 temperature(u, equations::CompressibleMoistEulerEquations2D)
 
 Calculate temperature. Account for latent heat.
 """
 @inline function temperature(u, equations::CompressibleMoistEulerEquations2D)
     @unpack c_v, L_00 = equations
-    rho_v1, rho_v2, rho_e = u
+    rho_v1, rho_v2, rho_e, rho_d, rho_v = u
 
     rho = density(u, equations)
     help1 = zero(rho)
