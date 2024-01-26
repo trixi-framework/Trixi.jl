@@ -913,7 +913,7 @@ function fill_mesh_info(mesh::T8codeMesh, interfaces, mortars, boundaries,
                 #       else: // `local mortar from smaller elements point of view`
                 #         <skip> // We only count local mortars once.
                 #
-                #     else: // It must be eiter a MPI interface or a MPI mortar.     
+                #     else: // It must be either a MPI interface or a MPI mortar.     
                 #
                 #       if `MPI interface`:
                 #         <fill MPI interface info>
