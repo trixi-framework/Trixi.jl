@@ -391,6 +391,27 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_NACA6412airfoil_mach2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_NACA6412airfoil_mach2.jl"),
+                        l2=[
+                            1.9752162683735258e-9, 3.150450205812513e-9,
+                            1.8885499402935914e-9, 7.273629602920966e-9,
+                        ],
+                        linf=[
+                            6.007577890709825e-7, 1.005273289944597e-6,
+                            5.948514542597182e-7, 2.3111764217986774e-6,
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_eulergravity_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
                         l2=[
