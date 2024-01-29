@@ -29,11 +29,6 @@ function ComputePERK2_ButcherTableau(NumStages::Int, BasePathMonCoeffs::Abstract
   for k in 2:NumStages
     c[k] = cEnd * (k - 1)/(NumStages - 1)
   end
-  #=
-  for k in 2:NumStages
-    c[k] = (k - 1)/(2.0*(NumStages - 1))
-  end
-  =#
   println("Timestep-split: "); display(c); println("\n")
   SE_Factors = bS * reverse(c[2:end-1])
 
@@ -86,7 +81,7 @@ mutable struct PERK2 <: PERKSingle
   cEnd::Float64
 
   # Constructor for previously computed A Coeffs
-  function PERK2(NumStages_::Int, BasePathMonCoeffs_::AbstractString, bS_::Float64, cEnd_::Float64)
+  function PERK2(NumStages_::Int, BasePathMonCoeffs_::AbstractString, bS_::Float64=1.0, cEnd_::Float64=0.5)
 
     newPERK2 = new(NumStages_)
 
@@ -121,7 +116,7 @@ abstract type PERKSingle_Integrator <: PERK_Integrator end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
-mutable struct PERK2_Integrator{RealT<:Real, uType, Params, Sol, F, Alg, PERK2_IntegratorOptions} <: PERKSingle_Integrator
+mutable struct PERK2_Integrator{RealT<:Real, uType, Params, Sol, F, Alg, PERK_IntegratorOptions} <: PERKSingle_Integrator
   u::uType
   du::uType
   u_tmp::uType
@@ -139,7 +134,6 @@ mutable struct PERK2_Integrator{RealT<:Real, uType, Params, Sol, F, Alg, PERK2_I
   k1::uType
   k_higher::uType
   t_stage::RealT
-  du_ode_hyp::uType # TODO: Not best solution since this is not needed for hyperbolic problems
 end
 
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
@@ -169,7 +163,7 @@ function solve(ode::ODEProblem, alg::PERK2;
   integrator = PERK2_Integrator(u0, du, u_tmp, t0, dt, zero(dt), iter, ode.p,
                               (prob=ode,), ode.f, alg,
                               PERK_IntegratorOptions(callback, ode.tspan; kwargs...), false,
-                              k1, k_higher, t0, du_ode_hyp)
+                              k1, k_higher, t0)
             
   # initialize callbacks
   if callback isa CallbackSet
