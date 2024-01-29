@@ -65,6 +65,7 @@ files = [
     "Adaptive mesh refinement" => "adaptive_mesh_refinement.jl",
     "Structured mesh with curvilinear mapping" => "structured_mesh_mapping.jl",
     "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.jl",
+    "P4est mesh from gmsh" => "p4est_from_gmsh.jl",
     # Topic: other stuff
     "Explicit time stepping" => "time_stepping.jl",
     "Differentiable programming" => "differentiable_programming.jl",
