@@ -338,7 +338,7 @@ end
     v_rr = (v1_rr * normal_direction[1]
             +
             v2_rr * normal_direction[2])
-    c_rr = sqrt(equations.gamma * equations.gamma * rho_rr^(equations.gamma - 1))
+    c_rr = sqrt(equations.gamma * equations.kappa * rho_rr^(equations.gamma - 1))
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
