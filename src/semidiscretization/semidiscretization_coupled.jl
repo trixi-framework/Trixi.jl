@@ -41,8 +41,9 @@ function SemidiscretizationCoupled(semis...)
 
     performance_counter = PerformanceCounter()
 
-    SemidiscretizationCoupled{typeof(semis), typeof(u_indices), typeof(performance_counter)
-                              }(semis, u_indices, performance_counter)
+    SemidiscretizationCoupled{typeof(semis), typeof(u_indices),
+                              typeof(performance_counter)}(semis, u_indices,
+                                                           performance_counter)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupled)
@@ -371,9 +372,8 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indic
     other_semi_index  :: Int
     other_orientation :: Int
     indices           :: Indices
-    coupling_converter :: Function
 
-    function BoundaryConditionCoupled(other_semi_index, indices, uEltype, coupling_converter)
+    function BoundaryConditionCoupled(other_semi_index, indices, uEltype)
         NDIMS = length(indices)
         u_boundary = Array{uEltype, NDIMS * 2 - 1}(undef, ntuple(_ -> 0, NDIMS * 2 - 1))
 
@@ -386,7 +386,7 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indic
         end
 
         new{NDIMS, NDIMS * 2 - 1, uEltype, typeof(indices)}(u_boundary, other_semi_index,
-                                                            other_orientation, indices, coupling_converter)
+                                                            other_orientation, indices)
     end
 end
 
@@ -433,8 +433,7 @@ function allocate_coupled_boundary_condition(boundary_condition, direction, mesh
 end
 
 # In 2D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2
-                                                                                          },
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2},
                                              direction, mesh, equations, dg::DGSEM)
     if direction in (1, 2)
         cell_size = size(mesh, 2)
@@ -496,12 +495,9 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
 
         for i in eachnode(solver)
             for v in 1:size(u, 1)
-                x = cache.elements.node_coordinates[:, i_node, j_node, linear_indices[i_cell, j_cell]]
-                converted_u = boundary_condition.coupling_converter(x, u[:, i_node, j_node, linear_indices[i_cell, j_cell]])
-                boundary_condition.u_boundary[v, i, cell] = converted_u[v]
-                # boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node,
-                #                                               linear_indices[i_cell,
-                #                                                              j_cell]]
+                boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node,
+                                                              linear_indices[i_cell,
+                                                                             j_cell]]
             end
             i_node += i_node_step
             j_node += j_node_step
