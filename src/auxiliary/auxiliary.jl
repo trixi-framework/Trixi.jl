@@ -350,7 +350,8 @@ end
     Trixi.download(src_url, file_path)
 
 Download a file from given `src_url` to given `file_path` if
-`file_path` is not already a file.
+`file_path` is not already a file. This function just returns
+`file_path`.
 This is a small wrapper of `Downloads.download(src_url, file_path)`
 that avoids race conditions when multiple MPI ranks are used.
 """
