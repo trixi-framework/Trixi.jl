@@ -993,9 +993,9 @@ end
     (; bar_states1, bar_states2) = limiter.cache.container_bar_states
 
     @threaded for element in eachelement(dg, cache)
-        for v in eachvariable(equations)
-            var_min[v, :, :, element] .= typemax(eltype(var_min))
-            var_max[v, :, :, element] .= typemin(eltype(var_max))
+        for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+            var_min[v, i, j, element] = typemax(eltype(var_min))
+            var_max[v, i, j, element] = typemin(eltype(var_max))
         end
 
         if limiter.density_limiter
