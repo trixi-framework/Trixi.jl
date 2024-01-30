@@ -316,7 +316,7 @@ end
         v_ll = v2_ll
         v_rr = v2_rr
     end
-    # Calculate sound speeds
+    # Calculate sound speeds (we have p = kappa * rho^gamma)
     c_ll = sqrt(equations.gamma * equations.kappa * rho_ll^(equations.gamma - 1))
     c_rr = sqrt(equations.gamma * equations.kappa * rho_rr^(equations.gamma - 1))
 
