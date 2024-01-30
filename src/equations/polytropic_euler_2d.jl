@@ -333,7 +333,7 @@ end
     v_ll = (v1_ll * normal_direction[1]
             +
             v2_ll * normal_direction[2])
-    c_ll = sqrt(equations.gamma * equations.gamma * rho_ll^(equations.gamma - 1))
+    c_ll = sqrt(equations.gamma * equations.kappa * rho_ll^(equations.gamma - 1))
     # right
     v_rr = (v1_rr * normal_direction[1]
             +
