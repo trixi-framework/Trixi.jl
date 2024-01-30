@@ -190,19 +190,19 @@ end
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    limiter::SubcellLimiterMCL)
-    @unpack mcl_bounds_delta = limiter.cache
+    @unpack mcl_bounds_delta_global = limiter.cache
 
     println("─"^100)
     println("Maximum deviation from bounds:")
     println("─"^100)
     variables = varnames(cons2cons, semi.equations)
     for v in eachvariable(semi.equations)
-        println(variables[v], ":\n- lower bound: ", mcl_bounds_delta[2, 1, v],
-                "\n- upper bound: ", mcl_bounds_delta[2, 2, v])
+        println(variables[v], ":\n- lower bound: ", mcl_bounds_delta_global[1, v],
+                "\n- upper bound: ", mcl_bounds_delta_global[2, v])
     end
     if limiter.positivity_limiter_pressure
         println("pressure:\n- positivity: ",
-                mcl_bounds_delta[2, 1, nvariables(semi.equations) + 1])
+                mcl_bounds_delta_global[1, nvariables(semi.equations) + 1])
     end
     if limiter.entropy_limiter_semidiscrete
         # TODO: Bounds check for entropy limiting

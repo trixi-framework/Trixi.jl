@@ -877,9 +877,13 @@ function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquat
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # [maximum since the last export / total maximum, min / max, variable]
-    mcl_bounds_delta = zeros(real(basis), 2, 2,
-                             nvariables(equations) + positivity_limiter_pressure)
+    mcl_bounds_delta_local = zeros(real(basis), 2,
+                                   nvariables(equations) + positivity_limiter_pressure)
 
-    return (; subcell_limiter_coefficients, container_bar_states, mcl_bounds_delta)
+    mcl_bounds_delta_global = zeros(real(basis), 2,
+                                    nvariables(equations) + positivity_limiter_pressure)
+
+    return (; subcell_limiter_coefficients, container_bar_states,
+            mcl_bounds_delta_local, mcl_bounds_delta_global)
 end
 end # @muladd
