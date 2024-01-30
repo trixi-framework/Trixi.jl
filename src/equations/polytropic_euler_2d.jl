@@ -317,8 +317,8 @@ end
         v_rr = v2_rr
     end
     # Calculate sound speeds
-    c_ll = sqrt(equations.gamma * equations.gamma * rho_ll^(equations.gamma - 1))
-    c_rr = sqrt(equations.gamma * equations.gamma * rho_rr^(equations.gamma - 1))
+    c_ll = sqrt(equations.gamma * equations.kappa * rho_ll^(equations.gamma - 1))
+    c_rr = sqrt(equations.gamma * equations.kappa * rho_rr^(equations.gamma - 1))
 
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
