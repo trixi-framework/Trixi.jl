@@ -342,8 +342,8 @@ end
 
             # Perform Newton's bisection method to find new alpha
             newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j, element,
-                                variable, initial_check_nonnegative,
-                                final_check_nonnegative, inverse_jacobian,
+                                variable, initial_check_nonnegative_newton_idp,
+                                final_check_nonnegative_newton_idp, inverse_jacobian,
                                 dt, equations, dg, cache, limiter)
         end
     end
@@ -405,7 +405,7 @@ end
 
     # If state is valid, perform initial check and return if correction is not needed
     if is_valid_state(u_curr, equations)
-        goal = goal_function(variable, bound, u_curr, equations)
+        goal = goal_function_newton_idp(variable, bound, u_curr, equations)
 
         initial_check(bound, goal, newton_abstol) && return nothing
     end
@@ -416,8 +416,8 @@ end
 
         # If the state is valid, evaluate d(goal)/d(beta)
         if is_valid_state(u_curr, equations)
-            dgoal_dbeta = dgoal_function(variable, u_curr, dt, antidiffusive_flux,
-                                         equations)
+            dgoal_dbeta = dgoal_function_newton_idp(variable, u_curr, dt,
+                                                    antidiffusive_flux, equations)
         else # Otherwise, perform a bisection step
             dgoal_dbeta = 0
         end
@@ -441,7 +441,7 @@ end
             end
 
             # Check new beta for condition and update bounds
-            goal = goal_function(variable, bound, u_curr, equations)
+            goal = goal_function_newton_idp(variable, bound, u_curr, equations)
             if initial_check(bound, goal, newton_abstol)
                 # New beta fulfills condition
                 beta_L = beta
@@ -460,7 +460,7 @@ end
             end
 
             # Evaluate goal function
-            goal = goal_function(variable, bound, u_curr, equations)
+            goal = goal_function_newton_idp(variable, bound, u_curr, equations)
         end
 
         # Check relative tolerance
@@ -484,17 +484,20 @@ end
     return nothing
 end
 
+### Auxiliary routines for Newton's bisection method ###
 # Initial checks
-@inline initial_check_nonnegative(bound, goal, newton_abstol) = goal <= 0
+@inline initial_check_nonnegative_newton_idp(bound, goal, newton_abstol) = goal <= 0
 
 # Goal and d(Goal)d(u) function
-@inline goal_function(variable, bound, u, equations) = bound - variable(u, equations)
-@inline function dgoal_function(variable, u, dt, antidiffusive_flux, equations)
-    -dot(variable_derivative(variable, u, equations), dt * antidiffusive_flux)
+@inline goal_function_newton_idp(variable, bound, u, equations) = bound -
+                                                                  variable(u, equations)
+@inline function dgoal_function_newton_idp(variable, u, dt, antidiffusive_flux,
+                                           equations)
+    -dot(gradient_u(variable, u, equations), dt * antidiffusive_flux)
 end
 
 # Final checks
-@inline function final_check_nonnegative(bound, goal, newton_abstol)
+@inline function final_check_nonnegative_newton_idp(bound, goal, newton_abstol)
     (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 end
 end # @muladd

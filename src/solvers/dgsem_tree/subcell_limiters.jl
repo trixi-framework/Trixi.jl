@@ -124,10 +124,15 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
     if !(local_minmax || positivity)
         print(io, "No limiter selected => pure DG method")
     else
-        print(io, "Limiter=(")
-        local_minmax && print(io, "Local min/max, ")
-        positivity && print(io, "Positivity, ")
-        print(io, "), ")
+        features = String[]
+        if local_minmax
+            push!(features, "local min/max")
+        end
+        if positivity
+            push!(features, "positivity")
+        end
+        join(io, features, ", ")
+        print(io, "Limiter=($features), ")
     end
     print(io, "Local bounds with FV solution")
     print(io, ")")
