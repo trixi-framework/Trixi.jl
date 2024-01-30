@@ -611,7 +611,7 @@ function balance!(mesh::T8codeMesh)
 end
 
 """
-    partition!(mesh::T8codeMesh)
+    Trixi.partition!(mesh::T8codeMesh)
 
 Partition a `T8codeMesh` in order to redistribute elements evenly among MPI ranks.
 
