@@ -107,7 +107,6 @@ makedocs(
             ],
             "Time integration" => "time_integration.md",
             "Callbacks" => "callbacks.md",
-            "Coupling" => "multi-physics_coupling.md"
         ],
         "Advanced topics & developers" => [
             "Conventions" =>"conventions.md",
