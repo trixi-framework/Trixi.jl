@@ -590,7 +590,7 @@ function adapt!(mesh::T8codeMesh, adapt_callback; recursive = true, balance = tr
 end
 
 """
-    balance!(mesh::T8codeMesh)
+    Trixi.balance!(mesh::T8codeMesh)
 
 Balance a `T8codeMesh` to ensure 2^(NDIMS-1):1 face neighbors.
 """
