@@ -590,7 +590,7 @@ function adapt!(mesh::T8codeMesh, adapt_callback; recursive = true, balance = tr
 end
 
 """
-    balance!(mesh::T8codeMesh)
+    Trixi.balance!(mesh::T8codeMesh)
 
 Balance a `T8codeMesh` to ensure 2^(NDIMS-1):1 face neighbors.
 """
@@ -611,7 +611,7 @@ function balance!(mesh::T8codeMesh)
 end
 
 """
-    partition!(mesh::T8codeMesh)
+    Trixi.partition!(mesh::T8codeMesh)
 
 Partition a `T8codeMesh` in order to redistribute elements evenly among MPI ranks.
 
