@@ -275,7 +275,7 @@ end
         for j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, element]
             if var < 0
-                error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
+                error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
             end
 
             # Compute bound
@@ -336,7 +336,7 @@ end
             u_local = get_node_vars(u, equations, dg, i, j, element)
             var = variable(u_local, equations)
             if var < 0
-                error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
+                error("Safe low-order method produces negative value for variable $variable. Try a smaller time step.")
             end
             var_min[i, j, element] = positivity_correction_factor * var
 
