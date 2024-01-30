@@ -810,6 +810,98 @@ end
 end
 
 """
+    FluxLMARS(c)(u_ll, u_rr, orientation_or_normal_direction,
+                 equations::CompressibleEulerEquations2D)
+
+Low Mach number approximate Riemann solver (LMARS) for atmospheric flows using
+an estimate `c` of the speed of sound.
+
+References:
+- Xi Chen et al. (2013)
+  A Control-Volume Model of the Compressible Euler Equations with a Vertical
+  Lagrangian Coordinate
+  [DOI: 10.1175/MWR-D-12-00129.1](https://doi.org/10.1175/mwr-d-12-00129.1)
+"""
+struct FluxLMARS{SpeedOfSound}
+    # Estimate for the speed of sound
+    speed_of_sound::SpeedOfSound
+end
+
+@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, orientation::Integer,
+                                         equations::CompressibleEulerEquations2D)
+    c = flux_lmars.speed_of_sound
+
+    # Unpack left and right state
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+    if orientation == 1
+        v_ll = v1_ll
+        v_rr = v1_rr
+    else # orientation == 2
+        v_ll = v2_ll
+        v_rr = v2_rr
+    end
+
+    rho = 0.5 * (rho_ll + rho_rr)
+    p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll)
+    v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll)
+
+    # We treat the energy term analogous to the potential temperature term in the paper by
+    # Chen et al., i.e. we use p_ll and p_rr, and not p
+    if v >= 0
+        f1, f2, f3, f4 = v * u_ll
+        f4 = f4 + p_ll * v
+    else
+        f1, f2, f3, f4 = v * u_rr
+        f4 = f4 + p_rr * v
+    end
+
+    if orientation == 1
+        f2 = f2 + p
+    else # orientation == 2
+        f3 = f3 + p
+    end
+
+    return SVector(f1, f2, f3, f4)
+end
+
+@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, normal_direction::AbstractVector,
+                                         equations::CompressibleEulerEquations2D)
+    c = flux_lmars.speed_of_sound
+
+    # Unpack left and right state
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+    v_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    # Note that this is the same as computing v_ll and v_rr with a normalized normal vector
+    # and then multiplying v by `norm_` again, but this version is slightly faster.
+    norm_ = norm(normal_direction)
+
+    rho = 0.5 * (rho_ll + rho_rr)
+    p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll) / norm_
+    v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll) * norm_
+
+    # We treat the energy term analogous to the potential temperature term in the paper by
+    # Chen et al., i.e. we use p_ll and p_rr, and not p
+    if v >= 0
+        f1, f2, f3, f4 = u_ll * v
+        f4 = f4 + p_ll * v
+    else
+        f1, f2, f3, f4 = u_rr * v
+        f4 = f4 + p_rr * v
+    end
+
+    return SVector(f1,
+                   f2 + p * normal_direction[1],
+                   f3 + p * normal_direction[2],
+                   f4)
+end
+
+"""
     splitting_vanleer_haenel(u, orientation::Integer,
                              equations::CompressibleEulerEquations2D)
     splitting_vanleer_haenel(u, which::Union{Val{:minus}, Val{:plus}}

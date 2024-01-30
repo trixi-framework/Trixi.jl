@@ -408,6 +408,11 @@ See also
     return SVector(f1, f2, f3)
 end
 
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
+# the normal component is incorporated into the numerical flux. 
+# 
+# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a 
+# similar implementation.
 @inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector,
                               equations::CompressibleEulerEquations1D)
     return normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)
