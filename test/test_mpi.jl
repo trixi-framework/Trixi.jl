@@ -19,7 +19,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
     # TreeMesh tests
     include("test_mpi_tree.jl")
 
-    # P4estMesh tests
+    # P4estMesh and T8codeMesh tests
     include("test_mpi_p4est_2d.jl")
     include("test_mpi_t8code_2d.jl")
     if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` above

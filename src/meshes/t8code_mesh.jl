@@ -780,8 +780,8 @@ end
 # makes sense to query it only once per face per element and extract all the
 # information needed at once in order to fill the connectivity information.
 # Instead, I opted for good documentation.
-function fill_mesh_info(mesh::T8codeMesh, interfaces, mortars, boundaries,
-                        boundary_names; mpi_mesh_info = nothing)
+function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
+                         boundary_names; mpi_mesh_info = nothing)
     @assert t8_forest_is_committed(mesh.forest) != 0
 
     num_local_elements = t8_forest_get_local_num_elements(mesh.forest)
