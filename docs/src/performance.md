@@ -269,10 +269,10 @@ requires. It can thus be seen as a proxy for "energy used" and, as an extension,
     discard the first PID value.
 
 ## Performance issues due to false sharing
-False sharing is a known performance issue for with distributed caches. It also occurred for
-the implementation of a thread parallel bounds checking routine for the subcell IDP limiting
+False sharing is a known performance issue for systems with distributed caches. It also occurred
+for the implementation of a thread parallel bounds checking routine for the subcell IDP limiting
 in [PR #1736](https://github.com/trixi-framework/Trixi.jl/pull/1736).
-After some [experimentation and discussion](https://github.com/trixi-framework/Trixi.jl/pull/1736#discussion_r1423881895)
+After some [testing and discussion](https://github.com/trixi-framework/Trixi.jl/pull/1736#discussion_r1423881895),
 it turned out that initializing a vector of length `n * Threads.nthreads()` and only using every
 n-th entry instead of a vector of length `Threads.nthreads()` fixes the problem.
 Since there are no processors with caches over 128B, we use `n = 128B / size(uEltype)`.
