@@ -314,6 +314,16 @@ end
 function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
                 dg::DGSEM, cache, difference)
 
+    # Return early if there is nothing to do.
+    if !any(difference .!= 0)
+        if mpi_isparallel()
+            # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+            # locally (there still might be other MPI ranks that have refined elements)
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
+        return
+    end
+
     # Number of (local) cells/elements.
     old_nelems = nelements(dg, cache)
     new_nelems = ncells(mesh)
