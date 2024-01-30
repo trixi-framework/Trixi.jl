@@ -121,7 +121,7 @@ end
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    limiter::SubcellLimiterIDP)
     (; local_minmax, positivity) = limiter
-    (; idp_bounds_delta) = limiter.cache
+    (; idp_bounds_delta_global) = limiter.cache
     variables = varnames(cons2cons, semi.equations)
 
     println("─"^100)
@@ -131,8 +131,10 @@ end
         for v in limiter.local_minmax_variables_cons
             v_string = string(v)
             println("$(variables[v]):")
-            println("-lower bound: ", idp_bounds_delta[Symbol(v_string, "_min")][2])
-            println("-upper bound: ", idp_bounds_delta[Symbol(v_string, "_max")][2])
+            println("- lower bound: ",
+                    idp_bounds_delta_global[Symbol(v_string, "_min")])
+            println("- upper bound: ",
+                    idp_bounds_delta_global[Symbol(v_string, "_max")])
         end
     end
     if positivity
@@ -141,7 +143,7 @@ end
                 continue
             end
             println(string(variables[v]) * ":\n- positivity: ",
-                    idp_bounds_delta[Symbol(string(v), "_min")][2])
+                    idp_bounds_delta_global[Symbol(string(v), "_min")])
         end
         for variable in limiter.positivity_variables_nonlinear
             variable_string = string(variable)
