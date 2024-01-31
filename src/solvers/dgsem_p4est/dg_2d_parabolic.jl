@@ -19,9 +19,29 @@ function create_cache_parabolic(mesh::P4estMesh{2}, equations_hyperbolic::Abstra
     return cache
 end
 
-# TODO: Remove in favor of the implementation for the TreeMesh 
-#       once the P4estMesh can handle mortars as well
-function rhs_parabolic!(du, u, t, mesh::P4estMesh{2},
+#=
+Reusing `rhs_parabolic!` for `TreeMesh`es is not easily possible as 
+for `P4estMesh`es we call 
+
+    ```
+    prolong2mortars_divergence!(cache, flux_viscous, mesh, equations_parabolic,
+                                dg.mortar, dg.surface_integral, dg)
+
+    calc_mortar_flux_divergence!(cache_parabolic.elements.surface_flux_values,
+                                 mesh, equations_parabolic, dg.mortar,
+                                 dg.surface_integral, dg, cache)
+    ```                                
+instead of 
+    ```
+    prolong2mortars!(cache, flux_viscous, mesh, equations_parabolic,
+                     dg.mortar, dg.surface_integral, dg)
+
+    calc_mortar_flux!(cache_parabolic.elements.surface_flux_values, mesh,
+                      equations_parabolic,
+                      dg.mortar, dg.surface_integral, dg, cache)
+    ```
+=#
+function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
                         equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)

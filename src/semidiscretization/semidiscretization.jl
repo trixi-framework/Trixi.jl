@@ -253,6 +253,9 @@ end
 
 function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
     new_semi = remake(semi, uEltype = eltype(config))
+    # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
         Trixi.rhs!(du_ode, u_ode, new_semi, t0)
     end
@@ -279,6 +282,9 @@ end
 
 function _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
     new_semi = remake(semi, uEltype = eltype(config))
+    # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode_plain, u0_ode_plain,
                              config) do du_ode_plain, u_ode_plain
         u_ode = StructArray{SVector{nvariables(semi), eltype(config)}}(ntuple(v -> view(u_ode_plain,

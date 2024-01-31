@@ -355,6 +355,31 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_shallowwater_wall.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_wall.jl"),
+                        l2=[
+                            0.13517233723296504,
+                            0.20010876311162215,
+                            0.20010876311162223,
+                            2.719538414346464e-7,
+                        ],
+                        linf=[
+                            0.5303607982988336,
+                            0.5080989745682338,
+                            0.5080989745682352,
+                            1.1301675764130437e-6,
+                        ],
+                        tspan=(0.0, 0.25))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 end # module
