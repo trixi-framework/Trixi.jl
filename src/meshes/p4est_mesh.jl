@@ -1700,6 +1700,10 @@ function bilinear_interpolation!(coordinate, face_vertices, u, v)
     end
 end
 
+function get_global_first_element_ids(mesh::P4estMesh)
+    return unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
+end
+
 function balance!(mesh::P4estMesh{2}, init_fn = C_NULL)
     p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
     # Due to a bug in `p4est`, the forest needs to be rebalanced twice sometimes
