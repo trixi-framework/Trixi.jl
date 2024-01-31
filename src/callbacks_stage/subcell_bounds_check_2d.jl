@@ -49,7 +49,8 @@
         @threaded for element in eachelement(solver, cache)
             deviation = deviation_threaded[stride_size * Threads.threadid()]
             for j in eachnode(solver), i in eachnode(solver)
-                s = entropy_spec(get_node_vars(u, equations, solver, i, j, element), equations)
+                s = entropy_spec(get_node_vars(u, equations, solver, i, j, element),
+                                 equations)
                 deviation = max(deviation, variable_bounds[key][i, j, element] - s)
             end
             deviation_threaded[stride_size * Threads.threadid()] = deviation
@@ -61,7 +62,8 @@
         @threaded for element in eachelement(solver, cache)
             deviation = deviation_threaded[stride_size * Threads.threadid()]
             for j in eachnode(solver), i in eachnode(solver)
-                s = entropy_math(get_node_vars(u, equations, solver, i, j, element), equations)
+                s = entropy_math(get_node_vars(u, equations, solver, i, j, element),
+                                 equations)
                 deviation = max(deviation, s - variable_bounds[key][i, j, element])
             end
             deviation_threaded[stride_size * Threads.threadid()] = deviation

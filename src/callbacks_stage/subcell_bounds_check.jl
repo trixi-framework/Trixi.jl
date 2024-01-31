@@ -164,11 +164,6 @@ end
             println(variable_string * ":\n- positivity: ",
                     idp_bounds_delta_global[Symbol(variable_string, "_min")])
         end
-        for variable in limiter.positivity_variables_nonlinear
-            variable_string = string(variable)
-            println(variable_string * ":\n- positivity: ",
-                    idp_bounds_delta_global[Symbol(variable_string, "_min")])
-        end
     end
     println("─"^100 * "\n")
 
