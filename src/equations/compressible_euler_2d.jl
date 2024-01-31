@@ -1633,8 +1633,8 @@ end
 end
 
 # Transformation from conservative variables u to d(p)/d(u)
-@inline function gradient_u(::typeof(pressure),
-                            u, equations::CompressibleEulerEquations2D)
+@inline function gradient_conservative(::typeof(pressure),
+                                       u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
 
     v1 = rho_v1 / rho
@@ -1712,10 +1712,10 @@ end
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
 
-# State validation for subcell limiting using Newton-bisection method
-@inline function is_valid_state(cons, equations::CompressibleEulerEquations2D)
-    p = pressure(cons, equations)
-    if cons[1] <= 0.0 || p <= 0.0
+# State validation for Newton-bisection method of subcell IDP limiting
+@inline function Base.isvalid(u, equations::CompressibleEulerEquations2D)
+    p = pressure(u, equations)
+    if u[1] <= 0.0 || p <= 0.0
         return false
     end
     return true

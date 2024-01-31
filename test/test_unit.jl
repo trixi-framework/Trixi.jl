@@ -1221,7 +1221,7 @@ end
     end
 end
 
-@testset "Consistency check for `gradient_u` routine" begin
+@testset "Consistency check for `gradient_conservative` routine" begin
     # Set up conservative variables, equations
     u = [
         0.5011914484393387,
@@ -1237,8 +1237,8 @@ end
         return pressure(u, equations)
     end
 
-    @test Trixi.gradient_u(pressure_test, u, equations) ≈
-          Trixi.gradient_u(pressure, u, equations)
+    @test Trixi.gradient_conservative(pressure_test, u, equations) ≈
+          Trixi.gradient_conservative(pressure, u, equations)
 end
 
 @testset "Equivalent Fluxes" begin

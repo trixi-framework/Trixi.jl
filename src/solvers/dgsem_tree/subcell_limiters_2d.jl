@@ -415,7 +415,7 @@ end
     u_curr = u + beta * dt * antidiffusive_flux
 
     # If state is valid, perform initial check and return if correction is not needed
-    if is_valid_state(u_curr, equations)
+    if isvalid(u_curr, equations)
         goal = goal_function_newton_idp(variable, bound, u_curr, equations)
 
         initial_check(bound, goal, newton_abstol) && return nothing
@@ -426,7 +426,7 @@ end
         beta_old = beta
 
         # If the state is valid, evaluate d(goal)/d(beta)
-        if is_valid_state(u_curr, equations)
+        if isvalid(u_curr, equations)
             dgoal_dbeta = dgoal_function_newton_idp(variable, u_curr, dt,
                                                     antidiffusive_flux, equations)
         else # Otherwise, perform a bisection step
@@ -446,7 +446,7 @@ end
             u_curr = u + beta * dt * antidiffusive_flux
 
             # If the state is invalid, finish bisection step without checking tolerance and iterate further
-            if !is_valid_state(u_curr, equations)
+            if !isvalid(u_curr, equations)
                 beta_R = beta
                 continue
             end
@@ -465,7 +465,7 @@ end
             u_curr = u + beta * dt * antidiffusive_flux
 
             # If the state is invalid, redefine right bound without checking tolerance and iterate further
-            if !is_valid_state(u_curr, equations)
+            if !isvalid(u_curr, equations)
                 beta_R = beta
                 continue
             end
@@ -504,7 +504,7 @@ end
                                                                   variable(u, equations)
 @inline function dgoal_function_newton_idp(variable, u, dt, antidiffusive_flux,
                                            equations)
-    -dot(gradient_u(variable, u, equations), dt * antidiffusive_flux)
+    -dot(gradient_conservative(variable, u, equations), dt * antidiffusive_flux)
 end
 
 # Final checks
