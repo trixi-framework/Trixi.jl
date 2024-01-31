@@ -46,7 +46,7 @@ function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
 
     if save_errors
         @trixi_timeit timer() "check_bounds" save_bounds_check_errors(callback.output_directory,
-                                                                      t, iter + 1,
+                                                                      u, t, iter + 1,
                                                                       equations,
                                                                       solver.volume_integral)
     end
@@ -62,14 +62,14 @@ end
     check_bounds(u, mesh, equations, solver, cache, volume_integral.limiter)
 end
 
-@inline function save_bounds_check_errors(output_directory, t, iter, equations,
+@inline function save_bounds_check_errors(output_directory, u, t, iter, equations,
                                           volume_integral::AbstractVolumeIntegral)
     return nothing
 end
 
-@inline function save_bounds_check_errors(output_directory, t, iter, equations,
+@inline function save_bounds_check_errors(output_directory, u, t, iter, equations,
                                           volume_integral::VolumeIntegralSubcellLimiting)
-    save_bounds_check_errors(output_directory, t, iter, equations,
+    save_bounds_check_errors(output_directory, u, t, iter, equations,
                              volume_integral.limiter)
 end
 
@@ -159,7 +159,7 @@ end
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    limiter::SubcellLimiterIDP)
     (; local_minmax, positivity, spec_entropy, math_entropy) = limiter
-    (; idp_bounds_delta) = limiter.cache
+    (; idp_bounds_delta_global) = limiter.cache
     variables = varnames(cons2cons, semi.equations)
 
     println("─"^100)
@@ -169,17 +169,19 @@ end
         for v in limiter.local_minmax_variables_cons
             v_string = string(v)
             println("$(variables[v]):")
-            println("-lower bound: ", idp_bounds_delta[Symbol(v_string, "_min")][2])
-            println("-upper bound: ", idp_bounds_delta[Symbol(v_string, "_max")][2])
+            println("- lower bound: ",
+                    idp_bounds_delta_global[Symbol(v_string, "_min")])
+            println("- upper bound: ",
+                    idp_bounds_delta_global[Symbol(v_string, "_max")])
         end
     end
     if spec_entropy
         println("spec. entropy:\n- lower bound: ",
-                idp_bounds_delta[:spec_entropy_min][2])
+                idp_bounds_delta_global[:spec_entropy_min])
     end
     if math_entropy
         println("math. entropy:\n- upper bound: ",
-                idp_bounds_delta[:math_entropy_max][2])
+                idp_bounds_delta_global[:math_entropy_max])
     end
     if positivity
         for v in limiter.positivity_variables_cons
@@ -187,12 +189,12 @@ end
                 continue
             end
             println(string(variables[v]) * ":\n- positivity: ",
-                    idp_bounds_delta[Symbol(string(v), "_min")][2])
+                    idp_bounds_delta_global[Symbol(string(v), "_min")])
         end
         for variable in limiter.positivity_variables_nonlinear
             variable_string = string(variable)
             println(variable_string * ":\n- positivity: ",
-                    idp_bounds_delta[Symbol(variable_string, "_min")][2])
+                    idp_bounds_delta_global[Symbol(variable_string, "_min")])
         end
     end
     println("─"^100 * "\n")

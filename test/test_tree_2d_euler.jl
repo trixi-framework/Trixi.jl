@@ -1079,6 +1079,32 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_warm_bubble.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_warm_bubble.jl"),
+                        l2=[
+                            0.0001379946769624388,
+                            0.02078779689715382,
+                            0.033237241571263176,
+                            31.36068872331705,
+                        ],
+                        linf=[
+                            0.0016286690573188434,
+                            0.15623770697198225,
+                            0.3341371832270615,
+                            334.5373488726036,
+                        ],
+                        tspan=(0.0, 10.0),
+                        initial_refinement_level=4)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 100
+    end
+end
+
 # Coverage test for all initial conditions
 @testset "Compressible Euler: Tests for initial conditions" begin
     @trixi_testset "elixir_euler_vortex.jl one step with initial_condition_constant" begin
