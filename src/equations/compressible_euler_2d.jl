@@ -1721,8 +1721,8 @@ end
 end
 
 # Transformation from conservative variables u to d(s)/d(u)
-@inline function variable_derivative(::typeof(entropy_math),
-                                     u, equations::CompressibleEulerEquations2D)
+@inline function gradient_conservative(::typeof(entropy_math),
+                                       u, equations::CompressibleEulerEquations2D)
     return cons2entropy(u, equations)
 end
 
@@ -1740,8 +1740,8 @@ end
 end
 
 # Transformation from conservative variables u to d(s)/d(u)
-@inline function variable_derivative(::typeof(entropy_spec),
-                                     u, equations::CompressibleEulerEquations2D)
+@inline function gradient_conservative(::typeof(entropy_spec),
+                                       u, equations::CompressibleEulerEquations2D)
     return cons2entropy_spec(u, equations)
 end
 
