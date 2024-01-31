@@ -8,6 +8,7 @@ include("test_trixi.jl")
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive = true)
+Trixi.MPI.Barrier(Trixi.mpi_comm())
 
 @testset "Threaded tests" begin
 #! format: noindent
@@ -471,5 +472,6 @@ end
 
 # Clean up afterwards: delete Trixi.jl output directory
 Trixi.mpi_isroot() && isdir(outdir) && @test_nowarn rm(outdir, recursive = true)
+Trixi.MPI.Barrier(Trixi.mpi_comm())
 
 end # module
