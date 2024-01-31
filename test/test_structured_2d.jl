@@ -33,14 +33,34 @@ end
 
 @trixi_testset "elixir_advection_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
-                        l2=[7.816742843181738e-6, 7.816742843196112e-6],
-                        linf=[6.314906965543265e-5, 6.314906965410039e-5],
+                        l2=[
+                            7.816742843336293e-6,
+                            7.816742843340186e-6,
+                            7.816742843025513e-6,
+                            7.816742843061526e-6,
+                        ],
+                        linf=[
+                            6.314906965276812e-5,
+                            6.314906965187994e-5,
+                            6.31490696496595e-5,
+                            6.314906965032563e-5,
+                        ],
                         coverage_override=(maxiters = 10^5,))
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         errors = analysis_callback(sol)
-        @test errors.l2≈[7.816742843181738e-6, 7.816742843196112e-6] rtol=1.0e-4
-        @test errors.linf≈[6.314906965543265e-5, 6.314906965410039e-5] rtol=1.0e-4
+        @test errors.l2≈[
+            7.816742843336293e-6,
+            7.816742843340186e-6,
+            7.816742843025513e-6,
+            7.816742843061526e-6,
+        ] rtol=1.0e-4
+        @test errors.linf≈[
+            6.314906965276812e-5,
+            6.314906965187994e-5,
+            6.31490696496595e-5,
+            6.314906965032563e-5,
+        ] rtol=1.0e-4
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
