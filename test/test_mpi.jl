@@ -8,6 +8,7 @@ include("test_trixi.jl")
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive = true)
+Trixi.MPI.Barrier(Trixi.mpi_comm())
 
 # CI with MPI and some tests fails often on Windows. Thus, we check whether this
 # is the case here. We use GitHub Actions, so we can check whether we run CI
@@ -45,5 +46,6 @@ end # MPI supporting functionality
 
 # Clean up afterwards: delete Trixi.jl output directory
 Trixi.mpi_isroot() && @test_nowarn rm(outdir, recursive = true)
+Trixi.MPI.Barrier(Trixi.mpi_comm())
 
 end # module

@@ -16,18 +16,28 @@ end
     SubcellLimiterIDP(equations::AbstractEquations, basis;
                       local_minmax_variables_cons = String[],
                       positivity_variables_cons = String[],
-                      positivity_correction_factor = 0.1)
+                      positivity_variables_nonlinear = [],
+                      positivity_correction_factor = 0.1,
+                      max_iterations_newton = 10,
+                      newton_tolerances = (1.0e-12, 1.0e-14),
+                      gamma_constant_newton = 2 * ndims(equations))
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
 - Local maximum/minimum Zalesak-type limiting for conservative variables (`local_minmax_variables_cons`)
-- Positivity limiting for conservative variables (`positivity_variables_cons`)
+- Positivity limiting for conservative variables (`positivity_variables_cons`) and nonlinear variables
+(`positivity_variables_nonlinear`)
 
 Conservative variables to be limited are passed as a vector of strings, e.g. `local_minmax_variables_cons = ["rho"]`
-and `positivity_variables_cons = ["rho"]`.
+and `positivity_variables_cons = ["rho"]`. For nonlinear variables the specific functions are
+passed in a vector, e.g. `positivity_variables_nonlinear = [pressure]`.
 
 The bounds are calculated using the low-order FV solution. The positivity limiter uses
 `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
+The limiting of nonlinear variables uses a Newton-bisection method with a maximum of
+`max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`
+and a provisional update constant `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
+where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) of Rueda-Ramírez et al. (2022).
 
 !!! note
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
@@ -45,22 +55,32 @@ The bounds are calculated using the low-order FV solution. The positivity limite
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct SubcellLimiterIDP{RealT <: Real, Cache} <: AbstractSubcellLimiter
+struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear, Cache} <:
+       AbstractSubcellLimiter
     local_minmax::Bool
     local_minmax_variables_cons::Vector{Int}                   # Local mininum/maximum principles for conservative variables
     positivity::Bool
     positivity_variables_cons::Vector{Int}                     # Positivity for conservative variables
+    positivity_variables_nonlinear::LimitingVariablesNonlinear # Positivity for nonlinear variables
     positivity_correction_factor::RealT
     cache::Cache
+    max_iterations_newton::Int
+    newton_tolerances::Tuple{RealT, RealT}  # Relative and absolute tolerances for Newton's method
+    gamma_constant_newton::RealT            # Constant for the subcell limiting of convex (nonlinear) constraints
 end
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            local_minmax_variables_cons = String[],
                            positivity_variables_cons = String[],
-                           positivity_correction_factor = 0.1)
+                           positivity_variables_nonlinear = [],
+                           positivity_correction_factor = 0.1,
+                           max_iterations_newton = 10,
+                           newton_tolerances = (1.0e-12, 1.0e-14),
+                           gamma_constant_newton = 2 * ndims(equations))
     local_minmax = (length(local_minmax_variables_cons) > 0)
-    positivity = (length(positivity_variables_cons) > 0)
+    positivity = (length(positivity_variables_cons) +
+                  length(positivity_variables_nonlinear) > 0)
 
     local_minmax_variables_cons_ = get_variable_index.(local_minmax_variables_cons,
                                                        equations)
@@ -80,13 +100,20 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
             bound_keys = (bound_keys..., Symbol(string(v), "_min"))
         end
     end
+    for variable in positivity_variables_nonlinear
+        bound_keys = (bound_keys..., Symbol(string(variable), "_min"))
+    end
 
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
 
     SubcellLimiterIDP{typeof(positivity_correction_factor),
+                      typeof(positivity_variables_nonlinear),
                       typeof(cache)}(local_minmax, local_minmax_variables_cons_,
                                      positivity, positivity_variables_cons_,
-                                     positivity_correction_factor, cache)
+                                     positivity_variables_nonlinear,
+                                     positivity_correction_factor, cache,
+                                     max_iterations_newton, newton_tolerances,
+                                     gamma_constant_newton)
 end
 
 function Base.show(io::IO, limiter::SubcellLimiterIDP)
@@ -97,10 +124,15 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
     if !(local_minmax || positivity)
         print(io, "No limiter selected => pure DG method")
     else
-        print(io, "limiter=(")
-        local_minmax && print(io, "min/max limiting, ")
-        positivity && print(io, "positivity")
-        print(io, "), ")
+        features = String[]
+        if local_minmax
+            push!(features, "local min/max")
+        end
+        if positivity
+            push!(features, "positivity")
+        end
+        join(io, features, ", ")
+        print(io, "Limiter=($features), ")
     end
     print(io, "Local bounds with FV solution")
     print(io, ")")
@@ -120,15 +152,15 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
             if local_minmax
                 setup = [
                     setup...,
-                    "" => "local maximum/minimum bounds for conservative variables $(limiter.local_minmax_variables_cons)",
+                    "" => "Local maximum/minimum limiting for conservative variables $(limiter.local_minmax_variables_cons)",
                 ]
             end
             if positivity
-                string = "positivity for conservative variables $(limiter.positivity_variables_cons)"
+                string = "Positivity limiting for conservative variables $(limiter.positivity_variables_cons) and $(limiter.positivity_variables_nonlinear)"
                 setup = [setup..., "" => string]
                 setup = [
                     setup...,
-                    "" => "   positivity correction factor = $(limiter.positivity_correction_factor)",
+                    "" => "- with positivity correction factor = $(limiter.positivity_correction_factor)",
                 ]
             end
             setup = [
