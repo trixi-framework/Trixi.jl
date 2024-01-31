@@ -6,7 +6,7 @@
 #! format: noindent
 
 function rhs!(du, u, t,
-              mesh::ParallelP4estMesh{3}, equations,
+              mesh::Union{ParallelP4estMesh{3}, ParallelT8codeMesh{3}}, equations,
               initial_condition, boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Start to receive MPI data
@@ -113,7 +113,8 @@ function rhs!(du, u, t,
 end
 
 function prolong2mpiinterfaces!(cache, u,
-                                mesh::ParallelP4estMesh{3},
+                                mesh::Union{ParallelP4estMesh{3},
+                                            ParallelT8codeMesh{3}},
                                 equations, surface_integral, dg::DG)
     @unpack mpi_interfaces = cache
     index_range = eachnode(dg)
@@ -160,7 +161,8 @@ function prolong2mpiinterfaces!(cache, u,
 end
 
 function calc_mpi_interface_flux!(surface_flux_values,
-                                  mesh::ParallelP4estMesh{3},
+                                  mesh::Union{ParallelP4estMesh{3},
+                                              ParallelT8codeMesh{3}},
                                   nonconservative_terms,
                                   equations, surface_integral, dg::DG, cache)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
@@ -237,7 +239,8 @@ end
 
 # Inlined version of the interface flux computation for conservation laws
 @inline function calc_mpi_interface_flux!(surface_flux_values,
-                                          mesh::P4estMesh{3},
+                                          mesh::Union{ParallelP4estMesh{3},
+                                                      ParallelT8codeMesh{3}},
                                           nonconservative_terms::False, equations,
                                           surface_integral, dg::DG, cache,
                                           interface_index, normal_direction,
@@ -265,7 +268,8 @@ end
 end
 
 function prolong2mpimortars!(cache, u,
-                             mesh::ParallelP4estMesh{3}, equations,
+                             mesh::Union{ParallelP4estMesh{3}, ParallelT8codeMesh{3}},
+                             equations,
                              mortar_l2::LobattoLegendreMortarL2,
                              surface_integral, dg::DGSEM)
     @unpack node_indices = cache.mpi_mortars
@@ -374,7 +378,7 @@ function prolong2mpimortars!(cache, u,
 end
 
 function calc_mpi_mortar_flux!(surface_flux_values,
-                               mesh::ParallelP4estMesh{3},
+                               mesh::Union{ParallelP4estMesh{3}, ParallelT8codeMesh{3}},
                                nonconservative_terms, equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
@@ -437,7 +441,8 @@ end
 
 # Inlined version of the mortar flux computation on small elements for conservation laws
 @inline function calc_mpi_mortar_flux!(fstar,
-                                       mesh::ParallelP4estMesh{3},
+                                       mesh::Union{ParallelP4estMesh{3},
+                                                   ParallelT8codeMesh{3}},
                                        nonconservative_terms::False, equations,
                                        surface_integral, dg::DG, cache,
                                        mortar_index, position_index, normal_direction,
@@ -456,7 +461,9 @@ end
 end
 
 @inline function mpi_mortar_fluxes_to_elements!(surface_flux_values,
-                                                mesh::ParallelP4estMesh{3}, equations,
+                                                mesh::Union{ParallelP4estMesh{3},
+                                                            ParallelT8codeMesh{3}},
+                                                equations,
                                                 mortar_l2::LobattoLegendreMortarL2,
                                                 dg::DGSEM, cache, mortar, fstar,
                                                 u_buffer, fstar_tmp)

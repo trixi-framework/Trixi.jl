@@ -1,13 +1,13 @@
-module TestExamplesMPIP4estMesh3D
+module TestExamplesMPIT8codeMesh3D
 
 using Test
 using Trixi
 
 include("test_trixi.jl")
 
-const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
+const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
 
-@testset "P4estMesh MPI 3D" begin
+@testset "T8codeMesh MPI 3D" begin
 #! format: noindent
 
 # Run basic tests
@@ -47,8 +47,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
     @trixi_testset "elixir_advection_amr.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
-                            l2=[9.773852895157622e-6],
-                            linf=[0.0005853874124926162],
+                            l2=[1.1302812803902801e-5],
+                            linf=[0.0007889950196294793],
                             # override values are different from the serial tests to ensure each process holds at least
                             # one element, otherwise OrdinaryDiffEq fails during initialization
                             coverage_override=(maxiters = 6,
@@ -69,46 +69,13 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
     @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_unstructured_curved.jl"),
-                            l2=[1.6236411810065552e-5],
-                            linf=[0.0010554006923731395],
+                            l2=[2.0556575425846923e-5],
+                            linf=[0.00105682693484822],
                             tspan=(0.0, 1.0),
                             coverage_override=(maxiters = 6,
                                                initial_refinement_level = 0,
                                                base_level = 0, med_level = 1,
                                                max_level = 2))
-
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
-
-    @trixi_testset "elixir_advection_restart.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-                            l2=[0.002590388934758452],
-                            linf=[0.01840757696885409],
-                            # With the default `maxiters = 1` in coverage tests,
-                            # there would be no time steps after the restart.
-                            coverage_override=(maxiters = 100_000,))
-
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
-
-    @trixi_testset "elixir_advection_cubed_sphere.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_cubed_sphere.jl"),
-                            l2=[0.002006918015656413],
-                            linf=[0.027655117058380085])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -207,35 +174,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
-
-    @trixi_testset "elixir_euler_source_terms_nonperiodic_hohqmesh.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_source_terms_nonperiodic_hohqmesh.jl"),
-                            l2=[
-                                0.0042023406458005464,
-                                0.004122532789279737,
-                                0.0042448149597303616,
-                                0.0036361316700401765,
-                                0.007389845952982495,
-                            ],
-                            linf=[
-                                0.04530610539892499,
-                                0.02765695110527666,
-                                0.05670295599308606,
-                                0.048396544302230504,
-                                0.1154589758186293,
-                            ])
-
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
 end
-end # P4estMesh MPI
+end # T8codeMesh MPI
 
 end # module

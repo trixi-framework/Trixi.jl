@@ -1,5 +1,4 @@
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -40,12 +39,8 @@ solver = DGSEM(polydeg = 4, surface_flux = flux_hll)
 
 ###############################################################################
 # Get the curved quad mesh from a file
-
-default_mesh_file = joinpath(@__DIR__, "mesh_box_around_circle.mesh")
-isfile(default_mesh_file) ||
-    download("https://gist.githubusercontent.com/andrewwinters5000/8b9b11a1eedfa54b215c122c3d17b271/raw/0d2b5d98c87e67a6f384693a8b8e54b4c9fcbf3d/mesh_box_around_circle.mesh",
-             default_mesh_file)
-mesh_file = default_mesh_file
+mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/8b9b11a1eedfa54b215c122c3d17b271/raw/0d2b5d98c87e67a6f384693a8b8e54b4c9fcbf3d/mesh_box_around_circle.mesh",
+                           joinpath(@__DIR__, "mesh_box_around_circle.mesh"))
 
 mesh = UnstructuredMesh2D(mesh_file)
 
