@@ -1,5 +1,4 @@
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -93,16 +92,10 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 
 ###############################################################################
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
+mesh_file = Trixi.download("https://gist.githubusercontent.com/svengoldberg/c3c87fecb3fc6e46be7f0d1c7cb35f83/raw/e817ecd9e6c4686581d63c46128f9b6468d396d3/mesh_three_mound.mesh",
+                           joinpath(@__DIR__, "mesh_three_mound.mesh"))
 
-default_meshfile = joinpath(@__DIR__, "mesh_three_mound.mesh")
-
-isfile(default_meshfile) ||
-    download("https://gist.githubusercontent.com/svengoldberg/c3c87fecb3fc6e46be7f0d1c7cb35f83/raw/e817ecd9e6c4686581d63c46128f9b6468d396d3/mesh_three_mound.mesh",
-             default_meshfile)
-
-meshfile = default_meshfile
-
-mesh = UnstructuredMesh2D(meshfile)
+mesh = UnstructuredMesh2D(mesh_file)
 
 # Create the semi discretization object
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
