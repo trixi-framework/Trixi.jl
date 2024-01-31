@@ -77,7 +77,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
         # Start with a clean environment: remove Trixi.jl output directory if it exists
         outdir = "out"
         Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive = true)
-        MPI.Barrier(mpi_comm())
+        Trixi.MPI.Barrier(Trixi.mpi_comm())
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_refine_twice.jl"),
                             l2=[0.00020547512522578292],
