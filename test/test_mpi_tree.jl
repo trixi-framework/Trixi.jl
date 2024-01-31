@@ -76,7 +76,8 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
         # Here, we also test that SaveSolutionCallback prints multiple mesh files with AMR
         # Start with a clean environment: remove Trixi.jl output directory if it exists
         outdir = "out"
-        isdir(outdir) && rm(outdir, recursive = true)
+        Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive = true)
+        Trixi.MPI.Barrier(Trixi.mpi_comm())
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_refine_twice.jl"),
                             l2=[0.00020547512522578292],

@@ -142,12 +142,21 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
     if !(local_minmax || positivity || spec_entropy || math_entropy)
         print(io, "No limiter selected => pure DG method")
     else
-        print(io, "Limiter=(")
-        local_minmax && print(io, "Local min/max, ")
-        positivity && print(io, "Positivity, ")
-        spec_entropy && print(io, "Specific entropy, ")
-        math_entropy && print(io, "Mathematical entropy, ")
-        print(io, "), ")
+        features = String[]
+        if local_minmax
+            push!(features, "local min/max")
+        end
+        if positivity
+            push!(features, "positivity")
+        end
+        if spec_entropy
+            push!(features, "specific entropy")
+        end
+        if math_entropy
+            push!(features, "mathematical entropy")
+        end
+        join(io, features, ", ")
+        print(io, "Limiter=($features), ")
     end
     print(io, "Local bounds with FV solution")
     print(io, ")")
