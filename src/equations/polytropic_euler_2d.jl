@@ -330,14 +330,12 @@ end
 
     # Calculate normal velocities and sound speed (we have p = kappa * rho^gamma)
     # left
-    v_ll = (v1_ll * normal_direction[1]
-            +
-            v2_ll * normal_direction[2])
+    v_ll = v1_ll * normal_direction[1] +
+           v2_ll * normal_direction[2]
     c_ll = sqrt(equations.gamma * equations.kappa * rho_ll^(equations.gamma - 1))
     # right
-    v_rr = (v1_rr * normal_direction[1]
-            +
-            v2_rr * normal_direction[2])
+    v_rr = v1_rr * normal_direction[1] + 
+           v2_rr * normal_direction[2]
     c_rr = sqrt(equations.gamma * equations.kappa * rho_rr^(equations.gamma - 1))
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
