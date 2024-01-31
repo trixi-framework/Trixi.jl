@@ -25,7 +25,7 @@ coordinates_max = (1.0, 1.0, 1.0) # maximum coordinates (max(x), max(y), max(z))
 
 # Create a uniformly refined mesh
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 1,
+                initial_refinement_level = 2,
                 n_cells_max = 50_000) # set maximum capacity of tree data structure
 
 function initial_condition_constant_alfven(x, t, equations)
@@ -55,16 +55,16 @@ function initial_condition_constant_alfven(x, t, equations)
     p = 1
     psi = 0
 
-    # 3d Alfven wave
-    #     rho = 1.0 + e*cos(phi_alv + 1.0)
-    #     v1 = -e * ny * cos(phi_alv) / rho
-    #     v2 = e * nx * cos(phi_alv) / rho
-    #     v3 = e * sin(phi_alv) / rho
-    #     p = 1.0
-    #     B1 = nx - rho * v1 * sqr
-    #     B2 = ny - rho * v2 * sqr
-    #     B3 = -rho * v3 * sqr
-    #     psi = 0.0
+#     # 3d Alfven wave
+#     rho = 1.0 + e*cos(phi_alv + 1.0)
+#     v1 = -e * ny * cos(phi_alv) / rho
+#     v2 = e * nx * cos(phi_alv) / rho
+#     v3 = e * sin(phi_alv) / rho
+#     p = 1.0
+#     B1 = nx - rho * v1 * sqr
+#     B2 = ny - rho * v2 * sqr
+#     B3 = -rho * v3 * sqr
+#     psi = 0.0
 
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
@@ -72,13 +72,13 @@ end
 @inline function source_terms_mhd_convergence_test(u, x, t, equations)
     # 1d Alfven wave
     r_1 = 0.0
-    r_2 = 0.0004*pi*sin(4*pi*x[1])
-    r_3 = pi*(0.08*pi*mu_const*sin(2*pi*x[1]) - 0.04*cos(2*pi*x[1]))
-    r_4 = 0
-    r_5 = pi*(-0.0016*pi*eta_const*sin(2*pi*x[1])^2 + 0.0016*pi*eta_const*cos(2*pi*x[1])^2 + pi*mu_const*(0.0016 - 0.0111111111111111*mu_const)*cos(4*pi*x[1]) + 0.0008*sin(4*pi*x[1]))
-    r_6 = 0
-    r_7 = pi*(-0.08*pi*eta_const*sin(2*pi*x[1]) + 0.04*cos(2*pi*x[1]))
-    r_8 = 0
+    r_2 = -0.0004*pi*sin(4*pi*x[1])
+    r_3 = pi*(0.08*pi*mu_const*sin(2*pi*x[1]) + 0.04*cos(2*pi*x[1]))
+    r_4 = 0.0
+    r_5 = pi*(-0.0016*pi*eta_const*sin(2*pi*x[1])^2 + 0.0016*pi*eta_const*cos(2*pi*x[1])^2 - 0.0127111111111111*pi*mu_const*sin(2*pi*x[1])^2 + 0.0127111111111111*pi*mu_const*cos(2*pi*x[1])^2 - 0.0008*sin(4*pi*x[1]))
+    r_6 = 0.0
+    r_7 = -pi*(0.08*pi*eta_const*sin(2*pi*x[1]) + 0.04*cos(2*pi*x[1]))
+    r_8 = 0.0
     r_9 = 0.0
 
     # 3d Alfven wave
@@ -100,7 +100,7 @@ end
     #
     #      r_9 = 0.0
 
-    return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
+    return -SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
 
 initial_condition = initial_condition_constant_alfven
@@ -113,7 +113,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
-tspan = (0.0, 1.5)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
