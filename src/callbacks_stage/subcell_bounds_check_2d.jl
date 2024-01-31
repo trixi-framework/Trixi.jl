@@ -6,8 +6,7 @@
 #! format: noindent
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
-                              limiter::SubcellLimiterIDP,
-                              time, iter, output_directory, save_errors)
+                              limiter::SubcellLimiterIDP)
     (; local_minmax, positivity, spec_entropy, math_entropy) = solver.volume_integral.limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta) = limiter.cache
@@ -86,49 +85,56 @@
             deviation[2] = max(deviation[2], deviation[1])
         end
     end
-    if save_errors
-        # Print to output file
-        open("$output_directory/deviations.txt", "a") do f
-            print(f, iter, ", ", time)
-            if local_minmax
-                for v in limiter.local_minmax_variables_cons
-                    v_string = string(v)
-                    print(f, ", ", idp_bounds_delta[Symbol(v_string, "_min")][1], ", ",
-                          idp_bounds_delta[Symbol(v_string, "_max")][1])
-                end
+
+    return nothing
+end
+
+@inline function save_bounds_check_errors(output_directory, time, iter, equations,
+                                          limiter::SubcellLimiterIDP)
+    (; local_minmax, positivity, spec_entropy, math_entropy) = limiter
+    (; idp_bounds_delta) = limiter.cache
+
+    # Print errors to output file
+    open("$output_directory/deviations.txt", "a") do f
+        print(f, iter, ", ", time)
+        if local_minmax
+            for v in limiter.local_minmax_variables_cons
+                v_string = string(v)
+                print(f, ", ", idp_bounds_delta[Symbol(v_string, "_min")][1], ", ",
+                      idp_bounds_delta[Symbol(v_string, "_max")][1])
             end
-            if spec_entropy
-                print(f, ", ", idp_bounds_delta[:spec_entropy_min][1])
-            end
-            if math_entropy
-                print(f, ", ", idp_bounds_delta[:math_entropy_max][1])
-            end
-            if positivity
-                for v in limiter.positivity_variables_cons
-                    if v in limiter.local_minmax_variables_cons
-                        continue
-                    end
-                    print(f, ", ", idp_bounds_delta[Symbol(string(v), "_min")][1])
-                end
-                for variable in limiter.positivity_variables_nonlinear
-                    print(f, ", ",
-                          idp_bounds_delta[Symbol(string(variable), "_min")][1])
-                end
-            end
-            println(f)
         end
-        # Reset first entries of idp_bounds_delta
-        for (key, _) in idp_bounds_delta
-            idp_bounds_delta[key][1] = zero(eltype(idp_bounds_delta[key][1]))
+        if spec_entropy
+            print(f, ", ", idp_bounds_delta[:spec_entropy_min][1])
         end
+        if math_entropy
+            print(f, ", ", idp_bounds_delta[:math_entropy_max][1])
+        end
+        if positivity
+            for v in limiter.positivity_variables_cons
+                if v in limiter.local_minmax_variables_cons
+                    continue
+                end
+                print(f, ", ", idp_bounds_delta[Symbol(string(v), "_min")][1])
+            end
+            for variable in limiter.positivity_variables_nonlinear
+                print(f, ", ",
+                      idp_bounds_delta[Symbol(string(variable), "_min")][1])
+            end
+        end
+        println(f)
+    end
+
+    # Reset first entries of idp_bounds_delta
+    for (key, _) in idp_bounds_delta
+        idp_bounds_delta[key][1] = zero(eltype(idp_bounds_delta[key][1]))
     end
 
     return nothing
 end
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
-                              limiter::SubcellLimiterMCL,
-                              time, iter, output_directory, save_errors)
+                              limiter::SubcellLimiterMCL)
     (; var_min, var_max) = limiter.cache.subcell_limiter_coefficients
     (; bar_states1, bar_states2, lambda1, lambda2) = limiter.cache.container_bar_states
     (; mcl_bounds_delta_local, mcl_bounds_delta_global) = limiter.cache
@@ -621,9 +627,16 @@ end
                                                                             n_vars + 1])
     end
 
-    if !save_errors
-        return nothing
-    end
+    return nothing
+end
+
+@inline function save_bounds_check_errors(output_directory, time, iter, equations,
+                                          limiter::SubcellLimiterMCL)
+    (; mcl_bounds_delta_local) = limiter.cache
+
+    n_vars = nvariables(equations)
+
+    # Print errors to output file
     open("$output_directory/deviations.txt", "a") do f
         print(f, iter, ", ", time)
         for v in eachvariable(equations)
@@ -635,6 +648,8 @@ end
         end
         println(f)
     end
+
+    # Reset mcl_bounds_delta_local
     for v in eachvariable(equations)
         mcl_bounds_delta_local[1, v] = zero(eltype(mcl_bounds_delta_local))
         mcl_bounds_delta_local[2, v] = zero(eltype(mcl_bounds_delta_local))
