@@ -22,7 +22,7 @@ function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
     r = sqrt(x[1]^2 + x[2]^2)
 
     pmax = 10.0
-    pmin = 1.0
+    pmin = 0.01
     rhomax = 1.0
     rhomin = 0.01
     if r <= 0.09
@@ -52,7 +52,8 @@ basis = LobattoLegendreBasis(3)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
-                                positivity_correction_factor = 0.5)
+                                positivity_variables_nonlinear = [pressure],
+                                positivity_correction_factor = 0.1)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -84,7 +85,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-cfl = 0.5
+cfl = 0.4
 stepsize_callback = StepsizeCallback(cfl = cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
