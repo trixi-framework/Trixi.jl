@@ -80,6 +80,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
                             ],
                             initial_refinement_level=3,
                             tspan=(0.0, 0.001),
+                            save_errors=true,
                             output_directory="out")
         lines = readlines("out/deviations.txt")
         @test lines[1] == "# iter, simu_time, rho1_min, rho2_min"
