@@ -16,7 +16,7 @@ equations_parabolic = ViscoResistiveMhd2D(equations, mu = mu_const,
                                           gradient_variables = GradientVariablesPrimitive())
 
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
-solver = DGSEM(polydeg = 3,
+solver = DGSEM(polydeg = 4,
                surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
@@ -58,24 +58,17 @@ function initial_condition_constant_alfven(x, t, equations)
 end
 
 @inline function source_terms_mhd_convergence_test(u, x, t, equations)
-    sm = -1
-    se = -1
+    r_1 = 0
+    r_2 = -0.0004*pi*sin(4*pi*x[1])
+    r_3 = pi*(0.08*pi*mu_const*sin(2*pi*x[1]) + 0.04*cos(2*pi*x[1]))
+    r_4 = 0
+    r_5 = pi*(-0.0016*pi*eta_const*sin(2*pi*x[1])^2 + 0.0016*pi*eta_const*cos(2*pi*x[1])^2 - 0.0127111111111111*pi*mu_const*sin(2*pi*x[1])^2 + 0.0127111111111111*pi*mu_const*cos(2*pi*x[1])^2 - 0.0008*sin(4*pi*x[1]))
+    r_6 = 0
+    r_7 = -pi*(0.08*pi*eta_const*sin(2*pi*x[1]) + 0.04*cos(2*pi*x[1]))
+    r_8 = 0
+    r_9 = 0
 
-    r_1 = 0.0
-    r_2 = 0.0004 * pi * sin(4 * pi * x[1])
-    r_3 = pi * (0.08 * pi * sm * mu_const * sin(2 * pi * x[1]) - 0.04 * cos(2 * pi * x[1]))
-    r_4 = 0.0
-    r_5 = pi * (-0.0016 * pi * se * eta_const * sin(2 * pi * x[1])^2 +
-           0.0016 * pi * se * eta_const * cos(2 * pi * x[1])^2 +
-           pi * sm * mu_const * (0.0016 - 0.0111111111111111 * sm * mu_const) *
-           cos(4 * pi * x[1]) + 0.0008 * sin(4 * pi * x[1]))
-    r_6 = 0.0
-    r_7 = pi *
-          (-0.08 * pi * se * eta_const * sin(2 * pi * x[1]) + 0.04 * cos(2 * pi * x[1]))
-    r_8 = 0.0
-    r_9 = 0.0
-
-    return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
+    return -SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
 
 initial_condition = initial_condition_constant_alfven
@@ -88,7 +81,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
-tspan = (0.0, 1.5)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
