@@ -376,6 +376,12 @@ of the correct length `nvariables(equations)`.
 """
 function energy_internal end
 
+# Default implementation of gradient for `variable`. Used for subcell limiting.
+# Implementing a gradient function for a specific variable improves the performance.
+@inline function gradient_conservative(variable, u, equations)
+    return ForwardDiff.gradient(x -> variable(x, equations), u)
+end
+
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 

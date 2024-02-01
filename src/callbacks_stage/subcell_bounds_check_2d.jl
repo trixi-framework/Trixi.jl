@@ -60,6 +60,20 @@
                 deviation_threaded[stride_size * Threads.threadid()] = deviation
             end
         end
+        for variable in limiter.positivity_variables_nonlinear
+            key = Symbol(string(variable), "_min")
+            deviation_threaded = idp_bounds_delta_local[key]
+            @threaded for element in eachelement(solver, cache)
+                deviation = deviation_threaded[stride_size * Threads.threadid()]
+                for j in eachnode(solver), i in eachnode(solver)
+                    var = variable(get_node_vars(u, equations, solver, i, j, element),
+                                   equations)
+                    deviation = max(deviation,
+                                    variable_bounds[key][i, j, element] - var)
+                end
+                deviation_threaded[stride_size * Threads.threadid()] = deviation
+            end
+        end
     end
 
     for (key, _) in idp_bounds_delta_local
@@ -91,6 +105,10 @@
                     end
                     print(f, ", ",
                           idp_bounds_delta_local[Symbol(string(v), "_min")][stride_size])
+                end
+                for variable in limiter.positivity_variables_nonlinear
+                    print(f, ", ",
+                          idp_bounds_delta_local[Symbol(string(variable), "_min")][stride_size])
                 end
             end
             println(f)

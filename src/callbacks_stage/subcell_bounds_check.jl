@@ -97,6 +97,9 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
                 end
                 print(f, ", " * string(variables[v]) * "_min")
             end
+            for variable in limiter.positivity_variables_nonlinear
+                print(f, ", " * string(variable) * "_min")
+            end
         end
         println(f)
     end
@@ -141,6 +144,11 @@ end
             end
             println(string(variables[v]) * ":\n- positivity: ",
                     idp_bounds_delta_global[Symbol(string(v), "_min")])
+        end
+        for variable in limiter.positivity_variables_nonlinear
+            variable_string = string(variable)
+            println(variable_string * ":\n- positivity: ",
+                    idp_bounds_delta_global[Symbol(variable_string, "_min")])
         end
     end
     println("─"^100 * "\n")
