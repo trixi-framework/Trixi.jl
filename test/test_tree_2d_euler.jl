@@ -390,7 +390,13 @@ end
                         output_directory="out")
     lines = readlines("out/deviations.txt")
     @test lines[1] == "# iter, simu_time, rho_min, rho_max"
-    @test startswith(lines[end], "1")
+    cmd = string(Base.julia_cmd())
+    coverage = occursin("--code-coverage", cmd) &&
+               !occursin("--code-coverage=none", cmd)
+    if !coverage
+        # Run without coverage takes 96 time steps.
+        @test startswith(lines[end], "96")
+    end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
