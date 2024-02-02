@@ -73,6 +73,44 @@ function ComputePERK2_ButcherTableau(NumStages::Int, semi::AbstractSemidiscretiz
   return AMatrix, c
 end
 
+function ComputePERK2_ButcherTableau(NumStages::Int, BasePathMonCoeffs::AbstractString, bS::Float64, cEnd::Float64)
+
+  # c Vector form Butcher Tableau (defines timestep per stage)
+  c = zeros(NumStages)
+  for k in 2:NumStages
+    c[k] = cEnd * (k - 1)/(NumStages - 1)
+  end
+  println("Timestep-split: "); display(c); println("\n")
+  SE_Factors = bS * reverse(c[2:end-1])
+
+  # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
+  CoeffsMax = NumStages - 2
+
+  AMatrix = zeros(CoeffsMax, 2)
+  AMatrix[:, 1] = c[3:end]
+
+  
+  PathMonCoeffs = BasePathMonCoeffs * "gamma_" * string(NumStages) * ".txt"
+  NumMonCoeffs, MonCoeffs = read_file(PathMonCoeffs, Float64)
+  @assert NumMonCoeffs == CoeffsMax
+  A = ComputeACoeffs(NumStages, SE_Factors, MonCoeffs)
+  
+  
+  #=
+  # TODO: Not sure if I not rather want to read-in values (especially those from Many Stage C++ Optim)
+  PathMonCoeffs = BasePathMonCoeffs * "a_" * string(NumStages) * ".txt"
+  NumMonCoeffs, A = read_file(PathMonCoeffs, Float64)
+  @assert NumMonCoeffs == CoeffsMax
+  =#
+
+  AMatrix[:, 1] -= A
+  AMatrix[:, 2]  = A
+    
+  println("A matrix: "); display(AMatrix); println()
+
+  return AMatrix, c
+end
+
 """
     PERK2()
 
@@ -93,7 +131,21 @@ mutable struct PERK2 <: PERKSingle
   b1::Float64
   cEnd::Float64
 
-  # Constructor for previously computed A Coeffs
+  #Constructor that read the coefficients from the file
+  function PERK2(NumStages_::Int, BasePathMonCoeffs_::AbstractString, bS_::Float64=1.0, cEnd_::Float64=0.5)
+
+    newPERK2 = new(NumStages_)
+
+    newPERK2.AMatrix, newPERK2.c = 
+      ComputePERK2_ButcherTableau(NumStages_, BasePathMonCoeffs_, bS_, cEnd_)
+
+    newPERK2.b1 = one(bS_) - bS_
+    newPERK2.bS = bS_
+    newPERK2.cEnd = cEnd_
+    return newPERK2
+  end
+
+  #Constructor that calculate the coefficients with polynomial optimizer
   function PERK2(NumStages_::Int, semi_::AbstractSemidiscretization, bS_::Float64=1.0, cEnd_::Float64=0.5)
 
     newPERK2 = new(NumStages_)

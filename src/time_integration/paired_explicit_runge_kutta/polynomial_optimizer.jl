@@ -5,7 +5,7 @@ const MOI = Convex.MOI
 
 function filter_Eigvals(EigVals::Array{Complex{Float64}}, threshold:: Float64)
     filtered_eigvals_counter = 0
-    #FilteredEigVals \is not an Array but the code seems to work fine regardless
+    #FilteredEigVals is not an Array but the code seems to work fine regardless
     FilteredEigVals = Complex{Float64}[]
     for EigVal in EigVals
         if abs(EigVal) < threshold
@@ -56,11 +56,9 @@ function Polynoms(ConsOrder::Int, NumStages::Int, NumEigVals::Int, normalized_po
     for i in 1:NumEigVals
       pnoms[i] += normalized_powered_EigvalsScaled[i,k]
     end
-    #pnoms += 1/factorial(k) * EigValsScaled.^k
   end
 
   for k in ConsOrder + 1:NumStages
-    #Attemp to use nested loop instead of [:,k] has been made. Convex.jl doesn't accept it.
     pnoms += gamma[k - ConsOrder] * normalized_powered_EigvalsScaled[:,k]
   end
   
@@ -69,13 +67,11 @@ end
 
 
 function Bisection(ConsOrder::Int, NumEigVals::Int, NumStages::Int, dtMax::Float64, dtEps::Float64, EigVals::Array{Complex{Float64}})
-  #dtMin = Base.big(0)
+
   dtMin = 0.0
 
-  #dt    = Base.big(-1.0)
   dt    = -1.0
 
-  #AbsP  = Base.big(-1.0)
   AbsP  = -1.0
 
   pnoms = ones(Complex{Float64}, NumEigVals, 1)
@@ -94,7 +90,6 @@ function Bisection(ConsOrder::Int, NumEigVals::Int, NumStages::Int, dtMax::Float
   normalized_powered_EigvalsScaled = zeros(Complex{Float64}, NumEigVals, NumStages)
 
   while dtMax - dtMin > dtEps
-    #dt = Base.big(0.5) * (dtMax + dtMin)
     dt = 0.5 * (dtMax + dtMin)
 
     for k in 1:NumStages
@@ -128,7 +123,6 @@ function Bisection(ConsOrder::Int, NumEigVals::Int, NumStages::Int, dtMax::Float
 
     println("Current MaxAbsP: ", AbsP, "\nCurrent dt: ", dt, "\n")
 
-    #if AbsP < Base.big(1.0)
     if AbsP < 1.0
       dtMin = dt
     else
