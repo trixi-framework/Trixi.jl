@@ -1,7 +1,7 @@
 """
     T8codeMesh{NDIMS} <: AbstractMesh{NDIMS}
 
-An unstructured curved mesh based on trees that uses the C library 
+An unstructured curved mesh based on trees that uses the C library
 ['t8code'](https://github.com/DLR-AMR/t8code)
 to manage trees and mesh refinement.
 """
@@ -485,7 +485,7 @@ end
 # form a family and we decide whether this family should be coarsened
 # or only the first element should be refined.
 # Otherwise `is_family` must equal zero and we consider the first entry
-# of the element array for refinement. 
+# of the element array for refinement.
 # Entries of the element array beyond the first `num_elements` are undefined.
 # \param [in] forest       the forest to which the new elements belong
 # \param [in] forest_from  the forest that is adapted.
@@ -542,8 +542,8 @@ Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
            0 : Stay unchanged.
            1 : Refine element.
 
-- `kwargs`: 
-    - `recursive = true`: Adapt the forest recursively. If true the caller must ensure that the callback 
+- `kwargs`:
+    - `recursive = true`: Adapt the forest recursively. If true the caller must ensure that the callback
                           returns 0 for every analyzed element at some point to stop the recursion.
     - `balance = true`: Make sure the adapted forest is 2^(NDIMS-1):1 balanced.
     - `partition = true`: Partition the forest to redistribute elements evenly among MPI ranks.
@@ -695,7 +695,7 @@ function count_interfaces(mesh::T8codeMesh)
 
             for iface in 0:(num_faces - 1)
                 pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
-                pneighbor_leafs_ref = Ref{Ptr{Ptr{t8_element}}}()
+                pneighbor_leaves_ref = Ref{Ptr{Ptr{t8_element}}}()
                 pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
 
                 dual_faces_ref = Ref{Ptr{Cint}}()
@@ -704,7 +704,7 @@ function count_interfaces(mesh::T8codeMesh)
                 forest_is_balanced = Cint(1)
 
                 t8_forest_leaf_face_neighbors(mesh.forest, itree, element,
-                                              pneighbor_leafs_ref, iface, dual_faces_ref,
+                                              pneighbor_leaves_ref, iface, dual_faces_ref,
                                               num_neighbors_ref,
                                               pelement_indices_ref, pneigh_scheme_ref,
                                               forest_is_balanced)
@@ -713,13 +713,13 @@ function count_interfaces(mesh::T8codeMesh)
                 dual_faces = unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
                 neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[],
                                                  num_neighbors)
-                neighbor_leafs = unsafe_wrap(Array, pneighbor_leafs_ref[], num_neighbors)
+                neighbor_leaves = unsafe_wrap(Array, pneighbor_leaves_ref[], num_neighbors)
                 neighbor_scheme = pneigh_scheme_ref[]
 
                 if num_neighbors == 0
                     local_num_boundary += 1
                 else
-                    neighbor_level = t8_element_level(neighbor_scheme, neighbor_leafs[1])
+                    neighbor_level = t8_element_level(neighbor_scheme, neighbor_leaves[1])
 
                     if all(neighbor_ielements .< num_local_elements)
                         # Conforming interface: The second condition ensures we
@@ -745,7 +745,7 @@ function count_interfaces(mesh::T8codeMesh)
                             neighbor_linear_id = neighbor_global_ghost_itree *
                                                  max_tree_num_elements +
                                                  t8_element_get_linear_id(neighbor_scheme,
-                                                                          neighbor_leafs[1],
+                                                                          neighbor_leaves[1],
                                                                           max_level)
                             global_mortar_id = 2 * ndims(mesh) * neighbor_linear_id +
                                                dual_faces[1]
@@ -759,7 +759,7 @@ function count_interfaces(mesh::T8codeMesh)
                 end
 
                 t8_free(dual_faces_ref[])
-                t8_free(pneighbor_leafs_ref[])
+                t8_free(pneighbor_leaves_ref[])
                 t8_free(pelement_indices_ref[])
             end # for
 
@@ -875,7 +875,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                 end
 
                 pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
-                pneighbor_leafs_ref = Ref{Ptr{Ptr{t8_element}}}()
+                pneighbor_leaves_ref = Ref{Ptr{Ptr{t8_element}}}()
                 pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
 
                 dual_faces_ref = Ref{Ptr{Cint}}()
@@ -885,7 +885,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                 # Query neighbor information from t8code.
                 t8_forest_leaf_face_neighbors(mesh.forest, itree, element,
-                                              pneighbor_leafs_ref, iface, dual_faces_ref,
+                                              pneighbor_leaves_ref, iface, dual_faces_ref,
                                               num_neighbors_ref,
                                               pelement_indices_ref, pneigh_scheme_ref,
                                               forest_is_balanced)
@@ -894,7 +894,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                 dual_faces = unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
                 neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[],
                                                  num_neighbors)
-                neighbor_leafs = unsafe_wrap(Array, pneighbor_leafs_ref[], num_neighbors)
+                neighbor_leaves = unsafe_wrap(Array, pneighbor_leaves_ref[], num_neighbors)
                 neighbor_scheme = pneigh_scheme_ref[]
 
                 # Now we check for the different cases. The nested if-structure is as follows:
@@ -913,7 +913,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                 #       else: // `local mortar from smaller elements point of view`
                 #         <skip> // We only count local mortars once.
                 #
-                #     else: // It must be either a MPI interface or a MPI mortar.     
+                #     else: // It must be either a MPI interface or a MPI mortar.
                 #
                 #       if `MPI interface`:
                 #         <fill MPI interface info>
@@ -938,7 +938,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                     # Interface or mortar.
                 else
-                    neighbor_level = t8_element_level(neighbor_scheme, neighbor_leafs[1])
+                    neighbor_level = t8_element_level(neighbor_scheme, neighbor_leaves[1])
 
                     # Local interface or mortar.
                     if all(neighbor_ielements .< num_local_elements)
@@ -985,7 +985,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                             neighbor_linear_id = neighbor_global_ghost_itree *
                                                  max_tree_num_elements +
                                                  t8_element_get_linear_id(neighbor_scheme,
-                                                                          neighbor_leafs[1],
+                                                                          neighbor_leaves[1],
                                                                           max_level)
 
                             if current_linear_id < neighbor_linear_id
@@ -1029,7 +1029,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                                                num_local_elements)
                             local_neighbor_ids = [neighbor_ids[i]
                                                   for i in local_neighbor_positions]
-                            local_neighbor_positions = [map_iface_to_ichild_to_position[dual_faces[1] + 1][t8_element_child_id(neighbor_scheme, neighbor_leafs[i]) + 1]
+                            local_neighbor_positions = [map_iface_to_ichild_to_position[dual_faces[1] + 1][t8_element_child_id(neighbor_scheme, neighbor_leaves[i]) + 1]
                                                         for i in local_neighbor_positions]
 
                             # Last entry is the large element.
@@ -1059,7 +1059,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                             neighbor_linear_id = neighbor_global_ghost_itree *
                                                  max_tree_num_elements +
                                                  t8_element_get_linear_id(neighbor_scheme,
-                                                                          neighbor_leafs[1],
+                                                                          neighbor_leaves[1],
                                                                           max_level)
                             global_mortar_id = 2 * ndims(mesh) * neighbor_linear_id +
                                                dual_faces[1]
@@ -1100,7 +1100,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                 end
 
                 t8_free(dual_faces_ref[])
-                t8_free(pneighbor_leafs_ref[])
+                t8_free(pneighbor_leaves_ref[])
                 t8_free(pelement_indices_ref[])
             end # for iface
 
