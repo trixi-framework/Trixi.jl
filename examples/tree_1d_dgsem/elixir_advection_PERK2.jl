@@ -52,7 +52,9 @@ MonCoeffsFile = "gamma_6.txt"
 download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
 MonCoeffsFile)
 
-ode_algorithm = PERK2(6, "./")
+#ode_algorithm = PERK2(6, "./")
+
+ode_algorithm = PERK2(6, semi)
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = Trixi.solve(ode, ode_algorithm,
