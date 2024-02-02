@@ -2,6 +2,7 @@
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+include("polynomial_optimizer.jl")
 @muladd begin
 
 abstract type PERK end
@@ -22,7 +23,7 @@ function ComputeACoeffs(NumStageEvals::Int,
   return reverse(ACoeffs)
 end
 
-function ComputePERK2_ButcherTableau(NumStages::Int, BasePathMonCoeffs::AbstractString, bS::Float64, cEnd::Float64)
+function ComputePERK2_ButcherTableau(NumStages::Int, semi::AbstractSemidiscretization, bS::Float64, cEnd::Float64)
 
   # c Vector form Butcher Tableau (defines timestep per stage)
   c = zeros(NumStages)
@@ -39,8 +40,20 @@ function ComputePERK2_ButcherTableau(NumStages::Int, BasePathMonCoeffs::Abstract
   AMatrix[:, 1] = c[3:end]
 
   
-  PathMonCoeffs = BasePathMonCoeffs * "gamma_" * string(NumStages) * ".txt"
-  NumMonCoeffs, MonCoeffs = read_file(PathMonCoeffs, Float64)
+  ConsOrder = 2
+  filter_thres = 1e-12
+  dtMax = 1.0
+  dtEps = 1e-9
+
+  J = jacobian_ad_forward(semi)
+  EigVals = eigvals(J)
+
+  NumEigVals, EigVals = filter_Eigvals(EigVals, filter_thres)
+
+  MonCoeffs, PWorstCase, dtOpt = Bisection(ConsOrder, NumEigVals, NumStages, dtMax, dtEps, EigVals)
+  MonCoeffs = undo_normalization(ConsOrder, NumStages, MonCoeffs)
+
+  NumMonCoeffs = length(MonCoeffs)
   @assert NumMonCoeffs == CoeffsMax
   A = ComputeACoeffs(NumStages, SE_Factors, MonCoeffs)
   
@@ -81,12 +94,12 @@ mutable struct PERK2 <: PERKSingle
   cEnd::Float64
 
   # Constructor for previously computed A Coeffs
-  function PERK2(NumStages_::Int, BasePathMonCoeffs_::AbstractString, bS_::Float64=1.0, cEnd_::Float64=0.5)
+  function PERK2(NumStages_::Int, semi_::AbstractSemidiscretization, bS_::Float64=1.0, cEnd_::Float64=0.5)
 
     newPERK2 = new(NumStages_)
 
     newPERK2.AMatrix, newPERK2.c = 
-      ComputePERK2_ButcherTableau(NumStages_, BasePathMonCoeffs_, bS_, cEnd_)
+      ComputePERK2_ButcherTableau(NumStages_, semi_, bS_, cEnd_)
 
     newPERK2.b1 = one(bS_) - bS_
     newPERK2.bS = bS_
