@@ -11,7 +11,7 @@
 # \frac{\partial}{\partial t}u + \frac{\partial}{\partial x} (0.2 u) - \frac{\partial}{\partial y} (0.7 u) = - 2 e^{-t}
 # \sin\bigl(2 \pi (x - t) \bigr) \sin\bigl(2 \pi (y - t) \bigr)
 # ```
-# With an initial condition
+# And with an initial condition
 # ```math
 # u(0,x,y) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr).
 # ```
