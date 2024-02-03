@@ -129,7 +129,7 @@ summary_callback = SummaryCallback()
 
 analysis_callback = AnalysisCallback(semi, interval = 5)
 
-# It is also possible to control the time step size using [`StepsizeCallback`](@ref) if the time
+# It is also possible to control the time step size using the [`StepsizeCallback`](@ref) if the time
 # integration method isn't adaptive itself. To get more details, look at
 # [CFL based step size control](@ref CFL-based-step-size-control).
 
