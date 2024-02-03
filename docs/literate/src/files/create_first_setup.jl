@@ -232,7 +232,7 @@ trixi2vtk(joinpath("out", "solution_000018.h5"), output_directory="out")
 # - In the upper-left corner in the Pipeline Browser window, left-click on the eye-icon near
 #   `solution_000018.vtu`.
 # - In the lower-left corner in the Properties window, change the Coloring from Solid Color to
-#   scalar. Now final solution visualization is already generated.
+#   scalar. This already generates the visualization of the final solution.
 # - Now let's add the mesh to the visualization. In the upper-left corner in the
 #   Pipeline Browser window, left-click on the eye-icon near `solution_000018_celldata.vtu`.
 # - In the lower-left corner in the Properties window, change the Representation from the Surface
