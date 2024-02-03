@@ -39,7 +39,7 @@ using OrdinaryDiffEq
 # ```
 # is already implemented in Trixi.jl as
 # [`LinearScalarAdvectionEquation2D`](@ref), for which we need to define a two-dimensional parameter
-# with the `advection_velocity`. Appropriate for our problem is `(0.2, -0.7)`.
+# `advection_velocity` describing the paramaters ``a_1`` and ``a_2``. Appropriate for our problem is `(0.2, -0.7)`.
 
 advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
