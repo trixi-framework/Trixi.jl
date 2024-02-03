@@ -234,17 +234,3 @@ plot(p1, p2, p3, p4) #hide #md
 # Feel free to make further changes to the initial condition to observe different solutions.
 
 # Now you are able to download, modify and execute simulation setups for Trixi.jl.
-
-
-# ## Package versions
-
-# These results were obtained using the following versions.
-
-using InteractiveUtils
-versioninfo()
-
-using Pkg
-Pkg.status(["Trixi","OrdinaryDiffEq","Plots","ForwardDiff"],
-           mode=PKGMODE_MANIFEST)
-
-Sys.rm("out"; recursive=true, force=true) #hide #md
