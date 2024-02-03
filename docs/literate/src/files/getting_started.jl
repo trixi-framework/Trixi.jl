@@ -103,10 +103,10 @@
 # Any of the examples can be executed using the [`trixi_include`](@ref)
 # function. `trixi_include(...)` expects
 # a single string argument with a path to a file containing Julia code.
-# `joinpath(...)` join a path components into a full path. 
-# The [`examples_dir`](@ref) function returns a path to the
-# [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples) folder
-# that has been locally downloaded while installing Trixi.jl.
+# For convenience, the [`examples_dir`](@ref) function returns a path to the
+# [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples)
+# folder, which has been locally downloaded while installing Trixi.jl.
+# `joinpath(...)` can be used to join path components into a full path. 
 
 # Let's execute a short two-dimensional problem setup. It approximates the solution of
 # the compressible Euler equations in 2D for an ideal gas ([`CompressibleEulerEquations2D`](@ref))
