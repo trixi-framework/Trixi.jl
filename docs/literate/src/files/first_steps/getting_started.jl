@@ -48,7 +48,7 @@
 
 # - Open a terminal and navigate (using `cd`) to the directory, where you want to store Julia.
 # - To install Julia, get a link to the latest version of Julia from the
-#   [Julia website](https://julialang.org/downloads/), then download an archive file by executing:
+#   [Julia website](https://julialang.org/downloads/), then download the zipped file by executing:
 #   ```shell
 #   wget https://julialang-s3.julialang.org/bin/linux/... # your link goes here
 #   ```
