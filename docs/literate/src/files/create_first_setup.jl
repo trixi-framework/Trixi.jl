@@ -9,7 +9,7 @@
 # Let's consider the linear advection equation for a state ``u = u(t, x, y)`` on the two-dimensional spatial domain
 # ``[-1, 1] \times [-1, 1]`` with a source term.
 # ```math
-# \partial_t u(t,x,y) + 0.2 \partial_x u(t,x,y) - 0.7 \partial_y u(t,x,y) = - 2 \exp(-t)
+# \frac{\partial}{\partial t}u + \frac{\partial}{\partial x} (0.2 u) - \frac{\partial}{\partial y} (0.7 u) = - 2 e^{-t}
 # \sin\bigl(2 \pi (x - t) \bigr) \sin\bigl(2 \pi (y - t) \bigr)
 # ```
 # With an initial condition
