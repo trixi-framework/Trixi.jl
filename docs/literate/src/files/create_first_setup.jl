@@ -6,8 +6,8 @@
 # Since Trixi.jl has a common basic structure of the setup, you can create your own by extending
 # and modifying the following example.
 
-# Let's consider the linear advection equation in two-dimensional spatial domain
-# [-1.0, 1.0]⨯[-1.0, 1.0] with a source term.
+# Let's consider the linear advection equation for a state ``u = u(t, x, y)`` on the two-dimensional spatial domain
+# ``[-1, 1] \times [-1, 1]`` with a source term.
 # ```math
 # \partial_t u(t,x,y) + 0.2 \partial_x u(t,x,y) - 0.7 \partial_y u(t,x,y) = - 2 \exp(-t)
 # \sin\bigl(2 \pi (x - t) \bigr) \sin\bigl(2 \pi (y - t) \bigr)
