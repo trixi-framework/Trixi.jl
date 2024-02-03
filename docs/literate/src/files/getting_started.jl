@@ -204,7 +204,7 @@ get_examples()
     function initial_condition_density_waves(x, t, equations::CompressibleEulerEquations2D)
         v1 = 0.1 # velocity along x-axis
         v2 = 0.2 # velocity along y-axis
-        rho = 1.0 + 0.98 * sin(pi * (sum(x) - t * (v1 + v2))) # density wave profile
+        rho = 1.0 + 0.98 * sinpi(sum(x) - t * (v1 + v2)) # density wave profile
         p = 20 # pressure
         rho_e = p / (equations.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
         return SVector(rho, rho*v1, rho*v2, rho_e)
