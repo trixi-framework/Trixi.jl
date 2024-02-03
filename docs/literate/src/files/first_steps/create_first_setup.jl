@@ -124,7 +124,7 @@ ode = semidiscretize(semi, tspan);
 summary_callback = SummaryCallback()
 
 # We also want to analyze the current state of the solution in regular intervals.
-# [`AnalysisCallback`](@ref) outputs some useful statistical information during the solving process
+# The [`AnalysisCallback`](@ref) outputs some useful statistical information during the solving process
 # every `interval` time steps.
 
 analysis_callback = AnalysisCallback(semi, interval = 5)
