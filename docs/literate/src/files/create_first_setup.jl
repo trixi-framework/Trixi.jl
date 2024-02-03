@@ -154,7 +154,7 @@ save_restart = SaveRestartCallback(interval = 100, save_final_restart = true)
 callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback, save_solution,
                         save_restart)
 
-# The last step is to choose the time integration method, OrdinaryDiffEq.jl defines a wide range of
+# The last step is to choose the time integration method. OrdinaryDiffEq.jl defines a wide range of
 # [ODE solvers](https://docs.sciml.ai/DiffEqDocs/latest/solvers/ode_solve/), e.g.
 # `CarpenterKennedy2N54(williamson_condition = false)`. We will pass the ODE
 # problem, the ODE solver and the callbacks to the `solve` function. Also, to use
