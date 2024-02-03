@@ -73,7 +73,7 @@
 # happens inside Julia.
 # For a smooth workflow experience with Trixi.jl, you need to install 
 # [Trixi.jl](https://github.com/trixi-framework/Trixi.jl),
-# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and 
+# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and 
 # [Plots.jl](https://github.com/JuliaPlots/Plots.jl).
 
 # - Open a terminal and start Julia (Windows and Linux: type `julia`).
