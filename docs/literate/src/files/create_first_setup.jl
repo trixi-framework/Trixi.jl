@@ -239,17 +239,3 @@ trixi2vtk(joinpath("out", "solution_000018.h5"), output_directory="out")
 # section [Using Plots.jl](@ref Using-Plots.jl):
 
 # ![paraview_trixi2vtk_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/0c29139b-6c5d-4d5c-86e1-f4ebc95aca7e)
-
-
-# ## Package versions
-
-# These results were obtained using the following versions.
-
-using InteractiveUtils
-versioninfo()
-
-using Pkg
-Pkg.status(["Trixi","OrdinaryDiffEq","Plots","ForwardDiff"],
-           mode=PKGMODE_MANIFEST)
-
-Sys.rm("out"; recursive=true, force=true) #hide #md
