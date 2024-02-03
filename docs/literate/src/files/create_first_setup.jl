@@ -35,8 +35,8 @@ using OrdinaryDiffEq
 # [Adding a non-conservative equation](@ref adding_nonconservative_equation).
 
 # The linear scalar advection equation is already implemented in Trixi.jl as
-# [`LinearScalarAdvectionEquation2D`](@ref). For which we need to define a two-dimensional parameter
-# named `advection_velocity`, suitable for our problem is (0.2, -0.7).
+# [`LinearScalarAdvectionEquation2D`](@ref), for which we need to define a two-dimensional parameter
+# with the `advection_velocity`. Appropriate for our problem is `(0.2, -0.7)`.
 
 advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
