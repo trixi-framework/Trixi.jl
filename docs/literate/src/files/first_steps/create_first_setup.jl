@@ -79,7 +79,7 @@ solver = DGSEM(polydeg=3)
 # u(0,x,y) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr)
 # ```
 # The initial conditions function must take spatial coordinates, time and equation as arguments
-# and return an initial condition as a static vector `SVector`. Following the same structure, you
+# and returns an initial condition as a static vector `SVector`. Following the same structure, you
 # can define your own initial conditions.
 
 function initial_condition_sinpi(x, t, equations::LinearScalarAdvectionEquation2D)
