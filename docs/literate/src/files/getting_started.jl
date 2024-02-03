@@ -112,7 +112,7 @@
 # the compressible Euler equations in 2D for an ideal gas ([`CompressibleEulerEquations2D`](@ref))
 # with a weak blast wave as the initial condition.
 
-# Start Julia in a terminal and execute following code:
+# Start Julia in a terminal and execute the following code:
 
 # ```julia
 # using Trixi, OrdinaryDiffEq
