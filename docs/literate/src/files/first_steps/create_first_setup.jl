@@ -39,7 +39,7 @@ using OrdinaryDiffEq
 # ```
 # is already implemented in Trixi.jl as
 # [`LinearScalarAdvectionEquation2D`](@ref), for which we need to define a two-dimensional parameter
-# `advection_velocity` describing the paramaters ``a_1`` and ``a_2``. Appropriate for our problem is `(0.2, -0.7)`.
+# `advection_velocity` describing the parameters ``a_1`` and ``a_2``. Appropriate for our problem is `(0.2, -0.7)`.
 
 advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
@@ -80,7 +80,11 @@ solver = DGSEM(polydeg=3)
 # ```
 # The initial conditions function must take spatial coordinates, time and equation as arguments
 # and returns an initial condition as a static vector `SVector`. Following the same structure, you
-# can define your own initial conditions. The time variable `t` can be unused in the initial condition, but might also be used to describe an analytical solution if known. If you use the initial condition as analytical solution, you can analyze your numerical solution by computing the error, see also the [section about analyzing the solution](https://trixi-framework.github.io/Trixi.jl/stable/callbacks/#Analyzing-the-numerical-solution).
+# can define your own initial conditions. The time variable `t` can be unused in the initial
+# condition, but might also be used to describe an analytical solution if known. If you use the
+# initial condition as analytical solution, you can analyze your numerical solution by computing
+# the error, see also the
+# [section about analyzing the solution](https://trixi-framework.github.io/Trixi.jl/stable/callbacks/#Analyzing-the-numerical-solution).
 
 function initial_condition_sinpi(x, t, equations::LinearScalarAdvectionEquation2D)
     scalar = sinpi(x[1]) * sinpi(x[2])
@@ -110,7 +114,8 @@ tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
 
 # At this point, our problem is defined. We will use the `solve` function defined in
-# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) to get the solution. OrdinaryDiffEq.jl gives us the ability to customize the solver
+# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) to get the solution.
+# OrdinaryDiffEq.jl gives us the ability to customize the solver
 # using callbacks without actually modifying it. Trixi.jl already has some implemented
 # [Callbacks](@ref callbacks-id). The most widely used callbacks in Trixi.jl are
 # [step control callbacks](https://docs.sciml.ai/DiffEqCallbacks/stable/step_control/) that are
