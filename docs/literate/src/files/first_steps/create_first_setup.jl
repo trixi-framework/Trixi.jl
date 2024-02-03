@@ -118,7 +118,7 @@ ode = semidiscretize(semi, tspan);
 # We will show you how to use some of the common callbacks.
 
 # To print a summary of the simulation setup at the beginning
-# and to reset timers we use [`SummaryCallback`](@ref).
+# and to reset timers we use the [`SummaryCallback`](@ref).
 # When the returned callback is executed directly, the current timer values are shown.
 
 summary_callback = SummaryCallback()
