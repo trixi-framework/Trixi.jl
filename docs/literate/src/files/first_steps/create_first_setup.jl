@@ -76,7 +76,7 @@ solver = DGSEM(polydeg=3)
 # But to show you how an arbitrary initial condition can be implemented in a way suitable for
 # Trixi.jl, we define our own initial conditions.
 # ```math
-# u(0,x,y) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr)
+# u(x, y, 0) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr).
 # ```
 # The initial conditions function must take spatial coordinates, time and equation as arguments
 # and returns an initial condition as a static vector `SVector`. Following the same structure, you
