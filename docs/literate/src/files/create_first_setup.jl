@@ -214,7 +214,7 @@ plot!(getmesh(pd))
 # Pkg.add(["Trixi2Vtk"])
 # ```
 # Now we load the Trixi2Vtk.jl package and convert the file `out/solution_000018.h5` with
-# the final solution using the [`trixi2vtk`](@ref) function saving the resulted file in the
+# the final solution using the [`trixi2vtk`](@ref) function saving the resulting file in the
 # `out` folder.
 
 using Trixi2Vtk
