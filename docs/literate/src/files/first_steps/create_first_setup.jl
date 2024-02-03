@@ -13,7 +13,7 @@
 # ```
 # and with an initial condition
 # ```math
-# u(0,x,y) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr).
+# u(x, y, 0) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr).
 # ```
 
 # The first step is to create and open a file with the .jl extension. You can do this with your
