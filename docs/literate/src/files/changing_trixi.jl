@@ -12,7 +12,7 @@
 # If you are using Windows, you can clone Trixi.jl by using the GitHub Desktop tool:
 # - If you do not have a GitHub account yet, create it on
 #   the [GitHub website](https://github.com/join).
-# - Download and install [GitHub Desktop](https://desktop.github.com/) and then log in into
+# - Download and install [GitHub Desktop](https://desktop.github.com/) and then log in to
 #   your account.
 # - Open GitHub Desktop, press `Ctrl+Shift+O`.
 # - In the opened window, paste `trixi-framework/Trixi.jl` and choose the path to the folder where
