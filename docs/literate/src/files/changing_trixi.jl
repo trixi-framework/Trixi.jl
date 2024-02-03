@@ -43,7 +43,7 @@
 
 # ### Linux
 
-# You can clone Trixi.jl to your computer executing following commands:
+# You can clone Trixi.jl to your computer by executing the following commands:
 # ```shell
 # git clone git@github.com:trixi-framework/Trixi.jl.git 
 # # In case of an error, try the following:
