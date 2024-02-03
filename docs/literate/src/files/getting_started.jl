@@ -100,7 +100,7 @@
 # "elixirs", since they contain Julia code that takes parts of Trixi.jl and combines them into
 # something new.
 
-# Now execute one of the examples using the [`trixi_include`](@ref)
+# Any of the examples can be executed using the [`trixi_include`](@ref)
 # function. `trixi_include(...)` expects
 # a single string argument with a path to a file containing Julia code.
 # `joinpath(...)` join a path components into a full path. 
