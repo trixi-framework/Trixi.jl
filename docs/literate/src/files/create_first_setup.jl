@@ -106,7 +106,7 @@ tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
 
 # At this point, our problem is defined. We will use the `solve` function defined in
-# OrdinaryDiffEq.jl to get the solution. OrdinaryDiffEq.jl gives us ability to customize the solver
+# OrdinaryDiffEq.jl to get the solution. OrdinaryDiffEq.jl gives us the ability to customize the solver
 # using callbacks without actually modifying it. Trixi.jl already has some implemented
 # [Callbacks](@ref callbacks-id). The most widely used callbacks in Trixi.jl are
 # [step control callbacks](https://docs.sciml.ai/DiffEqCallbacks/stable/step_control/) that are
