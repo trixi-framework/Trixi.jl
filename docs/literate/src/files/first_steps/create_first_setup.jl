@@ -242,4 +242,8 @@ trixi2vtk(joinpath("out", "solution_000018.h5"), output_directory="out")
 
 # ![paraview_trixi2vtk_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/0c29139b-6c5d-4d5c-86e1-f4ebc95aca7e)
 
+# After completing this tutorial you are able to set up your own simulations with
+# Trixi.jl. If you have an interest in contributing to Trixi.jl as a developer, refer to the third
+# part of the introduction titled [Changing Trixi.jl itself](@ref changing_trixi).
+
 Sys.rm("out"; recursive=true, force=true) #hide #md
