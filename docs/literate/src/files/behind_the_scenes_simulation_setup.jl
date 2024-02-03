@@ -2,7 +2,7 @@
 
 # This tutorial will guide you through a simple Trixi.jl setup ("elixir"), giving an overview of what
 # happens in the background during the initialization of a simulation. While the setup described herein
-# does not cover all details, it is involves relatively stable parts of Trixi.jl that are unlikely
+# does not cover all details, it involves relatively stable parts of Trixi.jl that are unlikely
 # to undergo significant changes in the near future. The goal is to clarify some of the more
 # fundamental, *technical* concepts that are applicable to a variety of (also more complex)
 # configurations.
