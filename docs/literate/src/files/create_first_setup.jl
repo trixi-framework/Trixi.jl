@@ -113,8 +113,9 @@ ode = semidiscretize(semi, tspan);
 # activated at the end of each time step to perform some actions, e.g. to print statistics.
 # We will show you how to use some of the common callbacks.
 
-# To print a summary of the simulation setup at the beginning of solve-loop
+# To print a summary of the simulation setup at the beginning
 # and to reset timers we use [`SummaryCallback`](@ref).
+# When the returned callback is executed directly, the current timer values are shown.
 
 summary_callback = SummaryCallback()
 
