@@ -163,7 +163,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback, 
 # `CarpenterKennedy2N54(williamson_condition = false)`. We will pass the ODE
 # problem, the ODE solver and the callbacks to the `solve` function. Also, to use
 # `StepsizeCallback`, we must explicitly specify the initial trial time step `dt`, the selected
-# value is not important, because it will be overwritten by `StepsizeCallback`. And there is no
+# value is not important, because it will be overwritten by the `StepsizeCallback`. And there is no
 # need to save every step of the solution, we are only interested in the final result.
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 1.0,
