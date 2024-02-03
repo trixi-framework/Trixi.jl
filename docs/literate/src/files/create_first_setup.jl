@@ -58,8 +58,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 # To approximate the solution of the defined model, we create a [`DGSEM`](@ref) solver.
 # The solution in each of the recently defined mesh elements will be approximated by a polynomial
-# of degree `polydeg`. See more in
-# the [Introduction to DG methods](@ref scalar_linear_advection_1d).
+# of degree `polydeg`. For more information about discontinuous Galerkin methods,
+# check out the [Introduction to DG methods](@ref scalar_linear_advection_1d) tutorial.
 
 solver = DGSEM(polydeg=3)
 
