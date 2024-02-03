@@ -233,4 +233,6 @@ plot(p1, p2, p3, p4) #hide #md
 
 # Feel free to make further changes to the initial condition to observe different solutions.
 
-# Now you are able to download, modify and execute simulation setups for Trixi.jl.
+# Now you are able to download, modify and execute simulation setups for Trixi.jl. To explore
+# further details on setting up a new simulation with Trixi.jl, refer to the second part of
+# the introduction titled [Create first setup](@ref create_first_setup).
