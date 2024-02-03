@@ -5,7 +5,7 @@
 # Since Trixi.jl has a common basic structure for the setups, you can create your own by extending
 # and modifying the following example.
 
-# Let's consider the linear advection equation for a state ``u = u(t, x, y)`` on the two-dimensional spatial domain
+# Let's consider the linear advection equation for a state ``u = u(x, y, t)`` on the two-dimensional spatial domain
 # ``[-1, 1] \times [-1, 1]`` with a source term.
 # ```math
 # \frac{\partial}{\partial t}u + \frac{\partial}{\partial x} (0.2 u) - \frac{\partial}{\partial y} (0.7 u) = - 2 e^{-t}
