@@ -20,8 +20,8 @@
 # The first step is to create and open a file with the .jl extension. You can do this with your
 # favorite text editor. In this file you will create your setup.
 
-# To be able to use functionalities of Trixi.jl, you will always need to connect Trixi.jl itself
-# and [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) packages.
+# To be able to use functionalities of Trixi.jl, you always need to load Trixi.jl itself
+# and the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package.
 
 using Trixi
 using OrdinaryDiffEq
