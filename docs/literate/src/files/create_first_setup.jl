@@ -86,7 +86,7 @@ initial_condition = initial_condition_sinpi
 
 # The next step is to define a function of the source term corresponding to our problem.
 # ```math
-# f(t,u,x,y) = - 2 \exp(-t) \sin\bigl(2 \pi (x - t) \bigr) \sin\bigl(2 \pi (y - t) \bigr)
+# f(t,u,x,y) = - 2 e^{-t} \sin\bigl(2 \pi (x - t) \bigr) \sin\bigl(2 \pi (y - t) \bigr)
 # ```
 # This function must take the target variable, coordinates, time and the
 # equation itself as arguments and return the source term as a static vector `SVector`.
