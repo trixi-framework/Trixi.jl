@@ -26,7 +26,7 @@
 
 # ### Windows
 
-# - Download Julia installer for Windows from [https://julialang.org/downloads/](https://julialang.org/downloads/).
+# - Download the Julia installer for Windows from [https://julialang.org/downloads/](https://julialang.org/downloads/).
 #   Make sure that you choose the right version of the installer (64-bit or 32-bit) according to
 #   your computer.
 # - Open the downloaded installer.
