@@ -183,7 +183,7 @@ summary_callback()
 # ### Using Plots.jl
 
 # The first option is to use the [Plots.jl](https://github.com/JuliaPlots/Plots.jl) package
-# directly after calculations, when the solution is saved in the `sol` variable. We connect the
+# directly after calculations, when the solution is saved in the `sol` variable. We load the
 # package and use the `plot` function.
 
 using Plots
