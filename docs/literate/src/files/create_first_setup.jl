@@ -88,7 +88,7 @@ initial_condition = initial_condition_sinpi
 # ```math
 # f(t,u,x,y) = - 2 e^{-t} \sin\bigl(2 \pi (x - t) \bigr) \sin\bigl(2 \pi (y - t) \bigr)
 # ```
-# This function must take the target variable, coordinates, time and the
+# This function must take the state variable, coordinates, time and the
 # equation itself as arguments and return the source term as a static vector `SVector`.
 
 function source_term_exp_sinpi(u, x, t, equations::LinearScalarAdvectionEquation2D)
