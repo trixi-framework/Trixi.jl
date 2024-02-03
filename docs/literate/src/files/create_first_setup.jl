@@ -208,7 +208,7 @@ plot!(getmesh(pd))
 # [VisIt](https://visit.llnl.gov) to plot the solution. The important thing is that currently
 # Trixi2Vtk.jl supports conversion only for solutions in 2D and 3D spatial domains.
 
-# If you haven't added a Trixi2Vtk.jl to your project yet, you can add it as follows.
+# If you haven't added Trixi2Vtk.jl to your project yet, you can add it as follows.
 # ```julia
 # import Pkg
 # Pkg.add(["Trixi2Vtk"])
