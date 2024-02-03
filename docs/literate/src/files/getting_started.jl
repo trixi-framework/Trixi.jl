@@ -62,7 +62,7 @@
 # Julia is installed.
 # Then Julia will be started. To close Julia, enter `exit()` or press `Ctrl+d`.
 
-# Note, that further in the tutorial Julia will be started only typing `julia` in a terminal.
+# Note that later on in the tutorial, Julia will be started by only typing `julia` in a terminal.
 # To enable that, you have to add
 # [Julia to the PATH](https://julialang.org/downloads/platform/#linux_and_freebsd).
 
@@ -100,19 +100,19 @@
 # "elixirs", since they contain Julia code that takes parts of Trixi.jl and combines them into
 # something new.
 
-# Now execute one of the examples using the [`trixi_include`](@ref)
+# Any of the examples can be executed using the [`trixi_include`](@ref)
 # function. `trixi_include(...)` expects
 # a single string argument with a path to a file containing Julia code.
-# `joinpath(...)` join a path components into a full path. 
-# The [`examples_dir`](@ref) function returns a path to the
-# [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples) folder
-# that has been locally downloaded while installing Trixi.jl.
+# For convenience, the [`examples_dir`](@ref) function returns a path to the
+# [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples)
+# folder, which has been locally downloaded while installing Trixi.jl.
+# `joinpath(...)` can be used to join path components into a full path. 
 
 # Let's execute a short two-dimensional problem setup. It approximates the solution of
 # the compressible Euler equations in 2D for an ideal gas ([`CompressibleEulerEquations2D`](@ref))
 # with a weak blast wave as the initial condition.
 
-# Start Julia in a terminal and execute following code:
+# Start Julia in a terminal and execute the following code:
 
 # ```julia
 # using Trixi, OrdinaryDiffEq
@@ -123,23 +123,23 @@ trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_eule
 
 # To analyze the result of the computation, we can use the Plots.jl package and the function 
 # `plot(...)`, which creates a graphical representation of the solution. `sol` is a variable
-# defined in executed example and it contains the solution at the final moment of the simulation.
+# defined in the executed example and it contains the solution at the final moment of the simulation.
 
 using Plots
 plot(sol)
 
-# To obtain list of all Trixi.jl elixirs execute
-# [`get_examples`](@ref). It returns the path to all example setups.
+# To obtain a list of all Trixi.jl elixirs execute
+# [`get_examples`](@ref). It returns the paths to all example setups.
 
 get_examples()
 
-# Editing an existing elixirs is the best way to start your first own investigation using Trixi.jl.
+# Editing an existing elixir is the best way to start your first own investigation using Trixi.jl.
 
 
 # ### Getting an existing setup file
 
 # To edit an existing elixir, you first have to find a suitable one and then copy it to a local
-# folder. Let's have a look how to download the `elixir_euler_ec.jl` elixir used in the previous
+# folder. Let's have a look at how to download the `elixir_euler_ec.jl` elixir used in the previous
 # section from the [Trixi.jl GitHub repository](https://github.com/trixi-framework/Trixi.jl).
 
 # - All examples are located inside
@@ -153,7 +153,7 @@ get_examples()
 
 # ### Modifying an existing setup
 
-# For example, we will change the initial condition for calculations that occur in
+# As an example, we will change the initial condition for calculations that occur in
 # `elixir_euler_ec.jl`. In this example we consider the compressible Euler equations in two spatial
 # dimensions,
 # ```math
