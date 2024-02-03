@@ -88,7 +88,7 @@ initial_condition = initial_condition_sinpi
 # ```math
 # f(t,u,x,y) = - 2 e^{-t} \sin\bigl(2 \pi (x - t) \bigr) \sin\bigl(2 \pi (y - t) \bigr)
 # ```
-# This function must take the target variable, coordinates, time and the
+# This function must take the state variable, coordinates, time and the
 # equation itself as arguments and return the source term as a static vector `SVector`.
 
 function source_term_exp_sinpi(u, x, t, equations::LinearScalarAdvectionEquation2D)
@@ -96,8 +96,9 @@ function source_term_exp_sinpi(u, x, t, equations::LinearScalarAdvectionEquation
     return SVector(scalar)
 end
 
-# Now we are collecting all the information that will be needed to define spatial discretization
-# and to create an ODE problem with a time span from 0.0 s to 1.0.
+# Now we are collecting all the information that will be needed to define a spatial discretization,
+# which leaves us with an ODE problem in time with a span from 0.0 s to 1.0.
+# This approach is commonly referred to as the method of lines. 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_term_exp_sinpi)
@@ -105,19 +106,20 @@ tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
 
 # At this point, our problem is defined. We will use the `solve` function defined in
-# OrdinaryDiffEq.jl to get the solution. OrdinaryDiffEq.jl gives us ability to customize the solver
+# OrdinaryDiffEq.jl to get the solution. OrdinaryDiffEq.jl gives us the ability to customize the solver
 # using callbacks without actually modifying it. Trixi.jl already has some implemented
 # [Callbacks](@ref callbacks-id). The most widely used callbacks in Trixi.jl are
 # [step control callbacks](https://docs.sciml.ai/DiffEqCallbacks/stable/step_control/) that are
-# activated at the end of each time step to perform some actions, e.g. to print a statistics.
+# activated at the end of each time step to perform some actions, e.g. to print statistics.
 # We will show you how to use some of the common callbacks.
 
-# To print a summary of the simulation setup at the beginning of solve-loop
+# To print a summary of the simulation setup at the beginning
 # and to reset timers we use [`SummaryCallback`](@ref).
+# When the returned callback is executed directly, the current timer values are shown.
 
 summary_callback = SummaryCallback()
 
-# Also we want to analyse the current state of the solution in regular intervals.
+# We also want to analyze the current state of the solution in regular intervals.
 # [`AnalysisCallback`](@ref) outputs some useful statistical information during the solving process
 # every `interval` time steps.
 
@@ -129,10 +131,10 @@ analysis_callback = AnalysisCallback(semi, interval = 5)
 
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
-# To save current solution in regular intervals we use [`SaveSolutionCallback`](@ref).
-# We would like to save the initial and final solutions as well. Solution
-# will be saved as a HDF5 file located in the `out` folder. Afterwards it is possible to visualize
-# a solution from saved files using Trixi2Vtk.jl and ParaView, this is described below in the
+# To save the current solution in regular intervals we use [`SaveSolutionCallback`](@ref).
+# We would like to save the initial and final solutions as well. The data
+# will be saved as HDF5 files located in the `out` folder. Afterwards it is possible to visualize
+# a solution from saved files using Trixi2Vtk.jl and ParaView, which is described below in the
 # section [Visualize the solution](@ref Visualize-the-solution).
 
 save_solution = SaveSolutionCallback(interval = 5,
@@ -140,7 +142,7 @@ save_solution = SaveSolutionCallback(interval = 5,
                                      save_final_solution = true)
 
 # Another useful callback is [`SaveRestartCallback`](@ref). It saves information for restarting
-# in regular intervals. We are interested in saving a restart file for a final solution as
+# in regular intervals. We are interested in saving a restart file for the final solution as
 # well. To perform a restart, you need to configure the restart setup in a special way, which is
 # described in the section [Restart simulation](@ref restart).
 
@@ -152,7 +154,7 @@ save_restart = SaveRestartCallback(interval = 100, save_final_restart = true)
 callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback, save_solution,
                         save_restart)
 
-# The last step is to choose the time integration method, OrdinaryDiffEq.jl defines a wide range of
+# The last step is to choose the time integration method. OrdinaryDiffEq.jl defines a wide range of
 # [ODE solvers](https://docs.sciml.ai/DiffEqDocs/latest/solvers/ode_solve/), e.g.
 # `CarpenterKennedy2N54(williamson_condition = false)`. We will pass the ODE
 # problem, the ODE solver and the callbacks to the `solve` function. Also, to use
@@ -168,7 +170,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 1.0,
 summary_callback()
 
 # Now you can plot the solution as shown below, analyze it and improve the stability, accuracy or
-# efficiency of your setup modifying it.
+# efficiency of your setup.
 
 
 # ## Visualize the solution
@@ -181,7 +183,7 @@ summary_callback()
 # ### Using Plots.jl
 
 # The first option is to use the [Plots.jl](https://github.com/JuliaPlots/Plots.jl) package
-# directly after calculations, when the solution is saved in the `sol` variable. We connect the
+# directly after calculations, when the solution is saved in the `sol` variable. We load the
 # package and use the `plot` function.
 
 using Plots
@@ -206,13 +208,13 @@ plot!(getmesh(pd))
 # [VisIt](https://visit.llnl.gov) to plot the solution. The important thing is that currently
 # Trixi2Vtk.jl supports conversion only for solutions in 2D and 3D spatial domains.
 
-# If you haven't added a Trixi2Vtk.jl to your project yet, you can add it as follows.
+# If you haven't added Trixi2Vtk.jl to your project yet, you can add it as follows.
 # ```julia
 # import Pkg
 # Pkg.add(["Trixi2Vtk"])
 # ```
-# Now we are connecting the Trixi2Vtk.jl package and convert the file `out/solution_000018.h5` with
-# the final solution using the [`trixi2vtk`](@ref) function saving the resulted file in the
+# Now we load the Trixi2Vtk.jl package and convert the file `out/solution_000018.h5` with
+# the final solution using the [`trixi2vtk`](@ref) function saving the resulting file in the
 # `out` folder.
 
 using Trixi2Vtk
@@ -224,17 +226,17 @@ trixi2vtk(joinpath("out", "solution_000018.h5"), output_directory="out")
 
 # Now let's visualize the solution from the generated files in ParaView. Follow this short
 # instruction to get the visualization.
-# - Download, install and open [ParaView](https://www.paraview.org/download/)
-# - Press `Ctrl+O` and browse the generated files `solution_000018.vtu` and
+# - Download, install and open [ParaView](https://www.paraview.org/download/).
+# - Press `Ctrl+O` and select the generated files `solution_000018.vtu` and
 #   `solution_000018_celldata.vtu` from the `out` folder.
 # - In the upper-left corner in the Pipeline Browser window, left-click on the eye-icon near
 #   `solution_000018.vtu`.
 # - In the lower-left corner in the Properties window, change the Coloring from Solid Color to
-#   scalar. Now final solution visualization is already generated.
+#   scalar. This already generates the visualization of the final solution.
 # - Now let's add the mesh to the visualization. In the upper-left corner in the
 #   Pipeline Browser window, left-click on the eye-icon near `solution_000018_celldata.vtu`.
-# - In the lower-left corner in the Properties window, change the Representation from the Surface
-#   to the Wireframe. Then a white grid should appear on the visualization.
+# - In the lower-left corner in the Properties window, change the Representation from Surface
+#   to Wireframe. Then a white grid should appear on the visualization.
 # Now, if you followed the instructions exactly, you should get a similar image as shown in the
 # section [Using Plots.jl](@ref Using-Plots.jl):
 
