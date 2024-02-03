@@ -41,12 +41,12 @@ using OrdinaryDiffEq
 advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
-# To solve our problem numerically using Trixi.jl, we have to define an instruction for spatial
-# discretization. To do it, we set up a mesh. One of the widely used meshes in Trixi.jl is
-# [`TreeMesh`](@ref). The spatial domain used is [-1.0, 1.0]⨯[-1.0, 1.0]. We set an initial number
-# of elements in the mesh using `initial_refinement_level`, which describes the initial height of
-# the tree mesh. The variable `n_cells_max` is used to limit the number of elements in the mesh,
-# which cannot be exceeded in the [adaptive mesh refinement](@ref Adaptive-mesh-refinement).
+# To solve our problem numerically using Trixi.jl, we have to descretize the spatial
+# domain, for which we set up a mesh. One of the most used meshes in Trixi.jl is
+# [`TreeMesh`](@ref). The spatial domain used is ``[-1, 1] \times [-1, 1]``. We set an initial number
+# of elements in the mesh using `initial_refinement_level`, which describes the initial number of
+# hierarchical refinements. The variable `n_cells_max` is used to limit the number of elements in the mesh,
+# which cannot be exceeded when using [adaptive mesh refinement](@ref Adaptive-mesh-refinement).
 
 # All minimum and all maximum coordinates must be combined into `Tuples`.
 
