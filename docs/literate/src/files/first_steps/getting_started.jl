@@ -79,8 +79,8 @@
 # - Open a terminal and start Julia (Windows and Linux: type `julia`).
 # - Execute following commands:
 #   ```julia
-#   julia> import Pkg
-#   julia> Pkg.add(["OrdinaryDiffEq", "Plots", "Trixi"])
+#   import Pkg
+#   Pkg.add(["OrdinaryDiffEq", "Plots", "Trixi"])
 #   ```
 
 # Now you have installed all these 
@@ -115,8 +115,8 @@
 # Start Julia in a terminal and execute the following code:
 
 # ```julia
-# julia> using Trixi, OrdinaryDiffEq
-# julia> trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
+# using Trixi, OrdinaryDiffEq
+# trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
 # ```
 using Trixi, OrdinaryDiffEq #hide #md
 trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
@@ -201,23 +201,23 @@ get_examples()
 # - Now you can create your own initial conditions. Add the following code after the
 #   commented line:
 
-    function initial_condition_density_waves(x, t, equations::CompressibleEulerEquations2D)
-        v1 = 0.1 # velocity along x-axis
-        v2 = 0.2 # velocity along y-axis
-        rho = 1.0 + 0.98 * sinpi(sum(x) - t * (v1 + v2)) # density wave profile
-        p = 20 # pressure
-        rho_e = p / (equations.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-        return SVector(rho, rho*v1, rho*v2, rho_e)
-    end
-    initial_condition = initial_condition_density_waves
+function initial_condition_density_waves(x, t, equations::CompressibleEulerEquations2D)
+    v1 = 0.1 # velocity along x-axis
+    v2 = 0.2 # velocity along y-axis
+    rho = 1.0 + 0.98 * sinpi(sum(x) - t * (v1 + v2)) # density wave profile
+    p = 20 # pressure
+    rho_e = p / (equations.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
+    return SVector(rho, rho*v1, rho*v2, rho_e)
+end
+initial_condition = initial_condition_density_waves
 
 # - Execute the following code one more time, but instead of `path/to/file` paste the path to the
 #   `elixir_euler_ec.jl` file that you just edited.
 #   ```julia
-#   julia> using Trixi
-#   julia> trixi_include(path/to/file)
-#   julia> using Plots
-#   julia> plot(sol)
+#   using Trixi
+#   trixi_include(path/to/file)
+#   using Plots
+#   plot(sol)
 #   ```
 # Then you will obtain a new solution from running the simulation with a different initial
 # condition.
@@ -233,12 +233,12 @@ plot(p1, p2, p3, p4) #hide #md
 
 # To get exactly the same picture execute the following.
 # ```julia
-# julia> pd = PlotData2D(sol)
-# julia> p1 = plot(pd["rho"])
-# julia> p2 = plot(pd["v1"], clim=(0.05, 0.15))
-# julia> p3 = plot(pd["v2"], clim=(0.15, 0.25))
-# julia> p4 = plot(pd["p"], clim=(10, 30))
-# julia> plot(p1, p2, p3, p4)
+# pd = PlotData2D(sol)
+# p1 = plot(pd["rho"])
+# p2 = plot(pd["v1"], clim=(0.05, 0.15))
+# p3 = plot(pd["v2"], clim=(0.15, 0.25))
+# p4 = plot(pd["p"], clim=(10, 30))
+# plot(p1, p2, p3, p4)
 # ```
 
 # Feel free to make further changes to the initial condition to observe different solutions.
