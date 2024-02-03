@@ -75,17 +75,3 @@
 #   describe how to add new physics models that are not yet included in Trixi.jl.
 # - [Callbacks](@ref callbacks-id) gives an overview of how to regularly execute specific actions
 #   during a simulation, e.g., to store the solution or adapt the mesh.
-
-
-# ## Package versions
-
-# These results were obtained using the following versions.
-
-using InteractiveUtils
-versioninfo()
-
-using Pkg
-Pkg.status(["Trixi","OrdinaryDiffEq","Plots","ForwardDiff"],
-           mode=PKGMODE_MANIFEST)
-
-Sys.rm("out"; recursive=true, force=true) #hide #md
