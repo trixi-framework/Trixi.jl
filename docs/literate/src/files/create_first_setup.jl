@@ -30,9 +30,9 @@ using OrdinaryDiffEq
 # currently implemented equations, take a look at
 # [`src/equations`](https://github.com/trixi-framework/Trixi.jl/tree/main/src/equations).
 # If you are interested in adding a new physics model that has not yet been implemented in
-# Trixi.jl, take a look at
-# [adding a new scalar conservation law](@ref adding_new_scalar_equations) and
-# [adding a non-conservative equation](@ref adding_nonconservative_equation).
+# Trixi.jl, take a look at the tutorials
+# [Adding a new scalar conservation law](@ref adding_new_scalar_equations) or
+# [Adding a non-conservative equation](@ref adding_nonconservative_equation).
 
 # The linear scalar advection equation is already implemented in Trixi.jl as
 # [`LinearScalarAdvectionEquation2D`](@ref). For which we need to define a two-dimensional parameter
