@@ -2,7 +2,7 @@
 
 # In this part of the introductory guide, we will create a first Trixi.jl setup as an extension of
 # [`elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_basic.jl).
-# Since Trixi.jl has a common basic structure of the setup, you can create your own by extending
+# Since Trixi.jl has a common basic structure for the setups, you can create your own by extending
 # and modifying the following example.
 
 # Let's consider the linear advection equation for a state ``u = u(t, x, y)`` on the two-dimensional spatial domain
