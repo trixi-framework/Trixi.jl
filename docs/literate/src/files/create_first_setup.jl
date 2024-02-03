@@ -1,7 +1,6 @@
 #src # Create first setup
 
-# In this part of the introductory guide, we will consider a creation of the first Trixi.jl setup,
-# which is an extension of
+# In this part of the introductory guide, we will create a first Trixi.jl setup as an extension of
 # [`elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_basic.jl).
 # Since Trixi.jl has a common basic structure of the setup, you can create your own by extending
 # and modifying the following example.
