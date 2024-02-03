@@ -6,7 +6,7 @@
 # and modifying the following example.
 
 # Let's consider the linear advection equation for a state ``u = u(x, y, t)`` on the two-dimensional spatial domain
-# ``[-1, 1] \times [-1, 1]`` with a source term.
+# ``[-1, 1] \times [-1, 1]`` with a source term
 # ```math
 # \frac{\partial}{\partial t}u + \frac{\partial}{\partial x} (0.2 u) - \frac{\partial}{\partial y} (0.7 u) = - 2 e^{-t}
 # \sin\bigl(2 \pi (x - t) \bigr) \sin\bigl(2 \pi (y - t) \bigr)
