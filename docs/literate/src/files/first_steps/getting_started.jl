@@ -214,10 +214,10 @@ get_examples()
 # - Execute the following code one more time, but instead of `path/to/file` paste the path to the
 #   `elixir_euler_ec.jl` file that you just edited.
 #   ```julia
-#   using Trixi
-#   trixi_include(path/to/file)
-#   using Plots
-#   plot(sol)
+#   julia> using Trixi
+#   julia> trixi_include(path/to/file)
+#   julia> using Plots
+#   julia> plot(sol)
 #   ```
 # Then you will obtain a new solution from running the simulation with a different initial
 # condition.
@@ -230,6 +230,16 @@ p2 = plot(pd["v1"], clim=(0.05, 0.15)) #hide #md
 p3 = plot(pd["v2"], clim=(0.15, 0.25)) #hide #md
 p4 = plot(pd["p"], clim=(10, 30)) #hide #md
 plot(p1, p2, p3, p4) #hide #md
+
+# To get exactly the same picture execute the following.
+# ```julia
+# julia> pd = PlotData2D(sol)
+# julia> p1 = plot(pd["rho"])
+# julia> p2 = plot(pd["v1"], clim=(0.05, 0.15))
+# julia> p3 = plot(pd["v2"], clim=(0.15, 0.25))
+# julia> p4 = plot(pd["p"], clim=(10, 30))
+# julia> plot(p1, p2, p3, p4)
+# ```
 
 # Feel free to make further changes to the initial condition to observe different solutions.
 
