@@ -80,7 +80,7 @@ solver = DGSEM(polydeg=3)
 # ```
 # The initial conditions function must take spatial coordinates, time and equation as arguments
 # and returns an initial condition as a static vector `SVector`. Following the same structure, you
-# can define your own initial conditions.
+# can define your own initial conditions. The time variable `t` can be unused in the initial condition, but might also be used to describe an analytical solution if known. If you use the initial condition as analytical solution, you can analyze your numerical solution by computing the error, see also the [section about analyzing the solution](https://trixi-framework.github.io/Trixi.jl/stable/callbacks/#Analyzing-the-numerical-solution).
 
 function initial_condition_sinpi(x, t, equations::LinearScalarAdvectionEquation2D)
     scalar = sinpi(x[1]) * sinpi(x[2])
