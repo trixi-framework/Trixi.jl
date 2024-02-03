@@ -227,7 +227,7 @@ trixi2vtk(joinpath("out", "solution_000018.h5"), output_directory="out")
 # Now let's visualize the solution from the generated files in ParaView. Follow this short
 # instruction to get the visualization.
 # - Download, install and open [ParaView](https://www.paraview.org/download/).
-# - Press `Ctrl+O` and browse the generated files `solution_000018.vtu` and
+# - Press `Ctrl+O` and select the generated files `solution_000018.vtu` and
 #   `solution_000018_celldata.vtu` from the `out` folder.
 # - In the upper-left corner in the Pipeline Browser window, left-click on the eye-icon near
 #   `solution_000018.vtu`.
