@@ -79,7 +79,7 @@
 # - Open a terminal and start Julia (Windows and Linux: type `julia`).
 # - Execute following commands:
 #   ```julia
-#   import Pkg
+#   julia> import Pkg
 #   Pkg.add(["OrdinaryDiffEq", "Plots", "Trixi"])
 #   ```
 
