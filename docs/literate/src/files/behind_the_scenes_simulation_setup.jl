@@ -244,3 +244,5 @@ using Plots
 plot(sol)
 pd = PlotData2D(sol)
 plot!(getmesh(pd))
+
+Sys.rm("out"; recursive=true, force=true) #hide #md
