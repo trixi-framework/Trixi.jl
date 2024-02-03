@@ -69,7 +69,7 @@ solver = DGSEM(polydeg=3)
 # ```julia
 # initial_conditions = initial_condition_gauss
 # ```
-# But to show you how an arbitrary initial conditions can be implemented in a way suitable for
+# But to show you how an arbitrary initial condition can be implemented in a way suitable for
 # Trixi.jl, we define our own initial conditions.
 # ```math
 # u(0,x,y) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr)
