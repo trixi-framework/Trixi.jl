@@ -37,7 +37,7 @@ using OrdinaryDiffEq
 # ```math
 # \frac{\partial}{\partial t}u + \frac{\partial}{\partial x} (a_1 u) + \frac{\partial}{\partial y} (a_2 u) = 0
 # ```
-is already implemented in Trixi.jl as
+# is already implemented in Trixi.jl as
 # [`LinearScalarAdvectionEquation2D`](@ref), for which we need to define a two-dimensional parameter
 # with the `advection_velocity`. Appropriate for our problem is `(0.2, -0.7)`.
 
