@@ -62,7 +62,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 solver = DGSEM(polydeg=3)
 
-# Now we need to define an initial conditions for our problem. All the already implemented
+# Now we need to define an initial condition for our problem. All the already implemented
 # initial conditions for [`LinearScalarAdvectionEquation2D`](@ref) can be found in
 # [`src/equations/linear_scalar_advection_2d.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/src/equations/linear_scalar_advection_2d.jl).
 # If you want to use, for example, a Gaussian pulse, it can be used as follows.
