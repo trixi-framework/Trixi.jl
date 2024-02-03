@@ -235,8 +235,8 @@ trixi2vtk(joinpath("out", "solution_000018.h5"), output_directory="out")
 #   scalar. This already generates the visualization of the final solution.
 # - Now let's add the mesh to the visualization. In the upper-left corner in the
 #   Pipeline Browser window, left-click on the eye-icon near `solution_000018_celldata.vtu`.
-# - In the lower-left corner in the Properties window, change the Representation from the Surface
-#   to the Wireframe. Then a white grid should appear on the visualization.
+# - In the lower-left corner in the Properties window, change the Representation from Surface
+#   to Wireframe. Then a white grid should appear on the visualization.
 # Now, if you followed the instructions exactly, you should get a similar image as shown in the
 # section [Using Plots.jl](@ref Using-Plots.jl):
 
