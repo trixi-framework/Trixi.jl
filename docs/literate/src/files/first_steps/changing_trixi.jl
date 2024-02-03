@@ -64,7 +64,7 @@
 
 # ## For further reading
 
-# To further delve into Trixi.jl, you may have a look at following tutorials.
+# To further delve into Trixi.jl, you may have a look at the following introductory tutorials.
 # - [Introduction to DG methods](@ref scalar_linear_advection_1d) will teach you how to set up a
 #   simple way to approximate the solution of a hyperbolic partial differential equation. It will
 #   be especially useful to learn about the 
