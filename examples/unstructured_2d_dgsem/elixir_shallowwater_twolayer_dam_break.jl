@@ -1,5 +1,4 @@
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -41,18 +40,15 @@ boundary_condition_constant = BoundaryConditionDirichlet(initial_condition_dam_b
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-surface_flux = (flux_fjordholm_etal, flux_nonconservative_fjordholm_etal)
+volume_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal)
+surface_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal)
 solver = DGSEM(polydeg = 6, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
-default_mesh_file = joinpath(@__DIR__, "mesh_alfven_wave_with_twist_and_flip.mesh")
-isfile(default_mesh_file) ||
-    download("https://gist.githubusercontent.com/andrewwinters5000/8f8cd23df27fcd494553f2a89f3c1ba4/raw/85e3c8d976bbe57ca3d559d653087b0889535295/mesh_alfven_wave_with_twist_and_flip.mesh",
-             default_mesh_file)
-mesh_file = default_mesh_file
+mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/8f8cd23df27fcd494553f2a89f3c1ba4/raw/85e3c8d976bbe57ca3d559d653087b0889535295/mesh_alfven_wave_with_twist_and_flip.mesh",
+                           joinpath(@__DIR__, "mesh_alfven_wave_with_twist_and_flip.mesh"))
 
 mesh = UnstructuredMesh2D(mesh_file, periodicity = false)
 

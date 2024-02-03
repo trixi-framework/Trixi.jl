@@ -236,8 +236,12 @@ Should be used together with [`TreeMesh`](@ref).
         u_boundary = SVector(u_inner[1], u_inner[2], -u_inner[3], u_inner[4])
     end
 
-    # compute and return the flux using `boundary_condition_slip_wall` routine above
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+    # Calculate boundary flux
+    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+    end
 
     return flux
 end
@@ -700,6 +704,74 @@ end
     f1 = f4 = zero(eltype(u_ll))
 
     return SVector(f1, f2, f3, f4)
+end
+
+"""
+    flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterEquations2D)
+    flux_nonconservative_ersing_etal(u_ll, u_rr,
+                                     normal_direction_ll::AbstractVector,
+                                     normal_direction_average::AbstractVector,
+                                     equations::ShallowWaterEquations2D)
+
+!!! warning "Experimental code"
+    This numerical flux is experimental and may change in any future release.
+
+Non-symmetric path-conservative two-point volume flux discretizing the nonconservative (source) term
+that contains the gradient of the bottom topography [`ShallowWaterEquations2D`](@ref).
+
+On curvilinear meshes, this nonconservative flux depends on both the
+contravariant vector (normal direction) at the current node and the averaged
+one. This is different from numerical fluxes used to discretize conservative
+terms.
+
+This is a modified version of [`flux_nonconservative_wintermeyer_etal`](@ref) that gives entropy 
+conservation and well-balancedness in both the volume and surface when combined with 
+[`flux_wintermeyer_etal`](@ref).
+
+For further details see:
+- Patrick Ersing, Andrew R. Winters (2023)
+  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on 
+  curvilinear meshes
+  [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
+"""
+@inline function flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                                  equations::ShallowWaterEquations2D)
+    # Pull the necessary left and right state information
+    h_ll = waterheight(u_ll, equations)
+    b_rr = u_rr[4]
+    b_ll = u_ll[4]
+
+    # Calculate jump
+    b_jump = b_rr - b_ll
+
+    z = zero(eltype(u_ll))
+    # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
+    if orientation == 1
+        f = SVector(z, equations.gravity * h_ll * b_jump, z, z)
+    else # orientation == 2
+        f = SVector(z, z, equations.gravity * h_ll * b_jump, z)
+    end
+    return f
+end
+
+@inline function flux_nonconservative_ersing_etal(u_ll, u_rr,
+                                                  normal_direction_ll::AbstractVector,
+                                                  normal_direction_average::AbstractVector,
+                                                  equations::ShallowWaterEquations2D)
+    # Pull the necessary left and right state information
+    h_ll = waterheight(u_ll, equations)
+    b_rr = u_rr[4]
+    b_ll = u_ll[4]
+
+    # Calculate jump
+    b_jump = b_rr - b_ll
+    # Note this routine only uses the `normal_direction_average` and the average of the
+    # bottom topography to get a quadratic split form DG gradient on curved elements
+    return SVector(zero(eltype(u_ll)),
+                   normal_direction_average[1] * equations.gravity * h_ll * b_jump,
+                   normal_direction_average[2] * equations.gravity * h_ll * b_jump,
+                   zero(eltype(u_ll)))
 end
 
 """

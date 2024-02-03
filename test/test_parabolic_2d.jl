@@ -16,7 +16,8 @@ isdir(outdir) && rm(outdir, recursive = true)
     dg = DGMulti(polydeg = 2, element_type = Quad(), approximation_type = Polynomial(),
                  surface_integral = SurfaceIntegralWeakForm(flux_central),
                  volume_integral = VolumeIntegralWeakForm())
-    mesh = DGMultiMesh(dg, cells_per_dimension = (2, 2))
+    cells_per_dimension = (2, 2)
+    mesh = DGMultiMesh(dg, cells_per_dimension)
 
     # test with polynomial initial condition x^2 * y
     # test if we recover the exact second derivative
@@ -217,9 +218,9 @@ end
                                  "elixir_advection_diffusion.jl"),
                         tspan=(0.0, 0.0))
     LLID = Trixi.local_leaf_cells(mesh.tree)
-    num_leafs = length(LLID)
-    @assert num_leafs % 8 == 0
-    Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs / 8)])
+    num_leaves = length(LLID)
+    @assert num_leaves % 8 == 0
+    Trixi.refine!(mesh.tree, LLID[1:Int(num_leaves / 8)])
     tspan = (0.0, 1.5)
     semi = SemidiscretizationHyperbolicParabolic(mesh,
                                                  (equations, equations_parabolic),
@@ -413,9 +414,9 @@ end
                                  "elixir_navierstokes_convergence.jl"),
                         tspan=(0.0, 0.0), initial_refinement_level=3)
     LLID = Trixi.local_leaf_cells(mesh.tree)
-    num_leafs = length(LLID)
-    @assert num_leafs % 4 == 0
-    Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs / 4)])
+    num_leaves = length(LLID)
+    @assert num_leaves % 4 == 0
+    Trixi.refine!(mesh.tree, LLID[1:Int(num_leaves / 4)])
     tspan = (0.0, 0.5)
     semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                                  initial_condition, solver;
@@ -540,6 +541,38 @@ end
     end
 end
 
+@trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_advection_diffusion_periodic_amr.jl"),
+                        tspan=(0.0, 0.01),
+                        l2=[0.014715887539773128],
+                        linf=[0.2285802791900049])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic_amr.jl"),
+                        tspan=(0.0, 0.01),
+                        l2=[0.007933791324450538],
+                        linf=[0.11029480573492567])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_curved.jl"),
@@ -624,6 +657,28 @@ end
                             0.9513271652357098,
                             0.7223919625994717,
                             1.4846907331004786,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_lid_driven_cavity_amr.jl"),
+                        tspan=(0.0, 1.0),
+                        l2=[
+                            0.0005323841980601085, 0.07892044543547208,
+                            0.02909671646389337, 0.11717468256112017,
+                        ],
+                        linf=[
+                            0.006045292737899444, 0.9233292581786228,
+                            0.7982129977236198, 1.6864546235292153,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

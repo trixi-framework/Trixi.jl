@@ -296,9 +296,11 @@ end
     end
     Trixi.move_connectivity!(c::MyContainer, first, last, destination) = c
     Trixi.delete_connectivity!(c::MyContainer, first, last) = c
-    Trixi.reset_data_structures!(c::MyContainer) = (c.data = Vector{Int}(undef,
-                                                                         c.capacity + 1);
-                                                    c)
+    function Trixi.reset_data_structures!(c::MyContainer)
+        (c.data = Vector{Int}(undef,
+                              c.capacity + 1);
+         c)
+    end
     function Base.:(==)(c1::MyContainer, c2::MyContainer)
         return (c1.capacity == c2.capacity &&
                 c1.length == c2.length &&
@@ -414,7 +416,8 @@ end
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
-    limiter_idp = SubcellLimiterIDP(true, [1], 0.1, "cache")
+    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1, "cache", 1,
+                                    (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
     # TODO: TrixiShallowWater: move unit test
@@ -427,14 +430,6 @@ end
 
     indicator_max = IndicatorMax("variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_max)
-
-    equations = CompressibleEulerEquations2D(1.4)
-    basis = LobattoLegendreBasis(3)
-    indicator_neuralnetwork = IndicatorNeuralNetwork(equations, basis,
-                                                     indicator_type = NeuralNetworkPerssonPeraire(),
-                                                     variable = density,
-                                                     network = nothing)
-    @test_nowarn show(stdout, indicator_neuralnetwork)
 end
 
 @timed_testset "LBM 2D constructor" begin
@@ -619,6 +614,18 @@ end
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
 end
 
+@timed_testset "Consistency check for single point flux: CEMCE" begin
+    equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
+                                                           gas_constants = (0.4, 0.4))
+    u = SVector(0.1, -0.5, 1.0, 1.0, 2.0)
+
+    orientations = [1, 2]
+    for orientation in orientations
+        @test flux(u, orientation, equations) ≈
+              flux_ranocha(u, u, orientation, equations)
+    end
+end
+
 @timed_testset "Consistency check for HLL flux (naive): CEE" begin
     flux_hll = FluxHLL(min_max_speed_naive)
 
@@ -645,6 +652,19 @@ end
     orientations = [1, 2, 3]
     for orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+end
+
+@timed_testset "Consistency check for flux_chan_etal: CEEQ" begin
+
+    # Set up equations and dummy conservative variables state
+    equations = CompressibleEulerEquationsQuasi1D(1.4)
+    u = SVector(1.1, 2.34, 5.5, 2.73)
+
+    orientations = [1]
+    for orientation in orientations
+        @test flux_chan_etal(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
     end
 end
 
@@ -787,6 +807,54 @@ end
     for normal_direction in normal_directions
         @test flux_hll(u, u, normal_direction, equations) ≈
               flux(u, normal_direction, equations)
+    end
+end
+
+@timed_testset "Consistency check for HLL flux with Davis wave speed estimates: Polytropic CEE" begin
+    flux_hll = FluxHLL(min_max_speed_davis)
+
+    gamma = 1.4
+    kappa = 0.5     # Scaling factor for the pressure.
+    equations = PolytropicEulerEquations2D(gamma, kappa)
+    u = SVector(1.1, -0.5, 2.34)
+
+    orientations = [1, 2]
+    for orientation in orientations
+        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
+    normal_directions = [SVector(1.0, 0.0),
+        SVector(0.0, 1.0),
+        SVector(0.5, -0.5),
+        SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+        @test flux_hll(u, u, normal_direction, equations) ≈
+              flux(u, normal_direction, equations)
+    end
+end
+
+@timed_testset "Consistency check for Winters flux: Polytropic CEE" begin
+    for gamma in [1.4, 1.0, 5 / 3]
+        kappa = 0.5     # Scaling factor for the pressure.
+        equations = PolytropicEulerEquations2D(gamma, kappa)
+        u = SVector(1.1, -0.5, 2.34)
+
+        orientations = [1, 2]
+        for orientation in orientations
+            @test flux_winters_etal(u, u, orientation, equations) ≈
+                  flux(u, orientation, equations)
+        end
+
+        normal_directions = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+
+        for normal_direction in normal_directions
+            @test flux_winters_etal(u, u, normal_direction, equations) ≈
+                  flux(u, normal_direction, equations)
+        end
     end
 end
 
@@ -960,14 +1028,13 @@ end
 end
 
 @timed_testset "Consistency check for HLLE flux: MHD" begin
-    # Note: min_max_speed_naive for MHD is essentially min_max_speed_einfeldt
-
     equations = IdealGlmMhdEquations1D(1.4)
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2)]
 
     for u in u_values
-        @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
+        @test flux_hlle(u, u, 1, equations) ≈ flux(u, 1, equations)
+        @test flux_hllc(u, u, 1, equations) ≈ flux(u, 1, equations)
     end
 
     equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
@@ -981,11 +1048,11 @@ end
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
-        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
     for u in u_values, normal_direction in normal_directions
-        @test flux_hll(u, u, normal_direction, equations) ≈
+        @test flux_hlle(u, u, normal_direction, equations) ≈
               flux(u, normal_direction, equations)
     end
 
@@ -1001,11 +1068,51 @@ end
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
-        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
     for u in u_values, normal_direction in normal_directions
-        @test flux_hll(u, u, normal_direction, equations) ≈
+        @test flux_hlle(u, u, normal_direction, equations) ≈
+              flux(u, normal_direction, equations)
+    end
+end
+
+@timed_testset "Consistency check for HLLC flux: CEE" begin
+    # Set up equations and dummy conservative variables state
+    equations = CompressibleEulerEquations2D(1.4)
+    u = SVector(1.1, -0.5, 2.34, 5.5)
+
+    orientations = [1, 2]
+    for orientation in orientations
+        @test flux_hllc(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
+    normal_directions = [SVector(1.0, 0.0),
+        SVector(0.0, 1.0),
+        SVector(0.5, -0.5),
+        SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+        @test flux_hllc(u, u, normal_direction, equations) ≈
+              flux(u, normal_direction, equations)
+    end
+
+    equations = CompressibleEulerEquations3D(1.4)
+    u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
+
+    orientations = [1, 2, 3]
+    for orientation in orientations
+        @test flux_hllc(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
+    normal_directions = [SVector(1.0, 0.0, 0.0),
+        SVector(0.0, 1.0, 0.0),
+        SVector(0.0, 0.0, 1.0),
+        SVector(0.5, -0.5, 0.2),
+        SVector(-1.2, 0.3, 1.4)]
+
+    for normal_direction in normal_directions
+        @test flux_hllc(u, u, normal_direction, equations) ≈
               flux(u, normal_direction, equations)
     end
 end
@@ -1114,6 +1221,26 @@ end
     end
 end
 
+@testset "Consistency check for `gradient_conservative` routine" begin
+    # Set up conservative variables, equations
+    u = [
+        0.5011914484393387,
+        0.8829127712445113,
+        0.43024132987932817,
+        0.7560616633050348,
+    ]
+
+    equations = CompressibleEulerEquations2D(1.4)
+
+    # Define wrapper function for pressure in order to call default implementation
+    function pressure_test(u, equations)
+        return pressure(u, equations)
+    end
+
+    @test Trixi.gradient_conservative(pressure_test, u, equations) ≈
+          Trixi.gradient_conservative(pressure, u, equations)
+end
+
 @testset "Equivalent Fluxes" begin
     # Set up equations and dummy conservative variables state
     # Burgers' Equation
@@ -1181,7 +1308,73 @@ end
     end
 end
 
+@timed_testset "Consistency check for LMARS flux" begin
+    equations = CompressibleEulerEquations2D(1.4)
+    flux_lmars = FluxLMARS(340)
+
+    normal_directions = [SVector(1.0, 0.0),
+        SVector(0.0, 1.0),
+        SVector(0.5, -0.5),
+        SVector(-1.2, 0.3)]
+    orientations = [1, 2]
+    u_values = [SVector(1.0, 0.5, -0.7, 1.0),
+        SVector(1.5, -0.2, 0.1, 5.0)]
+
+    for u in u_values, orientation in orientations
+        @test flux_lmars(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+    end
+
+    for u in u_values, normal_direction in normal_directions
+        @test flux_lmars(u, u, normal_direction, equations) ≈
+              flux(u, normal_direction, equations)
+    end
+
+    equations = CompressibleEulerEquations3D(1.4)
+    normal_directions = [SVector(1.0, 0.0, 0.0),
+        SVector(0.0, 1.0, 0.0),
+        SVector(0.0, 0.0, 1.0),
+        SVector(0.5, -0.5, 0.2),
+        SVector(-1.2, 0.3, 1.4)]
+    orientations = [1, 2, 3]
+    u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
+        SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
+
+    for u in u_values, orientation in orientations
+        @test flux_lmars(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+    end
+
+    for u in u_values, normal_direction in normal_directions
+        @test flux_lmars(u, u, normal_direction, equations) ≈
+              flux(u, normal_direction, equations)
+    end
+end
+
 @testset "FluxRotated vs. direct implementation" begin
+    @timed_testset "CompressibleEulerMulticomponentEquations2D" begin
+        equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
+                                                               gas_constants = (0.4,
+                                                                                0.4))
+        normal_directions = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+        u_values = [SVector(0.1, -0.5, 1.0, 1.0, 2.0),
+            SVector(-0.1, -0.3, 1.2, 1.3, 1.4)]
+
+        f_std = flux
+        f_rot = FluxRotated(f_std)
+        println(typeof(f_std))
+        println(typeof(f_rot))
+        for u in u_values,
+            normal_direction in normal_directions
+
+            @test f_rot(u, normal_direction, equations) ≈
+                  f_std(u, normal_direction, equations)
+        end
+    end
+
     @timed_testset "CompressibleEulerEquations2D" begin
         equations = CompressibleEulerEquations2D(1.4)
         normal_directions = [SVector(1.0, 0.0),
@@ -1191,7 +1384,8 @@ end
         u_values = [SVector(1.0, 0.5, -0.7, 1.0),
             SVector(1.5, -0.2, 0.1, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            flux_hll, FluxHLL(min_max_speed_davis)]
+            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc,
+        ]
 
         for f_std in fluxes
             f_rot = FluxRotated(f_std)
@@ -1214,8 +1408,8 @@ end
         u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
             SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            FluxLMARS(340),
-            flux_hll, FluxHLL(min_max_speed_davis)]
+            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc,
+        ]
 
         for f_std in fluxes
             f_rot = FluxRotated(f_std)
@@ -1252,8 +1446,8 @@ end
         fluxes = [
             flux_central,
             flux_hindenlang_gassner,
-            flux_hll,
             FluxHLL(min_max_speed_davis),
+            flux_hlle,
         ]
 
         for f_std in fluxes
@@ -1279,8 +1473,8 @@ end
         fluxes = [
             flux_central,
             flux_hindenlang_gassner,
-            flux_hll,
             FluxHLL(min_max_speed_davis),
+            flux_hlle,
         ]
 
         for f_std in fluxes
@@ -1330,9 +1524,107 @@ end
     dg = DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),
                  surface_integral = SurfaceIntegralWeakForm(flux_central),
                  volume_integral = VolumeIntegralFluxDifferencing(flux_central))
-    mesh = DGMultiMesh(dg, cells_per_dimension = (1,), periodicity = false)
+    cells_per_dimension = (1,)
+    mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = false)
 
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
+end
+
+@testset "trixi_include" begin
+    @trixi_testset "Basic" begin
+        example = """
+            x = 4
+            """
+
+        filename = tempname()
+        try
+            open(filename, "w") do file
+                write(file, example)
+            end
+
+            # Use `@trixi_testset`, which wraps code in a temporary module, and call
+            # `trixi_include` with `@__MODULE__` in order to isolate this test.
+            @test_warn "You just called" trixi_include(@__MODULE__, filename)
+            @test @isdefined x
+            @test x == 4
+
+            @test_warn "You just called" trixi_include(@__MODULE__, filename, x = 7)
+            @test x == 7
+
+            @test_throws "assignment `y` not found in expression" trixi_include(@__MODULE__,
+                                                                                filename,
+                                                                                y = 3)
+        finally
+            rm(filename, force = true)
+        end
+    end
+
+    @trixi_testset "With `solve` Without `maxiters`" begin
+        # `trixi_include` assumes this to be the `solve` function of OrdinaryDiffEq,
+        # and therefore tries to insert the kwarg `maxiters`, which will fail here.
+        example = """
+            solve() = 0
+            x = solve()
+            """
+
+        filename = tempname()
+        try
+            open(filename, "w") do file
+                write(file, example)
+            end
+
+            # Use `@trixi_testset`, which wraps code in a temporary module, and call
+            # `trixi_include` with `@__MODULE__` in order to isolate this test.
+            @test_throws "no method matching solve(; maxiters::Int64)" trixi_include(@__MODULE__,
+                                                                                     filename)
+
+            @test_throws "no method matching solve(; maxiters::Int64)" trixi_include(@__MODULE__,
+                                                                                     filename,
+                                                                                     maxiters = 3)
+        finally
+            rm(filename, force = true)
+        end
+    end
+
+    @trixi_testset "With `solve` with `maxiters`" begin
+        # We need another example file that we include with `Base.include` first, in order to
+        # define the `solve` method without `trixi_include` trying to insert `maxiters` kwargs.
+        # Then, we can test that `trixi_include` inserts the kwarg in the `solve()` call.
+        example1 = """
+            solve(; maxiters=0) = maxiters
+            """
+
+        example2 = """
+            x = solve()
+            """
+
+        filename1 = tempname()
+        filename2 = tempname()
+        try
+            open(filename1, "w") do file
+                write(file, example1)
+            end
+            open(filename2, "w") do file
+                write(file, example2)
+            end
+
+            # Use `@trixi_testset`, which wraps code in a temporary module, and call
+            # `Base.include` and `trixi_include` with `@__MODULE__` in order to isolate this test.
+            Base.include(@__MODULE__, filename1)
+            @test_warn "You just called" trixi_include(@__MODULE__, filename2)
+            @test @isdefined x
+            # This is the default `maxiters` inserted by `trixi_include`
+            @test x == 10^5
+
+            @test_warn "You just called" trixi_include(@__MODULE__, filename2,
+                                                       maxiters = 7)
+            # Test that `maxiters` got overwritten
+            @test x == 7
+        finally
+            rm(filename1, force = true)
+            rm(filename2, force = true)
+        end
+    end
 end
 end
 

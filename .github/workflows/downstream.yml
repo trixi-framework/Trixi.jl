@@ -60,6 +60,7 @@ jobs:
         arch:
           - x64
         package:
+          - Trixi2Vtk.jl
           - TrixiShallowWater.jl
     steps:
       - uses: actions/checkout@v4

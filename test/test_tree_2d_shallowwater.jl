@@ -116,6 +116,35 @@ end
     end
 end
 
+@trixi_testset "elixir_shallowwater_well_balanced.jl with flux_nonconservative_ersing_etal" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
+                        l2=[
+                            0.9130579602987146,
+                            1.0323158914614244e-14,
+                            1.0276096319430528e-14,
+                            0.9130579602987147,
+                        ],
+                        linf=[
+                            2.11306203761566,
+                            4.063916419044386e-14,
+                            3.694484044448245e-14,
+                            2.1130620376156584,
+                        ],
+                        surface_flux=(flux_wintermeyer_etal,
+                                      flux_nonconservative_ersing_etal),
+                        volume_flux=(flux_wintermeyer_etal,
+                                     flux_nonconservative_ersing_etal),
+                        tspan=(0.0, 0.25))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_shallowwater_well_balanced_wet_dry.jl with FluxHydrostaticReconstruction" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_shallowwater_well_balanced_wet_dry.jl"),
@@ -219,6 +248,35 @@ end
     end
 end
 
+@trixi_testset "elixir_shallowwater_source_terms.jl with flux_nonconservative_ersing_etal" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
+                        l2=[
+                            0.002471853426064005,
+                            0.05619168608950033,
+                            0.11844727575152562,
+                            6.274146767730281e-5,
+                        ],
+                        linf=[
+                            0.014332922987500218,
+                            0.2141204806174546,
+                            0.5392313755637872,
+                            0.0001819675955490041,
+                        ],
+                        surface_flux=(flux_wintermeyer_etal,
+                                      flux_nonconservative_ersing_etal),
+                        volume_flux=(flux_wintermeyer_etal,
+                                     flux_nonconservative_ersing_etal),
+                        tspan=(0.0, 0.25))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_shallowwater_conical_island.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_conical_island.jl"),
                         l2=[
@@ -260,6 +318,31 @@ end
                         ],
                         tspan=(0.0, 0.025),
                         basis=LobattoLegendreBasis(3))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_shallowwater_wall.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_wall.jl"),
+                        l2=[
+                            0.13517233723296504,
+                            0.20010876311162215,
+                            0.20010876311162223,
+                            2.719538414346464e-7,
+                        ],
+                        linf=[
+                            0.5303607982988336,
+                            0.5080989745682338,
+                            0.5080989745682352,
+                            1.1301675764130437e-6,
+                        ],
+                        tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

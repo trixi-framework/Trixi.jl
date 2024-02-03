@@ -136,8 +136,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     return nothing
 end
 
-# AMR for hyperbolic-parabolic equations currently only supported on TreeMeshes
-function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, TreeMesh{3}},
+function refine!(u_ode::AbstractVector, adaptor,
+                 mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
                  equations, dg::DGSEM, cache, cache_parabolic,
                  elements_to_refine)
     # Call `refine!` for the hyperbolic part, which does the heavy lifting of
@@ -298,8 +298,8 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     return nothing
 end
 
-# AMR for hyperbolic-parabolic equations currently only supported on TreeMeshes
-function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, TreeMesh{3}},
+function coarsen!(u_ode::AbstractVector, adaptor,
+                  mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
                   equations, dg::DGSEM, cache, cache_parabolic,
                   elements_to_remove)
     # Call `coarsen!` for the hyperbolic part, which does the heavy lifting of
@@ -385,7 +385,12 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
 
     # Return early if there is nothing to do.
     if !any(difference .!= 0)
-        return nothing
+        if mpi_isparallel()
+            # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+            # locally (there still might be other MPI ranks that have refined elements)
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
+        return
     end
 
     # Number of (local) cells/elements.
@@ -396,7 +401,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
     old_index = 1
     new_index = 1
 
-    # Note: This is true for `quads` only.
+    # Note: This is true for `quads`.
     T8_CHILDREN = 4
 
     # Retain current solution data.
