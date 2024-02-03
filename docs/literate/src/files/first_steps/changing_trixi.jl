@@ -19,7 +19,7 @@
 #   you want to save Trixi.jl. Then click `Clone` and Trixi.jl will be cloned to your computer. 
 
 # Now you cloned Trixi.jl and only need to tell Julia to use the local clone as the package sources:
-# - Open a terminal using `Win+R` and `cmd`. Navigate to the folder with cloned Trixi.jl using `cd`.
+# - Open a terminal using `Win+R` and `cmd`. Navigate to the folder with the cloned Trixi.jl using `cd`.
 # - Create a new directory `run`, enter it, and start Julia with the `--project=.` flag:
 #   ```shell
 #   mkdir run 
