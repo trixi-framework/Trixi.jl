@@ -131,7 +131,7 @@ analysis_callback = AnalysisCallback(semi, interval = 5)
 
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
-# To save current solution in regular intervals we use [`SaveSolutionCallback`](@ref).
+# To save the current solution in regular intervals we use [`SaveSolutionCallback`](@ref).
 # We would like to save the initial and final solutions as well. Solution
 # will be saved as a HDF5 file located in the `out` folder. Afterwards it is possible to visualize
 # a solution from saved files using Trixi2Vtk.jl and ParaView, this is described below in the
