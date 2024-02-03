@@ -1,7 +1,7 @@
 #src # Changing Trixi.jl itself
 
 # If you plan on editing Trixi.jl itself, you can download Trixi.jl locally and run it from
-# the cloned directory:
+# the cloned directory.
 
 
 # ## Cloning Trixi.jl
