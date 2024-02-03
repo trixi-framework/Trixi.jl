@@ -142,7 +142,7 @@ save_solution = SaveSolutionCallback(interval = 5,
                                      save_final_solution = true)
 
 # Another useful callback is [`SaveRestartCallback`](@ref). It saves information for restarting
-# in regular intervals. We are interested in saving a restart file for a final solution as
+# in regular intervals. We are interested in saving a restart file for the final solution as
 # well. To perform a restart, you need to configure the restart setup in a special way, which is
 # described in the section [Restart simulation](@ref restart).
 
