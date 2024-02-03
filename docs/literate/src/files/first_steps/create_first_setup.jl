@@ -214,7 +214,7 @@ plot!(getmesh(pd))
 
 # If you haven't added Trixi2Vtk.jl to your project yet, you can add it as follows.
 # ```julia
-# import Pkg
+# julia> import Pkg
 # Pkg.add(["Trixi2Vtk"])
 # ```
 # Now we load the Trixi2Vtk.jl package and convert the file `out/solution_000018.h5` with
