@@ -52,7 +52,7 @@
 # mkdir run 
 # cd run
 # julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Tell Julia to use the local Trixi.jl clone
-# julia --project=. -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Plots"])' # Install additional packages'
+# julia --project=. -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Plots"])' # Install additional packages
 # ```
 # Note that if you installed Trixi.jl this way,
 # you always have to start Julia with the `--project` flag set to your `run` directory, e.g.,
