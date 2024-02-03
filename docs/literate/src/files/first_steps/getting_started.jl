@@ -39,7 +39,7 @@
 # Now you can verify, that Julia is installed:
 # - Press `Win+R` on a keyboard.
 # - Enter `cmd` in the opened window.
-# - Enter in a terminal `julia`. 
+# - Enter `julia` in a terminal. 
 
 # Then Julia will be started. To close Julia enter `exit()` or press `Ctrl+d`. 
 
