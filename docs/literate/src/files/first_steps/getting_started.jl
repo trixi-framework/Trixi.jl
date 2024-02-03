@@ -64,7 +64,7 @@
 
 # Note that later on in the tutorial, Julia will be started by only typing `julia` in a terminal.
 # To enable that, you have to add
-# [Julia to the PATH](https://julialang.org/downloads/platform/#linux_and_freebsd).
+# [Julia to the PATH](https://julialang.org/downloads/platform/#running_julia).
 
 
 # ## Trixi.jl installation
