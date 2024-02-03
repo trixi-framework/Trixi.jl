@@ -29,7 +29,7 @@
 # - Now run the following commands to install all relevant packages:
 #   ```julia
 #   julia> using Pkg; Pkg.develop(PackageSpec(path="..")) # Tell Julia to use the local Trixi.jl clone
-#   Pkg.add(["OrdinaryDiffEq", "Plots"])  # Install additional packages
+#   julia> Pkg.add(["OrdinaryDiffEq", "Plots"])  # Install additional packages
 #   ```
 
 # Now you already installed Trixi.jl from your local clone. Note that if you installed Trixi.jl
