@@ -80,7 +80,7 @@
 # - Execute following commands:
 #   ```julia
 #   julia> import Pkg
-#   Pkg.add(["OrdinaryDiffEq", "Plots", "Trixi"])
+#   julia> Pkg.add(["OrdinaryDiffEq", "Plots", "Trixi"])
 #   ```
 
 # Now you have installed all these 
