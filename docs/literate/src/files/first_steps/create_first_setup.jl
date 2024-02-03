@@ -78,7 +78,7 @@ solver = DGSEM(polydeg=3)
 # ```math
 # u(0,x,y) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr)
 # ```
-# The initial conditions function must take coordinates, time and equation as arguments
+# The initial conditions function must take spatial coordinates, time and equation as arguments
 # and return an initial condition as a static vector `SVector`. Following the same structure, you
 # can define your own initial conditions.
 
