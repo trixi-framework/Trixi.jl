@@ -110,7 +110,7 @@ ode = semidiscretize(semi, tspan);
 # using callbacks without actually modifying it. Trixi.jl already has some implemented
 # [Callbacks](@ref callbacks-id). The most widely used callbacks in Trixi.jl are
 # [step control callbacks](https://docs.sciml.ai/DiffEqCallbacks/stable/step_control/) that are
-# activated at the end of each time step to perform some actions, e.g. to print a statistics.
+# activated at the end of each time step to perform some actions, e.g. to print statistics.
 # We will show you how to use some of the common callbacks.
 
 # To print a summary of the simulation setup at the beginning of solve-loop
