@@ -33,7 +33,11 @@ using OrdinaryDiffEq
 # [Adding a new scalar conservation law](@ref adding_new_scalar_equations) or
 # [Adding a non-conservative equation](@ref adding_nonconservative_equation).
 
-# The linear scalar advection equation is already implemented in Trixi.jl as
+# The linear scalar advection equation in two spatial dimensions
+# ```math
+# \frac{\partial}{\partial t}u + \frac{\partial}{\partial x} (a_1 u) + \frac{\partial}{\partial y} (a_2 u) = 0
+# ```
+is already implemented in Trixi.jl as
 # [`LinearScalarAdvectionEquation2D`](@ref), for which we need to define a two-dimensional parameter
 # with the `advection_velocity`. Appropriate for our problem is `(0.2, -0.7)`.
 
