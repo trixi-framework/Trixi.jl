@@ -128,7 +128,7 @@ trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_eule
 using Plots
 plot(sol)
 
-# To obtain list of all Trixi.jl elixirs execute
+# To obtain a list of all Trixi.jl elixirs execute
 # [`get_examples`](@ref). It returns the path to all example setups.
 
 get_examples()
