@@ -115,7 +115,7 @@
 # Start Julia in a terminal and execute the following code:
 
 # ```julia
-# using Trixi, OrdinaryDiffEq
+# julia> using Trixi, OrdinaryDiffEq
 # trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
 # ```
 using Trixi, OrdinaryDiffEq #hide #md
