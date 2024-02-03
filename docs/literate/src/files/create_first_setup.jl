@@ -170,7 +170,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 1.0,
 summary_callback()
 
 # Now you can plot the solution as shown below, analyze it and improve the stability, accuracy or
-# efficiency of your setup modifying it.
+# efficiency of your setup.
 
 
 # ## Visualize the solution
