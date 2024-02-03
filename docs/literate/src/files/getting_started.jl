@@ -139,7 +139,7 @@ get_examples()
 # ### Getting an existing setup file
 
 # To edit an existing elixir, you first have to find a suitable one and then copy it to a local
-# folder. Let's have a look how to download the `elixir_euler_ec.jl` elixir used in the previous
+# folder. Let's have a look at how to download the `elixir_euler_ec.jl` elixir used in the previous
 # section from the [Trixi.jl GitHub repository](https://github.com/trixi-framework/Trixi.jl).
 
 # - All examples are located inside
