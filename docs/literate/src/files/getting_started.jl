@@ -153,7 +153,7 @@ get_examples()
 
 # ### Modifying an existing setup
 
-# For example, we will change the initial condition for calculations that occur in
+# As an example, we will change the initial condition for calculations that occur in
 # `elixir_euler_ec.jl`. In this example we consider the compressible Euler equations in two spatial
 # dimensions,
 # ```math
