@@ -161,6 +161,7 @@ end
            v1_yy * v1 * mu_ -
            v2_xy * v1 * mu_ -
            v1_y * v1_y * mu_ -
+           v2_x * v1_y * mu_ -
            4.0 / 3.0 * v2_yy * v2 * mu_ +
            2.0 / 3.0 * v1_xy * v2 * mu_ -
            4.0 / 3.0 * v2_y * v2_y * mu_ +

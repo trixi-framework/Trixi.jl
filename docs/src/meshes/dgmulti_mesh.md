@@ -21,7 +21,7 @@ around Jonathan Shewchuk's [Triangle](https://www.cs.cmu.edu/~quake/triangle.htm
 
 ## The `DGMulti` solver type
 
-Trixi.jl solvers on simplicial meshes use the `[DGMulti](@ref)` solver type, which allows users to specify
+Trixi.jl solvers on simplicial meshes use the [`DGMulti`](@ref) solver type, which allows users to specify
 `element_type` and `approximation_type` in addition to `polydeg`, `surface_flux`, `surface_integral`,
 and `volume_integral`.
 

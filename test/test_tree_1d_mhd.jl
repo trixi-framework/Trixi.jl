@@ -109,6 +109,31 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_alfven_wave.jl with flux_hllc" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
+                        l2=[
+                            1.036850596986597e-5, 1.965192583650368e-6,
+                            3.5882124656715505e-5, 3.5882124656638764e-5,
+                            5.270975504780837e-6, 1.1963224165731992e-16,
+                            3.595811808912869e-5, 3.5958118089159453e-5,
+                        ],
+                        linf=[
+                            2.887280521446378e-5, 7.310580790352001e-6,
+                            0.00012390046377899755, 0.00012390046377787345,
+                            1.5102711136583125e-5, 2.220446049250313e-16,
+                            0.0001261935452181312, 0.0001261935452182006,
+                        ],
+                        surface_flux=flux_hllc)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_mhd_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
                         l2=[
@@ -195,6 +220,31 @@ end
                             2.220446049250313e-16,
                             0.6874726847741993,
                             0.65536978110274,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_mhd_torrilhon_shock_tube.jl (HLLC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_torrilhon_shock_tube.jl"),
+                        surface_flux=flux_hllc,
+                        l2=[
+                            0.4573799618744708, 0.4792633358230866, 0.34064852506872795,
+                            0.4479668434955162, 0.9203891782415092,
+                            1.3216517820475193e-16, 0.28887826520860815,
+                            0.255281629265771,
+                        ],
+                        linf=[
+                            1.2382842201671505, 0.8929169308132259, 0.871298623806198,
+                            0.9822415614542821, 1.6726170732132717,
+                            2.220446049250313e-16, 0.7016155888023747,
+                            0.6556091522071984,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

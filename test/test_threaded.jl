@@ -8,6 +8,7 @@ include("test_trixi.jl")
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive = true)
+Trixi.MPI.Barrier(Trixi.mpi_comm())
 
 @testset "Threaded tests" begin
 #! format: noindent
@@ -208,7 +209,10 @@ end
                             linf=[0.0015194252169410394],
                             rtol=5.0e-5, # Higher tolerance to make tests pass in CI (in particular with macOS)
                             elixir_file="elixir_advection_waving_flag.jl",
-                            restart_file="restart_000021.h5")
+                            restart_file="restart_000021.h5",
+                            # With the default `maxiters = 1` in coverage tests,
+                            # there would be no time steps after the restart.
+                            coverage_override=(maxiters = 100_000,))
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -468,5 +472,6 @@ end
 
 # Clean up afterwards: delete Trixi.jl output directory
 Trixi.mpi_isroot() && isdir(outdir) && @test_nowarn rm(outdir, recursive = true)
+Trixi.MPI.Barrier(Trixi.mpi_comm())
 
 end # module

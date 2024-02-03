@@ -252,9 +252,9 @@ end
                                  "elixir_navierstokes_convergence.jl"),
                         tspan=(0.0, 0.0))
     LLID = Trixi.local_leaf_cells(mesh.tree)
-    num_leafs = length(LLID)
-    @assert num_leafs % 16 == 0
-    Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs / 16)])
+    num_leaves = length(LLID)
+    @assert num_leaves % 16 == 0
+    Trixi.refine!(mesh.tree, LLID[1:Int(num_leaves / 16)])
     tspan = (0.0, 0.25)
     semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                                  initial_condition, solver;
@@ -325,9 +325,9 @@ end
                                  "elixir_navierstokes_taylor_green_vortex.jl"),
                         tspan=(0.0, 0.0))
     LLID = Trixi.local_leaf_cells(mesh.tree)
-    num_leafs = length(LLID)
-    @assert num_leafs % 32 == 0
-    Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs / 32)])
+    num_leaves = length(LLID)
+    @assert num_leaves % 32 == 0
+    Trixi.refine!(mesh.tree, LLID[1:Int(num_leaves / 32)])
     tspan = (0.0, 0.1)
     semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                                  initial_condition, solver)
@@ -429,6 +429,14 @@ end
                                  "elixir_advection_diffusion_amr.jl"),
                         l2=[0.000355780485397024],
                         linf=[0.0010810770271614256])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "TreeMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
@@ -436,6 +444,65 @@ end
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         l2=[0.0009808996243280868],
                         linf=[0.01732621559135459])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
+                                 "elixir_navierstokes_taylor_green_vortex_amr.jl"),
+                        initial_refinement_level=0, tspan=(0.0, 0.5),
+                        l2=[
+                            0.0016588740573444188,
+                            0.03437058632045721,
+                            0.03437058632045671,
+                            0.041038898400430075,
+                            0.30978593009044153,
+                        ],
+                        linf=[
+                            0.004173569912012121,
+                            0.09168674832979556,
+                            0.09168674832975021,
+                            0.12129218723807476,
+                            0.8433893297612087,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "P4estMesh3D: elixir_navierstokes_blast_wave_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
+                                 "elixir_navierstokes_blast_wave_amr.jl"),
+                        tspan=(0.0, 0.01),
+                        l2=[
+                            0.009472104410520866, 0.0017883742549557149,
+                            0.0017883742549557147, 0.0017883742549557196,
+                            0.024388540048562748,
+                        ],
+                        linf=[
+                            0.6782397526873181, 0.17663702154066238,
+                            0.17663702154066266, 0.17663702154066238, 1.7327849844825238,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 end
 

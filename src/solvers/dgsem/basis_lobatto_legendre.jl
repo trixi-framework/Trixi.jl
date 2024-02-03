@@ -188,9 +188,9 @@ function MortarL2(basis::LobattoLegendreBasis)
     reverse_upper = Matrix{RealT}(reverse_upper_)
     reverse_lower = Matrix{RealT}(reverse_lower_)
 
-    LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper), typeof(reverse_upper)
-                            }(forward_upper, forward_lower,
-                              reverse_upper, reverse_lower)
+    LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper),
+                            typeof(reverse_upper)}(forward_upper, forward_lower,
+                                                   reverse_upper, reverse_lower)
 end
 
 function Base.show(io::IO, mortar::LobattoLegendreMortarL2)

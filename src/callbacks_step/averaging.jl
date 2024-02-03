@@ -52,8 +52,7 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 function AveragingCallback(semi::SemidiscretizationHyperbolic{<:Any,
-                                                              <:CompressibleEulerEquations2D
-                                                              },
+                                                              <:CompressibleEulerEquations2D},
                            tspan; output_directory = "out", filename = "averaging.h5")
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     mean_values = initialize_mean_values(mesh, equations, solver, cache)

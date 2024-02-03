@@ -18,6 +18,7 @@ function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion3D)
     varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
+# no orientation specified since the flux is vector-valued
 function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDiffusion3D)
     dudx, dudy, dudz = gradients
     if orientation == 1

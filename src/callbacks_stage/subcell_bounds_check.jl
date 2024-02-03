@@ -77,16 +77,28 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
         return nothing
     end
 
-    (; positivity) = limiter
+    (; local_minmax, positivity) = limiter
     (; output_directory) = callback
     variables = varnames(cons2cons, semi.equations)
 
     mkpath(output_directory)
     open("$output_directory/deviations.txt", "a") do f
         print(f, "# iter, simu_time")
+        if local_minmax
+            for v in limiter.local_minmax_variables_cons
+                variable_string = string(variables[v])
+                print(f, ", " * variable_string * "_min, " * variable_string * "_max")
+            end
+        end
         if positivity
             for v in limiter.positivity_variables_cons
+                if v in limiter.local_minmax_variables_cons
+                    continue
+                end
                 print(f, ", " * string(variables[v]) * "_min")
+            end
+            for variable in limiter.positivity_variables_nonlinear
+                print(f, ", " * string(variable) * "_min")
             end
         end
         println(f)
@@ -108,17 +120,35 @@ end
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    limiter::SubcellLimiterIDP)
-    (; positivity) = limiter
-    (; idp_bounds_delta) = limiter.cache
+    (; local_minmax, positivity) = limiter
+    (; idp_bounds_delta_global) = limiter.cache
     variables = varnames(cons2cons, semi.equations)
 
     println("─"^100)
     println("Maximum deviation from bounds:")
     println("─"^100)
+    if local_minmax
+        for v in limiter.local_minmax_variables_cons
+            v_string = string(v)
+            println("$(variables[v]):")
+            println("- lower bound: ",
+                    idp_bounds_delta_global[Symbol(v_string, "_min")])
+            println("- upper bound: ",
+                    idp_bounds_delta_global[Symbol(v_string, "_max")])
+        end
+    end
     if positivity
         for v in limiter.positivity_variables_cons
+            if v in limiter.local_minmax_variables_cons
+                continue
+            end
             println(string(variables[v]) * ":\n- positivity: ",
-                    idp_bounds_delta[Symbol(string(v), "_min")][2])
+                    idp_bounds_delta_global[Symbol(string(v), "_min")])
+        end
+        for variable in limiter.positivity_variables_nonlinear
+            variable_string = string(variable)
+            println(variable_string * ":\n- positivity: ",
+                    idp_bounds_delta_global[Symbol(variable_string, "_min")])
         end
     end
     println("─"^100 * "\n")

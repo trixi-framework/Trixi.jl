@@ -160,15 +160,16 @@ end
            # stress tensor and temperature gradient terms from y-direction
            v1_yy * v1 * mu_ -
            v2_xy * v1 * mu_ -
+           v1_y * v1_y * mu_ -
            v2_x * v1_y * mu_ -
            4.0 / 3.0 * v2_yy * v2 * mu_ +
-           2.0 / 3.0 * v1_xy -
+           2.0 / 3.0 * v1_xy * v2 * mu_ -
            4.0 / 3.0 * v2_y * v2_y * mu_ +
-           2.0 / 3.0 * v1_x * v2_y * mu_
-           -
-           -
+           2.0 / 3.0 * v1_x * v2_y * mu_ -
+           T_const * inv_rho_cubed *
            (p_yy * rho * rho -
-            2.0 * p_y * rho * rho_y + - -
+            2.0 * p_y * rho * rho_y +
+            2.0 * p * rho_y * rho_y -
             p * rho * rho_yy) * mu_)
 
     return SVector(du1, du2, du3, du4)

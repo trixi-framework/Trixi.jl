@@ -56,7 +56,8 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
             for key in keys(boundary_dictionary)
                 if !(key in all_names)
                     println(stderr,
-                            "ERROR: Key $(repr(key)) is not a valid boundary name")
+                            "ERROR: Key $(repr(key)) is not a valid boundary name. " *
+                            "Valid names are $all_names.")
                     MPI.Abort(mpi_comm(), 1)
                 end
             end
@@ -67,7 +68,8 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     else
         for key in keys(boundary_dictionary)
             if !(key in unique_names)
-                error("Key $(repr(key)) is not a valid boundary name")
+                error("Key $(repr(key)) is not a valid boundary name. " *
+                      "Valid names are $unique_names.")
             end
         end
     end
