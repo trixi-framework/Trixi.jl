@@ -1,7 +1,7 @@
 #src # Changing Trixi.jl itself
 
 # If you plan on editing Trixi.jl itself, you can download Trixi.jl locally and run it from
-# the cloned directory:
+# the cloned directory.
 
 
 # ## Cloning Trixi.jl
@@ -12,7 +12,7 @@
 # If you are using Windows, you can clone Trixi.jl by using the GitHub Desktop tool:
 # - If you do not have a GitHub account yet, create it on
 #   the [GitHub website](https://github.com/join).
-# - Download and install [GitHub Desktop](https://desktop.github.com/) and then log in into
+# - Download and install [GitHub Desktop](https://desktop.github.com/) and then log in to
 #   your account.
 # - Open GitHub Desktop, press `Ctrl+Shift+O`.
 # - In the opened window, paste `trixi-framework/Trixi.jl` and choose the path to the folder where
@@ -20,7 +20,7 @@
 
 # Now you cloned Trixi.jl and only need to tell Julia to use the local clone as the package sources:
 # - Open a terminal using `Win+R` and `cmd`. Navigate to the folder with cloned Trixi.jl using `cd`.
-# - Create new directory `run`, enter it, and start Julia with the `--project=.` flag:
+# - Create a new directory `run`, enter it, and start Julia with the `--project=.` flag:
 #   ```shell
 #   mkdir run 
 #   cd run
@@ -43,7 +43,7 @@
 
 # ### Linux
 
-# You can clone Trixi.jl to your computer executing following commands:
+# You can clone Trixi.jl to your computer by executing the following commands:
 # ```shell
 # git clone git@github.com:trixi-framework/Trixi.jl.git 
 # # If an error occurs, try the following:
