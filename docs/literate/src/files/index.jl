@@ -108,20 +108,26 @@
 # software in the Trixi.jl ecosystem, and then run a simulation using Trixi.jl on said mesh.
 # In the end, the tutorial briefly explains how to simulate an example using AMR via `P4estMesh`.
 
-# ### [15 Explicit time stepping](@ref time_stepping)
+# ### [15 P4est mesh from gmsh](@ref p4est_from_gmsh)
+#-
+# This tutorial describes how to obtain a [`P4estMesh`](@ref) from an existing mesh generated
+# by [`gmsh`](https://gmsh.info/) or any other meshing software that can export to the Abaqus
+# input `.inp` format. It demonstrates its usage for a Mach 2 flow around the NACA6412 airfoil.
+
+# ### [16 Explicit time stepping](@ref time_stepping)
 #-
 # This tutorial is about time integration using [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
 # It explains how to use their algorithms and presents two types of time step choices - with error-based
 # and CFL-based adaptive step size control.
 
-# ### [16 Differentiable programming](@ref differentiable_programming)
+# ### [17 Differentiable programming](@ref differentiable_programming)
 #-
 # This part deals with some basic differentiable programming topics. For example, a Jacobian, its
 # eigenvalues and a curve of total energy (through the simulation) are calculated and plotted for
 # a few semidiscretizations. Moreover, we calculate an example for propagating errors with Measurement.jl
 # at the end.
 
-# ### [17 Custom semidiscretization](@ref custom_semidiscretization)
+# ### [18 Custom semidiscretization](@ref custom_semidiscretization)
 #-
 # This tutorial describes the [semidiscretiations](@ref overview-semidiscretizations) of Trixi.jl
 # and explains how to extend them for custom tasks.
