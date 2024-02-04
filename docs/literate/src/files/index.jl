@@ -112,7 +112,7 @@
 #-
 # This tutorial describes how to obtain a [`P4estMesh`](@ref) from an existing mesh generated
 # by [`gmsh`](https://gmsh.info/) or any other meshing software that can export to the Abaqus
-# input `.inp` format. It demonstrates its usage for a Mach 2 flow around the NACA6412 airfoil.
+# input `.inp` format. The tutorial demonstrates how edges/faces can be associated with boundary conditions based on the physical nodesets.
 
 # ### [16 Explicit time stepping](@ref time_stepping)
 #-
