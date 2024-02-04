@@ -416,7 +416,8 @@ end
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
-    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], 0.1, "cache")
+    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1, "cache", 1,
+                                    (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
     # TODO: TrixiShallowWater: move unit test
@@ -1220,6 +1221,26 @@ end
     end
 end
 
+@testset "Consistency check for `gradient_conservative` routine" begin
+    # Set up conservative variables, equations
+    u = [
+        0.5011914484393387,
+        0.8829127712445113,
+        0.43024132987932817,
+        0.7560616633050348,
+    ]
+
+    equations = CompressibleEulerEquations2D(1.4)
+
+    # Define wrapper function for pressure in order to call default implementation
+    function pressure_test(u, equations)
+        return pressure(u, equations)
+    end
+
+    @test Trixi.gradient_conservative(pressure_test, u, equations) ≈
+          Trixi.gradient_conservative(pressure, u, equations)
+end
+
 @testset "Equivalent Fluxes" begin
     # Set up equations and dummy conservative variables state
     # Burgers' Equation
@@ -1287,6 +1308,49 @@ end
     end
 end
 
+@timed_testset "Consistency check for LMARS flux" begin
+    equations = CompressibleEulerEquations2D(1.4)
+    flux_lmars = FluxLMARS(340)
+
+    normal_directions = [SVector(1.0, 0.0),
+        SVector(0.0, 1.0),
+        SVector(0.5, -0.5),
+        SVector(-1.2, 0.3)]
+    orientations = [1, 2]
+    u_values = [SVector(1.0, 0.5, -0.7, 1.0),
+        SVector(1.5, -0.2, 0.1, 5.0)]
+
+    for u in u_values, orientation in orientations
+        @test flux_lmars(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+    end
+
+    for u in u_values, normal_direction in normal_directions
+        @test flux_lmars(u, u, normal_direction, equations) ≈
+              flux(u, normal_direction, equations)
+    end
+
+    equations = CompressibleEulerEquations3D(1.4)
+    normal_directions = [SVector(1.0, 0.0, 0.0),
+        SVector(0.0, 1.0, 0.0),
+        SVector(0.0, 0.0, 1.0),
+        SVector(0.5, -0.5, 0.2),
+        SVector(-1.2, 0.3, 1.4)]
+    orientations = [1, 2, 3]
+    u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
+        SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
+
+    for u in u_values, orientation in orientations
+        @test flux_lmars(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+    end
+
+    for u in u_values, normal_direction in normal_directions
+        @test flux_lmars(u, u, normal_direction, equations) ≈
+              flux(u, normal_direction, equations)
+    end
+end
+
 @testset "FluxRotated vs. direct implementation" begin
     @timed_testset "CompressibleEulerMulticomponentEquations2D" begin
         equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
@@ -1320,7 +1384,8 @@ end
         u_values = [SVector(1.0, 0.5, -0.7, 1.0),
             SVector(1.5, -0.2, 0.1, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc]
+            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc,
+        ]
 
         for f_std in fluxes
             f_rot = FluxRotated(f_std)
