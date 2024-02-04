@@ -131,7 +131,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # object of type `SemidiscretizationHyperbolic` is initialized using this cache, initial and
 # boundary conditions, equations, mesh and solver.
 
-# In conclusion, a `HyperbolicSemidiscretization`'s primary purpose is to collect equations, the
+# In conclusion, the primary purpose of a `SemidiscretizationHyperbolic` is to collect equations, the
 # geometric representation of the domain, and approximation instructions, creating specialized
 # structures to interconnect these components in a manner that enables their utilization for
 # the numerical solution of partial differential equations (PDEs).
