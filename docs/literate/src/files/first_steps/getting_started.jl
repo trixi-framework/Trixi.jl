@@ -68,7 +68,7 @@
 # [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and 
 # [Plots.jl](https://github.com/JuliaPlots/Plots.jl).
 
-# - Open a terminal and start Julia (Windows and Linux: type `julia`).
+# - Open a terminal and start Julia.
 # - Execute following commands:
 #   ```julia
 #   import Pkg
