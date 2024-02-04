@@ -17,54 +17,46 @@
 
 # ## Julia installation
 
-# Trixi.jl works with the current stable Julia release. More information about Julia support can be
-# found in the [`README.md`](https://github.com/trixi-framework/Trixi.jl#installation) file.
-# A detailed description of the installation process can be found in the
-# [Julia installation instructions](https://julialang.org/downloads/platform/).
-# But you can follow also our short installation guidelines for Windows and Linux below.
+# Trixi.jl is compatible with the latest stable release of Julia. Additional details regarding Julia
+# support can be found in the [`README.md`](https://github.com/trixi-framework/Trixi.jl#installation)
+# file. The current default Julia installation is managed through `juliaup`. You may follow our
+# concise installation guidelines for Windows, Linux, and MacOS provided below. In the event of any
+# issues during the installation process, please consult the official
+# [Julia installation instruction](https://julialang.org/downloads/).
 
 
 # ### Windows
 
-# - Download the Julia installer for Windows from [https://julialang.org/downloads/](https://julialang.org/downloads/).
-#   Make sure that you choose the right version of the installer (64-bit or 32-bit) according to
-#   your computer.
-# - Open the downloaded installer.
-# - Paste an installation directory path or find it using a file manager (select `Browse`).
-# - Select `Next`.
-# - Check the `Add Julia to PATH` option to add Julia to the environment variables. 
-#   This makes it possible to run Julia in the terminal from any directory by only typing `julia`.
-# - Select `Next`, then Julia will be installed.
-
-# Now you can verify, that Julia is installed:
-# - Press `Win+R` on a keyboard.
-# - Enter `cmd` in the opened window.
-# - Enter `julia` in a terminal. 
-
-# Then Julia will be started. To close Julia enter `exit()` or press `Ctrl+d`. 
-
-
-# ### Linux
-
-# - Open a terminal and navigate (using `cd`) to the directory, where you want to store Julia.
-# - To install Julia, get a link to the latest version of Julia from the
-#   [Julia website](https://julialang.org/downloads/), then download the zipped file by executing:
+# - Open a terminal by pressing `Win+r` and entering `cmd` in the opened window.
+# - To install Julia, execute the following command in the terminal:
 #   ```shell
-#   wget https://julialang-s3.julialang.org/bin/linux/... # your link goes here
+#   winget install julia -s msstore
 #   ```
-# - Unpack the downloaded file with: 
+# - Verify the successful installation of Julia by executing the following command in the terminal:
 #   ```shell
-#   tar xf julia-....tar.gz # your archive filename goes here
+#   julia
 #   ```
+#   To exit Julia, execute `exit()` or press `Ctrl+d`.
 
-# Now you can verify that Julia is installed entering `<Julia directory>/bin/julia`
-# (e.g. `julia-1.8.5/bin/julia`) command in a terminal. `<Julia directory>` is the directory where
-# Julia is installed.
-# Then Julia will be started. To close Julia, enter `exit()` or press `Ctrl+d`.
 
-# Note that later on in the tutorial, Julia will be started by only typing `julia` in a terminal.
-# To enable that, you have to add
-# [Julia to the PATH](https://julialang.org/downloads/platform/#running_julia).
+# ### Linux and MacOS
+
+# - To install Julia, run the following command in a terminal:
+#   ```shell
+#   curl -fsSL https://install.julialang.org | sh
+#   ```
+#   Follow the instructions displayed in the terminal during the installation process.
+# - If an error occurs during the execution of the previous command, you may need to install
+#   `curl`. Use the following command:
+#   ```shell
+#   sudo apt install curl
+#   ```
+#   After installing `curl`, repeat the first step once more to proceed with Julia installation.
+# - Verify the successful installation of Julia by executing the following command in the terminal:
+#   ```shell
+#   julia
+#   ```
+#   To exit Julia, execute `exit()` or press `Ctrl+d`.
 
 
 # ## Trixi.jl installation
