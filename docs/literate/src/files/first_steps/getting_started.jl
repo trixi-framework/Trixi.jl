@@ -47,7 +47,7 @@
 #   ```
 #   Follow the instructions displayed in the terminal during the installation process.
 # - If an error occurs during the execution of the previous command, you may need to install
-#   `curl`. Use the following command:
+#   `curl`. On Ubuntu-type systems, you can use the following command:
 #   ```shell
 #   sudo apt install curl
 #   ```
