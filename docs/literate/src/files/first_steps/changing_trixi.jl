@@ -62,7 +62,7 @@
 # if already inside the `run` directory.
 
 
-# ## For further reading
+# ## Additional reading
 
 # To further delve into Trixi.jl, you may have a look at the following introductory tutorials.
 # - [Introduction to DG methods](@ref scalar_linear_advection_1d) will teach you how to set up a
