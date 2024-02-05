@@ -268,9 +268,10 @@ requires. It can thus be seen as a proxy for "energy used" and, as an extension,
     `AnalysisCallback` is invoked at least once during the course of the simulation and
     discard the first PID value.
 
-## Performance issues due to false sharing
-False sharing is a known performance issue for systems with distributed caches. It also occurred
-for the implementation of a thread parallel bounds checking routine for the subcell IDP limiting
+## Performance issues with multi-threaded reductions
+[False sharing](https://en.wikipedia.org/wiki/False_sharing) is a known performance issue
+for systems with distributed caches. It also occurred for the implementation of a thread
+parallel bounds checking routine for the subcell IDP limiting
 in [PR #1736](https://github.com/trixi-framework/Trixi.jl/pull/1736).
 After some [testing and discussion](https://github.com/trixi-framework/Trixi.jl/pull/1736#discussion_r1423881895),
 it turned out that initializing a vector of length `n * Threads.nthreads()` and only using every
