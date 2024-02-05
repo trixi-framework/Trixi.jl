@@ -9,12 +9,13 @@
 # ``[-1, 1] \times [-1, 1]`` with a source term
 # ```math
 # \frac{\partial}{\partial t}u + \frac{\partial}{\partial x} (0.2 u) - \frac{\partial}{\partial y} (0.7 u) = - 2 e^{-t}
-# \sin\bigl(2 \pi (x - t) \bigr) \sin\bigl(2 \pi (y - t) \bigr)
+# \sin\bigl(2 \pi (x - t) \bigr) \sin\bigl(2 \pi (y - t) \bigr),
 # ```
-# and with an initial condition
+# with the initial condition
 # ```math
-# u(x, y, 0) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr).
+# u(x, y, 0) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr),
 # ```
+# and periodic boundary conditions.
 
 # The first step is to create and open a file with the .jl extension. You can do this with your
 # favorite text editor (if you do not have one, we recommend [VS Code](https://code.visualstudio.com/)).
