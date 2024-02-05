@@ -1,13 +1,13 @@
-module TestExamplesMPIP4estMesh2D
+module TestExamplesMPIT8codeMesh2D
 
 using Test
 using Trixi
 
 include("test_trixi.jl")
 
-const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_2d_dgsem")
+const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
 
-@testset "P4estMesh MPI 2D" begin
+@testset "T8codeMesh MPI 2D" begin
 #! format: noindent
 
 # Run basic tests
@@ -80,8 +80,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_2d_dgsem")
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_solution_independent.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
-                            l2=[4.949660644033807e-5],
-                            linf=[0.0004867846262313763],
+                            l2=[4.933027431215839e-5],
+                            linf=[0.00048678461161243136],
                             coverage_override=(maxiters = 6,))
 
         # Ensure that we do not have excessive memory allocations
@@ -97,27 +97,9 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_2d_dgsem")
     @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_unstructured_flag.jl"),
-                            l2=[0.0012766060609964525],
-                            linf=[0.01750280631586159],
+                            l2=[0.001980652042312077],
+                            linf=[0.0328882442132265],
                             coverage_override=(maxiters = 6,))
-
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
-
-    @trixi_testset "elixir_advection_restart.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-                            l2=[4.507575525876275e-6],
-                            linf=[6.21489667023134e-5],
-                            # With the default `maxiters = 1` in coverage tests,
-                            # there would be no time steps after the restart.
-                            coverage_override=(maxiters = 100_000,))
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -155,6 +137,6 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_2d_dgsem")
         end
     end
 end
-end # P4estMesh MPI
+end # T8codeMesh MPI
 
 end # module
