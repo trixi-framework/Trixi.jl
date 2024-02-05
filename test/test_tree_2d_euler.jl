@@ -515,7 +515,9 @@ end
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,))
+                        coverage_override=(maxiters = 6,),
+                        save_errors=true,
+                        output_directory="out")
     lines = readlines("out/deviations.txt")
     @test lines[1] ==
           "# iter, simu_time, rho_min, rho_max, rho_v1_min, rho_v1_max, rho_v2_min, rho_v2_max, rho_e_min, rho_e_max, pressure_min"
