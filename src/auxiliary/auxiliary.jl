@@ -346,6 +346,29 @@ function register_error_hints()
     return nothing
 end
 
+"""
+    Trixi.download(src_url, file_path)
+
+Download a file from given `src_url` to given `file_path` if
+`file_path` is not already a file. This function just returns
+`file_path`.
+This is a small wrapper of `Downloads.download(src_url, file_path)`
+that avoids race conditions when multiple MPI ranks are used.
+"""
+function download(src_url, file_path)
+    # Note that `mpi_isroot()` is also `true` if running
+    # in serial (without MPI).
+    if mpi_isroot()
+        isfile(file_path) || Downloads.download(src_url, file_path)
+    end
+
+    if mpi_isparallel()
+        MPI.Barrier(mpi_comm())
+    end
+
+    return file_path
+end
+
 # Same as `foreach(enumerate(something))`, but without allocations.
 #
 # Note that compile times may increase if this is used with big tuples.

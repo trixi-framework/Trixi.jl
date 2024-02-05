@@ -435,8 +435,8 @@ end
             u_local = get_node_vars(u, equations, dg, i, j, element)
             newton_loops_alpha!(alpha, s_min[i, j, element], u_local, inverse_jacobian,
                                 i, j, element, dt, equations, dg, cache, limiter,
-                                entropy_spec, initial_check_entropy_spec,
-                                final_check_standard)
+                                entropy_spec, initial_check_entropy_spec_newton_idp,
+                                final_check_standard_newton_idp)
         end
     end
 
@@ -460,8 +460,8 @@ end
             u_local = get_node_vars(u, equations, dg, i, j, element)
             newton_loops_alpha!(alpha, s_min[i, j, element], u_local, inverse_jacobian,
                                 i, j, element, dt, equations, dg, cache, limiter,
-                                entropy_spec, initial_check_entropy_spec,
-                                final_check_standard)
+                                entropy_spec, initial_check_entropy_spec_newton_idp,
+                                final_check_standard_newton_idp)
         end
     end
 
@@ -487,8 +487,8 @@ end
             u_local = get_node_vars(u, equations, dg, i, j, element)
             newton_loops_alpha!(alpha, s_max[i, j, element], u_local, inverse_jacobian,
                                 i, j, element, dt, equations, dg, cache, limiter,
-                                entropy_math, initial_check_entropy_math,
-                                final_check_standard)
+                                entropy_math, initial_check_entropy_math_newton_idp,
+                                final_check_standard_newton_idp)
         end
     end
 
@@ -512,8 +512,8 @@ end
             u_local = get_node_vars(u, equations, dg, i, j, element)
             newton_loops_alpha!(alpha, s_max[i, j, element], u_local, inverse_jacobian,
                                 i, j, element, dt, equations, dg, cache, limiter,
-                                entropy_math, initial_check_entropy_math,
-                                final_check_standard)
+                                entropy_math, initial_check_entropy_math_newton_idp,
+                                final_check_standard_newton_idp)
         end
     end
 
@@ -565,8 +565,9 @@ end
     @threaded for element in elements
         inverse_jacobian = cache.elements.inverse_jacobian[element]
         for j in eachnode(dg), i in eachnode(dg)
-            idp_positivity_inner!(alpha, inverse_jacobian, limiter, u, dt, dg, cache,
-                                  variable, var_min, i, j, element)
+            idp_positivity_conservative_inner!(alpha, inverse_jacobian, limiter, u, dt,
+                                               dg, cache, variable, var_min,
+                                               i, j, element)
         end
     end
 
@@ -585,8 +586,9 @@ end
     @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
-            idp_positivity_inner!(alpha, inverse_jacobian, limiter, u, dt, dg, cache,
-                                  variable, var_min, i, j, element)
+            idp_positivity_conservative_inner!(alpha, inverse_jacobian, limiter, u, dt,
+                                               dg, cache, variable, var_min,
+                                               i, j, element)
         end
     end
 
@@ -594,15 +596,16 @@ end
 end
 
 # Function barrier to dispatch outer function by mesh type
-@inline function idp_positivity_inner!(alpha, inverse_jacobian, limiter, u, dt, dg,
-                                       cache, variable, var_min, i, j, element)
+@inline function idp_positivity_conservative_inner!(alpha, inverse_jacobian, limiter, u,
+                                                    dt, dg, cache, variable, var_min,
+                                                    i, j, element)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis
     (; positivity_correction_factor) = limiter
 
     var = u[variable, i, j, element]
     if var < 0
-        error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
+        error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
     end
 
     # Compute bound
@@ -698,14 +701,15 @@ end
     u_local = get_node_vars(u, equations, dg, i, j, element)
     var = variable(u_local, equations)
     if var < 0
-        error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
+        error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
     end
     var_min[i, j, element] = limiter.positivity_correction_factor * var
 
     # Perform Newton's bisection method to find new alpha
     newton_loops_alpha!(alpha, var_min[i, j, element], u_local, inverse_jacobian, i, j,
                         element, dt, equations, dg, cache, limiter, variable,
-                        initial_check_nonnegative, final_check_nonnegative)
+                        initial_check_nonnegative_newton_idp,
+                        final_check_nonnegative_newton_idp)
 
     return nothing
 end
@@ -766,8 +770,8 @@ end
     u_curr = u + beta * dt * antidiffusive_flux
 
     # If state is valid, perform initial check and return if correction is not needed
-    if is_valid_state(u_curr, equations)
-        goal = goal_function(variable, bound, u_curr, equations)
+    if isvalid(u_curr, equations)
+        goal = goal_function_newton_idp(variable, bound, u_curr, equations)
 
         initial_check(bound, goal, newton_abstol) && return nothing
     end
@@ -777,9 +781,9 @@ end
         beta_old = beta
 
         # If the state is valid, evaluate d(goal)/d(beta)
-        if is_valid_state(u_curr, equations)
-            dgoal_dbeta = dgoal_function(variable, u_curr, dt, antidiffusive_flux,
-                                         equations)
+        if isvalid(u_curr, equations)
+            dgoal_dbeta = dgoal_function_newton_idp(variable, u_curr, dt,
+                                                    antidiffusive_flux, equations)
         else # Otherwise, perform a bisection step
             dgoal_dbeta = 0
         end
@@ -797,13 +801,13 @@ end
             u_curr = u + beta * dt * antidiffusive_flux
 
             # If the state is invalid, finish bisection step without checking tolerance and iterate further
-            if !is_valid_state(u_curr, equations)
+            if !isvalid(u_curr, equations)
                 beta_R = beta
                 continue
             end
 
             # Check new beta for condition and update bounds
-            goal = goal_function(variable, bound, u_curr, equations)
+            goal = goal_function_newton_idp(variable, bound, u_curr, equations)
             if initial_check(bound, goal, newton_abstol)
                 # New beta fulfills condition
                 beta_L = beta
@@ -816,13 +820,13 @@ end
             u_curr = u + beta * dt * antidiffusive_flux
 
             # If the state is invalid, redefine right bound without checking tolerance and iterate further
-            if !is_valid_state(u_curr, equations)
+            if !isvalid(u_curr, equations)
                 beta_R = beta
                 continue
             end
 
             # Evaluate goal function
-            goal = goal_function(variable, bound, u_curr, equations)
+            goal = goal_function_newton_idp(variable, bound, u_curr, equations)
         end
 
         # Check relative tolerance
@@ -846,29 +850,32 @@ end
     return nothing
 end
 
+### Auxiliary routines for Newton's bisection method ###
 # Initial checks
-@inline function initial_check_entropy_spec(bound, goal, newton_abstol)
+@inline function initial_check_entropy_spec_newton_idp(bound, goal, newton_abstol)
     goal <= max(newton_abstol, abs(bound) * newton_abstol)
 end
 
-@inline function initial_check_entropy_math(bound, goal, newton_abstol)
+@inline function initial_check_entropy_math_newton_idp(bound, goal, newton_abstol)
     goal >= -max(newton_abstol, abs(bound) * newton_abstol)
 end
 
-@inline initial_check_nonnegative(bound, goal, newton_abstol) = goal <= 0
+@inline initial_check_nonnegative_newton_idp(bound, goal, newton_abstol) = goal <= 0
 
 # Goal and d(Goal)d(u) function
-@inline goal_function(variable, bound, u, equations) = bound - variable(u, equations)
-@inline function dgoal_function(variable, u, dt, antidiffusive_flux, equations)
-    -dot(variable_derivative(variable, u, equations), dt * antidiffusive_flux)
+@inline goal_function_newton_idp(variable, bound, u, equations) = bound -
+                                                                  variable(u, equations)
+@inline function dgoal_function_newton_idp(variable, u, dt, antidiffusive_flux,
+                                           equations)
+    -dot(gradient_conservative(variable, u, equations), dt * antidiffusive_flux)
 end
 
-# Final check
-@inline function final_check_standard(bound, goal, newton_abstol)
+# Final checks
+@inline function final_check_standard_newton_idp(bound, goal, newton_abstol)
     abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
 end
 
-@inline function final_check_nonnegative(bound, goal, newton_abstol)
+@inline function final_check_nonnegative_newton_idp(bound, goal, newton_abstol)
     (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 end
 

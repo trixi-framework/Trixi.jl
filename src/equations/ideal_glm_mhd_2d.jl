@@ -295,8 +295,8 @@ of local and symmetric parts. It is equivalent to the non-conservative flux of B
 et al. (`flux_nonconservative_powell`) for conforming meshes but it yields different
 results on non-conforming meshes(!).
 
-The two other flux functions with the same name return either the local 
-or symmetric portion of the non-conservative flux based on the type of the 
+The two other flux functions with the same name return either the local
+or symmetric portion of the non-conservative flux based on the type of the
 nonconservative_type argument, employing multiple dispatch. They are used to
 compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 
@@ -1119,8 +1119,8 @@ end
 end
 
 # Transformation from conservative variables u to d(p)/d(u)
-@inline function variable_derivative(::typeof(pressure),
-                                     u, equations::IdealGlmMhdEquations2D)
+@inline function gradient_conservative(::typeof(pressure),
+                                       u, equations::IdealGlmMhdEquations2D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
 
     v1 = rho_v1 / rho
@@ -1398,10 +1398,10 @@ end
             cons[9]^2 / 2)
 end
 
-# State validation for subcell limiting using Newton-bisection method
-@inline function is_valid_state(cons, equations::IdealGlmMhdEquations2D)
-    p = pressure(cons, equations)
-    if cons[1] <= 0.0 || p <= 0.0
+# State validation for Newton-bisection method of subcell IDP limiting
+@inline function Base.isvalid(u, equations::IdealGlmMhdEquations2D)
+    p = pressure(u, equations)
+    if u[1] <= 0.0 || p <= 0.0
         return false
     end
     return true

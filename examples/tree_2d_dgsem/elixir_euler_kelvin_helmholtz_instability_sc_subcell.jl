@@ -42,6 +42,7 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_nonlinear = [pressure],
                                 spec_entropy = false,
                                 bar_states = true)
+
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
