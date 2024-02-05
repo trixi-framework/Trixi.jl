@@ -111,6 +111,9 @@ flag set to your `run` directory, e.g.,
 julia --project=.
 ```
 if already inside the `run` directory.
+If you encounter errors executing `julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))'`
+it might help to update the packages first:
+`julia --project=. -e 'using Pkg; Pkg.update()'`
 
 The advantage of using a separate `run` directory is that you can also add other
 related packages (see below, e.g., for time integration or visualization) to the
