@@ -17,7 +17,8 @@
 # ```
 
 # The first step is to create and open a file with the .jl extension. You can do this with your
-# favorite text editor. In this file you will create your setup.
+# favorite text editor (if you do not have one, we recommend [VS Code](https://code.visualstudio.com/)).
+# In this file you will create your setup.
 
 # To be able to use functionalities of Trixi.jl, you always need to load Trixi.jl itself
 # and the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package.
@@ -48,7 +49,8 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 # domain, for which we set up a mesh. One of the most used meshes in Trixi.jl is the
 # [`TreeMesh`](@ref). The spatial domain used is ``[-1, 1] \times [-1, 1]``. We set an initial number
 # of elements in the mesh using `initial_refinement_level`, which describes the initial number of
-# hierarchical refinements. The variable `n_cells_max` is used to limit the number of elements in the mesh,
+# hierarchical refinements. In this simple case, the total number of elements is `2^initial_refinement_level`
+# throughout the simulation. The variable `n_cells_max` is used to limit the number of elements in the mesh,
 # which cannot be exceeded when using [adaptive mesh refinement](@ref Adaptive-mesh-refinement).
 
 # All minimum and all maximum coordinates must be combined into `Tuples`.
@@ -69,7 +71,7 @@ solver = DGSEM(polydeg=3)
 # Now we need to define an initial condition for our problem. All the already implemented
 # initial conditions for [`LinearScalarAdvectionEquation2D`](@ref) can be found in
 # [`src/equations/linear_scalar_advection_2d.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/src/equations/linear_scalar_advection_2d.jl).
-# If you want to use, for example, a Gaussian pulse, it can be used as follows.
+# If you want to use, for example, a Gaussian pulse, it can be used as follows:
 # ```julia
 # initial_conditions = initial_condition_gauss
 # ```
@@ -79,7 +81,7 @@ solver = DGSEM(polydeg=3)
 # u(x, y, 0) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr).
 # ```
 # The initial conditions function must take spatial coordinates, time and equation as arguments
-# and returns an initial condition as a static vector `SVector`. Following the same structure, you
+# and returns an initial condition as a statically sized vector `SVector`. Following the same structure, you
 # can define your own initial conditions. The time variable `t` can be unused in the initial
 # condition, but might also be used to describe an analytical solution if known. If you use the
 # initial condition as analytical solution, you can analyze your numerical solution by computing
