@@ -153,6 +153,13 @@ save_solution = SaveSolutionCallback(interval = 5,
                                      save_initial_solution = true,
                                      save_final_solution = true)
 
+# Alternatively, we have the option to print solution files at fixed time intervals. 
+# ```julua
+# save_solution = SaveSolutionCallback(dt = 0.1,
+#                                      save_initial_solution = true,
+#                                      save_final_solution = true)
+# ```
+
 # Another useful callback is the [`SaveRestartCallback`](@ref). It saves information for restarting
 # in regular intervals. We are interested in saving a restart file for the final solution as
 # well. To perform a restart, you need to configure the restart setup in a special way, which is
