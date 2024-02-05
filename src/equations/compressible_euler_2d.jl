@@ -1632,6 +1632,18 @@ end
     return p
 end
 
+# Transformation from conservative variables u to d(p)/d(u)
+@inline function gradient_conservative(::typeof(pressure),
+                                       u, equations::CompressibleEulerEquations2D)
+    rho, rho_v1, rho_v2, rho_e = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v_square = v1^2 + v2^2
+
+    return (equations.gamma - 1.0) * SVector(0.5 * v_square, -v1, -v2, 1.0)
+end
+
 @inline function density_pressure(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
     rho_times_p = (equations.gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2))
@@ -1698,5 +1710,14 @@ end
 # Calculate internal energy for a conservative state `cons`
 @inline function energy_internal(cons, equations::CompressibleEulerEquations2D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
+end
+
+# State validation for Newton-bisection method of subcell IDP limiting
+@inline function Base.isvalid(u, equations::CompressibleEulerEquations2D)
+    p = pressure(u, equations)
+    if u[1] <= 0.0 || p <= 0.0
+        return false
+    end
+    return true
 end
 end # @muladd

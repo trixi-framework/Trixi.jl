@@ -416,7 +416,8 @@ end
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
-    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], 0.1, "cache")
+    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1, "cache", 1,
+                                    (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
     # TODO: TrixiShallowWater: move unit test
@@ -1218,6 +1219,26 @@ end
         @test Trixi.flux_engquist_osher(u, u, orientation, equation) ≈
               flux(u, orientation, equation)
     end
+end
+
+@testset "Consistency check for `gradient_conservative` routine" begin
+    # Set up conservative variables, equations
+    u = [
+        0.5011914484393387,
+        0.8829127712445113,
+        0.43024132987932817,
+        0.7560616633050348,
+    ]
+
+    equations = CompressibleEulerEquations2D(1.4)
+
+    # Define wrapper function for pressure in order to call default implementation
+    function pressure_test(u, equations)
+        return pressure(u, equations)
+    end
+
+    @test Trixi.gradient_conservative(pressure_test, u, equations) ≈
+          Trixi.gradient_conservative(pressure, u, equations)
 end
 
 @testset "Equivalent Fluxes" begin
