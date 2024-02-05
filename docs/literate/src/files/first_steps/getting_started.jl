@@ -156,12 +156,12 @@ get_examples()
 # +
 # \frac{\partial}{\partial x}
 # \begin{pmatrix}
-# \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e +p) v_1
+# \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e + p) v_1
 # \end{pmatrix}
 # +
 # \frac{\partial}{\partial y}
 # \begin{pmatrix}
-# \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e +p) v_2
+# \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e + p) v_2
 # \end{pmatrix}
 # =
 # \begin{pmatrix}
@@ -172,7 +172,7 @@ get_examples()
 # Here, ``\rho`` is the density, ``v_1`` and ``v_2`` are the velocities, ``e`` is the specific
 # total energy, and
 # ```math
-# p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
+# p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2 + v_2^2) \right)
 # ```
 # is the pressure.
 # Initial conditions consist of initial values for ``\rho``, ``\rho v_1``,
