@@ -8,6 +8,7 @@ end
 
 using Trixi
 using Trixi2Vtk
+using TrixiBase
 
 # Get Trixi.jl root directory
 trixi_root_dir = dirname(@__DIR__)
