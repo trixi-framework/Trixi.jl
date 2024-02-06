@@ -252,9 +252,9 @@ end
                                  "elixir_navierstokes_convergence.jl"),
                         tspan=(0.0, 0.0))
     LLID = Trixi.local_leaf_cells(mesh.tree)
-    num_leafs = length(LLID)
-    @assert num_leafs % 16 == 0
-    Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs / 16)])
+    num_leaves = length(LLID)
+    @assert num_leaves % 16 == 0
+    Trixi.refine!(mesh.tree, LLID[1:Int(num_leaves / 16)])
     tspan = (0.0, 0.25)
     semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                                  initial_condition, solver;
@@ -325,9 +325,9 @@ end
                                  "elixir_navierstokes_taylor_green_vortex.jl"),
                         tspan=(0.0, 0.0))
     LLID = Trixi.local_leaf_cells(mesh.tree)
-    num_leafs = length(LLID)
-    @assert num_leafs % 32 == 0
-    Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs / 32)])
+    num_leaves = length(LLID)
+    @assert num_leaves % 32 == 0
+    Trixi.refine!(mesh.tree, LLID[1:Int(num_leaves / 32)])
     tspan = (0.0, 0.1)
     semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                                  initial_condition, solver)
@@ -430,8 +430,8 @@ end
                                  "elixir_advection_diffusion_amr.jl"),
                         l2=[0.000355780485397024],
                         linf=[0.0010810770271614256])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
@@ -445,8 +445,8 @@ end
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         l2=[0.0009808996243280868],
                         linf=[0.01732621559135459])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
@@ -473,8 +473,8 @@ end
                             0.12129218723807476,
                             0.8433893297612087,
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
@@ -496,8 +496,8 @@ end
                             0.6782397526873181, 0.17663702154066238,
                             0.17663702154066266, 0.17663702154066238, 1.7327849844825238,
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
