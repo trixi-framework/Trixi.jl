@@ -444,5 +444,18 @@ end
     return fm + fp
 end
 
+# TODO: Upwind FD. Figure out a better strategy to compute this
+# (From an old PR and seemed to not work correctly!)
+@inline function (numflux::FluxUpwind)(u_ll, u_rr,
+                                       normal_direction::AbstractVector,
+                                       equations::AbstractEquations{2})
+    @unpack splitting = numflux
+    # Compute splitting in generic normal direction with specialized
+    # eigenvalues estimates calculated inside the `splitting` function
+    f_tilde_m = splitting(u_rr, Val{:minus}(), normal_direction, equations)
+    f_tilde_p = splitting(u_ll, Val{:plus}() , normal_direction, equations)
+    return f_tilde_m + f_tilde_p
+end
+
 Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(", f.splitting, ")")
 end # @muladd

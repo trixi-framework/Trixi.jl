@@ -41,29 +41,32 @@ function calc_metric_terms!(jacobian_matrix, element, D_SBP::AbstractDerivativeO
     #   jacobian_matrix[2,1,:,:,:] <- Y_xi
     #   jacobian_matrix[2,2,:,:,:] <- Y_eta
 
+    # TODO: for now the upwind version needs to specify which matrix is used.
+    # requires more testing / debugging but for now use the central SBP matrix
+
     # Compute the xi derivatives by applying D on the left
     # This is basically the same as
     # jacobian_matrix[1, 1, :, :, element] = Matrix(D_SBP) * node_coordinates[1, :, :, element]
     # but uses only matrix-vector products instead of a matrix-matrix product.
     for j in eachnode(D_SBP)
-        mul!(view(jacobian_matrix, 1, 1, :, j, element), D_SBP,
+        mul!(view(jacobian_matrix, 1, 1, :, j, element), D_SBP.central,
              view(node_coordinates, 1, :, j, element))
     end
     # jacobian_matrix[2, 1, :, :, element] = Matrix(D_SBP) * node_coordinates[2, :, :, element]
     for j in eachnode(D_SBP)
-        mul!(view(jacobian_matrix, 2, 1, :, j, element), D_SBP,
+        mul!(view(jacobian_matrix, 2, 1, :, j, element), D_SBP.central,
              view(node_coordinates, 2, :, j, element))
     end
 
     # Compute the eta derivatives by applying transpose of D on the right
     # jacobian_matrix[1, 2, :, :, element] = node_coordinates[1, :, :, element] * Matrix(D_SBP)'
     for i in eachnode(D_SBP)
-        mul!(view(jacobian_matrix, 1, 2, i, :, element), D_SBP,
+        mul!(view(jacobian_matrix, 1, 2, i, :, element), D_SBP.central,
              view(node_coordinates, 1, i, :, element))
     end
     # jacobian_matrix[2, 2, :, :, element] = node_coordinates[2, :, :, element] * Matrix(D_SBP)'
     for i in eachnode(D_SBP)
-        mul!(view(jacobian_matrix, 2, 2, i, :, element), D_SBP,
+        mul!(view(jacobian_matrix, 2, 2, i, :, element), D_SBP.central,
              view(node_coordinates, 2, i, :, element))
     end
 

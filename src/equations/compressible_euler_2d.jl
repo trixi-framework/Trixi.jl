@@ -706,10 +706,10 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()
   With Application to Finite Difference Methods
   [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
 """
-@inline function splitting_steger_warming(u, orientation::Integer,
+@inline function splitting_steger_warming(u, orientation_or_normal_direction,
                                           equations::CompressibleEulerEquations2D)
-    fm = splitting_steger_warming(u, Val{:minus}(), orientation, equations)
-    fp = splitting_steger_warming(u, Val{:plus}(), orientation, equations)
+    fm = splitting_steger_warming(u, Val{:minus}(), orientation_or_normal_direction, equations)
+    fp = splitting_steger_warming(u, Val{:plus}(), orientation_or_normal_direction, equations)
     return fm, fp
 end
 
@@ -806,6 +806,74 @@ end
               (alpha_m * 0.5 * (v1^2 + v2^2) + a * v2 * (lambda2_m - lambda3_m)
                + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
     end
+    return SVector(f1m, f2m, f3m, f4m)
+end
+
+@inline function splitting_steger_warming(u, ::Val{:plus},
+                                          normal_direction::AbstractVector,
+                                          equations::CompressibleEulerEquations2D)
+    rho, rho_v1, rho_v2, rho_e = u
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+    a = sqrt(equations.gamma * p / rho)
+
+    s_hat = norm(normal_direction) # sqrt(normal_direction[1]^2 + normal_direction[2]^2)
+    normal_vector = normal_direction / s_hat
+    v_n = normal_vector[1] * v1 + normal_vector[2] * v2
+
+    lambda1 = normal_direction[1] * v1 + normal_direction[2] * v2
+    lambda2 = lambda1 + a * s_hat
+    lambda3 = lambda1 - a * s_hat
+
+    lambda1_p = positive_part(lambda1) # Same as (lambda_i + abs(lambda_i)) / 2, but faster :)
+    lambda2_p = positive_part(lambda2)
+    lambda3_p = positive_part(lambda3)
+
+    alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1p = rho_2gamma * alpha_p
+    f2p = rho_2gamma * (alpha_p * v1 + a * normal_vector[1] * (lambda2_p - lambda3_p))
+    f3p = rho_2gamma * (alpha_p * v2 + a * normal_vector[2] * (lambda2_p - lambda3_p))
+    f4p = rho_2gamma *
+          (alpha_p * 0.5 * (v1^2 + v2^2) + a * v_n * (lambda2_p - lambda3_p)
+           + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
+
+    return SVector(f1p, f2p, f3p, f4p)
+end
+
+@inline function splitting_steger_warming(u, ::Val{:minus},
+                                          normal_direction::AbstractVector,
+                                          equations::CompressibleEulerEquations2D)
+    rho, rho_v1, rho_v2, rho_e = u
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+    a = sqrt(equations.gamma * p / rho)
+
+    s_hat = norm(normal_direction) # sqrt(normal_direction[1]^2 + normal_direction[2]^2)
+    normal_vector = normal_direction / s_hat
+    v_n = normal_vector[1] * v1 + normal_vector[2] * v2
+
+    lambda1 = normal_direction[1] * v1 + normal_direction[2] * v2
+    lambda2 = lambda1 + a * s_hat
+    lambda3 = lambda1 - a * s_hat
+
+    lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
+    lambda2_m = negative_part(lambda2)
+    lambda3_m = negative_part(lambda3)
+
+    alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1m = rho_2gamma * alpha_m
+    f2m = rho_2gamma * (alpha_m * v1 + a * normal_vector[1] * (lambda2_m - lambda3_m))
+    f3m = rho_2gamma * (alpha_m * v2 + a * normal_vector[2] * (lambda2_m - lambda3_m))
+    f4m = rho_2gamma *
+          (alpha_m * 0.5 * (v1^2 + v2^2) + a * v_n * (lambda2_m - lambda3_m)
+           + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
+
     return SVector(f1m, f2m, f3m, f4m)
 end
 
