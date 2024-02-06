@@ -9,7 +9,7 @@
     TrivialCallback()
 
 A callback that does nothing. This can be useful to disable some callbacks easily via
-[`trixi_include`](https://trixi-framework.github.io/TrixiBase.jl/stable/reference/#TrixiBase.trixi_include-Tuple{Module,%20AbstractString}).
+[`trixi_include`](@ref).
 """
 function TrivialCallback()
     DiscreteCallback(trivial_callback, trivial_callback,

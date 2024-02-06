@@ -112,7 +112,7 @@ will yield the following plot:
 * The [`VisualizationCallback`](@ref) can be used for in-situ visualization. See
   [Visualizing results during a simulation](@ref).
 * The [`TrivialCallback`](@ref) does nothing and can be used to easily disable some callbacks
-  via [`trixi_include`](https://trixi-framework.github.io/TrixiBase.jl/stable/reference/#TrixiBase.trixi_include-Tuple{Module,%20AbstractString}).
+  via [`trixi_include`](@ref).
 
 ### Equation-specific callbacks
 Some callbacks provided by Trixi.jl implement specific features for certain equations:

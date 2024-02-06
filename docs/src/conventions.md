@@ -48,10 +48,10 @@ Julia scripts containing everything to set up and run a simulation. Working
 interactively from the Julia REPL with these scripts can be quite convenient
 while for exploratory research and development of Trixi.jl. For example, you
 can use the convenience function
-[`trixi_include`](https://trixi-framework.github.io/TrixiBase.jl/stable/reference/#TrixiBase.trixi_include-Tuple{Module,%20AbstractString})
+[`trixi_include`](@ref)
 to `include` an elixir with some modified arguments. To enable this, it is
 helpful to use a consistent naming scheme in elixirs, since
-[`trixi_include`](https://trixi-framework.github.io/TrixiBase.jl/stable/reference/#TrixiBase.trixi_include-Tuple{Module,%20AbstractString})
+[`trixi_include`](@ref)
 can only perform simple replacements. Some standard variables names are
 
 - `polydeg` for the polynomial degree of a solver

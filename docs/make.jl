@@ -122,6 +122,7 @@ makedocs(
         "Troubleshooting and FAQ" => "troubleshooting.md",
         "Reference" => [
                         "Trixi.jl" => "reference-trixi.md",
+                        "TrixiBase.jl" => "reference-trixibase.md",
                         "Trixi2Vtk.jl" => "reference-trixi2vtk.md"
                        ],
         "Authors" => "authors.md",
