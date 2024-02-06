@@ -125,10 +125,6 @@ end
 
 # Helper methods used in the functions defined above
 
-# Apply the function `f` to `expr` and all sub-expressions recursively.
-walkexpr(f, expr::Expr) = f(Expr(expr.head, (walkexpr(f, arg) for arg in expr.args)...))
-walkexpr(f, x) = f(x)
-
 # Find a (keyword or common) assignment to `destination` in `expr`
 # and return the assigned value.
 function find_assignment(expr, destination)
@@ -137,7 +133,7 @@ function find_assignment(expr, destination)
     found = false
 
     # find explicit and keyword assignments
-    walkexpr(expr) do x
+    TrixiBase.walkexpr(expr) do x
         if x isa Expr
             if (x.head === Symbol("=") || x.head === :kw) &&
                x.args[1] === Symbol(destination)
