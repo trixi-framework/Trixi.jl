@@ -129,75 +129,8 @@ end
 walkexpr(f, expr::Expr) = f(Expr(expr.head, (walkexpr(f, arg) for arg in expr.args)...))
 walkexpr(f, x) = f(x)
 
-# Insert the keyword argument `maxiters` into calls to `solve` and `Trixi.solve`
-# with default value `10^5` if it is not already present.
-function insert_maxiters(expr)
-    maxiters_default = 10^5
-
-    expr = walkexpr(expr) do x
-        if x isa Expr
-            is_plain_solve = x.head === Symbol("call") && x.args[1] === Symbol("solve")
-            is_trixi_solve = (x.head === Symbol("call") && x.args[1] isa Expr &&
-                              x.args[1].head === Symbol(".") &&
-                              x.args[1].args[1] === Symbol("Trixi") &&
-                              x.args[1].args[2] isa QuoteNode &&
-                              x.args[1].args[2].value === Symbol("solve"))
-
-            if is_plain_solve || is_trixi_solve
-                # Do nothing if `maxiters` is already set as keyword argument...
-                for arg in x.args
-                    # This detects the case where `maxiters` is set as keyword argument
-                    # without or before a semicolon
-                    if (arg isa Expr && arg.head === Symbol("kw") &&
-                        arg.args[1] === Symbol("maxiters"))
-                        return x
-                    end
-
-                    # This detects the case where maxiters is set as keyword argument
-                    # after a semicolon
-                    if (arg isa Expr && arg.head === Symbol("parameters"))
-                        # We need to check each keyword argument listed here
-                        for nested_arg in arg.args
-                            if (nested_arg isa Expr &&
-                                nested_arg.head === Symbol("kw") &&
-                                nested_arg.args[1] === Symbol("maxiters"))
-                                return x
-                            end
-                        end
-                    end
-                end
-
-                # ...and insert it otherwise.
-                push!(x.args, Expr(Symbol("kw"), Symbol("maxiters"), maxiters_default))
-            end
-        end
-        return x
-    end
-
-    return expr
-end
-
-# Replace assignments to `key` in `expr` by `key = val` for all `(key,val)` in `kwargs`.
-function replace_assignments(expr; kwargs...)
-    # replace explicit and keyword assignments
-    expr = walkexpr(expr) do x
-        if x isa Expr
-            for (key, val) in kwargs
-                if (x.head === Symbol("=") || x.head === :kw) &&
-                   x.args[1] === Symbol(key)
-                    x.args[2] = :($val)
-                    # dump(x)
-                end
-            end
-        end
-        return x
-    end
-
-    return expr
-end
-
-# find a (keyword or common) assignment to `destination` in `expr`
-# and return the assigned value
+# Find a (keyword or common) assignment to `destination` in `expr`
+# and return the assigned value.
 function find_assignment(expr, destination)
     # declare result to be able to assign to it in the closure
     local result
