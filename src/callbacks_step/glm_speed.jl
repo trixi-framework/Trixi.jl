@@ -77,11 +77,13 @@ end
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
 
     if length(semi_indices) == 0
-        semi = tuple(semi)
+        semis = tuple(semi)
+    else
+        semis = semi.semis
     end
 
-    for semi_index in semi_indices
-        mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[semi_index])
+    for semi in semis
+        mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
         # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
         c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
