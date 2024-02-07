@@ -48,6 +48,12 @@ end
 #   "title" => ["subtitle 1" => ("folder 1", "filename 1.jl"),
 #               "subtitle 2" => ("folder 2", "filename 2.jl")]
 files = [
+    # Topic: introduction
+    "First steps in Trixi.jl" => [
+        "Getting started" => ("first_steps", "getting_started.jl"),
+        "Create first setup" => ("first_steps", "create_first_setup.jl"),
+        "Changing Trixi.jl itself" => ("first_steps", "changing_trixi.jl"),
+    ],
     # Topic: DG semidiscretizations
     "Introduction to DG methods" => "scalar_linear_advection_1d.jl",
     "DGSEM with flux differencing" => "DGSEM_FluxDiff.jl",
@@ -65,6 +71,7 @@ files = [
     "Adaptive mesh refinement" => "adaptive_mesh_refinement.jl",
     "Structured mesh with curvilinear mapping" => "structured_mesh_mapping.jl",
     "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.jl",
+    "P4est mesh from gmsh" => "p4est_from_gmsh.jl",
     # Topic: other stuff
     "Explicit time stepping" => "time_stepping.jl",
     "Differentiable programming" => "differentiable_programming.jl",
@@ -107,6 +114,7 @@ makedocs(
             ],
             "Time integration" => "time_integration.md",
             "Callbacks" => "callbacks.md",
+            "Coupling" => "multi-physics_coupling.md"
         ],
         "Advanced topics & developers" => [
             "Conventions" =>"conventions.md",
