@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 
 equations = TrafficFlowLWREquations1D()
-   
+
 # Use first order finite volume to prevent oscillations at the shock
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
@@ -24,7 +24,6 @@ initial_condition = initial_condition_convergence_test
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_convergence_test)
 
-
 ###############################################################################
 # ODE solvers, callbacks etc.
 
@@ -34,24 +33,22 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl=1.6)
-
+stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, 
+                        analysis_callback,
                         alive_callback,
                         stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
-
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=42, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 42, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
 
 summary_callback() # print the timer summary
