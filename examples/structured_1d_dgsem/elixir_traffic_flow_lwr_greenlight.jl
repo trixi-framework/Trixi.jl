@@ -32,7 +32,7 @@ end
 
 # Assume that there are always cars waiting at the left 
 function inflow(x, t, equations::TrafficFlowLWREquations1D)
-    return initial_condition_greenlight(coordinate_min, t, equations)
+    return initial_condition_greenlight(coordinates_min, t, equations)
 end
 boundary_condition_inflow = BoundaryConditionDirichlet(inflow)
 
