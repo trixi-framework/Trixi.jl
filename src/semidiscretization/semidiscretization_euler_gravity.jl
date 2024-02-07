@@ -117,11 +117,11 @@ Construct a semidiscretization of the compressible Euler equations with self-gra
 function SemidiscretizationEulerGravity(semi_euler::SemiEuler,
                                         semi_gravity::SemiGravity,
                                         parameters) where
-        {Mesh,
-         SemiEuler <:
-         SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations},
-         SemiGravity <:
-         SemidiscretizationHyperbolic{Mesh, <:AbstractHyperbolicDiffusionEquations}}
+         {Mesh,
+          SemiEuler <:
+          SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations},
+          SemiGravity <:
+          SemidiscretizationHyperbolic{Mesh, <:AbstractHyperbolicDiffusionEquations}}
     u_ode = compute_coefficients(zero(real(semi_gravity)), semi_gravity)
     du_ode = similar(u_ode)
     u_tmp1_ode = similar(u_ode)

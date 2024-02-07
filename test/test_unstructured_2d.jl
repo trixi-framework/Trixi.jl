@@ -664,6 +664,67 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+# TODO: FD; for now put the unstructured tests for the 2D FDSBP here.
+@trixi_testset "FDSBP (central): elixir_advection_basic.jl" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
+                                 "elixir_advection_basic.jl"),
+                        l2=[0.0001105211407319266],
+                        linf=[0.0004199363734466166])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "FDSBP (central): elixir_euler_source_terms.jl" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
+                                 "elixir_euler_source_terms.jl"),
+                        l2=[8.155544666380138e-5,
+                            0.0001477863788446318,
+                            0.00014778637884460072,
+                            0.00045584189984542687],
+                        linf=[0.0002670775876922882,
+                            0.0005683064706873964,
+                            0.0005683064706762941,
+                            0.0017770812025146299],
+                        tspan=(0.0, 0.05))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "FDSBP (central): elixir_euler_free_stream.jl" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
+                                 "elixir_euler_free_stream.jl"),
+                        l2=[5.4329175009362306e-14,
+                            1.0066867437607972e-13,
+                            6.889210012578449e-14,
+                            1.568290814572709e-13],
+                        linf=[5.963762816918461e-10,
+                            5.08869890669672e-11,
+                            1.1581377523661729e-10,
+                            4.61017890529547e-11],
+                        tspan=(0.0, 0.1),
+                        atol=1.0e-11)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

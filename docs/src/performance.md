@@ -34,7 +34,7 @@ Hence, you should at least investigate the performance roughly by comparing the 
 timings of several elixirs. Deeper investigations and micro-benchmarks should usually use
 [BenchmarkTools.jl](https://github.com/JuliaCI/BenchmarkTools.jl).
 For example, the following steps were used to benchmark the changes introduced in
-https://github.com/trixi-framework/Trixi.jl/pull/256.
+[PR #256](https://github.com/trixi-framework/Trixi.jl/pull/256).
 
 1. `git checkout e7ebf3846b3fd62ee1d0042e130afb50d7fe8e48` (new version)
 2. Start `julia --threads=1 --check-bounds=no`.
@@ -267,3 +267,14 @@ requires. It can thus be seen as a proxy for "energy used" and, as an extension,
     timing result, you need to set the analysis interval such that the
     `AnalysisCallback` is invoked at least once during the course of the simulation and
     discard the first PID value.
+
+## Performance issues with multi-threaded reductions
+[False sharing](https://en.wikipedia.org/wiki/False_sharing) is a known performance issue
+for systems with distributed caches. It also occurred for the implementation of a thread
+parallel bounds checking routine for the subcell IDP limiting
+in [PR #1736](https://github.com/trixi-framework/Trixi.jl/pull/1736).
+After some [testing and discussion](https://github.com/trixi-framework/Trixi.jl/pull/1736#discussion_r1423881895),
+it turned out that initializing a vector of length `n * Threads.nthreads()` and only using every
+n-th entry instead of a vector of length `Threads.nthreads()` fixes the problem.
+Since there are no processors with caches over 128B, we use `n = 128B / size(uEltype)`.
+Now, the bounds checking routine of the IDP limiting scales as hoped.

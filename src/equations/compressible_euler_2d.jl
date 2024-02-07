@@ -810,6 +810,98 @@ end
 end
 
 """
+    FluxLMARS(c)(u_ll, u_rr, orientation_or_normal_direction,
+                 equations::CompressibleEulerEquations2D)
+
+Low Mach number approximate Riemann solver (LMARS) for atmospheric flows using
+an estimate `c` of the speed of sound.
+
+References:
+- Xi Chen et al. (2013)
+  A Control-Volume Model of the Compressible Euler Equations with a Vertical
+  Lagrangian Coordinate
+  [DOI: 10.1175/MWR-D-12-00129.1](https://doi.org/10.1175/mwr-d-12-00129.1)
+"""
+struct FluxLMARS{SpeedOfSound}
+    # Estimate for the speed of sound
+    speed_of_sound::SpeedOfSound
+end
+
+@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, orientation::Integer,
+                                         equations::CompressibleEulerEquations2D)
+    c = flux_lmars.speed_of_sound
+
+    # Unpack left and right state
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+    if orientation == 1
+        v_ll = v1_ll
+        v_rr = v1_rr
+    else # orientation == 2
+        v_ll = v2_ll
+        v_rr = v2_rr
+    end
+
+    rho = 0.5 * (rho_ll + rho_rr)
+    p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll)
+    v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll)
+
+    # We treat the energy term analogous to the potential temperature term in the paper by
+    # Chen et al., i.e. we use p_ll and p_rr, and not p
+    if v >= 0
+        f1, f2, f3, f4 = v * u_ll
+        f4 = f4 + p_ll * v
+    else
+        f1, f2, f3, f4 = v * u_rr
+        f4 = f4 + p_rr * v
+    end
+
+    if orientation == 1
+        f2 = f2 + p
+    else # orientation == 2
+        f3 = f3 + p
+    end
+
+    return SVector(f1, f2, f3, f4)
+end
+
+@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, normal_direction::AbstractVector,
+                                         equations::CompressibleEulerEquations2D)
+    c = flux_lmars.speed_of_sound
+
+    # Unpack left and right state
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+    v_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    # Note that this is the same as computing v_ll and v_rr with a normalized normal vector
+    # and then multiplying v by `norm_` again, but this version is slightly faster.
+    norm_ = norm(normal_direction)
+
+    rho = 0.5 * (rho_ll + rho_rr)
+    p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll) / norm_
+    v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll) * norm_
+
+    # We treat the energy term analogous to the potential temperature term in the paper by
+    # Chen et al., i.e. we use p_ll and p_rr, and not p
+    if v >= 0
+        f1, f2, f3, f4 = u_ll * v
+        f4 = f4 + p_ll * v
+    else
+        f1, f2, f3, f4 = u_rr * v
+        f4 = f4 + p_rr * v
+    end
+
+    return SVector(f1,
+                   f2 + p * normal_direction[1],
+                   f3 + p * normal_direction[2],
+                   f4)
+end
+
+"""
     splitting_vanleer_haenel(u, orientation::Integer,
                              equations::CompressibleEulerEquations2D)
     splitting_vanleer_haenel(u, which::Union{Val{:minus}, Val{:plus}}
@@ -1150,7 +1242,7 @@ end
 end
 
 """
-    flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+    flux_hllc(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations2D)
 
 Computes the HLLC flux (HLL with Contact) for compressible Euler equations developed by E.F. Toro
 [Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
@@ -1185,18 +1277,18 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     if orientation == 1 # x-direction
         vel_L = v1_ll
         vel_R = v1_rr
-        ekin_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr)^2
     elseif orientation == 2 # y-direction
         vel_L = v2_ll
         vel_R = v2_rr
-        ekin_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr)^2
     end
     vel_roe = (sqrt_rho_ll * vel_L + sqrt_rho_rr * vel_R) / sum_sqrt_rho
-    ekin_roe = 0.5 * (vel_roe^2 + ekin_roe / sum_sqrt_rho^2)
+    v1_roe = sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr
+    v2_roe = sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr
+    vel_roe_mag = (v1_roe^2 + v2_roe^2) / sum_sqrt_rho^2
     H_ll = (rho_e_ll + p_ll) / rho_ll
     H_rr = (rho_e_rr + p_rr) / rho_rr
     H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) / sum_sqrt_rho
-    c_roe = sqrt((equations.gamma - 1) * (H_roe - ekin_roe))
+    c_roe = sqrt((equations.gamma - 1) * (H_roe - 0.5 * vel_roe_mag))
     Ssl = min(vel_L - c_ll, vel_roe - c_roe)
     Ssr = max(vel_R + c_rr, vel_roe + c_roe)
     sMu_L = Ssl - vel_L
@@ -1247,6 +1339,98 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
             f2 = f_rr[2] + Ssr * (UStar2 - rho_v1_rr)
             f3 = f_rr[3] + Ssr * (UStar3 - rho_v2_rr)
             f4 = f_rr[4] + Ssr * (UStar4 - rho_e_rr)
+        end
+    end
+    return SVector(f1, f2, f3, f4)
+end
+
+function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
+                   equations::CompressibleEulerEquations2D)
+    # Calculate primitive variables and speed of sound
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    norm_ = norm(normal_direction)
+    norm_sq = norm_ * norm_
+    inv_norm_sq = inv(norm_sq)
+
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll) * norm_
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr) * norm_
+
+    # Obtain left and right fluxes
+    f_ll = flux(u_ll, normal_direction, equations)
+    f_rr = flux(u_rr, normal_direction, equations)
+
+    # Compute Roe averages
+    sqrt_rho_ll = sqrt(rho_ll)
+    sqrt_rho_rr = sqrt(rho_rr)
+    sum_sqrt_rho = sqrt_rho_ll + sqrt_rho_rr
+
+    v1_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr) / sum_sqrt_rho
+    v2_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr) / sum_sqrt_rho
+    vel_roe = v1_roe * normal_direction[1] + v2_roe * normal_direction[2]
+    vel_roe_mag = v1_roe^2 + v2_roe^2
+
+    e_ll = u_ll[4] / rho_ll
+    e_rr = u_rr[4] / rho_rr
+
+    H_ll = (u_ll[4] + p_ll) / rho_ll
+    H_rr = (u_rr[4] + p_rr) / rho_rr
+
+    H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) / sum_sqrt_rho
+    c_roe = sqrt((equations.gamma - 1) * (H_roe - 0.5 * vel_roe_mag)) * norm_
+
+    Ssl = min(v_dot_n_ll - c_ll, vel_roe - c_roe)
+    Ssr = max(v_dot_n_rr + c_rr, vel_roe + c_roe)
+    sMu_L = Ssl - v_dot_n_ll
+    sMu_R = Ssr - v_dot_n_rr
+
+    if Ssl >= 0.0
+        f1 = f_ll[1]
+        f2 = f_ll[2]
+        f3 = f_ll[3]
+        f4 = f_ll[4]
+    elseif Ssr <= 0.0
+        f1 = f_rr[1]
+        f2 = f_rr[2]
+        f3 = f_rr[3]
+        f4 = f_rr[4]
+    else
+        SStar = (rho_ll * v_dot_n_ll * sMu_L - rho_rr * v_dot_n_rr * sMu_R +
+                 (p_rr - p_ll) * norm_sq) / (rho_ll * sMu_L - rho_rr * sMu_R)
+        if Ssl <= 0.0 <= SStar
+            densStar = rho_ll * sMu_L / (Ssl - SStar)
+            enerStar = e_ll +
+                       (SStar - v_dot_n_ll) *
+                       (SStar * inv_norm_sq + p_ll / (rho_ll * sMu_L))
+            UStar1 = densStar
+            UStar2 = densStar *
+                     (v1_ll + (SStar - v_dot_n_ll) * normal_direction[1] * inv_norm_sq)
+            UStar3 = densStar *
+                     (v2_ll + (SStar - v_dot_n_ll) * normal_direction[2] * inv_norm_sq)
+            UStar4 = densStar * enerStar
+            f1 = f_ll[1] + Ssl * (UStar1 - u_ll[1])
+            f2 = f_ll[2] + Ssl * (UStar2 - u_ll[2])
+            f3 = f_ll[3] + Ssl * (UStar3 - u_ll[3])
+            f4 = f_ll[4] + Ssl * (UStar4 - u_ll[4])
+        else
+            densStar = rho_rr * sMu_R / (Ssr - SStar)
+            enerStar = e_rr +
+                       (SStar - v_dot_n_rr) *
+                       (SStar * inv_norm_sq + p_rr / (rho_rr * sMu_R))
+            UStar1 = densStar
+            UStar2 = densStar *
+                     (v1_rr + (SStar - v_dot_n_rr) * normal_direction[1] * inv_norm_sq)
+            UStar3 = densStar *
+                     (v2_rr + (SStar - v_dot_n_rr) * normal_direction[2] * inv_norm_sq)
+            UStar4 = densStar * enerStar
+            f1 = f_rr[1] + Ssr * (UStar1 - u_rr[1])
+            f2 = f_rr[2] + Ssr * (UStar2 - u_rr[2])
+            f3 = f_rr[3] + Ssr * (UStar3 - u_rr[3])
+            f4 = f_rr[4] + Ssr * (UStar4 - u_rr[4])
         end
     end
     return SVector(f1, f2, f3, f4)
@@ -1448,6 +1632,18 @@ end
     return p
 end
 
+# Transformation from conservative variables u to d(p)/d(u)
+@inline function gradient_conservative(::typeof(pressure),
+                                       u, equations::CompressibleEulerEquations2D)
+    rho, rho_v1, rho_v2, rho_e = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v_square = v1^2 + v2^2
+
+    return (equations.gamma - 1.0) * SVector(0.5 * v_square, -v1, -v2, 1.0)
+end
+
 @inline function density_pressure(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
     rho_times_p = (equations.gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2))
@@ -1514,5 +1710,14 @@ end
 # Calculate internal energy for a conservative state `cons`
 @inline function energy_internal(cons, equations::CompressibleEulerEquations2D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
+end
+
+# State validation for Newton-bisection method of subcell IDP limiting
+@inline function Base.isvalid(u, equations::CompressibleEulerEquations2D)
+    p = pressure(u, equations)
+    if u[1] <= 0.0 || p <= 0.0
+        return false
+    end
+    return true
 end
 end # @muladd

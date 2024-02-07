@@ -186,8 +186,7 @@ function _precompile_manual_()
                              Matrix{RealT},
                              # DerivativeMatrix
                              #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
-                             Matrix{RealT}
-                             }
+                             Matrix{RealT}}
     end
 
     function mortar_type_dgsem(RealT, nnodes_)
@@ -197,8 +196,7 @@ function _precompile_manual_()
                                 Matrix{RealT},
                                 # ReverseMatrix
                                 # StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
-                                Matrix{RealT}
-                                }
+                                Matrix{RealT}}
     end
 
     function analyzer_type_dgsem(RealT, nnodes_)
@@ -208,8 +206,7 @@ function _precompile_manual_()
                                 # VectorT
                                 StaticArrays.SVector{nnodes_analysis, RealT},
                                 # Vandermonde
-                                Array{RealT, 2}
-                                }
+                                Array{RealT, 2}}
     end
 
     function adaptor_type_dgsem(RealT, nnodes_)
@@ -242,8 +239,8 @@ function _precompile_manual_()
         @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
                                       NamedTuple{(:initial_refinement_level, :n_cells_max),
                                                  Tuple{Int, Int}}, Type{TreeMesh},
-                                      Tuple{RealT, RealT, RealT}, Tuple{RealT, RealT, RealT
-                                                                        }})
+                                      Tuple{RealT, RealT, RealT},
+                                      Tuple{RealT, RealT, RealT}})
     end
     for TreeType in (SerialTree, ParallelTree), NDIMS in 1:3
         @assert Base.precompile(Tuple{typeof(Trixi.initialize!),
@@ -308,8 +305,8 @@ function _precompile_manual_()
     Base.precompile(Tuple{Type{LobattoLegendreBasis}, Int})
     for RealT in (Float64,)
         Base.precompile(Tuple{Type{LobattoLegendreBasis}, RealT, Int})
-        @assert Base.precompile(Tuple{typeof(Trixi.calc_dhat), Vector{RealT}, Vector{RealT}
-                                      })
+        @assert Base.precompile(Tuple{typeof(Trixi.calc_dhat), Vector{RealT},
+                                      Vector{RealT}})
         @assert Base.precompile(Tuple{typeof(Trixi.calc_dsplit), Vector{RealT},
                                       Vector{RealT}})
         @assert Base.precompile(Tuple{typeof(Trixi.polynomial_derivative_matrix),
@@ -332,10 +329,10 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{typeof(Trixi.calc_forward_lower), Int})
     @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Int, Val{:gauss}})
     @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Int, Val{:gauss}})
-    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Int, Val{:gauss_lobatto
-                                                                             }})
-    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Int, Val{:gauss_lobatto
-                                                                             }})
+    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Int,
+                                  Val{:gauss_lobatto}})
+    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Int,
+                                  Val{:gauss_lobatto}})
 
     # Constructors: mortars, analyzers, adaptors
     for RealT in (Float64,), polydeg in 1:7
@@ -362,14 +359,12 @@ function _precompile_manual_()
                                   NamedTuple{(:interval, :save_final_restart),
                                              Tuple{Int, Bool}}, Type{SaveRestartCallback}})
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
-                                  NamedTuple{
-                                             (:interval, :save_initial_solution,
+                                  NamedTuple{(:interval, :save_initial_solution,
                                               :save_final_solution, :solution_variables),
                                              Tuple{Int, Bool, Bool, typeof(cons2cons)}},
                                   Type{SaveSolutionCallback}})
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
-                                  NamedTuple{
-                                             (:interval, :save_initial_solution,
+                                  NamedTuple{(:interval, :save_initial_solution,
                                               :save_final_solution, :solution_variables),
                                              Tuple{Int, Bool, Bool, typeof(cons2prim)}},
                                   Type{SaveSolutionCallback}})
@@ -385,8 +380,7 @@ function _precompile_manual_()
     # end
     # end
     @assert Base.precompile(Tuple{typeof(SummaryCallback)})
-    @assert Base.precompile(Tuple{
-                                  DiscreteCallback{typeof(Trixi.summary_callback),
+    @assert Base.precompile(Tuple{DiscreteCallback{typeof(Trixi.summary_callback),
                                                    typeof(Trixi.summary_callback),
                                                    typeof(Trixi.initialize_summary_callback),
                                                    typeof(SciMLBase.FINALIZE_DEFAULT)}})
@@ -419,8 +413,8 @@ function _precompile_manual_()
                                       Trixi.ElementContainer2D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
                                       TreeMesh{2, Trixi.SerialTree{2}},
-                                      Trixi.ElementContainer2D{RealT, uEltype}, mortar_type
-                                      })
+                                      Trixi.ElementContainer2D{RealT, uEltype},
+                                      mortar_type})
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
                                       TreeMesh{2, Trixi.SerialTree{2}}, String})
 
@@ -433,8 +427,8 @@ function _precompile_manual_()
                                       Trixi.ElementContainer2D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
                                       TreeMesh{2, Trixi.ParallelTree{2}},
-                                      Trixi.ElementContainer2D{RealT, uEltype}, mortar_type
-                                      })
+                                      Trixi.ElementContainer2D{RealT, uEltype},
+                                      mortar_type})
         @assert Base.precompile(Tuple{typeof(Trixi.init_mpi_interfaces), Array{Int, 1},
                                       TreeMesh{2, Trixi.ParallelTree{2}},
                                       Trixi.ElementContainer2D{RealT, uEltype}})
@@ -450,8 +444,8 @@ function _precompile_manual_()
                                       Trixi.ElementContainer3D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
                                       TreeMesh{3, Trixi.SerialTree{3}},
-                                      Trixi.ElementContainer3D{RealT, uEltype}, mortar_type
-                                      })
+                                      Trixi.ElementContainer3D{RealT, uEltype},
+                                      mortar_type})
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
                                       TreeMesh{3, Trixi.SerialTree{3}}, String})
     end
@@ -548,16 +542,10 @@ function _precompile_manual_()
                                       restart_callback_type})
 
         for solution_variables in (cons2cons, cons2prim)
-            save_solution_callback_type = DiscreteCallback{
-                                                           SaveSolutionCallback{
-                                                                                typeof(solution_variables)
-                                                                                },
-                                                           SaveSolutionCallback{
-                                                                                typeof(solution_variables)
-                                                                                },
+            save_solution_callback_type = DiscreteCallback{SaveSolutionCallback{typeof(solution_variables)},
+                                                           SaveSolutionCallback{typeof(solution_variables)},
                                                            typeof(Trixi.initialize!),
-                                                           typeof(SciMLBase.FINALIZE_DEFAULT)
-                                                           }
+                                                           typeof(SciMLBase.FINALIZE_DEFAULT)}
             @assert Base.precompile(Tuple{typeof(show), Base.TTY,
                                           save_solution_callback_type})
             @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY},

@@ -18,19 +18,15 @@ mutable struct IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real}
     cp::SVector{NCOMP, RealT}
     c_h::RealT # GLM cleaning speed
 
-    function IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{
-                                                                                       NCOMP,
-                                                                                       RealT
-                                                                                       },
-                                                                       gas_constants::SVector{
-                                                                                              NCOMP,
-                                                                                              RealT
-                                                                                              }) where {
-                                                                                                        NVARS,
-                                                                                                        NCOMP,
-                                                                                                        RealT <:
-                                                                                                        Real
-                                                                                                        }
+    function IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{NCOMP,
+                                                                                       RealT},
+                                                                       gas_constants::SVector{NCOMP,
+                                                                                              RealT}) where {
+                                                                                                             NVARS,
+                                                                                                             NCOMP,
+                                                                                                             RealT <:
+                                                                                                             Real
+                                                                                                             }
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `gas_constants` have to be filled with at least one value"))
 

@@ -43,7 +43,8 @@ function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
 end
 
 # Create MPI interface container and initialize interface data
-function init_mpi_interfaces(mesh::ParallelP4estMesh, equations, basis, elements)
+function init_mpi_interfaces(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh},
+                             equations, basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
@@ -133,7 +134,8 @@ function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
 end
 
 # Create MPI mortar container and initialize MPI mortar data
-function init_mpi_mortars(mesh::ParallelP4estMesh, equations, basis, elements)
+function init_mpi_mortars(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh}, equations,
+                          basis, elements)
     NDIMS = ndims(mesh)
     RealT = real(mesh)
     uEltype = eltype(elements)
@@ -266,8 +268,7 @@ end
 
 function ParallelInitSurfacesIterFaceUserData(interfaces, mortars, boundaries,
                                               mpi_interfaces, mpi_mortars, mesh)
-    return ParallelInitSurfacesIterFaceUserData{
-                                                typeof(interfaces), typeof(mortars),
+    return ParallelInitSurfacesIterFaceUserData{typeof(interfaces), typeof(mortars),
                                                 typeof(boundaries),
                                                 typeof(mpi_interfaces),
                                                 typeof(mpi_mortars), typeof(mesh)}(interfaces,

@@ -214,16 +214,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shockcapturing_subcell.jl"),
                         l2=[
-                            0.08508147906199143,
-                            0.04510299017724501,
-                            0.045103019801950375,
-                            0.6930704343869766,
+                            0.08508152653623638,
+                            0.04510301725066843,
+                            0.04510304668512745,
+                            0.6930705064715306,
                         ],
                         linf=[
-                            0.31123546471463326,
-                            0.5616274869594462,
-                            0.5619692712224448,
-                            2.88670199345138,
+                            0.31136518019691406,
+                            0.5617651935473419,
+                            0.5621200790240503,
+                            2.8866869108596056,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -581,6 +581,32 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl"),
+                        l2=[
+                            0.42185634563805724,
+                            0.1686471269704017,
+                            0.18240674916968103,
+                            0.17858250604280654,
+                        ],
+                        linf=[
+                            1.7012978064377158,
+                            0.7149714986746726,
+                            0.5822547982757897,
+                            0.7300051017382696,
+                        ],
+                        tspan=(0.0, 2.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
 @trixi_testset "elixir_euler_colliding_flow.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_colliding_flow.jl"),
                         l2=[
@@ -831,6 +857,32 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_warm_bubble.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_warm_bubble.jl"),
+                        l2=[
+                            0.0001379946769624388,
+                            0.02078779689715382,
+                            0.033237241571263176,
+                            31.36068872331705,
+                        ],
+                        linf=[
+                            0.0016286690573188434,
+                            0.15623770697198225,
+                            0.3341371832270615,
+                            334.5373488726036,
+                        ],
+                        tspan=(0.0, 10.0),
+                        initial_refinement_level=4)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 100
     end
 end
 

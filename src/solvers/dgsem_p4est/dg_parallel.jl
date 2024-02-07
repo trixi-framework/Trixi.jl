@@ -166,7 +166,8 @@ end
 # at `index_base`+1 in the MPI buffer. `data_size` is the data size associated with each small
 # position (i.e. position 1 or 2). The data corresponding to the large side (i.e. position 3) has
 # size `2 * data_size`.
-@inline function buffer_mortar_indices(mesh::ParallelP4estMesh{2}, index_base,
+@inline function buffer_mortar_indices(mesh::Union{ParallelP4estMesh{2},
+                                                   ParallelT8codeMesh{2}}, index_base,
                                        data_size)
     return (
             # first, last for local element in position 1 (small element)
@@ -185,7 +186,8 @@ end
 # at `index_base`+1 in the MPI buffer. `data_size` is the data size associated with each small
 # position (i.e. position 1 to 4). The data corresponding to the large side (i.e. position 5) has
 # size `4 * data_size`.
-@inline function buffer_mortar_indices(mesh::ParallelP4estMesh{3}, index_base,
+@inline function buffer_mortar_indices(mesh::Union{ParallelP4estMesh{3},
+                                                   ParallelT8codeMesh{3}}, index_base,
                                        data_size)
     return (
             # first, last for local element in position 1 (small element)
@@ -342,8 +344,7 @@ function InitNeighborRankConnectivityIterFaceUserData(mpi_interfaces, mpi_mortar
     global_mortar_ids = fill(-1, nmpimortars(mpi_mortars))
     neighbor_ranks_mortar = Vector{Vector{Int}}(undef, nmpimortars(mpi_mortars))
 
-    return InitNeighborRankConnectivityIterFaceUserData{
-                                                        typeof(mpi_interfaces),
+    return InitNeighborRankConnectivityIterFaceUserData{typeof(mpi_interfaces),
                                                         typeof(mpi_mortars),
                                                         typeof(mesh)}(mpi_interfaces, 1,
                                                                       global_interface_ids,
@@ -492,7 +493,8 @@ end
 
 # Exchange normal directions of small elements of the MPI mortars. They are needed on all involved
 # MPI ranks to calculate the mortar fluxes.
-function exchange_normal_directions!(mpi_mortars, mpi_cache, mesh::ParallelP4estMesh,
+function exchange_normal_directions!(mpi_mortars, mpi_cache,
+                                     mesh::Union{ParallelP4estMesh, ParallelT8codeMesh},
                                      n_nodes)
     RealT = real(mesh)
     n_dims = ndims(mesh)

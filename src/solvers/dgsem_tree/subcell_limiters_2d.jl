@@ -5,30 +5,44 @@
 @muladd begin
 #! format: noindent
 
+###############################################################################
+# IDP Limiting
+###############################################################################
+
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, bound_keys)
-    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)
-                                                                      }(0,
-                                                                        nnodes(basis),
-                                                                        bound_keys)
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)}(0,
+                                                                                   nnodes(basis),
+                                                                                   bound_keys)
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
-    # The first entry of each vector contains the maximum deviation since the last export.
-    # The second one contains the total maximum deviation.
-    idp_bounds_delta = Dict{Symbol, Vector{real(basis)}}()
+    # Local variable contains the maximum deviation since the last export.
+    # Using a threaded vector to parallelize bounds check.
+    idp_bounds_delta_local = Dict{Symbol, Vector{real(basis)}}()
+    # Global variable contains the total maximum deviation.
+    idp_bounds_delta_global = Dict{Symbol, real(basis)}()
+    # Note: False sharing causes critical performance issues on multiple threads when using a vector
+    # of length `Threads.nthreads()`. Initializing a vector of length `n * Threads.nthreads()`
+    # and then only using every n-th entry, fixes the problem and allows proper scaling.
+    # Since there are no processors with caches over 128B, we use `n = 128B / size(uEltype)`
+    stride_size = div(128, sizeof(eltype(basis.nodes))) # = n
     for key in bound_keys
-        idp_bounds_delta[key] = zeros(real(basis), 2)
+        idp_bounds_delta_local[key] = [zero(real(basis))
+                                       for _ in 1:(stride_size * Threads.nthreads())]
+        idp_bounds_delta_global[key] = zero(real(basis))
     end
 
-    return (; subcell_limiter_coefficients, idp_bounds_delta)
+    return (; subcell_limiter_coefficients, idp_bounds_delta_local,
+            idp_bounds_delta_global)
 end
 
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
                                       dt;
                                       kwargs...)
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
-    alpha .= zero(eltype(alpha))
+    # TODO: Do not abuse `reset_du!` but maybe implement a generic `set_zero!`
+    @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
 
     if limiter.local_minmax
         @trixi_timeit timer() "local min/max limiting" idp_local_minmax!(alpha, limiter,
@@ -55,6 +69,9 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
 
     return nothing
 end
+
+###############################################################################
+# Calculation of local bounds using low-order FV solution
 
 @inline function calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
@@ -154,6 +171,9 @@ end
     return nothing
 end
 
+###############################################################################
+# Local minimum/maximum limiting
+
 @inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi)
     for variable in limiter.local_minmax_variables_cons
         idp_local_minmax!(alpha, limiter, u, t, dt, semi, variable)
@@ -223,16 +243,36 @@ end
     return nothing
 end
 
+###############################################################################
+# Global positivity limiting
+
 @inline function idp_positivity!(alpha, limiter, u, dt, semi)
     # Conservative variables
     for variable in limiter.positivity_variables_cons
-        idp_positivity!(alpha, limiter, u, dt, semi, variable)
+        @trixi_timeit timer() "conservative variables" idp_positivity_conservative!(alpha,
+                                                                                    limiter,
+                                                                                    u,
+                                                                                    dt,
+                                                                                    semi,
+                                                                                    variable)
+    end
+
+    # Nonlinear variables
+    for variable in limiter.positivity_variables_nonlinear
+        @trixi_timeit timer() "nonlinear variables" idp_positivity_nonlinear!(alpha,
+                                                                              limiter,
+                                                                              u, dt,
+                                                                              semi,
+                                                                              variable)
     end
 
     return nothing
 end
 
-@inline function idp_positivity!(alpha, limiter, u, dt, semi, variable)
+###############################################################################
+# Global positivity limiting of conservative variables
+
+@inline function idp_positivity_conservative!(alpha, limiter, u, dt, semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis
@@ -246,7 +286,7 @@ end
         for j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, element]
             if var < 0
-                error("Safe $variable is not safe. element=$element, node: $i $j, value=$var")
+                error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
             end
 
             # Compute bound
@@ -291,5 +331,184 @@ end
     end
 
     return nothing
+end
+
+@inline function idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, variable)
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+    (; positivity_correction_factor) = limiter
+
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
+
+    @threaded for element in eachelement(dg, semi.cache)
+        inverse_jacobian = cache.elements.inverse_jacobian[element]
+        for j in eachnode(dg), i in eachnode(dg)
+            # Compute bound
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            var = variable(u_local, equations)
+            if var < 0
+                error("Safe low-order method produces negative value for variable $variable. Try a smaller time step.")
+            end
+            var_min[i, j, element] = positivity_correction_factor * var
+
+            # Perform Newton's bisection method to find new alpha
+            newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j, element,
+                                variable, initial_check_nonnegative_newton_idp,
+                                final_check_nonnegative_newton_idp, inverse_jacobian,
+                                dt, equations, dg, cache, limiter)
+        end
+    end
+
+    return nothing
+end
+
+@inline function newton_loops_alpha!(alpha, bound, u, i, j, element, variable,
+                                     initial_check, final_check, inverse_jacobian, dt,
+                                     equations, dg, cache, limiter)
+    (; inverse_weights) = dg.basis
+    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
+
+    (; gamma_constant_newton) = limiter
+
+    # negative xi direction
+    antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[i] *
+                         get_node_vars(antidiffusive_flux1_R, equations, dg, i, j,
+                                       element)
+    newton_loop!(alpha, bound, u, i, j, element, variable, initial_check, final_check,
+                 equations, dt, limiter, antidiffusive_flux)
+
+    # positive xi direction
+    antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
+                         inverse_weights[i] *
+                         get_node_vars(antidiffusive_flux1_L, equations, dg, i + 1, j,
+                                       element)
+    newton_loop!(alpha, bound, u, i, j, element, variable, initial_check, final_check,
+                 equations, dt, limiter, antidiffusive_flux)
+
+    # negative eta direction
+    antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[j] *
+                         get_node_vars(antidiffusive_flux2_R, equations, dg, i, j,
+                                       element)
+    newton_loop!(alpha, bound, u, i, j, element, variable, initial_check, final_check,
+                 equations, dt, limiter, antidiffusive_flux)
+
+    # positive eta direction
+    antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
+                         inverse_weights[j] *
+                         get_node_vars(antidiffusive_flux2_L, equations, dg, i, j + 1,
+                                       element)
+    newton_loop!(alpha, bound, u, i, j, element, variable, initial_check, final_check,
+                 equations, dt, limiter, antidiffusive_flux)
+
+    return nothing
+end
+
+@inline function newton_loop!(alpha, bound, u, i, j, element, variable, initial_check,
+                              final_check, equations, dt, limiter, antidiffusive_flux)
+    newton_reltol, newton_abstol = limiter.newton_tolerances
+
+    beta = 1 - alpha[i, j, element]
+
+    beta_L = 0 # alpha = 1
+    beta_R = beta # No higher beta (lower alpha) than the current one
+
+    u_curr = u + beta * dt * antidiffusive_flux
+
+    # If state is valid, perform initial check and return if correction is not needed
+    if isvalid(u_curr, equations)
+        goal = goal_function_newton_idp(variable, bound, u_curr, equations)
+
+        initial_check(bound, goal, newton_abstol) && return nothing
+    end
+
+    # Newton iterations
+    for iter in 1:(limiter.max_iterations_newton)
+        beta_old = beta
+
+        # If the state is valid, evaluate d(goal)/d(beta)
+        if isvalid(u_curr, equations)
+            dgoal_dbeta = dgoal_function_newton_idp(variable, u_curr, dt,
+                                                    antidiffusive_flux, equations)
+        else # Otherwise, perform a bisection step
+            dgoal_dbeta = 0
+        end
+
+        if dgoal_dbeta != 0
+            # Update beta with Newton's method
+            beta = beta - goal / dgoal_dbeta
+        end
+
+        # Check bounds
+        if (beta < beta_L) || (beta > beta_R) || (dgoal_dbeta == 0) || isnan(beta)
+            # Out of bounds, do a bisection step
+            beta = 0.5 * (beta_L + beta_R)
+            # Get new u
+            u_curr = u + beta * dt * antidiffusive_flux
+
+            # If the state is invalid, finish bisection step without checking tolerance and iterate further
+            if !isvalid(u_curr, equations)
+                beta_R = beta
+                continue
+            end
+
+            # Check new beta for condition and update bounds
+            goal = goal_function_newton_idp(variable, bound, u_curr, equations)
+            if initial_check(bound, goal, newton_abstol)
+                # New beta fulfills condition
+                beta_L = beta
+            else
+                # New beta does not fulfill condition
+                beta_R = beta
+            end
+        else
+            # Get new u
+            u_curr = u + beta * dt * antidiffusive_flux
+
+            # If the state is invalid, redefine right bound without checking tolerance and iterate further
+            if !isvalid(u_curr, equations)
+                beta_R = beta
+                continue
+            end
+
+            # Evaluate goal function
+            goal = goal_function_newton_idp(variable, bound, u_curr, equations)
+        end
+
+        # Check relative tolerance
+        if abs(beta_old - beta) <= newton_reltol
+            break
+        end
+
+        # Check absolute tolerance
+        if final_check(bound, goal, newton_abstol)
+            break
+        end
+    end
+
+    new_alpha = 1 - beta
+    if alpha[i, j, element] > new_alpha + newton_abstol
+        error("Alpha is getting smaller. old: $(alpha[i, j, element]), new: $new_alpha")
+    else
+        alpha[i, j, element] = new_alpha
+    end
+
+    return nothing
+end
+
+### Auxiliary routines for Newton's bisection method ###
+# Initial checks
+@inline initial_check_nonnegative_newton_idp(bound, goal, newton_abstol) = goal <= 0
+
+# Goal and d(Goal)d(u) function
+@inline goal_function_newton_idp(variable, bound, u, equations) = bound -
+                                                                  variable(u, equations)
+@inline function dgoal_function_newton_idp(variable, u, dt, antidiffusive_flux,
+                                           equations)
+    -dot(gradient_conservative(variable, u, equations), dt * antidiffusive_flux)
+end
+
+# Final checks
+@inline function final_check_nonnegative_newton_idp(bound, goal, newton_abstol)
+    (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 end
 end # @muladd

@@ -45,30 +45,29 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
                                                    BoundaryConditionsParabolic,
                                                    SourceTerms, Solver,
                                                    SolverParabolic, Cache,
-                                                   CacheParabolic
-                                                   }(mesh::Mesh,
-                                                     equations::Equations,
-                                                     equations_parabolic::EquationsParabolic,
-                                                     initial_condition::InitialCondition,
-                                                     boundary_conditions::BoundaryConditions,
-                                                     boundary_conditions_parabolic::BoundaryConditionsParabolic,
-                                                     source_terms::SourceTerms,
-                                                     solver::Solver,
-                                                     solver_parabolic::SolverParabolic,
-                                                     cache::Cache,
-                                                     cache_parabolic::CacheParabolic) where {
-                                                                                             Mesh,
-                                                                                             Equations,
-                                                                                             EquationsParabolic,
-                                                                                             InitialCondition,
-                                                                                             BoundaryConditions,
-                                                                                             BoundaryConditionsParabolic,
-                                                                                             SourceTerms,
-                                                                                             Solver,
-                                                                                             SolverParabolic,
-                                                                                             Cache,
-                                                                                             CacheParabolic
-                                                                                             }
+                                                   CacheParabolic}(mesh::Mesh,
+                                                                   equations::Equations,
+                                                                   equations_parabolic::EquationsParabolic,
+                                                                   initial_condition::InitialCondition,
+                                                                   boundary_conditions::BoundaryConditions,
+                                                                   boundary_conditions_parabolic::BoundaryConditionsParabolic,
+                                                                   source_terms::SourceTerms,
+                                                                   solver::Solver,
+                                                                   solver_parabolic::SolverParabolic,
+                                                                   cache::Cache,
+                                                                   cache_parabolic::CacheParabolic) where {
+                                                                                                           Mesh,
+                                                                                                           Equations,
+                                                                                                           EquationsParabolic,
+                                                                                                           InitialCondition,
+                                                                                                           BoundaryConditions,
+                                                                                                           BoundaryConditionsParabolic,
+                                                                                                           SourceTerms,
+                                                                                                           Solver,
+                                                                                                           SolverParabolic,
+                                                                                                           Cache,
+                                                                                                           CacheParabolic
+                                                                                                           }
         @assert ndims(mesh) == ndims(equations)
 
         # Todo: assert nvariables(equations)==nvariables(equations_parabolic)

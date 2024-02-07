@@ -51,11 +51,11 @@ function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics,
                                           semi_euler::SemiEuler;
                                           source_region = x -> true,
                                           weights = x -> 1.0) where
-        {Mesh,
-         SemiAcoustics <:
-         SemidiscretizationHyperbolic{Mesh, <:AbstractAcousticPerturbationEquations},
-         SemiEuler <:
-         SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations}}
+         {Mesh,
+          SemiAcoustics <:
+          SemidiscretizationHyperbolic{Mesh, <:AbstractAcousticPerturbationEquations},
+          SemiEuler <:
+          SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations}}
     cache = create_cache(SemidiscretizationEulerAcoustics, source_region, weights,
                          mesh_equations_solver_cache(semi_acoustics)...)
 
