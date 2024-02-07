@@ -27,8 +27,8 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
     @nospecialize cb # reduce precompilation time
 
     glm_speed_callback = cb.affect!
-    @unpack glm_scale, cfl, semi_infices = glm_speed_callback
-    print(io, "GlmSpeedCallback(glm_scale=", glm_scale, ", cfl=", cfl, "semi_indices=", semi_infices, ")")
+    @unpack glm_scale, cfl, semi_indices = glm_speed_callback
+    print(io, "GlmSpeedCallback(glm_scale=", glm_scale, ", cfl=", cfl, "semi_indices=", semi_indices, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
