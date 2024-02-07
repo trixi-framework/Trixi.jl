@@ -66,7 +66,7 @@
         f = 1 / L
         omega = 2 * pi * f
         du = omega * cos(omega * (x[1] - t)) *
-             (-1 - 2 * equations.v_max * sin(omega * (x[1] - t)) - 3 * equations.v_max)
+             (-1 - equations.v_max * (2 * sin(omega * (x[1] - t)) + 3))
 
         return SVector(du)
     end
