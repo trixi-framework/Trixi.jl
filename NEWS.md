@@ -4,6 +4,19 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.7 from v0.6.x
+
+#### Added
+
+#### Changed
+
+#### Deprecated
+
+#### Removed
+- Some specialized Shallow water specific features will no longer be available directly in
+  `Trixi.jl`, but will be moved to a dedicated repository: [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl). This includes all features related to wetting and drying, as well as the `ShallowWaterTwoLayerEquations1D` and `ShallowWaterTwoLayerEquations2D`.
+  However, the basic Shallow water equations will continue to be part of `Trixi.jl`. We'll also be updating the `TrixiShallowWater.jl` documentation with instructions on how to use these relocated features in the future.
+
 ## Changes in the v0.6 lifecycle
 
 #### Added
