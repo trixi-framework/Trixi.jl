@@ -27,7 +27,7 @@ end
 
 @trixi_testset "elixir_traffic_flow_lwr_trafficjam.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_traffic_flow_lwr_trafficjam.jl"),
-                        l2=[0.17591004141761846], linf=[0.5])
+                        l2=[0.1761758135539748], linf=[0.5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
