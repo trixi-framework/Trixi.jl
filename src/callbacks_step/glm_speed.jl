@@ -77,6 +77,7 @@ end
 
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
 
+    # Make sure we can handle multiple semidiscretization in coupled simulations.
     if length(semi_indices) == 0
         semis = tuple(semi)
     else
