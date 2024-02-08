@@ -28,7 +28,8 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
 
     glm_speed_callback = cb.affect!
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
-    print(io, "GlmSpeedCallback(glm_scale=", glm_scale, ", cfl=", cfl, "semi_indices=", semi_indices, ")")
+    print(io, "GlmSpeedCallback(glm_scale=", glm_scale, ", cfl=", cfl, "semi_indices=",
+          semi_indices, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -43,7 +44,7 @@ function Base.show(io::IO, ::MIME"text/plain",
         setup = [
             "GLM wave speed scaling" => glm_speed_callback.glm_scale,
             "Expected CFL number" => glm_speed_callback.cfl,
-#            "Coupled semidiscretization indices" => glm_speed_callback.semi_indices,
+            #            "Coupled semidiscretization indices" => glm_speed_callback.semi_indices,
         ]
         summary_box(io, "GlmSpeedCallback", setup)
     end
@@ -73,7 +74,7 @@ end
 @inline function (glm_speed_callback::GlmSpeedCallback)(integrator)
     dt = get_proposed_dt(integrator)
     semi = integrator.p
-    
+
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
 
     if length(semi_indices) == 0
@@ -87,10 +88,10 @@ end
 
         # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
         c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
-    
+
         # c_h is proportional to its own time step divided by the complete MHD time step
         equations.c_h = glm_scale * c_h_deltat / dt
-    
+
         # avoid re-evaluating possible FSAL stages
         u_modified!(integrator, false)
     end
