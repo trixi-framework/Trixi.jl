@@ -107,7 +107,7 @@ function Bisection(ConsOrder::Int, NumEigVals::Int, NumStages::Int, dtMax::Float
       # Parameters taken from default values for EiCOS
       MOI.OptimizerWithAttributes(ECOS.Optimizer, "gamma" => 0.99,
                                                    "delta" => 2e-7,
-                                                   #"eps" => 1e9, # 1e-13
+                                                   "eps" => 1e-13, # 1e-13
                                                    "feastol" => 1e-9, # 1e-9
                                                    "abstol" => 1e-9, # 1e-9
                                                    "reltol" => 1e-9, # 1e-9
