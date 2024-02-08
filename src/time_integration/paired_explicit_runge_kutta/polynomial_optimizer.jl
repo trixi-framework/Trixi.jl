@@ -107,7 +107,7 @@ function Bisection(ConsOrder::Int, NumEigVals::Int, NumStages::Int, dtMax::Float
       # Parameters taken from default values for EiCOS
       MOI.OptimizerWithAttributes(ECOS.Optimizer, "gamma" => 0.99,
                                                    "delta" => 2e-7,
-                                                   "eps" => 1e-13, # 1e-13
+                                                   "eps" => 1e13, # 1e13
                                                    "feastol" => 1e-9, # 1e-9
                                                    "abstol" => 1e-9, # 1e-9
                                                    "reltol" => 1e-9, # 1e-9
@@ -116,7 +116,7 @@ function Bisection(ConsOrder::Int, NumEigVals::Int, NumStages::Int, dtMax::Float
                                                    "reltol_inacc" => 5e-5,
                                                    "nitref" => 9,
                                                    "maxit" => 100,
-                                                   "verbose" => 3); silent_solver = false
+                                                   "verbose" => 3); silent_solver = true
     )
 
     AbsP = problem.optval
