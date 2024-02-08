@@ -3,114 +3,107 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-    @doc raw"""
-        TrafficFlowLWREquations1D
+#! format: noindent
 
-    The classic Lighthill-Witham Richards (LWR) model for 1D traffic flow.
-    ```math
-    \partial_t u + v_{\text{max}} \partial_1 [u (1 - u)] = 0
-    ```
-    See e.g. Section 11.1 of 
-    - Randall LeVeque (2002)
-    Finite Volume Methods for Hyperbolic Problems
-    [DOI: 10.1017/CBO9780511791253]https://doi.org/10.1017/CBO9780511791253
-    """
-    struct TrafficFlowLWREquations1D{RealT <: Real} <: AbstractTrafficFlowLWREquations{1, 1}
-        v_max::RealT
+@doc raw"""
+    TrafficFlowLWREquations1D
 
-        function TrafficFlowLWREquations1D(v_max = 1.0)
-            new{typeof(v_max)}(v_max)
-        end
+The classic Lighthill-Witham Richards (LWR) model for 1D traffic flow.
+```math
+\partial_t u + v_{\text{max}} \partial_1 [u (1 - u)] = 0
+```
+See e.g. Section 11.1 of 
+- Randall LeVeque (2002)
+Finite Volume Methods for Hyperbolic Problems
+[DOI: 10.1017/CBO9780511791253]https://doi.org/10.1017/CBO9780511791253
+"""
+struct TrafficFlowLWREquations1D{RealT <: Real} <: AbstractTrafficFlowLWREquations{1, 1}
+    v_max::RealT
+
+    function TrafficFlowLWREquations1D(v_max = 1.0)
+        new{typeof(v_max)}(v_max)
     end
+end
 
-    varnames(::typeof(cons2cons), ::TrafficFlowLWREquations1D) = ("car-density",)
-    varnames(::typeof(cons2prim), ::TrafficFlowLWREquations1D) = ("car-density",)
+varnames(::typeof(cons2cons), ::TrafficFlowLWREquations1D) = ("car-density",)
+varnames(::typeof(cons2prim), ::TrafficFlowLWREquations1D) = ("car-density",)
 
-    """
-        initial_condition_constant(x, t, equations::TrafficFlowLWREquations1D)
+"""
+    initial_condition_convergence_test(x, t, equations::TrafficFlowLWREquations1D)
 
-    A constant initial condition to test free-stream preservation.
-    """
-    function initial_condition_constant(x, t, equations::TrafficFlowLWREquations1D)
-        return SVector(1.0)
-    end
+A smooth initial condition used for convergence tests.
+"""
+function initial_condition_convergence_test(x, t, equations::TrafficFlowLWREquations1D)
+    c = 2.0
+    A = 1.0
+    L = 1
+    f = 1 / L
+    omega = 2 * pi * f
+    scalar = c + A * sin(omega * (x[1] - t))
 
-    """
-        initial_condition_convergence_test(x, t, equations::TrafficFlowLWREquations1D)
+    return SVector(scalar)
+end
 
-    A smooth initial condition used for convergence tests.
-    """
-    function initial_condition_convergence_test(x, t, equations::TrafficFlowLWREquations1D)
-        c = 2.0
-        A = 1.0
-        L = 1
-        f = 1 / L
-        omega = 2 * pi * f
-        scalar = c + A * sin(omega * (x[1] - t))
+"""
+    source_terms_convergence_test(u, x, t, equations::TrafficFlowLWREquations1D)
 
-        return SVector(scalar)
-    end
+Source terms used for convergence tests in combination with
+[`initial_condition_convergence_test`](@ref).
+"""
+@inline function source_terms_convergence_test(u, x, t,
+                                               equations::TrafficFlowLWREquations1D)
+    # Same settings as in `initial_condition`
+    c = 2.0
+    A = 1.0
+    L = 1
+    f = 1 / L
+    omega = 2 * pi * f
+    du = omega * cos(omega * (x[1] - t)) *
+         (-1 - equations.v_max * (2 * sin(omega * (x[1] - t)) + 3))
 
-    """
-        source_terms_convergence_test(u, x, t, equations::TrafficFlowLWREquations1D)
+    return SVector(du)
+end
 
-    Source terms used for convergence tests in combination with
-    [`initial_condition_convergence_test`](@ref).
-    """
-    @inline function source_terms_convergence_test(u, x, t,
-                                                   equations::TrafficFlowLWREquations1D)
-        # Same settings as in `initial_condition`
-        c = 2.0
-        A = 1.0
-        L = 1
-        f = 1 / L
-        omega = 2 * pi * f
-        du = omega * cos(omega * (x[1] - t)) *
-             (-1 - equations.v_max * (2 * sin(omega * (x[1] - t)) + 3))
+# Calculate 1D flux in for a single point
+@inline function flux(u, orientation::Integer, equations::TrafficFlowLWREquations1D)
+    return SVector(equations.v_max * u[1] * (1.0 - u[1]))
+end
 
-        return SVector(du)
-    end
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::TrafficFlowLWREquations1D)
+    λ_max = max(abs(equations.v_max * (1.0 - 2 * u_ll[1])),
+                abs(equations.v_max * (1.0 - 2 * u_rr[1])))
+end
 
-    # Calculate 1D flux in for a single point
-    @inline function flux(u, orientation::Integer, equations::TrafficFlowLWREquations1D)
-        return SVector(equations.v_max * u[1] * (1.0 - u[1]))
-    end
+# Calculate minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::TrafficFlowLWREquations1D)
+    jac_L = equations.v_max * (1.0 - 2 * u_ll[1])
+    jac_R = equations.v_max * (1.0 - 2 * u_rr[1])
 
-    # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-    @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
-                                         equations::TrafficFlowLWREquations1D)
-        λ_max = max(abs(equations.v_max * (1.0 - 2 * u_ll[1])),
-                    abs(equations.v_max * (1.0 - 2 * u_rr[1])))
-    end
+    λ_min = min(jac_L, jac_R)
+    λ_max = max(jac_L, jac_R)
 
-    # Calculate minimum and maximum wave speeds for HLL-type fluxes
-    @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
-                                         equations::TrafficFlowLWREquations1D)
-        jac_L = equations.v_max * (1.0 - 2 * u_ll[1])
-        jac_R = equations.v_max * (1.0 - 2 * u_rr[1])
+    return λ_min, λ_max
+end
 
-        λ_min = min(jac_L, jac_R)
-        λ_max = max(jac_L, jac_R)
+@inline function max_abs_speeds(u, equations::TrafficFlowLWREquations1D)
+    return (abs(equations.v_max * (1.0 - 2 * u[1])),)
+end
 
-        return λ_min, λ_max
-    end
+# Convert conservative variables to primitive
+@inline cons2prim(u, equations::TrafficFlowLWREquations1D) = u
 
-    @inline function max_abs_speeds(u, equations::TrafficFlowLWREquations1D)
-        return (abs(equations.v_max * (1.0 - 2 * u[1])),)
-    end
+# Convert conservative variables to entropy variables
+@inline cons2entropy(u, equations::TrafficFlowLWREquations1D) = u
 
-    # Convert conservative variables to primitive
-    @inline cons2prim(u, equations::TrafficFlowLWREquations1D) = u
+# Calculate entropy for a conservative state `cons`
+@inline entropy(u::Real, ::TrafficFlowLWREquations1D) = 0.5 * u^2
+@inline entropy(u, equations::TrafficFlowLWREquations1D) = entropy(u[1], equations)
 
-    # Convert conservative variables to entropy variables
-    @inline cons2entropy(u, equations::TrafficFlowLWREquations1D) = u
-
-    # Calculate entropy for a conservative state `cons`
-    @inline entropy(u::Real, ::TrafficFlowLWREquations1D) = 0.5 * u^2
-    @inline entropy(u, equations::TrafficFlowLWREquations1D) = entropy(u[1], equations)
-
-    # Calculate total energy for a conservative state `cons`
-    @inline energy_total(u::Real, ::TrafficFlowLWREquations1D) = 0.5 * u^2
-    @inline energy_total(u, equations::TrafficFlowLWREquations1D) = energy_total(u[1],
-                                                                                 equations)
+# Calculate total energy for a conservative state `cons`
+@inline energy_total(u::Real, ::TrafficFlowLWREquations1D) = 0.5 * u^2
+@inline energy_total(u, equations::TrafficFlowLWREquations1D) = energy_total(u[1],
+                                                                             equations)
 end # @muladd
