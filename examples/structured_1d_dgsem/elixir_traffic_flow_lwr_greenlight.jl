@@ -7,7 +7,7 @@ using Trixi
 equations = TrafficFlowLWREquations1D()
 
 basis = LobattoLegendreBasis(3)
-surface_flux = flux_hll
+surface_flux = FluxHLL(min_max_speed_davis)
 solver = DGSEM(basis, surface_flux)
 
 coordinates_min = (-1.0,) # minimum coordinate

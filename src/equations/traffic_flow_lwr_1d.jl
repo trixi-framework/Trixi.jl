@@ -88,6 +88,11 @@ end
     return λ_min, λ_max
 end
 
+@inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
+                                     equations::TrafficFlowLWREquations1D)
+    min_max_speed_naive(u_ll, u_rr, orientation, equations)
+end
+
 @inline function max_abs_speeds(u, equations::TrafficFlowLWREquations1D)
     return (abs(equations.v_max * (1.0 - 2 * u[1])),)
 end
