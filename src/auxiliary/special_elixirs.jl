@@ -125,41 +125,15 @@ end
 
 # Helper methods used in the functions defined above
 
-# Find a (keyword or common) assignment to `destination` in `expr`
-# and return the assigned value.
-function find_assignment(expr, destination)
-    # declare result to be able to assign to it in the closure
-    local result
-    found = false
-
-    # find explicit and keyword assignments
-    TrixiBase.walkexpr(expr) do x
-        if x isa Expr
-            if (x.head === Symbol("=") || x.head === :kw) &&
-               x.args[1] === Symbol(destination)
-                result = x.args[2]
-                found = true
-                # dump(x)
-            end
-        end
-        return x
-    end
-
-    if !found
-        throw(ArgumentError("assignment `$destination` not found in expression"))
-    end
-
-    result
-end
-
-# searches the parameter that specifies the mesh reslution in the elixir
+# Searches for the assignment that specifies the mesh resolution in the elixir
 function extract_initial_resolution(elixir, kwargs)
     code = read(elixir, String)
     expr = Meta.parse("begin \n$code \nend")
 
     try
         # get the initial_refinement_level from the elixir
-        initial_refinement_level = find_assignment(expr, :initial_refinement_level)
+        initial_refinement_level = TrixiBase.find_assignment(expr,
+                                                             :initial_refinement_level)
 
         if haskey(kwargs, :initial_refinement_level)
             return kwargs[:initial_refinement_level]
@@ -171,7 +145,8 @@ function extract_initial_resolution(elixir, kwargs)
         if isa(e, ArgumentError)
             try
                 # get cells_per_dimension from the elixir
-                cells_per_dimension = eval(find_assignment(expr, :cells_per_dimension))
+                cells_per_dimension = eval(TrixiBase.find_assignment(expr,
+                                                                     :cells_per_dimension))
 
                 if haskey(kwargs, :cells_per_dimension)
                     return kwargs[:cells_per_dimension]
