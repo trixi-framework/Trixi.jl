@@ -7,7 +7,6 @@
 #   Structured and Unstructured Grid Methods (2016)
 #   [https://ntrs.nasa.gov/citations/20160003623] (https://ntrs.nasa.gov/citations/20160003623)
 
-
 using Downloads: download
 using OrdinaryDiffEq
 using Trixi
