@@ -1,3 +1,13 @@
+# Transonic flow around an airfoil
+
+# This test is taken from the paper below. The values from Case 5 in Table 3 are used to validate
+# the scheme and computation of surface forces.
+
+# - Roy Charles Swanson, Stefan Langer (2016)
+#   Structured and Unstructured Grid Methods (2016)
+#   [https://ntrs.nasa.gov/citations/20160003623] (https://ntrs.nasa.gov/citations/20160003623)
+
+
 using Downloads: download
 using OrdinaryDiffEq
 using Trixi
@@ -133,7 +143,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-11
+time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
 summary_callback() # print the timer summary
