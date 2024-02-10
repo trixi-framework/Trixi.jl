@@ -71,9 +71,9 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
     @test keys(pd) == ("rho", "v1", "v2", "p")
     @test eltype(pd) <: Pair{String, <:Trixi.PlotDataSeries}
     @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries(pd, 1),
-        "v1" => Trixi.PlotDataSeries(pd, 2),
-        "v2" => Trixi.PlotDataSeries(pd, 3),
-        "p" => Trixi.PlotDataSeries(pd, 4)]
+           "v1" => Trixi.PlotDataSeries(pd, 2),
+           "v2" => Trixi.PlotDataSeries(pd, 3),
+           "p" => Trixi.PlotDataSeries(pd, 4)]
 
     # PlotDataSeries
     pds = pd["p"]
@@ -158,8 +158,8 @@ end
     @test keys(pd) == ("rho", "v1", "p")
     @test eltype(pd) <: Pair{String, <:Trixi.PlotDataSeries}
     @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries(pd, 1),
-        "v1" => Trixi.PlotDataSeries(pd, 2),
-        "p" => Trixi.PlotDataSeries(pd, 3)]
+           "v1" => Trixi.PlotDataSeries(pd, 2),
+           "p" => Trixi.PlotDataSeries(pd, 3)]
 
     # PlotDataSeries
     pds = pd["p"]

@@ -68,13 +68,11 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         time_series_callback = cb.affect!
 
-        setup = [
-            "#points" => size(time_series_callback.point_coordinates, 2),
-            "interval" => time_series_callback.interval,
-            "solution_variables" => time_series_callback.solution_variables,
-            "output_directory" => time_series_callback.output_directory,
-            "filename" => time_series_callback.filename,
-        ]
+        setup = ["#points" => size(time_series_callback.point_coordinates, 2),
+                 "interval" => time_series_callback.interval,
+                 "solution_variables" => time_series_callback.solution_variables,
+                 "output_directory" => time_series_callback.output_directory,
+                 "filename" => time_series_callback.filename]
         summary_box(io, "TimeSeriesCallback", setup)
     end
 end

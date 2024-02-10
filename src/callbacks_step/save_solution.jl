@@ -55,15 +55,13 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         save_solution_callback = cb.affect!
 
-        setup = [
-            "interval" => save_solution_callback.interval_or_dt,
-            "solution variables" => save_solution_callback.solution_variables,
-            "save initial solution" => save_solution_callback.save_initial_solution ?
-                                       "yes" : "no",
-            "save final solution" => save_solution_callback.save_final_solution ?
-                                     "yes" : "no",
-            "output directory" => abspath(normpath(save_solution_callback.output_directory)),
-        ]
+        setup = ["interval" => save_solution_callback.interval_or_dt,
+                 "solution variables" => save_solution_callback.solution_variables,
+                 "save initial solution" => save_solution_callback.save_initial_solution ?
+                                            "yes" : "no",
+                 "save final solution" => save_solution_callback.save_final_solution ?
+                                          "yes" : "no",
+                 "output directory" => abspath(normpath(save_solution_callback.output_directory))]
         summary_box(io, "SaveSolutionCallback", setup)
     end
 end
@@ -78,15 +76,13 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         save_solution_callback = cb.affect!.affect!
 
-        setup = [
-            "dt" => save_solution_callback.interval_or_dt,
-            "solution variables" => save_solution_callback.solution_variables,
-            "save initial solution" => save_solution_callback.save_initial_solution ?
-                                       "yes" : "no",
-            "save final solution" => save_solution_callback.save_final_solution ?
-                                     "yes" : "no",
-            "output directory" => abspath(normpath(save_solution_callback.output_directory)),
-        ]
+        setup = ["dt" => save_solution_callback.interval_or_dt,
+                 "solution variables" => save_solution_callback.solution_variables,
+                 "save initial solution" => save_solution_callback.save_initial_solution ?
+                                            "yes" : "no",
+                 "save final solution" => save_solution_callback.save_final_solution ?
+                                          "yes" : "no",
+                 "output directory" => abspath(normpath(save_solution_callback.output_directory))]
         summary_box(io, "SaveSolutionCallback", setup)
     end
 end

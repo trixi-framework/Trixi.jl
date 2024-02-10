@@ -103,11 +103,9 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
     if get(io, :compact, false)
         show(io, mesh)
     else
-        setup = [
-            "#trees" => ntrees(mesh),
-            "current #cells" => ncells(mesh),
-            "polydeg" => length(mesh.nodes) - 1,
-        ]
+        setup = ["#trees" => ntrees(mesh),
+                 "current #cells" => ncells(mesh),
+                 "polydeg" => length(mesh.nodes) - 1]
         summary_box(io,
                     "P4estMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
                     "}", setup)
@@ -503,7 +501,7 @@ function parse_elements(meshfile, n_trees, n_dims)
     # Valid element types (that can be processed by p4est) based on dimension
     element_types = n_dims == 2 ?
                     ["*ELEMENT, type=CPS4", "*ELEMENT, type=C2D4",
-        "*ELEMENT, type=S4"] : ["*ELEMENT, type=C3D8"]
+                     "*ELEMENT, type=S4"] : ["*ELEMENT, type=C3D8"]
     # 2D quads: 4 nodes + element index, 3D hexes: 8 nodes + element index                                                               
     expected_content_length = n_dims == 2 ? 5 : 9
 

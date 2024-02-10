@@ -43,10 +43,8 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         averaging_callback = cb.affect!
 
-        setup = [
-            "Start time" => first(averaging_callback.tspan),
-            "Final time" => last(averaging_callback.tspan),
-        ]
+        setup = ["Start time" => first(averaging_callback.tspan),
+                 "Final time" => last(averaging_callback.tspan)]
         summary_box(io, "AveragingCallback", setup)
     end
 end

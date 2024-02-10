@@ -54,13 +54,11 @@ function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravit
     if get(io, :compact, false)
         show(io, parameters)
     else
-        setup = [
-            "background density (ρ₀)" => parameters.background_density,
-            "gravitational constant (G)" => parameters.gravitational_constant,
-            "CFL (gravity)" => parameters.cfl,
-            "max. #iterations" => parameters.n_iterations_max,
-            "time integrator" => parameters.timestep_gravity,
-        ]
+        setup = ["background density (ρ₀)" => parameters.background_density,
+                 "gravitational constant (G)" => parameters.gravitational_constant,
+                 "CFL (gravity)" => parameters.cfl,
+                 "max. #iterations" => parameters.n_iterations_max,
+                 "time integrator" => parameters.timestep_gravity]
         summary_box(io, "ParametersEulerGravity", setup)
     end
 end

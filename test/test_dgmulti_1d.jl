@@ -33,16 +33,12 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"),
                         cells_per_dimension=(16,),
                         # division by sqrt(2.0) corresponds to normalization by the square root of the size of the domain
-                        l2=[
-                            7.853842541289665e-7,
+                        l2=[7.853842541289665e-7,
                             9.609905503440606e-7,
-                            2.832322219966481e-6,
-                        ] ./ sqrt(2.0),
-                        linf=[
-                            1.5003758788711963e-6,
-                            1.802998748523521e-6,
-                            4.83599270806323e-6,
-                        ])
+                            2.832322219966481e-6] ./ sqrt(2.0),
+                        linf=[1.5003758788711963e-6,
+                              1.802998748523521e-6,
+                              4.83599270806323e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -74,16 +70,12 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"),
                         cells_per_dimension=(16,),
                         approximation_type=SBP(),
-                        l2=[
-                            6.437827414849647e-6,
+                        l2=[6.437827414849647e-6,
                             2.1840558851820947e-6,
-                            1.3245669629438228e-5,
-                        ],
-                        linf=[
-                            2.0715843751295537e-5,
-                            8.519520630301258e-6,
-                            4.2642194098885255e-5,
-                        ])
+                            1.3245669629438228e-5],
+                        linf=[2.0715843751295537e-5,
+                              8.519520630301258e-6,
+                              4.2642194098885255e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -103,16 +95,12 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"),
                         cells_per_dimension=(4,),
                         approximation_type=D,
-                        l2=[
-                            1.8684509287853788e-5,
+                        l2=[1.8684509287853788e-5,
                             1.0641411823379635e-5,
-                            5.178010291876143e-5,
-                        ],
-                        linf=[
-                            6.933493585936645e-5,
-                            3.0277366229292113e-5,
-                            0.0002220020568932668,
-                        ])
+                            5.178010291876143e-5],
+                        linf=[6.933493585936645e-5,
+                              3.0277366229292113e-5,
+                              0.0002220020568932668])
     show(stdout, semi.solver.basis)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
     # Ensure that we do not have excessive memory allocations
@@ -127,16 +115,12 @@ end
 
 @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
-                        l2=[
-                            9.146929180585711e-7,
+                        l2=[9.146929180585711e-7,
                             1.8997616878017292e-6,
-                            3.991417702211889e-6,
-                        ],
-                        linf=[
-                            1.7321089884614338e-6,
-                            3.3252888855805907e-6,
-                            6.5252787737613005e-6,
-                        ])
+                            3.991417702211889e-6],
+                        linf=[1.7321089884614338e-6,
+                              3.3252888855805907e-6,
+                              6.5252787737613005e-6])
     show(stdout, semi.solver.basis)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
     # Ensure that we do not have excessive memory allocations
@@ -168,18 +152,14 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallow_water_quasi_1d.jl"),
                         cells_per_dimension=(8,),
                         approximation_type=SBP(),
-                        l2=[
-                            3.03001101100507e-6,
+                        l2=[3.03001101100507e-6,
                             1.692177335948727e-5,
                             3.002634351734614e-16,
-                            1.1636653574178203e-15,
-                        ],
-                        linf=[
-                            1.2043401988570679e-5,
-                            5.346847010329059e-5,
-                            9.43689570931383e-16,
-                            2.220446049250313e-15,
-                        ])
+                            1.1636653574178203e-15],
+                        linf=[1.2043401988570679e-5,
+                              5.346847010329059e-5,
+                              9.43689570931383e-16,
+                              2.220446049250313e-15])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -194,18 +174,14 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d.jl"),
                         cells_per_dimension=(8,),
                         approximation_type=SBP(),
-                        l2=[
-                            1.633271343738687e-5,
+                        l2=[1.633271343738687e-5,
                             9.575385661756332e-6,
                             1.2700331443128421e-5,
-                            0.0,
-                        ],
-                        linf=[
-                            7.304984704381567e-5,
-                            5.2365944135601694e-5,
-                            6.469559594934893e-5,
-                            0.0,
-                        ])
+                            0.0],
+                        linf=[7.304984704381567e-5,
+                              5.2365944135601694e-5,
+                              6.469559594934893e-5,
+                              0.0])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

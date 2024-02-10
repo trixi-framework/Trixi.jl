@@ -44,9 +44,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         alive_callback = cb.affect!
 
-        setup = [
-            "interval" => alive_callback.alive_interval,
-        ]
+        setup = ["interval" => alive_callback.alive_interval]
         summary_box(io, "AliveCallback", setup)
     end
 end

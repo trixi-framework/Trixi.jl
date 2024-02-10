@@ -76,11 +76,9 @@ end
 @trixi_testset "elixir_euler_sedov_hll_davis.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[1.278661029299215, 0.0663853410742763, 0.9585741943783386],
-                        linf=[
-                            3.1661064228547255,
-                            0.16256363944708607,
-                            2.667676158812806,
-                        ],
+                        linf=[3.1661064228547255,
+                              0.16256363944708607,
+                              2.667676158812806],
                         tspan=(0.0, 12.5),
                         surface_flux=FluxHLL(min_max_speed_davis))
     # Ensure that we do not have excessive memory allocations
@@ -96,16 +94,12 @@ end
 @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
-                        l2=[
-                            2.2527950196212703e-8,
+                        l2=[2.2527950196212703e-8,
                             1.8187357193835156e-8,
-                            7.705669939973104e-8,
-                        ],
-                        linf=[
-                            1.6205433861493646e-7,
-                            1.465427772462391e-7,
-                            5.372255111879554e-7,
-                        ])
+                            7.705669939973104e-8],
+                        linf=[1.6205433861493646e-7,
+                              1.465427772462391e-7,
+                              5.372255111879554e-7])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -119,16 +113,12 @@ end
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
-                        l2=[
-                            3.8099996914101204e-6,
+                        l2=[3.8099996914101204e-6,
                             1.6745575717106341e-6,
-                            7.732189531480852e-6,
-                        ],
-                        linf=[
-                            1.2971473393186272e-5,
-                            9.270328934274374e-6,
-                            3.092514399671842e-5,
-                        ])
+                            7.732189531480852e-6],
+                        linf=[1.2971473393186272e-5,
+                              9.270328934274374e-6,
+                              3.092514399671842e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

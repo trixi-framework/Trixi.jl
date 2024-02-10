@@ -34,12 +34,11 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         save_restart_callback = cb.affect!
 
-        setup = [
-            "interval" => save_restart_callback.interval,
-            "save final solution" => save_restart_callback.save_final_restart ? "yes" :
-                                     "no",
-            "output directory" => abspath(normpath(save_restart_callback.output_directory)),
-        ]
+        setup = ["interval" => save_restart_callback.interval,
+                 "save final solution" => save_restart_callback.save_final_restart ?
+                                          "yes" :
+                                          "no",
+                 "output directory" => abspath(normpath(save_restart_callback.output_directory))]
         summary_box(io, "SaveRestartCallback", setup)
     end
 end

@@ -12,7 +12,7 @@ include("test_trixi.jl")
                   # exceptions necessary for adding a new method `StartUpDG.estimate_h`
                   # in src/solvers/dgmulti/sbp.jl
                   piracies = (treat_as_own = [Trixi.StartUpDG.RefElemData,
-                                  Trixi.StartUpDG.MeshData],))
+                                              Trixi.StartUpDG.MeshData],))
 end
 
 end #module

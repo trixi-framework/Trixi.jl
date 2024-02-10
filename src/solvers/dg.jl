@@ -85,9 +85,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
     if get(io, :compact, false)
         show(io, integral)
     else
-        setup = [
-            "volume flux" => integral.volume_flux,
-        ]
+        setup = ["volume flux" => integral.volume_flux]
         summary_box(io, "VolumeIntegralFluxDifferencing", setup)
     end
 end
@@ -177,9 +175,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     if get(io, :compact, false)
         show(io, integral)
     else
-        setup = [
-            "FV flux" => integral.volume_flux_fv,
-        ]
+        setup = ["FV flux" => integral.volume_flux_fv]
         summary_box(io, "VolumeIntegralPureLGLFiniteVolume", setup)
     end
 end
@@ -274,9 +270,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralUpwind)
     if get(io, :compact, false)
         show(io, integral)
     else
-        setup = [
-            "flux splitting" => integral.splitting,
-        ]
+        setup = ["flux splitting" => integral.splitting]
         summary_box(io, "VolumeIntegralUpwind", setup)
     end
 end
@@ -314,9 +308,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralWeakForm
     if get(io, :compact, false)
         show(io, integral)
     else
-        setup = [
-            "surface flux" => integral.surface_flux,
-        ]
+        setup = ["surface flux" => integral.surface_flux]
         summary_box(io, "SurfaceIntegralWeakForm", setup)
     end
 end
@@ -340,9 +332,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongFo
     if get(io, :compact, false)
         show(io, integral)
     else
-        setup = [
-            "surface flux" => integral.surface_flux,
-        ]
+        setup = ["surface flux" => integral.surface_flux]
         summary_box(io, "SurfaceIntegralStrongForm", setup)
     end
 end
@@ -371,9 +361,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralUpwind)
     if get(io, :compact, false)
         show(io, integral)
     else
-        setup = [
-            "flux splitting" => integral.splitting,
-        ]
+        setup = ["flux splitting" => integral.splitting]
         summary_box(io, "SurfaceIntegralUpwind", setup)
     end
 end

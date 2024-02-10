@@ -605,7 +605,7 @@ end
     point_data_1 = time_series.affect!.point_data[1]
     @test all(isapprox.(point_data_1[1:7],
                         [-2.4417734981719132e-5, -3.4296207289200194e-5,
-                            0.0018130846385739788, -0.5, 0.25, 1.0, 1.0]))
+                         0.0018130846385739788, -0.5, 0.25, 1.0, 1.0]))
     @test_throws DimensionMismatch Trixi.get_elements_by_coordinates!([1, 2],
                                                                       rand(2, 4), mesh,
                                                                       solver, nothing)
@@ -680,9 +680,9 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
 
     for normal_direction in normal_directions
         @test flux_hll(u, u, normal_direction, equations) ≈
@@ -699,9 +699,9 @@ end
 
     equations = ShallowWaterEquations2D(gravity_constant = 9.81)
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
     u = SVector(1, 0.5, 0.5, 0.0)
     for normal_direction in normal_directions
         @test flux_hll(u, u, normal_direction, equations) ≈
@@ -714,7 +714,7 @@ end
 
     equations = IdealGlmMhdEquations1D(1.4)
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
-        SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2)]
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2)]
 
     for u in u_values
         @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
@@ -722,13 +722,13 @@ end
 
     equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
     orientations = [1, 2]
 
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
-        SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
@@ -741,14 +741,14 @@ end
 
     equations = IdealGlmMhdEquations3D(1.4, 5.0) #= c_h =#
     normal_directions = [SVector(1.0, 0.0, 0.0),
-        SVector(0.0, 1.0, 0.0),
-        SVector(0.0, 0.0, 1.0),
-        SVector(0.5, -0.5, 0.2),
-        SVector(-1.2, 0.3, 1.4)]
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
     orientations = [1, 2, 3]
 
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
-        SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
@@ -781,9 +781,9 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
 
     for normal_direction in normal_directions
         @test flux_hll(u, u, normal_direction, equations) ≈
@@ -799,10 +799,10 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0, 0.0),
-        SVector(0.0, 1.0, 0.0),
-        SVector(0.0, 0.0, 1.0),
-        SVector(0.5, -0.5, 0.2),
-        SVector(-1.2, 0.3, 1.4)]
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
 
     for normal_direction in normal_directions
         @test flux_hll(u, u, normal_direction, equations) ≈
@@ -824,9 +824,9 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
 
     for normal_direction in normal_directions
         @test flux_hll(u, u, normal_direction, equations) ≈
@@ -847,9 +847,9 @@ end
         end
 
         normal_directions = [SVector(1.0, 0.0),
-            SVector(0.0, 1.0),
-            SVector(0.5, -0.5),
-            SVector(-1.2, 0.3)]
+                             SVector(0.0, 1.0),
+                             SVector(0.5, -0.5),
+                             SVector(-1.2, 0.3)]
 
         for normal_direction in normal_directions
             @test flux_winters_etal(u, u, normal_direction, equations) ≈
@@ -870,9 +870,9 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
 
     for normal_direction in normal_directions
         @test flux_hll(u, u, normal_direction, equations) ≈
@@ -889,9 +889,9 @@ end
 
     equations = ShallowWaterEquations2D(gravity_constant = 9.81)
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
     u = SVector(1, 0.5, 0.5, 0.0)
     for normal_direction in normal_directions
         @test flux_hll(u, u, normal_direction, equations) ≈
@@ -909,7 +909,7 @@ end
 
     equations = IdealGlmMhdEquations1D(1.4)
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
-        SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2)]
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2)]
 
     for u in u_values
         @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
@@ -917,13 +917,13 @@ end
 
     equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
     orientations = [1, 2]
 
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
-        SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
@@ -936,14 +936,14 @@ end
 
     equations = IdealGlmMhdEquations3D(1.4, 5.0) #= c_h =#
     normal_directions = [SVector(1.0, 0.0, 0.0),
-        SVector(0.0, 1.0, 0.0),
-        SVector(0.0, 0.0, 1.0),
-        SVector(0.5, -0.5, 0.2),
-        SVector(-1.2, 0.3, 1.4)]
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
     orientations = [1, 2, 3]
 
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
-        SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
@@ -974,9 +974,9 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
 
     for normal_direction in normal_directions
         @test flux_hlle(u, u, normal_direction, equations) ≈
@@ -992,10 +992,10 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0, 0.0),
-        SVector(0.0, 1.0, 0.0),
-        SVector(0.0, 0.0, 1.0),
-        SVector(0.5, -0.5, 0.2),
-        SVector(-1.2, 0.3, 1.4)]
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
 
     for normal_direction in normal_directions
         @test flux_hlle(u, u, normal_direction, equations) ≈
@@ -1010,9 +1010,9 @@ end
 
     equations = ShallowWaterEquations2D(gravity_constant = 9.81)
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
     orientations = [1, 2]
 
     u = SVector(1, 0.5, 0.5, 0.0)
@@ -1030,7 +1030,7 @@ end
 @timed_testset "Consistency check for HLLE flux: MHD" begin
     equations = IdealGlmMhdEquations1D(1.4)
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
-        SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2)]
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2)]
 
     for u in u_values
         @test flux_hlle(u, u, 1, equations) ≈ flux(u, 1, equations)
@@ -1039,13 +1039,13 @@ end
 
     equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
     orientations = [1, 2]
 
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
-        SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
         @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
@@ -1058,14 +1058,14 @@ end
 
     equations = IdealGlmMhdEquations3D(1.4, 5.0) #= c_h =#
     normal_directions = [SVector(1.0, 0.0, 0.0),
-        SVector(0.0, 1.0, 0.0),
-        SVector(0.0, 0.0, 1.0),
-        SVector(0.5, -0.5, 0.2),
-        SVector(-1.2, 0.3, 1.4)]
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
     orientations = [1, 2, 3]
 
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
-        SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
         @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
@@ -1088,9 +1088,9 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
 
     for normal_direction in normal_directions
         @test flux_hllc(u, u, normal_direction, equations) ≈
@@ -1106,10 +1106,10 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0, 0.0),
-        SVector(0.0, 1.0, 0.0),
-        SVector(0.0, 0.0, 1.0),
-        SVector(0.5, -0.5, 0.2),
-        SVector(-1.2, 0.3, 1.4)]
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
 
     for normal_direction in normal_directions
         @test flux_hllc(u, u, normal_direction, equations) ≈
@@ -1148,9 +1148,9 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
 
     for normal_direction in normal_directions
         @test flux_godunov(u, u, normal_direction, equation) ≈
@@ -1167,10 +1167,10 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0, 0.0),
-        SVector(0.0, 1.0, 0.0),
-        SVector(0.0, 0.0, 1.0),
-        SVector(0.5, -0.5, 0.2),
-        SVector(-1.2, 0.3, 1.4)]
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
 
     for normal_direction in normal_directions
         @test flux_godunov(u, u, normal_direction, equation) ≈
@@ -1182,7 +1182,7 @@ end
                                           c_mean_global = 1.1,
                                           rho_mean_global = 1.2)
     u_values = [SVector(1.0, 0.5, -0.7, 1.0),
-        SVector(1.5, -0.2, 0.1, 5.0)]
+                SVector(1.5, -0.2, 0.1, 5.0)]
 
     orientations = [1, 2]
     for orientation in orientations, u in u_values
@@ -1190,9 +1190,9 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
 
     for normal_direction in normal_directions, u in u_values
         @test flux_godunov(u, u, normal_direction, equation) ≈
@@ -1223,12 +1223,10 @@ end
 
 @testset "Consistency check for `gradient_conservative` routine" begin
     # Set up conservative variables, equations
-    u = [
-        0.5011914484393387,
-        0.8829127712445113,
-        0.43024132987932817,
-        0.7560616633050348,
-    ]
+    u = [0.5011914484393387,
+         0.8829127712445113,
+         0.43024132987932817,
+         0.7560616633050348]
 
     equations = CompressibleEulerEquations2D(1.4)
 
@@ -1277,9 +1275,9 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
 
     for normal_direction in normal_directions
         @test flux_godunov(3 * u, u, normal_direction, equation) ≈
@@ -1297,10 +1295,10 @@ end
     end
 
     normal_directions = [SVector(1.0, 0.0, 0.0),
-        SVector(0.0, 1.0, 0.0),
-        SVector(0.0, 0.0, 1.0),
-        SVector(0.5, -0.5, 0.2),
-        SVector(-1.2, 0.3, 1.4)]
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
 
     for normal_direction in normal_directions
         @test flux_godunov(1.3 * u, u, normal_direction, equation) ≈
@@ -1313,12 +1311,12 @@ end
     flux_lmars = FluxLMARS(340)
 
     normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
     orientations = [1, 2]
     u_values = [SVector(1.0, 0.5, -0.7, 1.0),
-        SVector(1.5, -0.2, 0.1, 5.0)]
+                SVector(1.5, -0.2, 0.1, 5.0)]
 
     for u in u_values, orientation in orientations
         @test flux_lmars(u, u, orientation, equations) ≈
@@ -1332,13 +1330,13 @@ end
 
     equations = CompressibleEulerEquations3D(1.4)
     normal_directions = [SVector(1.0, 0.0, 0.0),
-        SVector(0.0, 1.0, 0.0),
-        SVector(0.0, 0.0, 1.0),
-        SVector(0.5, -0.5, 0.2),
-        SVector(-1.2, 0.3, 1.4)]
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
     orientations = [1, 2, 3]
     u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
-        SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
+                SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
 
     for u in u_values, orientation in orientations
         @test flux_lmars(u, u, orientation, equations) ≈
@@ -1357,11 +1355,11 @@ end
                                                                gas_constants = (0.4,
                                                                                 0.4))
         normal_directions = [SVector(1.0, 0.0),
-            SVector(0.0, 1.0),
-            SVector(0.5, -0.5),
-            SVector(-1.2, 0.3)]
+                             SVector(0.0, 1.0),
+                             SVector(0.5, -0.5),
+                             SVector(-1.2, 0.3)]
         u_values = [SVector(0.1, -0.5, 1.0, 1.0, 2.0),
-            SVector(-0.1, -0.3, 1.2, 1.3, 1.4)]
+                    SVector(-0.1, -0.3, 1.2, 1.3, 1.4)]
 
         f_std = flux
         f_rot = FluxRotated(f_std)
@@ -1378,14 +1376,14 @@ end
     @timed_testset "CompressibleEulerEquations2D" begin
         equations = CompressibleEulerEquations2D(1.4)
         normal_directions = [SVector(1.0, 0.0),
-            SVector(0.0, 1.0),
-            SVector(0.5, -0.5),
-            SVector(-1.2, 0.3)]
+                             SVector(0.0, 1.0),
+                             SVector(0.5, -0.5),
+                             SVector(-1.2, 0.3)]
         u_values = [SVector(1.0, 0.5, -0.7, 1.0),
-            SVector(1.5, -0.2, 0.1, 5.0)]
+                    SVector(1.5, -0.2, 0.1, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc,
-        ]
+                  FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle,
+                  flux_hllc]
 
         for f_std in fluxes
             f_rot = FluxRotated(f_std)
@@ -1401,15 +1399,15 @@ end
     @timed_testset "CompressibleEulerEquations3D" begin
         equations = CompressibleEulerEquations3D(1.4)
         normal_directions = [SVector(1.0, 0.0, 0.0),
-            SVector(0.0, 1.0, 0.0),
-            SVector(0.0, 0.0, 1.0),
-            SVector(0.5, -0.5, 0.2),
-            SVector(-1.2, 0.3, 1.4)]
+                             SVector(0.0, 1.0, 0.0),
+                             SVector(0.0, 0.0, 1.0),
+                             SVector(0.5, -0.5, 0.2),
+                             SVector(-1.2, 0.3, 1.4)]
         u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
-            SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
+                    SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc,
-        ]
+                  FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle,
+                  flux_hllc]
 
         for f_std in fluxes
             f_rot = FluxRotated(f_std)
@@ -1425,30 +1423,28 @@ end
     @timed_testset "ShallowWaterEquations2D" begin
         equations = ShallowWaterEquations2D(gravity_constant = 9.81)
         normal_directions = [SVector(1.0, 0.0),
-            SVector(0.0, 1.0),
-            SVector(0.5, -0.5),
-            SVector(-1.2, 0.3)]
+                             SVector(0.0, 1.0),
+                             SVector(0.5, -0.5),
+                             SVector(-1.2, 0.3)]
 
         u = SVector(1, 0.5, 0.5, 0.0)
 
         fluxes = [flux_central, flux_fjordholm_etal, flux_wintermeyer_etal,
-            flux_hll, FluxHLL(min_max_speed_davis), flux_hlle]
+                  flux_hll, FluxHLL(min_max_speed_davis), flux_hlle]
     end
 
     @timed_testset "IdealGlmMhdEquations2D" begin
         equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
         normal_directions = [SVector(1.0, 0.0),
-            SVector(0.0, 1.0),
-            SVector(0.5, -0.5),
-            SVector(-1.2, 0.3)]
+                             SVector(0.0, 1.0),
+                             SVector(0.5, -0.5),
+                             SVector(-1.2, 0.3)]
         u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
-            SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
-        fluxes = [
-            flux_central,
-            flux_hindenlang_gassner,
-            FluxHLL(min_max_speed_davis),
-            flux_hlle,
-        ]
+                    SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
+        fluxes = [flux_central,
+                  flux_hindenlang_gassner,
+                  FluxHLL(min_max_speed_davis),
+                  flux_hlle]
 
         for f_std in fluxes
             f_rot = FluxRotated(f_std)
@@ -1464,18 +1460,16 @@ end
     @timed_testset "IdealGlmMhdEquations3D" begin
         equations = IdealGlmMhdEquations3D(1.4, 5.0) #= c_h =#
         normal_directions = [SVector(1.0, 0.0, 0.0),
-            SVector(0.0, 1.0, 0.0),
-            SVector(0.0, 0.0, 1.0),
-            SVector(0.5, -0.5, 0.2),
-            SVector(-1.2, 0.3, 1.4)]
+                             SVector(0.0, 1.0, 0.0),
+                             SVector(0.0, 0.0, 1.0),
+                             SVector(0.5, -0.5, 0.2),
+                             SVector(-1.2, 0.3, 1.4)]
         u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
-            SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
-        fluxes = [
-            flux_central,
-            flux_hindenlang_gassner,
-            FluxHLL(min_max_speed_davis),
-            flux_hlle,
-        ]
+                    SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
+        fluxes = [flux_central,
+                  flux_hindenlang_gassner,
+                  FluxHLL(min_max_speed_davis),
+                  flux_hlle]
 
         for f_std in fluxes
             f_rot = FluxRotated(f_std)

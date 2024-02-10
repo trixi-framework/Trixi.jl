@@ -19,9 +19,9 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
         equations = CompressibleEulerMulticomponentEquations2D(gammas = SVector{length(gammas)}(gammas...),
                                                                gas_constants = SVector{length(gas_constants)}(gas_constants...))
         u = [-1.7433292819144075, 0.8844413258376495, 0.6050737175812364,
-            0.8261998359817043, 1.0801186290896465, 0.505654488367698,
-            0.6364415555805734, 0.851669392285058, 0.31219606420306223,
-            1.0930477805612038]
+             0.8261998359817043, 1.0801186290896465, 0.505654488367698,
+             0.6364415555805734, 0.851669392285058, 0.31219606420306223,
+             1.0930477805612038]
         w = cons2entropy(u, equations)
         # test that the entropy variables match the gradients of the total entropy
         @test w ≈ ForwardDiff.gradient(u -> Trixi.total_entropy(u, equations), u)
@@ -35,20 +35,16 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 
     @trixi_testset "elixir_eulermulti_shock_bubble.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble.jl"),
-                            l2=[
-                                73.78467629094177,
+                            l2=[73.78467629094177,
                                 0.9174752929795251,
                                 57942.83587826468,
                                 0.1828847253029943,
-                                0.011127037850925347,
-                            ],
-                            linf=[
-                                196.81051991521073,
-                                7.8456811648529605,
-                                158891.88930113698,
-                                0.811379581519794,
-                                0.08011973559187913,
-                            ],
+                                0.011127037850925347],
+                            linf=[196.81051991521073,
+                                  7.8456811648529605,
+                                  158891.88930113698,
+                                  0.811379581519794,
+                                  0.08011973559187913],
                             tspan=(0.0, 0.001))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -64,20 +60,16 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
         rm("out/deviations.txt", force = true)
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_eulermulti_shock_bubble_shockcapturing_subcell_positivity.jl"),
-                            l2=[
-                                81.52845664909304,
+                            l2=[81.52845664909304,
                                 2.5455678559421346,
                                 63229.190712645846,
                                 0.19929478404550321,
-                                0.011068604228443425,
-                            ],
-                            linf=[
-                                249.21708417382013,
-                                40.33299887640794,
-                                174205.0118831558,
-                                0.6881458768113586,
-                                0.11274401158173972,
-                            ],
+                                0.011068604228443425],
+                            linf=[249.21708417382013,
+                                  40.33299887640794,
+                                  174205.0118831558,
+                                  0.6881458768113586,
+                                  0.11274401158173972],
                             initial_refinement_level=3,
                             tspan=(0.0, 0.001),
                             output_directory="out")
@@ -97,20 +89,16 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
     @trixi_testset "elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl"),
-                            l2=[
-                                73.10832638093902,
+                            l2=[73.10832638093902,
                                 1.4599215762968585,
                                 57176.014861335476,
                                 0.17812843581838675,
-                                0.010123079422717837,
-                            ],
-                            linf=[
-                                214.50568817511956,
-                                25.40392579616452,
-                                152862.41011222568,
-                                0.564195553101797,
-                                0.0956331651771212,
-                            ],
+                                0.010123079422717837],
+                            linf=[214.50568817511956,
+                                  25.40392579616452,
+                                  152862.41011222568,
+                                  0.564195553101797,
+                                  0.0956331651771212],
                             initial_refinement_level=3,
                             tspan=(0.0, 0.001))
         # Ensure that we do not have excessive memory allocations
@@ -125,18 +113,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 
     @trixi_testset "elixir_eulermulti_ec.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
-                            l2=[
-                                0.050182236154087095,
+                            l2=[0.050182236154087095,
                                 0.050189894464434635,
                                 0.2258715597305131,
-                                0.06175171559771687,
-                            ],
-                            linf=[
-                                0.3108124923284472,
-                                0.3107380389947733,
-                                1.054035804988521,
-                                0.29347582879608936,
-                            ])
+                                0.06175171559771687],
+                            linf=[0.3108124923284472,
+                                  0.3107380389947733,
+                                  1.054035804988521,
+                                  0.29347582879608936])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -149,24 +133,20 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 
     @trixi_testset "elixir_eulermulti_es.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_es.jl"),
-                            l2=[
-                                0.0496546258404055,
+                            l2=[0.0496546258404055,
                                 0.04965550099933263,
                                 0.22425206549856372,
                                 0.004087155041747821,
                                 0.008174310083495642,
                                 0.016348620166991283,
-                                0.032697240333982566,
-                            ],
-                            linf=[
-                                0.2488251110766228,
-                                0.24832493304479406,
-                                0.9310354690058298,
-                                0.017452870465607374,
-                                0.03490574093121475,
-                                0.0698114818624295,
-                                0.139622963724859,
-                            ])
+                                0.032697240333982566],
+                            linf=[0.2488251110766228,
+                                  0.24832493304479406,
+                                  0.9310354690058298,
+                                  0.017452870465607374,
+                                  0.03490574093121475,
+                                  0.0698114818624295,
+                                  0.139622963724859])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -179,20 +159,16 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 
     @trixi_testset "elixir_eulermulti_convergence_ec.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_ec.jl"),
-                            l2=[
-                                0.00012290225488326508,
+                            l2=[0.00012290225488326508,
                                 0.00012290225488321876,
                                 0.00018867397906337653,
                                 4.8542321753649044e-5,
-                                9.708464350729809e-5,
-                            ],
-                            linf=[
-                                0.0006722819239133315,
-                                0.0006722819239128874,
-                                0.0012662292789555885,
-                                0.0002843844182700561,
-                                0.0005687688365401122,
-                            ])
+                                9.708464350729809e-5],
+                            linf=[0.0006722819239133315,
+                                  0.0006722819239128874,
+                                  0.0012662292789555885,
+                                  0.0002843844182700561,
+                                  0.0005687688365401122])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -205,20 +181,16 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 
     @trixi_testset "elixir_eulermulti_convergence_es.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_es.jl"),
-                            l2=[
-                                2.2661773867001696e-6,
+                            l2=[2.2661773867001696e-6,
                                 2.266177386666318e-6,
                                 6.593514692980009e-6,
                                 8.836308667348217e-7,
-                                1.7672617334696433e-6,
-                            ],
-                            linf=[
-                                1.4713170997993075e-5,
-                                1.4713170997104896e-5,
-                                5.115618808515521e-5,
-                                5.3639516094383666e-6,
-                                1.0727903218876733e-5,
-                            ])
+                                1.7672617334696433e-6],
+                            linf=[1.4713170997993075e-5,
+                                  1.4713170997104896e-5,
+                                  5.115618808515521e-5,
+                                  5.3639516094383666e-6,
+                                  1.0727903218876733e-5])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -231,20 +203,16 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 
     @trixi_testset "elixir_eulermulti_convergence_es.jl with flux_chandrashekar" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_es.jl"),
-                            l2=[
-                                1.8621737639352465e-6,
+                            l2=[1.8621737639352465e-6,
                                 1.862173764098385e-6,
                                 5.942585713809631e-6,
                                 6.216263279534722e-7,
-                                1.2432526559069443e-6,
-                            ],
-                            linf=[
-                                1.6235495582606063e-5,
-                                1.6235495576388814e-5,
-                                5.854523678827661e-5,
-                                5.790274858807898e-6,
-                                1.1580549717615796e-5,
-                            ],
+                                1.2432526559069443e-6],
+                            linf=[1.6235495582606063e-5,
+                                  1.6235495576388814e-5,
+                                  5.854523678827661e-5,
+                                  5.790274858807898e-6,
+                                  1.1580549717615796e-5],
                             volume_flux=flux_chandrashekar)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)

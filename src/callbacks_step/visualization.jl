@@ -43,15 +43,13 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         visualization_callback = cb.affect!
 
-        setup = [
-            "interval" => visualization_callback.interval,
-            "plot arguments" => visualization_callback.plot_arguments,
-            "solution variables" => visualization_callback.solution_variables,
-            "variable names" => visualization_callback.variable_names,
-            "show mesh" => visualization_callback.show_mesh,
-            "plot creator" => visualization_callback.plot_creator,
-            "plot data creator" => visualization_callback.plot_data_creator,
-        ]
+        setup = ["interval" => visualization_callback.interval,
+                 "plot arguments" => visualization_callback.plot_arguments,
+                 "solution variables" => visualization_callback.solution_variables,
+                 "variable names" => visualization_callback.variable_names,
+                 "show mesh" => visualization_callback.show_mesh,
+                 "plot creator" => visualization_callback.plot_creator,
+                 "plot data creator" => visualization_callback.plot_data_creator]
         summary_box(io, "VisualizationCallback", setup)
     end
 end

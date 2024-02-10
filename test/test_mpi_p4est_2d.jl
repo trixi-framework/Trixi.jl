@@ -132,18 +132,14 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_2d_dgsem")
     @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                            l2=[
-                                0.0034516244508588046,
+                            l2=[0.0034516244508588046,
                                 0.0023420334036925493,
                                 0.0024261923964557187,
-                                0.004731710454271893,
-                            ],
-                            linf=[
-                                0.04155789011775046,
-                                0.024772109862748914,
-                                0.03759938693042297,
-                                0.08039824959535657,
-                            ])
+                                0.004731710454271893],
+                            linf=[0.04155789011775046,
+                                  0.024772109862748914,
+                                  0.03759938693042297,
+                                  0.08039824959535657])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)

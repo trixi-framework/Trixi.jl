@@ -89,11 +89,9 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
     if get(io, :compact, false)
         show(io, mesh)
     else
-        setup = [
-            "#trees" => ntrees(mesh),
-            "current #cells" => ncells(mesh),
-            "polydeg" => length(mesh.nodes) - 1,
-        ]
+        setup = ["#trees" => ntrees(mesh),
+                 "current #cells" => ncells(mesh),
+                 "polydeg" => length(mesh.nodes) - 1]
         summary_box(io,
                     "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}",
                     setup)
@@ -819,14 +817,13 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
     # Works for quads and hexs only. This mapping is needed in the MPI mortar
     # sections below.
     map_iface_to_ichild_to_position = [
-        # 0  1  2  3  4  5  6  7 ichild/iface
-        [1, 0, 2, 0, 3, 0, 4, 0], # 0
-        [0, 1, 0, 2, 0, 3, 0, 4], # 1
-        [1, 2, 0, 0, 3, 4, 0, 0], # 2
-        [0, 0, 1, 2, 0, 0, 3, 4], # 3
-        [1, 2, 3, 4, 0, 0, 0, 0], # 4
-        [0, 0, 0, 0, 1, 2, 3, 4], # 5
-    ]
+                                       # 0  1  2  3  4  5  6  7 ichild/iface
+                                       [1, 0, 2, 0, 3, 0, 4, 0], # 0
+                                       [0, 1, 0, 2, 0, 3, 0, 4], # 1
+                                       [1, 2, 0, 0, 3, 4, 0, 0], # 2
+                                       [0, 0, 1, 2, 0, 0, 3, 4], # 3
+                                       [1, 2, 3, 4, 0, 0, 0, 0], # 4
+                                       [0, 0, 0, 0, 1, 2, 3, 4]]
 
     # Helper variables to compute unique global MPI interface/mortar ids.
     max_level = t8_forest_get_maxlevel(mesh.forest) #UInt64
@@ -1077,20 +1074,15 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                 push!(visited_global_mortar_ids, global_mortar_id)
                                 global_mortar_id_to_local[global_mortar_id] = local_mpi_mortar_id
 
-                                mpi_mesh_info.mpi_mortars.local_neighbor_ids[local_mpi_mortar_id] = [
-                                    current_index + 1,
-                                ]
-                                mpi_mesh_info.mpi_mortars.local_neighbor_positions[local_mpi_mortar_id] = [
-                                    map_iface_to_ichild_to_position[iface + 1][t8_element_child_id(eclass_scheme, element) + 1],
-                                ]
+                                mpi_mesh_info.mpi_mortars.local_neighbor_ids[local_mpi_mortar_id] = [current_index +
+                                                                                                     1]
+                                mpi_mesh_info.mpi_mortars.local_neighbor_positions[local_mpi_mortar_id] = [map_iface_to_ichild_to_position[iface + 1][t8_element_child_id(eclass_scheme, element) + 1]]
                                 init_mortar_node_indices!(mpi_mesh_info.mpi_mortars,
                                                           (iface, dual_faces[1]),
                                                           orientation, local_mpi_mortar_id)
 
-                                neighbor_ranks = [
-                                    remotes[findlast(ghost_remote_first_elem .<=
-                                                     neighbor_ielements[1])],
-                                ]
+                                neighbor_ranks = [remotes[findlast(ghost_remote_first_elem .<=
+                                                                   neighbor_ielements[1])]]
                                 mpi_mesh_info.neighbor_ranks_mortar[local_mpi_mortar_id] = neighbor_ranks
 
                                 mpi_mesh_info.global_mortar_ids[local_mpi_mortar_id] = global_mortar_id

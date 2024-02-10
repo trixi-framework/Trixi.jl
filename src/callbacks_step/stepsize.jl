@@ -32,9 +32,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         stepsize_callback = cb.affect!
 
-        setup = [
-            "CFL number" => stepsize_callback.cfl_number,
-        ]
+        setup = ["CFL number" => stepsize_callback.cfl_number]
         summary_box(io, "StepsizeCallback", setup)
     end
 end

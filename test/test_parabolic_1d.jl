@@ -64,16 +64,12 @@ end
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_periodic.jl"),
-                        l2=[
-                            0.0001133835907077494,
+                        l2=[0.0001133835907077494,
                             6.226282245610444e-5,
-                            0.0002820171699999139,
-                        ],
-                        linf=[
-                            0.0006255102377159538,
-                            0.00036195501456059986,
-                            0.0016147729485886941,
-                        ])
+                            0.0002820171699999139],
+                        linf=[0.0006255102377159538,
+                              0.00036195501456059986,
+                              0.0016147729485886941])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -91,16 +87,12 @@ end
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number(),
                                                                                 gradient_variables = GradientVariablesEntropy()),
-                        l2=[
-                            0.00011310615871043463,
+                        l2=[0.00011310615871043463,
                             6.216495207074201e-5,
-                            0.00028195843110817814,
-                        ],
-                        linf=[
-                            0.0006240837363233886,
-                            0.0003616694320713876,
-                            0.0016147339542413874,
-                        ])
+                            0.00028195843110817814],
+                        linf=[0.0006240837363233886,
+                              0.0003616694320713876,
+                              0.0016147339542413874])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -114,16 +106,12 @@ end
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_walls.jl"),
-                        l2=[
-                            0.00047023310868269237,
+                        l2=[0.00047023310868269237,
                             0.00032181736027057234,
-                            0.0014966266486095025,
-                        ],
-                        linf=[
-                            0.002996375101363302,
-                            0.002863904256059634,
-                            0.012691132946258676,
-                        ])
+                            0.0014966266486095025],
+                        linf=[0.002996375101363302,
+                              0.002863904256059634,
+                              0.012691132946258676])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -141,16 +129,12 @@ end
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number(),
                                                                                 gradient_variables = GradientVariablesEntropy()),
-                        l2=[
-                            0.0004608500483647771,
+                        l2=[0.0004608500483647771,
                             0.00032431091222851285,
-                            0.0015159733360626845,
-                        ],
-                        linf=[
-                            0.002754803146635787,
-                            0.0028567714697580906,
-                            0.012941794048176192,
-                        ])
+                            0.0015159733360626845],
+                        linf=[0.002754803146635787,
+                              0.0028567714697580906,
+                              0.012941794048176192])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -167,16 +151,12 @@ end
                         equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number()),
-                        l2=[
-                            2.5278824700860636e-5,
+                        l2=[2.5278824700860636e-5,
                             2.5540078777006958e-5,
-                            0.00012118655083858043,
-                        ],
-                        linf=[
-                            0.0001466387075579334,
-                            0.00019422427462629705,
-                            0.0009556446847707178,
-                        ])
+                            0.00012118655083858043],
+                        linf=[0.0001466387075579334,
+                              0.00019422427462629705,
+                              0.0009556446847707178])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -194,16 +174,12 @@ end
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number(),
                                                                                 gradient_variables = GradientVariablesEntropy()),
-                        l2=[
-                            2.459359632523962e-5,
+                        l2=[2.459359632523962e-5,
                             2.3928390718460263e-5,
-                            0.00011252414117082376,
-                        ],
-                        linf=[
-                            0.0001185052018830568,
-                            0.00018987717854305393,
-                            0.0009597503607920999,
-                        ])
+                            0.00011252414117082376],
+                        linf=[0.0001185052018830568,
+                              0.00018987717854305393,
+                              0.0009597503607920999])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
