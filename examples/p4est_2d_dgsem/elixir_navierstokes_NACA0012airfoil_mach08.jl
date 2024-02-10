@@ -44,11 +44,8 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux)
 
-#=
-mesh_file = Trixi.download("",
+mesh_file = Trixi.download("https://gist.githubusercontent.com/Arpit-Babbar/339662b4b46164a016e35c81c66383bb/raw/8bf94f5b426ba907ace87405cfcc1dcc2ef7cbda/NACA0012.inp",
                            joinpath(@__DIR__, "NACA0012.inp"))
-=#
-mesh_file = "NACA0012.inp"
 
 mesh = P4estMesh{2}(mesh_file, initial_refinement_level = 1)
 

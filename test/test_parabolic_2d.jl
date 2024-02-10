@@ -689,6 +689,20 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_navierstokes_NACA0012airfoil_mach08.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_NACA0012airfoil_mach08.jl"),
+                        l2=[0.00018648657393597384,
+                            0.0005076712152849281,
+                            0.00038074587715240566,
+                            0.0021281773710793315],
+                        linf=[0.5153387749819276,
+                              1.1993620992082363,
+                              0.9077214408394708,
+                              5.666071686983816], tspan=(0.0, 0.001),
+                        initial_refinement_level=0)
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

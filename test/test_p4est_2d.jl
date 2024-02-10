@@ -560,6 +560,19 @@ end
     @test isapprox(lift, -6.501138753497174e-15, atol = 1e-13)
     @test isapprox(drag, 2.588589856781827, atol = 1e-13)
 end
+
+@trixi_testset "elixir_euler_NACA0012airfoil_mach085.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_NACA0012airfoil_mach085.jl"),
+                        l2=[6.054106141023162e-7,
+                            7.4947583731596855e-6,
+                            1.1682455936043817e-5,
+                            0.0007173721760332341],
+                        linf=[0.002472349864955632,
+                              0.043496823453937614,
+                              0.043648671347888836,
+                              3.046213202855595], tspan=(0.0, 0.0001))
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

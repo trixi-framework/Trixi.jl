@@ -18,9 +18,6 @@ U_inf(equations) = mach_inf() * c_inf(equations)
 
 @inline function initial_condition_mach085_flow(x, t,
                                                 equations::CompressibleEulerEquations2D)
-    # set the freestream flow parameters
-    gasGam = equations.gamma
-
     v1 = U_inf(equations) * cos(aoa())
     v2 = U_inf(equations) * sin(aoa())
 
@@ -46,15 +43,12 @@ volume_integral = VolumeIntegralShockCapturingHG(shock_indicator;
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-#=
-mesh_file = Trixi.download("",
+mesh_file = Trixi.download("https://gist.githubusercontent.com/Arpit-Babbar/339662b4b46164a016e35c81c66383bb/raw/8bf94f5b426ba907ace87405cfcc1dcc2ef7cbda/NACA0012.inp",
                            joinpath(@__DIR__, "NACA0012.inp"))
-=#
-mesh_file = "NACA0012.inp"
 
 mesh = P4estMesh{2}(mesh_file)
 
-# The boundary of the outer cylinder is constant but subsonic, so we cannot compute the
+# The outer boundary is constant but subsonic, so we cannot compute the
 # boundary flux for the external information alone. Thus, we use the numerical flux to distinguish
 # between inflow and outflow characteristics
 @inline function boundary_condition_subsonic_constant(u_inner,
