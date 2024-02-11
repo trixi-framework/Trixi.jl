@@ -7,7 +7,7 @@
 # the more fundamental, *technical* concepts that are applicable to a variety of
 # (also more complex) configurations.
 
-# Trixi.jl follows the method of lines concept for solving partial differential equations (PDEs).
+# Trixi.jl follows the [method of lines](http://www.scholarpedia.org/article/Method_of_lines) concept for solving partial differential equations (PDEs).
 # Firstly, the PDEs are reduced to a (potentially huge) system of
 # ordinary differential equations (ODEs) by discretizing the spatial derivatives. Subsequently,
 # these generated ODEs may be solved with methods available in OrdinaryDiffEq.jl or those specifically
