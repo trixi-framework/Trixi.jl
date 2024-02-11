@@ -1,17 +1,18 @@
 #src # Behind the scenes of a simulation setup
 
-# This tutorial will guide you through a simple Trixi.jl setup ("elixir"), giving an overview of what
-# happens in the background during the initialization of a simulation. While the setup described herein
-# does not cover all details, it involves relatively stable parts of Trixi.jl that are unlikely
-# to undergo significant changes in the near future. The goal is to clarify some of the more
-# fundamental, *technical* concepts that are applicable to a variety of (also more complex)
-# configurations.
+# This tutorial will guide you through a simple Trixi.jl setup ("elixir"), giving an overview of
+# what happens in the background during the initialization of a simulation. While the setup
+# described herein does not cover all details, it involves relatively stable parts of Trixi.jl that
+# are unlikely to undergo significant changes in the near future. The goal is to clarify some of
+# the more fundamental, *technical* concepts that are applicable to a variety of
+# (also more complex) configurations.
 
 # Trixi.jl follows the method of lines concept for solving partial differential equations.
-# Firstly, the partial differential equations (PDEs) are reduced to a (potentially huge) system of ordinary differential equations (ODEs)
-# by discretizing the spatial derivatives. Subsequently, these new ODEs are solved with methods available in
-# OrdinaryDiffEq.jl or those specifically implemented in Trixi.jl. The following steps elucidate
-# the process of transitioning from PDEs to ODEs within the framework of Trixi.jl.
+# Firstly, the partial differential equations (PDEs) are reduced to a (potentially huge) system of
+# ordinary differential equations (ODEs) by discretizing the spatial derivatives. Subsequently,
+# these new ODEs are solved with methods available in OrdinaryDiffEq.jl or those specifically
+# implemented in Trixi.jl. The following steps elucidate the process of transitioning from PDEs to
+# ODEs within the framework of Trixi.jl.
 
 # ## Basic setup
 
@@ -51,8 +52,8 @@ solver = DGSEM(polydeg = 3)
 
 # At this stage, all necessary components for configuring the spatial discretization are in place.
 # The remaining task is to combine these components into a single structure that will be used
-# throughout the entire simulation process. This is where [`SemidiscretizationHyperbolic`](@ref) comes
-# into play.
+# throughout the entire simulation process. This is where [`SemidiscretizationHyperbolic`](@ref)
+# comes into play.
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
                                     solver)
@@ -83,9 +84,10 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # - `init_interfaces(leaf_cell_ids, mesh, elements)`
 
 #   At this point, the elements with nodes have been defined; however, they lack the necessary
-#   communication functionality. This is crucial because the local solution polynomials on the elements are not
-#   independent of each other. Furthermore, nodes on the boundary of adjacent elements share
-#   the same spatial location, which requires a method to combine this into a meaningful solution.
+#   communication functionality. This is crucial because the local solution polynomials on the
+#   elements are not independent of each other. Furthermore, nodes on the boundary of adjacent
+#   elements share the same spatial location, which requires a method to combine this into a
+#   meaningful solution.
 
 #   As demonstrated earlier, the elements can have varying sizes. Let us initially consider
 #   neighbors with equal size. For these elements, the `init_interfaces` function generates
@@ -127,12 +129,12 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 #   ![boundaries_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/21996b20-4a22-4dfb-b16a-e2c22c2f29fe)
 
-# All the structures mentioned earlier are collected as a cache of type `NamedTuple`. Subsequently, an
-# object of type `SemidiscretizationHyperbolic` is initialized using this cache, initial and
+# All the structures mentioned earlier are collected as a cache of type `NamedTuple`. Subsequently,
+# an object of type `SemidiscretizationHyperbolic` is initialized using this cache, initial and
 # boundary conditions, equations, mesh and solver.
 
-# In conclusion, the primary purpose of a `SemidiscretizationHyperbolic` is to collect equations, the
-# geometric representation of the domain, and approximation instructions, creating specialized
+# In conclusion, the primary purpose of a `SemidiscretizationHyperbolic` is to collect equations,
+# the geometric representation of the domain, and approximation instructions, creating specialized
 # structures to interconnect these components in a manner that enables their utilization for
 # the numerical solution of partial differential equations (PDEs).
 
@@ -151,9 +153,9 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # The purpose of the [`semidiscretize`](@ref) function is to wrap the semidiscretization as an
 # `ODEProblem` within the specified time interval. During this procedure the approximate solution
 #  is created at the given initial time via the specified `initial_condition` function from the 
-#  `SemidiscretizationHyperbolic` object. This `ODEProblem` can be subsequently passed to the `solve`
-# function from the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package or to
-# [`Trixi.solve`](@ref).
+#  `SemidiscretizationHyperbolic` object. This `ODEProblem` can be subsequently passed to the
+# `solve` function from the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package
+# or to [`Trixi.solve`](@ref).
 
 ode = semidiscretize(semi, (0.0, 1.0));
 
