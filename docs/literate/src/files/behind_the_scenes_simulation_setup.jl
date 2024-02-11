@@ -163,7 +163,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 ode = semidiscretize(semi, (0.0, 1.0));
 
-# The `semidiscretize` function involves a deep tree of recursive calls, with the primary ones
+# The `semidiscretize` function involves a deep tree of subsequent calls, with the primary ones
 # explained below.
 
 
