@@ -112,6 +112,10 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   Mortars store information about the connected elements, their relative positions, and allocate
 #   containers for storing the solutions along the boundaries between these elements.
 
+#   Due to the differing sizes of adjacent elements, it is not feasible to directly map boundary
+#   nodes of adjacent elements. Therefore, the concept of mortars employs a mass-conserving
+#   interpolation function to map boundary nodes from a larger element to a smaller one.
+
 #   In our visualization, mortars are represented as branched tubes.
 
 #   ![mortars_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/43a95a60-3a31-4b1f-8724-14049e7a0481)
