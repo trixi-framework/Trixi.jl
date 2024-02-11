@@ -65,7 +65,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # - `init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)`
 
 #   The fundamental elements for approximating the solution are the leaf
-#   cells. The solution is treated as a polynomial of the degree specified in the `DGSEM`
+#   cells. The solution is constructed as a polynomial of the degree specified in the `DGSEM`
 #   solver in each spatial direction on each leaf cell. This polynomial approximation is evaluated 
 #   at the Gauss-Lobatto nodes, which were previously illustrated. The `init_elements` function extracts
 #   these leaf cells from the `TreeMesh`, assigns them the label "elements", records their
