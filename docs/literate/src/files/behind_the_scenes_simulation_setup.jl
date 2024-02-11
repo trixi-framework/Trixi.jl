@@ -88,7 +88,9 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   elements are not independent of each other. Furthermore, nodes on the boundary of adjacent
 #   elements share the same spatial location, which requires a method to combine this into a
 #   meaningful solution.
-# Here [Riemann solvers](https://en.wikipedia.org/wiki/Riemann_solver#Approximate_solvers) come into play which can handle the principal ambiguity of a multi-valued solution at the same spatial location.
+#   Here [Riemann solvers](https://en.wikipedia.org/wiki/Riemann_solver#Approximate_solvers)
+#   come into play which can handle the principal ambiguity of a multi-valued solution at the
+#   same spatial location.
 
 #   As demonstrated earlier, the elements can have varying sizes. Let us initially consider
 #   neighbors with equal size. For these elements, the `init_interfaces` function generates
