@@ -83,7 +83,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # - `init_interfaces(leaf_cell_ids, mesh, elements)`
 
 #   At this point, the elements with nodes have been defined; however, they lack the necessary
-#   communication functionality. This is crucial because the solutions on the elements are not
+#   communication functionality. This is crucial because the local solution polynomials on the elements are not
 #   independent of each other. Furthermore, nodes on the boundary of adjacent elements share
 #   the same spatial location, requiring a method to combine their solutions.
 
