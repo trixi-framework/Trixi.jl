@@ -70,7 +70,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   solver in each spatial direction on each leaf cell. This polynomial approximation is evaluated 
 #   at the Gauss-Lobatto nodes mentioned earlier. The `init_elements` function extracts
 #   these leaf cells from the `TreeMesh`, assigns them the label "elements", records their
-#   coordinates, and maps the Gauss-Lobatto nodes from the 1D interval ``[-1, 1]`` onto each axis
+#   coordinates, and maps the Gauss-Lobatto nodes from the 1D interval ``[-1, 1]`` onto each coordinate axis
 #   of every element.
 
 
