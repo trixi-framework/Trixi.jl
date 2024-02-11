@@ -170,12 +170,12 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # - `allocate_coefficients(mesh, equations, solver, cache)`
 
 #   To apply initial conditions, a data structure ("container") needs to be generated to store the
-#   initial values of the target variables for each node within each element. The
-#   `allocate_coefficients` function initializes `u_ode` as a 1D vector with a length that depends
-#   on the number of variables, elements, nodes, and dimensions. The use of a 1D vector format
-#   allows one to resize the mesh (and thus change the number of elements) while utilizing the
-#   functionalities of OrdinaryDiffEq.jl.
+#   initial values of the target variables for each node within each element.
 
+#   Since only one-dimensional `Array`s are `resize!`able in Julia, we use `Vector`s as an internal
+#   storage for the target variables and `resize!` them whenever needed, e.g. to change the number
+#   of elements. Then, during the solving process the same memory is reused by `unsafe_wrap`ping
+#   multi-dimensional `Array`s around the internal storage.
 
 # - `wrap_array(u_ode, semi)`
 
