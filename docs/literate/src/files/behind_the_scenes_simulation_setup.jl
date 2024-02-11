@@ -38,7 +38,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max, initial_refinement_level = 2,
 # ![TreeMesh_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/d5ef76ee-8246-4730-a692-b472c06063a3)
 
 # Instantiate a [`DGSEM`](@ref) solver with a user-specified polynomial degree. The solver
-# will define `polydeg + 1` Gauss-Lobatto nodes and their associated weights within
+# will define `polydeg + 1` [Gauss-Lobatto nodes](https://en.wikipedia.org/wiki/Gaussian_quadrature#Gauss%E2%80%93Lobatto_rules) and their associated weights within
 # the reference interval ``[-1, 1]`` in each spatial direction. These nodes will be subsequently
 # used to approximate solutions on each leaf cell of the `TreeMesh`.
 
