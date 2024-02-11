@@ -85,7 +85,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   At this point, the elements with nodes have been defined; however, they lack the necessary
 #   communication functionality. This is crucial because the local solution polynomials on the elements are not
 #   independent of each other. Furthermore, nodes on the boundary of adjacent elements share
-#   the same spatial location, requiring a method to combine their solutions.
+#   the same spatial location, which requires a method to combine this into a meaningful solution.
 
 #   As demonstrated earlier, the elements can have varying sizes. Let us initially consider
 #   neighbors with equal size. For these elements, the `init_interfaces` function generates
