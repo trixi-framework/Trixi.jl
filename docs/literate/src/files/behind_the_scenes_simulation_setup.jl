@@ -225,14 +225,10 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 0.01,
 # The `rhs!` function is called by time integration methods in each iteration of the solve loop
 # within OrdinaryDiffEq.jl, with arguments `du`, `u`, `semidiscretization`, and the current time.
 
-# The problem is that `rhs!` functions within Trixi.jl are specialized for specific solver and mesh
-# types. However, the types of arguments passed to `rhs!` by time integration methods do not
-# explicitly provide this information. Consequently, Trixi.jl uses a two-levels approach for `rhs!`
-# functions. The first level is limited to a single function for each `semidiscretization` type,
-# and its role is to redirect data to the target `rhs!`. It performs this by extracting the
-# necessary data from the integrator and passing them, along with the originally received
-# arguments, to the specialized for solver and mesh types `rhs!` function, which is
-# responsible for calculating `du`.
+# Trixi.jl uses a two-levels approach for `rhs!` functions. The first level is limited to a
+# single function for each `semidiscretization` type, and its role is to redirect data to the
+# target `rhs!` for specific solver and mesh types. This target `rhs!` function is responsible
+# for calculating `du`.
 
 # Path from the `solve` function call to the appropriate `rhs!` function call:
 
