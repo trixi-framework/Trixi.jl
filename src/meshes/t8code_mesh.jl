@@ -1026,7 +1026,10 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                                                num_local_elements)
                             local_neighbor_ids = [neighbor_ids[i]
                                                   for i in local_neighbor_positions]
-                            local_neighbor_positions = [map_iface_to_ichild_to_position[dual_faces[1] + 1][t8_element_child_id(neighbor_scheme, neighbor_leaves[i]) + 1]
+                            local_neighbor_positions = [map_iface_to_ichild_to_position[dual_faces[1] + 1]
+                                                        [t8_element_child_id(neighbor_scheme,
+                                                                             neighbor_leaves[i]) +
+                                                         1]
                                                         for i in local_neighbor_positions]
 
                             # Last entry is the large element.
@@ -1076,7 +1079,10 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                                 mpi_mesh_info.mpi_mortars.local_neighbor_ids[local_mpi_mortar_id] = [current_index +
                                                                                                      1]
-                                mpi_mesh_info.mpi_mortars.local_neighbor_positions[local_mpi_mortar_id] = [map_iface_to_ichild_to_position[iface + 1][t8_element_child_id(eclass_scheme, element) + 1]]
+                                mpi_mesh_info.mpi_mortars.local_neighbor_positions[local_mpi_mortar_id] = [map_iface_to_ichild_to_position[iface + 1]
+                                                                                                           [t8_element_child_id(eclass_scheme,
+                                                                                                                                element) +
+                                                                                                            1]]
                                 init_mortar_node_indices!(mpi_mesh_info.mpi_mortars,
                                                           (iface, dual_faces[1]),
                                                           orientation, local_mpi_mortar_id)
