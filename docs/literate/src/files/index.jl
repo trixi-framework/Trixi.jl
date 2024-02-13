@@ -23,10 +23,12 @@
 
 # ### [2 Behind the scenes of a simulation setup](@ref behind_the_scenes_simulation_setup)
 #-
-# This tutorial provides guidance for getting started with Trixi.jl, and Julia as well. It outlines
-# the installation procedures for both Julia and Trixi.jl, the execution of Trixi.jl elixirs, the
-# fundamental structure of a Trixi.jl setup, the visualization of results, and the development
-# process for Trixi.jl.
+# This tutorial will guide you through a simple Trixi.jl setup ("elixir"), giving an overview of
+# what happens in the background during the initialization of a simulation. While the setup
+# described herein does not cover all details, it involves relatively stable parts of Trixi.jl that
+# are unlikely to undergo significant changes in the near future. The goal is to clarify some of
+# the more fundamental, *technical* concepts that are applicable to a variety of
+# (also more complex) configurations.s
 
 # ### [3 Introduction to DG methods](@ref scalar_linear_advection_1d)
 #-
