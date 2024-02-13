@@ -56,7 +56,11 @@ end
 @inline eachboundary(solver::FV, cache) = Base.OneTo(nboundaries(solver, cache))
 
 @inline function nelementsglobal(mesh, solver::FV, cache)
-    mpi_isparallel() ? Int(t8_forest_get_global_num_elements(mesh.forest)) : nelements(mesh, solver, cache)
+    if mpi_isparallel()
+        Int(t8_forest_get_global_num_elements(mesh.forest))
+    else
+        nelements(mesh, solver, cache)
+    end
 end
 
 @inline ninterfaces(solver::FV, cache) = ninterfaces(cache.interfaces)

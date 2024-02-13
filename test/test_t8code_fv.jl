@@ -121,7 +121,8 @@ end
 # end
 
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability.jl"),
                         l2=[
                             0.2542045564471016,
                             0.22153069577606582,

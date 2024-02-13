@@ -198,7 +198,7 @@ function init_fv_elements!(elements, mesh::T8codeMesh)
 end
 
 # Container data structure (structure-of-arrays style) for FV interfaces
-mutable struct T8codeInterfaceContainer{uEltype <: Real} <: AbstractContainer
+mutable struct T8codeFVInterfaceContainer{uEltype <: Real} <: AbstractContainer
     u::Array{uEltype, 3}                # [primary/secondary, variable, interface]
     neighbor_ids::Matrix{Int}           # [primary/secondary, interface]
     faces::Matrix{Int}                  # [primary/secondary, interface]
@@ -209,12 +209,12 @@ mutable struct T8codeInterfaceContainer{uEltype <: Real} <: AbstractContainer
     _faces::Vector{Int}
 end
 
-@inline function ninterfaces(interfaces::T8codeInterfaceContainer)
+@inline function ninterfaces(interfaces::T8codeFVInterfaceContainer)
     size(interfaces.neighbor_ids, 2)
 end
 
 # See explanation of Base.resize! for the element container
-function Base.resize!(interfaces::T8codeInterfaceContainer, capacity)
+function Base.resize!(interfaces::T8codeFVInterfaceContainer, capacity)
     (; _u, _neighbor_ids, _faces) = interfaces
 
     n_variables = size(interfaces.u, 2)
@@ -254,8 +254,8 @@ function init_fv_interfaces(mesh::T8codeMesh, equations,
     _faces = Vector{Int}(undef, 2 * n_interfaces)
     faces = unsafe_wrap(Array, pointer(_faces), (2, n_interfaces))
 
-    interfaces = T8codeInterfaceContainer{uEltype}(u, neighbor_ids, faces,
-                                                   _u, _neighbor_ids, _faces)
+    interfaces = T8codeFVInterfaceContainer{uEltype}(u, neighbor_ids, faces,
+                                                     _u, _neighbor_ids, _faces)
 
     init_fv_interfaces!(interfaces, mesh, equations, elements)
 
