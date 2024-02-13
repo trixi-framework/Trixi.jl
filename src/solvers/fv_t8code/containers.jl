@@ -133,10 +133,11 @@ function init_fv_elements!(elements, mesh::T8codeMesh)
             face_connectivity .= -1
 
             for iface in 1:num_faces
+                # C++ is zero-indexed
                 t8_forest_element_face_centroid(forest, itree, element, iface - 1,
                                                 @views(face_midpoints[:, iface]))
                 face_areas[iface] = t8_forest_element_face_area(forest, itree, element,
-                                                                iface - 1) # C++ is zero-indexed
+                                                                iface - 1)
                 t8_forest_element_face_normal(forest, itree, element, iface - 1,
                                               @views(face_normals[:, iface]))
 
@@ -162,8 +163,13 @@ function init_fv_elements!(elements, mesh::T8codeMesh)
                 neighbors = unsafe_wrap(Array, neighbors_ref[], num_neighbors)
                 neigh_scheme = neigh_scheme_ref[]
 
-                face_connectivity[iface] = neighids[1]
-                neighbor_faces[iface] = dual_faces[1]
+                if num_neighbors == 1
+                    face_connectivity[iface] = neighids[1]
+                    neighbor_faces[iface] = dual_faces[1]
+                else
+                    # TODO: For mortars and non-periodic boundaries
+                    error("Mortars and non-periodic boundaries are not supported yet.")
+                end
 
                 # Free allocated memory.
                 T8code.Libt8.sc_free(t8_get_package_id(), neighbors_ref[])
@@ -203,7 +209,6 @@ mutable struct T8codeInterfaceContainer{uEltype <: Real} <: AbstractContainer
     _faces::Vector{Int}
 end
 
-@inline ninterfaces(solver::FV, cache) = ninterfaces(cache.interfaces)
 @inline function ninterfaces(interfaces::T8codeInterfaceContainer)
     size(interfaces.neighbor_ids, 2)
 end
@@ -286,8 +291,6 @@ function init_fv_interfaces!(interfaces, mesh::T8codeMesh,
 
     return interfaces
 end
-
-@inline eachinterface(solver::FV, cache) = Base.OneTo(ninterfaces(solver, cache))
 
 function init_solution!(mesh::T8codeMesh, equations)
     (; forest) = mesh

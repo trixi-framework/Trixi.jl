@@ -40,53 +40,27 @@ end
 Base.summary(io::IO, solver::FV) = print(io, "FV(order=$(solver.order))")
 
 @inline Base.real(solver::FV) = Float64 # TODO
+
 @inline ndofs(mesh, solver::FV, cache) = ncells(mesh)
 
 @inline nelements(mesh::T8codeMesh, solver::FV, cache) = ncells(mesh)
+@inline function ndofsglobal(mesh, solver::FV, cache)
+    nelementsglobal(mesh, solver, cache)
+end
 
 @inline function eachelement(mesh, solver::FV, cache)
     Base.OneTo(nelements(mesh, solver, cache))
 end
 
-@inline function ndofsglobal(mesh, solver::FV, cache)
-    ndofs(mesh, solver, cache)
+@inline eachinterface(solver::FV, cache) = Base.OneTo(ninterfaces(solver, cache))
+@inline eachboundary(solver::FV, cache) = Base.OneTo(nboundaries(solver, cache))
+
+@inline function nelementsglobal(mesh, solver::FV, cache)
+    mpi_isparallel() ? Int(t8_forest_get_global_num_elements(mesh.forest)) : nelements(mesh, solver, cache)
 end
 
-function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV, ::Any,
-                      ::Type{uEltype}) where {uEltype <: Real}
-    count_required_surfaces!(mesh)
-
-    elements = init_fv_elements(mesh, equations, solver, uEltype)
-    interfaces = init_fv_interfaces(mesh, equations, solver, elements)
-    # boundaries = init_fv_boundaries(mesh, equations, solver, elements)
-    # mortars = init_mortars(mesh, equations, basis, elements)
-
-    # fill_mesh_info!(mesh, interfaces, mortars, boundaries,
-    #                 mesh.boundary_names)
-
-    # Temporary solution array to allow exchange between MPI ranks.
-    u_tmp = init_solution!(mesh, equations)
-
-    cache = (; elements, interfaces, u_tmp)
-
-    return cache
-end
-
-function compute_coefficients!(u, func, t, mesh::T8codeMesh,
-                               equations, solver::FV, cache)
-    for element in eachelement(mesh, solver, cache)
-        x_node = SVector(cache.elements[element].midpoint) # Save t8code variables as SVector?
-        u_node = func(x_node, t, equations)
-        set_node_vars!(u, u_node, equations, solver, element)
-    end
-end
-
-function allocate_coefficients(mesh::T8codeMesh, equations, solver::FV, cache)
-    # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
-    # cf. wrap_array
-    zeros(eltype(cache.elements[1].volume),
-          nvariables(equations) * nelements(mesh, solver, cache))
-end
+@inline ninterfaces(solver::FV, cache) = ninterfaces(cache.interfaces)
+@inline nboundaries(solver::FV, cache) = nboundaries(cache.boundaries)
 
 @inline function get_node_vars(u, equations, solver::FV, element)
     SVector(ntuple(@inline(v->u[v, element]), Val(nvariables(equations))))
@@ -110,6 +84,13 @@ end
     return u_ll, u_rr
 end
 
+function allocate_coefficients(mesh::T8codeMesh, equations, solver::FV, cache)
+    # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
+    # cf. wrap_array
+    zeros(eltype(cache.elements[1].volume),
+          nvariables(equations) * nelements(mesh, solver, cache))
+end
+
 # General fallback
 @inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
                             solver::FV, cache)
@@ -127,6 +108,35 @@ end
     end
     unsafe_wrap(Array{eltype(u_ode), 2}, pointer(u_ode),
                 (nvariables(equations), nelements(mesh, solver, cache)))
+end
+
+function compute_coefficients!(u, func, t, mesh::T8codeMesh,
+                               equations, solver::FV, cache)
+    for element in eachelement(mesh, solver, cache)
+        x_node = SVector(cache.elements[element].midpoint) # Save t8code variables as SVector?
+        u_node = func(x_node, t, equations)
+        set_node_vars!(u, u_node, equations, solver, element)
+    end
+end
+
+function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV, ::Any,
+                      ::Type{uEltype}) where {uEltype <: Real}
+    count_required_surfaces!(mesh)
+
+    elements = init_fv_elements(mesh, equations, solver, uEltype)
+    interfaces = init_fv_interfaces(mesh, equations, solver, elements)
+    # boundaries = init_fv_boundaries(mesh, equations, solver, elements)
+    # mortars = init_mortars(mesh, equations, basis, elements)
+
+    # fill_mesh_info!(mesh, interfaces, mortars, boundaries,
+    #                 mesh.boundary_names)
+
+    # Temporary solution array to allow exchange between MPI ranks.
+    u_tmp = init_solution!(mesh, equations)
+
+    cache = (; elements, interfaces, u_tmp)
+
+    return cache
 end
 
 function rhs!(du, u, t, mesh::T8codeMesh, equations,
