@@ -77,14 +77,16 @@ end
 
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
 
-    # Make sure we can handle multiple semidiscretization in coupled simulations.
+    # Make sure we can handle multiple semidiscretizationis in coupled simulations.
     if length(semi_indices) == 0
         semis = tuple(semi)
+	semi_indices = (1)
     else
         semis = semi.semis
     end
 
-    for semi in semis
+    for semi_index in semi_indices
+	semi = semis[semi_index]
         mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
         # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
