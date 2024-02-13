@@ -1135,32 +1135,35 @@ function output_data_to_vtu(mesh::T8codeMesh, equations, solver,
 
     vtk_data = Vector{t8_vtk_data_field_t}(undef, nvariables(equations))
 
+    data = Array{Float64}(undef, ncells(mesh), nvariables(equations))
     for v in eachvariable(equations)
-        let
-            data = [u_tmp[element].u[v] for element in 1:ncells(mesh)]
-            data_ptr = pointer(data)
-
-            GC.@preserve data begin
-                vtk_data[v] = t8_vtk_data_field_t(T8_VTK_SCALAR,
-                                                  NTuple{8192, Cchar}(rpad("$(vars[v])\0",
-                                                                           8192, ' ')),
-                                                  data_ptr)
-            end
+        for element in 1:ncells(mesh)
+            data[element, v] = u_tmp[element].u[v]
         end
     end
 
-    # The number of user defined data fields to write.
-    num_data = length(vtk_data)
+    GC.@preserve data begin
+        for v in eachvariable(equations)
+            data_ptr = pointer(@views(data[:, v]))
+            vtk_data[v] = t8_vtk_data_field_t(T8_VTK_SCALAR,
+                                              NTuple{8192, Cchar}(rpad("$(vars[v])\0",
+                                                                       8192, ' ')),
+                                              data_ptr)
+        end
 
-    # Write user defined data to vtu file.
-    write_treeid = 1
-    write_mpirank = 1
-    write_level = 1
-    write_element_id = 1
-    write_ghosts = 0
-    t8_forest_write_vtk_ext(mesh.forest, out, write_treeid, write_mpirank,
-                            write_level, write_element_id, write_ghosts,
-                            0, 0, num_data, pointer(vtk_data))
+        # The number of user defined data fields to write.
+        num_data = length(vtk_data)
+
+        # Write user defined data to vtu file.
+        write_treeid = 1
+        write_mpirank = 1
+        write_level = 1
+        write_element_id = 1
+        write_ghosts = 0
+        t8_forest_write_vtk_ext(mesh.forest, out, write_treeid, write_mpirank,
+                                write_level, write_element_id, write_ghosts,
+                                0, 0, num_data, pointer(vtk_data))
+    end
 end
 
 # Simple meshes

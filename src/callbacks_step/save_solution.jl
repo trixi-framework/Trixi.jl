@@ -268,7 +268,7 @@ function save_solution_file(u, time, dt, timestep,
     MPI.Barrier(MPI.COMM_WORLD)
     Trixi.exchange_solution!(u, mesh, equations, solver, cache)
     Trixi.output_data_to_vtu(mesh, equations, solver, cache.u_tmp, filename)
-    # TODO: In some frames, single ranks seem to use values from the wrong variable.
+
     return filename
 end
 
