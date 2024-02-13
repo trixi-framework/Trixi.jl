@@ -73,7 +73,7 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
 end
 
 function compute_coefficients!(u, func, t, mesh::T8codeMesh,
-                                equations, solver::FV, cache)
+                               equations, solver::FV, cache)
     for element in eachelement(mesh, solver, cache)
         x_node = SVector(cache.elements[element].midpoint) # Save t8code variables as SVector?
         u_node = func(x_node, t, equations)
@@ -81,12 +81,11 @@ function compute_coefficients!(u, func, t, mesh::T8codeMesh,
     end
 end
 
-function allocate_coefficients(mesh::T8codeMesh, equations,
-                                solver::FV, cache)
+function allocate_coefficients(mesh::T8codeMesh, equations, solver::FV, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
     zeros(eltype(cache.elements[1].volume),
-            nvariables(equations) * nelements(mesh, solver, cache))
+          nvariables(equations) * nelements(mesh, solver, cache))
 end
 
 @inline function get_node_vars(u, equations, solver::FV, element)
@@ -121,7 +120,7 @@ end
 # for interfacing with external C libraries (MPI, HDF5, visualization),
 # writing solution files etc.
 @inline function wrap_array_native(u_ode::AbstractVector, mesh::AbstractMesh, equations,
-                                    solver::FV, cache)
+                                   solver::FV, cache)
     @boundscheck begin
         @assert length(u_ode) ==
                 nvariables(equations) * nelements(mesh, solver, cache)
@@ -131,15 +130,15 @@ end
 end
 
 function rhs!(du, u, t, mesh::T8codeMesh, equations,
-                initial_condition, boundary_conditions, source_terms::Source, solver::FV,
-                cache) where {Source}
+              initial_condition, boundary_conditions, source_terms::Source, solver::FV,
+              cache) where {Source}
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+    @trixi_timeit timer() "reset ∂u/∂t" du.=zero(eltype(du))
 
     # Exchange solution between MPI ranks
     @trixi_timeit timer() "exchange_solution!" exchange_solution!(u, mesh, equations,
-                                                                    solver, cache)
-    @unpack elements, interfaces, u_tmp = cache
+                                                                  solver, cache)
+    (; elements, interfaces, u_tmp) = cache
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
@@ -156,7 +155,7 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
             normal = Trixi.get_variable_wrapped(elements[element].face_normals,
                                                 equations, face)
             u_ll, u_rr = get_surface_node_vars(interfaces.u, equations, solver,
-                                                interface)
+                                               interface)
             @trixi_timeit timer() "surface flux" flux=solver.surface_flux(u_ll, u_rr,
                                                                           normal,
                                                                           equations)
@@ -179,7 +178,7 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
                 du[v, element] = (1 / volume) * du[v, element]
             end
         end
-    end # timer
+    end
 
     return nothing
 end
@@ -210,7 +209,7 @@ function get_element_variables!(element_variables, u,
 end
 
 function get_node_variables!(node_variables, mesh::T8codeMesh,
-                                equations, solver, cache)
+                             equations, solver, cache)
     return nothing
 end
 
@@ -218,8 +217,8 @@ function SolutionAnalyzer(solver::FV; kwargs...)
 end
 
 function create_cache_analysis(analyzer, mesh,
-                                equations, solver::FV, cache,
-                                RealT, uEltype)
+                               equations, solver::FV, cache,
+                               RealT, uEltype)
 end
 
 function T8codeMesh(cmesh::Ptr{t8_cmesh}, solver::DG; kwargs...)
