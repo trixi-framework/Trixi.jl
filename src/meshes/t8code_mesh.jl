@@ -18,10 +18,12 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
 
     boundary_names   :: Array{Symbol, 2}      # [face direction, tree]
     current_filename :: String
+    unsaved_changes  :: Bool
 
-    ninterfaces :: Int
-    nmortars    :: Int
-    nboundaries :: Int
+    max_number_faces :: Int
+    ninterfaces      :: Int
+    nmortars         :: Int
+    nboundaries      :: Int
 
     nmpiinterfaces :: Int
     nmpimortars    :: Int
@@ -37,7 +39,9 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh.nodes = nodes
         mesh.boundary_names = boundary_names
         mesh.current_filename = current_filename
+        mesh.unsaved_changes = true # TODO
         mesh.tree_node_coordinates = tree_node_coordinates
+        mesh.max_number_faces = 4 # TODO: Trianlges!!
 
         finalizer(mesh) do mesh
             # When finalizing `mesh.forest`, `mesh.scheme` and `mesh.cmesh` are
@@ -1117,3 +1121,44 @@ end
 @deprecate T8codeMesh{2}(meshfile::String; kwargs...) T8codeMesh(meshfile::String, 2; kwargs...)
 @deprecate T8codeMesh{3}(meshfile::String; kwargs...) T8codeMesh(meshfile::String, 3; kwargs...)
 #! format: on
+
+# Write the forest as vtu and also write the element's volumes in the file.
+#
+# t8code supports writing element based data to vtu as long as its stored
+# as doubles. Each of the data fields to write has to be provided in its own
+# array of length num_local_elements.
+# We support two types: T8_VTK_SCALAR - One double per element.
+#                  and  T8_VTK_VECTOR - Three doubles per element.
+function output_data_to_vtu(mesh::T8codeMesh, equations, solver,
+                            u_tmp, out)
+    vars = varnames(cons2cons, equations)
+
+    vtk_data = Vector{t8_vtk_data_field_t}(undef, nvariables(equations))
+
+    for v in eachvariable(equations)
+        let
+            data = [u_tmp[element].u[v] for element in 1:ncells(mesh)]
+            data_ptr = pointer(data)
+
+            GC.@preserve data begin
+                vtk_data[v] = t8_vtk_data_field_t(T8_VTK_SCALAR,
+                                                  NTuple{8192, Cchar}(rpad("$(vars[v])\0",
+                                                                           8192, ' ')),
+                                                  data_ptr)
+            end
+        end
+    end
+
+    # The number of user defined data fields to write.
+    num_data = length(vtk_data)
+
+    # Write user defined data to vtu file.
+    write_treeid = 1
+    write_mpirank = 1
+    write_level = 1
+    write_element_id = 1
+    write_ghosts = 0
+    t8_forest_write_vtk_ext(mesh.forest, out, write_treeid, write_mpirank,
+                            write_level, write_element_id, write_ghosts,
+                            0, 0, num_data, pointer(vtk_data))
+end
