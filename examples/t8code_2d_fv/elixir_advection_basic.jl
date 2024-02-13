@@ -15,12 +15,12 @@ initial_condition = initial_condition_convergence_test
 
 solver = FV(surface_flux = flux_lax_friedrichs)
 
-# mesh_function = Trixi.cmesh_new_periodic_hybrid
+mesh_function = Trixi.cmesh_new_periodic_hybrid
 # mesh_function = Trixi.cmesh_new_periodic_quad
-mesh_function = Trixi.cmesh_new_periodic_tri
+# mesh_function = Trixi.cmesh_new_periodic_tri
 cmesh = mesh_function(Trixi.mpi_comm())
 mesh = T8codeMesh(cmesh, solver,
-                  initial_refinement_level = 5)
+                  initial_refinement_level = 3)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
