@@ -2,7 +2,116 @@
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+using NLsolve
 @muladd begin
+
+function F_own(aUnknown, NumStages, NumStageEvals, MonCoeffs)
+    cS2 = 1 # cS2 = c_ts(S-2)
+    c_ts = c_Own(cS2, NumStages) # ts = timestep
+
+    c_eq = zeros(NumStageEvals - 2) # Add equality constraint that cS2 is equal to 1
+    # Both terms should be present
+    for i in 1:(NumStageEvals - 4)
+        term1 = aUnknown[NumStageEvals - 1]
+        term2 = aUnknown[NumStageEvals]
+        for j in 1:i
+            term1 *= aUnknown[NumStageEvals - 1 - j]
+            term2 *= aUnknown[NumStageEvals - j]
+        end
+        term1 *= c_ts[NumStages - 2 - i] * 1/6
+        term2 *= c_ts[NumStages - 1 - i] * 4/6
+
+        c_eq[i] = MonCoeffs[i] - (term1 + term2)
+    end
+
+    # Highest coefficient: Only one term present
+    i = NumStageEvals - 3
+    term2 = aUnknown[NumStageEvals]
+    for j in 1:i
+        term2 *= aUnknown[NumStageEvals - j]
+    end
+    term2 *= c_ts[NumStages - 1 - i] * 4/6
+
+    c_eq[i] = MonCoeffs[i] - term2
+
+    c_eq[NumStageEvals - 2] = 1.0 - 4 * aUnknown[NumStageEvals] - aUnknown[NumStageEvals - 1]
+
+    return c_eq
+end
+
+function c_Own(cS2, NumStages)
+    c_ts = zeros(NumStages);
+
+    # Last timesteps as for SSPRK33
+    c_ts[NumStages]     = 0.5;
+    c_ts[NumStages - 1] = 1;
+
+    # Linear increasing timestep for remainder
+    for i = 2:NumStages-2
+        c_ts[i] = cS2 * (i-1)/(NumStages - 3);
+    end
+    return c_ts
+end
+
+function ComputePERK3_ButcherTableau(NumStages, NumStageEvals, semi::AbstractSemidiscretization)
+
+    #Initialize array of c
+    c_ts = c_Own(1.0, NumStages)
+
+    #Initialize the array of our solution
+    aUnknown = zeros(NumStageEvals)
+
+    #Case of e = 3
+    if NumStageEvals == 3
+        aUnknown = [0, c_ts[2], 0.25]
+
+    else
+        #Calculate MonCoeffs from polynomial Optimizer
+        ConsOrder = 3
+        dtMax = 1.0
+        dtEps = 1e-9
+        filter_thres = 1e-12
+
+        #Get EigVals
+        J = jacobian_ad_forward(semi)
+        EigVals = eigvals(J)
+        NumEigVals, EigVals = filter_Eigvals(EigVals, filter_thres)
+
+        MonCoeffs, _, _ = Bisection(ConsOrder, NumEigVals, NumStages, dtMax, dtEps, EigVals)
+        MonCoeffs = undo_normalization(ConsOrder, NumStages, MonCoeffs)
+
+        #Define the objective_function
+        function objective_function(x)
+            return F_own(x, NumStages, NumStageEvals, MonCoeffs)
+        end
+
+        #call nlsolver to solve until the answer is not NaN or negative values
+        is_sol_valid = false
+        while is_sol_valid  == false
+            #Initialize initial guess
+            x0 = 0.1 .* rand(NumStageEvals)
+            x0[1] = Base.big(0)
+            x0[2] = c_ts[2]
+
+            sol = nlsolve(objective_function, method = :trust_region, x0, 
+                          ftol = 1e-15, iterations = 10^4, xtol = 1e-13)
+                          
+            aUnknown = sol.zero
+
+            is_sol_valid  = all(x -> !isnan(x) && x >= 0, aUnknown[3:end]) && all(x -> !isnan(x) && x >= 0 , c_ts[3:end] .- aUnknown[3:end])
+        end
+    end
+
+    println("aUnknown")
+    println(aUnknown[3:end]) #To debug
+
+    AMatrix = zeros(NumStages - 2, 2)
+    AMatrix[:, 1] = c_ts[3:end]
+    AMatrix[:, 1] -= aUnknown[3:end]
+    AMatrix[:, 2]  = aUnknown[3:end]
+  
+    return AMatrix, c_ts
+end
 
 function ComputePERK3_ButcherTableau(NumStages::Int, BasePathMonCoeffs::AbstractString, cS2::Float64)
 
@@ -67,6 +176,18 @@ mutable struct PERK3 <: PERKSingle
       ComputePERK3_ButcherTableau(NumStages_, BasePathMonCoeffs_, cS2_)
     return newPERK3
   end
+
+  #Constructor that compute A coefficients from semidiscretization
+  function PERK3(NumStages_::Int, NumStageEvals_ ::Int, semi_::AbstractSemidiscretization)
+
+    newPERK3 = new(NumStages_)
+
+    newPERK3.AMatrix, newPERK3.c = 
+      ComputePERK3_ButcherTableau(NumStages_, NumStageEvals_, semi_)
+
+    return newPERK3
+  end
+
 end # struct PERK3
 
 

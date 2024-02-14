@@ -46,7 +46,7 @@ function ReadInEigVals(Path_toEvalFile::AbstractString)
   return NumEigVals, EigVals
 end
 
-function Polynoms(ConsOrder::Int, NumStages::Int, NumEigVals::Int, normalized_powered_EigvalsScaled::Array{Complex{Float64}}, pnoms::Array{Complex{Float64}}, gamma::Variable)
+function Polynoms(ConsOrder::Int, NumStageEvals::Int, NumEigVals::Int, normalized_powered_EigvalsScaled::Array{Complex{Float64}}, pnoms::Array{Complex{Float64}}, gamma::Variable)
 
   for i in 1:NumEigVals
     pnoms[i] = 1.0
@@ -58,7 +58,7 @@ function Polynoms(ConsOrder::Int, NumStages::Int, NumEigVals::Int, normalized_po
     end
   end
 
-  for k in ConsOrder + 1:NumStages
+  for k in ConsOrder + 1:NumStageEvals
     pnoms += gamma[k - ConsOrder] * normalized_powered_EigvalsScaled[:,k]
   end
   
@@ -66,7 +66,7 @@ function Polynoms(ConsOrder::Int, NumStages::Int, NumEigVals::Int, normalized_po
 end
 
 
-function Bisection(ConsOrder::Int, NumEigVals::Int, NumStages::Int, dtMax::Float64, dtEps::Float64, EigVals::Array{Complex{Float64}})
+function Bisection(ConsOrder::Int, NumEigVals::Int, NumStageEvals::Int, dtMax::Float64, dtEps::Float64, EigVals::Array{Complex{Float64}})
 
   dtMin = 0.0
 
@@ -76,23 +76,23 @@ function Bisection(ConsOrder::Int, NumEigVals::Int, NumStages::Int, dtMax::Float
 
   pnoms = ones(Complex{Float64}, NumEigVals, 1)
   
-  gamma = Variable(NumStages - ConsOrder) # Init datastructure for results
+  gamma = Variable(NumStageEvals - ConsOrder) # Init datastructure for results
 
-  normalized_powered_Eigvals = zeros(Complex{Float64}, NumEigVals, NumStages)
+  normalized_powered_Eigvals = zeros(Complex{Float64}, NumEigVals, NumStageEvals)
 
-  for j in 1:NumStages
+  for j in 1:NumStageEvals
     fac_j = factorial(j)
     for i in 1:NumEigVals
       normalized_powered_Eigvals[i, j] =  EigVals[i]^j / fac_j
     end
   end
 
-  normalized_powered_EigvalsScaled = zeros(Complex{Float64}, NumEigVals, NumStages)
+  normalized_powered_EigvalsScaled = zeros(Complex{Float64}, NumEigVals, NumStageEvals)
 
   while dtMax - dtMin > dtEps
     dt = 0.5 * (dtMax + dtMin)
 
-    for k in 1:NumStages
+    for k in 1:NumStageEvals
       dt_k = dt^k
       for i in 1:NumEigVals
         normalized_powered_EigvalsScaled[i,k] = dt_k * normalized_powered_Eigvals[i,k]
@@ -100,7 +100,7 @@ function Bisection(ConsOrder::Int, NumEigVals::Int, NumStages::Int, dtMax::Float
     end
 
     # Use last optimal values for gamm0 in (potentially) next iteration
-    problem = minimize(Polynoms(ConsOrder, NumStages, NumEigVals, normalized_powered_EigvalsScaled, pnoms, gamma))
+    problem = minimize(Polynoms(ConsOrder, NumStageEvals, NumEigVals, normalized_powered_EigvalsScaled, pnoms, gamma))
 
     Convex.solve!(
       problem,
@@ -133,8 +133,8 @@ function Bisection(ConsOrder::Int, NumEigVals::Int, NumStages::Int, dtMax::Float
   return evaluate(gamma), AbsP, dt
 end
 
-function undo_normalization(ConsOrder::Int, NumStages::Int, gammaOpt)
-  for k in ConsOrder + 1:NumStages
+function undo_normalization(ConsOrder::Int, NumStageEvals::Int, gammaOpt)
+  for k in ConsOrder + 1:NumStageEvals
     gammaOpt[k - ConsOrder] = gammaOpt[k - ConsOrder] / factorial(k)
   end
   return gammaOpt
