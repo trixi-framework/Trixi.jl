@@ -83,7 +83,7 @@ tutorials = create_tutorials(files)
 # Make documentation
 makedocs(
     # Specify modules for which docstrings should be shown
-    modules = [Trixi, Trixi2Vtk],
+    modules = [Trixi, TrixiBase, Trixi2Vtk],
     # Set sitename to Trixi.jl
     sitename = "Trixi.jl",
     # Provide additional formatting options
