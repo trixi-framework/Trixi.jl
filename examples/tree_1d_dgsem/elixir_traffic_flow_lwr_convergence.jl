@@ -47,9 +47,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-# Note: Be careful when increasing the polynomial degree and switching from first order finite volume 
-# to some actual DG method - in that case, you should also exchange the ODE solver.
-sol = solve(ode, Euler(),
+sol = solve(ode, CarpenterKennedy2N54(),
             dt = 42, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 
