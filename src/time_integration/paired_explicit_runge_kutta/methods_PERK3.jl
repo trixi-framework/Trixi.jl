@@ -70,14 +70,14 @@ function ComputePERK3_ButcherTableau(NumStages, NumStageEvals, semi::AbstractSem
         ConsOrder = 3
         dtMax = 1.0
         dtEps = 1e-9
-        filter_thres = 1e-12
+        filter_threshold = 1e-12
 
         #Get EigVals
         J = jacobian_ad_forward(semi)
         EigVals = eigvals(J)
-        NumEigVals, EigVals = filter_Eigvals(EigVals, filter_thres)
+        NumEigVals, EigVals = filter_Eigvals(EigVals, filter_threshold)
 
-        MonCoeffs, _, _ = Bisection(ConsOrder, NumEigVals, NumStages, dtMax, dtEps, EigVals)
+        MonCoeffs, dt, _ = Bisection(ConsOrder, NumEigVals, NumStages, dtMax, dtEps, EigVals)
         MonCoeffs = undo_normalization(ConsOrder, NumStages, MonCoeffs)
 
         #Define the objective_function
@@ -90,7 +90,7 @@ function ComputePERK3_ButcherTableau(NumStages, NumStageEvals, semi::AbstractSem
         while is_sol_valid  == false
             #Initialize initial guess
             x0 = 0.1 .* rand(NumStageEvals)
-            x0[1] = Base.big(0)
+            x0[1] = 0.0
             x0[2] = c_ts[2]
 
             sol = nlsolve(objective_function, method = :trust_region, x0, 
@@ -98,6 +98,7 @@ function ComputePERK3_ButcherTableau(NumStages, NumStageEvals, semi::AbstractSem
                           
             aUnknown = sol.zero
 
+            #First check the values of a[i, i-1] which are acquired by nonlinear solver and c[i] - a[i, i-1].
             is_sol_valid  = all(x -> !isnan(x) && x >= 0, aUnknown[3:end]) && all(x -> !isnan(x) && x >= 0 , c_ts[3:end] .- aUnknown[3:end])
         end
     end
