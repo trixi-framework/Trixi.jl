@@ -257,13 +257,17 @@ function init_fv_interfaces(mesh::T8codeMesh, equations,
     interfaces = T8codeFVInterfaceContainer{uEltype}(u, neighbor_ids, faces,
                                                      _u, _neighbor_ids, _faces)
 
-    init_fv_interfaces!(interfaces, mesh, equations, elements)
+    # I tried it to do it like for the existing T8codeMesh routines with
+    # init_interfaces!(interfaces, mesh)
+    # The problem was that I need the face id of both elements for every interface.
+    # That is not needed for DG code since it is handled with the indices there.
+
+    init_fv_interfaces!(interfaces, mesh, elements)
 
     return interfaces
 end
 
-function init_fv_interfaces!(interfaces, mesh::T8codeMesh,
-                             equations, elements)
+function init_fv_interfaces!(interfaces, mesh::T8codeMesh, elements)
     # Note: In t8code, the routine 't8code_forest_iterate' is not implemented yet.
 
     idx = 1

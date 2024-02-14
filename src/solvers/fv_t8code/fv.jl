@@ -146,6 +146,8 @@ end
 function rhs!(du, u, t, mesh::T8codeMesh, equations,
               initial_condition, boundary_conditions, source_terms::Source, solver::FV,
               cache) where {Source}
+    (; surface_flux) = solver
+
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" du.=zero(eltype(du))
 
@@ -159,7 +161,8 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
         prolong2interfaces!(cache, u_tmp, mesh, equations, solver)
     end
 
-    @trixi_timeit timer() "calc interface flux" begin
+    # Calculate interface fluxes
+    @trixi_timeit timer() "interface flux" begin
         for interface in eachinterface(solver, cache)
             element = interfaces.neighbor_ids[1, interface]
             neighbor = interfaces.neighbor_ids[2, interface]
@@ -170,9 +173,8 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
                                                 equations, face)
             u_ll, u_rr = get_surface_node_vars(interfaces.u, equations, solver,
                                                interface)
-            @trixi_timeit timer() "surface flux" flux=solver.surface_flux(u_ll, u_rr,
-                                                                          normal,
-                                                                          equations)
+            flux = surface_flux(u_ll, u_rr, normal, equations)
+
             for v in eachvariable(equations)
                 flux_ = elements[element].face_areas[face] * flux[v]
                 du[v, element] -= flux_
@@ -198,7 +200,7 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
 end
 
 function prolong2interfaces!(cache, u_tmp, mesh::T8codeMesh, equations, solver::FV)
-    @unpack elements, interfaces = cache
+    (; interfaces) = cache
 
     for interface in eachinterface(solver, cache)
         element = interfaces.neighbor_ids[1, interface]

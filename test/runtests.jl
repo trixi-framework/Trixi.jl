@@ -93,7 +93,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_t8code_3d.jl")
     end
 
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "t8code_part1"
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "t8code_fv"
         include("test_t8code_fv.jl")
     end
 
