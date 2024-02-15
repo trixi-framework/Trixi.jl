@@ -20,7 +20,7 @@
 # parts of boundary that are of interest
 struct AnalysisSurfaceIntegral{Semidiscretization, Variable}
     semi::Semidiscretization # Semidiscretization of PDE used by the solver
-    boundary_index::Int # Index in boundary_condition_indices where quantitiy of interest is computed
+    boundary_index::Int # Index in boundary_condition_indices where quantity of interest is computed
     variable::Variable # Quantity of interest, like lift or drag
     function AnalysisSurfaceIntegral(semi, boundary_condition_type, variable)
         # The bc list as ordered in digest_boundary_conditions
