@@ -146,7 +146,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # the numerical solution of partial differential equations (PDEs).
 
 # As evident from the earlier description of `SemidiscretizationHyperbolic`, it comprises numerous
-# functions called recursively. Without delving into details, the structure of the primary calls
+# functions called subsequently. Without delving into details, the structure of the primary calls
 # are illustrated as follows:
 
 # ![SemidiscretizationHyperbolic_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/8bf59422-0537-4d7a-9f13-d9b2253c19d7)
