@@ -5,150 +5,149 @@
 using NLsolve
 @muladd begin
 
-function F_own(aUnknown, NumStages, NumStageEvals, MonCoeffs)
-    cS2 = 1 # cS2 = c_ts(S-2)
-    c_ts = c_Own(cS2, NumStages) # ts = timestep
+function f_own(a_unknown, num_stages, num_stage_evals, mon_coeffs)
+    c_s2 = 1 # c_s2 = c_ts(S-2)
+    c_ts = c_own(c_s2, num_stages) # ts = timestep
 
-    c_eq = zeros(NumStageEvals - 2) # Add equality constraint that cS2 is equal to 1
+    c_eq = zeros(num_stage_evals - 2) # Add equality constraint that c_s2 is equal to 1
     # Both terms should be present
-    for i in 1:(NumStageEvals - 4)
-        term1 = aUnknown[NumStageEvals - 1]
-        term2 = aUnknown[NumStageEvals]
+    for i in 1:(num_stage_evals - 4)
+        term1 = a_unknown[num_stage_evals - 1]
+        term2 = a_unknown[num_stage_evals]
         for j in 1:i
-            term1 *= aUnknown[NumStageEvals - 1 - j]
-            term2 *= aUnknown[NumStageEvals - j]
+            term1 *= a_unknown[num_stage_evals - 1 - j]
+            term2 *= a_unknown[num_stage_evals - j]
         end
-        term1 *= c_ts[NumStages - 2 - i] * 1/6
-        term2 *= c_ts[NumStages - 1 - i] * 4/6
+        term1 *= c_ts[num_stages - 2 - i] * 1/6
+        term2 *= c_ts[num_stages - 1 - i] * 4/6
 
-        c_eq[i] = MonCoeffs[i] - (term1 + term2)
+        c_eq[i] = mon_coeffs[i] - (term1 + term2)
     end
 
     # Highest coefficient: Only one term present
-    i = NumStageEvals - 3
-    term2 = aUnknown[NumStageEvals]
+    i = num_stage_evals - 3
+    term2 = a_unknown[num_stage_evals]
     for j in 1:i
-        term2 *= aUnknown[NumStageEvals - j]
+        term2 *= a_unknown[num_stage_evals - j]
     end
-    term2 *= c_ts[NumStages - 1 - i] * 4/6
+    term2 *= c_ts[num_stages - 1 - i] * 4/6
 
-    c_eq[i] = MonCoeffs[i] - term2
+    c_eq[i] = mon_coeffs[i] - term2
 
-    c_eq[NumStageEvals - 2] = 1.0 - 4 * aUnknown[NumStageEvals] - aUnknown[NumStageEvals - 1]
+    c_eq[num_stage_evals - 2] = 1.0 - 4 * a_unknown[num_stage_evals] - a_unknown[num_stage_evals - 1]
 
     return c_eq
 end
 
-function c_Own(cS2, NumStages)
-    c_ts = zeros(NumStages);
+function c_own(c_s2, num_stages)
+    c_ts = zeros(num_stages)
 
     # Last timesteps as for SSPRK33
-    c_ts[NumStages]     = 0.5;
-    c_ts[NumStages - 1] = 1;
+    c_ts[num_stages]     = 0.5
+    c_ts[num_stages - 1] = 1
 
     # Linear increasing timestep for remainder
-    for i = 2:NumStages-2
-        c_ts[i] = cS2 * (i-1)/(NumStages - 3);
+    for i in 2:num_stages-2
+        c_ts[i] = c_s2 * (i-1)/(num_stages - 3)
     end
     return c_ts
 end
 
-function ComputePERK3_ButcherTableau(NumStages, NumStageEvals, semi::AbstractSemidiscretization)
+function compute_PERK3_butcher_tableau(num_stages, num_stage_evals, semi::AbstractSemidiscretization)
 
-    #Initialize array of c
-    c_ts = c_Own(1.0, NumStages)
+    # Initialize array of c
+    c_ts = c_own(1.0, num_stages)
 
-    #Initialize the array of our solution
-    aUnknown = zeros(NumStageEvals)
+    # Initialize the array of our solution
+    a_unknown = zeros(num_stage_evals)
 
-    #Case of e = 3
-    if NumStageEvals == 3
-        aUnknown = [0, c_ts[2], 0.25]
+    # Special case of e = 3
+    if num_stage_evals == 3
+        a_unknown = [0, c_ts[2], 0.25]
 
     else
-        #Calculate MonCoeffs from polynomial Optimizer
-        ConsOrder = 3
-        dtMax = 1.0
-        dtEps = 1e-9
+        # Calculate coefficients of the stability polynomial in monomial form
+        cons_order = 3
+        dt_max = 1.0
+        dt_eps = 1e-9
         filter_threshold = 1e-12
 
-        #Get EigVals
+        # Compute spectrum
         J = jacobian_ad_forward(semi)
-        EigVals = eigvals(J)
-        NumEigVals, EigVals = filter_Eigvals(EigVals, filter_threshold)
+        eig_vals = eigvals(J)
+        num_eig_vals, eig_vals = filter_eigvals(eig_vals, filter_threshold)
 
-        MonCoeffs, dt, _ = Bisection(ConsOrder, NumEigVals, NumStages, dtMax, dtEps, EigVals)
-        MonCoeffs = undo_normalization(ConsOrder, NumStages, MonCoeffs)
+        mon_coeffs, dt, _ = bisection(cons_order, num_eig_vals, num_stages, dt_max, dt_eps, eig_vals)
+        mon_coeffs = undo_normalization!(cons_order, num_stages, mon_coeffs)
 
-        #Define the objective_function
+        # Define the objective_function
         function objective_function(x)
-            return F_own(x, NumStages, NumStageEvals, MonCoeffs)
+            return f_own(x, num_stages, num_stage_evals, mon_coeffs)
         end
 
-        #call nlsolver to solve until the answer is not NaN or negative values
+        # Call nlsolver to solve repeatedly until the result is not NaN or negative values
         is_sol_valid = false
-        while is_sol_valid  == false
-            #Initialize initial guess
-            x0 = 0.1 .* rand(NumStageEvals)
+        while !is_sol_valid
+            # Initialize initial guess
+            x0 = 0.1 .* rand(num_stage_evals)
             x0[1] = 0.0
             x0[2] = c_ts[2]
 
-            sol = nlsolve(objective_function, method = :trust_region, x0, 
-                          ftol = 1e-15, iterations = 10^4, xtol = 1e-13)
+            sol = nlsolve(objective_function, x0, method = :trust_region, ftol = 1e-15, iterations = 10^4, xtol = 1e-13)
                           
-            aUnknown = sol.zero
+            a_unknown = sol.zero
 
-            #First check the values of a[i, i-1] which are acquired by nonlinear solver and c[i] - a[i, i-1].
-            is_sol_valid  = all(x -> !isnan(x) && x >= 0, aUnknown[3:end]) && all(x -> !isnan(x) && x >= 0 , c_ts[3:end] .- aUnknown[3:end])
+            # Check if the values a[i, i-1] >= 0.0 (which stem from the nonlinear solver) and subsequently c[i] - a[i, i-1] >= 0.0
+            is_sol_valid = all(x -> !isnan(x) && x >= 0, a_unknown[3:end]) && all(x -> !isnan(x) && x >= 0 , c_ts[3:end] .- a_unknown[3:end])
         end
     end
 
-    println("aUnknown")
-    println(aUnknown[3:end]) #To debug
+    println("a_unknown")
+    println(a_unknown[3:end]) # To debug
 
-    AMatrix = zeros(NumStages - 2, 2)
-    AMatrix[:, 1] = c_ts[3:end]
-    AMatrix[:, 1] -= aUnknown[3:end]
-    AMatrix[:, 2]  = aUnknown[3:end]
+    a_matrix = zeros(num_stages - 2, 2)
+    a_matrix[:, 1] = c_ts[3:end]
+    a_matrix[:, 1] -= a_unknown[3:end]
+    a_matrix[:, 2]  = a_unknown[3:end]
   
-    return AMatrix, c_ts
+    return a_matrix, c_ts
 end
 
-function ComputePERK3_ButcherTableau(NumStages::Int, BasePathMonCoeffs::AbstractString, cS2::Float64)
+function compute_PERK3_butcher_tableau(num_stages::Int, base_path_mon_coeffs::AbstractString, c_s2::Float64)
 
-  # c Vector form Butcher Tableau (defines timestep per stage)
-  c = zeros(NumStages)
-  for k in 2:NumStages-2
-    c[k] = cS2 * (k - 1)/(NumStages - 3) # Equidistant timestep distribution (similar to PERK2)
-  end
+    # c Vector form Butcher Tableau (defines timestep per stage)
+    c = zeros(num_stages)
+    for k in 2:num_stages-2
+      c[k] = c_s2 * (k - 1)/(num_stages - 3) # Equidistant timestep distribution (similar to PERK2)
+    end
   
-  # Original third order proposed PERK
-  #=
-  c[NumStages - 1] = 1.0/3.0
-  c[NumStages]     = 1.0
-  =#
-  # Own third order PERK based on SSPRK33
-  c[NumStages - 1] = 1.0
-  c[NumStages]     = 0.5
+    # Original third order proposed PERK
+    #=
+    c[num_stages - 1] = 1.0/3.0
+    c[num_stages]     = 1.0
+    =#
+    # Own third order PERK based on SSPRK33
+    c[num_stages - 1] = 1.0
+    c[num_stages]     = 0.5
 
-  println("Timestep-split: "); display(c); println("\n")
+    println("Timestep-split: "); display(c); println("\n")
   
-  # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
-  CoeffsMax = NumStages - 2
+    # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
+    coeffs_max = num_stages - 2
 
-  AMatrix = zeros(CoeffsMax, 2)
-  AMatrix[:, 1] = c[3:end]
+    a_matrix = zeros(coeffs_max, 2)
+    a_matrix[:, 1] = c[3:end]
 
-  PathMonCoeffs = BasePathMonCoeffs * "a_" * string(NumStages) * "_" * string(NumStages) * ".txt"
-  NumMonCoeffs, A = read_file(PathMonCoeffs, Float64)
-  @assert NumMonCoeffs == CoeffsMax
+    path_mon_coeffs = base_path_mon_coeffs * "a_" * string(num_stages) * "_" * string(num_stages) * ".txt"
+    num_mon_coeffs, A = read_file(path_mon_coeffs, Float64)
+    @assert num_mon_coeffs == coeffs_max
 
-  AMatrix[:, 1] -= A
-  AMatrix[:, 2]  = A
+    a_matrix[:, 1] -= A
+    a_matrix[:, 2]  = A
     
-  println("A matrix: "); display(AMatrix); println()
+    println("A matrix: "); display(AMatrix); println()
 
-  return AMatrix, c
+    return a_matrix, c
 end
 
 """
@@ -163,31 +162,31 @@ CarpenterKennedy2N{54, 43} methods.
 """
 
 mutable struct PERK3 <: PERKSingle
-  const NumStages::Int
+    const num_stages::Int
 
-  AMatrix::Matrix{Float64}
-  c::Vector{Float64}
+    a_matrix::Matrix{Float64}
+    c::Vector{Float64}
 
-  # Constructor for previously computed A Coeffs
-  function PERK3(NumStages_::Int, BasePathMonCoeffs_::AbstractString, cS2_::Float64=1.0)
+    # Constructor for previously computed A Coeffs
+    function PERK3(num_stages_::Int, base_path_mon_coeffs_::AbstractString, c_s2_::Float64=1.0)
+        newPERK3 = new(num_stages_)
 
-    newPERK3 = new(NumStages_)
+        newPERK3.a_matrix, newPERK3.c = compute_PERK3_butcher_tableau(num_stages_, base_path_mon_coeffs_, c_s2_)
+      
+        return newPERK3
+    end
 
-    newPERK3.AMatrix, newPERK3.c = 
-      ComputePERK3_ButcherTableau(NumStages_, BasePathMonCoeffs_, cS2_)
-    return newPERK3
-  end
+    # Constructor that computes Butcher matrix A coefficients from a semidiscretization
+    function PERK3(num_stages_::Int, num_stage_evals_ ::Int, semi_::AbstractSemidiscretization)
 
-  #Constructor that compute A coefficients from semidiscretization
-  function PERK3(NumStages_::Int, NumStageEvals_ ::Int, semi_::AbstractSemidiscretization)
+        newPERK3 = new(num_stages_)
 
-    newPERK3 = new(NumStages_)
+        newPERK3.a_matrix, newPERK3.c = compute_PERK3_butcher_tableau(num_stages_, num_stage_evals_, semi_)
 
-    newPERK3.AMatrix, newPERK3.c = 
-      ComputePERK3_ButcherTableau(NumStages_, NumStageEvals_, semi_)
+        display(newPERK3.a_matrix)
 
-    return newPERK3
-  end
+        return newPERK3
+    end
 
 end # struct PERK3
 
