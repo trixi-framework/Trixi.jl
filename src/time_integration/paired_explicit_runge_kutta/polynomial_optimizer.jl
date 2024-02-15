@@ -103,7 +103,7 @@ function bisection(cons_order::Int, num_eig_vals::Int, num_stage_evals::Int, dt_
             end
         end
 
-        # Use last optimal values for gamm0 in (potentially) next iteration
+        # Use last optimal values for gamma in (potentially) next iteration
         problem = minimize(polynoms(cons_order, num_stage_evals, num_eig_vals, normalized_powered_eigvals_scaled, pnoms, gamma))
 
         Convex.solve!(
