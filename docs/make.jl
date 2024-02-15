@@ -8,6 +8,7 @@ end
 
 using Trixi
 using Trixi2Vtk
+using TrixiBase
 
 # Get Trixi.jl root directory
 trixi_root_dir = dirname(@__DIR__)
@@ -82,7 +83,7 @@ tutorials = create_tutorials(files)
 # Make documentation
 makedocs(
     # Specify modules for which docstrings should be shown
-    modules = [Trixi, Trixi2Vtk],
+    modules = [Trixi, TrixiBase, Trixi2Vtk],
     # Set sitename to Trixi.jl
     sitename = "Trixi.jl",
     # Provide additional formatting options
@@ -128,6 +129,7 @@ makedocs(
         "Troubleshooting and FAQ" => "troubleshooting.md",
         "Reference" => [
                         "Trixi.jl" => "reference-trixi.md",
+                        "TrixiBase.jl" => "reference-trixibase.md",
                         "Trixi2Vtk.jl" => "reference-trixi2vtk.md"
                        ],
         "Authors" => "authors.md",
