@@ -1265,8 +1265,7 @@ DissipationEntropyStable() = DissipationEntropyStable(max_abs_speed_naive)
         h53 = h35
         h54 = h45
         h55 = ((p_star^2 / (gammas[k] - 1) + E_bar * E_bar) / rho_ln 
-              + vel_avg_norm * p_mean 
-              + tau * ( B1_avg^2 + B2_avg^2 + B3_avg^2 + psi_avg^2 ))
+              + vel_avg_norm * p_mean )
         d5 = -0.5 * λ * (h51 * (w1_rr - w1_ll) +
                          h52 * (w2_rr - w2_ll) +
                          h53 * (w3_rr - w3_ll) +
@@ -1297,11 +1296,18 @@ DissipationEntropyStable() = DissipationEntropyStable(max_abs_speed_naive)
         dissipation[3] -= 0.5 * λ * h_B_psi * B3_avg * (w5_rr - w5_ll)
         dissipation[end] -= 0.5 * λ * h_B_psi * psi_avg * (w5_rr - w5_ll)
 
+        # Dissipation for the energy equation of species k depending on w_1, w_2, w_3 and w_end
         ind_E = 3 + (k - 1) * 5 + 5
         dissipation[ind_E] -= 0.5 * λ * h_B_psi * B1_avg * (w_rr[1] - w_ll[1])
         dissipation[ind_E] -= 0.5 * λ * h_B_psi * B2_avg * (w_rr[2] - w_ll[2])
         dissipation[ind_E] -= 0.5 * λ * h_B_psi * B3_avg * (w_rr[3] - w_ll[3])
         dissipation[ind_E] -= 0.5 * λ * h_B_psi * psi_avg * (w_rr[end] - w_ll[end])
+
+        # Dissipation for the energy equation of all ion species depending on w_5
+        for kk in eachcomponent(equations)
+            ind_E = 3 + (kk - 1) * 5 + 5
+            dissipation[ind_E] -= 0.5 * λ * (h_B_psi * ( B1_avg^2 + B2_avg^2 + B3_avg^2 + psi_avg^2 )) * (w5_rr - w5_ll)
+        end
     end
 
     return dissipation
