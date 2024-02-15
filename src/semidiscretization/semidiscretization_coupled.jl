@@ -435,10 +435,20 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
                                 Val(nvariables(equations))))
 
     # Calculate boundary flux
-    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-        flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-        flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+    if surface_flux_function isa Tuple
+        if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+            flux = surface_flux_function[1](u_inner, u_boundary, orientation, equations) +
+                   0.5 * surface_flux_function[2](u_inner, u_boundary, orientation, equations)
+        else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+            flux = surface_flux_function[1](u_boundary, u_inner, orientation, equations) +
+                   0.5 * surface_flux_function[2](u_boundary, u_inner, orientation, equations)
+        end
+    else
+        if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+            flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+        else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+            flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+        end
     end
 
     return flux
