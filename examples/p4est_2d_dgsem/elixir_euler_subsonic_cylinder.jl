@@ -9,7 +9,7 @@ using Trixi: AnalysisSurfaceIntegral, DragCoefficient, LiftCoefficient
 
 equations = CompressibleEulerEquations2D(1.4)
 
-@inline function initial_condition_mach01_flow(x, t,
+@inline function initial_condition_mach038_flow(x, t,
                                                equations::CompressibleEulerEquations2D)
     # set the freestream flow parameters
     rho_freestream = 1.4
@@ -21,7 +21,7 @@ equations = CompressibleEulerEquations2D(1.4)
     return prim2cons(prim, equations)
 end
 
-initial_condition = initial_condition_mach01_flow
+initial_condition = initial_condition_mach038_flow
 
 volume_flux = flux_ranocha_turbo # FluxRotated(flux_chandrashekar) can also be used
 surface_flux = flux_lax_friedrichs
@@ -63,7 +63,7 @@ mesh = P4estMesh(cells_per_dimension, mapping = mapping2cylinder, polydeg = 3,
                                                       t,
                                                       surface_flux_function,
                                                       equations::CompressibleEulerEquations2D)
-    u_boundary = initial_condition_mach01_flow(x, t, equations)
+    u_boundary = initial_condition_mach038_flow(x, t, equations)
 
     return surface_flux_function(u_inner, u_boundary, normal_direction, equations)
 end

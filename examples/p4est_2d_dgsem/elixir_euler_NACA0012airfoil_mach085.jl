@@ -117,8 +117,9 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       med_level = 3, med_threshold = 0.05,
                                       max_level = 4, max_threshold = 0.1)
 
+amr_interval = 100
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 100,
+                           interval = amr_interval,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 

@@ -27,14 +27,7 @@ struct AnalysisSurfaceIntegral{Semidiscretization, Indices, Variable}
 end
 
 struct ForceState{RealT <: Real}
-    Ψ::Tuple{RealT, RealT} # Unit vector normal or parallel to freestream
-    rhoinf::RealT
-    uinf::RealT
-    linf::RealT
-end
-
-# TODO - This should be a struct in ForceState
-struct FreeStreamVariables{RealT <: Real}
+    psi::Tuple{RealT, RealT} # Unit vector normal or parallel to freestream
     rhoinf::RealT
     uinf::RealT
     linf::RealT
@@ -49,29 +42,29 @@ struct DragCoefficient{RealT <: Real}
 end
 
 function LiftCoefficient(aoa, rhoinf, uinf, linf)
-    # Ψl is the normal unit vector to the freestream direction
-    Ψl = (-sin(aoa), cos(aoa))
-    force_state = ForceState(Ψl, rhoinf, uinf, linf)
+    # psi_lift is the normal unit vector to the freestream direction
+    psi_lift = (-sin(aoa), cos(aoa))
+    force_state = ForceState(psi_lift, rhoinf, uinf, linf)
     return LiftCoefficient(force_state)
 end
 
 function DragCoefficient(aoa, rhoinf, uinf, linf)
-    # Ψd is the unit vector parallel to the freestream direction
-    Ψd = (cos(aoa), sin(aoa))
-    return DragCoefficient(ForceState(Ψd, rhoinf, uinf, linf))
+    # psi_drag is the unit vector parallel to the freestream direction
+    psi_drag = (cos(aoa), sin(aoa))
+    return DragCoefficient(ForceState(psi_drag, rhoinf, uinf, linf))
 end
 
 function (lift_coefficient::LiftCoefficient)(u, normal_direction, equations)
     p = pressure(u, equations)
-    @unpack Ψ, rhoinf, uinf, linf = lift_coefficient.force_state
-    n = dot(normal_direction, Ψ) / norm(normal_direction)
+    @unpack psi, rhoinf, uinf, linf = lift_coefficient.force_state
+    n = dot(normal_direction, psi) / norm(normal_direction)
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
 end
 
 function (drag_coefficient::DragCoefficient)(u, normal_direction, equations)
     p = pressure(u, equations)
-    @unpack Ψ, rhoinf, uinf, linf = drag_coefficient.force_state
-    n = dot(normal_direction, Ψ) / norm(normal_direction)
+    @unpack psi, rhoinf, uinf, linf = drag_coefficient.force_state
+    n = dot(normal_direction, psi) / norm(normal_direction)
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
 end
 

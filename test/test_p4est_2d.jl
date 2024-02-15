@@ -561,17 +561,34 @@ end
     @test isapprox(drag, 2.588589856781827, atol = 1e-13)
 end
 
+# Forces computation test in an AMR code
 @trixi_testset "elixir_euler_NACA0012airfoil_mach085.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_NACA0012airfoil_mach085.jl"),
-                        l2=[6.054106141023162e-7,
-                            7.4947583731596855e-6,
-                            1.1682455936043817e-5,
-                            0.0007173721760332341],
-                        linf=[0.002472349864955632,
-                              0.043496823453937614,
-                              0.043648671347888836,
-                              3.046213202855595], tspan=(0.0, 0.0001))
+                        l2=[5.756878791758828e-7,
+                            6.796904726549772e-6,
+                            1.1127326665302503e-5,
+                            0.0006841659623491992],
+                        linf=[0.0023954158177901686,
+                              0.04290641165627283,
+                              0.04250015332478646,
+                              2.9640108432161285],
+                              base_level = 0, med_level = 1, max_level = 1,
+                              amr_interval = 1,
+                              tspan=(0.0, 0.0001))
+
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode) # Just a placeholder in this case
+
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+    drag = Trixi.analyze(drag_coefficient, du, u, tspan[2], mesh, equations, solver,
+                         semi.cache)
+    lift = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
+                         semi.cache)
+
+    @test isapprox(lift, 0.029482383224495173, atol = 1e-13)
+    @test isapprox(drag, 0.14586550052248398, atol = 1e-13)
 end
 end
 
