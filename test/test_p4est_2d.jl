@@ -570,12 +570,12 @@ end
                             1.1127326665302503e-5,
                             0.0006841659623491992],
                         linf=[0.0023954158177901686,
-                              0.04290641165627283,
-                              0.04250015332478646,
-                              2.9640108432161285],
-                              base_level = 0, med_level = 1, max_level = 1,
-                              amr_interval = 1,
-                              tspan=(0.0, 0.0001))
+                            0.04290641165627283,
+                            0.04250015332478646,
+                            2.9640108432161285],
+                        base_level=0, med_level=1, max_level=1,
+                        amr_interval=1,
+                        tspan=(0.0, 0.0001))
 
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode) # Just a placeholder in this case

@@ -10,7 +10,7 @@ using Trixi: AnalysisSurfaceIntegral, DragCoefficient, LiftCoefficient
 equations = CompressibleEulerEquations2D(1.4)
 
 @inline function initial_condition_mach038_flow(x, t,
-                                               equations::CompressibleEulerEquations2D)
+                                                equations::CompressibleEulerEquations2D)
     # set the freestream flow parameters
     rho_freestream = 1.4
     v1 = 0.38
