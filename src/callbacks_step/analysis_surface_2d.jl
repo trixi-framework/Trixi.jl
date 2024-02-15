@@ -1,14 +1,26 @@
+# This file contains callbacks that are performed on the surface like computation of
+# surface forces
+
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
-# TODO - Add explanation for what this file contains
 
-struct AnalysisSurfaceIntegral{Semidiscretization, Indices, Variable}
-    semi::Semidiscretization
-    indices::Indices
+# The boundary_index is chosen so that
+# semi.boundary_conditions.boundary_indices[boundary_index]
+# gives the solution point indices on which the function `variable` will compute
+# the quantity of interest. The `variable` can, e.g., integrate over all indices
+# to compute the coefficient of lift. But it can also be used to loop over all indices
+# to save coefficient of pressure versus surface points in a data file
+# The struct contains an inner constructor which helps the user choose those indices
+# by specifying the `boundary_condition_type` of the indices. The user needs to make
+# sure that they choose the `boundary_condition_type` so that it is only applying to the
+# parts of boundary that are of interest
+struct AnalysisSurfaceIntegral{Semidiscretization, Variable}
+    semi::Semidiscretization # Semidiscretization of PDE used by the solver
+    boundary_index::Int # Index in boundary_condition_indices where quantitiy of interest is computed
     variable::Variable # Quantity of interest, like lift or drag
     function AnalysisSurfaceIntegral(semi, boundary_condition_type, variable)
         # The bc list as ordered in digest_boundary_conditions
@@ -17,12 +29,12 @@ struct AnalysisSurfaceIntegral{Semidiscretization, Indices, Variable}
         # The set of all indices that gives the bc where the surface integral is to be computed
         index = sort(findall(x -> x == boundary_condition_type, ordered_bc))
 
-        # Put the bc in function form as they might change under AMR
-        indices = semi -> Vector([semi.boundary_conditions.boundary_indices[i]
-                                  for i in index])[1] # TODO - Should not need Vector and the [1]
+        # digest_boundary_conditions clubs all indices with same boundary conditions into
+        # one. This is just checking that it is indeed the case for the next step.
+        @assert length(index) == 1
 
-        return new{typeof(semi), typeof(indices), typeof(variable)}(semi, indices,
-                                                                    variable)
+        return new{typeof(semi), typeof(variable)}(semi, index[1],
+                                                   variable)
     end
 end
 
@@ -74,14 +86,15 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
-    @unpack semi, indices, variable = surface_variable
-    indices_ = indices(semi)
+    @unpack semi, boundary_index, variable = surface_variable
+
+    indices = semi.boundary_conditions.boundary_indices[boundary_index]
 
     surface_integral = zero(eltype(u))
     index_range = eachnode(dg)
-    for local_index in eachindex(indices_)
+    for local_index in eachindex(indices)
         # Use the local index to get the global boundary index from the pre-sorted list
-        boundary = indices_[local_index]
+        boundary = indices[local_index]
 
         # Get information on the adjacent element, compute the surface fluxes,
         # and store them
@@ -112,19 +125,19 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
     return surface_integral
 end
 
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any, <:Any,
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any,
                                                      <:LiftCoefficient{<:Any}})
     "CL"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any, <:Any,
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any,
                                                    <:LiftCoefficient{<:Any}})
     "CL"
 end
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any, <:Any,
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any,
                                                      <:DragCoefficient{<:Any}})
     "CD"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any, <:Any,
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any,
                                                    <:DragCoefficient{<:Any}})
     "CD"
 end

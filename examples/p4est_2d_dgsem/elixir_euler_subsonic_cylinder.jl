@@ -55,8 +55,8 @@ cells_per_dimension = (64, 64)
 mesh = P4estMesh(cells_per_dimension, mapping = mapping2cylinder, polydeg = 3,
                  periodicity = (false, true))
 
-# The boundary of the outer cylinder is constant but subsonic, so we cannot compute the
-# boundary flux for the external information alone. Thus, we use the numerical flux to distinguish
+# The boundary conditions of the outer cylinder is constant but subsonic, so we cannot compute the
+# boundary flux from the external information alone. Thus, we use the numerical flux to distinguish
 # between inflow and outflow characteristics
 @inline function boundary_condition_subsonic_constant(u_inner,
                                                       normal_direction::AbstractVector, x,

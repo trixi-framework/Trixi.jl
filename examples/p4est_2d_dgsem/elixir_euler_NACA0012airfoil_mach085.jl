@@ -86,6 +86,8 @@ analysis_interval = 2000
 
 linf = 1.0 # Length of airfoil
 
+# The boundary on which we want to compute the forces is the one where boundary conditions
+# are slip wall.
 drag_coefficient = AnalysisSurfaceIntegral(semi, boundary_condition_slip_wall,
                                            DragCoefficient(aoa(), rho_inf(),
                                                            U_inf(equations), linf))

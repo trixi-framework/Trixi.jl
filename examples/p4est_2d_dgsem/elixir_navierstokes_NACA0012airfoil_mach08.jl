@@ -58,8 +58,8 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/Arpit-Babbar/3396
 
 mesh = P4estMesh{2}(mesh_file, initial_refinement_level = 1)
 
-# The boundary of the outer cylinder is constant but subsonic, so we cannot compute the
-# boundary flux for the external information alone. Thus, we use the numerical flux to distinguish
+# The boundary values across outer boundary are constant but subsonic, so we cannot compute the
+# boundary flux from the external information alone. Thus, we use the numerical flux to distinguish
 # between inflow and outflow characteristics
 @inline function boundary_condition_subsonic_constant(u_inner,
                                                       normal_direction::AbstractVector, x,
