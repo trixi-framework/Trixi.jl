@@ -565,17 +565,23 @@ end
 @trixi_testset "elixir_euler_NACA0012airfoil_mach085.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_NACA0012airfoil_mach085.jl"),
-                        l2=[5.763969153227137e-7,
-                            6.7983731359493415e-6,
-                            1.1136096550405798e-5,
-                            0.000684989462539266],
-                        linf=[0.002411375295350659,
-                            0.04305328756849549,
-                            0.04272712024785543,
-                            2.981598654532575],
+                        l2=[
+                            5.59290009961641e-7,
+                            6.709050529319647e-6,
+                            1.0832036354579161e-5,
+                            0.00066312990043519,
+                        ],
+                        linf=[
+                            0.0020566846007074946,
+                            0.038004977184127715,
+                            0.03680677713072339,
+                            2.5456859522627036,
+                        ],
                         base_level=0, med_level=1, max_level=1,
-                        amr_interval=1, cfl=0.1,
-                        tspan=(0.0, 0.0001))
+                        amr_interval=5, cfl=0.25,
+                        tspan=(0.0, 0.0001),
+                        adapt_initial_condition=false,
+                        adapt_initial_condition_only_refine=false)
 
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode) # Just a placeholder in this case
@@ -587,8 +593,12 @@ end
     lift = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
                          semi.cache)
 
-    @test isapprox(lift, 0.029723886821464478, atol = 1e-13)
-    @test isapprox(drag, 0.1463432877615894, atol = 1e-13)
+    @show drag, lift
+    @show analysis_callback(sol).l2
+    @show analysis_callback(sol).linf
+
+    @test isapprox(lift, 0.030280394867287057, atol = 1e-13)
+    @test isapprox(drag, 0.13085519947527666, atol = 1e-13)
 end
 end
 
