@@ -2,12 +2,12 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# Coupled semidiscretization of two ideal glmMhd systems using converter functions such that
-# they are also coupled across the domain boundaries to generate a periodic system.
+# Two semidiscretizations of the ideal GLM-MHD systems using converter functions such that
+# they are coupled across the domain boundaries to generate a periodic system.
 #
 # In this elixir, we have a square domain that is divided into a left and right half.
-# On each half of the domain, a completely independent SemidiscretizationHyperbolic is created for the
-# linear ideal glmMhd equations. The four systems are coupled in the x and y-direction.
+# On each half of the domain, an independent SemidiscretizationHyperbolic is created for
+# each set of ideal GLM-MHD equations. The two systems are coupled in the x and y-direction.
 # For a high-level overview, see also the figure below:
 #
 # (-2,  2)                                   ( 2,  2)
