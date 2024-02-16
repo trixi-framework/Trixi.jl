@@ -1,7 +1,7 @@
 name = "Trixi"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 authors = ["Michael Schlottke-Lakemper <m.schlottke-lakemper@hlrs.de>", "Gregor Gassner <ggassner@uni-koeln.de>", "Hendrik Ranocha <mail@ranocha.de>", "Andrew R. Winters <andrew.ross.winters@liu.se>", "Jesse Chan <jesse.chan@rice.edu>"]
-version = "0.6.9-pre"
+version = "0.6.10-pre"
 
 [deps]
 CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
@@ -45,6 +45,7 @@ TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
 TriplotBase = "981d1d27-644d-49a2-9326-4793e63143c3"
 TriplotRecipes = "808ab39a-a642-4abf-81ff-4cb34ebbffa3"
+TrixiBase = "9a0f1c46-06d5-4909-a5a3-ce25d3fa3284"
 
 [weakdeps]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
@@ -95,6 +96,7 @@ TimerOutputs = "0.5.7"
 Triangulate = "2.0"
 TriplotBase = "0.1"
 TriplotRecipes = "0.1"
+TrixiBase = "0.1.1"
 julia = "1.8"
 
 [extras]
