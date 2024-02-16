@@ -186,8 +186,10 @@ ode = semidiscretize(semi, (0.0, 1.0));
 #   OrdinaryDiffEq.jl. However, for internal use within Trixi.jl, identifying which part of the
 #   vector relates to specific variables, elements, or nodes can be challenging.
 
-#   This is why the `u_ode` vector is wrapped by the `wrap_array` function to create a
-#   multidimensional array `u`, with each dimension representing variables, nodes and elements.
+#   This is why the `u_ode` vector is wrapped by the `wrap_array` function using `unsafe_wrap`
+#   to form a multidimensional array `u`. In this array, the first dimension corresponds to
+#   variables, followed by N dimensions corresponding to nodes for each of N space dimensions.
+#   The last dimension corresponds to the elements. 
 #   Consequently, navigation within this multidimensional array becomes noticeably easier.
 
 #   "Wrapping" in this context involves the creation of a reference to the same storage location
