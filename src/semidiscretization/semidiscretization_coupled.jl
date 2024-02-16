@@ -161,15 +161,19 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 
     time_start = time_ns()
 
-    foreach(semi.semis) do semi_
-        copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi, semi_)
+    @trixi_timeit timer() "copy to coupled boundaries" begin
+        foreach(semi.semis) do semi_
+            copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi, semi_)
+        end
     end
 
     # Call rhs! for each semidiscretization
-    foreach_enumerate(semi.semis) do (i, semi_)
-        u_loc = get_system_u_ode(u_ode, i, semi)
-        du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, semi_, t)
+    @trixi_timeit timer() "copy to coupled boundaries" begin
+        foreach_enumerate(semi.semis) do (i, semi_)
+            u_loc = get_system_u_ode(u_ode, i, semi)
+            du_loc = get_system_u_ode(du_ode, i, semi)
+            rhs!(du_loc, u_loc, semi_, t)
+        end
     end
 
     runtime = time_ns() - time_start
