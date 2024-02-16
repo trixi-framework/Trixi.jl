@@ -28,28 +28,6 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 1,
                 n_cells_max = 150_000) # set maximum capacity of tree data structure
 
-function initial_condition_constant_alfven_1d(x, t, equations)
-    # Alfvén wave in three space dimensions modified by a periodic density variation.
-    # For the system without the density variations see: Altmann thesis http://dx.doi.org/10.18419/opus-3895.
-    # Domain must be set to [-1, 1]^3, γ = 5/3.
-    # e = epsilon
-    e = 0.02
-
-    # 1d Alfven wave.
-    k = 2 * pi
-    rho = 1.0
-    v1 = 0
-    v2 = -e * sin(k * x[1]) * sqrt(rho)
-    v3 = 0
-    p = 1
-    B1 = 1
-    B2 = e * sin(k * x[1])
-    B3 = 0
-    psi = 0
-
-    return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
-end
-
 function initial_condition_constant_alfven_3d(x, t, equations)
     # Alfvén wave in three space dimensions modified by a periodic density variation.
     # For the system without the density variations see: Altmann thesis http://dx.doi.org/10.18419/opus-3895.
@@ -77,25 +55,6 @@ function initial_condition_constant_alfven_3d(x, t, equations)
     psi = 0.0
 
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
-end
-
-@inline function source_terms_mhd_convergence_test_1d(u, x, t, equations)
-    # 1d Alfven wave
-    r_1 = 0.0
-    r_2 = 0.0004 * pi * sin(4 * pi * x[1])
-    r_3 = -pi * (0.08 * pi * mu_const * sin(2 * pi * x[1]) + 0.04 * cos(2 * pi * x[1]))
-    r_4 = 0.0
-    r_5 = pi * (0.0016 * pi * eta_const * sin(2 * pi * x[1])^2 -
-           0.0016 * pi * eta_const * cos(2 * pi * x[1])^2 +
-           0.0127111111111111 * pi * mu_const * sin(2 * pi * x[1])^2 -
-           0.0127111111111111 * pi * mu_const * cos(2 * pi * x[1])^2 +
-           0.0008 * sin(4 * pi * x[1]))
-    r_6 = 0.0
-    r_7 = pi * (0.08 * pi * eta_const * sin(2 * pi * x[1]) + 0.04 * cos(2 * pi * x[1]))
-    r_8 = 0.0
-    r_9 = 0.0
-
-    return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
 
 @inline function source_terms_mhd_convergence_test_3d(u, x, t, equations)
@@ -2665,11 +2624,6 @@ end
     return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
 
-# # 1d
-# initial_condition = initial_condition_constant_alfven_1d
-# source_terms = source_terms_mhd_convergence_test_1d
-
-# 3d
 initial_condition = initial_condition_constant_alfven_3d
 source_terms = source_terms_mhd_convergence_test_3d
 
