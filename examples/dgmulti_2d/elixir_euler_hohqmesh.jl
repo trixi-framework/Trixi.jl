@@ -1,5 +1,4 @@
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -30,12 +29,8 @@ dg = DGMulti(polydeg = 8, element_type = Quad(), approximation_type = SBP(),
 
 ###############################################################################
 # Get the curved quad mesh from a file (downloads the file if not available locally)
-
-default_mesh_file = joinpath(@__DIR__, "mesh_trixi_unstructured_mesh_docs.mesh")
-isfile(default_mesh_file) ||
-    download("https://gist.githubusercontent.com/andrewwinters5000/52056f1487853fab63b7f4ed7f171c80/raw/9d573387dfdbb8bce2a55db7246f4207663ac07f/mesh_trixi_unstructured_mesh_docs.mesh",
-             default_mesh_file)
-mesh_file = default_mesh_file
+mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/52056f1487853fab63b7f4ed7f171c80/raw/9d573387dfdbb8bce2a55db7246f4207663ac07f/mesh_trixi_unstructured_mesh_docs.mesh",
+                           joinpath(@__DIR__, "mesh_trixi_unstructured_mesh_docs.mesh"))
 
 mesh = DGMultiMesh(dg, mesh_file)
 
