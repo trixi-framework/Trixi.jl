@@ -2,7 +2,6 @@
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-include("polynomial_optimizer.jl")
 @muladd begin
 
 abstract type PERK end
