@@ -73,6 +73,7 @@ jobs:
       - uses: julia-actions/julia-downgrade-compat@v1
         with:
           skip: LinearAlgebra,Printf,SparseArrays,DiffEqBase
+          projects: ., test
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
