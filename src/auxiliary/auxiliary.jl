@@ -160,9 +160,9 @@ For example, use `solve(ode, alg; ode_default_options()...)`.
 function ode_default_options()
     if mpi_isparallel()
         return (; save_everystep = false, internalnorm = ode_norm,
-                unstable_check = ode_unstable_check)
+                unstable_check = ode_unstable_check, interface_checks = false)
     else
-        return (; save_everystep = false)
+        return (; save_everystep = false, interface_checks = false)
     end
 end
 
