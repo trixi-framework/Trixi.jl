@@ -26,4 +26,3 @@ include("compressible_navier_stokes_3d.jl")
 abstract type AbstractViscoResistiveMhd{NDIMS, NVARS} <:
               AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative} end
 include("visco_resistive_mhd_2d.jl")
-
