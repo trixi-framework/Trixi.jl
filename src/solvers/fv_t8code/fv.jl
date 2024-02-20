@@ -219,13 +219,13 @@ function prolong2interfaces!(cache, u_tmp, mesh::T8codeMesh, equations, solver::
 end
 
 function get_element_variables!(element_variables, u,
-                                mesh::T8codeMesh, equations,
-                                solver, cache)
+                                mesh, equations,
+                                solver::FV, cache)
     return nothing
 end
 
-function get_node_variables!(node_variables, mesh::T8codeMesh,
-                             equations, solver, cache)
+function get_node_variables!(node_variables, mesh,
+                             equations, solver::FV, cache)
     return nothing
 end
 
