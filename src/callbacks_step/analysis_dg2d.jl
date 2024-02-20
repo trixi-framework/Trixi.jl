@@ -150,7 +150,7 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh, equations,
+                          mesh::T8codeMesh, equations,
                           initial_condition, solver::FV, cache, cache_analysis)
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, solver, 1), equations))
@@ -337,7 +337,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::T8codeMesh{2},
+                 mesh::T8codeMesh,
                  equations, solver::FV, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, solver, cache,
