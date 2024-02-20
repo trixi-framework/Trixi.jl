@@ -1,10 +1,3 @@
-#!/usr/bin/env julia
-# Has to be at least Julia v1.9.0.
-
-# Running in parallel:
-#   ${JULIA_DEPOT_PATH}/.julia/bin/mpiexecjl --project=. -n 3 julia hybrid-t8code-mesh.jl
-#
-# More information: https://juliaparallel.org/MPI.jl/stable/usage/
 using OrdinaryDiffEq
 using Trixi
 
