@@ -1127,8 +1127,8 @@ end
 # t8code supports writing element based data to vtu as long as its stored
 # as doubles. Each of the data fields to write has to be provided in its own
 # array of length num_local_elements.
-# We support two types: T8_VTK_SCALAR - One double per element.
-#                  and  T8_VTK_VECTOR - Three doubles per element.
+# t8code supports two types: T8_VTK_SCALAR - One double per element.
+#                       and  T8_VTK_VECTOR - Three doubles per element.
 function output_data_to_vtu(mesh::T8codeMesh, equations, solver,
                             u_tmp, out)
     vars = varnames(cons2cons, equations)
@@ -1199,7 +1199,6 @@ function cmesh_new_periodic_hybrid(comm)::t8_cmesh_t
     # geometries in t8code do not have C interface yet.
     linear_geom = t8_geometry_linear_new(n_dims)
 
-    #
     # This is how the cmesh looks like. The numbers are the tree numbers:
     # Domain size [-1,1]^2
     #
@@ -1273,7 +1272,6 @@ function cmesh_new_periodic_quad_nonperiodic(comm)::t8_cmesh_t
     # geometries in t8code do not have C interface yet.
     linear_geom = t8_geometry_linear_new(n_dims)
 
-    #
     # This is how the cmesh looks like. The numbers are the tree numbers:
     #
     #   +---+
@@ -1320,7 +1318,6 @@ function cmesh_new_periodic_quad(comm)::t8_cmesh_t
     # geometries in t8code do not have C interface yet.
     linear_geom = t8_geometry_linear_new(n_dims)
 
-    #
     # This is how the cmesh looks like. The numbers are the tree numbers:
     #
     #   +---+
@@ -1371,7 +1368,6 @@ function cmesh_new_periodic_tri(comm)::t8_cmesh_t
     # geometries in t8code do not have C interface yet.
     linear_geom = t8_geometry_linear_new(n_dims)
 
-    #
     # This is how the cmesh looks like. The numbers are the tree numbers:
     #
     #   +---+
@@ -1385,7 +1381,7 @@ function cmesh_new_periodic_tri(comm)::t8_cmesh_t
     t8_cmesh_init(cmesh_ref)
     cmesh = cmesh_ref[]
 
-    # /* Use linear geometry */
+    # Use linear geometry
     t8_cmesh_register_geometry(cmesh, linear_geom)
     t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_TRIANGLE)
     t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_TRIANGLE)
@@ -1453,7 +1449,7 @@ function cmesh_new_periodic_tri2(comm)::t8_cmesh_t
     t8_cmesh_init(cmesh_ref)
     cmesh = cmesh_ref[]
 
-    # /* Use linear geometry */
+    # Use linear geometry
     t8_cmesh_register_geometry(cmesh, linear_geom)
     t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_TRIANGLE)
     t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_TRIANGLE)
@@ -1497,7 +1493,6 @@ function cmesh_new_periodic_tri2(comm)::t8_cmesh_t
     return cmesh
 end
 
-# Directly ported from: `src/t8_cmesh/t8_cmesh_examples.c: t8_cmesh_new_periodic_hybrid`.
 function cmesh_new_periodic_hybrid2(comm)::t8_cmesh_t
     n_dims = 2
     vertices = [  # Just all vertices of all trees. partly duplicated
@@ -1518,7 +1513,7 @@ function cmesh_new_periodic_hybrid2(comm)::t8_cmesh_t
         -2.0, 0, 0,
         0, 2.0, 0,
     ]
-    #
+
     # This is how the cmesh looks like. The numbers are the tree numbers:
     # Domain size [-2,2]^2
     #
