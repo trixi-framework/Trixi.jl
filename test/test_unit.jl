@@ -858,6 +858,30 @@ end
     end
 end
 
+@timed_testset "Consistency check for Lax-Friedrich flux: Polytropic CEE" begin
+    for gamma in [1.4, 1.0, 5 / 3]
+        kappa = 0.5     # Scaling factor for the pressure.
+        equations = PolytropicEulerEquations2D(gamma, kappa)
+        u = SVector(1.1, -0.5, 2.34)
+
+        orientations = [1, 2]
+        for orientation in orientations
+            @test flux_lax_friedrichs(u, u, orientation, equations) ≈
+                  flux(u, orientation, equations)
+        end
+
+        normal_directions = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+
+        for normal_direction in normal_directions
+            @test flux_lax_friedrichs(u, u, normal_direction, equations) ≈
+                  flux(u, normal_direction, equations)
+        end
+    end
+end
+
 @timed_testset "Consistency check for HLL flux with Davis wave speed estimates: LEE" begin
     flux_hll = FluxHLL(min_max_speed_davis)
 
@@ -1528,103 +1552,6 @@ end
     mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = false)
 
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
-end
-
-@testset "trixi_include" begin
-    @trixi_testset "Basic" begin
-        example = """
-            x = 4
-            """
-
-        filename = tempname()
-        try
-            open(filename, "w") do file
-                write(file, example)
-            end
-
-            # Use `@trixi_testset`, which wraps code in a temporary module, and call
-            # `trixi_include` with `@__MODULE__` in order to isolate this test.
-            @test_warn "You just called" trixi_include(@__MODULE__, filename)
-            @test @isdefined x
-            @test x == 4
-
-            @test_warn "You just called" trixi_include(@__MODULE__, filename, x = 7)
-            @test x == 7
-
-            @test_throws "assignment `y` not found in expression" trixi_include(@__MODULE__,
-                                                                                filename,
-                                                                                y = 3)
-        finally
-            rm(filename, force = true)
-        end
-    end
-
-    @trixi_testset "With `solve` Without `maxiters`" begin
-        # `trixi_include` assumes this to be the `solve` function of OrdinaryDiffEq,
-        # and therefore tries to insert the kwarg `maxiters`, which will fail here.
-        example = """
-            solve() = 0
-            x = solve()
-            """
-
-        filename = tempname()
-        try
-            open(filename, "w") do file
-                write(file, example)
-            end
-
-            # Use `@trixi_testset`, which wraps code in a temporary module, and call
-            # `trixi_include` with `@__MODULE__` in order to isolate this test.
-            @test_throws "no method matching solve(; maxiters::Int64)" trixi_include(@__MODULE__,
-                                                                                     filename)
-
-            @test_throws "no method matching solve(; maxiters::Int64)" trixi_include(@__MODULE__,
-                                                                                     filename,
-                                                                                     maxiters = 3)
-        finally
-            rm(filename, force = true)
-        end
-    end
-
-    @trixi_testset "With `solve` with `maxiters`" begin
-        # We need another example file that we include with `Base.include` first, in order to
-        # define the `solve` method without `trixi_include` trying to insert `maxiters` kwargs.
-        # Then, we can test that `trixi_include` inserts the kwarg in the `solve()` call.
-        example1 = """
-            solve(; maxiters=0) = maxiters
-            """
-
-        example2 = """
-            x = solve()
-            """
-
-        filename1 = tempname()
-        filename2 = tempname()
-        try
-            open(filename1, "w") do file
-                write(file, example1)
-            end
-            open(filename2, "w") do file
-                write(file, example2)
-            end
-
-            # Use `@trixi_testset`, which wraps code in a temporary module, and call
-            # `Base.include` and `trixi_include` with `@__MODULE__` in order to isolate this test.
-            Base.include(@__MODULE__, filename1)
-            @test_warn "You just called" trixi_include(@__MODULE__, filename2)
-            @test @isdefined x
-            # This is the default `maxiters` inserted by `trixi_include`
-            @test x == 10^5
-
-            @test_warn "You just called" trixi_include(@__MODULE__, filename2,
-                                                       maxiters = 7)
-            # Test that `maxiters` got overwritten
-            @test x == 7
-        finally
-            rm(filename1, force = true)
-            rm(filename2, force = true)
-        end
-    end
 end
 end
 

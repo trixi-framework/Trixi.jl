@@ -70,6 +70,8 @@ using Triangulate: Triangulate, TriangulateIO, triangulate
 export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
+@reexport using TrixiBase: trixi_include
+using TrixiBase: TrixiBase
 @reexport using SimpleUnPack: @unpack
 using SimpleUnPack: @pack!
 using DataStructures: BinaryHeap, FasterForward, extract_all!
@@ -129,7 +131,7 @@ include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
 
-# `trixi_include` and special elixirs such as `convergence_test`
+# Special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
@@ -155,7 +157,8 @@ export AcousticPerturbationEquations2D,
        ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
        ShallowWaterEquationsQuasi1D,
        LinearizedEulerEquations2D,
-       PolytropicEulerEquations2D
+       PolytropicEulerEquations2D,
+       TrafficFlowLWREquations1D
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
