@@ -161,7 +161,7 @@ end
 @inline function flux(u, orientation::Integer, equations::IdealMhdMultiIonEquations2D)
     B1, B2, B3 = magnetic_field(u, equations)
     psi = divergence_cleaning_field(u, equations)
-    
+
     v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,
                                                                                          equations)
 
@@ -190,7 +190,8 @@ end
             f3 = rho_v1 * v2
             f4 = rho_v1 * v3
             f5 = (kin_en + gamma * p / (gamma - 1)) * v1 + 2 * mag_en * vk1_plus[k] -
-                 B1 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) + equations.c_h * psi * B1
+                 B1 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) +
+                 equations.c_h * psi * B1
 
             set_component!(f, k, f1, f2, f3, f4, f5, equations)
         end
@@ -215,7 +216,8 @@ end
             f3 = rho_v2 * v2 + p
             f4 = rho_v2 * v3
             f5 = (kin_en + gamma * p / (gamma - 1)) * v2 + 2 * mag_en * vk2_plus[k] -
-                 B2 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) + equations.c_h * psi * B2
+                 B2 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) +
+                 equations.c_h * psi * B2
 
             set_component!(f, k, f1, f2, f3, f4, f5, equations)
         end
@@ -340,13 +342,17 @@ The term is composed of three parts
                    B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg))
 
             # Adjust non-conservative terms 2 and 3 to Trixi discretization: CHANGE!?!
-            f2 = 2 * f2 - charge_ratio_ll[k] * (0.5 * mag_norm_ll - B1_ll * B1_ll + pe_ll)
+            f2 = 2 * f2 -
+                 charge_ratio_ll[k] * (0.5 * mag_norm_ll - B1_ll * B1_ll + pe_ll)
             f3 = 2 * f3 + charge_ratio_ll[k] * B1_ll * B2_ll
             f4 = 2 * f4 + charge_ratio_ll[k] * B1_ll * B3_ll
             f5 = (2 * f5
-                  - vk1_plus_ll[k] * pe_ll
-                  - B2_ll * (vk1_minus_ll * B2_ll - vk2_minus_ll * B1_ll)
-                  - B3_ll * (vk1_minus_ll * B3_ll - vk3_minus_ll * B1_ll))
+                  -
+                  vk1_plus_ll[k] * pe_ll
+                  -
+                  B2_ll * (vk1_minus_ll * B2_ll - vk2_minus_ll * B1_ll)
+                  -
+                  B3_ll * (vk1_minus_ll * B3_ll - vk3_minus_ll * B1_ll))
 
             # Compute Powell term (already consistent with Trixi's non-conservative discretization)
             f2 += charge_ratio_ll[k] * B1_ll * B1_rr
@@ -391,12 +397,16 @@ The term is composed of three parts
 
             # Adjust non-conservative terms 2 and 3 to Trixi discretization: CHANGE!?!
             f2 = 2 * f2 + charge_ratio_ll[k] * B2_ll * B1_ll
-            f3 = 2 * f3 - charge_ratio_ll[k] * (0.5 * mag_norm_ll - B2_ll * B2_ll + pe_ll)
+            f3 = 2 * f3 -
+                 charge_ratio_ll[k] * (0.5 * mag_norm_ll - B2_ll * B2_ll + pe_ll)
             f4 = 2 * f4 + charge_ratio_ll[k] * B2_ll * B3_ll
-            f5 = (2 * f5 
-                  - vk2_plus_ll[k] * pe_ll
-                  - B1_ll * (vk2_minus_ll * B1_ll - vk1_minus_ll * B2_ll)
-                  - B3_ll * (vk2_minus_ll * B3_ll - vk3_minus_ll * B2_ll))
+            f5 = (2 * f5
+                  -
+                  vk2_plus_ll[k] * pe_ll
+                  -
+                  B1_ll * (vk2_minus_ll * B1_ll - vk1_minus_ll * B2_ll)
+                  -
+                  B3_ll * (vk2_minus_ll * B3_ll - vk3_minus_ll * B2_ll))
 
             # Compute Powell term (already consistent with Trixi's non-conservative discretization)
             f2 += charge_ratio_ll[k] * B1_ll * B2_rr
@@ -606,9 +616,11 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
             p_ll = (gammas[k] - 1) *
-                   (rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll - 0.5 * psi_ll^2)
+                   (rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll -
+                    0.5 * psi_ll^2)
             p_rr = (gammas[k] - 1) *
-                   (rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr - 0.5 * psi_rr^2)
+                   (rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr -
+                    0.5 * psi_rr^2)
             beta_ll = 0.5 * rho_ll / p_ll
             beta_rr = 0.5 * rho_rr / p_rr
             # for convenience store vk_plus⋅B
@@ -658,7 +670,8 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5 * v1_plus_mag_avg +
                    B1_avg * vel_dot_mag_avg                                               # Same terms as in Derigs (but with v_plus)
                    + f9 * psi_avg - equations.c_h * psi_B1_avg # GLM term
-                   + 0.5 * vk1_plus_avg * mag_norm_avg -
+                   +
+                   0.5 * vk1_plus_avg * mag_norm_avg -
                    vk1_plus_avg * B1_avg * B1_avg - vk2_plus_avg * B1_avg * B2_avg -
                    vk3_plus_avg * B1_avg * B3_avg   # Additional terms coming from the MHD non-conservative term (momentum eqs)
                    -
@@ -675,7 +688,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
         f7 = equations.c_h * psi_avg
         f8 = v2_plus_avg * B3_avg - v3_plus_avg * B2_avg
         f9 = equations.c_h * B2_avg
-        
+
         # Start building the flux
         f[1] = f6
         f[2] = f7
@@ -700,9 +713,11 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
             p_ll = (gammas[k] - 1) *
-                   (rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll - 0.5 * psi_ll^2)
+                   (rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll -
+                    0.5 * psi_ll^2)
             p_rr = (gammas[k] - 1) *
-                   (rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr - 0.5 * psi_rr^2)
+                   (rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr -
+                    0.5 * psi_rr^2)
             beta_ll = 0.5 * rho_ll / p_ll
             beta_rr = 0.5 * rho_rr / p_rr
             # for convenience store vk_plus⋅B
@@ -752,7 +767,8 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5 * v2_plus_mag_avg +
                    B2_avg * vel_dot_mag_avg                                               # Same terms as in Derigs (but with v_plus)
                    + f9 * psi_avg - equations.c_h * psi_B2_avg # GLM term
-                   + 0.5 * vk2_plus_avg * mag_norm_avg -
+                   +
+                   0.5 * vk2_plus_avg * mag_norm_avg -
                    vk1_plus_avg * B2_avg * B1_avg - vk2_plus_avg * B2_avg * B2_avg -
                    vk3_plus_avg * B2_avg * B3_avg   # Additional terms coming from the MHD non-conservative term (momentum eqs)
                    -
@@ -928,7 +944,8 @@ Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoaco
         v3 = rho_v3 / rho
         v_mag = sqrt(v1^2 + v2^2 + v3^2)
         gamma = equations.gammas[k]
-        p = (gamma - 1) * (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2) - 0.5 * psi^2)
+        p = (gamma - 1) *
+            (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2) - 0.5 * psi^2)
         a_square = gamma * p / rho
         sqrt_rho = sqrt(rho)
 
@@ -1039,7 +1056,8 @@ Computes the sum of the densities times the sum of the pressures
         v_mag = sqrt(v1^2 + v2^2 + v3^2)
         gamma = equations.gammas[k]
 
-        p = (gamma - 1) * (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2) - 0.5 * psi^2)
+        p = (gamma - 1) *
+            (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2) - 0.5 * psi^2)
 
         rho_total += rho
         p_total += p
@@ -1064,12 +1082,12 @@ end
 DissipationEntropyStable() = DissipationEntropyStable(max_abs_speed_naive)
 
 @inline function (dissipation::DissipationEntropyStable)(u_ll, u_rr,
-                                                              orientation_or_normal_direction,
-                                                              equations::IdealMhdMultiIonEquations2D)
+                                                         orientation_or_normal_direction,
+                                                         equations::IdealMhdMultiIonEquations2D)
     @unpack gammas = equations
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
-    
+
     w_ll = cons2entropy(u_ll, equations)
     w_rr = cons2entropy(u_rr, equations)
     prim_ll = cons2prim(u_ll, equations)
@@ -1093,7 +1111,7 @@ DissipationEntropyStable() = DissipationEntropyStable(max_abs_speed_naive)
     for k in eachcomponent(equations)
         rho_ll, v1_ll, v2_ll, v3_ll, p_ll = get_component(k, prim_ll, equations)
         rho_rr, v1_rr, v2_rr, v3_rr, p_rr = get_component(k, prim_rr, equations)
-        
+
         w1_ll, w2_ll, w3_ll, w4_ll, w5_ll = get_component(k, w_ll, equations)
         w1_rr, w2_rr, w3_rr, w4_rr, w5_rr = get_component(k, w_rr, equations)
 
@@ -1111,68 +1129,75 @@ DissipationEntropyStable() = DissipationEntropyStable(max_abs_speed_naive)
         v2_avg = 0.5 * (v2_ll + v2_rr)
         v3_avg = 0.5 * (v3_ll + v3_rr)
         beta_avg = 0.5 * (beta_ll + beta_rr)
-        tau = 1 / (beta_ll + beta_rr) 
+        tau = 1 / (beta_ll + beta_rr)
         p_mean = 0.5 * rho_avg / beta_avg
         p_star = 0.5 * rho_ln / beta_ln
         vel_norm_avg = 0.5 * (vel_norm_ll + vel_norm_rr)
         vel_avg_norm = v1_avg^2 + v2_avg^2 + v3_avg^2
-        E_bar = p_star / (gammas[k] - 1) +  0.5 * rho_ln * (2 * vel_avg_norm - vel_norm_avg)
-        
+        E_bar = p_star / (gammas[k] - 1) +
+                0.5 * rho_ln * (2 * vel_avg_norm - vel_norm_avg)
+
         h11 = rho_ln
         h12 = rho_ln * v1_avg
         h13 = rho_ln * v2_avg
         h14 = rho_ln * v3_avg
         h15 = E_bar
-        d1 = -0.5 * λ * (h11 * (w1_rr - w1_ll) +
-                         h12 * (w2_rr - w2_ll) +
-                         h13 * (w3_rr - w3_ll) +
-                         h14 * (w4_rr - w4_ll) +
-                         h15 * (w5_rr - w5_ll) )
+        d1 = -0.5 * λ *
+             (h11 * (w1_rr - w1_ll) +
+              h12 * (w2_rr - w2_ll) +
+              h13 * (w3_rr - w3_ll) +
+              h14 * (w4_rr - w4_ll) +
+              h15 * (w5_rr - w5_ll))
 
         h21 = h12
         h22 = rho_ln * v1_avg^2 + p_mean
         h23 = h21 * v2_avg
         h24 = h21 * v3_avg
         h25 = (E_bar + p_mean) * v1_avg
-        d2 = -0.5 * λ * (h21 * (w1_rr - w1_ll) +
-                         h22 * (w2_rr - w2_ll) +
-                         h23 * (w3_rr - w3_ll) +
-                         h24 * (w4_rr - w4_ll) +
-                         h25 * (w5_rr - w5_ll) )
+        d2 = -0.5 * λ *
+             (h21 * (w1_rr - w1_ll) +
+              h22 * (w2_rr - w2_ll) +
+              h23 * (w3_rr - w3_ll) +
+              h24 * (w4_rr - w4_ll) +
+              h25 * (w5_rr - w5_ll))
 
         h31 = h13
         h32 = h23
         h33 = rho_ln * v2_avg^2 + p_mean
         h34 = h31 * v3_avg
         h35 = (E_bar + p_mean) * v2_avg
-        d3 = -0.5 * λ * (h31 * (w1_rr - w1_ll) +
-                         h32 * (w2_rr - w2_ll) +
-                         h33 * (w3_rr - w3_ll) +
-                         h34 * (w4_rr - w4_ll) +
-                         h35 * (w5_rr - w5_ll) )
+        d3 = -0.5 * λ *
+             (h31 * (w1_rr - w1_ll) +
+              h32 * (w2_rr - w2_ll) +
+              h33 * (w3_rr - w3_ll) +
+              h34 * (w4_rr - w4_ll) +
+              h35 * (w5_rr - w5_ll))
 
         h41 = h14
         h42 = h24
         h43 = h34
         h44 = rho_ln * v3_avg^2 + p_mean
         h45 = (E_bar + p_mean) * v3_avg
-        d4 = -0.5 * λ * (h41 * (w1_rr - w1_ll) +
-                         h42 * (w2_rr - w2_ll) +
-                         h43 * (w3_rr - w3_ll) +
-                         h44 * (w4_rr - w4_ll) +
-                         h45 * (w5_rr - w5_ll) )
+        d4 = -0.5 * λ *
+             (h41 * (w1_rr - w1_ll) +
+              h42 * (w2_rr - w2_ll) +
+              h43 * (w3_rr - w3_ll) +
+              h44 * (w4_rr - w4_ll) +
+              h45 * (w5_rr - w5_ll))
 
         h51 = h15
         h52 = h25
         h53 = h35
         h54 = h45
-        h55 = ((p_star^2 / (gammas[k] - 1) + E_bar * E_bar) / rho_ln 
-              + vel_avg_norm * p_mean )
-        d5 = -0.5 * λ * (h51 * (w1_rr - w1_ll) +
-                         h52 * (w2_rr - w2_ll) +
-                         h53 * (w3_rr - w3_ll) +
-                         h54 * (w4_rr - w4_ll) +
-                         h55 * (w5_rr - w5_ll) )
+        h55 = ((p_star^2 / (gammas[k] - 1) + E_bar * E_bar) / rho_ln
+               +
+               vel_avg_norm * p_mean)
+        d5 = -0.5 * λ *
+             (h51 * (w1_rr - w1_ll) +
+              h52 * (w2_rr - w2_ll) +
+              h53 * (w3_rr - w3_ll) +
+              h54 * (w4_rr - w4_ll) +
+              h55 * (w5_rr - w5_ll))
 
         beta_plus_ll += beta_ll
         beta_plus_rr += beta_rr
@@ -1181,7 +1206,7 @@ DissipationEntropyStable() = DissipationEntropyStable(max_abs_speed_naive)
     end
 
     # Set the magnetic field and psi terms
-    h_B_psi = 1 / (beta_plus_ll + beta_plus_rr) 
+    h_B_psi = 1 / (beta_plus_ll + beta_plus_rr)
 
     # diagonal entries
     dissipation[1] = -0.5 * λ * h_B_psi * (w_rr[1] - w_ll[1])
@@ -1208,7 +1233,10 @@ DissipationEntropyStable() = DissipationEntropyStable(max_abs_speed_naive)
         # Dissipation for the energy equation of all ion species depending on w_5
         for kk in eachcomponent(equations)
             ind_E = 3 + (kk - 1) * 5 + 5
-            dissipation[ind_E] -= 0.5 * λ * (h_B_psi * ( B1_avg^2 + B2_avg^2 + B3_avg^2 + psi_avg^2 )) * (w5_rr - w5_ll)
+            dissipation[ind_E] -= 0.5 * λ *
+                                  (h_B_psi *
+                                   (B1_avg^2 + B2_avg^2 + B3_avg^2 + psi_avg^2)) *
+                                  (w5_rr - w5_ll)
         end
     end
 
@@ -1218,5 +1246,4 @@ end
 function Base.show(io::IO, d::DissipationEntropyStable)
     print(io, "DissipationEntropyStable(", d.max_abs_speed, ")")
 end
-
 end # @muladd
