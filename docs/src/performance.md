@@ -116,7 +116,7 @@ To benchmark the changes made in a PR, please proceed as follows:
 This will take some hours to complete. When everything is finished, some
 output files will be created in the `benchmark` directory of Trixi.jl.
 
-!!! note
+!!! warning
     Please note that the benchmark scripts use `--check-bounds=no` at the moment.
     Thus, they will not work in any useful way for Julia v1.10 (and newer?), see
     [Julia issue #50985](https://github.com/JuliaLang/julia/issues/50985).
