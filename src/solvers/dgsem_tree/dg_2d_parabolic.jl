@@ -13,7 +13,7 @@
 #               2. compute f(u, grad(u))
 #               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
-function rhs_parabolic!(du, u, t, mesh::TreeMesh{2},
+function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
                         equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -943,24 +943,6 @@ function apply_jacobian_parabolic!(du, mesh::TreeMesh{2},
         factor = inverse_jacobian[element]
 
         for j in eachnode(dg), i in eachnode(dg)
-            for v in eachvariable(equations)
-                du[v, i, j, element] *= factor
-            end
-        end
-    end
-
-    return nothing
-end
-
-function apply_jacobian_parabolic!(du, mesh::P4estMesh{2},
-                                   equations::AbstractEquationsParabolic,
-                                   dg::DG, cache)
-    @unpack inverse_jacobian = cache.elements
-
-    @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
-            factor = inverse_jacobian[i, j, element]
-
             for v in eachvariable(equations)
                 du[v, i, j, element] *= factor
             end

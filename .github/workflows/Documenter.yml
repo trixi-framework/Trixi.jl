@@ -38,6 +38,7 @@ jobs:
         with:
           version: '~1.10.0-0'
           show-versioninfo: true
+      - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""

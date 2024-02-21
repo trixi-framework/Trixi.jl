@@ -944,11 +944,6 @@ References:
   Lagrangian Coordinate
   [DOI: 10.1175/MWR-D-12-00129.1](https://doi.org/10.1175/mwr-d-12-00129.1)
 """
-struct FluxLMARS{SpeedOfSound}
-    # Estimate for the speed of sound
-    speed_of_sound::SpeedOfSound
-end
-
 @inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, orientation::Integer,
                                          equations::CompressibleEulerEquations3D)
     c = flux_lmars.speed_of_sound
@@ -972,10 +967,14 @@ end
     p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll)
     v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll)
 
+    # We treat the energy term analogous to the potential temperature term in the paper by
+    # Chen et al., i.e. we use p_ll and p_rr, and not p
     if v >= 0
         f1, f2, f3, f4, f5 = v * u_ll
+        f5 = f5 + p_ll * v
     else
         f1, f2, f3, f4, f5 = v * u_rr
+        f5 = f5 + p_rr * v
     end
 
     if orientation == 1
@@ -985,7 +984,6 @@ end
     else # orientation == 3
         f4 += p
     end
-    f5 += p * v
 
     return SVector(f1, f2, f3, f4, f5)
 end
@@ -1011,18 +1009,21 @@ end
     p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll) / norm_
     v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll) * norm_
 
+    # We treat the energy term analogous to the potential temperature term in the paper by
+    # Chen et al., i.e. we use p_ll and p_rr, and not p
     if v >= 0
         f1, f2, f3, f4, f5 = v * u_ll
+        f5 = f5 + p_ll * v
     else
         f1, f2, f3, f4, f5 = v * u_rr
+        f5 = f5 + p_rr * v
     end
 
-    f2 += p * normal_direction[1]
-    f3 += p * normal_direction[2]
-    f4 += p * normal_direction[3]
-    f5 += p * v
-
-    return SVector(f1, f2, f3, f4, f5)
+    return SVector(f1,
+                   f2 + p * normal_direction[1],
+                   f3 + p * normal_direction[2],
+                   f4 + p * normal_direction[3],
+                   f5)
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
