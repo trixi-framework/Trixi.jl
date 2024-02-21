@@ -291,8 +291,9 @@ The term is composed of three parts
     mag_norm_avg = 0.5 * (mag_norm_ll + mag_norm_rr)
 
     # Mean electron pressure
-    pe_mean = 0.5 * (equations.electron_pressure(u_ll, equations) +
-               equations.electron_pressure(u_rr, equations))
+    pe_ll = equations.electron_pressure(u_ll, equations)
+    pe_rr = equations.electron_pressure(u_rr, equations)
+    pe_mean = 0.5 * (pe_ll + pe_rr)
 
     # Compute charge ratio of u_ll
     charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
@@ -339,12 +340,13 @@ The term is composed of three parts
                    B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg))
 
             # Adjust non-conservative terms 2 and 3 to Trixi discretization: CHANGE!?!
-            f2 = 2 * f2 - charge_ratio_ll[k] * (0.5 * mag_norm_ll - B1_ll * B1_ll)
+            f2 = 2 * f2 - charge_ratio_ll[k] * (0.5 * mag_norm_ll - B1_ll * B1_ll + pe_ll)
             f3 = 2 * f3 + charge_ratio_ll[k] * B1_ll * B2_ll
             f4 = 2 * f4 + charge_ratio_ll[k] * B1_ll * B3_ll
-            f5 = (2 * f5 - B2_ll * (vk1_minus_ll * B2_ll - vk2_minus_ll * B1_ll)
-                  -
-                  B3_ll * (vk1_minus_ll * B3_ll - vk3_minus_ll * B1_ll))
+            f5 = (2 * f5
+                  - vk1_plus_ll[k] * pe_ll
+                  - B2_ll * (vk1_minus_ll * B2_ll - vk2_minus_ll * B1_ll)
+                  - B3_ll * (vk1_minus_ll * B3_ll - vk3_minus_ll * B1_ll))
 
             # Compute Powell term (already consistent with Trixi's non-conservative discretization)
             f2 += charge_ratio_ll[k] * B1_ll * B1_rr
@@ -389,11 +391,12 @@ The term is composed of three parts
 
             # Adjust non-conservative terms 2 and 3 to Trixi discretization: CHANGE!?!
             f2 = 2 * f2 + charge_ratio_ll[k] * B2_ll * B1_ll
-            f3 = 2 * f3 - charge_ratio_ll[k] * (0.5 * mag_norm_ll - B2_ll * B2_ll)
+            f3 = 2 * f3 - charge_ratio_ll[k] * (0.5 * mag_norm_ll - B2_ll * B2_ll + pe_ll)
             f4 = 2 * f4 + charge_ratio_ll[k] * B2_ll * B3_ll
-            f5 = (2 * f5 - B1_ll * (vk2_minus_ll * B1_ll - vk1_minus_ll * B2_ll)
-                  -
-                  B3_ll * (vk2_minus_ll * B3_ll - vk3_minus_ll * B2_ll))
+            f5 = (2 * f5 
+                  - vk2_plus_ll[k] * pe_ll
+                  - B1_ll * (vk2_minus_ll * B1_ll - vk1_minus_ll * B2_ll)
+                  - B3_ll * (vk2_minus_ll * B3_ll - vk3_minus_ll * B2_ll))
 
             # Compute Powell term (already consistent with Trixi's non-conservative discretization)
             f2 += charge_ratio_ll[k] * B1_ll * B2_rr
@@ -1047,8 +1050,10 @@ end
 """
 DissipationEntropyStable(max_abs_speed=max_abs_speed_naive)
 
-Create a local Lax-Friedrichs dissipation operator where the maximum absolute wave speed
-is estimated as
+Create a local Lax-Friedrichs-type dissipation operator that is provably entropy stable.
+See:
+    * Rueda-Ramírez et al. (2023)
+The maximum absolute wave speed is estimated as
 `max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)`,
 defaulting to [`max_abs_speed_naive`](@ref).
 """
