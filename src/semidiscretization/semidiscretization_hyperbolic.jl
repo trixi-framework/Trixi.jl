@@ -29,17 +29,18 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
     performance_counter::PerformanceCounter
 
     function SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
-                                          BoundaryConditions, SourceTerms, Solver, Cache
-                                          }(mesh::Mesh, equations::Equations,
-                                            initial_condition::InitialCondition,
-                                            boundary_conditions::BoundaryConditions,
-                                            source_terms::SourceTerms,
-                                            solver::Solver,
-                                            cache::Cache) where {Mesh, Equations,
-                                                                 InitialCondition,
-                                                                 BoundaryConditions,
-                                                                 SourceTerms, Solver,
-                                                                 Cache}
+                                          BoundaryConditions, SourceTerms, Solver,
+                                          Cache}(mesh::Mesh, equations::Equations,
+                                                 initial_condition::InitialCondition,
+                                                 boundary_conditions::BoundaryConditions,
+                                                 source_terms::SourceTerms,
+                                                 solver::Solver,
+                                                 cache::Cache) where {Mesh, Equations,
+                                                                      InitialCondition,
+                                                                      BoundaryConditions,
+                                                                      SourceTerms,
+                                                                      Solver,
+                                                                      Cache}
         @assert ndims(mesh) == ndims(equations)
 
         performance_counter = PerformanceCounter()
@@ -243,7 +244,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 
         summary_line(io, "source terms", semi.source_terms)
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
-        summary_line(io, "total #DOFs", ndofs(semi))
+        summary_line(io, "total #DOFs per field", ndofs(semi))
         summary_footer(io)
     end
 end
@@ -268,8 +269,7 @@ end
 
 function print_boundary_conditions(io,
                                    semi::SemiHypMeshBCSolver{<:Any,
-                                                             <:UnstructuredSortedBoundaryTypes
-                                                             })
+                                                             <:UnstructuredSortedBoundaryTypes})
     @unpack boundary_conditions = semi
     @unpack boundary_dictionary = boundary_conditions
     summary_line(io, "boundary conditions", length(boundary_dictionary))
@@ -289,8 +289,7 @@ function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Any, <:NamedT
 end
 
 function print_boundary_conditions(io,
-                                   semi::SemiHypMeshBCSolver{
-                                                             <:Union{TreeMesh,
+                                   semi::SemiHypMeshBCSolver{<:Union{TreeMesh,
                                                                      StructuredMesh},
                                                              <:Union{Tuple, NamedTuple,
                                                                      AbstractArray}})

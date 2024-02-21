@@ -211,3 +211,15 @@ semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing
 ode = semidiscretize(semi, (0.0, 0.5))
 sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)

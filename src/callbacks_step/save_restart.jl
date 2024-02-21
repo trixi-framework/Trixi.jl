@@ -105,6 +105,11 @@ function (restart_callback::SaveRestartCallback)(integrator)
         end
 
         save_restart_file(u_ode, t, dt, iter, semi, restart_callback)
+        # If using an adaptive time stepping scheme, store controller values for restart
+        if integrator.opts.adaptive
+            save_adaptive_time_integrator(integrator, integrator.opts.controller,
+                                          restart_callback)
+        end
     end
 
     # avoid re-evaluating possible FSAL stages
@@ -130,8 +135,73 @@ function load_time(restart_file::AbstractString)
     end
 end
 
+"""
+    load_timestep(restart_file::AbstractString)
+
+Load the time step number (`iter` in OrdinaryDiffEq.jl) saved in a `restart_file`.
+"""
+function load_timestep(restart_file::AbstractString)
+    h5open(restart_file, "r") do file
+        read(attributes(file)["timestep"])
+    end
+end
+
+"""
+    load_timestep!(integrator, restart_file::AbstractString)
+
+Load the time step number saved in a `restart_file` and assign it to both the time step
+number and and the number of accepted steps
+(`iter` and `stats.naccept` in OrdinaryDiffEq.jl, respectively) in `integrator`.
+"""
+function load_timestep!(integrator, restart_file::AbstractString)
+    integrator.iter = load_timestep(restart_file)
+    integrator.stats.naccept = integrator.iter
+end
+
+"""
+    load_dt(restart_file::AbstractString)
+
+Load the time step size (`dt` in OrdinaryDiffEq.jl) saved in a `restart_file`.
+"""
+function load_dt(restart_file::AbstractString)
+    h5open(restart_file, "r") do file
+        read(attributes(file)["dt"])
+    end
+end
+
 function load_restart_file(semi::AbstractSemidiscretization, restart_file)
     load_restart_file(mesh_equations_solver_cache(semi)..., restart_file)
+end
+
+"""
+    load_adaptive_time_integrator!(integrator, restart_file::AbstractString)
+
+Load the context information for time integrators with error-based step size control
+saved in a `restart_file`.
+"""
+function load_adaptive_time_integrator!(integrator, restart_file::AbstractString)
+    controller = integrator.opts.controller
+    # Read context information for controller
+    h5open(restart_file, "r") do file
+        # Ensure that the necessary information was saved
+        if !("time_integrator_qold" in keys(attributes(file))) ||
+           !("time_integrator_dtpropose" in keys(attributes(file))) ||
+           (hasproperty(controller, :err) &&
+            !("time_integrator_controller_err" in keys(attributes(file))))
+            error("Missing data in restart file: check the consistency of adaptive time controller with initial setup!")
+        end
+        # Load data that is required both for PIController and PIDController
+        integrator.qold = read(attributes(file)["time_integrator_qold"])
+        integrator.dtpropose = read(attributes(file)["time_integrator_dtpropose"])
+        # Accept step to use dtpropose already in the first step
+        integrator.accept_step = true
+        # Reevaluate integrator.fsal_first on the first step
+        integrator.reeval_fsal = true
+        # Load additional parameters for PIDController
+        if hasproperty(controller, :err) # Distinguish PIDController from PIController 
+            controller.err[:] = read(attributes(file)["time_integrator_controller_err"])
+        end
+    end
 end
 
 include("save_restart_dg.jl")

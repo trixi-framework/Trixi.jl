@@ -12,6 +12,7 @@ include("unstructured_mesh.jl")
 include("face_interpolant.jl")
 include("transfinite_mappings_3d.jl")
 include("p4est_mesh.jl")
+include("t8code_mesh.jl")
 include("mesh_io.jl")
 include("dgmulti_meshes.jl")
 end # @muladd

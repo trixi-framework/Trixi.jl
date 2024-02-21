@@ -70,7 +70,7 @@ function trixi2txt(filename::AbstractString...;
         center_level_0, length_level_0, leaf_cells, coordinates, levels = read_meshfile(meshfile)
 
         # Read data
-        labels, data, n_elements, n_nodes, element_variables, time = read_datafile(filename)
+        labels, data, n_elements, n_nodes, element_variables, node_variables, time = read_datafile(filename)
 
         # Check if dimensions match
         if length(leaf_cells) != n_elements
@@ -263,7 +263,16 @@ function read_datafile(filename::String)
             index += 1
         end
 
-        return labels, data, n_elements, n_nodes, element_variables, time
+        # Extract node variable arrays
+        node_variables = Dict{String, Union{Vector{Float64}, Vector{Int}}}()
+        index = 1
+        while haskey(file, "node_variables_$index")
+            varname = read(attributes(file["node_variables_$index"])["name"])
+            node_variables[varname] = read(file["node_variables_$index"])
+            index += 1
+        end
+
+        return labels, data, n_elements, n_nodes, element_variables, node_variables, time
     end
 end
 

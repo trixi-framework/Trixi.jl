@@ -117,11 +117,11 @@ Construct a semidiscretization of the compressible Euler equations with self-gra
 function SemidiscretizationEulerGravity(semi_euler::SemiEuler,
                                         semi_gravity::SemiGravity,
                                         parameters) where
-    {Mesh,
-     SemiEuler <:
-     SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations},
-     SemiGravity <:
-     SemidiscretizationHyperbolic{Mesh, <:AbstractHyperbolicDiffusionEquations}}
+         {Mesh,
+          SemiEuler <:
+          SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations},
+          SemiGravity <:
+          SemidiscretizationHyperbolic{Mesh, <:AbstractHyperbolicDiffusionEquations}}
     u_ode = compute_coefficients(zero(real(semi_gravity)), semi_gravity)
     du_ode = similar(u_ode)
     u_tmp1_ode = similar(u_ode)
@@ -477,18 +477,29 @@ end
 @inline function save_solution_file(u_ode, t, dt, iter,
                                     semi::SemidiscretizationEulerGravity,
                                     solution_callback,
-                                    element_variables = Dict{Symbol, Any}())
+                                    element_variables = Dict{Symbol, Any}();
+                                    system = "")
+    # If this is called already as part of a multi-system setup (i.e., system is non-empty),
+    # we build a combined system name
+    if !isempty(system)
+        system_euler = system * "_euler"
+        system_gravity = system * "_gravity"
+    else
+        system_euler = "euler"
+        system_gravity = "gravity"
+    end
+
     u_euler = wrap_array_native(u_ode, semi.semi_euler)
     filename_euler = save_solution_file(u_euler, t, dt, iter,
                                         mesh_equations_solver_cache(semi.semi_euler)...,
                                         solution_callback, element_variables,
-                                        system = "euler")
+                                        system = system_euler)
 
     u_gravity = wrap_array_native(semi.cache.u_ode, semi.semi_gravity)
     filename_gravity = save_solution_file(u_gravity, t, dt, iter,
                                           mesh_equations_solver_cache(semi.semi_gravity)...,
                                           solution_callback, element_variables,
-                                          system = "gravity")
+                                          system = system_gravity)
 
     return filename_euler, filename_gravity
 end

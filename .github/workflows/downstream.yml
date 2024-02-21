@@ -1,0 +1,94 @@
+# Note: this file is inspired by the downstream testing facilities in the SciML ecosystem
+# x-ref: https://github.com/SciML/SciMLBase.jl/blob/ffe68aebedee5915190623cb08160d7ef1fbcce0/.github/workflows/Downstream.yml
+
+name: Downstream
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'AUTHORS.md'
+      - 'CITATION.bib'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE.md'
+      - 'NEWS.md'
+      - 'README.md'
+      - '.zenodo.json'
+      - '.github/workflows/benchmark.yml'
+      - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/TagBot.yml'
+      - 'benchmark/**'
+      # - 'docs/**'
+      - 'utils/**'
+  pull_request:
+    paths-ignore:
+      - 'AUTHORS.md'
+      - 'CITATION.bib'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE.md'
+      - 'NEWS.md'
+      - 'README.md'
+      - '.zenodo.json'
+      - '.github/workflows/benchmark.yml'
+      - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/TagBot.yml'
+      - 'benchmark/**'
+      # - 'docs/**'
+      - 'utils/**'
+  workflow_dispatch:
+
+# Cancel redundant CI tests automatically
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    # We could also include the Julia version as in
+    # name: ${{ matrix.trixi_test }} - ${{ matrix.os }} - Julia ${{ matrix.version }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    # to be more specific. However, that requires us updating the required CI tests whenever we update Julia.
+    name: ${{ matrix.package }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.9'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+        package:
+          - Trixi2Vtk.jl
+          - TrixiShallowWater.jl
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Retrieve downstream package
+        # Note: we retrieve the current `main` branch of the downstream package to ensure
+        # that compatibility errors we make in Trixi.jl are detected already here
+        # See also https://github.com/trixi-framework/Trixi.jl/pull/1707#discussion_r1382938895
+        uses: actions/checkout@v4
+        with:
+          repository: trixi-framework/${{ matrix.package }}
+          path: downstream
+      - name: Load upstream package into downstream environment
+        shell: julia --color=yes --project=downstream {0}
+        run: |
+          using Pkg
+          Pkg.develop(PackageSpec(path="."))
+          Pkg.update()
+      - name: Run downstream tests (without coverage)
+        shell: julia --color=yes --project=downstream {0}
+        run: |
+          using Pkg
+          Pkg.test(coverage=false)
+        env:
+          TRIXI_TEST: upstream

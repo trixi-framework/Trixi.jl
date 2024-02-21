@@ -62,6 +62,23 @@ struct FluxRotated{NumericalFlux}
 end
 
 # Rotated surface flux computation (2D version)
+@inline function (flux_rotated::FluxRotated)(u,
+                                             normal_direction::AbstractVector,
+                                             equations::AbstractEquations{2})
+    @unpack numerical_flux = flux_rotated
+
+    norm_ = norm(normal_direction)
+    # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+    normal_vector = normal_direction / norm_
+
+    u_rotated = rotate_to_x(u, normal_vector, equations)
+
+    f = numerical_flux(u_rotated, 1, equations)
+
+    return rotate_from_x(f, normal_vector, equations) * norm_
+end
+
+# Rotated surface flux computation (2D version)
 @inline function (flux_rotated::FluxRotated)(u_ll, u_rr,
                                              normal_direction::AbstractVector,
                                              equations::AbstractEquations{2})
@@ -181,10 +198,7 @@ function max_abs_speed_naive end
 end
 
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central),
-                                                           DissipationLocalLaxFriedrichs{
-                                                                                         MaxAbsSpeed
-                                                                                         }
-                                                           }
+                                                           DissipationLocalLaxFriedrichs{MaxAbsSpeed}}
 """
     FluxLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
 
@@ -214,6 +228,10 @@ Create an HLL (Harten, Lax, van Leer) numerical flux where the minimum and maxim
 wave speeds are estimated as
 `λ_min, λ_max = min_max_speed(u_ll, u_rr, orientation_or_normal_direction, equations)`,
 defaulting to [`min_max_speed_naive`](@ref).
+Original paper:
+- Amiram Harten, Peter D. Lax, Bram van Leer (1983)
+  On Upstream Differencing and Godunov-Type Schemes for Hyperbolic Conservation Laws
+  [DOI: 10.1137/1025002](https://doi.org/10.1137/1025002)
 """
 struct FluxHLL{MinMaxSpeed}
     min_max_speed::MinMaxSpeed
@@ -222,17 +240,54 @@ end
 FluxHLL() = FluxHLL(min_max_speed_naive)
 
 """
-    min_max_speed_naive(u_ll, u_rr, orientation::Integer,   equations)
+    min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations)
     min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations)
 
-Simple and fast estimate of the minimal and maximal wave speed of the Riemann problem with
+Simple and fast estimate(!) of the minimal and maximal wave speed of the Riemann problem with
 left and right states `u_ll, u_rr`, usually based only on the local wave speeds associated to
 `u_ll` and `u_rr`.
 - Amiram Harten, Peter D. Lax, Bram van Leer (1983)
   On Upstream Differencing and Godunov-Type Schemes for Hyperbolic Conservation Laws
   [DOI: 10.1137/1025002](https://doi.org/10.1137/1025002)
+
+See also [`FluxHLL`](@ref), [`min_max_speed_davis`](@ref), [`min_max_speed_einfeldt`](@ref).
 """
 function min_max_speed_naive end
+
+"""
+    min_max_speed_davis(u_ll, u_rr, orientation::Integer, equations)
+    min_max_speed_davis(u_ll, u_rr, normal_direction::AbstractVector, equations)
+
+Simple and fast estimates of the minimal and maximal wave speed of the Riemann problem with
+left and right states `u_ll, u_rr`, usually based only on the local wave speeds associated to
+`u_ll` and `u_rr`.
+
+- S.F. Davis (1988)
+  Simplified Second-Order Godunov-Type Methods
+  [DOI: 10.1137/0909030](https://doi.org/10.1137/0909030)
+
+See also [`FluxHLL`](@ref), [`min_max_speed_naive`](@ref), [`min_max_speed_einfeldt`](@ref).
+"""
+function min_max_speed_davis end
+
+"""
+    min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer, equations)
+    min_max_speed_einfeldt(u_ll, u_rr, normal_direction::AbstractVector, equations)
+
+More advanced mininmal and maximal wave speed computation based on
+- Bernd Einfeldt (1988)
+  On Godunov-type methods for gas dynamics.
+  [DOI: 10.1137/0725021](https://doi.org/10.1137/0725021)
+- Bernd Einfeldt, Claus-Dieter Munz, Philip L. Roe and Björn Sjögreen (1991)
+  On Godunov-type methods near low densities.
+  [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
+
+originally developed for the compressible Euler equations.
+A compact representation can be found in [this lecture notes, eq. (9.28)](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
+
+See also [`FluxHLL`](@ref), [`min_max_speed_naive`](@ref), [`min_max_speed_davis`](@ref).
+"""
+function min_max_speed_einfeldt end
 
 @inline function (numflux::FluxHLL)(u_ll, u_rr, orientation_or_normal_direction,
                                     equations)
@@ -262,6 +317,37 @@ Base.show(io::IO, numflux::FluxHLL) = print(io, "FluxHLL(", numflux.min_max_spee
 See [`FluxHLL`](@ref).
 """
 const flux_hll = FluxHLL()
+
+"""
+    flux_hlle
+
+See [`min_max_speed_einfeldt`](@ref).
+This is a [`FluxHLL`](@ref)-type two-wave solver with special estimates of the wave speeds.
+"""
+const flux_hlle = FluxHLL(min_max_speed_einfeldt)
+
+# TODO: TrixiShallowWater: move the chen_noelle flux structure to the new package
+
+# An empty version of the `min_max_speed_chen_noelle` function is declared here
+# in order to create a dimension agnostic version of `flux_hll_chen_noelle`.
+# The full description of this wave speed estimate can be found in the docstrings
+# for `min_max_speed_chen_noelle` in `shallow_water_1d.jl` or `shallow_water_2d.jl`.
+function min_max_speed_chen_noelle end
+
+"""
+    flux_hll_chen_noelle = FluxHLL(min_max_speed_chen_noelle)
+
+An instance of [`FluxHLL`](@ref) specific to the shallow water equations that
+uses the wave speed estimates from [`min_max_speed_chen_noelle`](@ref).
+This HLL flux is guaranteed to have zero numerical mass flux out of a "dry" element,
+maintain positivity of the water height, and satisfy an entropy inequality.
+
+For complete details see Section 2.4 of the following reference
+- Guoxian Chen and Sebastian Noelle (2017)
+  A new hydrostatic reconstruction scheme based on subcell reconstructions
+  [DOI: 10.1137/15M1053074](https://doi.org/10.1137/15M1053074)
+"""
+const flux_hll_chen_noelle = FluxHLL(min_max_speed_chen_noelle)
 
 """
     flux_shima_etal_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)

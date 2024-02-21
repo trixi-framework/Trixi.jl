@@ -16,6 +16,8 @@
 # state as arguments, and solves an approximate Riemann problem to introduce dissipation (and
 # hence stabilization) at the boundary. Hence, the performance of the Dirichlet BC depends on the
 # fidelity of the numerical surface flux.
+# An easy-to read introductory reference on this topic is the paper by 
+# [Mengaldo et al.](https://doi.org/10.2514/6.2014-2923).
 
 # The passed boundary value function is called with the same arguments as an initial condition
 # function, i.e.
@@ -155,3 +157,15 @@ end
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/w0A9X38cSe4' frameborder='0' allowfullscreen></iframe></div>
 # ```
 # Source: [`Video`](https://www.youtube.com/watch?v=w0A9X38cSe4) on Trixi.jl's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)

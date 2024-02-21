@@ -64,14 +64,11 @@ end
         t = integrator.t
         u_ode = integrator.u
         semi = integrator.p
-        mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
         @unpack cfl_number = stepsize_callback
-        u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-        dt = @trixi_timeit timer() "calculate dt" begin
-            cfl_number * max_dt(u, t, mesh, have_constant_speed(equations), equations,
-                   solver, cache)
-        end
+        # Dispatch based on semidiscretization
+        dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_number,
+                                                               semi)
 
         set_proposed_dt!(integrator, dt)
         integrator.opts.dtmax = dt
@@ -81,6 +78,16 @@ end
     # avoid re-evaluating possible FSAL stages
     u_modified!(integrator, false)
     return nothing
+end
+
+# General case for a single semidiscretization
+function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+    dt = cfl_number * max_dt(u, t, mesh,
+                have_constant_speed(equations), equations,
+                solver, cache)
 end
 
 # Time integration methods from the DiffEq ecosystem without adaptive time stepping on their own

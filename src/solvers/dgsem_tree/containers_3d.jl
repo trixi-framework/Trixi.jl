@@ -520,14 +520,14 @@ end
 # Left and right are used *both* for the numbering of the mortar faces *and* for the position of the
 # elements with respect to the axis orthogonal to the mortar.
 mutable struct L2MortarContainer3D{uEltype <: Real} <: AbstractContainer
-    u_upper_left::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
+    u_upper_left::Array{uEltype, 5}  # [leftright, variables, i, j, mortars]
     u_upper_right::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
-    u_lower_left::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
+    u_lower_left::Array{uEltype, 5}  # [leftright, variables, i, j, mortars]
     u_lower_right::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
-    neighbor_ids::Array{Int, 2}     # [position, mortars]
+    neighbor_ids::Array{Int, 2}      # [position, mortars]
     # Large sides: left -> 1, right -> 2
     large_sides::Vector{Int}  # [mortars]
-    orientations::Vector{Int}  # [mortars]
+    orientations::Vector{Int} # [mortars]
     # internal `resize!`able storage
     _u_upper_left::Vector{uEltype}
     _u_upper_right::Vector{uEltype}

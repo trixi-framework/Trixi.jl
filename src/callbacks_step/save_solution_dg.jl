@@ -7,9 +7,12 @@
 
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{SerialTreeMesh, StructuredMesh,
-                                        UnstructuredMesh2D, SerialP4estMesh},
+                                        UnstructuredMesh2D, SerialP4estMesh,
+                                        SerialT8codeMesh},
                             equations, dg::DG, cache,
-                            solution_callback, element_variables = Dict{Symbol, Any}();
+                            solution_callback,
+                            element_variables = Dict{Symbol, Any}(),
+                            node_variables = Dict{Symbol, Any}();
                             system = "")
     @unpack output_directory, solution_variables = solution_callback
 
@@ -30,8 +33,7 @@ function save_solution_file(u, time, dt, timestep,
         # compute the solution variables via broadcasting, and reinterpret the
         # result as a plain array of floating point numbers
         data = Array(reinterpret(eltype(u),
-                                 solution_variables.(reinterpret(SVector{
-                                                                         nvariables(equations),
+                                 solution_variables.(reinterpret(SVector{nvariables(equations),
                                                                          eltype(u)}, u),
                                                      Ref(equations))))
 
@@ -72,6 +74,16 @@ function save_solution_file(u, time, dt, timestep,
             var = file["element_variables_$v"]
             attributes(var)["name"] = string(key)
         end
+
+        # Store node variables
+        for (v, (key, node_variable)) in enumerate(node_variables)
+            # Add to file
+            file["node_variables_$v"] = node_variable
+
+            # Add variable name as attribute
+            var = file["node_variables_$v"]
+            attributes(var)["name"] = string(key)
+        end
     end
 
     return filename
@@ -80,7 +92,9 @@ end
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations,
                             dg::DG, cache,
-                            solution_callback, element_variables = Dict{Symbol, Any}();
+                            solution_callback,
+                            element_variables = Dict{Symbol, Any}(),
+                            node_variables = Dict{Symbol, Any}();
                             system = "")
     @unpack output_directory, solution_variables = solution_callback
 
@@ -101,8 +115,7 @@ function save_solution_file(u, time, dt, timestep,
         # compute the solution variables via broadcasting, and reinterpret the
         # result as a plain array of floating point numbers
         data = Array(reinterpret(eltype(u),
-                                 solution_variables.(reinterpret(SVector{
-                                                                         nvariables(equations),
+                                 solution_variables.(reinterpret(SVector{nvariables(equations),
                                                                          eltype(u)}, u),
                                                      Ref(equations))))
 

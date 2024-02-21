@@ -48,8 +48,8 @@ specific heat capacity at constant volume of component ``i``.
 In case of more than one component, the specific heat ratios `gammas` and the gas constants
 `gas_constants` in [kJ/(kg*K)] should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
 
-The remaining variables like the specific heats at constant volume 'cv' or the specific heats at
-constant pressure 'cp' are then calculated considering a calorically perfect gas.
+The remaining variables like the specific heats at constant volume `cv` or the specific heats at
+constant pressure `cp` are then calculated considering a calorically perfect gas.
 """
 struct CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <:
        AbstractCompressibleEulerMulticomponentEquations{2, NVARS, NCOMP}
@@ -58,19 +58,15 @@ struct CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <
     cv::SVector{NCOMP, RealT}
     cp::SVector{NCOMP, RealT}
 
-    function CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{
-                                                                                             NCOMP,
-                                                                                             RealT
-                                                                                             },
-                                                                             gas_constants::SVector{
-                                                                                                    NCOMP,
-                                                                                                    RealT
-                                                                                                    }) where {
-                                                                                                              NVARS,
-                                                                                                              NCOMP,
-                                                                                                              RealT <:
-                                                                                                              Real
-                                                                                                              }
+    function CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{NCOMP,
+                                                                                             RealT},
+                                                                             gas_constants::SVector{NCOMP,
+                                                                                                    RealT}) where {
+                                                                                                                   NVARS,
+                                                                                                                   NCOMP,
+                                                                                                                   RealT <:
+                                                                                                                   Real
+                                                                                                                   }
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `gas_constants` have to be filled with at least one value"))
 
@@ -270,13 +266,36 @@ end
     return vcat(f_other, f_rho)
 end
 
+# Calculate 1D flux for a single point
+@inline function flux(u, normal_direction::AbstractVector,
+                      equations::CompressibleEulerMulticomponentEquations2D)
+    rho_v1, rho_v2, rho_e = u
+
+    rho = density(u, equations)
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
+    gamma = totalgamma(u, equations)
+    p = (gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
+
+    f_rho = densities(u, v_normal, equations)
+    f1 = rho_v1 * v_normal + p * normal_direction[1]
+    f2 = rho_v2 * v_normal + p * normal_direction[2]
+    f3 = (rho_e + p) * v_normal
+
+    f_other = SVector{3, real(equations)}(f1, f2, f3)
+
+    return vcat(f_other, f_rho)
+end
+
 """
     flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
 
 Adaption of the entropy conserving two-point flux by
 - Ayoub Gouasmi, Karthik Duraisamy (2020)
-  "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations""
-  arXiv:1904.00972v3 [math.NA] 4 Feb 2020
+  "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations"
+  [arXiv:1904.00972v3](https://arxiv.org/abs/1904.00972) [math.NA] 4 Feb 2020
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer,
                                     equations::CompressibleEulerMulticomponentEquations2D)
@@ -446,6 +465,76 @@ See also
     return vcat(f_other, f_rho)
 end
 
+@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector,
+                              equations::CompressibleEulerMulticomponentEquations2D)
+    # Unpack left and right state
+    @unpack gammas, gas_constants, cv = equations
+    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+    rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
+                                                                         u_rr[i + 3])
+                                                                 for i in eachcomponent(equations))
+    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5 * (u_ll[i + 3] +
+                                                                 u_rr[i + 3])
+                                                                for i in eachcomponent(equations))
+
+    # Iterating over all partial densities
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+
+    # Calculating gamma
+    gamma = totalgamma(0.5 * (u_ll + u_rr), equations)
+    inv_gamma_minus_one = 1 / (gamma - 1)
+
+    # extract velocities
+    v1_ll = rho_v1_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+    v1_avg = 0.5 * (v1_ll + v1_rr)
+    v2_ll = rho_v2_ll / rho_ll
+    v2_rr = rho_v2_rr / rho_rr
+    v2_avg = 0.5 * (v2_ll + v2_rr)
+    velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    # helpful variables
+    help1_ll = zero(v1_ll)
+    help1_rr = zero(v1_rr)
+    enth_ll = zero(v1_ll)
+    enth_rr = zero(v1_rr)
+    for i in eachcomponent(equations)
+        enth_ll += u_ll[i + 3] * gas_constants[i]
+        enth_rr += u_rr[i + 3] * gas_constants[i]
+        help1_ll += u_ll[i + 3] * cv[i]
+        help1_rr += u_rr[i + 3] * cv[i]
+    end
+
+    # temperature and pressure
+    T_ll = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
+    T_rr = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
+    p_ll = T_ll * enth_ll
+    p_rr = T_rr * enth_rr
+    p_avg = 0.5 * (p_ll + p_rr)
+    inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+
+    f_rho_sum = zero(T_rr)
+    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * 0.5 *
+                                                             (v_dot_n_ll + v_dot_n_rr)
+                                                             for i in eachcomponent(equations))
+    for i in eachcomponent(equations)
+        f_rho_sum += f_rho[i]
+    end
+    f1 = f_rho_sum * v1_avg + p_avg * normal_direction[1]
+    f2 = f_rho_sum * v2_avg + p_avg * normal_direction[2]
+    f3 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) +
+         0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
+
+    # momentum and energy flux
+    f_other = SVector(f1, f2, f3)
+
+    return vcat(f_other, f_rho)
+end
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerMulticomponentEquations2D)
@@ -491,6 +580,50 @@ end
     return (abs(v1) + c, abs(v2) + c)
 end
 
+@inline function rotate_to_x(u, normal_vector,
+                             equations::CompressibleEulerMulticomponentEquations2D)
+    # cos and sin of the angle between the x-axis and the normalized normal_vector are
+    # the normalized vector's x and y coordinates respectively (see unit circle).
+    c = normal_vector[1]
+    s = normal_vector[2]
+
+    # Apply the 2D rotation matrix with normal and tangent directions of the form
+    # [ n_1  n_2  0    0;
+    #   t_1  t_2  0    0;
+    #   0    0    1    0
+    #   0    0    0    1]
+    # where t_1 = -n_2 and t_2 = n_1
+
+    densities = @view u[4:end]
+    return SVector(c * u[1] + s * u[2],
+                   -s * u[1] + c * u[2],
+                   u[3],
+                   densities...)
+end
+
+# Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
+# has been normalized prior to this back-rotation of the state vector
+@inline function rotate_from_x(u, normal_vector,
+                               equations::CompressibleEulerMulticomponentEquations2D)
+    # cos and sin of the angle between the x-axis and the normalized normal_vector are
+    # the normalized vector's x and y coordinates respectively (see unit circle).
+    c = normal_vector[1]
+    s = normal_vector[2]
+
+    # Apply the 2D back-rotation matrix with normal and tangent directions of the form
+    # [ n_1  t_1  0   0;
+    #   n_2  t_2  0   0;
+    #   0    0    1   0;
+    #   0    0    0   1 ]
+    # where t_1 = -n_2 and t_2 = n_1
+
+    densities = @view u[4:end]
+    return SVector(c * u[1] - s * u[2],
+                   s * u[1] + c * u[2],
+                   u[3],
+                   densities...)
+end
+
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::CompressibleEulerMulticomponentEquations2D)
     rho_v1, rho_v2, rho_e = u
@@ -532,20 +665,55 @@ end
     s = log(p) - gamma * log(rho) - log(gas_constant)
     rho_p = rho / p
     T = (rho_e - 0.5 * rho * v_square) / (help1)
-    entrop_rho = SVector{ncomponents(equations), real(equations)}(gas_constant *
-                                                                  ((gamma - s) /
-                                                                   (gamma - 1.0) -
-                                                                   (0.5 * v_square *
-                                                                    rho_p))
+
+    entrop_rho = SVector{ncomponents(equations), real(equations)}((cv[i] *
+                                                                   (1 - log(T)) +
+                                                                   gas_constants[i] *
+                                                                   (1 + log(u[i + 3])) -
+                                                                   v_square / (2 * T))
                                                                   for i in eachcomponent(equations))
 
     w1 = gas_constant * v1 * rho_p
     w2 = gas_constant * v2 * rho_p
-    w3 = gas_constant * rho_p * (-1)
+    w3 = gas_constant * (-rho_p)
 
     entrop_other = SVector{3, real(equations)}(w1, w2, w3)
 
     return vcat(entrop_other, entrop_rho)
+end
+
+# Convert entropy variables to conservative variables
+@inline function entropy2cons(w, equations::CompressibleEulerMulticomponentEquations2D)
+    @unpack gammas, gas_constants, cp, cv = equations
+    T = -1 / w[3]
+    v1 = w[1] * T
+    v2 = w[2] * T
+    v_squared = v1^2 + v2^2
+    cons_rho = SVector{ncomponents(equations), real(equations)}(exp((w[i + 3] -
+                                                                     cv[i] *
+                                                                     (1 - log(T)) +
+                                                                     v_squared /
+                                                                     (2 * T)) /
+                                                                    gas_constants[i] -
+                                                                    1)
+                                                                for i in eachcomponent(equations))
+
+    rho = zero(cons_rho[1])
+    help1 = zero(cons_rho[1])
+    help2 = zero(cons_rho[1])
+    p = zero(cons_rho[1])
+    for i in eachcomponent(equations)
+        rho += cons_rho[i]
+        help1 += cons_rho[i] * cv[i] * gammas[i]
+        help2 += cons_rho[i] * cv[i]
+        p += cons_rho[i] * gas_constants[i] * T
+    end
+    u1 = rho * v1
+    u2 = rho * v2
+    gamma = help1 / help2
+    u3 = p / (gamma - 1) + 0.5 * rho * v_squared
+    cons_other = SVector{3, real(equations)}(u1, u2, u3)
+    return vcat(cons_other, cons_rho)
 end
 
 # Convert primitive to conservative variables
@@ -565,6 +733,39 @@ end
     cons_other = SVector{3, real(equations)}(rho_v1, rho_v2, rho_e)
 
     return vcat(cons_other, cons_rho)
+end
+
+@inline function total_entropy(u, equations::CompressibleEulerMulticomponentEquations2D)
+    @unpack cv, gammas, gas_constants = equations
+    rho = density(u, equations)
+    T = temperature(u, equations)
+
+    total_entropy = zero(u[1])
+    for i in eachcomponent(equations)
+        total_entropy -= u[i + 3] * (cv[i] * log(T) - gas_constants[i] * log(u[i + 3]))
+    end
+
+    return total_entropy
+end
+
+@inline function temperature(u, equations::CompressibleEulerMulticomponentEquations2D)
+    @unpack cv, gammas, gas_constants = equations
+
+    rho_v1, rho_v2, rho_e = u
+
+    rho = density(u, equations)
+    help1 = zero(rho)
+
+    for i in eachcomponent(equations)
+        help1 += u[i + 3] * cv[i]
+    end
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v_square = v1^2 + v2^2
+    T = (rho_e - 0.5 * rho * v_square) / help1
+
+    return T
 end
 
 """

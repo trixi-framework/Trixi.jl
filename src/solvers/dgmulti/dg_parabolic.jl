@@ -62,9 +62,10 @@ end
 function transform_variables!(u_transformed, u, mesh,
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
+    transformation = gradient_variable_transformation(equations_parabolic)
+
     @threaded for i in eachindex(u)
-        u_transformed[i] = gradient_variable_transformation(equations_parabolic)(u[i],
-                                                                                 equations_parabolic)
+        u_transformed[i] = transformation(u[i], equations_parabolic)
     end
 end
 

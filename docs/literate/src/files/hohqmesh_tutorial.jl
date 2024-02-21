@@ -566,3 +566,15 @@ mesh = UnstructuredMesh2D(mesh_file);
 # for details.
 
 # ![simulation_straight_sides_p4est_amr](https://user-images.githubusercontent.com/74359358/168049930-8abce6ac-cd47-4d04-b40b-0fa459bbd98d.png)
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots", "Trixi2Vtk", "HOHQMesh"],
+           mode=PKGMODE_MANIFEST)

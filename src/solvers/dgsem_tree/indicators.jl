@@ -92,6 +92,77 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGassner)
     @nospecialize indicator # reduce precompilation time
+    setup = [
+        "indicator variable" => indicator.variable,
+        "max. α" => indicator.alpha_max,
+        "min. α" => indicator.alpha_min,
+        "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
+    ]
+    summary_box(io, "IndicatorHennemannGassner", setup)
+end
+
+# TODO: TrixiShallowWater: move the new indicator and all associated routines to the new package
+"""
+    IndicatorHennemannGassnerShallowWater(equations::AbstractEquations, basis;
+                                          alpha_max=0.5,
+                                          alpha_min=0.001,
+                                          alpha_smooth=true,
+                                          variable)
+
+Modified version of the [`IndicatorHennemannGassner`](@ref)
+indicator used for shock-capturing for shallow water equations. After
+the element-wise values for the blending factors are computed an additional check
+is made to see if the element is partially wet. In this case, partially wet elements
+are set to use the pure finite volume scheme that is guaranteed to be well-balanced
+for this wet/dry transition state of the flow regime.
+
+See also [`VolumeIntegralShockCapturingHG`](@ref).
+
+## References
+
+- Hennemann, Gassner (2020)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+struct IndicatorHennemannGassnerShallowWater{RealT <: Real, Variable, Cache} <:
+       AbstractIndicator
+    alpha_max::RealT
+    alpha_min::RealT
+    alpha_smooth::Bool
+    variable::Variable
+    cache::Cache
+end
+
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# of the shallow water equations
+# It modifies the shock-capturing indicator to use full FV method in dry cells
+function IndicatorHennemannGassnerShallowWater(equations::AbstractShallowWaterEquations,
+                                               basis;
+                                               alpha_max = 0.5,
+                                               alpha_min = 0.001,
+                                               alpha_smooth = true,
+                                               variable)
+    alpha_max, alpha_min = promote(alpha_max, alpha_min)
+    cache = create_cache(IndicatorHennemannGassner, equations, basis)
+    IndicatorHennemannGassnerShallowWater{typeof(alpha_max), typeof(variable),
+                                          typeof(cache)}(alpha_max, alpha_min,
+                                                         alpha_smooth, variable, cache)
+end
+
+function Base.show(io::IO, indicator::IndicatorHennemannGassnerShallowWater)
+    @nospecialize indicator # reduce precompilation time
+
+    print(io, "IndicatorHennemannGassnerShallowWater(")
+    print(io, indicator.variable)
+    print(io, ", alpha_max=", indicator.alpha_max)
+    print(io, ", alpha_min=", indicator.alpha_min)
+    print(io, ", alpha_smooth=", indicator.alpha_smooth)
+    print(io, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain",
+                   indicator::IndicatorHennemannGassnerShallowWater)
+    @nospecialize indicator # reduce precompilation time
 
     if get(io, :compact, false)
         show(io, indicator)
@@ -102,7 +173,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
             "min. α" => indicator.alpha_min,
             "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
         ]
-        summary_box(io, "IndicatorHennemannGassner", setup)
+        summary_box(io, "IndicatorHennemannGassnerShallowWater", setup)
     end
 end
 
@@ -159,7 +230,7 @@ and `basis` if this indicator should be used for shock capturing.
 - Löhner (1987)
   "An adaptive finite element scheme for transient problems in CFD"
   [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
+- [https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000](https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000)
 """
 struct IndicatorLöhner{RealT <: Real, Variable, Cache} <: AbstractIndicator
     f_wave::RealT # TODO: Taal documentation
@@ -261,199 +332,4 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
         summary_box(io, "IndicatorMax", setup)
     end
 end
-
-"""
-    IndicatorNeuralNetwork
-
-Artificial neural network based indicator used for shock-capturing or AMR.
-Depending on the indicator_type, different input values and corresponding trained networks are used.
-
-`indicator_type = NeuralNetworkPerssonPeraire()`
-- Input: The energies in lower modes as well as nnodes(dg).
-
-`indicator_type = NeuralNetworkRayHesthaven()`
-- 1d Input: Cell average of the cell and its neighboring cells as well as the interface values.
-- 2d Input: Linear modal values of the cell and its neighboring cells.
-
-- Ray, Hesthaven (2018)
-  "An artificial neural network as a troubled-cell indicator"
-  [doi:10.1016/j.jcp.2018.04.029](https://doi.org/10.1016/j.jcp.2018.04.029)
-- Ray, Hesthaven (2019)
-  "Detecting troubled-cells on two-dimensional unstructured grids using a neural network"
-  [doi:10.1016/j.jcp.2019.07.043](https://doi.org/10.1016/j.jcp.2019.07.043)
-
-`indicator_type = CNN (Only in 2d)`
-- Based on convolutional neural network.
-- 2d Input: Interpolation of the nodal values of the `indicator.variable` to the 4x4 LGL nodes.
-
-If `alpha_continuous == true` the continuous network output for troubled cells (`alpha > 0.5`) is considered.
-If the cells are good (`alpha < 0.5`), `alpha` is set to `0`.
-If `alpha_continuous == false`, the blending factor is set to `alpha = 0` for good cells and
-`alpha = 1` for troubled cells.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-
-"""
-struct IndicatorNeuralNetwork{IndicatorType, RealT <: Real, Variable, Chain, Cache} <:
-       AbstractIndicator
-    indicator_type::IndicatorType
-    alpha_max::RealT
-    alpha_min::RealT
-    alpha_smooth::Bool
-    alpha_continuous::Bool
-    alpha_amr::Bool
-    variable::Variable
-    network::Chain
-    cache::Cache
-end
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorNeuralNetwork(equations::AbstractEquations, basis;
-                                indicator_type,
-                                alpha_max = 0.5,
-                                alpha_min = 0.001,
-                                alpha_smooth = true,
-                                alpha_continuous = true,
-                                alpha_amr = false,
-                                variable,
-                                network)
-    alpha_max, alpha_min = promote(alpha_max, alpha_min)
-    IndicatorType = typeof(indicator_type)
-    cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, equations, basis)
-    IndicatorNeuralNetwork{IndicatorType, typeof(alpha_max), typeof(variable),
-                           typeof(network), typeof(cache)}(indicator_type, alpha_max,
-                                                           alpha_min, alpha_smooth,
-                                                           alpha_continuous, alpha_amr,
-                                                           variable,
-                                                           network, cache)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function IndicatorNeuralNetwork(semi::AbstractSemidiscretization;
-                                indicator_type,
-                                alpha_max = 0.5,
-                                alpha_min = 0.001,
-                                alpha_smooth = true,
-                                alpha_continuous = true,
-                                alpha_amr = true,
-                                variable,
-                                network)
-    alpha_max, alpha_min = promote(alpha_max, alpha_min)
-    IndicatorType = typeof(indicator_type)
-    cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, semi)
-    IndicatorNeuralNetwork{IndicatorType, typeof(alpha_max), typeof(variable),
-                           typeof(network), typeof(cache)}(indicator_type, alpha_max,
-                                                           alpha_min, alpha_smooth,
-                                                           alpha_continuous, alpha_amr,
-                                                           variable,
-                                                           network, cache)
-end
-
-function Base.show(io::IO, indicator::IndicatorNeuralNetwork)
-    @nospecialize indicator # reduce precompilation time
-
-    print(io, "IndicatorNeuralNetwork(")
-    print(io, indicator.indicator_type)
-    print(io, ", alpha_max=", indicator.alpha_max)
-    print(io, ", alpha_min=", indicator.alpha_min)
-    print(io, ", alpha_smooth=", indicator.alpha_smooth)
-    print(io, ", alpha_continuous=", indicator.alpha_continuous)
-    print(io, indicator.variable)
-    print(io, ")")
-end
-
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorNeuralNetwork)
-    @nospecialize indicator # reduce precompilation time
-
-    if get(io, :compact, false)
-        show(io, indicator)
-    else
-        setup = [
-            "indicator type" => indicator.indicator_type,
-            "max. α" => indicator.alpha_max,
-            "min. α" => indicator.alpha_min,
-            "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
-            "continuous α" => (indicator.alpha_continuous ? "yes" : "no"),
-            "indicator variable" => indicator.variable,
-        ]
-        summary_box(io, "IndicatorNeuralNetwork", setup)
-    end
-end
-
-# Convert probability for troubled cell to indicator value for shockcapturing/AMR
-@inline function probability_to_indicator(probability_troubled_cell, alpha_continuous,
-                                          alpha_amr,
-                                          alpha_min, alpha_max)
-    # Initialize indicator to zero
-    alpha_element = zero(probability_troubled_cell)
-
-    if alpha_continuous && !alpha_amr
-        # Set good cells to 0 and troubled cells to continuous value of the network prediction
-        if probability_troubled_cell > 0.5
-            alpha_element = probability_troubled_cell
-        else
-            alpha_element = zero(probability_troubled_cell)
-        end
-
-        # Take care of the case close to pure FV
-        if alpha_element > 1 - alpha_min
-            alpha_element = one(alpha_element)
-        end
-
-        # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
-        alpha_element *= alpha_max
-    elseif !alpha_continuous && !alpha_amr
-        # Set good cells to 0 and troubled cells to 1
-        if probability_troubled_cell > 0.5
-            alpha_element = alpha_max
-        else
-            alpha_element = zero(alpha_max)
-        end
-    elseif alpha_amr
-        # The entire continuous output of the neural network is used for AMR
-        alpha_element = probability_troubled_cell
-
-        # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
-        alpha_element *= alpha_max
-    end
-
-    return alpha_element
-end
-
-"""
-    NeuralNetworkPerssonPeraire
-
-Indicator type for creating an `IndicatorNeuralNetwork` indicator.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-
-See also: [`IndicatorNeuralNetwork`](@ref)
-"""
-struct NeuralNetworkPerssonPeraire end
-
-"""
-    NeuralNetworkRayHesthaven
-
-Indicator type for creating an `IndicatorNeuralNetwork` indicator.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-
-See also: [`IndicatorNeuralNetwork`](@ref)
-"""
-struct NeuralNetworkRayHesthaven end
-
-"""
-    NeuralNetworkCNN
-
-Indicator type for creating an `IndicatorNeuralNetwork` indicator.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-
-See also: [`IndicatorNeuralNetwork`](@ref)
-"""
-struct NeuralNetworkCNN end
 end # @muladd

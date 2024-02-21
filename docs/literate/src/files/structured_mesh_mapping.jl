@@ -201,3 +201,15 @@ plot!(getmesh(pd))
 # unstructured mesh type [`UnstructuredMesh2D`] and its use of the
 # [High-Order Hex-Quad Mesh (HOHQMesh) generator](https://github.com/trixi-framework/HOHQMesh),
 # created and developed by David Kopriva.
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)

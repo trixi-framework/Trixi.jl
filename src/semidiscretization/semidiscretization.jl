@@ -70,13 +70,22 @@ end
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 """
-function semidiscretize(semi::AbstractSemidiscretization, tspan)
+function semidiscretize(semi::AbstractSemidiscretization, tspan;
+                        reset_threads = true)
+    # Optionally reset Polyester.jl threads. See
+    # https://github.com/trixi-framework/Trixi.jl/issues/1583
+    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
+    if reset_threads
+        Polyester.reset_threads!()
+    end
+
     u0_ode = compute_coefficients(first(tspan), semi)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
     iip = true # is-inplace, i.e., we modify a vector when calling rhs!
-    return ODEProblem{iip}(rhs!, u0_ode, tspan, semi)
+    specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
+    return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
 end
 
 """
@@ -87,13 +96,22 @@ that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai
 The initial condition etc. is taken from the `restart_file`.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan,
-                        restart_file::AbstractString)
+                        restart_file::AbstractString;
+                        reset_threads = true)
+    # Optionally reset Polyester.jl threads. See
+    # https://github.com/trixi-framework/Trixi.jl/issues/1583
+    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
+    if reset_threads
+        Polyester.reset_threads!()
+    end
+
     u0_ode = load_restart_file(semi, restart_file)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
     iip = true # is-inplace, i.e., we modify a vector when calling rhs!
-    return ODEProblem{iip}(rhs!, u0_ode, tspan, semi)
+    specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
+    return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
 end
 
 """
@@ -235,6 +253,9 @@ end
 
 function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
     new_semi = remake(semi, uEltype = eltype(config))
+    # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
         Trixi.rhs!(du_ode, u_ode, new_semi, t0)
     end
@@ -261,6 +282,9 @@ end
 
 function _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
     new_semi = remake(semi, uEltype = eltype(config))
+    # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode_plain, u0_ode_plain,
                              config) do du_ode_plain, u_ode_plain
         u_ode = StructArray{SVector{nvariables(semi), eltype(config)}}(ntuple(v -> view(u_ode_plain,
@@ -317,6 +341,10 @@ function get_element_variables!(element_variables, u_ode,
     get_element_variables!(element_variables, u, mesh_equations_solver_cache(semi)...)
 end
 
+function get_node_variables!(node_variables, semi::AbstractSemidiscretization)
+    get_node_variables!(node_variables, mesh_equations_solver_cache(semi)...)
+end
+
 # To implement AMR and use OrdinaryDiffEq.jl etc., we have to be a bit creative.
 # Since the caches of the SciML ecosystem are immutable structs, we cannot simply
 # change the underlying arrays therein. Hence, to support changing the number of
@@ -345,7 +373,7 @@ end
 #
 # In some sense, having plain multidimensional `Array`s not support `resize!`
 # isn't necessarily a bug (although it would be nice to add this possibility to
-# base Julia) but can turn out to be a feature for us, because it will aloow us
+# base Julia) but can turn out to be a feature for us, because it will allow us
 # more specializations.
 # Since we can use multiple dispatch, these kinds of specializations can be
 # tailored specifically to each combinations of mesh/solver etc.
