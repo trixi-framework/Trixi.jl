@@ -113,7 +113,7 @@ To benchmark the changes made in a PR, please proceed as follows:
 3. Change your working directory to the `benchmark` directory of Trixi.jl.
 4. Execute `julia run_benchmarks.jl`.
 
-This will take some hours to complete. When everything is finished, some
+This will take some hours to complete and requires at least 8 GiB of RAM. When everything is finished, some
 output files will be created in the `benchmark` directory of Trixi.jl.
 
 !!! warning
