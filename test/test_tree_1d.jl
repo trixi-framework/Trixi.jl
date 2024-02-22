@@ -47,6 +47,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # FDSBP methods on the TreeMesh
     include("test_tree_1d_fdsbp.jl")
+
+    # Traffic flow LWR
+    include("test_tree_1d_traffic_flow_lwr.jl")
 end
 
 # Coverage test for all initial conditions
