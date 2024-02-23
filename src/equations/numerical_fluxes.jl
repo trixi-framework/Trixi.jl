@@ -326,29 +326,6 @@ This is a [`FluxHLL`](@ref)-type two-wave solver with special estimates of the w
 """
 const flux_hlle = FluxHLL(min_max_speed_einfeldt)
 
-# TODO: TrixiShallowWater: move the chen_noelle flux structure to the new package
-
-# An empty version of the `min_max_speed_chen_noelle` function is declared here
-# in order to create a dimension agnostic version of `flux_hll_chen_noelle`.
-# The full description of this wave speed estimate can be found in the docstrings
-# for `min_max_speed_chen_noelle` in `shallow_water_1d.jl` or `shallow_water_2d.jl`.
-function min_max_speed_chen_noelle end
-
-"""
-    flux_hll_chen_noelle = FluxHLL(min_max_speed_chen_noelle)
-
-An instance of [`FluxHLL`](@ref) specific to the shallow water equations that
-uses the wave speed estimates from [`min_max_speed_chen_noelle`](@ref).
-This HLL flux is guaranteed to have zero numerical mass flux out of a "dry" element,
-maintain positivity of the water height, and satisfy an entropy inequality.
-
-For complete details see Section 2.4 of the following reference
-- Guoxian Chen and Sebastian Noelle (2017)
-  A new hydrostatic reconstruction scheme based on subcell reconstructions
-  [DOI: 10.1137/15M1053074](https://doi.org/10.1137/15M1053074)
-"""
-const flux_hll_chen_noelle = FluxHLL(min_max_speed_chen_noelle)
-
 """
     flux_shima_etal_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
 
