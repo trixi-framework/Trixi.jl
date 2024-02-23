@@ -222,12 +222,12 @@ See [`FluxLaxFriedrichs`](@ref).
 const flux_lax_friedrichs = FluxLaxFriedrichs()
 
 """
-    FluxHLL(min_max_speed=min_max_speed_naive)
+    FluxHLL(min_max_speed=min_max_speed_davis)
 
 Create an HLL (Harten, Lax, van Leer) numerical flux where the minimum and maximum
 wave speeds are estimated as
 `λ_min, λ_max = min_max_speed(u_ll, u_rr, orientation_or_normal_direction, equations)`,
-defaulting to [`min_max_speed_naive`](@ref).
+defaulting to [`min_max_speed_davis`](@ref).
 Original paper:
 - Amiram Harten, Peter D. Lax, Bram van Leer (1983)
   On Upstream Differencing and Godunov-Type Schemes for Hyperbolic Conservation Laws
@@ -237,7 +237,7 @@ struct FluxHLL{MinMaxSpeed}
     min_max_speed::MinMaxSpeed
 end
 
-FluxHLL() = FluxHLL(min_max_speed_naive)
+FluxHLL() = FluxHLL(min_max_speed_davis)
 
 """
     min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations)
@@ -246,9 +246,15 @@ FluxHLL() = FluxHLL(min_max_speed_naive)
 Simple and fast estimate(!) of the minimal and maximal wave speed of the Riemann problem with
 left and right states `u_ll, u_rr`, usually based only on the local wave speeds associated to
 `u_ll` and `u_rr`.
+Slightly more diffusive than [`min_max_speed_davis`](@ref).
 - Amiram Harten, Peter D. Lax, Bram van Leer (1983)
   On Upstream Differencing and Godunov-Type Schemes for Hyperbolic Conservation Laws
   [DOI: 10.1137/1025002](https://doi.org/10.1137/1025002)
+
+See eq. (10.37) from
+- Eleuterio F. Toro (2009)
+  Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
+  [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
 See also [`FluxHLL`](@ref), [`min_max_speed_davis`](@ref), [`min_max_speed_einfeldt`](@ref).
 """
@@ -266,6 +272,10 @@ left and right states `u_ll, u_rr`, usually based only on the local wave speeds 
   Simplified Second-Order Godunov-Type Methods
   [DOI: 10.1137/0909030](https://doi.org/10.1137/0909030)
 
+See eq. (10.38) from
+- Eleuterio F. Toro (2009)
+  Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
+  [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 See also [`FluxHLL`](@ref), [`min_max_speed_naive`](@ref), [`min_max_speed_einfeldt`](@ref).
 """
 function min_max_speed_davis end

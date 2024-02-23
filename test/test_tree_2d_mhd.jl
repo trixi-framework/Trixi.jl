@@ -183,7 +183,7 @@ end
     end
 end
 
-@trixi_testset "elixir_mhd_orszag_tang.jl with flux_hll" begin
+@trixi_testset "elixir_mhd_orszag_tang.jl with flux_hlle" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
                         l2=[
                             0.10806619664693064,

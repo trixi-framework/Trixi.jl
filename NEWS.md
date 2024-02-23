@@ -10,12 +10,16 @@ for human readability.
 
 #### Changed
 
+- The default wave speed estimate used within `flux_hll` is now `min_max_speed_davis` 
+  instead of `min_max_speed_naive`.
+
 #### Deprecated
 
 #### Removed
 - Some specialized shallow water specific features are no longer available directly in
   Trixi.jl, but are moved to a dedicated repository: [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl). This includes all features related to wetting and drying, as well as the `ShallowWaterTwoLayerEquations1D` and `ShallowWaterTwoLayerEquations2D`.
   However, the basic shallow water equations are still part of Trixi.jl. We'll also be updating the TrixiShallowWater.jl documentation with instructions on how to use these relocated features in the future.
+
 
 ## Changes in the v0.6 lifecycle
 
@@ -26,6 +30,7 @@ for human readability.
   can now be digested by Trixi in 2D and 3D.
 - Subcell (positivity) limiting support for nonlinear variables in 2D for `TreeMesh`
 - Added Lighthill-Whitham-Richards (LWR) traffic model
+
 
 ## Changes when updating to v0.6 from v0.5.x
 

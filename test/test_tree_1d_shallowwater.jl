@@ -143,17 +143,18 @@ end
 @trixi_testset "elixir_shallowwater_source_terms.jl with flux_hll" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         l2=[
-                            0.0022758146627220154,
-                            0.015864082886204556,
+                            0.002275023323848826,
+                            0.015861093821754046,
                             4.436491725585346e-5,
                         ],
                         linf=[
-                            0.008457195427364006,
-                            0.057201667446161064,
+                            0.008461451098266792,
+                            0.05722331401673486,
                             9.098379777405796e-5,
                         ],
                         tspan=(0.0, 0.025),
-                        surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal))
+                        surface_flux=(flux_hll,
+                                      flux_nonconservative_fjordholm_etal))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -228,7 +229,7 @@ end
                             0.05720939349382359,
                             9.098379777405796e-5,
                         ],
-                        surface_flux=(FluxHydrostaticReconstruction(flux_hll,
+                        surface_flux=(FluxHydrostaticReconstruction(FluxHLL(min_max_speed_naive),
                                                                     hydrostatic_reconstruction_audusse_etal),
                                       flux_nonconservative_audusse_etal),
                         tspan=(0.0, 0.025))
@@ -255,7 +256,9 @@ end
                             3.469453422316143e-15,
                             3.844551077492042e-8,
                         ],
-                        tspan=(0.0, 0.25))
+                        tspan=(0.0, 0.25),
+                        surface_flux=(FluxHLL(min_max_speed_naive),
+                                      flux_nonconservative_fjordholm_etal),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -280,6 +283,8 @@ end
                             3.844551077492042e-8,
                         ],
                         tspan=(0.0, 0.25),
+                        surface_flux=(FluxHLL(min_max_speed_naive),
+                                      flux_nonconservative_fjordholm_etal),
                         boundary_condition=boundary_condition_slip_wall)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
