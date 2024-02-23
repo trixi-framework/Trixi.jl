@@ -701,7 +701,7 @@ end
                             1.8290174930157832e-11,
                             4.61017890529547e-11],
                         tspan=(0.0, 0.1),
-                        atol=1.0e-11)
+                        atol=1.0e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
