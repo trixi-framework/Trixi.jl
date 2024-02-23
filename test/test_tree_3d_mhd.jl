@@ -184,9 +184,9 @@ end
     end
 end
 
-@trixi_testset "elixir_mhd_alfven_wave.jl with Orszag-Tang setup + flux_hll" begin
+@trixi_testset "elixir_mhd_alfven_wave.jl with Orszag-Tang setup + flux_hlle" begin
     # OBS! This setup does not make much sense and is only used to exercise all components of the
-    # flux_hll implementation
+    # flux_hlle implementation
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[
                             0.004391143689111404,
