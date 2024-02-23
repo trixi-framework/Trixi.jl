@@ -1,5 +1,7 @@
 using Test
 using MPI: mpiexec
+using Pkg
+Pkg.add(name = "FFMPEG", version = "0.4.1")
 
 # We run tests in parallel with CI jobs setting the `TRIXI_TEST` environment
 # variable to determine the subset of tests to execute.
