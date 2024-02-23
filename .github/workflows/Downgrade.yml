@@ -69,7 +69,6 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
-      - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-downgrade-compat@v1
         with:
           skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DiffEqBase
