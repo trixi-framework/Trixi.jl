@@ -420,11 +420,6 @@ end
                                     (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
-    # TODO: TrixiShallowWater: move unit test
-    indicator_hg_swe = IndicatorHennemannGassnerShallowWater(1.0, 0.0, true, "variable",
-                                                             "cache")
-    @test_nowarn show(stdout, indicator_hg_swe)
-
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_loehner)
 
@@ -543,7 +538,7 @@ end
 end
 
 @timed_testset "Shallow water conversion between conservative/entropy variables" begin
-    H, v1, v2, b = 3.5, 0.25, 0.1, 0.4
+    H, v1, v2, b, a = 3.5, 0.25, 0.1, 0.4, 0.3
 
     let equations = ShallowWaterEquations1D(gravity_constant = 9.8)
         cons_vars = prim2cons(SVector(H, v1, b), equations)
@@ -571,6 +566,14 @@ end
         cons_vars = prim2cons((H, v1, v2, b), equations)
         entropy_vars = cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
+
+    let equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.8)
+        cons_vars = prim2cons(SVector(H, v1, b, a), equations)
+        entropy_vars = cons2entropy(cons_vars, equations)
+
+        total_energy = energy_total(cons_vars, equations)
+        @test entropy(cons_vars, equations) ≈ a * total_energy
     end
 end
 
@@ -697,6 +700,14 @@ end
     u = SVector(1, 0.5, 0.0)
     @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
 
+    u_ll = SVector(0.1, 1.0, 0.0)
+    u_rr = SVector(0.1, 1.0, 0.0)
+    @test flux_hll(u_ll, u_rr, 1, equations) ≈ flux(u_ll, 1, equations)
+
+    u_ll = SVector(0.1, -1.0, 0.0)
+    u_rr = SVector(0.1, -1.0, 0.0)
+    @test flux_hll(u_ll, u_rr, 1, equations) ≈ flux(u_rr, 1, equations)
+
     equations = ShallowWaterEquations2D(gravity_constant = 9.81)
     normal_directions = [SVector(1.0, 0.0),
         SVector(0.0, 1.0),
@@ -707,6 +718,17 @@ end
         @test flux_hll(u, u, normal_direction, equations) ≈
               flux(u, normal_direction, equations)
     end
+
+    normal_direction = SVector(1.0, 0.0, 0.0)
+    u_ll = SVector(0.1, 1.0, 1.0, 0.0)
+    u_rr = SVector(0.1, 1.0, 1.0, 0.0)
+    @test flux_hll(u_ll, u_rr, normal_direction, equations) ≈
+          flux(u_ll, normal_direction, equations)
+
+    u_ll = SVector(0.1, -1.0, -1.0, 0.0)
+    u_rr = SVector(0.1, -1.0, -1.0, 0.0)
+    @test flux_hll(u_ll, u_rr, normal_direction, equations) ≈
+          flux(u_rr, normal_direction, equations)
 end
 
 @timed_testset "Consistency check for HLL flux (naive): MHD" begin

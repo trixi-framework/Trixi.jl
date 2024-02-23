@@ -1,7 +1,5 @@
 module TestExamplesUnstructuredMesh2D
 
-# TODO: TrixiShallowWater: move any wet/dry and two layer tests
-
 using Test
 using Trixi
 
@@ -541,105 +539,6 @@ end
                             3.3330308209196224,
                             2.052861364219655,
                         ],
-                        tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_three_mound_dam_break.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_shallowwater_three_mound_dam_break.jl"),
-                        l2=[
-                            0.0892957892027502,
-                            0.30648836484407915,
-                            2.28712547616214e-15,
-                            0.0008778654298684622,
-                        ],
-                        linf=[
-                            0.850329472915091,
-                            2.330631694956507,
-                            5.783660020252348e-14,
-                            0.04326237921249021,
-                        ],
-                        basis=LobattoLegendreBasis(3),
-                        tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_twolayer_convergence.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_shallowwater_twolayer_convergence.jl"),
-                        l2=[0.0007935561625451243, 0.008825315509943844,
-                            0.002429969315645897,
-                            0.0007580145888686304, 0.004495741879625235,
-                            0.0015758146898767814,
-                            6.849532064729749e-6],
-                        linf=[0.0059205195991136605, 0.08072126590166251,
-                            0.03463806075399023,
-                            0.005884818649227186, 0.042658506561995546,
-                            0.014125956138838602, 2.5829318284764646e-5],
-                        tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_twolayer_well_balanced.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_shallowwater_twolayer_well_balanced.jl"),
-                        l2=[4.706532184998499e-16, 1.1215950712872183e-15,
-                            6.7822712922421565e-16,
-                            0.002192812926266047, 5.506855295923691e-15,
-                            3.3105180099689275e-15,
-                            0.0021928129262660085],
-                        linf=[4.468647674116255e-15, 1.3607872120431166e-14,
-                            9.557155049520056e-15,
-                            0.024280130945632084, 6.68910907640583e-14,
-                            4.7000983997100496e-14,
-                            0.024280130945632732],
-                        tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_twolayer_dam_break.jl with flux_lax_friedrichs" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_shallowwater_twolayer_dam_break.jl"),
-                        l2=[0.012447632879122346, 0.012361250464676683,
-                            0.0009551519536340908,
-                            0.09119400061322577, 0.015276216721920347,
-                            0.0012126995108983853, 0.09991983966647647],
-                        linf=[0.044305765721807444, 0.03279620980615845,
-                            0.010754320388190101,
-                            0.111309922939555, 0.03663360204931427,
-                            0.014332822306649284,
-                            0.10000000000000003],
-                        surface_flux=(flux_lax_friedrichs,
-                                      flux_nonconservative_ersing_etal),
                         tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

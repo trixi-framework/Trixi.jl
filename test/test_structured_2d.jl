@@ -1,7 +1,5 @@
 module TestExamplesStructuredMesh2D
 
-# TODO: TrixiShallowWater: move any wet/dry tests to new package
-
 using Test
 using Trixi
 
@@ -888,82 +886,6 @@ end
                             2.4084298688001335,
                         ],
                         tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_well_balanced_wet_dry.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_shallowwater_well_balanced_wet_dry.jl"),
-                        l2=[
-                            0.019731646454942086,
-                            1.0694532773278277e-14,
-                            1.1969913383405568e-14,
-                            0.0771517260037954,
-                        ],
-                        linf=[
-                            0.4999999999998892,
-                            6.067153702623552e-14,
-                            4.4849667259339357e-14,
-                            1.9999999999999993,
-                        ],
-                        tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_conical_island.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_conical_island.jl"),
-                        l2=[
-                            0.04593154164306353,
-                            0.1644534881916908,
-                            0.16445348819169076,
-                            0.0011537702354532122,
-                        ],
-                        linf=[
-                            0.21100717610846442,
-                            0.9501592344310412,
-                            0.950159234431041,
-                            0.021790250683516296,
-                        ],
-                        tspan=(0.0, 0.025))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_parabolic_bowl.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_parabolic_bowl.jl"),
-                        l2=[
-                            0.00015285369980313484,
-                            1.9536806395943226e-5,
-                            9.936906607758672e-5,
-                            5.0686313334616055e-15,
-                        ],
-                        linf=[
-                            0.003316119030459211,
-                            0.0005075409427972817,
-                            0.001986721761060583,
-                            4.701794509287538e-14,
-                        ],
-                        tspan=(0.0, 0.025), cells_per_dimension=(40, 40))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

@@ -1,7 +1,5 @@
 module TestExamples1DShallowWater
 
-# TODO: TrixiShallowWater: move any wet/dry tests to new package
-
 using Test
 using Trixi
 
@@ -109,32 +107,6 @@ end
                         volume_flux=(flux_wintermeyer_etal,
                                      flux_nonconservative_ersing_etal),
                         tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_well_balanced_wet_dry.jl with FluxHydrostaticReconstruction" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_shallowwater_well_balanced_wet_dry.jl"),
-                        l2=[
-                            0.00965787167169024,
-                            5.345454081916856e-14,
-                            0.03857583749209928,
-                        ],
-                        linf=[
-                            0.4999999999998892,
-                            2.2447689894899726e-13,
-                            1.9999999999999714,
-                        ],
-                        tspan=(0.0, 0.25),
-                        # Soften the tolerance as test results vary between different CPUs
-                        atol=1000 * eps())
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -332,53 +304,6 @@ end
                             1.1209754279344226,
                             1.3230788645853582,
                             0.8646939843534251,
-                        ],
-                        tspan=(0.0, 0.05))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_beach.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_beach.jl"),
-                        l2=[
-                            0.17979210479598923,
-                            1.2377495706611434,
-                            6.289818963361573e-8,
-                        ],
-                        linf=[
-                            0.845938394800688,
-                            3.3740800777086575,
-                            4.4541473087633676e-7,
-                        ],
-                        tspan=(0.0, 0.05),
-                        atol=3e-10) # see https://github.com/trixi-framework/Trixi.jl/issues/1617
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_parabolic_bowl.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_parabolic_bowl.jl"),
-                        l2=[
-                            8.965981683033589e-5,
-                            1.8565707397810857e-5,
-                            4.1043039226164336e-17,
-                        ],
-                        linf=[
-                            0.00041080213807871235,
-                            0.00014823261488938177,
-                            2.220446049250313e-16,
                         ],
                         tspan=(0.0, 0.05))
     # Ensure that we do not have excessive memory allocations
