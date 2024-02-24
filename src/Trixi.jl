@@ -259,7 +259,7 @@ export SemidiscretizationCoupled
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
        AveragingCallback,
-       AMRCallback, StepsizeCallback,
+       AMRCallback, StepsizeCallback, NaNCallback, 
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled
 

@@ -80,7 +80,7 @@ end
 # which are used in Trixi.jl.
 mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
                                   SimpleIntegrator2NOptions}
-    u::uType #
+    u::uType
     du::uType
     u_tmp::uType
     t::RealT

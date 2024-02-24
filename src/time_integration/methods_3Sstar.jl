@@ -146,7 +146,7 @@ end
 
 mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
                                       SimpleIntegrator3SstarOptions}
-    u::uType #
+    u::uType
     du::uType
     u_tmp1::uType
     u_tmp2::uType

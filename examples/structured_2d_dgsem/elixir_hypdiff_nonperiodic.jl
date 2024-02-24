@@ -64,11 +64,14 @@ save_solution = SaveSolutionCallback(interval = 4000,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
+nan_callback = NaNCallback(analysis_interval = analysis_interval)
+
 stepsize_callback = StepsizeCallback(cfl = 1.9)
 
 callbacks = CallbackSet(summary_callback, steady_state_callback,
                         analysis_callback, alive_callback,
                         save_solution,
+                        nan_callback,
                         stepsize_callback)
 
 ###############################################################################
