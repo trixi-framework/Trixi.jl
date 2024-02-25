@@ -49,9 +49,11 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
+nan_callback = NaNCallback(analysis_interval = analysis_interval)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
+                        save_solution, nan_callback,
                         amr_callback, stepsize_callback)
 
 ###############################################################################

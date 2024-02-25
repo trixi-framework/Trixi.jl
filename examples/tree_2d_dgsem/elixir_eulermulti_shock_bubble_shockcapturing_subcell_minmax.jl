@@ -123,11 +123,14 @@ save_solution = SaveSolutionCallback(interval = 600,
 
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
+nan_callback = NaNCallback(analysis_interval = analysis_interval)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_solution,
-                        stepsize_callback)
+                        stepsize_callback,
+                        nan_callback)
 
 ###############################################################################
 # run the simulation

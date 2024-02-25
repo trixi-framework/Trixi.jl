@@ -9,6 +9,7 @@
     NaNCallback(analysis_interval=0, nan_interval=analysis_interval÷10)
 
 Callback checking for NaNs in the solution vector `u` every `nan_interval`.
+This should be used when using `Trixi.solve` to solve the ODEs.
 If `analysis_interval ≂̸ 0`, the output is omitted every
 `analysis_interval` time steps.
 """
@@ -73,8 +74,11 @@ end
 
 # this method is called when the callback is activated
 function (nan_callback::NaNCallback)(integrator)
+    @trixi_timeit timer() "NaNCallback" begin
     if any(isnan, integrator.u)
-        error("NaN detected in the solution vector `u` at time $(integrator.t)")
+        error("NaN detected in the solution vector `u`` at time $(integrator.t),
+              timestep $(integrator.iter)")
+    end
     end
     return nothing
 end

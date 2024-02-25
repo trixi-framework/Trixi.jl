@@ -75,9 +75,11 @@ save_restart = SaveRestartCallback(interval = 1000,
 
 stepsize_callback = StepsizeCallback(cfl = 0.7)
 
+nan_callback = NaNCallback(analysis_interval = analysis_interval)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        stepsize_callback,
+                        stepsize_callback, nan_callback,
                         save_restart, save_solution)
 
 ###############################################################################

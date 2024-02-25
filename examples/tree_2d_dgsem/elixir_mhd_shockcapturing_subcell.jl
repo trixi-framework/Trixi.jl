@@ -88,6 +88,8 @@ save_solution = SaveSolutionCallback(interval = 100,
 cfl = 0.4
 stepsize_callback = StepsizeCallback(cfl = cfl)
 
+nan_callback = NaNCallback(analysis_interval = analysis_interval)
+
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
 
 callbacks = CallbackSet(summary_callback,
@@ -95,6 +97,7 @@ callbacks = CallbackSet(summary_callback,
                         alive_callback,
                         save_solution,
                         stepsize_callback,
+                        nan_callback,
                         glm_speed_callback)
 
 ###############################################################################
