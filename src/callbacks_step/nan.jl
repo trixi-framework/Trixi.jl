@@ -9,9 +9,9 @@
     NaNCallback(analysis_interval=0, nan_interval=analysis_interval÷10)
 
 Callback checking for NaNs in the solution vector `u` every `nan_interval`.
-This should be used when using `Trixi.solve` to solve the ODEs.
-If `analysis_interval ≂̸ 0`, the output is omitted every
-`analysis_interval` time steps.
+This should be used when using `Trixi.solve` to solve the ODEs as the custom 
+integrators do not come with the `unstable_check` of the DifferentialEquations.jl integrators.
+If `analysis_interval ≂̸ 0`, the output is omitted every `analysis_interval` time steps.
 """
 mutable struct NaNCallback
     nan_interval::Int
