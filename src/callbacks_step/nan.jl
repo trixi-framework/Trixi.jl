@@ -19,7 +19,7 @@ mutable struct NaNCallback
 end
 
 function NaNCallback(; analysis_interval = 0,
-                       nan_interval = analysis_interval ÷ 10)
+                     nan_interval = analysis_interval ÷ 10)
     nan_callback = NaNCallback(nan_interval, analysis_interval)
 
     DiscreteCallback(nan_callback, nan_callback, # the first one is the condition, the second the affect!
@@ -75,10 +75,10 @@ end
 # this method is called when the callback is activated
 function (nan_callback::NaNCallback)(integrator)
     @trixi_timeit timer() "NaNCallback" begin
-    if any(isnan, integrator.u)
-        error("NaN detected in the solution vector `u`` at time $(integrator.t),
-              timestep $(integrator.iter)")
-    end
+        if any(isnan, integrator.u)
+            error("NaN detected in the solution vector `u`` at time $(integrator.t),
+                  timestep $(integrator.iter)")
+        end
     end
     return nothing
 end
