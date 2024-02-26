@@ -165,9 +165,11 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
                  (v_normal + sqrt(v_normal^2 + 4 * A * (p_local + B)))
     end
 
-    return SVector(p_star * normal[1],
-                   p_star * normal[2],
-                   zeros(eltype(u_inner), ncomponents(equations) + 1)...) * norm_
+    f_v = SVector{2, real(equations)}(p_star * normal_direction[1],
+                                      p_star * normal_direction[2])
+    f_other = zeros(SVector{ncomponents(equations) + 1, real(equations)})
+
+    return vcat(f_v, f_other)
 end
 
 """
