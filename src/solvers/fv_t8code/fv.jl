@@ -253,7 +253,8 @@ function prolong2boundaries!(cache, mesh::T8codeMesh, equations, solver::FV)
     return nothing
 end
 
-function calc_boundary_flux!(du, cache, t, boundary_condition::BoundaryConditionPeriodic,
+function calc_boundary_flux!(du, cache, t,
+                             boundary_condition::BoundaryConditionPeriodic,
                              mesh::T8codeMesh,
                              equations, solver::FV)
     @assert isempty(eachboundary(solver, cache))
@@ -265,8 +266,8 @@ function calc_boundary_flux!(du, cache, t, boundary_conditions,
                              equations, solver::FV)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
-    calc_boundary_flux_by_type!(du, cache, t, boundary_condition_types, boundary_indices,
-                                mesh, equations, solver)
+    calc_boundary_flux_by_type!(du, cache, t, boundary_condition_types,
+                                boundary_indices, mesh, equations, solver)
     return nothing
 end
 
@@ -324,9 +325,11 @@ function calc_boundary_flux!(du, cache, t, boundary_condition::BC, boundary_inde
         u_inner = get_node_vars(boundaries.u, equations, solver, boundary)
 
         # Coordinates at boundary node
-        face_midpoint = Trixi.get_variable_wrapped(elements[element].face_midpoints, equations, face)
+        face_midpoint = Trixi.get_variable_wrapped(elements[element].face_midpoints,
+                                                   equations, face)
 
-        flux = boundary_condition(u_inner, normal, face_midpoint, t, surface_flux, equations)
+        flux = boundary_condition(u_inner, normal, face_midpoint, t, surface_flux,
+                                  equations)
         for v in eachvariable(equations)
             flux_ = elements[element].face_areas[face] * flux[v]
             du[v, element] -= flux_
