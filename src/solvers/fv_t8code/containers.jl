@@ -19,16 +19,17 @@ struct T8codeElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
     face_areas        :: NTuple{MAX_NUMBER_FACES, uEltype}
     face_normals      :: NTuple{NDIMS_MAX_NUMBER_FACES, uEltype}
     face_connectivity :: NTuple{MAX_NUMBER_FACES, t8_locidx_t} # ids of the face neighbors
+    boundary_name     :: NTuple{MAX_NUMBER_FACES, Symbol}
     neighbor_faces    :: NTuple{MAX_NUMBER_FACES, t8_locidx_t}
 
     function T8codeElementContainer(max_number_faces, level, volume, midpoint, dx,
                                     num_faces, face_midpoints, face_areas, face_normals,
-                                    face_connectivity, neighbor_faces)
+                                    face_connectivity, boundary_name, neighbor_faces)
         n_dims = length(midpoint)
         new{n_dims, eltype(midpoint), typeof(volume), max_number_faces,
             n_dims * max_number_faces}(level, volume, midpoint, dx, num_faces,
                                        face_midpoints, face_areas, face_normals,
-                                       face_connectivity, neighbor_faces)
+                                       face_connectivity, boundary_name, neighbor_faces)
     end
 end
 
@@ -98,6 +99,7 @@ function init_fv_elements!(elements, mesh::T8codeMesh)
     face_areas = Vector{Cdouble}(undef, max_number_faces)
     face_normals = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
     face_connectivity = Vector{t8_locidx_t}(undef, max_number_faces)
+    boundary_name = Vector{Symbol}(undef, max_number_faces)
     neighbor_faces = Vector{t8_locidx_t}(undef, max_number_faces)
 
     num_local_trees = t8_forest_get_num_local_trees(forest)
@@ -131,6 +133,7 @@ function init_fv_elements!(elements, mesh::T8codeMesh)
 
             # Set default value.
             face_connectivity .= -1
+            boundary_name .= Symbol("---")
 
             for iface in 1:num_faces
                 # C++ is zero-indexed
@@ -166,9 +169,10 @@ function init_fv_elements!(elements, mesh::T8codeMesh)
                 if num_neighbors == 1
                     face_connectivity[iface] = neighids[1]
                     neighbor_faces[iface] = dual_faces[1]
-                else
-                    # TODO: For mortars and non-periodic boundaries
-                    error("Mortars and non-periodic boundaries are not supported yet.")
+                elseif num_neighbors > 1
+                    error("Mortars are not supported yet.")
+                elseif num_neighbors == 0 # No neighbors => boundary
+                    boundary_name[iface] = mesh.boundary_names[iface, itree + 1]
                 end
 
                 # Free allocated memory.
@@ -190,6 +194,7 @@ function init_fv_elements!(elements, mesh::T8codeMesh)
                                                              Tuple(@views(face_normals[1:n_dims,
                                                                                        :])),
                                                              Tuple(face_connectivity),
+                                                             Tuple(boundary_name),
                                                              Tuple(neighbor_faces))
         end
     end
@@ -294,6 +299,89 @@ function init_fv_interfaces!(interfaces, mesh::T8codeMesh, elements)
     end
 
     return interfaces
+end
+
+mutable struct T8codeFVBoundaryContainer{uEltype <: Real} <: AbstractContainer
+    u::Array{uEltype, 2}      # [variable, boundary]
+    neighbor_ids::Vector{Int} # [boundary]
+    faces::Vector{Int}        # [boundary]
+    name::Vector{Symbol}      # [boundary]
+
+    # internal `resize!`able storage
+    _u::Vector{uEltype}
+end
+
+@inline function nboundaries(boundaries::T8codeFVBoundaryContainer)
+    length(boundaries.neighbor_ids)
+end
+
+# See explanation of Base.resize! for the element container
+function Base.resize!(boundaries::T8codeFVBoundaryContainer, capacity)
+    (; _u, neighbor_ids, faces, name) = boundaries
+
+    n_variables = size(boundaries.u, 1)
+
+    resize!(_u, n_variables * capacity)
+    boundaries.u = unsafe_wrap(Array, pointer(_u),
+                               (n_variables, capacity))
+
+    resize!(neighbor_ids, capacity)
+
+    resize!(faces, capacity)
+
+    resize!(name, capacity)
+
+    return nothing
+end
+
+# Create interface container and initialize interface data in `elements`.
+function init_fv_boundaries(mesh::T8codeMesh, equations, solver::FV, elements)
+    uEltype = eltype(elements[1])
+
+    # Initialize container
+    n_boundaries = count_required_surfaces(mesh).boundaries
+
+    _u = Vector{uEltype}(undef,
+                         nvariables(equations) * n_boundaries)
+    u = unsafe_wrap(Array, pointer(_u),
+                    (nvariables(equations), n_boundaries))
+
+    neighbor_ids = Vector{Int}(undef, n_boundaries)
+    faces = Vector{Int}(undef, n_boundaries)
+    names = Vector{Symbol}(undef, n_boundaries)
+
+    boundaries = T8codeFVBoundaryContainer{uEltype}(u, neighbor_ids, faces, names, _u)
+
+    if n_boundaries > 0
+        # See above
+        # init_boundaries!(boundaries, mesh)
+
+        init_fv_boundaries!(boundaries, mesh, elements)
+    end
+
+    return boundaries
+end
+
+function init_fv_boundaries!(boundaries, mesh::T8codeMesh, elements)
+    # Note: In t8code, the routine 't8code_forest_iterate' is not implemented yet.
+
+    idx = 1
+    for element in 1:ncells(mesh)
+        (; face_connectivity, num_faces, boundary_name) = elements[element]
+        for (face, neighbor) in enumerate(face_connectivity[1:num_faces])
+            if neighbor > 0
+                continue
+            end
+            boundaries.neighbor_ids[idx] = element
+            boundaries.faces[idx] = face
+
+            boundaries.name[idx] = boundary_name[face]
+
+            idx += 1
+        end
+    end
+
+    return boundaries
 end
 
 function init_solution!(mesh::T8codeMesh, equations)

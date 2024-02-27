@@ -129,7 +129,7 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
 
     elements = init_fv_elements(mesh, equations, solver, uEltype)
     interfaces = init_fv_interfaces(mesh, equations, solver, elements)
-    # boundaries = init_fv_boundaries(mesh, equations, solver, elements)
+    boundaries = init_fv_boundaries(mesh, equations, solver, elements)
     # mortars = init_mortars(mesh, equations, basis, elements)
 
     # fill_mesh_info!(mesh, interfaces, mortars, boundaries,
@@ -138,7 +138,7 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
     # Temporary solution array to allow exchange between MPI ranks.
     u_tmp = init_solution!(mesh, equations)
 
-    cache = (; elements, interfaces, u_tmp)
+    cache = (; elements, interfaces, boundaries, u_tmp)
 
     return cache
 end
@@ -167,6 +167,12 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries!" begin
         prolong2boundaries!(cache, mesh, equations, solver)
+    end
+
+    # Calculate boundary fluxes
+    @trixi_timeit timer() "calc boundary flux" begin
+        calc_boundary_flux!(du, cache, t, boundary_conditions, mesh,
+                            equations, solver)
     end
 
     @trixi_timeit timer() "Jacobian" begin
@@ -241,6 +247,89 @@ function prolong2boundaries!(cache, mesh::T8codeMesh, equations, solver::FV)
             end
         else
             error("Order $(solver.order) is not supported.")
+        end
+    end
+
+    return nothing
+end
+
+function calc_boundary_flux!(du, cache, t, boundary_condition::BoundaryConditionPeriodic,
+                             mesh::T8codeMesh,
+                             equations, solver::FV)
+    @assert isempty(eachboundary(solver, cache))
+end
+
+# Function barrier for type stability
+function calc_boundary_flux!(du, cache, t, boundary_conditions,
+                             mesh::T8codeMesh,
+                             equations, solver::FV)
+    @unpack boundary_condition_types, boundary_indices = boundary_conditions
+
+    calc_boundary_flux_by_type!(du, cache, t, boundary_condition_types, boundary_indices,
+                                mesh, equations, solver)
+    return nothing
+end
+
+# Iterate over tuples of boundary condition types and associated indices
+# in a type-stable way using "lispy tuple programming".
+function calc_boundary_flux_by_type!(du, cache, t, BCs::NTuple{N, Any},
+                                     BC_indices::NTuple{N, Vector{Int}},
+                                     mesh::T8codeMesh,
+                                     equations, solver::FV) where {N}
+    # Extract the boundary condition type and index vector
+    boundary_condition = first(BCs)
+    boundary_condition_indices = first(BC_indices)
+    # Extract the remaining types and indices to be processed later
+    remaining_boundary_conditions = Base.tail(BCs)
+    remaining_boundary_condition_indices = Base.tail(BC_indices)
+
+    # process the first boundary condition type
+    calc_boundary_flux!(du, cache, t, boundary_condition, boundary_condition_indices,
+                        mesh, equations, solver)
+
+    # recursively call this method with the unprocessed boundary types
+    calc_boundary_flux_by_type!(du, cache, t, remaining_boundary_conditions,
+                                remaining_boundary_condition_indices,
+                                mesh, equations, solver)
+
+    return nothing
+end
+
+# terminate the type-stable iteration over tuples
+function calc_boundary_flux_by_type!(du, cache, t, BCs::Tuple{}, BC_indices::Tuple{},
+                                     mesh::T8codeMesh,
+                                     equations, solver::FV)
+    nothing
+end
+
+function calc_boundary_flux!(du, cache, t, boundary_condition::BC, boundary_indexing,
+                             mesh::T8codeMesh,
+                             equations, solver::FV) where {BC}
+    (; elements, boundaries) = cache
+    (; surface_flux) = solver
+
+    for local_index in eachindex(boundary_indexing)
+        # Use the local index to get the global boundary index from the pre-sorted list
+        boundary = boundary_indexing[local_index]
+
+        # Get information on the adjacent element, compute the surface fluxes,
+        # and store them
+        element = boundaries.neighbor_ids[boundary]
+        face = boundaries.faces[boundary]
+
+        # TODO: Save normal and face_areas in interface?
+        normal = Trixi.get_variable_wrapped(elements[element].face_normals,
+                                            equations, face)
+
+        u_inner = get_node_vars(boundaries.u, equations, solver, boundary)
+
+        # Coordinates at boundary node
+        face_midpoint = Trixi.get_variable_wrapped(elements[element].face_midpoints, equations, face)
+
+        flux = boundary_condition(u_inner, normal, face_midpoint, t, surface_flux, equations)
+        for v in eachvariable(equations)
+            flux_ = elements[element].face_areas[face] * flux[v]
+            du[v, element] -= flux_
         end
     end
 
