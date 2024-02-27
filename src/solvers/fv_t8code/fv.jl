@@ -144,45 +144,24 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
 end
 
 function rhs!(du, u, t, mesh::T8codeMesh, equations,
-              initial_condition, boundary_conditions, source_terms::Source, solver::FV,
-              cache) where {Source}
-    (; surface_flux) = solver
-
+              initial_condition, boundary_conditions, source_terms::Source,
+              solver::FV, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" du.=zero(eltype(du))
 
     # Exchange solution between MPI ranks
     @trixi_timeit timer() "exchange_solution!" exchange_solution!(u, mesh, equations,
                                                                   solver, cache)
-    (; elements, interfaces, u_tmp) = cache
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u_tmp, mesh, equations, solver)
+        prolong2interfaces!(cache, mesh, equations, solver)
     end
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
-        for interface in eachinterface(solver, cache)
-            element = interfaces.neighbor_ids[1, interface]
-            neighbor = interfaces.neighbor_ids[2, interface]
-            face = interfaces.faces[1, interface]
-
-            # TODO: Save normal and face_areas in interface?
-            normal = Trixi.get_variable_wrapped(elements[element].face_normals,
-                                                equations, face)
-            u_ll, u_rr = get_surface_node_vars(interfaces.u, equations, solver,
-                                               interface)
-            flux = surface_flux(u_ll, u_rr, normal, equations)
-
-            for v in eachvariable(equations)
-                flux_ = elements[element].face_areas[face] * flux[v]
-                du[v, element] -= flux_
-                if !is_ghost_cell(neighbor, mesh)
-                    du[v, neighbor] += flux_
-                end
-            end
-        end
+        calc_interface_flux!(du, mesh, have_nonconservative_terms(equations), equations,
+                             solver, cache)
     end
 
     # TODO: Boundaries
@@ -199,8 +178,8 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
     return nothing
 end
 
-function prolong2interfaces!(cache, u_tmp, mesh::T8codeMesh, equations, solver::FV)
-    (; interfaces) = cache
+function prolong2interfaces!(cache, mesh::T8codeMesh, equations, solver::FV)
+    (; interfaces, u_tmp) = cache
 
     for interface in eachinterface(solver, cache)
         element = interfaces.neighbor_ids[1, interface]
@@ -212,6 +191,37 @@ function prolong2interfaces!(cache, u_tmp, mesh::T8codeMesh, equations, solver::
             end
         else
             error("Order $(solver.order) is not supported.")
+        end
+    end
+
+    return nothing
+end
+
+function calc_interface_flux!(du,
+                              mesh::T8codeMesh,
+                              nonconservative_terms::False, equations,
+                              solver::FV, cache)
+    (; surface_flux) = solver
+    (; elements, interfaces) = cache
+
+    for interface in eachinterface(solver, cache)
+        element = interfaces.neighbor_ids[1, interface]
+        neighbor = interfaces.neighbor_ids[2, interface]
+        face = interfaces.faces[1, interface]
+
+        # TODO: Save normal and face_areas in interface?
+        normal = Trixi.get_variable_wrapped(elements[element].face_normals,
+                                            equations, face)
+        u_ll, u_rr = get_surface_node_vars(interfaces.u, equations, solver,
+                                           interface)
+        flux = surface_flux(u_ll, u_rr, normal, equations)
+
+        for v in eachvariable(equations)
+            flux_ = elements[element].face_areas[face] * flux[v]
+            du[v, element] -= flux_
+            if !is_ghost_cell(neighbor, mesh)
+                du[v, neighbor] += flux_
+            end
         end
     end
 
