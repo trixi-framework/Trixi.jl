@@ -164,7 +164,10 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
                              solver, cache)
     end
 
-    # TODO: Boundaries
+    # Prolong solution to boundaries
+    @trixi_timeit timer() "prolong2boundaries!" begin
+        prolong2boundaries!(cache, mesh, equations, solver)
+    end
 
     @trixi_timeit timer() "Jacobian" begin
         for element in eachelement(mesh, solver, cache)
@@ -197,8 +200,7 @@ function prolong2interfaces!(cache, mesh::T8codeMesh, equations, solver::FV)
     return nothing
 end
 
-function calc_interface_flux!(du,
-                              mesh::T8codeMesh,
+function calc_interface_flux!(du, mesh::T8codeMesh,
                               nonconservative_terms::False, equations,
                               solver::FV, cache)
     (; surface_flux) = solver
@@ -222,6 +224,23 @@ function calc_interface_flux!(du,
             if !is_ghost_cell(neighbor, mesh)
                 du[v, neighbor] += flux_
             end
+        end
+    end
+
+    return nothing
+end
+
+function prolong2boundaries!(cache, mesh::T8codeMesh, equations, solver::FV)
+    (; boundaries, u_tmp) = cache
+
+    for boundary in eachboundary(solver, cache)
+        element = boundaries.neighbor_ids[boundary]
+        if solver.order == 1
+            for v in eachvariable(equations)
+                boundaries.u[v, boundary] = u_tmp[element].u[v]
+            end
+        else
+            error("Order $(solver.order) is not supported.")
         end
     end
 
