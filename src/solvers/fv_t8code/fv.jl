@@ -127,9 +127,12 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
                       ::Type{uEltype}) where {uEltype <: Real}
     count_required_surfaces!(mesh)
 
+    # After I saved some data (e.g. normal) in the interfaces and boundaries,
+    # the element data structure is not used anymore after this `create_cache` routine.
+    # Possible to remove it and directly save the data in interface, boundars (and mortar) data structure?
     elements = init_fv_elements(mesh, equations, solver, uEltype)
-    interfaces = init_fv_interfaces(mesh, equations, solver, elements)
-    boundaries = init_fv_boundaries(mesh, equations, solver, elements)
+    interfaces = init_fv_interfaces(mesh, equations, solver, elements, uEltype)
+    boundaries = init_fv_boundaries(mesh, equations, solver, elements, uEltype)
     # mortars = init_mortars(mesh, equations, basis, elements)
 
     # fill_mesh_info!(mesh, interfaces, mortars, boundaries,
@@ -175,7 +178,7 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
                             equations, solver)
     end
 
-    @trixi_timeit timer() "Jacobian" begin
+    @trixi_timeit timer() "volume" begin
         for element in eachelement(mesh, solver, cache)
             @unpack volume = cache.elements[element]
             for v in eachvariable(equations)

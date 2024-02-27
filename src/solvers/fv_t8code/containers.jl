@@ -16,8 +16,8 @@ struct T8codeElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
 
     num_faces         :: Cint
     face_midpoints    :: NTuple{NDIMS_MAX_NUMBER_FACES, RealT}
-    face_areas        :: NTuple{MAX_NUMBER_FACES, uEltype}
-    face_normals      :: NTuple{NDIMS_MAX_NUMBER_FACES, uEltype}
+    face_areas        :: NTuple{MAX_NUMBER_FACES, RealT}
+    face_normals      :: NTuple{NDIMS_MAX_NUMBER_FACES, RealT}
     face_connectivity :: NTuple{MAX_NUMBER_FACES, t8_locidx_t} # ids of the face neighbors
     boundary_name     :: NTuple{MAX_NUMBER_FACES, Symbol}
     neighbor_faces    :: NTuple{MAX_NUMBER_FACES, t8_locidx_t}
@@ -239,9 +239,7 @@ end
 
 # Create interface container and initialize interface data.
 function init_fv_interfaces(mesh::T8codeMesh, equations,
-                            solver::FV, elements)
-    uEltype = eltype(elements[1].volume)
-
+                            solver::FV, elements, uEltype)
     # Initialize container
     n_interfaces = count_required_surfaces(mesh).interfaces
     if mpi_parallel(mesh) == true
@@ -335,9 +333,7 @@ function Base.resize!(boundaries::T8codeFVBoundaryContainer, capacity)
 end
 
 # Create interface container and initialize interface data in `elements`.
-function init_fv_boundaries(mesh::T8codeMesh, equations, solver::FV, elements)
-    uEltype = eltype(elements[1])
-
+function init_fv_boundaries(mesh::T8codeMesh, equations, solver::FV, elements, uEltype)
     # Initialize container
     n_boundaries = count_required_surfaces(mesh).boundaries
 
