@@ -436,6 +436,7 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
 
     # Calculate boundary flux
     if surface_flux_function isa Tuple
+	# In case of conservative and non-conservative fluxes add the non-conservative one with a factor of 1/2.
         if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
             flux = surface_flux_function[1](u_inner, u_boundary, orientation,
                                             equations) +
