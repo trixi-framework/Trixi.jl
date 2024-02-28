@@ -31,17 +31,17 @@ equations = IdealGlmMhdEquations2D(gamma)
 
 cells_per_dimension = (32, 64)
 
-# Define a non-conservative Powell flux functions that uses the normal direction for the average.
-function flux_nonconservative_powell_reduced(u_ll, u_rr,
-                                             normal_direction_ll::AbstractVector,
-					     normal_direction_average::AbstractVector,
-					     equations::IdealGlmMhdEquations2D)
+# Extend the definition of the non-conservative Powell flux functions.
+import Trixi.flux_nonconservative_powell
+function flux_nonconservative_powell(u_ll, u_rr,
+                                     normal_direction_ll::AbstractVector,
+				     equations::IdealGlmMhdEquations2D)
     flux_nonconservative_powell(u_ll, u_rr, normal_direction_ll, normal_direction_ll,
                                 equations)
 end
-volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell_reduced)
+volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 solver = DGSEM(polydeg = 3,
-               surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell_reduced),
+               surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ###########
