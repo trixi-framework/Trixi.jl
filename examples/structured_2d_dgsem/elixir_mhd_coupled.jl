@@ -31,9 +31,17 @@ equations = IdealGlmMhdEquations2D(gamma)
 
 cells_per_dimension = (32, 64)
 
-volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
+# Define a non-conservative Powell flux functions that uses the normal direction for the average.
+function flux_nonconservative_powell_reduced(u_ll, u_rr,
+                                             normal_direction_ll::AbstractVector,
+					     normal_direction_average::AbstractVector,
+					     equations::IdealGlmMhdEquations2D)
+    flux_nonconservative_powell(u_ll, u_rr, normal_direction_ll, normal_direction_ll,
+                                equations)
+end
+volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell_reduced)
 solver = DGSEM(polydeg = 3,
-               surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+               surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell_reduced),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ###########
@@ -41,8 +49,8 @@ solver = DGSEM(polydeg = 3,
 ###########
 
 initial_condition1 = initial_condition_convergence_test
-coordinates_min1 = (-1/sin(pi/4), -1/sin(pi/4))
-coordinates_max1 = (0.0, 1/sin(pi/4))
+coordinates_min1 = (-1 / sin(pi / 4), -1 / sin(pi / 4))
+coordinates_max1 = (0.0, 1 / sin(pi / 4))
 mesh1 = StructuredMesh(cells_per_dimension,
                        coordinates_min1,
                        coordinates_max1)
@@ -63,8 +71,8 @@ semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition1, solve
 ###########
 
 initial_condition2 = initial_condition_convergence_test
-coordinates_min2 = (0.0, -1/sin(pi/4))
-coordinates_max2 = (1/sin(pi/4), 1/sin(pi/4))
+coordinates_min2 = (0.0, -1 / sin(pi / 4))
+coordinates_max2 = (1 / sin(pi / 4), 1 / sin(pi / 4))
 mesh2 = StructuredMesh(cells_per_dimension,
                        coordinates_min2,
                        coordinates_max2)
