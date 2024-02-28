@@ -437,11 +437,15 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
     # Calculate boundary flux
     if surface_flux_function isa Tuple
         if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-            flux = surface_flux_function[1](u_inner, u_boundary, orientation, equations) +
-                   0.5 * surface_flux_function[2](u_inner, u_boundary, orientation, equations)
+            flux = surface_flux_function[1](u_inner, u_boundary, orientation,
+                                            equations) +
+                   0.5 *
+                   surface_flux_function[2](u_inner, u_boundary, orientation, equations)
         else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-            flux = surface_flux_function[1](u_boundary, u_inner, orientation, equations) +
-                   0.5 * surface_flux_function[2](u_boundary, u_inner, orientation, equations)
+            flux = surface_flux_function[1](u_boundary, u_inner, orientation,
+                                            equations) +
+                   0.5 *
+                   surface_flux_function[2](u_boundary, u_inner, orientation, equations)
         end
     else
         if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -475,7 +479,9 @@ function allocate_coupled_boundary_condition(boundary_condition, direction, mesh
 end
 
 # In 2D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2},
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{
+                                                                                          2
+                                                                                          },
                                              direction, mesh, equations, dg::DGSEM)
     if direction in (1, 2)
         cell_size = size(mesh, 2)
