@@ -7,7 +7,8 @@ using Trixi
 #
 # In this elixir, we have a square domain that is divided into a left and right half.
 # On each half of the domain, an independent SemidiscretizationHyperbolic is created for
-# each set of ideal GLM-MHD equations. The two systems are coupled in the x and y-direction.
+# each set of ideal GLM-MHD equations. The two systems are coupled in the x-direction
+# and are periodic in the y-direction.
 # For a high-level overview, see also the figure below:
 #
 # (-2,  2)                                   ( 2,  2)
@@ -25,7 +26,8 @@ using Trixi
 #     └────────────────────┴────────────────────┘
 # (-2, -2)                                   ( 2, -2)
 
-equations = IdealGlmMhdEquations2D(1.4)
+gamma = 5 / 3
+equations = IdealGlmMhdEquations2D(gamma)
 
 cells_per_dimension = (32, 64)
 
@@ -34,26 +36,13 @@ solver = DGSEM(polydeg = 3,
                surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-function initial_condition_constant(x, t, equations::IdealGlmMhdEquations2D)
-    rho = 1.0
-    v1 = 0.0
-    v2 = 0.0
-    v3 = 0.0
-    p = rho^equations.gamma
-    B1 = 0.0
-    B2 = 0.0
-    B3 = 0.0
-    psi = 0.0
-    return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
-end
-
 ###########
 # system #1
 ###########
 
-initial_condition1 = initial_condition_constant
-coordinates_min1 = (-2.0, -2.0)
-coordinates_max1 = (0.0, 2.0)
+initial_condition1 = initial_condition_convergence_test
+coordinates_min1 = (-1/sin(pi/4), -1/sin(pi/4))
+coordinates_max1 = (0.0, 1/sin(pi/4))
 mesh1 = StructuredMesh(cells_per_dimension,
                        coordinates_min1,
                        coordinates_max1)
@@ -73,9 +62,9 @@ semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition1, solve
 # system #2
 ###########
 
-initial_condition2 = initial_condition_constant
-coordinates_min2 = (0.0, -2.0)
-coordinates_max2 = (2.0, 2.0)
+initial_condition2 = initial_condition_convergence_test
+coordinates_min2 = (0.0, -1/sin(pi/4))
+coordinates_max2 = (1/sin(pi/4), 1/sin(pi/4))
 mesh2 = StructuredMesh(cells_per_dimension,
                        coordinates_min2,
                        coordinates_max2)
