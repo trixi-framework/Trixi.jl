@@ -217,8 +217,7 @@ function Base.resize!(interfaces::T8codeFVInterfaceContainer, capacity)
 end
 
 # Create interface container and initialize interface data.
-function init_fv_interfaces(mesh::T8codeMesh, equations,
-                            solver::FV, elements, uEltype)
+function init_fv_interfaces(mesh::T8codeMesh, equations, solver::FV, uEltype)
     # Initialize container
     n_interfaces = count_required_surfaces(mesh).interfaces
     if mpi_parallel(mesh) == true
@@ -276,7 +275,7 @@ function Base.resize!(boundaries::T8codeFVBoundaryContainer, capacity)
 end
 
 # Create interface container and initialize interface data in `elements`.
-function init_fv_boundaries(mesh::T8codeMesh, equations, solver::FV, elements, uEltype)
+function init_fv_boundaries(mesh::T8codeMesh, equations, solver::FV, uEltype)
     # Initialize container
     n_boundaries = count_required_surfaces(mesh).boundaries
 

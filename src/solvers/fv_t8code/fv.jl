@@ -131,8 +131,8 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
     # the element data structure is not used anymore after this `create_cache` routine.
     # Possible to remove it and directly save the data in interface, boundars (and mortar) data structure?
     elements = init_fv_elements(mesh, equations, solver, uEltype)
-    interfaces = init_fv_interfaces(mesh, equations, solver, elements, uEltype)
-    boundaries = init_fv_boundaries(mesh, equations, solver, elements, uEltype)
+    interfaces = init_fv_interfaces(mesh, equations, solver, uEltype)
+    boundaries = init_fv_boundaries(mesh, equations, solver, uEltype)
     # mortars = init_mortars(mesh, equations, basis, elements)
 
     fill_mesh_info_fv!(mesh, interfaces, boundaries,
