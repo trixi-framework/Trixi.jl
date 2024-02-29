@@ -8,6 +8,7 @@ include("test_trixi.jl")
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive = true)
+Trixi.MPI.Barrier(Trixi.mpi_comm())
 
 @testset "Threaded tests" begin
 #! format: noindent
@@ -393,10 +394,10 @@ end
                                      "elixir_euler_curved.jl"),
                             alg=RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()),
                             l2=[
-                                1.720476068165337e-5,
-                                1.592168205710526e-5,
-                                1.592168205812963e-5,
-                                4.894094865697305e-5,
+                                1.7204593127904542e-5,
+                                1.5921547179522804e-5,
+                                1.5921547180107928e-5,
+                                4.894071422525737e-5,
                             ],
                             linf=[
                                 0.00010525416930584619,
@@ -419,16 +420,16 @@ end
         @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
                                      "elixir_euler_triangulate_pkg_mesh.jl"),
                             l2=[
-                                2.344080455438114e-6,
-                                1.8610038753097983e-6,
-                                2.4095165666095305e-6,
-                                6.373308158814308e-6,
+                                2.344076909832665e-6,
+                                1.8610002398709756e-6,
+                                2.4095132179484066e-6,
+                                6.37330249340445e-6,
                             ],
                             linf=[
-                                2.5099852761334418e-5,
-                                2.2683684021362893e-5,
-                                2.6180448559287584e-5,
-                                5.5752932611508044e-5,
+                                2.509979394305084e-5,
+                                2.2683711321080935e-5,
+                                2.6180377720841363e-5,
+                                5.575278031910713e-5,
                             ])
 
         # Ensure that we do not have excessive memory allocations
@@ -471,5 +472,6 @@ end
 
 # Clean up afterwards: delete Trixi.jl output directory
 Trixi.mpi_isroot() && isdir(outdir) && @test_nowarn rm(outdir, recursive = true)
+Trixi.MPI.Barrier(Trixi.mpi_comm())
 
 end # module

@@ -1118,6 +1118,20 @@ end
     return p
 end
 
+# Transformation from conservative variables u to d(p)/d(u)
+@inline function gradient_conservative(::typeof(pressure),
+                                       u, equations::IdealGlmMhdEquations2D)
+    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    v_square = v1^2 + v2^2 + v3^2
+
+    return (equations.gamma - 1.0) *
+           SVector(0.5 * v_square, -v1, -v2, -v3, 1.0, -B1, -B2, -B3, -psi)
+end
+
 @inline function density_pressure(u, equations::IdealGlmMhdEquations2D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
@@ -1382,6 +1396,15 @@ end
             energy_magnetic(cons, equations)
             -
             cons[9]^2 / 2)
+end
+
+# State validation for Newton-bisection method of subcell IDP limiting
+@inline function Base.isvalid(u, equations::IdealGlmMhdEquations2D)
+    p = pressure(u, equations)
+    if u[1] <= 0.0 || p <= 0.0
+        return false
+    end
+    return true
 end
 
 # Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
