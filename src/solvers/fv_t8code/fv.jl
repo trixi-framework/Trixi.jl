@@ -135,8 +135,8 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
     boundaries = init_fv_boundaries(mesh, equations, solver, elements, uEltype)
     # mortars = init_mortars(mesh, equations, basis, elements)
 
-    # fill_mesh_info!(mesh, interfaces, mortars, boundaries,
-    #                 mesh.boundary_names)
+    fill_mesh_info_fv!(mesh, interfaces, boundaries,
+                       mesh.boundary_names)
 
     # Temporary solution array to allow exchange between MPI ranks.
     u_tmp = init_solution!(mesh, equations)

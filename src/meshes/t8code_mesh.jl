@@ -1115,6 +1115,116 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
     return nothing
 end
 
+function fill_mesh_info_fv!(mesh::T8codeMesh, interfaces, #=mortars,=# boundaries,
+                            boundary_names; mpi_mesh_info = nothing)
+    @assert t8_forest_is_committed(mesh.forest) != 0
+
+    num_local_elements = t8_forest_get_local_num_elements(mesh.forest)
+    num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
+
+    # Process-local index of the current element in the space-filling curve.
+    current_index = t8_locidx_t(0)
+
+    # Increment counters for the different interface/mortar/boundary types.
+    local_num_conform = 0
+    local_num_mortars = 0
+    local_num_boundary = 0
+
+    local_num_mpi_conform = 0
+    local_num_mpi_mortars = 0
+
+    # Helper variables to compute unique global MPI interface/mortar ids.
+    max_level = t8_forest_get_maxlevel(mesh.forest) #UInt64
+    max_tree_num_elements = UInt64(2^ndims(mesh))^max_level
+
+    # Loop over all local trees.
+    for itree in 0:(num_local_trees - 1)
+        tree_class = t8_forest_get_tree_class(mesh.forest, itree)
+        eclass_scheme = t8_forest_get_eclass_scheme(mesh.forest, tree_class)
+
+        num_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest, itree)
+
+        global_itree = t8_forest_global_tree_id(mesh.forest, itree)
+
+        # Loop over all local elements of the current local tree.
+        for ielement in 0:(num_elements_in_tree - 1)
+            element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)
+
+            num_faces = t8_element_num_faces(eclass_scheme, element)
+
+            # Loop over all faces of the current local element.
+            for iface in 0:(num_faces - 1)
+                pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
+                pneighbor_leaves_ref = Ref{Ptr{Ptr{t8_element}}}()
+                pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
+
+                dual_faces_ref = Ref{Ptr{Cint}}()
+                num_neighbors_ref = Ref{Cint}()
+
+                forest_is_balanced = Cint(1)
+
+                # Query neighbor information from t8code.
+                t8_forest_leaf_face_neighbors(mesh.forest, itree, element,
+                                              pneighbor_leaves_ref, iface, dual_faces_ref,
+                                              num_neighbors_ref,
+                                              pelement_indices_ref, pneigh_scheme_ref,
+                                              forest_is_balanced)
+
+                num_neighbors = num_neighbors_ref[]
+                dual_faces = unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
+                neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[],
+                                                 num_neighbors)
+                neighbor_leaves = unsafe_wrap(Array, pneighbor_leaves_ref[], num_neighbors)
+                neighbor_scheme = pneigh_scheme_ref[]
+
+                # Now we check for the different cases. The nested if-structure is as follows:
+                #
+                #   if `boundary`:
+                #     <fill boundary info>
+                #
+                #   else: // It must be an interface or mortar.
+                #
+                #     if `all neighbors are local elements`:
+                #
+                #       if `local interface`:
+                #         <fill interface info>
+                #       elseif `local mortar from larger element point of view`:
+                #         <fill mortar info>
+                #       else: // `local mortar from smaller elements point of view`
+                #         <skip> // We only count local mortars once.
+                #
+                #     else: // It must be either a MPI interface or a MPI mortar.
+                #
+                #       if `MPI interface`:
+                #         <fill MPI interface info>
+                #       elseif `MPI mortar from larger element point of view`:
+                #         <fill MPI mortar info>
+                #       else: // `MPI mortar from smaller elements point of view`
+                #         <fill MPI mortar info>
+                #
+                #   // end
+
+                # Domain boundary.
+                if num_neighbors == 0
+                    local_num_boundary += 1
+                    boundary_id = local_num_boundary
+
+                    # One-based indexing.
+                    boundaries.name[boundary_id] = boundary_names[iface + 1, itree + 1]
+                end
+
+                t8_free(dual_faces_ref[])
+                t8_free(pneighbor_leaves_ref[])
+                t8_free(pelement_indices_ref[])
+            end # for iface
+
+            current_index += 1
+        end # for ielement
+    end # for itree
+
+    return nothing
+end
+
 #! format: off
 @deprecate T8codeMesh{2}(conn::Ptr{p4est_connectivity}; kwargs...) T8codeMesh(conn::Ptr{p4est_connectivity}; kwargs...)
 @deprecate T8codeMesh{3}(conn::Ptr{p8est_connectivity}; kwargs...) T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
