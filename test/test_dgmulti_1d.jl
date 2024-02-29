@@ -128,14 +128,12 @@ end
 @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         l2=[
-                            9.146929180585711e-7,
-                            1.8997616878017292e-6,
-                            3.991417702211889e-6,
+                            9.146929178341782e-7, 1.8997616876521201e-6,
+                            3.991417701005622e-6,
                         ],
                         linf=[
-                            1.7321089884614338e-6,
-                            3.3252888855805907e-6,
-                            6.5252787737613005e-6,
+                            1.7321089882393892e-6, 3.3252888869128583e-6,
+                            6.525278767988141e-6,
                         ])
     show(stdout, semi.solver.basis)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
@@ -161,6 +159,59 @@ end
     # check to make sure nodes are rescaled to [-1, 1]
     @test minimum(dg.basis.rst[1]) ≈ -1
     @test maximum(dg.basis.rst[1])≈1 atol=0.35
+end
+
+# test non-conservative systems
+@trixi_testset "elixir_shallow_water_quasi_1d.jl (SBP) " begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallow_water_quasi_1d.jl"),
+                        cells_per_dimension=(8,),
+                        approximation_type=SBP(),
+                        l2=[
+                            3.03001101100507e-6,
+                            1.692177335948727e-5,
+                            3.002634351734614e-16,
+                            1.1636653574178203e-15,
+                        ],
+                        linf=[
+                            1.2043401988570679e-5,
+                            5.346847010329059e-5,
+                            9.43689570931383e-16,
+                            2.220446049250313e-15,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_quasi_1d.jl (SBP) " begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d.jl"),
+                        cells_per_dimension=(8,),
+                        approximation_type=SBP(),
+                        l2=[
+                            1.633271343738687e-5,
+                            9.575385661756332e-6,
+                            1.2700331443128421e-5,
+                            0.0,
+                        ],
+                        linf=[
+                            7.304984704381567e-5,
+                            5.2365944135601694e-5,
+                            6.469559594934893e-5,
+                            0.0,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 end
 

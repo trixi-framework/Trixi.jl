@@ -70,6 +70,7 @@ jobs:
           - p4est_part1
           - p4est_part2
           - t8code_part1
+          - t8code_part2
           - unstructured_dgmulti
           - parabolic
           - paper_self_gravitating_gas_dynamics
@@ -100,6 +101,10 @@ jobs:
             os: windows-latest
             arch: x64
             trixi_test: threaded
+          - version: '1.9'
+            os: macos-14
+            arch: arm64
+            trixi_test: threaded
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
@@ -128,12 +133,13 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src,examples,ext
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         with:
           file: ./lcov.info
           flags: unittests
           name: codecov-umbrella
-          fail_ci_if_error: false
+          fail_ci_if_error: true
+          verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
       # The standard setup of Coveralls is just annoying for parallel builds, see, e.g.,
       # https://github.com/trixi-framework/Trixi.jl/issues/691
@@ -153,7 +159,7 @@ jobs:
       - shell: bash
         run: |
           cp ./lcov.info ./lcov-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}.info
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: lcov-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
           path: ./lcov-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}.info
@@ -176,7 +182,7 @@ jobs:
       # At first, we check out the repository and download all artifacts
       # (and list files for debugging).
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
       - run: ls -R
       # Next, we merge the individual coverage files and upload
       # the combined results to Coveralls.
@@ -194,12 +200,12 @@ jobs:
           coverage = merge_coverage_counts(coverage)
           @show covered_lines, total_lines = get_summary(coverage)
           LCOV.writefile("./lcov.info", coverage)
-      - uses: coverallsapp/github-action@master
+      - uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: ./lcov.info
       # Upload merged coverage data as artifact for debugging
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: lcov
           path: ./lcov.info

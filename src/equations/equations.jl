@@ -376,6 +376,12 @@ of the correct length `nvariables(equations)`.
 """
 function energy_internal end
 
+# Default implementation of gradient for `variable`. Used for subcell limiting.
+# Implementing a gradient function for a specific variable improves the performance.
+@inline function gradient_conservative(variable, u, equations)
+    return ForwardDiff.gradient(x -> variable(x, equations), u)
+end
+
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
@@ -399,8 +405,6 @@ abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("shallow_water_1d.jl")
 include("shallow_water_2d.jl")
-include("shallow_water_two_layer_1d.jl")
-include("shallow_water_two_layer_2d.jl")
 include("shallow_water_quasi_1d.jl")
 
 # CompressibleEulerEquations
@@ -501,4 +505,9 @@ include("linearized_euler_2d.jl")
 
 abstract type AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} <:
               AbstractEquations{NDIMS, NVARS} end
+
+# Lighthill-Witham-Richards (LWR) traffic flow model
+abstract type AbstractTrafficFlowLWREquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("traffic_flow_lwr_1d.jl")
 end # @muladd
