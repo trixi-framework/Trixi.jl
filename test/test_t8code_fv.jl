@@ -112,7 +112,7 @@ end
     end
 end
 
-# TODO: or better, to test
+# TODO: Add some free stream test like the following
 # @trixi_testset "elixir_euler_free_stream.jl" begin
 #     # This test is identical to the one in `test_p4est_2d.jl`.
 #     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
