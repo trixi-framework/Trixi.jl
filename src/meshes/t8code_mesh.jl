@@ -1186,23 +1186,12 @@ function fill_mesh_info_fv!(mesh::T8codeMesh, interfaces, boundaries,
                 #
                 #   else: // It must be an interface or mortar.
                 #
-                #     if `all neighbors are local elements`:
-                #
-                #       if `local interface`:
-                #         <fill interface info>
-                #       elseif `local mortar from larger element point of view`:
-                #         <fill mortar info>
-                #       else: // `local mortar from smaller elements point of view`
-                #         <skip> // We only count local mortars once.
-                #
-                #     else: // It must be either a MPI interface or a MPI mortar.
-                #
-                #       if `MPI interface`:
-                #         <fill MPI interface info>
-                #       elseif `MPI mortar from larger element point of view`:
-                #         <fill MPI mortar info>
-                #       else: // `MPI mortar from smaller elements point of view`
-                #         <fill MPI mortar info>
+                #     if `local interface`:
+                #       <fill interface info>
+                #     elseif `local mortar from larger element point of view`:
+                #       <throw error> Not supported yet
+                #     else: // `local mortar from smaller elements point of view`
+                #       <skip> // We only count local mortars once.
                 #
                 #   // end
 
