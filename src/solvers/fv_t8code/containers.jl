@@ -43,21 +43,6 @@ end
 
 @inline is_ghost_cell(element, mesh) = element > ncells(mesh)
 
-function Base.show(container::T8codeElementContainer)
-    n_dims = length(container.midpoint)
-    (; num_faces) = container
-    println("level              = ", container.level)
-    println("volume             = ", container.volume)
-    println("midpoint           = ", container.midpoint)
-    println("dx                 = ", container.dx)
-    println("num_faces          = ", num_faces)
-    println("face_midpoints     = ", container.face_midpoints[1:(n_dims * num_faces)])
-    println("face_areas         = ", container.face_areas[1:num_faces])
-    println("face_normals       = ", container.face_normals[1:(n_dims * num_faces)])
-    println("face_connectivity  = ", container.face_connectivity[1:num_faces])
-    println("neighbor_faces     = ", container.neighbor_faces[1:num_faces])
-end
-
 function init_fv_elements(mesh::T8codeMesh{2}, equations,
                           solver::FV, ::Type{uEltype}) where {uEltype}
     (; forest) = mesh
