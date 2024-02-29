@@ -327,33 +327,6 @@ function init_fv_boundaries(mesh::T8codeMesh, equations, solver::FV, elements, u
 
     boundaries = T8codeFVBoundaryContainer{uEltype}(u, neighbor_ids, faces, names, _u)
 
-    if n_boundaries > 0
-        # See above
-        # init_boundaries!(boundaries, mesh)
-
-        init_fv_boundaries!(boundaries, mesh, elements)
-    end
-
-    return boundaries
-end
-
-function init_fv_boundaries!(boundaries, mesh::T8codeMesh, elements)
-    # Note: In t8code, the routine 't8code_forest_iterate' is not implemented yet.
-
-    idx = 1
-    for element in 1:ncells(mesh)
-        (; face_connectivity, num_faces) = elements[element]
-        for (face, neighbor) in enumerate(face_connectivity[1:num_faces])
-            if neighbor > 0
-                continue
-            end
-            boundaries.neighbor_ids[idx] = element
-            boundaries.faces[idx] = face
-
-            idx += 1
-        end
-    end
-
     return boundaries
 end
 

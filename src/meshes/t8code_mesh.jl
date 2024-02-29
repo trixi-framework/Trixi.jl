@@ -1115,7 +1115,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
     return nothing
 end
 
-function fill_mesh_info_fv!(mesh::T8codeMesh, interfaces, #=mortars,=# boundaries,
+function fill_mesh_info_fv!(mesh::T8codeMesh, interfaces, boundaries,
                             boundary_names; mpi_mesh_info = nothing)
     @assert t8_forest_is_committed(mesh.forest) != 0
 
@@ -1210,6 +1210,8 @@ function fill_mesh_info_fv!(mesh::T8codeMesh, interfaces, #=mortars,=# boundarie
                     boundary_id = local_num_boundary
 
                     # One-based indexing.
+                    boundaries.neighbor_ids[boundary_id] = current_index + 1
+                    boundaries.faces[boundary_id] = iface + 1
                     boundaries.name[boundary_id] = boundary_names[iface + 1, itree + 1]
                 end
 
