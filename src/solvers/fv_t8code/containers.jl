@@ -239,42 +239,6 @@ function init_fv_interfaces(mesh::T8codeMesh, equations,
     interfaces = T8codeFVInterfaceContainer{uEltype}(u, neighbor_ids, faces,
                                                      _u, _neighbor_ids, _faces)
 
-    # I tried it to do it like for the existing T8codeMesh routines with
-    # init_interfaces!(interfaces, mesh)
-    # The problem was that I need the face id of both elements for every interface.
-    # That is not needed for DG code since it is handled with the indices there.
-
-    init_fv_interfaces!(interfaces, mesh, elements)
-
-    return interfaces
-end
-
-function init_fv_interfaces!(interfaces, mesh::T8codeMesh, elements)
-    # Note: In t8code, the routine 't8code_forest_iterate' is not implemented yet.
-
-    idx = 1
-    for element in 1:ncells(mesh)
-        (; face_connectivity, num_faces, face_midpoints, neighbor_faces) = elements[element]
-        for (face, neighbor) in enumerate(face_connectivity[1:num_faces])
-            if neighbor < element
-                continue
-            end
-
-            # face_midpoint = Trixi.get_variable_wrapped(face_midpoints, equations, face)
-            face_neighbor = neighbor_faces[face]
-            # face_midpoint_neighbor = Trixi.get_variable_wrapped(elements[neighbor].face_midpoints,
-            #                                                     equations,
-            #                                                     face_neighbor)
-            interfaces.neighbor_ids[1, idx] = element
-            interfaces.neighbor_ids[2, idx] = neighbor
-
-            interfaces.faces[1, idx] = face
-            interfaces.faces[2, idx] = face_neighbor
-
-            idx += 1
-        end
-    end
-
     return interfaces
 end
 

@@ -1150,6 +1150,8 @@ function fill_mesh_info_fv!(mesh::T8codeMesh, interfaces, boundaries,
         for ielement in 0:(num_elements_in_tree - 1)
             element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)
 
+            level = t8_element_level(eclass_scheme, element)
+
             num_faces = t8_element_num_faces(eclass_scheme, element)
 
             # Loop over all faces of the current local element.
@@ -1213,6 +1215,24 @@ function fill_mesh_info_fv!(mesh::T8codeMesh, interfaces, boundaries,
                     boundaries.neighbor_ids[boundary_id] = current_index + 1
                     boundaries.faces[boundary_id] = iface + 1
                     boundaries.name[boundary_id] = boundary_names[iface + 1, itree + 1]
+                else # Interface or mortar.
+                    neighbor_level = t8_element_level(neighbor_scheme, neighbor_leaves[1])
+
+                    # Local interface: The second condition ensures we only visit the interface once.
+                    if level == neighbor_level && current_index <= neighbor_ielements[1]
+                        local_num_conform += 1
+                        interfaces.neighbor_ids[1, local_num_conform] = current_index +
+                                                                        1
+                        interfaces.neighbor_ids[2, local_num_conform] = neighbor_ielements[1] +
+                                                                        1
+
+                        interfaces.faces[1, local_num_conform] = iface + 1
+                        interfaces.faces[2, local_num_conform] = dual_faces[1]
+
+                        # Local mortar.
+                    elseif level < neighbor_level
+                        error("Mortars are not supported yet!")
+                    end
                 end
 
                 t8_free(dual_faces_ref[])
