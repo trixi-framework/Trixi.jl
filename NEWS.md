@@ -4,6 +4,18 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.7 lifecycle
+
+#### Added
+- Subcell local one-sided limiting support for nonlinear variables in 2D for `TreeMesh`
+
+#### Changed
+
+#### Deprecated
+
+#### Removed
+
+
 ## Changes when updating to v0.7 from v0.6.x
 
 #### Added
