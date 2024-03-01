@@ -92,18 +92,14 @@ end
 @trixi_testset "elixir_euler_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
                         l2=[
-                            0.0003637241020254405,
-                            0.0003955570866382718,
-                            0.0003955570866383613,
-                            0.00039555708663834417,
-                            0.0007811613481640202,
+                            0.0003637241020254673, 0.00039555708663848046,
+                            0.00039555708663832644, 0.0003955570866385083,
+                            0.0007811613481643962,
                         ],
                         linf=[
-                            0.0024000660244674066,
-                            0.0029635410025339315,
-                            0.0029635410025292686,
-                            0.002963541002525938,
-                            0.007191437359396424,
+                            0.0024000660244567484, 0.002963541002521053,
+                            0.0029635410025201647, 0.002963541002522385,
+                            0.007191437359379549,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -462,6 +458,7 @@ end
                             2.397746252817731,
                         ],
                         maxiters=5, max_level=6,
+                        surface_flux=FluxHLL(min_max_speed_naive),
                         coverage_override=(maxiters = 2, initial_refinement_level = 1,
                                            base_level = 1, max_level = 3))
     # Ensure that we do not have excessive memory allocations

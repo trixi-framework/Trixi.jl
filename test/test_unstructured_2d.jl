@@ -1,7 +1,5 @@
 module TestExamplesUnstructuredMesh2D
 
-# TODO: TrixiShallowWater: move any wet/dry and two layer tests
-
 using Test
 using Trixi
 
@@ -19,16 +17,12 @@ isdir(outdir) && rm(outdir, recursive = true)
 @trixi_testset "elixir_euler_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_periodic.jl"),
                         l2=[
-                            0.00010978828464875207,
-                            0.00013010359527356914,
-                            0.00013010359527326057,
-                            0.0002987656724828824,
+                            0.0001099216141882387, 0.0001303795774982892,
+                            0.00013037957749794242, 0.0002993727892598759,
                         ],
                         linf=[
-                            0.00638626102818618,
-                            0.009804042508242183,
-                            0.009804042508253286,
-                            0.02183139311614468,
+                            0.006407280810928562, 0.009836067015418948,
+                            0.009836067015398076, 0.021903519038095176,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -43,16 +37,12 @@ end
 @trixi_testset "elixir_euler_free_stream.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                         l2=[
-                            3.3937971107485363e-14,
-                            2.447586447887882e-13,
-                            1.4585205789296455e-13,
-                            4.716993468962946e-13,
+                            3.3937365073416665e-14, 2.44759188939065e-13,
+                            1.4585198700082895e-13, 4.716940764877479e-13,
                         ],
                         linf=[
-                            8.804734719092266e-12,
-                            6.261270668606045e-11,
-                            2.93670088247211e-11,
-                            1.205400224080222e-10,
+                            8.804956763697191e-12, 6.261199891888225e-11,
+                            2.936639820205755e-11, 1.20543575121701e-10,
                         ],
                         tspan=(0.0, 0.1),
                         atol=3.0e-13)
@@ -80,7 +70,8 @@ end
                             0.29339040847600434,
                             0.5915610037764794,
                         ],
-                        tspan=(0.0, 0.25))
+                        tspan=(0.0, 0.25),
+                        surface_flux=FluxHLL(min_max_speed_naive))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -409,15 +400,15 @@ end
 @trixi_testset "elixir_shallowwater_source_terms.jl with FluxHydrostaticReconstruction" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         l2=[
-                            0.0011197139793938152,
-                            0.015430259691310781,
-                            0.017081031802719724,
+                            0.001119678684752799,
+                            0.015429108794630785,
+                            0.01708275441241111,
                             5.089218476758271e-6,
                         ],
                         linf=[
-                            0.014300809338967824,
-                            0.12783372461225184,
-                            0.17625472321992852,
+                            0.014299564388827513,
+                            0.12785126473870534,
+                            0.17626788561725526,
                             2.6407324614341476e-5,
                         ],
                         surface_flux=(FluxHydrostaticReconstruction(flux_hll,
@@ -466,18 +457,19 @@ end
 @trixi_testset "elixir_shallowwater_source_terms.jl with flux_hll" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         l2=[
-                            0.0011197139793938727,
-                            0.015430259691311309,
-                            0.017081031802719554,
+                            0.0011196786847528799,
+                            0.015429108794631075,
+                            0.017082754412411742,
                             5.089218476759981e-6,
                         ],
                         linf=[
-                            0.014300809338967824,
-                            0.12783372461224918,
-                            0.17625472321993918,
+                            0.014299564388830177,
+                            0.12785126473870667,
+                            0.17626788561728546,
                             2.6407324614341476e-5,
                         ],
-                        surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal),
+                        surface_flux=(flux_hll,
+                                      flux_nonconservative_fjordholm_etal),
                         tspan=(0.0, 0.025))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -492,16 +484,12 @@ end
 @trixi_testset "elixir_shallowwater_dirichlet.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_dirichlet.jl"),
                         l2=[
-                            1.1577518608940115e-5,
-                            4.867189932537344e-13,
-                            4.647273240470541e-13,
-                            1.1577518608933468e-5,
+                            1.1577518608938916e-5, 4.859252379740366e-13,
+                            4.639600837197925e-13, 1.1577518608952174e-5,
                         ],
                         linf=[
-                            8.394063878602864e-5,
-                            1.1469760027632646e-10,
-                            1.1146619484429974e-10,
-                            8.394063879602065e-5,
+                            8.3940638787805e-5, 1.1446362498574484e-10,
+                            1.1124515748367981e-10, 8.39406387962427e-5,
                         ],
                         tspan=(0.0, 2.0))
     # Ensure that we do not have excessive memory allocations
@@ -518,16 +506,12 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_shallowwater_wall_bc_shockcapturing.jl"),
                         l2=[
-                            0.04444388691670699,
-                            0.1527771788033111,
-                            0.1593763537203512,
-                            6.225080476986749e-8,
+                            0.0442113635677511, 0.1537465759364839, 0.16003586586203947,
+                            6.225080477067782e-8,
                         ],
                         linf=[
-                            0.6526506870169639,
-                            1.980765893182952,
-                            2.4807635459119757,
-                            3.982097158683473e-7,
+                            0.6347820607387928, 2.0078125433846736, 2.530726684667019,
+                            3.982097165344811e-7,
                         ],
                         tspan=(0.0, 0.05))
     # Ensure that we do not have excessive memory allocations
@@ -555,105 +539,6 @@ end
                             3.3330308209196224,
                             2.052861364219655,
                         ],
-                        tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_three_mound_dam_break.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_shallowwater_three_mound_dam_break.jl"),
-                        l2=[
-                            0.0892957892027502,
-                            0.30648836484407915,
-                            2.28712547616214e-15,
-                            0.0008778654298684622,
-                        ],
-                        linf=[
-                            0.850329472915091,
-                            2.330631694956507,
-                            5.783660020252348e-14,
-                            0.04326237921249021,
-                        ],
-                        basis=LobattoLegendreBasis(3),
-                        tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_twolayer_convergence.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_shallowwater_twolayer_convergence.jl"),
-                        l2=[0.0007935561625451243, 0.008825315509943844,
-                            0.002429969315645897,
-                            0.0007580145888686304, 0.004495741879625235,
-                            0.0015758146898767814,
-                            6.849532064729749e-6],
-                        linf=[0.0059205195991136605, 0.08072126590166251,
-                            0.03463806075399023,
-                            0.005884818649227186, 0.042658506561995546,
-                            0.014125956138838602, 2.5829318284764646e-5],
-                        tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_twolayer_well_balanced.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_shallowwater_twolayer_well_balanced.jl"),
-                        l2=[4.706532184998499e-16, 1.1215950712872183e-15,
-                            6.7822712922421565e-16,
-                            0.002192812926266047, 5.506855295923691e-15,
-                            3.3105180099689275e-15,
-                            0.0021928129262660085],
-                        linf=[4.468647674116255e-15, 1.3607872120431166e-14,
-                            9.557155049520056e-15,
-                            0.024280130945632084, 6.68910907640583e-14,
-                            4.7000983997100496e-14,
-                            0.024280130945632732],
-                        tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_twolayer_dam_break.jl with flux_lax_friedrichs" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_shallowwater_twolayer_dam_break.jl"),
-                        l2=[0.012447632879122346, 0.012361250464676683,
-                            0.0009551519536340908,
-                            0.09119400061322577, 0.015276216721920347,
-                            0.0012126995108983853, 0.09991983966647647],
-                        linf=[0.044305765721807444, 0.03279620980615845,
-                            0.010754320388190101,
-                            0.111309922939555, 0.03663360204931427,
-                            0.014332822306649284,
-                            0.10000000000000003],
-                        surface_flux=(flux_lax_friedrichs,
-                                      flux_nonconservative_ersing_etal),
                         tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -710,12 +595,12 @@ end
                             1.0066867437607972e-13,
                             6.889210012578449e-14,
                             1.568290814572709e-13],
-                        linf=[5.963762816918461e-10,
-                            5.08869890669672e-11,
-                            1.1581377523661729e-10,
+                        linf=[5.6139981552405516e-11,
+                            2.842849566864203e-11,
+                            1.8290174930157832e-11,
                             4.61017890529547e-11],
                         tspan=(0.0, 0.1),
-                        atol=1.0e-11)
+                        atol=1.0e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

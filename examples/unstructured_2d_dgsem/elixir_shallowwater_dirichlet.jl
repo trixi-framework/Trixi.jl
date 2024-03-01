@@ -30,7 +30,9 @@ boundary_condition = Dict(:OuterCircle => boundary_condition_constant)
 # Get the DG approximation space
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-solver = DGSEM(polydeg = 4, surface_flux = (flux_hll, flux_nonconservative_fjordholm_etal),
+solver = DGSEM(polydeg = 4,
+               surface_flux = (flux_hll,
+                               flux_nonconservative_fjordholm_etal),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
