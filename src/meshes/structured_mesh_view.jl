@@ -3,6 +3,7 @@
 
 mutable struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
     parent::StructuredMesh{NDIMS, RealT}
+    cells_per_dimension::NTuple{NDIMS, Int}
     mapping::Any # Not relevant for performance
     mapping_as_string::String
     current_filename::String
@@ -19,6 +20,7 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
     @assert index_max <= size(parent)
 
     # Calculate the domain boundaries.
+    cells_per_dimension = index_max .- index_min .+ 1
     deltas = (parent.mapping.coordinates_max .- parent.mapping.coordinates_min)./parent.cells_per_dimension
     coordinates_min = parent.mapping.coordinates_min .+ deltas .* (index_min .- 1)
     coordinates_max = parent.mapping.coordinates_min .+ deltas .* index_max
@@ -29,7 +31,7 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
         mapping = coordinates2mapping(coordinates_min, coordinates_max)
         """
 
-    return StructuredMeshView{NDIMS, RealT}(parent, mapping, mapping_as_string,
+    return StructuredMeshView{NDIMS, RealT}(parent, cells_per_dimension, mapping, mapping_as_string,
                                             parent.current_filename,
                                             index_min, index_max, parent.unsaved_changes)
 
@@ -69,27 +71,22 @@ Base.axes(mesh::StructuredMeshView, i) = Base.OneTo(size(mesh, i))
 function calc_node_coordinates!(node_coordinates, element,
                                 cell_x, cell_y, mapping,
                                 mesh::StructuredMeshView{2},
-                                #                                basis::LobattoLegendreBasis)
+                                # basis::LobattoLegendreBasis)
                                 basis)
     @unpack nodes = basis
-    @unpack parent, index_min, index_max = mesh
 
     # Get cell length in reference mesh
-    dx = 2 / size(parent, 1)
-    dy = 2 / size(parent, 2)
-
-    # Calculate index offsets with respect to parent
-    parent_offset_x = index_min[1] - 1
-    parent_offset_y = index_min[2] - 1
+    dx = 2 / size(mesh, 1)
+    dy = 2 / size(mesh, 2)
 
     # Calculate node coordinates of reference mesh
-    cell_x_offset = -1 + (cell_x - 1 + parent_offset_x) * dx + dx / 2
-    cell_y_offset = -1 + (cell_y - 1 + parent_offset_y) * dy + dy / 2
+    cell_x_offset = -1 + (cell_x - 1) * dx + dx / 2
+    cell_y_offset = -1 + (cell_y - 1) * dy + dy / 2
 
     for j in eachnode(basis), i in eachnode(basis)
         # node_coordinates are the mapped reference node_coordinates
         node_coordinates[:, i, j, element] .= mapping(cell_x_offset + dx / 2 * nodes[i],
-                                                      cell_y_offset + dy / 2 * nodes[j])
-    end
+                                                        cell_y_offset + dy / 2 * nodes[j])
+    end                 
 end
 end # @muladd
