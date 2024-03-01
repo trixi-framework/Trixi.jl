@@ -5,6 +5,103 @@
 @muladd begin
 #! format: noindent
 
+
+######################################################################################################
+# TODO: FD; where should this live? Want to put it into `solvers/fdsbp_unstructured/containers_2d.jl`
+#       but then dispatching is not possible to reuse functionality for interfaces/boundaries here
+#       unless the FDSBP solver files are included before the DG files, which seems strange.
+# Container data structure (structure-of-arrays style) for FDSBP upwind solver elements on curved unstructured mesh
+struct UpwindElementContainer2D{RealT<:Real, uEltype<:Real}
+    node_coordinates           ::Array{RealT, 4}   # [ndims, nnodes, nnodes, nelement]
+    jacobian_matrix            ::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
+    inverse_jacobian           ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
+    contravariant_vectors      ::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
+    contravariant_vectors_plus ::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
+    contravariant_vectors_minus::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
+    normal_directions          ::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
+    normal_directions_plus     ::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
+    normal_directions_minus    ::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
+    rotations                  ::Vector{Int}       # [nelement]
+    surface_flux_values        ::Array{uEltype, 4} # [variables, nnodes, local sides, elements]
+end
+
+
+# construct an empty curved element container for the `UpwindOperators` type solver
+# to be filled later with geometries in the unstructured mesh constructor
+# OBS! Extended version of the `UnstructuredElementContainer2D` with additional arrays to hold
+#      the contravariant vectors created with the biased derivative operators.
+function UpwindElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables, n_nodes) where {RealT<:Real, uEltype<:Real}
+    nan_RealT = convert(RealT, NaN)
+    nan_uEltype = convert(uEltype, NaN)
+
+    node_coordinates            = fill(nan_RealT, (2, n_nodes, n_nodes, capacity))
+    jacobian_matrix             = fill(nan_RealT, (2, 2, n_nodes, n_nodes, capacity))
+    inverse_jacobian            = fill(nan_RealT, (n_nodes, n_nodes, capacity))
+    contravariant_vectors       = fill(nan_RealT, (2, 2, n_nodes, n_nodes, capacity))
+    contravariant_vectors_plus  = fill(nan_RealT, (2, 2, n_nodes, n_nodes, capacity))
+    contravariant_vectors_minus = fill(nan_RealT, (2, 2, n_nodes, n_nodes, capacity))
+    normal_directions           = fill(nan_RealT, (2, n_nodes, 4, capacity))
+    normal_directions_plus      = fill(nan_RealT, (2, n_nodes, 4, capacity))
+    normal_directions_minus     = fill(nan_RealT, (2, n_nodes, 4, capacity))
+    rotations                   = fill(typemin(Int), capacity) # Fill with "nonsense" rotation values
+    surface_flux_values         = fill(nan_uEltype, (n_variables, n_nodes, 4, capacity))
+
+    return UpwindElementContainer2D{RealT, uEltype}(node_coordinates,
+                                                    jacobian_matrix,
+                                                    inverse_jacobian,
+                                                    contravariant_vectors,
+                                                    contravariant_vectors_plus,
+                                                    contravariant_vectors_minus,
+                                                    normal_directions,
+                                                    normal_directions_plus,
+                                                    normal_directions_minus,
+                                                    rotations,
+                                                    surface_flux_values)
+end
+
+
+@inline nelements(elements::UpwindElementContainer2D) = size(elements.surface_flux_values, 4)
+@inline eachelement(elements::UpwindElementContainer2D) = Base.OneTo(nelements(elements))
+
+@inline nvariables(elements::UpwindElementContainer2D) = size(elements.surface_flux_values, 1)
+@inline nnodes(elements::UpwindElementContainer2D) = size(elements.surface_flux_values, 2)
+
+Base.real(elements::UpwindElementContainer2D) = eltype(elements.node_coordinates)
+Base.eltype(elements::UpwindElementContainer2D) = eltype(elements.surface_flux_values)
+
+function init_elements(mesh::UnstructuredMesh2D, equations,
+                       basis::SummationByPartsOperators.UpwindOperators,
+                       RealT, uEltype)
+    elements = UpwindElementContainer2D{RealT, uEltype}(
+      mesh.n_elements, nvariables(equations), nnodes(basis))
+    init_elements!(elements, mesh, basis)
+    return elements
+end
+
+function init_elements!(elements::UpwindElementContainer2D, mesh, basis)
+    four_corners = zeros(eltype(mesh.corners), 4, 2)
+
+    # loop through elements and call the correct constructor based on whether the element is curved
+    for element in eachelement(elements)
+        if mesh.element_is_curved[element]
+            init_element!(elements, element, basis, view(mesh.surface_curves, :, element))
+        else # straight sided element
+            for i in 1:4, j in 1:2
+                # pull the (x,y) values of these corners out of the global corners array
+                four_corners[i, j] = mesh.corners[j, mesh.element_node_ids[i, element]]
+            end
+            init_element!(elements, element, basis, four_corners)
+        end
+    end
+
+    # Use the mesh element information to determine the rotations, if any,
+    # of the local coordinate system in each element
+    # TODO: remove me. unnecessary (and slightly broken)
+    calc_element_rotations!(elements, mesh)
+end
+
+######################################################################################################
+
 # Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
 struct UnstructuredElementContainer2D{RealT <: Real, uEltype <: Real}
     node_coordinates::Array{RealT, 4}   # [ndims, nnodes, nnodes, nelement]
@@ -147,7 +244,7 @@ end
 @inline nnodes(interfaces::UnstructuredInterfaceContainer2D) = size(interfaces.u, 3)
 
 function init_interfaces(mesh::UnstructuredMesh2D,
-                         elements::UnstructuredElementContainer2D)
+                         elements::Union{UnstructuredElementContainer2D,UpwindElementContainer2D})
     interfaces = UnstructuredInterfaceContainer2D{eltype(elements)}(mesh.n_interfaces,
                                                                     nvariables(elements),
                                                                     nnodes(elements))
@@ -288,7 +385,7 @@ end
 end
 
 function init_boundaries(mesh::UnstructuredMesh2D,
-                         elements::UnstructuredElementContainer2D)
+                         elements::Union{UnstructuredElementContainer2D,UpwindElementContainer2D})
     boundaries = UnstructuredBoundaryContainer2D{real(elements), eltype(elements)}(mesh.n_boundaries,
                                                                                    nvariables(elements),
                                                                                    nnodes(elements))

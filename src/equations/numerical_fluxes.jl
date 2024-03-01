@@ -444,8 +444,8 @@ end
     return fm + fp
 end
 
-# TODO: Upwind FD. Figure out a better strategy to compute this
-# (From an old PR and seemed to not work correctly!)
+# TODO: Upwind FD. Figure out a better strategy to compute this, especially
+# if we need to pass two versions of the normal direction
 @inline function (numflux::FluxUpwind)(u_ll, u_rr,
                                        normal_direction::AbstractVector,
                                        equations::AbstractEquations{2})
