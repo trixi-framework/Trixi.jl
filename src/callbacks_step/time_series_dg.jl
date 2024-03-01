@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-# Store time series file for a TreeMesh with a DG solver
+# Store time series file for a DG solver
 function save_time_series_file(time_series_callback,
                                mesh::Union{TreeMesh, UnstructuredMesh2D},
                                equations, dg::DG)
