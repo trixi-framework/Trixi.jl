@@ -5,75 +5,120 @@
 @muladd begin
 #! format: noindent
 
-# Container data structure (array-of-structures style) for T8codeMesh elements
-# The data that we want to store for each element.
-struct T8codeElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
-                              MAX_NUMBER_FACES, NDIMS_MAX_NUMBER_FACES}
-    level    :: Cint
-    volume   :: RealT
-    midpoint :: NTuple{NDIMS, RealT}
-    dx       :: RealT # Characteristic length (for CFL condition).
+# Container data structure (structure-of-arrays style) for DG elements
+mutable struct T8codeFVElementContainer{NDIMS, RealT <: Real, uEltype <: Real}
+    level::Vector{Cint}     # [element]
+    volume::Vector{RealT}   # [element]
+    midpoint::Matrix{RealT} # [dimension, element]
+    dx::Vector{RealT}       # [element] - characteristic length (for CFL condition).
 
-    num_faces      :: Cint
-    face_midpoints :: NTuple{NDIMS_MAX_NUMBER_FACES, RealT}
-    face_areas     :: NTuple{MAX_NUMBER_FACES, RealT}
-    face_normals   :: NTuple{NDIMS_MAX_NUMBER_FACES, RealT}
+    num_faces::Vector{Cint}         # [element]
+    face_midpoints::Array{RealT, 3} # [dimension, face, element]
+    face_areas::Matrix{RealT}       # [face, element]
+    face_normals::Array{RealT, 3}   # [dimension, face, element]
 
-    function T8codeElementContainer(max_number_faces, level, volume, midpoint, dx,
-                                    num_faces, face_midpoints, face_areas, face_normals)
-        n_dims = length(midpoint)
-        new{n_dims, eltype(midpoint), typeof(volume), max_number_faces,
-            n_dims * max_number_faces}(level, volume, midpoint, dx, num_faces,
-                                       face_midpoints, face_areas, face_normals)
-    end
+    # internal `resize!`able storage
+    _midpoint::Vector{RealT}
+    _face_midpoints::Vector{RealT}
+    _face_areas::Vector{RealT}
+    _face_normals::Vector{RealT}
 end
 
-@inline Base.ndims(::T8codeElementContainer{NDIMS}) where {NDIMS} = NDIMS
-@inline function Base.eltype(::T8codeElementContainer{NDIMS, RealT, uEltype}) where {
-                                                                                     NDIMS,
-                                                                                     RealT,
-                                                                                     uEltype
-                                                                                     }
+@inline Base.ndims(::T8codeFVElementContainer{NDIMS}) where {NDIMS} = NDIMS
+@inline function Base.eltype(::T8codeFVElementContainer{NDIMS, RealT, uEltype}) where {
+                                                                                       NDIMS,
+                                                                                       RealT,
+                                                                                       uEltype
+                                                                                       }
     uEltype
 end
 
 @inline is_ghost_cell(element, mesh) = element > ncells(mesh)
 
-function init_fv_elements(mesh::T8codeMesh{2}, equations,
-                          solver::FV, ::Type{uEltype}) where {uEltype}
+# See explanation of Base.resize! for the element container
+function Base.resize!(elements::T8codeFVElementContainer, capacity)
+    (; _midpoint, _face_midpoints, _face_areas, _face_normals) = interfaces
+
+    n_dims = ndims(elements)
+    max_number_faces = size(face_midpoints, 2)
+
+    resize!(elements.level, capacity)
+    resize!(elements.volume, capacity)
+    resize!(elements.dx, capacity)
+    resize!(elements.num_faces, capacity)
+
+    resize!(_midpoint, n_dims * capacity)
+    elements.midpoint = unsafe_wrap(Array, pointer(_midpoint), (ndims, capacity))
+
+    resize!(_face_midpoints, n_dims * max_number_faces * capacity)
+    elements.face_midpoints = unsafe_wrap(Array, pointer(_face_midpoints),
+                                          (ndims, max_number_faces, capacity))
+
+    resize!(_face_areas, max_number_faces * capacity)
+    elements.face_areas = unsafe_wrap(Array, pointer(_face_areas),
+                                      (max_number_faces, capacity))
+
+    resize!(_face_normals, n_dims * max_number_faces * capacity)
+    elements.face_normals = unsafe_wrap(Array, pointer(_face_normals),
+                                        (ndims, max_number_faces, capacity))
+
+    return nothing
+end
+
+# Create element container and initialize element data
+function init_elements(mesh::T8codeMesh{NDIMS, RealT},
+                       equations,
+                       solver::FV,
+                       ::Type{uEltype}) where {NDIMS, RealT <: Real, uEltype <: Real}
     (; forest) = mesh
     # Check that the forest is a committed.
     @assert(t8_forest_is_committed(forest)==1)
-    n_dims = ndims(mesh)
+
+    nelements = ncells(mesh)
     (; max_number_faces) = mesh
 
-    # Get the number of local elements of forest.
-    num_local_elements = ncells(mesh)
-    # Get the number of ghost elements of forest.
-    num_ghost_elements = t8_forest_get_num_ghosts(forest)
+    level = Vector{Cint}(undef, nelements)
+    volume = Vector{RealT}(undef, nelements)
+    dx = Vector{RealT}(undef, nelements)
+    num_faces = Vector{Cint}(undef, nelements)
 
-    # Build an array of our data that is as long as the number of elements plus
-    # the number of ghosts.
-    elements = Array{T8codeElementContainer{n_dims, real(mesh), uEltype,
-                                            max_number_faces,
-                                            n_dims * max_number_faces}}(undef,
-                                                                        num_local_elements +
-                                                                        num_ghost_elements)
+    _midpoint = Vector{RealT}(undef, NDIMS * nelements)
+    midpoint = unsafe_wrap(Array, pointer(_midpoint), (NDIMS, nelements))
 
-    init_fv_elements!(elements, mesh)
+    _face_midpoints = Vector{RealT}(undef, NDIMS * max_number_faces * nelements)
+    face_midpoints = unsafe_wrap(Array, pointer(_face_midpoints),
+                                 (NDIMS, max_number_faces, nelements))
+
+    _face_areas = Vector{RealT}(undef, max_number_faces * nelements)
+    face_areas = unsafe_wrap(Array, pointer(_face_areas), (max_number_faces, nelements))
+
+    _face_normals = similar(_face_midpoints)
+    face_normals = unsafe_wrap(Array, pointer(_face_normals), size(face_midpoints))
+
+    elements = T8codeFVElementContainer{NDIMS, RealT, uEltype}(level, volume, midpoint,
+                                                               dx, num_faces,
+                                                               face_midpoints,
+                                                               face_areas, face_normals,
+                                                               _midpoint,
+                                                               _face_midpoints,
+                                                               _face_areas,
+                                                               _face_normals)
+
+    init_elements!(elements, mesh, solver)
 
     return elements
 end
 
-function init_fv_elements!(elements, mesh::T8codeMesh)
+function init_elements!(elements, mesh::T8codeMesh, solver::FV)
     (; forest) = mesh
+
     n_dims = ndims(mesh)
     (; max_number_faces) = mesh
+    (; level, volume, dx, num_faces, face_areas) = elements
 
     midpoint = Vector{Cdouble}(undef, n_dims)
 
     face_midpoints = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
-    face_areas = Vector{Cdouble}(undef, max_number_faces)
     face_normals = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
 
     num_local_trees = t8_forest_get_num_local_trees(forest)
@@ -93,39 +138,39 @@ function init_fv_elements!(elements, mesh::T8codeMesh)
 
             element = t8_forest_get_element_in_tree(forest, itree, ielement)
 
-            level = t8_element_level(eclass_scheme, element)
-            volume = t8_forest_element_volume(forest, itree, element)
+            level[current_index] = t8_element_level(eclass_scheme, element)
+            volume[current_index] = t8_forest_element_volume(forest, itree, element)
 
             t8_forest_element_centroid(forest, itree, element, pointer(midpoint))
+            for dim in 1:n_dims
+                elements.midpoint[dim, current_index] = midpoint[dim]
+            end
 
             # Characteristic length of the element. It is an approximation since only
             # for the element type `lines` this can be exact.
-            dx = t8_forest_element_diam(forest, itree, element)
+            dx[current_index] = t8_forest_element_diam(forest, itree, element)
 
             # Loop over all faces of an element.
-            num_faces = t8_element_num_faces(eclass_scheme, element)
+            num_faces[current_index] = t8_element_num_faces(eclass_scheme, element)
 
-            for iface in 1:num_faces
+            for iface in 1:num_faces[current_index]
                 # C++ is zero-indexed
                 t8_forest_element_face_centroid(forest, itree, element, iface - 1,
                                                 @views(face_midpoints[:, iface]))
-                face_areas[iface] = t8_forest_element_face_area(forest, itree, element,
-                                                                iface - 1)
+                face_areas[iface, current_index] = t8_forest_element_face_area(forest,
+                                                                               itree,
+                                                                               element,
+                                                                               iface -
+                                                                               1)
                 t8_forest_element_face_normal(forest, itree, element, iface - 1,
                                               @views(face_normals[:, iface]))
+                for dim in 1:n_dims
+                    elements.face_midpoints[dim, iface, current_index] = face_midpoints[dim,
+                                                                                        iface]
+                    elements.face_normals[dim, iface, current_index] = face_normals[dim,
+                                                                                    iface]
+                end
             end
-
-            elements[current_index] = T8codeElementContainer(max_number_faces,
-                                                             level,
-                                                             volume,
-                                                             Tuple(midpoint),
-                                                             dx,
-                                                             num_faces,
-                                                             Tuple(@views(face_midpoints[1:n_dims,
-                                                                                         :])),
-                                                             Tuple(face_areas),
-                                                             Tuple(@views(face_normals[1:n_dims,
-                                                                                       :])))
         end
     end
 

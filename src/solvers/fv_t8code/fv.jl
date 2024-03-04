@@ -66,6 +66,10 @@ end
 @inline ninterfaces(solver::FV, cache) = ninterfaces(cache.interfaces)
 @inline nboundaries(solver::FV, cache) = nboundaries(cache.boundaries)
 
+@inline function get_node_coords(x, equations, solver::FV, indices...)
+    SVector(ntuple(@inline(idx->x[idx, indices...]), Val(ndims(equations))))
+end
+
 @inline function get_node_vars(u, equations, solver::FV, element)
     SVector(ntuple(@inline(v->u[v, element]), Val(nvariables(equations))))
 end
@@ -91,7 +95,7 @@ end
 function allocate_coefficients(mesh::T8codeMesh, equations, solver::FV, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
-    zeros(eltype(cache.elements[1].volume),
+    zeros(eltype(cache.elements),
           nvariables(equations) * nelements(mesh, solver, cache))
 end
 
@@ -117,7 +121,7 @@ end
 function compute_coefficients!(u, func, t, mesh::T8codeMesh,
                                equations, solver::FV, cache)
     for element in eachelement(mesh, solver, cache)
-        x_node = SVector(cache.elements[element].midpoint) # Save t8code variables as SVector?
+        x_node = get_node_coords(cache.elements.midpoint, equations, solver, element)
         u_node = func(x_node, t, equations)
         set_node_vars!(u, u_node, equations, solver, element)
     end
@@ -130,7 +134,7 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
     # After I saved some data (e.g. normal) in the interfaces and boundaries,
     # the element data structure is not used anymore after this `create_cache` routine.
     # Possible to remove it and directly save the data in interface, boundars (and mortar) data structure?
-    elements = init_fv_elements(mesh, equations, solver, uEltype)
+    elements = init_elements(mesh, equations, solver, uEltype)
     interfaces = init_fv_interfaces(mesh, equations, solver, uEltype)
     boundaries = init_fv_boundaries(mesh, equations, solver, uEltype)
     # mortars = init_mortars(mesh, equations, basis, elements)
@@ -180,7 +184,7 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
 
     @trixi_timeit timer() "volume" begin
         for element in eachelement(mesh, solver, cache)
-            @unpack volume = cache.elements[element]
+            volume = cache.elements.volume[element]
             for v in eachvariable(equations)
                 du[v, element] = (1 / volume) * du[v, element]
             end
@@ -221,14 +225,14 @@ function calc_interface_flux!(du, mesh::T8codeMesh,
         face = interfaces.faces[1, interface]
 
         # TODO: Save normal and face_areas in interface?
-        normal = Trixi.get_variable_wrapped(elements[element].face_normals,
-                                            equations, face)
+        normal = get_node_coords(elements.face_normals, equations, solver,
+                                 face, element)
         u_ll, u_rr = get_surface_node_vars(interfaces.u, equations, solver,
                                            interface)
         flux = surface_flux(u_ll, u_rr, normal, equations)
 
         for v in eachvariable(equations)
-            flux_ = elements[element].face_areas[face] * flux[v]
+            flux_ = elements.face_areas[face, element] * flux[v]
             du[v, element] -= flux_
             if !is_ghost_cell(neighbor, mesh)
                 du[v, neighbor] += flux_
@@ -322,19 +326,19 @@ function calc_boundary_flux!(du, cache, t, boundary_condition::BC, boundary_inde
         face = boundaries.faces[boundary]
 
         # TODO: Save normal and face_areas in interface?
-        normal = Trixi.get_variable_wrapped(elements[element].face_normals,
-                                            equations, face)
+        normal = get_node_coords(cache.elements.face_normals, equations, solver,
+                                 face, element)
 
         u_inner = get_node_vars(boundaries.u, equations, solver, boundary)
 
         # Coordinates at boundary node
-        face_midpoint = Trixi.get_variable_wrapped(elements[element].face_midpoints,
-                                                   equations, face)
+        face_midpoint = get_node_coords(cache.elements.face_midpoints, equations,
+                                        solver, face, element)
 
         flux = boundary_condition(u_inner, normal, face_midpoint, t, surface_flux,
                                   equations)
         for v in eachvariable(equations)
-            flux_ = elements[element].face_areas[face] * flux[v]
+            flux_ = elements.face_areas[face, element] * flux[v]
             du[v, element] -= flux_
         end
     end

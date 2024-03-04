@@ -141,49 +141,6 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                      initialize = initialize!)
 end
 
-function AnalysisCallback(mesh, equations::AbstractEquations, solver::FV, cache;
-                          interval = 0,
-                          save_analysis = false,
-                          output_directory = "out",
-                          analysis_filename = "analysis.dat",
-                          extra_analysis_errors = Symbol[],
-                          analysis_errors = union(default_analysis_errors(equations),
-                                                  extra_analysis_errors),
-                          extra_analysis_integrals = (),
-                          analysis_integrals = union(default_analysis_integrals(equations),
-                                                     extra_analysis_integrals),
-                          RealT = real(solver),
-                          uEltype = eltype(cache.elements[1]), # TODO: this routine is equal to the existing one except this default type here.
-                          kwargs...)
-    # Decide when the callback is activated.
-    # With error-based step size control, some steps can be rejected. Thus,
-    #   `integrator.iter >= integrator.stats.naccept`
-    #    (total #steps)       (#accepted steps)
-    # We need to check the number of accepted steps since callbacks are not
-    # activated after a rejected step.
-    condition = (u, t, integrator) -> interval > 0 &&
-        ((integrator.stats.naccept % interval == 0 &&
-          !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
-         isfinished(integrator))
-
-    analyzer = SolutionAnalyzer(solver; kwargs...)
-    cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache,
-                                           RealT, uEltype)
-
-    analysis_callback = AnalysisCallback(0.0, 0.0, 0, 0.0,
-                                         interval, save_analysis, output_directory,
-                                         analysis_filename,
-                                         analyzer,
-                                         analysis_errors, Tuple(analysis_integrals),
-                                         SVector(ntuple(_ -> zero(uEltype),
-                                                        Val(nvariables(equations)))),
-                                         cache_analysis)
-
-    DiscreteCallback(condition, analysis_callback,
-                     save_positions = (false, false),
-                     initialize = initialize!)
-end
-
 # This method gets called from OrdinaryDiffEq's `solve(...)`
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
                      integrator) where {Condition, Affect! <: AnalysisCallback}

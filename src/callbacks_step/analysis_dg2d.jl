@@ -159,9 +159,10 @@ function calc_error_norms(func, u, t, analyzer,
 
     # Iterate over all elements for error calculations
     for element in eachelement(mesh, solver, cache)
-        @unpack midpoint, volume = cache.elements[element]
+        midpoint = get_node_coords(cache.elements.midpoint, equations, solver, element)
+        volume = cache.elements.volume[element]
 
-        u_exact = initial_condition(SVector(midpoint), t, equations)
+        u_exact = initial_condition(midpoint, t, equations)
         diff = func(u_exact, equations) -
                func(get_node_vars(u, equations, solver, element), equations)
         l2_error += diff .^ 2 * volume
@@ -285,7 +286,7 @@ function integrate_via_indices(func::Func, u,
 
     # Use quadrature to numerically integrate over entire domain
     for element in eachelement(mesh, solver, cache)
-        @unpack volume = cache.elements[element]
+        volume = cache.elements.volume[element]
         integral += volume * func(u, element, equations, solver, args...)
         total_volume += volume
     end
