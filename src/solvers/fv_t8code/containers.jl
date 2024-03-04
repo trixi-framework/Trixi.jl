@@ -14,10 +14,10 @@ struct T8codeElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
     midpoint :: NTuple{NDIMS, RealT}
     dx       :: RealT # Characteristic length (for CFL condition).
 
-    num_faces         :: Cint
-    face_midpoints    :: NTuple{NDIMS_MAX_NUMBER_FACES, RealT}
-    face_areas        :: NTuple{MAX_NUMBER_FACES, RealT}
-    face_normals      :: NTuple{NDIMS_MAX_NUMBER_FACES, RealT}
+    num_faces      :: Cint
+    face_midpoints :: NTuple{NDIMS_MAX_NUMBER_FACES, RealT}
+    face_areas     :: NTuple{MAX_NUMBER_FACES, RealT}
+    face_normals   :: NTuple{NDIMS_MAX_NUMBER_FACES, RealT}
 
     function T8codeElementContainer(max_number_faces, level, volume, midpoint, dx,
                                     num_faces, face_midpoints, face_areas, face_normals)
