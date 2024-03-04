@@ -113,13 +113,12 @@ function init_elements!(elements, mesh::T8codeMesh, solver::FV)
     (; forest) = mesh
 
     n_dims = ndims(mesh)
-    (; max_number_faces) = mesh
-    (; level, volume, dx, num_faces, face_areas) = elements
+    (; level, volume, dx, num_faces, face_areas, face_midpoints, face_normals) = elements
 
     midpoint = Vector{Cdouble}(undef, n_dims)
 
-    face_midpoints = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
-    face_normals = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
+    face_midpoint = Vector{Cdouble}(undef, 3) # Need NDIMS=3 for t8code API
+    face_normal = Vector{Cdouble}(undef, 3) # Need NDIMS=3 for t8code API
 
     num_local_trees = t8_forest_get_num_local_trees(forest)
 
@@ -156,19 +155,17 @@ function init_elements!(elements, mesh::T8codeMesh, solver::FV)
             for iface in 1:num_faces[current_index]
                 # C++ is zero-indexed
                 t8_forest_element_face_centroid(forest, itree, element, iface - 1,
-                                                @views(face_midpoints[:, iface]))
-                face_areas[iface, current_index] = t8_forest_element_face_area(forest,
-                                                                               itree,
-                                                                               element,
-                                                                               iface -
-                                                                               1)
+                                                face_midpoint)
+
+                face_area = t8_forest_element_face_area(forest, itree, element,
+                                                        iface - 1)
+                face_areas[iface, current_index] = face_area
+
                 t8_forest_element_face_normal(forest, itree, element, iface - 1,
-                                              @views(face_normals[:, iface]))
+                                              face_normal)
                 for dim in 1:n_dims
-                    elements.face_midpoints[dim, iface, current_index] = face_midpoints[dim,
-                                                                                        iface]
-                    elements.face_normals[dim, iface, current_index] = face_normals[dim,
-                                                                                    iface]
+                    face_midpoints[dim, iface, current_index] = face_midpoint[dim]
+                    face_normals[dim, iface, current_index] = face_normal[dim]
                 end
             end
         end
