@@ -18,17 +18,13 @@ struct T8codeElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
     face_midpoints    :: NTuple{NDIMS_MAX_NUMBER_FACES, RealT}
     face_areas        :: NTuple{MAX_NUMBER_FACES, RealT}
     face_normals      :: NTuple{NDIMS_MAX_NUMBER_FACES, RealT}
-    face_connectivity :: NTuple{MAX_NUMBER_FACES, t8_locidx_t} # ids of the face neighbors
-    neighbor_faces    :: NTuple{MAX_NUMBER_FACES, t8_locidx_t}
 
     function T8codeElementContainer(max_number_faces, level, volume, midpoint, dx,
-                                    num_faces, face_midpoints, face_areas, face_normals,
-                                    face_connectivity, neighbor_faces)
+                                    num_faces, face_midpoints, face_areas, face_normals)
         n_dims = length(midpoint)
         new{n_dims, eltype(midpoint), typeof(volume), max_number_faces,
             n_dims * max_number_faces}(level, volume, midpoint, dx, num_faces,
-                                       face_midpoints, face_areas, face_normals,
-                                       face_connectivity, neighbor_faces)
+                                       face_midpoints, face_areas, face_normals)
     end
 end
 
@@ -66,9 +62,6 @@ function init_fv_elements(mesh::T8codeMesh{2}, equations,
 
     init_fv_elements!(elements, mesh)
 
-    # Exchange the neighboring data at MPI process boundaries.
-    exchange_ghost_data(mesh, elements)
-
     return elements
 end
 
@@ -82,8 +75,6 @@ function init_fv_elements!(elements, mesh::T8codeMesh)
     face_midpoints = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
     face_areas = Vector{Cdouble}(undef, max_number_faces)
     face_normals = Matrix{Cdouble}(undef, 3, max_number_faces) # Need NDIMS=3 for t8code API. Also, consider that Julia is column major.
-    face_connectivity = Vector{t8_locidx_t}(undef, max_number_faces)
-    neighbor_faces = Vector{t8_locidx_t}(undef, max_number_faces)
 
     num_local_trees = t8_forest_get_num_local_trees(forest)
 
@@ -114,9 +105,6 @@ function init_fv_elements!(elements, mesh::T8codeMesh)
             # Loop over all faces of an element.
             num_faces = t8_element_num_faces(eclass_scheme, element)
 
-            # Set default value.
-            face_connectivity .= -1
-
             for iface in 1:num_faces
                 # C++ is zero-indexed
                 t8_forest_element_face_centroid(forest, itree, element, iface - 1,
@@ -125,41 +113,6 @@ function init_fv_elements!(elements, mesh::T8codeMesh)
                                                                 iface - 1)
                 t8_forest_element_face_normal(forest, itree, element, iface - 1,
                                               @views(face_normals[:, iface]))
-
-                # [ugly API, needs rework :/]
-                neighids_ref = Ref{Ptr{t8_locidx_t}}()
-                neighbors_ref = Ref{Ptr{Ptr{t8_element}}}()
-                neigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
-
-                dual_faces_ref = Ref{Ptr{Cint}}()
-                num_neighbors_ref = Ref{Cint}()
-
-                forest_is_balanced = Cint(1)
-
-                t8_forest_leaf_face_neighbors(forest, itree, element,
-                                              neighbors_ref, iface - 1, dual_faces_ref,
-                                              num_neighbors_ref,
-                                              neighids_ref, neigh_scheme_ref,
-                                              forest_is_balanced)
-
-                num_neighbors = num_neighbors_ref[]
-                dual_faces = 1 .+ unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
-                neighids = 1 .+ unsafe_wrap(Array, neighids_ref[], num_neighbors)
-                neighbors = unsafe_wrap(Array, neighbors_ref[], num_neighbors)
-                neigh_scheme = neigh_scheme_ref[]
-
-                if num_neighbors == 1
-                    face_connectivity[iface] = neighids[1]
-                    neighbor_faces[iface] = dual_faces[1]
-                elseif num_neighbors > 1
-                    error("Mortars are not supported yet.")
-                end
-
-                # Free allocated memory.
-                T8code.Libt8.sc_free(t8_get_package_id(), neighbors_ref[])
-                T8code.Libt8.sc_free(t8_get_package_id(), dual_faces_ref[])
-                T8code.Libt8.sc_free(t8_get_package_id(), neighids_ref[])
-                # [/ugly API]
             end
 
             elements[current_index] = T8codeElementContainer(max_number_faces,
@@ -172,9 +125,7 @@ function init_fv_elements!(elements, mesh::T8codeMesh)
                                                                                          :])),
                                                              Tuple(face_areas),
                                                              Tuple(@views(face_normals[1:n_dims,
-                                                                                       :])),
-                                                             Tuple(face_connectivity),
-                                                             Tuple(neighbor_faces))
+                                                                                       :])))
         end
     end
 
