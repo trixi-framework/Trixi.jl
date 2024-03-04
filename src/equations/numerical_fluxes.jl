@@ -415,7 +415,8 @@ flux vector splitting.
 
 The [`SurfaceIntegralUpwind`](@ref) with a given `splitting` is equivalent to
 the [`SurfaceIntegralStrongForm`](@ref) with `FluxUpwind(splitting)`
-as numerical flux (up to floating point differences).
+as numerical flux (up to floating point differences). Note, that
+[`SurfaceIntegralUpwind`](@ref) is only available on [`TreeMesh`](@ref).
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -431,14 +432,10 @@ end
     return fm + fp
 end
 
-# TODO: Upwind FD. Figure out a better strategy to compute this, especially
-# if we need to pass two versions of the normal direction
 @inline function (numflux::FluxUpwind)(u_ll, u_rr,
                                        normal_direction::AbstractVector,
                                        equations::AbstractEquations{2})
     @unpack splitting = numflux
-    # Compute splitting in generic normal direction with specialized
-    # eigenvalues estimates calculated inside the `splitting` function
     f_tilde_m = splitting(u_rr, Val{:minus}(), normal_direction, equations)
     f_tilde_p = splitting(u_ll, Val{:plus}() , normal_direction, equations)
     return f_tilde_m + f_tilde_p

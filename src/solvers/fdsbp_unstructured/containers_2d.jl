@@ -9,14 +9,21 @@
 #! format: noindent
 
 # initialize all the values in the container of a general FD block (either straight sided or curved)
-# OBS! Requires the SBP derivative matrix in order to compute metric terms that are free-stream preserving
+# OBS! Requires the SBP derivative matrix in order to compute metric terms. For a standard
+# SBP operator the matrix is passed directly, whereas for an upwind SBP operator we must
+# specifically pass the central differencing matrix.
 function init_element!(elements, element, basis::AbstractDerivativeOperator,
                        corners_or_surface_curves)
     calc_node_coordinates!(elements.node_coordinates, element, get_nodes(basis),
                            corners_or_surface_curves)
 
-    calc_metric_terms!(elements.jacobian_matrix, element, basis,
-                       elements.node_coordinates)
+    if basis isa DerivativeOperator
+        calc_metric_terms!(elements.jacobian_matrix, element, basis,
+                           elements.node_coordinates)
+    else # basis isa SummationByPartsOperators.UpwindOperators
+        calc_metric_terms!(elements.jacobian_matrix, element, basis.central,
+                           elements.node_coordinates)
+    end
 
     calc_inverse_jacobian!(elements.inverse_jacobian, element, elements.jacobian_matrix)
 
@@ -29,37 +36,8 @@ function init_element!(elements, element, basis::AbstractDerivativeOperator,
     return elements
 end
 
-# initialize all the values in the container of a general FD block (either straight sided or curved)
-# for a set of upwind finite difference operators
-# OBS! (Maybe) Requires the biased derivative matrices in order to compute proper metric terms
-# that are free-stream preserving. If this is not necessary, then we do not need this specialized container.
-function init_element!(elements, element, basis::SummationByPartsOperators.UpwindOperators, corners_or_surface_curves)
-
-    calc_node_coordinates!(elements.node_coordinates, element, get_nodes(basis), corners_or_surface_curves)
-
-    # Create the metric terms and contravariant vectors with the D⁺ operator
-    calc_metric_terms!(elements.jacobian_matrix, element, basis.plus, elements.node_coordinates)
-    calc_contravariant_vectors!(elements.contravariant_vectors_plus, element, elements.jacobian_matrix)
-    calc_normal_directions!(elements.normal_directions_plus, element, elements.jacobian_matrix)
-
-    # Create the metric terms and contravariant vectors with the D⁻ operator
-    calc_metric_terms!(elements.jacobian_matrix, element, basis.minus, elements.node_coordinates)
-    calc_contravariant_vectors!(elements.contravariant_vectors_minus, element, elements.jacobian_matrix)
-    calc_normal_directions!(elements.normal_directions_minus, element, elements.jacobian_matrix)
-
-    # Create the metric terms, Jacobian information, and normals for analysis
-    # and the SATs with the central D operator.
-    calc_metric_terms!(elements.jacobian_matrix, element, basis.central, elements.node_coordinates)
-    calc_inverse_jacobian!(elements.inverse_jacobian, element, elements.jacobian_matrix)
-    calc_contravariant_vectors!(elements.contravariant_vectors, element, elements.jacobian_matrix)
-    calc_normal_directions!(elements.normal_directions, element, elements.jacobian_matrix)
-
-    return elements
-  end
-
 # construct the metric terms for a FDSBP element "block". Directly use the derivative matrix
 # applied to the node coordinates.
-# TODO: FD; How to make this work for the upwind solver because basis has three available derivative matrices
 function calc_metric_terms!(jacobian_matrix, element, D_SBP::AbstractDerivativeOperator,
                             node_coordinates)
 
@@ -68,9 +46,6 @@ function calc_metric_terms!(jacobian_matrix, element, D_SBP::AbstractDerivativeO
     #   jacobian_matrix[1,2,:,:,:] <- X_eta
     #   jacobian_matrix[2,1,:,:,:] <- Y_xi
     #   jacobian_matrix[2,2,:,:,:] <- Y_eta
-
-    # TODO: for now the upwind version needs to specify which matrix is used.
-    # requires more testing / debugging but for now use the central SBP matrix
 
     # Compute the xi derivatives by applying D on the left
     # This is basically the same as
@@ -151,43 +126,5 @@ function calc_normal_directions!(normal_directions, element, jacobian_matrix)
     end
 
     return normal_directions
-end
-
-# Compute the rotation, if any, for the local coordinate system on each `element`
-# with respect to the standard x-axis. This is necessary because if the local
-# element axis is rotated it influences the computation of the +/- directions
-# for the flux vector splitting of the upwind scheme.
-# Local principle x-axis is computed from the four corners of a particular `element`,
-# see page 35 of the "Verdict Library" for details.
-# From the local axis the `atan` function is used to determine the value of the local rotation.
-#
-# - C. J. Stimpson, C. D. Ernst, P. Knupp, P. P. Pébay, and D. Thompson (2007)
-#   The Verdict Geometric Quality Library
-#   Technical Report. Sandia National Laboraties
-#   [SAND2007-1751](https://coreform.com/papers/verdict_quality_library.pdf)
-# - `atan(y, x)` function (https://docs.julialang.org/en/v1/base/math/#Base.atan-Tuple%7BNumber%7D)
-# TODO: remove me. unnecessary
-function calc_element_rotations!(elements, mesh::UnstructuredMesh2D)
-
-    for element in 1:size(elements.node_coordinates, 4)
-        # Pull the corners for the current element
-        corner_points = mesh.corners[:, mesh.element_node_ids[:, element]]
-
-        # Compute the principle x-axis of a right-handed quadrilateral element
-        local_x_axis = (  (corner_points[:, 2] - corner_points[:, 1])
-                        + (corner_points[:, 3] - corner_points[:, 4]) )
-
-        # Two argument `atan` function retuns the angle in radians in [−pi, pi]
-        # between the positive x-axis and the point (x, y)
-        local_angle = atan(local_x_axis[2], local_x_axis[1])
-
-        # Possible reference rotations of the local axis for a given quadrilateral element in the mesh
-        #                   0°, 90°, 180°, -90° (or 270°), -180°
-        reference_angles = [0.0, 0.5*pi, pi, -0.5*pi, -pi]
-
-        elements.rotations[element] = argmin( abs.(reference_angles .- local_angle) ) - 1
-    end
-
-    return nothing
 end
 end # @muladd
