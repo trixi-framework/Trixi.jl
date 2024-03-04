@@ -683,13 +683,15 @@ end
 end
 
 """
-    splitting_steger_warming(u, orientation::Integer,
+    splitting_steger_warming(u, orientation_or_normal_direction,
                              equations::CompressibleEulerEquations2D)
     splitting_steger_warming(u, which::Union{Val{:minus}, Val{:plus}}
-                             orientation::Integer,
+                             orientation_or_normal_direction,
                              equations::CompressibleEulerEquations2D)
 
-Splitting of the compressible Euler flux of Steger and Warming.
+Splitting of the compressible Euler flux of Steger and Warming. For
+curvilinear coordinates to compute in the `normal_direction` we use
+a modified version of this splitting proposed by Drikakis and Tsangris.
 
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
@@ -705,6 +707,10 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()
   Flux Vector Splitting of the Inviscid Gasdynamic Equations
   With Application to Finite Difference Methods
   [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
+- D. Drikakis and S. Tsangaris (1993)
+  On the solution of the compressible Navier-Stokes equations using
+  improved flux vector splitting methods
+  [DOI: 10.1016/0307-904X(93)90054-K](https://doi.org/10.1016/0307-904X(93)90054-K)
 """
 @inline function splitting_steger_warming(u, orientation_or_normal_direction,
                                           equations::CompressibleEulerEquations2D)
@@ -817,37 +823,8 @@ end
     v2 = rho_v2 / rho
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
     a = sqrt(equations.gamma * p / rho)
+    H = (rho_e + p) / rho
 
-    # ## equivalent to rotate u, do splitting and rotate back
-    # s_hat = norm(normal_direction)
-    # normal_vector = normal_direction / s_hat
-    # v_n = normal_vector[1] * v1 + normal_vector[2] * v2
-    # # v_n = normal_direction[1] * v1 + normal_direction[2] * v2
-
-    # lambda1 = v_n
-    # lambda2 = lambda1 + a * s_hat
-    # lambda3 = lambda1 - a * s_hat
-
-    # lambda1_p = positive_part(lambda1) # Same as (lambda_i + abs(lambda_i)) / 2, but faster :)
-    # lambda2_p = positive_part(lambda2)
-    # lambda3_p = positive_part(lambda3)
-
-    # alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
-
-    # rho_2gamma = 0.5 * rho / equations.gamma
-    # f1p = rho_2gamma * alpha_p
-    # f2p = rho_2gamma * (alpha_p * v1 + a * normal_vector[1] * (lambda2_p - lambda3_p))
-    # f3p = rho_2gamma * (alpha_p * v2 + a * normal_vector[2] * (lambda2_p - lambda3_p))
-    # f4p = rho_2gamma *
-    #       (alpha_p * 0.5 * (v1^2 + v2^2) + a * v_n * (lambda2_p - lambda3_p)
-    #        + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
-
-    # return SVector(f1p, f2p, f3p, f4p)
-
-    ## alternative scaling from the paper of Drikakis and Tsangris
-    # s_hat = norm(normal_direction)
-    # normal_vector = normal_direction / s_hat
-    # v_n = normal_vector[1] * v1 + normal_vector[2] * v2
     v_n = normal_direction[1] * v1 + normal_direction[2] * v2
 
     lambda1 = v_n + a
@@ -856,25 +833,13 @@ end
     lambda1_p = positive_part(lambda1) # Same as (lambda_i + abs(lambda_i)) / 2, but faster :)
     lambda2_p = positive_part(lambda2)
 
-    ## original form from the paper
-    # H = (rho_e + p) / rho
-    # f1p = 0.5 * rho * (lambda1_p + lambda2_p)
-    # f2p = (0.5 * rho * (v1 + normal_direction[1] * a / equations.gamma) * lambda1_p
-    #      + 0.5 * rho * (v1 - normal_direction[1] * a / equations.gamma) * lambda2_p)
-    # f3p = (0.5 * rho * (v2 + normal_direction[2] * a / equations.gamma) * lambda1_p
-    #      + 0.5 * rho * (v2 - normal_direction[2] * a / equations.gamma) * lambda2_p)
-    # f4p = f1p * H
-
-    # slightly rewritten form that is cleaner
     rhoa_2gamma = 0.5 * rho * a / equations.gamma
-    H = (rho_e + p) / rho
-
     f1p = 0.5 * rho * (lambda1_p + lambda2_p)
     f2p = f1p * v1 + rhoa_2gamma * normal_direction[1] * (lambda1_p - lambda2_p)
     f3p = f1p * v2 + rhoa_2gamma * normal_direction[2] * (lambda1_p - lambda2_p)
     f4p = f1p * H
 
-    return SVector(f1p, f2p, f3p, f4p)# * s_hat
+    return SVector(f1p, f2p, f3p, f4p)
 end
 
 @inline function splitting_steger_warming(u, ::Val{:minus},
@@ -885,37 +850,8 @@ end
     v2 = rho_v2 / rho
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
     a = sqrt(equations.gamma * p / rho)
+    H = (rho_e + p) / rho
 
-    # # equivalent to rotate u, do splitting and rotate back
-    # s_hat = norm(normal_direction)
-    # normal_vector = normal_direction / s_hat
-    # v_n = normal_vector[1] * v1 + normal_vector[2] * v2
-    # # v_n = normal_direction[1] * v1 + normal_direction[2] * v2
-
-    # lambda1 = v_n
-    # lambda2 = lambda1 + a * s_hat
-    # lambda3 = lambda1 - a * s_hat
-
-    # lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
-    # lambda2_m = negative_part(lambda2)
-    # lambda3_m = negative_part(lambda3)
-
-    # alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
-
-    # rho_2gamma = 0.5 * rho / equations.gamma
-    # f1m = rho_2gamma * alpha_m
-    # f2m = rho_2gamma * (alpha_m * v1 + a * normal_vector[1] * (lambda2_m - lambda3_m))
-    # f3m = rho_2gamma * (alpha_m * v2 + a * normal_vector[2] * (lambda2_m - lambda3_m))
-    # f4m = rho_2gamma *
-    #       (alpha_m * 0.5 * (v1^2 + v2^2) + a * v_n * (lambda2_m - lambda3_m)
-    #        + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
-
-    # return SVector(f1m, f2m, f3m, f4m)
-
-    ## alternative scaling from the paper of Drikakis and Tsangris
-    # s_hat = norm(normal_direction)
-    # normal_vector = normal_direction / s_hat
-    # v_n = normal_vector[1] * v1 + normal_vector[2] * v2
     v_n = normal_direction[1] * v1 + normal_direction[2] * v2
 
     lambda1 = v_n + a
@@ -924,25 +860,13 @@ end
     lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
     lambda2_m = negative_part(lambda2)
 
-    ## original version from the paper
-    # H = (rho_e + p) / rho
-    # f1m = 0.5 * rho * (lambda1_m + lambda2_m)
-    # f2m = (0.5 * rho * (v1 + normal_direction[1] * a / equations.gamma) * lambda1_m
-    #      + 0.5 * rho * (v1 - normal_direction[1] * a / equations.gamma) * lambda2_m)
-    # f3m = (0.5 * rho * (v2 + normal_direction[2] * a / equations.gamma) * lambda1_m
-    #      + 0.5 * rho * (v2 - normal_direction[2] * a / equations.gamma) * lambda2_m)
-    # f4m = f1m * H
-
-    # slightly rewritten form that is cleaner
     rhoa_2gamma = 0.5 * rho * a / equations.gamma
-    H = (rho_e + p) / rho
-
     f1m = 0.5 * rho * (lambda1_m + lambda2_m)
     f2m = f1m * v1 + rhoa_2gamma * normal_direction[1] * (lambda1_m - lambda2_m)
     f3m = f1m * v2 + rhoa_2gamma * normal_direction[2] * (lambda1_m - lambda2_m)
     f4m = f1m * H
 
-    return SVector(f1m, f2m, f3m, f4m)# * s_hat
+    return SVector(f1m, f2m, f3m, f4m)
 end
 
 """
@@ -1038,10 +962,10 @@ end
 end
 
 """
-    splitting_vanleer_haenel(u, orientation::Integer,
+    splitting_vanleer_haenel(u, orientation_or_normal_direction,
                              equations::CompressibleEulerEquations2D)
     splitting_vanleer_haenel(u, which::Union{Val{:minus}, Val{:plus}}
-                             orientation::Integer,
+                             orientation_or_normal_direction,
                              equations::CompressibleEulerEquations2D)
 
 Splitting of the compressible Euler flux from van Leer. This splitting further
@@ -1149,65 +1073,16 @@ end
     a = sqrt(equations.gamma * p / rho)
     H = (rho_e + p) / rho
 
-    ## equivalent to the rotate u, calc flux, and then backrotate
-    # s_hat = norm(normal_direction)
-    # normal_vector = normal_direction / s_hat
-    # v_n = normal_vector[1] * v1 + normal_vector[2] * v2
     v_n = normal_direction[1] * v1 + normal_direction[2] * v2
-
     M = v_n / a
-    p_plus = 0.5 * (1 + equations.gamma * M) * p # HOPE style
-    # p_plus = 0.5 * (1 + M) * p # Liou-Steffan style
-    # p_plus = 0.25 * (M + 1)^2 * (2 - M) * p # van Leer style
+    p_plus = 0.5 * (1 + equations.gamma * M) * p
 
     f1p = 0.25 * rho * a * (M + 1)^2
     f2p = f1p * v1 + normal_direction[1] * p_plus
     f3p = f1p * v2 + normal_direction[2] * p_plus
     f4p = f1p * H
 
-    return SVector(f1p, f2p, f3p, f4p)# * s_hat
-
-    # ## yet another form taken from Palmer (https://doi.org/10.2514/3.26178)
-    # s_hat = 1.0 # norm(normal_direction)
-    # normal_vector = normal_direction / s_hat
-    # v_n = normal_vector[1] * v1 + normal_vector[2] * v2
-    # # v_n = normal_direction[1] * v1 + normal_direction[2] * v2
-
-    # g = equations.gamma
-    # f1p = s_hat * 0.25 * rho * (v_n + a)^2 / a
-    # f2p = f1p * (v1 + normal_vector[1] / g * (2 * a - v_n))
-    # f3p = f1p * (v2 + normal_vector[2] / g * (2 * a - v_n))
-    # f4p = f1p * (0.5 * (v1^2 + v2^2) + (2 * a^2 + 2 * (g - 1) * v_n * a - (g - 1) * v_n^2)/(g^2 - 1))
-
-    # return SVector(f1p, f2p, f3p, f4p)
-
-    # ## this is actually Zha and Bilgen but just put it in here for now
-    # # s_hat = norm(normal_direction)
-    # # normal_vector = normal_direction / s_hat
-    # # v_n = normal_vector[1] * v1 + normal_vector[2] * v2
-    # v_n = normal_direction[1] * v1 + normal_direction[2] * v2
-
-    # p_plus = 0.5 * p * (1 + v_n / a)
-    # phi_plus = 0.5 * (v_n + a)
-
-    # f1p = max(v_n, zero(eltype(u))) * rho
-    # f2p = max(v_n, zero(eltype(u))) * rho_v1 + normal_direction[1] * p_plus
-    # f3p = max(v_n, zero(eltype(u))) * rho_v2 + normal_direction[2] * p_plus
-    # f4p = max(v_n, zero(eltype(u))) * rho_e + p * phi_plus
-
-    # return SVector(f1p, f2p, f3p, f4p)
-
-    # ## alternative scaling from the paper of Drikakis and Tsangris
-    # # s_hat = norm(normal_direction)
-    # # normal_vector = normal_direction / s_hat
-    # v_n = normal_direction[1] * v1 + normal_direction[2] * v2
-
-    # f1p = 0.25 * rho * a * (v_n / a + 1)^2
-    # f2p = f1p * (v1 - normal_direction[1] / equations.gamma * (v_n - 2 * a))
-    # f3p = f1p * (v2 - normal_direction[2] / equations.gamma * (v_n - 2 * a))
-    # f4p = f1p * H
-
-    # return SVector(f1p, f2p, f3p, f4p)# * s_hat
+    return SVector(f1p, f2p, f3p, f4p)
 end
 
 @inline function splitting_vanleer_haenel(u, ::Val{:minus},
@@ -1221,72 +1096,23 @@ end
     a = sqrt(equations.gamma * p / rho)
     H = (rho_e + p) / rho
 
-    ## equivalent to the rotate u, calc flux, and then backrotate strategy
-    # s_hat = norm(normal_direction)
-    # normal_vector = normal_direction / s_hat
-    # v_n = normal_vector[1] * v1 + normal_vector[2] * v2
     v_n = normal_direction[1] * v1 + normal_direction[2] * v2
-
     M = v_n / a
-    p_minus = 0.5 * (1 - equations.gamma * M) * p # HOPE style
-    # p_minus = 0.5 * (1 - M) * p # Liou-Steffan style
-    # p_minus = 0.25 * (M - 1)^2 * (2 + M) * p # van Leer style
+    p_minus = 0.5 * (1 - equations.gamma * M) * p
 
     f1m = -0.25 * rho * a * (M - 1)^2
     f2m = f1m * v1 + normal_direction[1] * p_minus
     f3m = f1m * v2 + normal_direction[2] * p_minus
     f4m = f1m * H
 
-    return SVector(f1m, f2m, f3m, f4m)# * s_hat
-
-    # ## yet another form taken from Palmer (https://doi.org/10.2514/3.26178)
-    # s_hat = 1.0 # norm(normal_direction)
-    # normal_vector = normal_direction / s_hat
-    # v_n = normal_vector[1] * v1 + normal_vector[2] * v2
-    # # v_n = normal_direction[1] * v1 + normal_direction[2] * v2
-
-    # g = equations.gamma
-    # f1m = -s_hat * 0.25 * rho * (v_n - a)^2 / a
-    # f2m = f1m * (v1 + normal_vector[1] / g * (-2 * a - v_n))
-    # f3m = f1m * (v2 + normal_vector[2] / g * (-2 * a - v_n))
-    # f4m = f1m * (0.5 * (v1^2 + v2^2) + (2 * a^2 - 2 * (g - 1) * v_n * a - (g - 1) * v_n^2)/(g^2 - 1))
-
-    # return SVector(f1m, f2m, f3m, f4m)
-
-    # ## this is actually Zha and Bilgen but just put it in here for now
-    # # s_hat = norm(normal_direction)
-    # # normal_vector = normal_direction / s_hat
-    # # v_n = normal_vector[1] * v1 + normal_vector[2] * v2
-    # v_n = normal_direction[1] * v1 + normal_direction[2] * v2
-
-    # p_minus = 0.5 * p * (1 - v_n / a)
-    # phi_minus = 0.5 * (v_n - a)
-
-    # f1m = min(v_n, zero(eltype(u))) * rho
-    # f2m = min(v_n, zero(eltype(u))) * rho_v1 + normal_direction[1] * p_minus
-    # f3m = min(v_n, zero(eltype(u))) * rho_v2 + normal_direction[2] * p_minus
-    # f4m = min(v_n, zero(eltype(u))) * rho_e + p * phi_minus
-
-    # return SVector(f1m, f2m, f3m, f4m)
-
-    # ## alternative scaling from the paper of Drikakis and Tsangris
-    # # s_hat = norm(normal_direction)
-    # # normal_vector = normal_direction / s_hat
-    # v_n = normal_direction[1] * v1 + normal_direction[2] * v2
-
-    # f1m = -0.25 * rho * a * (v_n / a - 1)^2
-    # f2m = f1m * (v1 - normal_direction[1] / equations.gamma * (v_n + 2 * a))
-    # f3m = f1m * (v2 - normal_direction[2] / equations.gamma * (v_n + 2 * a))
-    # f4m = f1m * H
-
-    # return SVector(f1m, f2m, f3m, f4m)# * s_hat
+    return SVector(f1m, f2m, f3m, f4m)
 end
 
 """
-    splitting_lax_friedrichs(u, orientation::Integer,
+    splitting_lax_friedrichs(u, orientation_or_normal_direction,
                              equations::CompressibleEulerEquations2D)
     splitting_lax_friedrichs(u, which::Union{Val{:minus}, Val{:plus}}
-                             orientation::Integer,
+                             orientation_or_normal_direction,
                              equations::CompressibleEulerEquations2D)
 
 Naive local Lax-Friedrichs style flux splitting of the form `f⁺ = 0.5 (f + λ u)`
