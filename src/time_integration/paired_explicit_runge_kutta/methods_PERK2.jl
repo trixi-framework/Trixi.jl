@@ -9,7 +9,7 @@ abstract type PERK end
 abstract type PERKSingle <: PERK end
 
 function compute_a_coeffs(num_stage_evals::Int,
-                        se_factors::Vector{Float64}, mon_coeffs::Vector{Float64})
+                          se_factors::Vector{Float64}, mon_coeffs::Vector{Float64})
     a_coeffs = mon_coeffs
 
     for stage in 1:(num_stage_evals - 2)
@@ -23,7 +23,7 @@ function compute_a_coeffs(num_stage_evals::Int,
 end
 
 function compute_PERK2_butcher_tableau(num_stages::Int, semi::AbstractSemidiscretization,
-                                     b_s::Float64, c_end::Float64)
+                                       b_s::Float64, c_end::Float64)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
@@ -51,7 +51,7 @@ function compute_PERK2_butcher_tableau(num_stages::Int, semi::AbstractSemidiscre
     num_eig_vals, eig_vals = filter_eigvals(eig_vals, filter_thres)
 
     mon_coeffs, p_worst_case, dt_opt = bisection(cons_order, num_eig_vals, num_stages, dtmax, dt_eps,
-                                             eig_vals)
+                                                 eig_vals)
     mon_coeffs = undo_normalization!(cons_order, num_stages, mon_coeffs)
 
     num_mon_coeffs = length(mon_coeffs)
@@ -76,7 +76,7 @@ function compute_PERK2_butcher_tableau(num_stages::Int, semi::AbstractSemidiscre
 end
 
 function compute_PERK2_butcher_tableau(num_stages::Int, base_path_mon_coeffs::AbstractString,
-                                     b_s::Float64, c_end::Float64)
+                                       b_s::Float64, c_end::Float64)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
@@ -142,8 +142,8 @@ mutable struct PERK2 <: PERKSingle
         newPERK2 = new(num_stages_)
 
         newPERK2.a_matrix, newPERK2.c = compute_PERK2_butcher_tableau(num_stages_,
-                                                                   base_path_mon_coeffs_, b_s_,
-                                                                   c_end_)
+                                                                      base_path_mon_coeffs_, b_s_,
+                                                                      c_end_)
 
         newPERK2.b1 = one(b_s_) - b_s_
         newPERK2.b_s = b_s_
@@ -156,8 +156,7 @@ mutable struct PERK2 <: PERKSingle
                    c_end_::Float64 = 0.5)
         newPERK2 = new(num_stages_)
 
-        newPERK2.a_matrix, newPERK2.c = compute_PERK2_butcher_tableau(num_stages_, semi_, b_s_,
-                                                                   c_end_)
+        newPERK2.a_matrix, newPERK2.c = compute_PERK2_butcher_tableau(num_stages_, semi_, b_s_, c_end_)
 
         newPERK2.b1 = one(b_s_) - b_s_
         newPERK2.b_s = b_s_
