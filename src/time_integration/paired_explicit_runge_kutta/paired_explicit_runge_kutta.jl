@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
+include("polynomial_optimizer.jl")
+
 include("methods_PERK2.jl")
 include("methods_PERK3.jl")
-include("polynomial_optimizer.jl")
 end # @muladd
