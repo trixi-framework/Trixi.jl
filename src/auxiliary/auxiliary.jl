@@ -346,17 +346,17 @@ function register_error_hints()
     return nothing
 end
 
-function read_file(FilePath::AbstractString, DataType::Type=Float64)
-    @assert isfile(FilePath) "Couldn't find file"
-    Data = zeros(DataType, 0)
-    open(FilePath, "r") do File
-      while !eof(File)     
-        LineContent = readline(File)     
-        append!(Data, parse(DataType, LineContent))
+function read_file(file_path::AbstractString, data_type::Type=Float64)
+    @assert isfile(file_path) "Couldn't find file"
+    data = zeros(data_type, 0)
+    open(file_path, "r") do file
+      while !eof(file)     
+        line_content = readline(file)     
+        append!(data, parse(data_type, line_content))
       end
     end
-    NumLines = length(Data)
+    num_lines = length(data)
   
-    return NumLines, Data
+    return num_lines, data
   end
 end # @muladd
