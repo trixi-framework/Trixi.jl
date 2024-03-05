@@ -3,6 +3,7 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
+#! format: noindent
 
 # Abstract base type for both single/standalone and multi-level P-ERK time integration schemes
 abstract type PERK end
@@ -22,7 +23,8 @@ function compute_a_coeffs(num_stage_evals, se_factors, mon_coeffs)
     return reverse(a_coeffs)
 end
 
-function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretization, bS, c_end)
+function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretization,
+                                       bS, c_end)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
@@ -50,7 +52,7 @@ function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretizat
     num_eig_vals, eig_vals = filter_eigvals(eig_vals, filter_thres)
 
     mon_coeffs, dt_opt = bisection(cons_order, num_eig_vals, num_stages, dtmax, dt_eps,
-                                                 eig_vals)
+                                   eig_vals)
     mon_coeffs = undo_normalization!(cons_order, num_stages, mon_coeffs)
 
     num_mon_coeffs = length(mon_coeffs)
@@ -67,7 +69,8 @@ function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretizat
     return a_matrix, c
 end
 
-function compute_PERK2_Butcher_tableau(num_stages, base_path_mon_coeffs::AbstractString, bS, c_end)
+function compute_PERK2_Butcher_tableau(num_stages, base_path_mon_coeffs::AbstractString,
+                                       bS, c_end)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
@@ -118,11 +121,12 @@ mutable struct PERK2 <: PERKSingle
     c_end::Float64
 
     #Constructor that read the coefficients from the file
-    function PERK2(num_stages, base_path_mon_coeffs::AbstractString, bS = 1.0, c_end = 0.5)
+    function PERK2(num_stages, base_path_mon_coeffs::AbstractString, bS = 1.0,
+                   c_end = 0.5)
         newPERK2 = new(num_stages)
 
         newPERK2.a_matrix, newPERK2.c = compute_PERK2_Butcher_tableau(num_stages,
-                                                                      base_path_mon_coeffs, 
+                                                                      base_path_mon_coeffs,
                                                                       bS, c_end)
 
         newPERK2.b1 = one(bS) - bS
@@ -135,7 +139,8 @@ mutable struct PERK2 <: PERKSingle
     function PERK2(num_stages, semi::AbstractSemidiscretization, bS = 1.0, c_end = 0.5)
         newPERK2 = new(num_stages)
 
-        newPERK2.a_matrix, newPERK2.c = compute_PERK2_Butcher_tableau(num_stages, semi, 
+        newPERK2.a_matrix, newPERK2.c = compute_PERK2_Butcher_tableau(num_stages,
+                                                                      semi,
                                                                       bS, c_end)
 
         newPERK2.b1 = one(bS) - bS
@@ -155,7 +160,8 @@ mutable struct PERKIntegratorOptions{Callback}
 end
 
 function PERKIntegratorOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
-    PERKIntegratorOptions{typeof(callback)}(callback, false, Inf, maxiters, [last(tspan)])
+    PERKIntegratorOptions{typeof(callback)}(callback, false, Inf, maxiters,
+                                            [last(tspan)])
 end
 
 abstract type PERKIntegrator end
@@ -166,7 +172,7 @@ abstract type PERKSingleIntegrator <: PERKIntegrator end
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
 mutable struct PERK2Integrator{RealT <: Real, uType, Params, Sol, F, Alg,
-                                PERKIntegratorOptions} <: PERKSingleIntegrator
+                               PERKIntegratorOptions} <: PERKSingleIntegrator
     u::uType
     du::uType
     u_tmp::uType
@@ -209,10 +215,10 @@ function solve(ode::ODEProblem, alg::PERK2;
     iter = 0
 
     integrator = PERK2Integrator(u0, du, u_tmp, t0, dt, zero(dt), iter, ode.p,
-                                  (prob = ode,), ode.f, alg,
-                                  PERKIntegratorOptions(callback, ode.tspan; kwargs...),
-                                  false,
-                                  k1, k_higher)
+                                 (prob = ode,), ode.f, alg,
+                                 PERKIntegratorOptions(callback, ode.tspan; kwargs...),
+                                 false,
+                                 k1, k_higher)
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -261,7 +267,8 @@ function solve!(integrator::PERK2Integrator)
                 integrator.u_tmp[i] = integrator.u[i] + alg.c[2] * integrator.k1[i]
             end
             # k2
-            integrator.f(integrator.du, integrator.u_tmp, prob.p, integrator.t + alg.c[2] * integrator.dt)
+            integrator.f(integrator.du, integrator.u_tmp, prob.p,
+                         integrator.t + alg.c[2] * integrator.dt)
 
             @threaded for i in eachindex(integrator.du)
                 integrator.k_higher[i] = integrator.du[i] * integrator.dt
@@ -272,11 +279,14 @@ function solve!(integrator::PERK2Integrator)
                 # Construct current state
                 @threaded for i in eachindex(integrator.du)
                     integrator.u_tmp[i] = integrator.u[i] +
-                                          alg.a_matrix[stage - 2, 1] * integrator.k1[i] +
-                                          alg.a_matrix[stage - 2, 2] * integrator.k_higher[i]
+                                          alg.a_matrix[stage - 2, 1] *
+                                          integrator.k1[i] +
+                                          alg.a_matrix[stage - 2, 2] *
+                                          integrator.k_higher[i]
                 end
 
-                integrator.f(integrator.du, integrator.u_tmp, prob.p, integrator.t + alg.c[stage] * integrator.dt)
+                integrator.f(integrator.du, integrator.u_tmp, prob.p,
+                             integrator.t + alg.c[stage] * integrator.dt)
 
                 @threaded for i in eachindex(integrator.du)
                     integrator.k_higher[i] = integrator.du[i] * integrator.dt
@@ -284,7 +294,8 @@ function solve!(integrator::PERK2Integrator)
             end
 
             @threaded for i in eachindex(integrator.u)
-                integrator.u[i] += alg.b1 * integrator.k1[i] + alg.bS * integrator.k_higher[i]
+                integrator.u[i] += alg.b1 * integrator.k1[i] +
+                                   alg.bS * integrator.k_higher[i]
             end
         end # PERK2 step
 
@@ -343,5 +354,4 @@ function Base.resize!(integrator::PERK2Integrator, new_size)
     resize!(integrator.k1, new_size)
     resize!(integrator.k_higher, new_size)
 end
-
 end # @muladd

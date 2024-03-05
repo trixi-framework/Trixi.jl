@@ -5,6 +5,7 @@
 using NLsolve: nlsolve
 
 @muladd begin
+#! format: noindent
 
 # Initialize Butcher array abscissae c for PERK3 based on SSPRK33 base method
 function c_PERK3_SSP33(num_stages, c_S2)
@@ -22,7 +23,8 @@ function c_PERK3_SSP33(num_stages, c_S2)
     return c
 end
 
-function PERK3_Butcher_tableau_objective(a_unknown, num_stages, num_stage_evals, mon_coeffs, c_S2)
+function PERK3_Butcher_tableau_objective(a_unknown, num_stages, num_stage_evals,
+                                         mon_coeffs, c_S2)
     c_ts = c_PERK3_SSP33(num_stages, c_S2) # ts = timestep
 
     c_eq = zeros(num_stage_evals - 2) # Add equality constraint that c_S2 is equal to 1
@@ -34,8 +36,8 @@ function PERK3_Butcher_tableau_objective(a_unknown, num_stages, num_stage_evals,
             term1 *= a_unknown[num_stage_evals - 1 - j]
             term2 *= a_unknown[num_stage_evals - j]
         end
-        term1 *= c_ts[num_stages - 2 - i] * 1/6
-        term2 *= c_ts[num_stages - 1 - i] * 4/6
+        term1 *= c_ts[num_stages - 2 - i] * 1 / 6
+        term2 *= c_ts[num_stages - 1 - i] * 4 / 6
 
         c_eq[i] = mon_coeffs[i] - (term1 + term2)
     end
@@ -49,13 +51,14 @@ function PERK3_Butcher_tableau_objective(a_unknown, num_stages, num_stage_evals,
     term2 *= c_ts[num_stages - 1 - i] * 4 / 6
 
     c_eq[i] = mon_coeffs[i] - term2
-
-    c_eq[num_stage_evals - 2] = 1.0 - 4 * a_unknown[num_stage_evals] - a_unknown[num_stage_evals - 1]
+    c_eq[num_stage_evals - 2] = 1.0 - 4 * a_unknown[num_stage_evals] -
+                                a_unknown[num_stage_evals - 1]
 
     return c_eq
 end
 
-function compute_PERK3_Butcher_tableau(num_stages, semi::AbstractSemidiscretization, c_S2)
+function compute_PERK3_Butcher_tableau(num_stages, semi::AbstractSemidiscretization,
+                                       c_S2)
 
     # Initialize array of c
     c = c_PERK3_SSP33(num_stages, c_S2)
@@ -79,12 +82,14 @@ function compute_PERK3_Butcher_tableau(num_stages, semi::AbstractSemidiscretizat
         eig_vals = eigvals(J)
         num_eig_vals, eig_vals = filter_eigvals(eig_vals, filter_threshold)
 
-        mon_coeffs, dt_opt = bisection(cons_order, num_eig_vals, num_stages, dtmax, dt_eps, eig_vals)
+        mon_coeffs, dt_opt = bisection(cons_order, num_eig_vals, num_stages, dtmax,
+                                       dt_eps, eig_vals)
         mon_coeffs = undo_normalization!(cons_order, num_stages, mon_coeffs)
 
         # Define the objective_function
         function objective_function(x)
-            return PERK3_Butcher_tableau_objective(x, num_stages, num_stages, mon_coeffs, c_S2)
+            return PERK3_Butcher_tableau_objective(x, num_stages, num_stages,
+                                                   mon_coeffs, c_S2)
         end
 
         # Call nlsolver to solve repeatedly until the result is not NaN or negative values
@@ -117,7 +122,8 @@ function compute_PERK3_Butcher_tableau(num_stages, semi::AbstractSemidiscretizat
     return a_matrix, c
 end
 
-function compute_PERK3_Butcher_tableau(num_stages, base_path_mon_coeffs::AbstractString, c_S2)
+function compute_PERK3_Butcher_tableau(num_stages, base_path_mon_coeffs::AbstractString,
+                                       c_S2)
 
     # Initialize array of c
     c = c_PERK3_SSP33(num_stages, c_S2)
@@ -132,7 +138,8 @@ function compute_PERK3_Butcher_tableau(num_stages, base_path_mon_coeffs::Abstrac
     a_matrix = zeros(coeffs_max, 2)
     a_matrix[:, 1] = c[3:end]
 
-    path_mon_coeffs = base_path_mon_coeffs * "a_" * string(num_stages) * "_" * string(num_stages) * ".txt"
+    path_mon_coeffs = base_path_mon_coeffs * "a_" * string(num_stages) * "_" *
+                      string(num_stages) * ".txt"
     num_mon_coeffs, A = read_file(path_mon_coeffs, Float64)
     @assert num_mon_coeffs == coeffs_max
 
@@ -161,7 +168,8 @@ mutable struct PERK3 <: PERKSingle
     c::Vector{Float64}
 
     # Constructor for previously computed A Coeffs
-    function PERK3(num_stages, base_path_mon_coeffs::AbstractString, c_S2::Float64 = 1.0)
+    function PERK3(num_stages, base_path_mon_coeffs::AbstractString,
+                   c_S2 = 1.0)
         newPERK3 = new(num_stages)
 
         newPERK3.a_matrix, newPERK3.c = compute_PERK3_Butcher_tableau(num_stages,
@@ -172,11 +180,12 @@ mutable struct PERK3 <: PERKSingle
     end
 
     # Constructor that computes Butcher matrix A coefficients from a semidiscretization
-    function PERK3(num_stages, semi::AbstractSemidiscretization, c_S2::Float64 = 1.0)
+    function PERK3(num_stages, semi::AbstractSemidiscretization,
+                   c_S2 = 1.0)
         newPERK3 = new(num_stages)
 
         newPERK3.a_matrix, newPERK3.c = compute_PERK3_Butcher_tableau(num_stages,
-                                                                      semi, 
+                                                                      semi,
                                                                       c_S2)
 
         display(newPERK3.a_matrix)
@@ -279,7 +288,8 @@ function solve!(integrator::PERK3Integrator)
                 integrator.u_tmp[i] = integrator.u[i] + alg.c[2] * integrator.k1[i]
             end
             # k2
-            integrator.f(integrator.du, integrator.u_tmp, prob.p, integrator.t + alg.c[2] * integrator.dt)
+            integrator.f(integrator.du, integrator.u_tmp, prob.p,
+                         integrator.t + alg.c[2] * integrator.dt)
 
             @threaded for i in eachindex(integrator.du)
                 integrator.k_higher[i] = integrator.du[i] * integrator.dt
@@ -292,15 +302,18 @@ function solve!(integrator::PERK3Integrator)
             end
 
             # Higher stages
-            for stage in 3:alg.num_stages
+            for stage in 3:(alg.num_stages)
                 # Construct current state
                 @threaded for i in eachindex(integrator.du)
                     integrator.u_tmp[i] = integrator.u[i] +
-                                          alg.a_matrix[stage - 2, 1] * integrator.k1[i] +
-                                          alg.a_matrix[stage - 2, 2] * integrator.k_higher[i]
+                                          alg.a_matrix[stage - 2, 1] *
+                                          integrator.k1[i] +
+                                          alg.a_matrix[stage - 2, 2] *
+                                          integrator.k_higher[i]
                 end
 
-                integrator.f(integrator.du, integrator.u_tmp, prob.p, integrator.t + alg.c[stage] * integrator.dt)
+                integrator.f(integrator.du, integrator.u_tmp, prob.p,
+                             integrator.t + alg.c[stage] * integrator.dt)
 
                 @threaded for i in eachindex(integrator.du)
                     integrator.k_higher[i] = integrator.du[i] * integrator.dt
@@ -316,7 +329,8 @@ function solve!(integrator::PERK3Integrator)
 
             @threaded for i in eachindex(integrator.u)
                 # "Own" PERK based on SSPRK33
-                integrator.u[i] += (integrator.k1[i] + integrator.k_s1[i] + 4.0 * integrator.k_higher[i]) / 6.0
+                integrator.u[i] += (integrator.k1[i] + integrator.k_s1[i] +
+                                    4.0 * integrator.k_higher[i]) / 6.0
             end
         end # PERK step timer
 
@@ -354,5 +368,4 @@ function Base.resize!(integrator::PERK3Integrator, new_size)
     resize!(integrator.k_higher, new_size)
     resize!(integrator.k_s1, new_size)
 end
-
 end # @muladd

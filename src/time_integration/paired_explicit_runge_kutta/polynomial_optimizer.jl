@@ -3,6 +3,27 @@ using ECOS
 using Convex
 const MOI = Convex.MOI
 
+function read_in_eig_vals(path_to_eval_file)
+    # Declare and set to some value
+    num_eig_vals = -1
+    open(path_to_eval_file, "r") do eval_file
+        num_eig_vals = countlines(eval_file)
+    end
+    eig_vals = Array{Complex{Float64}}(undef, num_eig_vals)
+    line_index = 0
+    open(path_to_eval_file, "r") do eval_file
+        # Read till end of file
+        while !eof(eval_file)
+            # Read a new / next line for every iteration          
+            line_content = readline(eval_file)
+            eig_vals[line_index + 1] = parse(Complex{Float64}, line_content)
+            line_index += 1
+        end
+    end
+
+    return num_eig_vals, eig_vals
+end
+
 function filter_eigvals(eig_vals, threshold)
     filtered_eigvals_counter = 0
     filtered_eig_vals = Complex{Float64}[]
@@ -18,35 +39,6 @@ function filter_eigvals(eig_vals, threshold)
     println("$filtered_eigvals_counter eigenvalue(s) are not passed on because they are in magnitude smaller than $threshold \n")
 
     return length(filtered_eig_vals), filtered_eig_vals
-end
-
-function read_in_eig_vals(path_to_eval_file)
-
-    # Declare and set to some value
-    num_eig_vals = -1
-
-    open(path_to_eval_file, "r") do eval_file
-        num_eig_vals = countlines(eval_file)
-    end
-
-    eig_vals = Array{Complex{Float64}}(undef, num_eig_vals)
-
-    line_index = 0
-
-    open(path_to_eval_file, "r") do eval_file
-        # Read till end of file
-        while !eof(eval_file)
-
-            # Read a new / next line for every iteration          
-            line_content = readline(eval_file)
-
-            eig_vals[line_index + 1] = parse(Complex{Float64}, line_content)
-
-            line_index += 1
-        end
-    end
-
-    return num_eig_vals, eig_vals
 end
 
 function polynoms(cons_order, num_stage_evals, num_eig_vals,
