@@ -1,9 +1,9 @@
-using LinearAlgebra
-using Convex
+using LinearAlgebra: eigvals
 using ECOS
+using Convex
 const MOI = Convex.MOI
 
-function filter_eigvals(eig_vals::Array{Complex{Float64}}, threshold:: Float64)
+function filter_eigvals(eig_vals, threshold)
 
     filtered_eigvals_counter = 0
     filtered_eig_vals = Complex{Float64}[]
@@ -16,12 +16,12 @@ function filter_eigvals(eig_vals::Array{Complex{Float64}}, threshold:: Float64)
         end
     end
 
-    println("Total number of $filtered_eigvals_counter eigenvalues has not been recorded because they were smaller than $threshold")
+    println("$filtered_eigvals_counter eigenvalue(s) are not passed on because they are in magnitude smaller than $threshold \n")
 
     return length(filtered_eig_vals), filtered_eig_vals
 end
 
-function read_in_eig_vals(path_to_eval_file::AbstractString)
+function read_in_eig_vals(path_to_eval_file)
 
     # Declare and set to some value
     num_eig_vals = -1
@@ -50,7 +50,7 @@ function read_in_eig_vals(path_to_eval_file::AbstractString)
     return num_eig_vals, eig_vals
 end
 
-function polynoms(cons_order::Int, num_stage_evals::Int, num_eig_vals::Int, normalized_powered_eigvals_scaled::Array{Complex{Float64}}, pnoms::Array{Complex{Float64}}, gamma::Variable)
+function polynoms(cons_order, num_stage_evals, num_eig_vals, normalized_powered_eigvals_scaled, pnoms, gamma::Variable)
     for i in 1:num_eig_vals
         pnoms[i] = 1.0
     end
@@ -69,12 +69,9 @@ function polynoms(cons_order::Int, num_stage_evals::Int, num_eig_vals::Int, norm
 end
 
 
-function bisection(cons_order::Int, num_eig_vals::Int, num_stage_evals::Int, dt_max::Float64, dt_eps::Float64, eig_vals::Array{Complex{Float64}})
-
+function bisection(cons_order, num_eig_vals, num_stage_evals, dt_max, dt_eps, eig_vals)
     dt_min = 0.0
-
     dt    = -1.0
-
     abs_p  = -1.0
 
     pnoms = ones(Complex{Float64}, num_eig_vals, 1)
@@ -92,6 +89,8 @@ function bisection(cons_order::Int, num_eig_vals::Int, num_stage_evals::Int, dt_
     end
 
     normalized_powered_eigvals_scaled = zeros(Complex{Float64}, num_eig_vals, num_stage_evals)
+
+    println("Start optimization of stability polynomial \n")
 
     while dt_max - dt_min > dt_eps
         dt = 0.5 * (dt_max  + dt_min)
@@ -120,12 +119,12 @@ function bisection(cons_order::Int, num_eig_vals::Int, num_stage_evals::Int, dt_
                                                     "reltol_inacc" => 5e-5,
                                                     "nitref" => 9,
                                                     "maxit" => 100,
-                                                    "verbose" => 3); silent_solver = false
+                                                    "verbose" => 3); silent_solver = true
         )
 
         abs_p = problem.optval
 
-        println("Current MaxAbsP: ", abs_p, "\nCurrent dt: ", dt, "\n")
+        println("MaxAbsP: ", abs_p, "\ndt: ", dt, "\n")
 
         if abs_p < 1.0
             dt_min = dt
@@ -134,10 +133,12 @@ function bisection(cons_order::Int, num_eig_vals::Int, num_stage_evals::Int, dt_
         end
     end
 
-  return evaluate(gamma), abs_p, dt
+    println("Concluded stability polynomial optimization \n")
+
+  return evaluate(gamma), dt
 end
 
-function undo_normalization!(cons_order::Int, num_stage_evals::Int, gamma_opt)
+function undo_normalization!(cons_order, num_stage_evals, gamma_opt)
     for k in cons_order + 1:num_stage_evals
         gamma_opt[k - cons_order] = gamma_opt[k - cons_order] / factorial(k)
     end

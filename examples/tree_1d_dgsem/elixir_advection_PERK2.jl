@@ -1,7 +1,6 @@
 
 using OrdinaryDiffEq
 using Trixi
-using Downloads: download
 
 ###############################################################################
 # semidiscretization of the linear advection equation
@@ -38,7 +37,7 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval = 100)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl = 2.5)
+stepsize_callback = StepsizeCallback(cfl = 2.5/4)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback,
@@ -47,22 +46,11 @@ callbacks = CallbackSet(summary_callback, analysis_callback,
 ###############################################################################
 # run the simulation
 
-MonCoeffsFile = "gamma_6.txt"
-
-download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
-MonCoeffsFile)
-
-#ode_algorithm = PERK2(6, "./")
-
 ode_algorithm = PERK2(6, semi)
 
-# OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = Trixi.solve(ode, ode_algorithm,
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep = false, callback = callbacks);
 
 # Print the timer summary
 summary_callback()
-
-using Plots
-plot(sol)
