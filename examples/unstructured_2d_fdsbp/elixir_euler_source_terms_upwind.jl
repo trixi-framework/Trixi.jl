@@ -13,10 +13,10 @@ source_term = source_terms_convergence_test
 
 boundary_condition_eoc = BoundaryConditionDirichlet(initial_condition)
 
-boundary_conditions = Dict( :Top    => boundary_condition_eoc,
-                            :Bottom => boundary_condition_eoc,
-                            :Right  => boundary_condition_eoc,
-                            :Left   => boundary_condition_eoc )
+boundary_conditions = Dict(:Top => boundary_condition_eoc,
+                           :Bottom => boundary_condition_eoc,
+                           :Right => boundary_condition_eoc,
+                           :Left => boundary_condition_eoc)
 
 ###############################################################################
 # Get the Upwind FDSBP approximation space
@@ -25,10 +25,10 @@ boundary_conditions = Dict( :Top    => boundary_condition_eoc,
 # of interpolation routines from `calc_node_coordinates!` to create
 # the physical coordinates in the mappings.
 D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
-                         derivative_order=1,
-                         accuracy_order=4,
-                         xmin=-1.0, xmax=1.0,
-                         N=9)
+                         derivative_order = 1,
+                         accuracy_order = 4,
+                         xmin = -1.0, xmax = 1.0,
+                         N = 9)
 
 flux_splitting = splitting_steger_warming
 solver = FDSBP(D_upw,
@@ -77,7 +77,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(), abstol=1.0e-6, reltol=1.0e-6,
+sol = solve(ode, SSPRK43(), abstol = 1.0e-6, reltol = 1.0e-6,
             save_everystep = false, callback = callbacks)
 
 summary_callback() # print the timer summary

@@ -714,8 +714,10 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()
 """
 @inline function splitting_steger_warming(u, orientation_or_normal_direction,
                                           equations::CompressibleEulerEquations2D)
-    fm = splitting_steger_warming(u, Val{:minus}(), orientation_or_normal_direction, equations)
-    fp = splitting_steger_warming(u, Val{:plus}(), orientation_or_normal_direction, equations)
+    fm = splitting_steger_warming(u, Val{:minus}(), orientation_or_normal_direction,
+                                  equations)
+    fp = splitting_steger_warming(u, Val{:plus}(), orientation_or_normal_direction,
+                                  equations)
     return fm, fp
 end
 
@@ -997,8 +999,10 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()
 """
 @inline function splitting_vanleer_haenel(u, orientation_or_normal_direction,
                                           equations::CompressibleEulerEquations2D)
-    fm = splitting_vanleer_haenel(u, Val{:minus}(), orientation_or_normal_direction, equations)
-    fp = splitting_vanleer_haenel(u, Val{:plus}(), orientation_or_normal_direction, equations)
+    fm = splitting_vanleer_haenel(u, Val{:minus}(), orientation_or_normal_direction,
+                                  equations)
+    fp = splitting_vanleer_haenel(u, Val{:plus}(), orientation_or_normal_direction,
+                                  equations)
     return fm, fp
 end
 
@@ -1129,8 +1133,10 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()
 """
 @inline function splitting_lax_friedrichs(u, orientation_or_normal_direction,
                                           equations::CompressibleEulerEquations2D)
-    fm = splitting_lax_friedrichs(u, Val{:minus}(), orientation_or_normal_direction, equations)
-    fp = splitting_lax_friedrichs(u, Val{:plus}(), orientation_or_normal_direction, equations)
+    fm = splitting_lax_friedrichs(u, Val{:minus}(), orientation_or_normal_direction,
+                                  equations)
+    fp = splitting_lax_friedrichs(u, Val{:plus}(), orientation_or_normal_direction,
+                                  equations)
     return fm, fp
 end
 
@@ -1188,7 +1194,8 @@ end
     return SVector(f1m, f2m, f3m, f4m)
 end
 
-@inline function splitting_lax_friedrichs(u, ::Val{:plus}, normal_direction::AbstractVector,
+@inline function splitting_lax_friedrichs(u, ::Val{:plus},
+                                          normal_direction::AbstractVector,
                                           equations::CompressibleEulerEquations2D)
     rho_e = last(u)
     rho, v1, v2, p = cons2prim(u, equations)
@@ -1208,7 +1215,8 @@ end
     return SVector(f1p, f2p, f3p, f4p)
 end
 
-@inline function splitting_lax_friedrichs(u, ::Val{:minus}, normal_direction::AbstractVector,
+@inline function splitting_lax_friedrichs(u, ::Val{:minus},
+                                          normal_direction::AbstractVector,
                                           equations::CompressibleEulerEquations2D)
     rho_e = last(u)
     rho, v1, v2, p = cons2prim(u, equations)

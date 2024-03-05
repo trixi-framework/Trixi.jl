@@ -24,10 +24,10 @@ boundary_conditions = Dict(:outerCircle => boundary_condition_free_stream,
 # of interpolation routines from `calc_node_coordinates!` to create
 # the physical coordinates in the mappings.
 D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
-                         derivative_order=1,
-                         accuracy_order=8,
-                         xmin=-1.0, xmax=1.0,
-                         N=17)
+                         derivative_order = 1,
+                         accuracy_order = 8,
+                         xmin = -1.0, xmax = 1.0,
+                         N = 17)
 
 flux_splitting = splitting_vanleer_haenel
 solver = FDSBP(D_upw,
