@@ -416,13 +416,9 @@ end
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
-    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], 0.1, "cache")
+    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1, "cache", 1,
+                                    (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
-
-    # TODO: TrixiShallowWater: move unit test
-    indicator_hg_swe = IndicatorHennemannGassnerShallowWater(1.0, 0.0, true, "variable",
-                                                             "cache")
-    @test_nowarn show(stdout, indicator_hg_swe)
 
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_loehner)
@@ -542,7 +538,7 @@ end
 end
 
 @timed_testset "Shallow water conversion between conservative/entropy variables" begin
-    H, v1, v2, b = 3.5, 0.25, 0.1, 0.4
+    H, v1, v2, b, a = 3.5, 0.25, 0.1, 0.4, 0.3
 
     let equations = ShallowWaterEquations1D(gravity_constant = 9.8)
         cons_vars = prim2cons(SVector(H, v1, b), equations)
@@ -570,6 +566,14 @@ end
         cons_vars = prim2cons((H, v1, v2, b), equations)
         entropy_vars = cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
+
+    let equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.8)
+        cons_vars = prim2cons(SVector(H, v1, b, a), equations)
+        entropy_vars = cons2entropy(cons_vars, equations)
+
+        total_energy = energy_total(cons_vars, equations)
+        @test entropy(cons_vars, equations) ≈ a * total_energy
     end
 end
 
@@ -696,6 +700,14 @@ end
     u = SVector(1, 0.5, 0.0)
     @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
 
+    u_ll = SVector(0.1, 1.0, 0.0)
+    u_rr = SVector(0.1, 1.0, 0.0)
+    @test flux_hll(u_ll, u_rr, 1, equations) ≈ flux(u_ll, 1, equations)
+
+    u_ll = SVector(0.1, -1.0, 0.0)
+    u_rr = SVector(0.1, -1.0, 0.0)
+    @test flux_hll(u_ll, u_rr, 1, equations) ≈ flux(u_rr, 1, equations)
+
     equations = ShallowWaterEquations2D(gravity_constant = 9.81)
     normal_directions = [SVector(1.0, 0.0),
         SVector(0.0, 1.0),
@@ -706,6 +718,17 @@ end
         @test flux_hll(u, u, normal_direction, equations) ≈
               flux(u, normal_direction, equations)
     end
+
+    normal_direction = SVector(1.0, 0.0, 0.0)
+    u_ll = SVector(0.1, 1.0, 1.0, 0.0)
+    u_rr = SVector(0.1, 1.0, 1.0, 0.0)
+    @test flux_hll(u_ll, u_rr, normal_direction, equations) ≈
+          flux(u_ll, normal_direction, equations)
+
+    u_ll = SVector(0.1, -1.0, -1.0, 0.0)
+    u_rr = SVector(0.1, -1.0, -1.0, 0.0)
+    @test flux_hll(u_ll, u_rr, normal_direction, equations) ≈
+          flux(u_rr, normal_direction, equations)
 end
 
 @timed_testset "Consistency check for HLL flux (naive): MHD" begin
@@ -852,6 +875,30 @@ end
 
         for normal_direction in normal_directions
             @test flux_winters_etal(u, u, normal_direction, equations) ≈
+                  flux(u, normal_direction, equations)
+        end
+    end
+end
+
+@timed_testset "Consistency check for Lax-Friedrich flux: Polytropic CEE" begin
+    for gamma in [1.4, 1.0, 5 / 3]
+        kappa = 0.5     # Scaling factor for the pressure.
+        equations = PolytropicEulerEquations2D(gamma, kappa)
+        u = SVector(1.1, -0.5, 2.34)
+
+        orientations = [1, 2]
+        for orientation in orientations
+            @test flux_lax_friedrichs(u, u, orientation, equations) ≈
+                  flux(u, orientation, equations)
+        end
+
+        normal_directions = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+
+        for normal_direction in normal_directions
+            @test flux_lax_friedrichs(u, u, normal_direction, equations) ≈
                   flux(u, normal_direction, equations)
         end
     end
@@ -1220,6 +1267,26 @@ end
     end
 end
 
+@testset "Consistency check for `gradient_conservative` routine" begin
+    # Set up conservative variables, equations
+    u = [
+        0.5011914484393387,
+        0.8829127712445113,
+        0.43024132987932817,
+        0.7560616633050348,
+    ]
+
+    equations = CompressibleEulerEquations2D(1.4)
+
+    # Define wrapper function for pressure in order to call default implementation
+    function pressure_test(u, equations)
+        return pressure(u, equations)
+    end
+
+    @test Trixi.gradient_conservative(pressure_test, u, equations) ≈
+          Trixi.gradient_conservative(pressure, u, equations)
+end
+
 @testset "Equivalent Fluxes" begin
     # Set up equations and dummy conservative variables state
     # Burgers' Equation
@@ -1507,103 +1574,6 @@ end
     mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = false)
 
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
-end
-
-@testset "trixi_include" begin
-    @trixi_testset "Basic" begin
-        example = """
-            x = 4
-            """
-
-        filename = tempname()
-        try
-            open(filename, "w") do file
-                write(file, example)
-            end
-
-            # Use `@trixi_testset`, which wraps code in a temporary module, and call
-            # `trixi_include` with `@__MODULE__` in order to isolate this test.
-            @test_warn "You just called" trixi_include(@__MODULE__, filename)
-            @test @isdefined x
-            @test x == 4
-
-            @test_warn "You just called" trixi_include(@__MODULE__, filename, x = 7)
-            @test x == 7
-
-            @test_throws "assignment `y` not found in expression" trixi_include(@__MODULE__,
-                                                                                filename,
-                                                                                y = 3)
-        finally
-            rm(filename, force = true)
-        end
-    end
-
-    @trixi_testset "With `solve` Without `maxiters`" begin
-        # `trixi_include` assumes this to be the `solve` function of OrdinaryDiffEq,
-        # and therefore tries to insert the kwarg `maxiters`, which will fail here.
-        example = """
-            solve() = 0
-            x = solve()
-            """
-
-        filename = tempname()
-        try
-            open(filename, "w") do file
-                write(file, example)
-            end
-
-            # Use `@trixi_testset`, which wraps code in a temporary module, and call
-            # `trixi_include` with `@__MODULE__` in order to isolate this test.
-            @test_throws "no method matching solve(; maxiters::Int64)" trixi_include(@__MODULE__,
-                                                                                     filename)
-
-            @test_throws "no method matching solve(; maxiters::Int64)" trixi_include(@__MODULE__,
-                                                                                     filename,
-                                                                                     maxiters = 3)
-        finally
-            rm(filename, force = true)
-        end
-    end
-
-    @trixi_testset "With `solve` with `maxiters`" begin
-        # We need another example file that we include with `Base.include` first, in order to
-        # define the `solve` method without `trixi_include` trying to insert `maxiters` kwargs.
-        # Then, we can test that `trixi_include` inserts the kwarg in the `solve()` call.
-        example1 = """
-            solve(; maxiters=0) = maxiters
-            """
-
-        example2 = """
-            x = solve()
-            """
-
-        filename1 = tempname()
-        filename2 = tempname()
-        try
-            open(filename1, "w") do file
-                write(file, example1)
-            end
-            open(filename2, "w") do file
-                write(file, example2)
-            end
-
-            # Use `@trixi_testset`, which wraps code in a temporary module, and call
-            # `Base.include` and `trixi_include` with `@__MODULE__` in order to isolate this test.
-            Base.include(@__MODULE__, filename1)
-            @test_warn "You just called" trixi_include(@__MODULE__, filename2)
-            @test @isdefined x
-            # This is the default `maxiters` inserted by `trixi_include`
-            @test x == 10^5
-
-            @test_warn "You just called" trixi_include(@__MODULE__, filename2,
-                                                       maxiters = 7)
-            # Test that `maxiters` got overwritten
-            @test x == 7
-        finally
-            rm(filename1, force = true)
-            rm(filename2, force = true)
-        end
-    end
 end
 end
 

@@ -17,6 +17,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 @trixi_testset "elixir_euler_weakform.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         cells_per_dimension=(4, 4),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         # division by 2.0 corresponds to normalization by the square root of the size of the domain
                         l2=[
                             0.0013536930300254945,
@@ -44,6 +45,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         cells_per_dimension=(4, 4),
                         approximation_type=SBP(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         # division by 2.0 corresponds to normalization by the square root of the size of the domain
                         l2=[
                             0.0074706882014934735,
@@ -71,6 +73,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         cells_per_dimension=(4, 4),
                         element_type=Quad(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         # division by 2.0 corresponds to normalization by the square root of the size of the domain
                         l2=[
                             0.00031892254415307093,
@@ -184,16 +187,12 @@ end
 @trixi_testset "elixir_euler_bilinear.jl (Bilinear quadrilateral elements, SBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_bilinear.jl"),
                         l2=[
-                            1.0259435706215337e-5,
-                            9.014090233720625e-6,
-                            9.014090233223014e-6,
-                            2.738953587401793e-5,
+                            1.0259432774540821e-5, 9.014087689495575e-6,
+                            9.01408768888544e-6, 2.738953324859446e-5,
                         ],
                         linf=[
-                            7.362609083649829e-5,
-                            6.874188055272512e-5,
-                            6.874188052830021e-5,
-                            0.0001912435192696904,
+                            7.362605996297233e-5, 6.874189724781488e-5,
+                            6.874189703509614e-5, 0.00019124355334110277,
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -208,16 +207,12 @@ end
 @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         l2=[
-                            1.720476068165337e-5,
-                            1.592168205710526e-5,
-                            1.592168205812963e-5,
-                            4.894094865697305e-5,
+                            1.7204593127904542e-5, 1.5921547179522804e-5,
+                            1.5921547180107928e-5, 4.894071422525737e-5,
                         ],
                         linf=[
-                            0.00010525416930584619,
-                            0.00010003778091061122,
-                            0.00010003778085621029,
-                            0.00036426282101720275,
+                            0.00010525416937667842, 0.00010003778102718464,
+                            0.00010003778071832059, 0.0003642628211952825,
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -232,6 +227,7 @@ end
 @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, GaussSBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         approximation_type=GaussSBP(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         l2=[
                             3.4666312079259457e-6,
                             3.4392774480368986e-6,
@@ -259,6 +255,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         element_type=Tri(), approximation_type=Polynomial(),
                         volume_integral=VolumeIntegralWeakForm(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         l2=[
                             7.905498158659466e-6,
                             8.731690809663625e-6,
@@ -330,16 +327,12 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                         # division by 2.0 corresponds to normalization by the square root of the size of the domain
                         l2=[
-                            0.0014986508075708323,
-                            0.001528523420746786,
-                            0.0015285234207473158,
-                            0.004846505183839211,
-                        ] ./ 2.0,
+                            0.0007492755162295128, 0.0007641875305302599,
+                            0.0007641875305306243, 0.0024232389721009447,
+                        ],
                         linf=[
-                            0.0015062108658376872,
-                            0.0019373508504645365,
-                            0.0019373508504538783,
-                            0.004742686826709086,
+                            0.0015060064614331736, 0.0019371156800773726,
+                            0.0019371156800769285, 0.004742431684202408,
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -354,16 +347,12 @@ end
 @trixi_testset "elixir_euler_triangulate_pkg_mesh.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_pkg_mesh.jl"),
                         l2=[
-                            2.344080455438114e-6,
-                            1.8610038753097983e-6,
-                            2.4095165666095305e-6,
-                            6.373308158814308e-6,
+                            2.344076909832665e-6, 1.8610002398709756e-6,
+                            2.4095132179484066e-6, 6.37330249340445e-6,
                         ],
                         linf=[
-                            2.5099852761334418e-5,
-                            2.2683684021362893e-5,
-                            2.6180448559287584e-5,
-                            5.5752932611508044e-5,
+                            2.509979394305084e-5, 2.2683711321080935e-5,
+                            2.6180377720841363e-5, 5.575278031910713e-5,
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -435,16 +424,12 @@ end
                                  "elixir_euler_rayleigh_taylor_instability.jl"),
                         cells_per_dimension=(8, 8), tspan=(0.0, 0.2),
                         l2=[
-                            0.0709665896982514,
-                            0.005182828752164663,
-                            0.013832655585206478,
-                            0.03247013800580221,
+                            0.07097806723891838, 0.005168550941966817,
+                            0.013820912272220933, 0.03243357220022434,
                         ],
                         linf=[
-                            0.4783963902824797,
-                            0.022527207050681054,
-                            0.040307056293369226,
-                            0.0852365428206836,
+                            0.4783395896753895, 0.02244629340135818,
+                            0.04023357731088538, 0.08515807256615027,
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -604,16 +589,12 @@ end
 @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         l2=[
-                            1.3333320340010056e-6,
-                            2.044834627970641e-6,
-                            2.044834627855601e-6,
-                            5.282189803559564e-6,
+                            1.333332033888785e-6, 2.044834627786368e-6,
+                            2.0448346278315884e-6, 5.282189803437435e-6,
                         ],
                         linf=[
-                            2.7000151718858945e-6,
-                            3.988595028259212e-6,
-                            3.9885950273710336e-6,
-                            8.848583042286862e-6,
+                            2.7000151703315822e-6, 3.988595025372632e-6,
+                            3.9885950240403645e-6, 8.848583036513702e-6,
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -628,6 +609,7 @@ end
 @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference domain)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         xmin=-200.0, xmax=100.0, #= parameters for reference interval =#
+                        surface_flux=FluxHLL(min_max_speed_naive),
                         l2=[
                             1.333332034149886e-6,
                             2.0448346280892024e-6,
@@ -659,6 +641,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         approximation_type=D,
                         coordinates_min=(-3.0, -4.0), coordinates_max=(0.0, -1.0),
+                        surface_flux=FluxHLL(min_max_speed_naive),
                         l2=[
                             0.07318831033918516,
                             0.10039910610067465,
@@ -691,6 +674,7 @@ end
     global D = SummationByPartsOperators.couple_continuously(D_local, mesh_local)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         approximation_type=D,
+                        surface_flux=FluxHLL(min_max_speed_naive),
                         l2=[
                             1.5440402410017893e-5,
                             1.4913189903083485e-5,
