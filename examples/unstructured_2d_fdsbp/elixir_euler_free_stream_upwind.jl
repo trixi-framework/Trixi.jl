@@ -1,3 +1,5 @@
+# !!! warning "Experimental implementation (upwind SBP)"
+#     This is an experimental feature and may change in future releases.
 
 using OrdinaryDiffEq
 using Trixi
@@ -20,6 +22,7 @@ boundary_conditions = Dict(:outerCircle => boundary_condition_free_stream,
 ###############################################################################
 # Get the Upwind FDSBP approximation space
 
+# TODO: FDSBP
 # Note, one must set `xmin=-1` and `xmax=1` due to the reuse
 # of interpolation routines from `calc_node_coordinates!` to create
 # the physical coordinates in the mappings.
@@ -37,8 +40,9 @@ solver = FDSBP(D_upw,
 ###############################################################################
 # Get the curved quad mesh from a file (downloads the file if not available locally)
 
-# Mesh with second order boundary polynomials requires an upwind SBP operator
-# with (at least) 4th order boundary closure to guarantee the approximation is free-stream
+# Mesh with second-order boundary polynomials requires an upwind SBP operator
+# with (at least) 4th order boundary closure to guarantee the approximation is
+# free-stream preserving
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/ec9a345f09199ebe471d35d5c1e4e08f/raw/15975943d8642e42f8292235314b6f1b30aa860d/mesh_inner_outer_boundaries.mesh",
                            joinpath(@__DIR__, "mesh_inner_outer_boundaries.mesh"))
 

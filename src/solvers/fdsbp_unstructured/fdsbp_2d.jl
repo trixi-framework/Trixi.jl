@@ -125,16 +125,19 @@ function calc_volume_integral!(du, u,
     # the fluxes line-by-line and add them to `du` for each element.
     @threaded for element in eachelement(dg, cache)
         # f_minus_plus_element wraps the storage provided by f_minus_element and
-        # f_plus_element such that we can use a single plain broadcasting below.
-        # f_minus_element and f_plus_element are updated in broadcasting calls
-        # of the form `@. f_minus_plus_element = ...`.
+        # f_plus_element such that we can use a single assignment below.
+        # f_minus_element and f_plus_element are updated whenever we update
+        # `f_minus_plus_element[i, j] = ...` below.
         f_minus_plus_element = f_minus_plus_threaded[Threads.threadid()]
         f_minus_element = f_minus_threaded[Threads.threadid()]
         f_plus_element = f_plus_threaded[Threads.threadid()]
         u_element = view(u_vectors, :, :, element)
 
         # x direction
-        # @. f_minus_plus_element = splitting(u_element, 1, equations)
+        # We use flux vector splittings in the directions of the contravariant
+        # basis vectors. Thus, we do not use a broadcasting operation like
+        #   @. f_minus_plus_element = splitting(u_element, 1, equations)
+        # in the Cartesian case but loop over all nodes.
         for j in eachnode(dg), i in eachnode(dg)
             # contravariant vectors computed with central D matrix
             Ja1 = get_contravariant_vector(1, contravariant_vectors, i, j, element)

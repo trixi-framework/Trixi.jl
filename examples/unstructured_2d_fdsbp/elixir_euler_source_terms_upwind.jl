@@ -1,3 +1,5 @@
+# !!! warning "Experimental implementation (upwind SBP)"
+#     This is an experimental feature and may change in future releases.
 
 using OrdinaryDiffEq
 using Trixi
@@ -21,6 +23,7 @@ boundary_conditions = Dict(:Top => boundary_condition_eoc,
 ###############################################################################
 # Get the Upwind FDSBP approximation space
 
+# TODO: FDSBP
 # Note, one must set `xmin=-1` and `xmax=1` due to the reuse
 # of interpolation routines from `calc_node_coordinates!` to create
 # the physical coordinates in the mappings.
@@ -38,15 +41,16 @@ solver = FDSBP(D_upw,
 ###############################################################################
 # Get the curved quad mesh from a file (downloads the file if not available locally)
 
-# Mesh with first order boundary polynomials requires an upwind SBP operator
-# with (at least) 2nd order boundary closure to guarantee the approximation is free-stream
+# Mesh with first-order boundary polynomials requires an upwind SBP operator
+# with (at least) 2nd order boundary closure to guarantee the approximation is
+# free-stream preserving
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/a4f4743008bf3233957a9ea6ac7a62e0/raw/8b36cc6649153fe0a5723b200368a210a1d74eaf/mesh_refined_box.mesh",
                            joinpath(@__DIR__, "mesh_refined_box.mesh"))
 
 mesh = UnstructuredMesh2D(mesh_file)
 
 ###############################################################################
-# create the semi discretization object
+# create the semidiscretization object
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_term,
