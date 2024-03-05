@@ -437,7 +437,7 @@ end
                                        equations::AbstractEquations{2})
     @unpack splitting = numflux
     f_tilde_m = splitting(u_rr, Val{:minus}(), normal_direction, equations)
-    f_tilde_p = splitting(u_ll, Val{:plus}() , normal_direction, equations)
+    f_tilde_p = splitting(u_ll, Val{:plus}(), normal_direction, equations)
     return f_tilde_m + f_tilde_p
 end
 
