@@ -136,9 +136,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabo
     _boundary_conditions_parabolic = digest_boundary_conditions(boundary_conditions_parabolic,
                                                                 mesh, solver, cache)
 
-    if mesh isa TreeMesh || mesh isa StructuredMesh
-        check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
-    end
+    check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
     cache_parabolic = (;
                        create_cache_parabolic(mesh, equations, equations_parabolic,

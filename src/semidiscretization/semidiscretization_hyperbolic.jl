@@ -72,9 +72,7 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
 
-    if mesh isa TreeMesh || mesh isa StructuredMesh
-        check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
-    end
+    check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
     SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
                                  typeof(initial_condition),
@@ -214,6 +212,15 @@ function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, so
     throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
 end
 
+# No checks for these meshes yet available
+function check_periodicity_mesh_boundary_conditions(mesh::Union{P4estMesh,
+                                                                UnstructuredMesh2D,
+                                                                T8CodeMesh,
+                                                                DGMultiMesh},
+                                                    boundary_conditions)
+end
+
+# No actions needed for periodic boundary conditions
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh,
                                                                 StructuredMesh},
                                                     boundary_conditions::BoundaryConditionPeriodic)
