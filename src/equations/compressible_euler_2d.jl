@@ -975,7 +975,8 @@ contains a reformulation due to Hänel et al. where the energy flux uses the
 enthalpy. The pressure splitting is independent from the splitting of the
 convective terms. As such there are many pressure splittings suggested across
 the literature. We implement the 'p4' variant suggested by Liou and Steffen as
-it proved the most robust in practice.
+it proved the most robust in practice. For details on the curvilinear variant
+of this flux vector splitting see Anderson et al.
 
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
@@ -996,6 +997,9 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()
 - Meng-Sing Liou and Chris J. Steffen, Jr. (1991)
   High-Order Polynomial Expansions (HOPE) for Flux-Vector Splitting
   [NASA Technical Memorandum](https://ntrs.nasa.gov/citations/19910016425)
+- W. Kyle Anderson, James L. Thomas, and Bram van Leer (1986)
+  Comparison of Finite Volume Flux Vector Splittings for the Euler Equations
+  [DOI: 10.2514/3.9465](https://doi.org/10.2514/3.9465)
 """
 @inline function splitting_vanleer_haenel(u, orientation_or_normal_direction,
                                           equations::CompressibleEulerEquations2D)
