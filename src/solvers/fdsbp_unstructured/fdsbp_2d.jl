@@ -187,7 +187,7 @@ end
 # surface contributions are added.
 function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
                                 equations, surface_integral::SurfaceIntegralStrongForm,
-                                dg::FDSBP, cache)
+                                dg::DG, cache)
     inv_weight_left = inv(left_boundary_weight(dg.basis))
     inv_weight_right = inv(right_boundary_weight(dg.basis))
     @unpack normal_directions, surface_flux_values = cache.elements
