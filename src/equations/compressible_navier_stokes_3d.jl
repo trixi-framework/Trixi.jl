@@ -80,7 +80,7 @@ where
 w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = \frac{\rho v_3}{p},\, w_5 = -\frac{\rho}{p}
 ```
 """
-struct CompressibleNavierStokesDiffusion3D{GradientVariables, RealT <: Real,
+struct CompressibleNavierStokesDiffusion3D{GradientVariables, RealT <: Real, Mu,
                                            E <: AbstractCompressibleEulerEquations{3}} <:
        AbstractCompressibleNavierStokesDiffusion{3, 5, GradientVariables}
     # TODO: parabolic
@@ -111,8 +111,9 @@ function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquatio
     kappa = gamma * inv_gamma_minus_one / Prandtl
 
     CompressibleNavierStokesDiffusion3D{typeof(gradient_variables), typeof(gamma),
+                                        typeof(mu),
                                         typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                           μ, Prandtl, kappa,
+                                                           mu, Prandtl, kappa,
                                                            equations,
                                                            gradient_variables)
 end
