@@ -577,9 +577,6 @@ function _precompile_manual_()
         @assert Base.precompile(Tuple{typeof(show), Base.TTY, lbm_collision_callback_type})
         @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
                                       lbm_collision_callback_type})
-
-        # infrastructure, special elixirs
-        @assert Base.precompile(Tuple{typeof(trixi_include), String})
     end
 
     @assert Base.precompile(Tuple{typeof(init_mpi)})
