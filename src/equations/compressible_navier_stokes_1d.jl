@@ -110,7 +110,8 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
     # This avoids recomputation of kappa for non-constant μ.
     kappa = gamma * inv_gamma_minus_one / Prandtl
 
-    CompressibleNavierStokesDiffusion1D{typeof(gradient_variables), typeof(gamma), typeof(mu),
+    CompressibleNavierStokesDiffusion1D{typeof(gradient_variables), typeof(gamma),
+                                        typeof(mu),
                                         typeof(equations)}(gamma, inv_gamma_minus_one,
                                                            mu, Prandtl, kappa,
                                                            equations,

@@ -5,7 +5,7 @@ using Trixi
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
 prandtl_number() = 0.72
-@inline function mu(u, equations) 
+@inline function mu(u, equations)
     return 0.01
 end
 

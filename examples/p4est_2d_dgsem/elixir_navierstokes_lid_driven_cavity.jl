@@ -6,8 +6,8 @@ using Trixi
 
 # TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
-@inline function mu(u, equations) 
-	return 0.001
+@inline function mu(u, equations)
+    return 0.001
 end
 
 equations = CompressibleEulerEquations2D(1.4)

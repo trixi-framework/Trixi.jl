@@ -5,8 +5,8 @@ using Trixi
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
 prandtl_number() = 0.72
-@inline function mu(u, equations) 
-	return 0.01
+@inline function mu(u, equations)
+    return 0.01
 end
 
 equations = CompressibleEulerEquations2D(1.4)
