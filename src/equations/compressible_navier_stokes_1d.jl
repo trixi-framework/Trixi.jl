@@ -89,8 +89,7 @@ struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real, Mu,
     gamma::RealT               # ratio of specific heats
     inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
 
-    #mu::RealT                  # viscosity
-    mu::Mu                  # viscosity
+    mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fick's law
 
@@ -104,17 +103,15 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
                                              gradient_variables = GradientVariablesPrimitive())
     gamma = equations.gamma
     inv_gamma_minus_one = equations.inv_gamma_minus_one
-    #μ, Pr = promote(mu, Prandtl)
-    Pr = Prandtl
 
     # Under the assumption of constant Prandtl number the thermal conductivity
-    # constant is kappa = gamma μ / ((gamma-1) Pr).
+    # constant is kappa = gamma μ / ((gamma-1) Prandtl).
     # Important note! Factor of μ is accounted for later in `flux`.
-    kappa = gamma * inv_gamma_minus_one / Pr
+    kappa = gamma * inv_gamma_minus_one / Prandtl
 
     CompressibleNavierStokesDiffusion1D{typeof(gradient_variables), typeof(gamma), typeof(mu),
                                         typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                           mu, Pr, kappa,
+                                                           mu, Prandtl, kappa,
                                                            equations,
                                                            gradient_variables)
 end
@@ -165,7 +162,7 @@ function flux(u, gradients, orientation::Integer,
     # Offers flexibility for dynamic viscosity via Sutherland's law where it depends
     # on temperature and reference values, Ts and Tref such that mu(T)
     #mu = equations.mu
-    mu = equations.mu(u)
+    mu = equations.mu(u, equations)
 
     # viscous flux components in the x-direction
     f1 = zero(rho)
