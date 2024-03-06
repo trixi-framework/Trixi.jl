@@ -44,7 +44,8 @@ function initial_condition_blast_wave(x, t, equations)
     rho = r > 0.5 ? 1.0 : 1.1691
     v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
     v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-    p = r > 0.5 ? 2.0E-3 : 1.245 # Use 2.0E-3 instead of 1.0E-3 to avoid negative temperature
+    # Use 2.0E-3 instead of 1.0E-3 to avoid negative temperature
+    p = r > 0.5 ? 2.0E-3 : 1.245
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
