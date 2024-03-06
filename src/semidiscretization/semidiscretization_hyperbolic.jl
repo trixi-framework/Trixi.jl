@@ -252,29 +252,18 @@ end
 
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{1},
                                                                 StructuredMesh{1}},
-                                                    boundary_conditions::NamedTuple)
-    @unpack x_neg, x_pos = boundary_conditions
-    check_periodicity_mesh_boundary_conditions_x(mesh, x_neg, x_pos)
-end
-
-function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{1},
-                                                                StructuredMesh{1}},
-                                                    boundary_conditions::NTuple{2, Any})
+                                                    boundary_conditions::Union{NamedTuple,
+                                                                               NTuple{2,
+                                                                                      Any}})
     check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
                                                  boundary_conditions[2])
 end
 
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{2},
                                                                 StructuredMesh{2}},
-                                                    boundary_conditions::NamedTuple)
-    @unpack x_neg, x_pos, y_neg, y_pos = boundary_conditions
-    check_periodicity_mesh_boundary_conditions_x(mesh, x_neg, x_pos)
-    check_periodicity_mesh_boundary_conditions_y(mesh, y_neg, y_pos)
-end
-
-function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{2},
-                                                                StructuredMesh{2}},
-                                                    boundary_conditions::NTuple{4, Any})
+                                                    boundary_conditions::Union{NamedTuple,
+                                                                               NTuple{4,
+                                                                                      Any}})
     check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
                                                  boundary_conditions[2])
     check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
@@ -283,16 +272,9 @@ end
 
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{3},
                                                                 StructuredMesh{3}},
-                                                    boundary_conditions::NamedTuple)
-    @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
-    check_periodicity_mesh_boundary_conditions_x(mesh, x_neg, x_pos)
-    check_periodicity_mesh_boundary_conditions_y(mesh, y_neg, y_pos)
-    check_periodicity_mesh_boundary_conditions_z(mesh, z_neg, z_pos)
-end
-
-function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{3},
-                                                                StructuredMesh{3}},
-                                                    boundary_conditions::NTuple{6, Any})
+                                                    boundary_conditions::Union{NamedTuple,
+                                                                               NTuple{6,
+                                                                                      Any}})
     check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
                                                  boundary_conditions[2])
     check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
