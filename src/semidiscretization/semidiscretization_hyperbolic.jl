@@ -214,7 +214,8 @@ function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, so
     throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
 end
 
-function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh, StructuredMesh},
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh,
+                                                                StructuredMesh},
                                                     boundary_conditions::BoundaryConditionPeriodic)
 end
 
@@ -252,8 +253,6 @@ function check_periodicity_mesh_boundary_conditions(mesh::TreeMesh{2},
          The boundary conditions will be ignored and periodic boundary conditions are used."
     end
 end
-
-
 
 function check_periodicity_mesh_boundary_conditions(mesh::StructuredMesh{2},
                                                     boundary_conditions)
