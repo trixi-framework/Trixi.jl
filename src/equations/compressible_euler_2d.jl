@@ -710,10 +710,8 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()
 """
 @inline function splitting_steger_warming(u, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
-    fm = splitting_steger_warming(u, Val{:minus}(), orientation_or_normal_direction,
-                                  equations)
-    fp = splitting_steger_warming(u, Val{:plus}(), orientation_or_normal_direction,
-                                  equations)
+    fm = splitting_steger_warming(u, Val{:minus}(), orientation, equations)
+    fp = splitting_steger_warming(u, Val{:plus}(), orientation, equations)
     return fm, fp
 end
 
