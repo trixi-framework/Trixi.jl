@@ -1,7 +1,5 @@
 module TestExamplesStructuredMesh2D
 
-# TODO: TrixiShallowWater: move any wet/dry tests to new package
-
 using Test
 using Trixi
 
@@ -33,14 +31,34 @@ end
 
 @trixi_testset "elixir_advection_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
-                        l2=[7.816742843181738e-6, 7.816742843196112e-6],
-                        linf=[6.314906965543265e-5, 6.314906965410039e-5],
+                        l2=[
+                            7.816742843336293e-6,
+                            7.816742843340186e-6,
+                            7.816742843025513e-6,
+                            7.816742843061526e-6,
+                        ],
+                        linf=[
+                            6.314906965276812e-5,
+                            6.314906965187994e-5,
+                            6.31490696496595e-5,
+                            6.314906965032563e-5,
+                        ],
                         coverage_override=(maxiters = 10^5,))
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         errors = analysis_callback(sol)
-        @test errors.l2≈[7.816742843181738e-6, 7.816742843196112e-6] rtol=1.0e-4
-        @test errors.linf≈[6.314906965543265e-5, 6.314906965410039e-5] rtol=1.0e-4
+        @test errors.l2≈[
+            7.816742843336293e-6,
+            7.816742843340186e-6,
+            7.816742843025513e-6,
+            7.816742843061526e-6,
+        ] rtol=1.0e-4
+        @test errors.linf≈[
+            6.314906965276812e-5,
+            6.314906965187994e-5,
+            6.31490696496595e-5,
+            6.314906965032563e-5,
+        ] rtol=1.0e-4
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -588,16 +606,12 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_rayleigh_taylor_instability.jl"),
                         l2=[
-                            0.06365630381017849,
-                            0.007166887387738937,
-                            0.002878708825497772,
-                            0.010247678114070121,
+                            0.06365630515019809, 0.007166887172039836,
+                            0.0028787103533600804, 0.010247678008197966,
                         ],
                         linf=[
-                            0.4799214336153155,
-                            0.024595483032220266,
-                            0.02059808120543466,
-                            0.03190756362943725,
+                            0.47992143569849377, 0.02459548251933757,
+                            0.02059810091623976, 0.0319077000843877,
                         ],
                         cells_per_dimension=(8, 8),
                         tspan=(0.0, 0.3))
@@ -641,14 +655,12 @@ end
 @trixi_testset "elixir_eulerpolytropic_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_convergence.jl"),
                         l2=[
-                            0.0016688820596537988,
-                            0.0025921681885685425,
-                            0.003280950351435014,
+                            0.00166898321776379, 0.00259202637930991,
+                            0.0032810744946276406,
                         ],
                         linf=[
-                            0.010994679664394269,
-                            0.01331197845637,
-                            0.020080117011346488,
+                            0.010994883201888683, 0.013309526619369905,
+                            0.020080326611175536,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -660,18 +672,19 @@ end
     end
 end
 
-@trixi_testset "elixir_eulerpolytropic_convergence.jl: HLL(Davis)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_convergence.jl"),
+@trixi_testset "elixir_eulerpolytropic_convergence.jl with FluxHLL(min_max_speed_naive)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_eulerpolytropic_convergence.jl"),
                         solver=DGSEM(polydeg = 3,
-                                     surface_flux = FluxHLL(min_max_speed_davis),
+                                     surface_flux = FluxHLL(min_max_speed_naive),
                                      volume_integral = VolumeIntegralFluxDifferencing(volume_flux)),
                         l2=[
-                            0.0016689832177644243, 0.0025920263793104445,
-                            0.003281074494629298,
+                            0.001668882059653298, 0.002592168188567654,
+                            0.0032809503514328307,
                         ],
                         linf=[
-                            0.01099488320190023, 0.013309526619350365,
-                            0.02008032661117909,
+                            0.01099467966437917, 0.013311978456333584,
+                            0.020080117011337606,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -709,14 +722,12 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_eulerpolytropic_isothermal_wave.jl"),
                         l2=[
-                            0.004998778491726366,
-                            0.004998916000294425,
-                            9.259136963058664e-17,
+                            0.004998778512795407, 0.004998916021367992,
+                            8.991558055435833e-17,
                         ],
                         linf=[
-                            0.010001103673834888,
-                            0.010051165098399503,
-                            7.623942913643681e-16,
+                            0.010001103632831354, 0.010051165055185603,
+                            7.60697457718599e-16,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -731,14 +742,12 @@ end
 @trixi_testset "elixir_eulerpolytropic_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_wave.jl"),
                         l2=[
-                            0.23642682112204072,
-                            0.20904264390331334,
-                            8.174982691297391e-17,
+                            0.23642871172548174, 0.2090519382039672,
+                            8.778842676292274e-17,
                         ],
                         linf=[
-                            0.4848250368349989,
-                            0.253350873815695,
-                            4.984552457753618e-16,
+                            0.4852276879687425, 0.25327870807625175,
+                            5.533921691832115e-16,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -877,82 +886,6 @@ end
                             2.4084298688001335,
                         ],
                         tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_well_balanced_wet_dry.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_shallowwater_well_balanced_wet_dry.jl"),
-                        l2=[
-                            0.019731646454942086,
-                            1.0694532773278277e-14,
-                            1.1969913383405568e-14,
-                            0.0771517260037954,
-                        ],
-                        linf=[
-                            0.4999999999998892,
-                            6.067153702623552e-14,
-                            4.4849667259339357e-14,
-                            1.9999999999999993,
-                        ],
-                        tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_conical_island.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_conical_island.jl"),
-                        l2=[
-                            0.04593154164306353,
-                            0.1644534881916908,
-                            0.16445348819169076,
-                            0.0011537702354532122,
-                        ],
-                        linf=[
-                            0.21100717610846442,
-                            0.9501592344310412,
-                            0.950159234431041,
-                            0.021790250683516296,
-                        ],
-                        tspan=(0.0, 0.025))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_parabolic_bowl.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_parabolic_bowl.jl"),
-                        l2=[
-                            0.00015285369980313484,
-                            1.9536806395943226e-5,
-                            9.936906607758672e-5,
-                            5.0686313334616055e-15,
-                        ],
-                        linf=[
-                            0.003316119030459211,
-                            0.0005075409427972817,
-                            0.001986721761060583,
-                            4.701794509287538e-14,
-                        ],
-                        tspan=(0.0, 0.025), cells_per_dimension=(40, 40))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
