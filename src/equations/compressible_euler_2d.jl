@@ -820,8 +820,9 @@ end
                                  orientation_or_normal_direction,
                                  equations::CompressibleEulerEquations2D)
 
-Improved variant of the Steger-Warming flux vector splitting for
-generalized coordinates. This splitting also reformulates the energy
+Improved variant of the Steger-Warming flux vector splitting
+[`splitting_steger_warming`](@ref) for generalized coordinates.
+This splitting also reformulates the energy
 flux as in Hänel et al. to obtain conservation of the total temperature
 for inviscid flows.
 
