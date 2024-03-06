@@ -77,7 +77,7 @@ function rhs!(du, u, t,
     end
 
     # Apply Jacobian from mapping to reference element
-    #  Note! this routine is reused from dg_curved/dg_2d.jl
+    #  Note! this routine is reused from dgsem_structured/dg_2d.jl
     @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
 
     # Calculate source terms

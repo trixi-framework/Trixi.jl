@@ -102,6 +102,32 @@ end
         end
     end
 
+    @trixi_testset "elixir_euler_convergence.jl with Drikakis-Tsangaris splitting" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
+                            l2=[
+                                1.708838999643608e-6,
+                                1.7437997854485807e-6,
+                                1.7437997854741082e-6,
+                                5.457223460116349e-6,
+                            ],
+                            linf=[
+                                9.796504911285808e-6,
+                                9.614745899888533e-6,
+                                9.614745899444443e-6,
+                                4.02610718399643e-5,
+                            ],
+                            tspan=(0.0, 0.1), flux_splitting=splitting_drikakis_tsangaris)
+
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+
     @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_kelvin_helmholtz_instability.jl"),
