@@ -128,14 +128,12 @@ end
 @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         l2=[
-                            9.146929180585711e-7,
-                            1.8997616878017292e-6,
-                            3.991417702211889e-6,
+                            9.146929178341782e-7, 1.8997616876521201e-6,
+                            3.991417701005622e-6,
                         ],
                         linf=[
-                            1.7321089884614338e-6,
-                            3.3252888855805907e-6,
-                            6.5252787737613005e-6,
+                            1.7321089882393892e-6, 3.3252888869128583e-6,
+                            6.525278767988141e-6,
                         ])
     show(stdout, semi.solver.basis)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
