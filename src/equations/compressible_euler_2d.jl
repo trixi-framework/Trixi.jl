@@ -844,7 +844,7 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()
   [DOI: 10.2514/6.1987-1105](https://doi.org/10.2514/6.1987-1105)
 """
 @inline function splitting_drikakis_tsangaris(u, orientation_or_normal_direction,
-                                             equations::CompressibleEulerEquations2D)
+                                              equations::CompressibleEulerEquations2D)
     fm = splitting_drikakis_tsangaris(u, Val{:minus}(), orientation_or_normal_direction,
                                       equations)
     fp = splitting_drikakis_tsangaris(u, Val{:plus}(), orientation_or_normal_direction,
