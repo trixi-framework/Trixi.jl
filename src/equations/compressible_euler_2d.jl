@@ -683,15 +683,15 @@ end
 end
 
 """
-    splitting_steger_warming(u, orientation_or_normal_direction,
+    splitting_steger_warming(u, orientation::Integer,
                              equations::CompressibleEulerEquations2D)
     splitting_steger_warming(u, which::Union{Val{:minus}, Val{:plus}}
-                             orientation_or_normal_direction,
+                             orientation::Integer,
                              equations::CompressibleEulerEquations2D)
 
 Splitting of the compressible Euler flux of Steger and Warming. For
-curvilinear coordinates to compute in the `normal_direction` we use
-a modified version of this splitting proposed by Drikakis and Tsangris.
+curvilinear coordinates use the improved Steger-Warming-type splitting
+[`splitting_drikakis_tsangaris`](@ref).
 
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
@@ -707,12 +707,8 @@ function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()
   Flux Vector Splitting of the Inviscid Gasdynamic Equations
   With Application to Finite Difference Methods
   [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
-- D. Drikakis and S. Tsangaris (1993)
-  On the solution of the compressible Navier-Stokes equations using
-  improved flux vector splitting methods
-  [DOI: 10.1016/0307-904X(93)90054-K](https://doi.org/10.1016/0307-904X(93)90054-K)
 """
-@inline function splitting_steger_warming(u, orientation_or_normal_direction,
+@inline function splitting_steger_warming(u, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
     fm = splitting_steger_warming(u, Val{:minus}(), orientation_or_normal_direction,
                                   equations)
@@ -817,9 +813,122 @@ end
     return SVector(f1m, f2m, f3m, f4m)
 end
 
-@inline function splitting_steger_warming(u, ::Val{:plus},
-                                          normal_direction::AbstractVector,
-                                          equations::CompressibleEulerEquations2D)
+"""
+    splitting_drikakis_tsangaris(u, orientation_or_normal_direction,
+                                 equations::CompressibleEulerEquations2D)
+    splitting_drikakis_tsangaris(u, which::Union{Val{:minus}, Val{:plus}}
+                                 orientation_or_normal_direction,
+                                 equations::CompressibleEulerEquations2D)
+
+Improved variant of the Steger-Warming flux vector splitting for
+generalized coordinates. This splitting also reformulates the energy
+flux as in Hänel et al. to obtain conservation of the total temperature
+for inviscid flows.
+
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+
+## References
+
+- D. Drikakis and S. Tsangaris (1993)
+  On the solution of the compressible Navier-Stokes equations using
+  improved flux vector splitting methods
+  [DOI: 10.1016/0307-904X(93)90054-K](https://doi.org/10.1016/0307-904X(93)90054-K)
+- D. Hänel, R. Schwane and G. Seider (1987)
+  On the accuracy of upwind schemes for the solution of the Navier-Stokes equations
+  [DOI: 10.2514/6.1987-1105](https://doi.org/10.2514/6.1987-1105)
+"""
+@inline function splitting_drikakis_tsangaris(u, orientation_or_normal_direction,
+                                             equations::CompressibleEulerEquations2D)
+    fm = splitting_drikakis_tsangaris(u, Val{:minus}(), orientation_or_normal_direction,
+                                      equations)
+    fp = splitting_drikakis_tsangaris(u, Val{:plus}(), orientation_or_normal_direction,
+                                      equations)
+    return fm, fp
+end
+
+@inline function splitting_drikakis_tsangaris(u, ::Val{:plus}, orientation::Integer,
+                                              equations::CompressibleEulerEquations2D)
+    rho, rho_v1, rho_v2, rho_e = u
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+    a = sqrt(equations.gamma * p / rho)
+    H = (eho_e + p) / rho
+
+    if orientation == 1
+        lambda1 = v1 + a
+        lambda2 = v1 - a
+
+        lambda1_p = positive_part(lambda1) # Same as (lambda_i + abs(lambda_i)) / 2, but faster :)
+        lambda2_p = positive_part(lambda2)
+
+        rhoa_2gamma = 0.5 * rho * a / equations.gamma
+        f1p = 0.5 * rho * (lambda1_p + lambda2_p)
+        f2p = f1p * v1 + rhoa_2gamma * (lambda1_p - lambda2_p)
+        f3p = f1p * v2
+        f4p = f1p * H
+    else # orientation == 2
+        lambda1 = v2 + a
+        lambda2 = v2 - a
+
+        lambda1_p = positive_part(lambda1) # Same as (lambda_i + abs(lambda_i)) / 2, but faster :)
+        lambda2_p = positive_part(lambda2)
+
+        rhoa_2gamma = 0.5 * rho * a / equations.gamma
+        f1p = 0.5 * rho * (lambda1_p + lambda2_p)
+        f2p = f1p * v1
+        f3p = f1p * v2 + rhoa_2gamma * (lambda1_p - lambda2_p)
+        f4p = f1p * H
+    end
+    return SVector(f1p, f2p, f3p, f4p)
+end
+
+@inline function splitting_drikakis_tsangaris(u, ::Val{:minus}, orientation::Integer,
+                                              equations::CompressibleEulerEquations2D)
+    rho, rho_v1, rho_v2, rho_e = u
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+    a = sqrt(equations.gamma * p / rho)
+    H = (rho_e + p) / rho
+
+    if orientation == 1
+        lambda1 = v1 + a
+        lambda2 = v1 - a
+
+        lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
+        lambda2_m = negative_part(lambda2)
+
+        rhoa_2gamma = 0.5 * rho * a / equations.gamma
+        f1m = 0.5 * rho * (lambda1_m + lambda2_m)
+        f2m = f1m * v1 + rhoa_2gamma * (lambda1_m - lambda2_m)
+        f3m = f1m * v2
+        f4m = f1m * H
+    else # orientation == 2
+        lambda1 = v2 + a
+        lambda2 = v2 - a
+
+        lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
+        lambda2_m = negative_part(lambda2)
+
+        rhoa_2gamma = 0.5 * rho * a / equations.gamma
+        f1m = 0.5 * rho * (lambda1_m + lambda2_m)
+        f2m = f1m * v1
+        f3m = f1m * v2 + rhoa_2gamma * (lambda1_m - lambda2_m)
+        f4m = f1m * H
+    end
+    return SVector(f1m, f2m, f3m, f4m)
+end
+
+@inline function splitting_drikakis_tsangaris(u, ::Val{:plus},
+                                              normal_direction::AbstractVector,
+                                              equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
@@ -844,9 +953,9 @@ end
     return SVector(f1p, f2p, f3p, f4p)
 end
 
-@inline function splitting_steger_warming(u, ::Val{:minus},
-                                          normal_direction::AbstractVector,
-                                          equations::CompressibleEulerEquations2D)
+@inline function splitting_drikakis_tsangaris(u, ::Val{:minus},
+                                              normal_direction::AbstractVector,
+                                              equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
