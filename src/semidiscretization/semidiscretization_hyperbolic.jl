@@ -72,6 +72,10 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
 
+    if mesh isa TreeMesh || mesh isa StructuredMesh
+        check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
+    end
+
     SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
                                  typeof(initial_condition),
                                  typeof(_boundary_conditions), typeof(source_terms),
@@ -208,6 +212,96 @@ end
 function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, solver,
                                     cache)
     throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::TreeMesh{1},
+                                                    boundary_conditions)
+    @unpack x_neg, x_pos = boundary_conditions
+    if isperiodic(mesh.tree, 1) && (x_neg != BoundaryConditionPeriodic() ||
+        x_pos != BoundaryConditionPeriodic())
+        @warn "For periodic mesh non-periodic boundary conditions are supplied.
+         The boundary conditions will be ignored and periodic boundary conditions are used."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::StructuredMesh{1},
+                                                    boundary_conditions)
+    @unpack x_neg, x_pos = boundary_conditions
+    if isperiodic(mesh, 1) && (x_neg != BoundaryConditionPeriodic() ||
+        x_pos != BoundaryConditionPeriodic())
+        @warn "For periodic mesh non-periodic boundary conditions are supplied.
+         The boundary conditions will be ignored and periodic boundary conditions are used."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::TreeMesh{2},
+                                                    boundary_conditions)
+    @unpack x_neg, x_pos, y_neg, y_pos = boundary_conditions
+    if isperiodic(mesh.tree, 1) && (x_neg != BoundaryConditionPeriodic() ||
+        x_pos != BoundaryConditionPeriodic())
+        @warn "For periodic mesh non-periodic boundary conditions in x-direction are supplied.
+         The boundary conditions will be ignored and periodic boundary conditions are used."
+    end
+    if isperiodic(mesh.tree, 2) && (y_neg != BoundaryConditionPeriodic() ||
+        y_pos != BoundaryConditionPeriodic())
+        @warn "For periodic mesh non-periodic boundary conditions in y-direction are supplied.
+         The boundary conditions will be ignored and periodic boundary conditions are used."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::StructuredMesh{2},
+                                                    boundary_conditions)
+    @unpack x_neg, x_pos, y_neg, y_pos = boundary_conditions
+    if isperiodic(mesh, 1) && (x_neg != BoundaryConditionPeriodic() ||
+        x_pos != BoundaryConditionPeriodic())
+        @warn "For periodic mesh non-periodic boundary conditions in x-direction are supplied.
+         The boundary conditions will be ignored and periodic boundary conditions are used."
+    end
+    if isperiodic(mesh, 2) && (y_neg != BoundaryConditionPeriodic() ||
+        y_pos != BoundaryConditionPeriodic())
+        @warn "For periodic mesh non-periodic boundary conditions in y-direction are supplied.
+         The boundary conditions will be ignored and periodic boundary conditions are used."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::TreeMesh{3},
+                                                    boundary_conditions)
+    @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
+    if isperiodic(mesh.tree, 1) && (x_neg != BoundaryConditionPeriodic() ||
+        x_pos != BoundaryConditionPeriodic())
+        @warn "For periodic mesh non-periodic boundary conditions in x-direction are supplied.
+         The boundary conditions will be ignored and periodic boundary conditions are used."
+    end
+    if isperiodic(mesh.tree, 2) && (y_neg != BoundaryConditionPeriodic() ||
+        y_pos != BoundaryConditionPeriodic())
+        @warn "For periodic mesh non-periodic boundary conditions in y-direction are supplied.
+         The boundary conditions will be ignored and periodic boundary conditions are used."
+    end
+    if isperiodic(mesh.tree, 3) && (z_neg != BoundaryConditionPeriodic() ||
+        z_pos != BoundaryConditionPeriodic())
+        @warn "For periodic mesh non-periodic boundary conditions in z-direction are supplied.
+         The boundary conditions will be ignored and periodic boundary conditions are used."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::StructuredMesh{3},
+                                                    boundary_conditions)
+    @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
+    if isperiodic(mesh, 1) && (x_neg != BoundaryConditionPeriodic() ||
+        x_pos != BoundaryConditionPeriodic())
+        @warn "For periodic mesh non-periodic boundary conditions in x-direction are supplied.
+         The boundary conditions will be ignored and periodic boundary conditions are used."
+    end
+    if isperiodic(mesh, 2) && (y_neg != BoundaryConditionPeriodic() ||
+        y_pos != BoundaryConditionPeriodic())
+        @warn "For periodic mesh non-periodic boundary conditions in y-direction are supplied.
+         The boundary conditions will be ignored and periodic boundary conditions are used."
+    end
+    if isperiodic(mesh, 3) && (z_neg != BoundaryConditionPeriodic() ||
+        z_pos != BoundaryConditionPeriodic())
+        @warn "For periodic mesh non-periodic boundary conditions in z-direction are supplied.
+         The boundary conditions will be ignored and periodic boundary conditions are used."
+    end
 end
 
 function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
