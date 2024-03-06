@@ -9,21 +9,14 @@
 #! format: noindent
 
 # initialize all the values in the container of a general FD block (either straight sided or curved)
-# OBS! Requires the SBP derivative matrix in order to compute metric terms. For a standard
-# SBP operator the matrix is passed directly, whereas for an upwind SBP operator we must
-# specifically pass the central differencing matrix.
+# OBS! Requires the SBP derivative matrix in order to compute metric terms.
 function init_element!(elements, element, basis::AbstractDerivativeOperator,
                        corners_or_surface_curves)
     calc_node_coordinates!(elements.node_coordinates, element, get_nodes(basis),
                            corners_or_surface_curves)
 
-    if basis isa DerivativeOperator
-        calc_metric_terms!(elements.jacobian_matrix, element, basis,
-                           elements.node_coordinates)
-    else # basis isa SummationByPartsOperators.UpwindOperators
-        calc_metric_terms!(elements.jacobian_matrix, element, basis.central,
-                           elements.node_coordinates)
-    end
+    calc_metric_terms!(elements.jacobian_matrix, element, basis,
+                       elements.node_coordinates)
 
     calc_inverse_jacobian!(elements.inverse_jacobian, element, elements.jacobian_matrix)
 
@@ -34,6 +27,13 @@ function init_element!(elements, element, basis::AbstractDerivativeOperator,
                             elements.jacobian_matrix)
 
     return elements
+end
+
+# Specialization to pass the central differencing matrix from an upwind SBP operator
+function calc_metric_terms!(jacobian_matrix, element,
+                            D_SBP::SummationByPartsOperators.UpwindOperators,
+                            node_coordinates)
+    calc_metric_terms!(jacobian_matrix, element, D_SBP.central, node_coordinates)
 end
 
 # construct the metric terms for a FDSBP element "block". Directly use the derivative matrix
