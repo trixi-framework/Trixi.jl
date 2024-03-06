@@ -7,10 +7,12 @@ using Trixi
 
 # TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
-mu() = 6.25e-4 # equivalent to Re = 1600
+@inline function mu(u, equations) 
+	return 6.25e-4
+end
 
 equations = CompressibleEulerEquations3D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
+equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu,
                                                           Prandtl = prandtl_number())
 
 function initial_condition_3d_blast_wave(x, t, equations::CompressibleEulerEquations3D)

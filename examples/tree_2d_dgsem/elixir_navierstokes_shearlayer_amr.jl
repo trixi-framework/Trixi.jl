@@ -7,10 +7,12 @@ using Trixi
 
 # TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
-mu() = 1.0 / 3.0 * 10^(-5) # equivalent to Re = 30,000
+@inline function mu(u, equations) 
+	return 1.0 / 3.0 * 10^(-5) # equivalent to Re = 30,000
+end
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
                                                           Prandtl = prandtl_number())
 
 """

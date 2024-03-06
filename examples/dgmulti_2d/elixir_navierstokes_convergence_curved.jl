@@ -5,12 +5,14 @@ using Trixi
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
 prandtl_number() = 0.72
-mu() = 0.01
+@inline function mu(u, equations) 
+    return 0.01
+end
 
 equations = CompressibleEulerEquations2D(1.4)
 # Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
 # I really do not like this structure but it should work for now
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
@@ -63,7 +65,7 @@ end
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
     inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
-    mu_ = mu()
+    mu_ = mu(u, equations)
 
     # Same settings as in `initial_condition`
     # Amplitude and shift

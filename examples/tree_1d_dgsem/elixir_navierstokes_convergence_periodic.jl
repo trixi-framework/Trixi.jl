@@ -7,14 +7,12 @@ using Trixi
 
 # TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
-mu() = 6.25e-4 # equivalent to Re = 1600
 @inline function mu(u, equations) 
     return 6.25e-4
 end
 
 equations = CompressibleEulerEquations1D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, #mu = mu(),
-                                                          mu = mu,
+equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu,
                                                           Prandtl = prandtl_number())
 
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
@@ -41,7 +39,7 @@ initial_condition = initial_condition_navier_stokes_convergence_test
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
     inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
-    mu_ = mu()
+    mu_ = mu(u, equations)
 
     # Same settings as in `initial_condition`
     # Amplitude and shift

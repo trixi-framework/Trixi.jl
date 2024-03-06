@@ -107,6 +107,7 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
     # Under the assumption of constant Prandtl number the thermal conductivity
     # constant is kappa = gamma μ / ((gamma-1) Prandtl).
     # Important note! Factor of μ is accounted for later in `flux`.
+    # This avoids recomputation of kappa for non-constant μ.
     kappa = gamma * inv_gamma_minus_one / Prandtl
 
     CompressibleNavierStokesDiffusion1D{typeof(gradient_variables), typeof(gamma), typeof(mu),
@@ -158,10 +159,10 @@ function flux(u, gradients, orientation::Integer,
     # in the implementation
     q1 = equations.kappa * dTdx
 
-    # Constant dynamic viscosity is copied to a variable for readability.
-    # Offers flexibility for dynamic viscosity via Sutherland's law where it depends
-    # on temperature and reference values, Ts and Tref such that mu(T)
-    #mu = equations.mu
+    # The equations are equipped with a function that computes the dynamic viscosity mu
+    # from the current state. 
+    # In the simplest case, `mu(u, equations)` returns just a constant but
+    # more complex functions like Sutherland's law are possible.
     mu = equations.mu(u, equations)
 
     # viscous flux components in the x-direction
