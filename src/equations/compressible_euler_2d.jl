@@ -859,7 +859,7 @@ end
     v2 = rho_v2 / rho
     p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
     a = sqrt(equations.gamma * p / rho)
-    H = (eho_e + p) / rho
+    H = (rho_e + p) / rho
 
     if orientation == 1
         lambda1 = v1 + a
