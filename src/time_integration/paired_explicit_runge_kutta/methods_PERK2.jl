@@ -107,8 +107,12 @@ end
     PERK2()
 
 The following structures and methods provide a minimal implementation of
-the paired explicit Runge-Kutta method (https://doi.org/10.1016/j.jcp.2019.05.014)
+the second-order paired explicit Runge-Kutta method
 optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solver).
+
+- Vermeire (2019).
+Paired explicit Runge-Kutta schemes for stiff systems of equations
+[DOI: 10.1016/j.jcp.2019.05.014](https://doi.org/10.1016/j.jcp.2019.05.014)
 """
 
 mutable struct PERK2 <: PERKSingle

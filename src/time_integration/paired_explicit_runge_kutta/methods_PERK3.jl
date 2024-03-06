@@ -157,8 +157,12 @@ end
     PERK3()
 
 The following structures and methods provide a minimal implementation of
-the third order paired explicit Runge-Kutta method (https://www.sciencedirect.com/science/article/pii/S0021999122005320)
+the third-order paired explicit Runge-Kutta method
 optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solver).
+
+- Nasab, Vermeire (2022)
+Third-order Paired Explicit Runge-Kutta schemes for stiff systems of equations
+[DOI: 10.1016/j.jcp.2022.111470](https://doi.org/10.1016/j.jcp.2022.111470)
 """
 
 mutable struct PERK3 <: PERKSingle
