@@ -120,9 +120,10 @@ end
 # For the `UnstructuredMesh2D` this uses a simple method assuming a convex
 # quadrilateral. It simply checks that the point lies on the "correct" side
 # of each of the quadrilateral's edges (basically a ray casting strategy).
+# Does not account for element curvature.
 # OBS! One possibility for a more robust (and maybe faster) algorithm would
 # be to replace this function with `inpolygon` from PolygonOps.jl
-function is_point_in_quad(mesh::UnstructuredMesh2D, point, element)
+@inline function is_point_in_quad(mesh::UnstructuredMesh2D, point, element)
     # Helper array for the current quadrilateral element
     corners = zeros(eltype(mesh.corners), 2, 4)
 
@@ -192,13 +193,27 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
 
     wbary = barycentric_weights(nodes)
 
+    # Helper array for a straight-sided quadrilateral element
+    corners = zeros(eltype(mesh.corners), 4, 2)
+
     for index in 1:length(element_ids)
         # Construct point
         x = SVector(ntuple(i -> coordinates[i, index], ndims(mesh)))
 
-        # Convert to unit coordinates
-        unit_coordinates = inverse_bilinear_interpolation(mesh, x, element_ids[index])
+        # Convert to unit coordinates; procedure differs for straight-sided
+        # versus curvilinear elements
+        element = element_ids[index]
+        if !mesh.element_is_curved[element]
+            for j in 1:2, i in 1:4
+                # Pull the (x,y) values of the element corners from the global corners array
+                corners[i, j] = mesh.corners[j, mesh.element_node_ids[i, element]]
+            end
+            unit_coordinates = invert_bilinear_interpolation(mesh, x, corners)
+        else # mesh.element_is_curved[element]
+            unit_coordinates = invert_transfinite_interpolation(mesh, x, view(mesh.surface_curves, :, element))
+        end
 
+        # TODO: debug statment for removal
         println("point ", x, " has unit coordinates ", unit_coordinates, " in element ",
                 element_ids[index])
 
@@ -213,68 +228,73 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
     return interpolating_polynomials
 end
 
-# Given a `point` within the current convex quadrilateral `element` with
-# counter-clockwise ordering of the corners
-#          p4 ------------ p3
-#          |               |
-#          |               |
-#          |    x `point`  |
-#          |               |
-#          |               |
-#          p1 ------------ p2
-# we use a Newton iteration to determine the computational coordinates
-# (xi, eta) of the `point` that is given in physical coordinates by inverting
-# a bi-linear interpolation.
+# Use a Newton iteration to determine the computational coordinates
+# (xi, eta) of given (x,y) `point` that is given in physical coordinates
+# by inverting the transformation. For straight-sided elements this
+# amounts to inverting a bi-linear interpolation. For curved
+# elements we invert the transfinite interpolation with linear blending.
 # The residual function for the Newton iteration is
-#    r = p1*(1-s)*(1-t) + p2*s*(1-t) + p3*s*t + p4*(1-s)*t - point
-# and the Jacobian entries are computed accorindaly. This implementation exploits
-# the 2x2 nature of the problem and directly computes the matrix inverse to make things faster.
-# The implementation below is a slight modifition of that given on Stack Overflow
-# https://stackoverflow.com/a/18332009 where the author explicitly states that their
-# code is released to the public domain.
-# Originally the bi-linear interpolant was on the interval [0,1]^2 so a final mapping
-# is applied at the end to obtain the point in [-1,1]^2.
-function inverse_bilinear_interpolation(mesh::UnstructuredMesh2D, point, element)
-    # Grab the corners of the current element
-    p1x = mesh.corners[1, mesh.element_node_ids[1, element]]
-    p1y = mesh.corners[2, mesh.element_node_ids[1, element]]
-    p2x = mesh.corners[1, mesh.element_node_ids[2, element]]
-    p2y = mesh.corners[2, mesh.element_node_ids[2, element]]
-    p3x = mesh.corners[1, mesh.element_node_ids[3, element]]
-    p3y = mesh.corners[2, mesh.element_node_ids[3, element]]
-    p4x = mesh.corners[1, mesh.element_node_ids[4, element]]
-    p4y = mesh.corners[2, mesh.element_node_ids[4, element]]
+#    r(xi,eta) = X(xi,eta) - point
+# and the Jacobian entries are computed accordingly from either
+# `straight_side_quad_map_metrics` or `transfinite_quad_map_metrics`.
+# We exploit the 2x2 nature of the problem and directly compute the matrix
+# inverse to make things faster. The implementations below are inspired by
+# an answer on Stack Overflow (https://stackoverflow.com/a/18332009) where
+# the author explicitly states that their code is released to the public domain.
+@inline function invert_bilinear_interpolation(mesh::UnstructuredMesh2D, point, element_corners)
+    # Initial guess for the point (center of the reference element)
+    xi = zero(eltype(point))
+    eta = zero(eltype(point))
+    for k in 1:5 # Newton's method should converge quickly
+        # Compute current x and y coordinate and the Jacobian matrix
+        # J = (X_xi, X_eta; Y_xi, Y_eta)
+        x, y = straight_side_quad_map(xi, eta, element_corners)
+        J11, J12, J21, J22 = straight_side_quad_map_metrics(xi, eta, element_corners)
 
-    # Initial guess for the point (center of the element)
-    s = 0.5
-    t = 0.5
-    for k in 1:7 # Newton's method should converge quickly
-        # Compute residuals for each x and y coordinate
-        r1 = p1x * (1 - s) * (1 - t) + p2x * s * (1 - t) + p3x * s * t +
-             p4x * (1 - s) * t - point[1]
-        r2 = p1y * (1 - s) * (1 - t) + p2y * s * (1 - t) + p3y * s * t +
-             p4y * (1 - s) * t - point[2]
+        # Compute residuals for the Newton teration for the current (x, y) coordinate
+        r1 = x - point[1]
+        r2 = y - point[2]
 
-        # Elements of the Jacobian matrix J = (dr1/ds, dr1/dt; dr2/ds, dr2/dt)
-        J11 = -p1x * (1 - t) + p2x * (1 - t) + p3x * t - p4x * t
-        J21 = -p1y * (1 - t) + p2y * (1 - t) + p3y * t - p4y * t
-        J12 = -p1x * (1 - s) - p2x * s + p3x * s + p4x * (1 - s)
-        J22 = -p1y * (1 - s) - p2y * s + p3y * s + p4y * (1 - s)
+        # Newton update that directly applies the inverse of the 2x2 Jacobian matrix
+        inv_detJ = inv(J11 * J22 - J12 * J21)
 
-        inv_detJ = 1 / (J11 * J22 - J12 * J21)
+        xi = xi - inv_detJ * (J22 * r1 - J12 * r2)
+        eta = eta - inv_detJ * (-J21 * r1 + J11 * r2)
 
-        s = s - inv_detJ * (J22 * r1 - J12 * r2)
-        t = t - inv_detJ * (-J21 * r1 + J11 * r2)
-
-        s = min(max(s, 0), 1)
-        t = min(max(t, 0), 1)
+        # Ensure updated point is in the reference element
+        xi = min(max(xi, -1), 1)
+        eta = min(max(eta, -1), 1)
     end
 
-    # Map results from the interval [0,1] to the interval [-1,1]
-    s = 2 * s - 1
-    t = 2 * t - 1
+    return SVector(xi, eta)
+end
 
-    return SVector(s, t)
+@inline function invert_transfinite_interpolation(mesh::UnstructuredMesh2D, point, surface_curves::AbstractVector{<:CurvedSurface})
+    # Initial guess for the point (center of the reference element)
+    xi = zero(eltype(point))
+    eta = zero(eltype(point))
+    for k in 1:5 # Newton's method should converge quickly
+        # Compute current x and y coordinate and the Jacobian matrix
+        # J = (X_xi, X_eta; Y_xi, Y_eta)
+        x, y = transfinite_quad_map(xi, eta, surface_curves)
+        J11, J12, J21, J22 = transfinite_quad_map_metrics(xi, eta, surface_curves)
+
+        # Compute residuals for the Newton teration for the current (x,y) coordinate
+        r1 = x - point[1]
+        r2 = y - point[2]
+
+        # Newton update that directly applies the inverse of the 2x2 Jacobian matrix
+        inv_detJ = inv(J11 * J22 - J12 * J21)
+
+        xi = xi - inv_detJ * (J22 * r1 - J12 * r2)
+        eta = eta - inv_detJ * (-J21 * r1 + J11 * r2)
+
+        # Ensure updated point is in the reference element
+        xi = min(max(xi, -1), 1)
+        eta = min(max(eta, -1), 1)
+    end
+
+    return SVector(xi, eta)
 end
 
 function calc_interpolating_polynomials(coordinates, element_ids,
