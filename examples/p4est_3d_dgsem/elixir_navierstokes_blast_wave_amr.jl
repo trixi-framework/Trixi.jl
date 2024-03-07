@@ -7,9 +7,7 @@ using Trixi
 
 # TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
-@inline function mu(u, equations)
-    return 6.25e-4
-end
+mu(u, equations) = 6.25e-4
 
 equations = CompressibleEulerEquations3D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu,
