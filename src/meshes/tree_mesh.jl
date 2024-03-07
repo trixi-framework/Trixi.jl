@@ -228,5 +228,8 @@ function total_volume(mesh::TreeMesh)
     return mesh.tree.length_level_0^ndims(mesh)
 end
 
+isperiodic(mesh::TreeMesh) = isperiodic(mesh.tree)
+isperiodic(mesh::TreeMesh, dimension) = isperiodic(mesh.tree, dimension)
+
 include("parallel_tree_mesh.jl")
 end # @muladd
