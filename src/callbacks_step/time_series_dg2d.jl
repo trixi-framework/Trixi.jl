@@ -207,16 +207,22 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
             unit_coordinates = invert_bilinear_interpolation(mesh, x, corners)
 
             # Sanity check that the computed `unit_coordinates` indeed recover the desired point `x`
-            x_check = straight_side_quad_map(unit_coordinates[1], unit_coordinates[2], corners)
-            if !isapprox(x[1], x_check[1], atol = 1e-13) || !isapprox(x[2], x_check[2], atol = 1e-13)
+            x_check = straight_side_quad_map(unit_coordinates[1], unit_coordinates[2],
+                                             corners)
+            if !isapprox(x[1], x_check[1], atol = 1e-13) ||
+               !isapprox(x[2], x_check[2], atol = 1e-13)
                 error("failed to compute computational coordinates for the time series point $(x)")
             end
         else # mesh.element_is_curved[element]
-            unit_coordinates = invert_transfinite_interpolation(mesh, x, view(mesh.surface_curves, :, element))
+            unit_coordinates = invert_transfinite_interpolation(mesh, x,
+                                                                view(mesh.surface_curves,
+                                                                     :, element))
 
             # Sanity check that the computed `unit_coordinates` indeed recover the desired point `x`
-            x_check = transfinite_quad_map(unit_coordinates[1], unit_coordinates[2], view(mesh.surface_curves, :, element))
-            if !isapprox(x[1], x_check[1], atol = 1e-13) || !isapprox(x[2], x_check[2], atol = 1e-13)
+            x_check = transfinite_quad_map(unit_coordinates[1], unit_coordinates[2],
+                                           view(mesh.surface_curves, :, element))
+            if !isapprox(x[1], x_check[1], atol = 1e-13) ||
+               !isapprox(x[2], x_check[2], atol = 1e-13)
                 error("failed to compute computational coordinates for the time series point $(x)")
             end
         end
@@ -249,7 +255,8 @@ end
 # inverse to make things faster. The implementations below are inspired by
 # an answer on Stack Overflow (https://stackoverflow.com/a/18332009) where
 # the author explicitly states that their code is released to the public domain.
-@inline function invert_bilinear_interpolation(mesh::UnstructuredMesh2D, point, element_corners)
+@inline function invert_bilinear_interpolation(mesh::UnstructuredMesh2D, point,
+                                               element_corners)
     # Initial guess for the point (center of the reference element)
     xi = zero(eltype(point))
     eta = zero(eltype(point))
@@ -277,7 +284,8 @@ end
     return SVector(xi, eta)
 end
 
-@inline function invert_transfinite_interpolation(mesh::UnstructuredMesh2D, point, surface_curves::AbstractVector{<:CurvedSurface})
+@inline function invert_transfinite_interpolation(mesh::UnstructuredMesh2D, point,
+                                                  surface_curves::AbstractVector{<:CurvedSurface})
     # Initial guess for the point (center of the reference element)
     xi = zero(eltype(point))
     eta = zero(eltype(point))
