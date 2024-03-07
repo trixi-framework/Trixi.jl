@@ -93,7 +93,8 @@ end
     return mesh.p4est.trees.elem_count[]
 end
 # returns Int32 by default which causes a weird method error when creating the cache
-@inline ncells(mesh::P4estMesh) = Int(mesh.p4est.global_num_quadrants[])
+@inline ncells(mesh::P4estMesh) = Int(mesh.p4est.local_num_quadrants[])
+@inline ncellsglobal(mesh::P4estMesh) = Int(mesh.p4est.global_num_quadrants[])
 
 function Base.show(io::IO, mesh::P4estMesh)
     print(io, "P4estMesh{", ndims(mesh), ", ", real(mesh), "}")
@@ -105,7 +106,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
     else
         setup = [
             "#trees" => ntrees(mesh),
-            "current #cells" => ncells(mesh),
+            "current #cells" => ncellsglobal(mesh),
             "polydeg" => length(mesh.nodes) - 1,
         ]
         summary_box(io,

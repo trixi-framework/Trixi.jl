@@ -79,7 +79,8 @@ const ParallelT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
 @inline ntrees(mesh::T8codeMesh) = size(mesh.tree_node_coordinates)[end]
-@inline ncells(mesh::T8codeMesh) = Int(t8_forest_get_global_num_elements(mesh.forest))
+@inline ncells(mesh::T8codeMesh) = Int(t8_forest_get_local_num_elements(mesh.forest))
+@inline ncellsglobal(mesh::T8codeMesh) = Int(t8_forest_get_global_num_elements(mesh.forest))
 
 function Base.show(io::IO, mesh::T8codeMesh)
     print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}")
@@ -91,7 +92,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
     else
         setup = [
             "#trees" => ntrees(mesh),
-            "current #cells" => ncells(mesh),
+            "current #cells" => ncellsglobal(mesh),
             "polydeg" => length(mesh.nodes) - 1,
         ]
         summary_box(io,
