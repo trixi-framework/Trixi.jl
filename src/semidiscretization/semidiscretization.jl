@@ -16,6 +16,26 @@ Return the number of degrees of freedom associated with each scalar variable.
 end
 
 """
+    ndofsglobal(semi::AbstractSemidiscretization)
+
+Return the global number of degrees of freedom associated with each scalar variable.
+"""
+@inline function ndofsglobal(semi::AbstractSemidiscretization)
+    mesh, _, solver, cache = mesh_equations_solver_cache(semi)
+    ndofsglobal(mesh, solver, cache)
+end
+
+"""
+    ndofsglobal(mesh, solver, cache)
+
+Return the global number of degrees of freedom associated with each scalar variable.
+Defaults to ndofs when there is no special implementation for parallel computations.
+"""
+@inline function ndofsglobal(mesh, solver, cache)
+    ndofs(mesh, solver, cache)
+end
+
+"""
     integrate_via_indices(func, u_ode, semi::AbstractSemidiscretization, args...; normalize=true)
 
 Call `func(u, i..., element, equations, solver, args...)` for all nodal indices `i..., element`
