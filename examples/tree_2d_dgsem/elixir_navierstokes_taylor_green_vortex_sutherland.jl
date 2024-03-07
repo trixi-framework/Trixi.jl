@@ -16,9 +16,9 @@ prandtl_number() = 0.72
     T = R_specific_air * Trixi.temperature(u, equations)
 
     C_air = 120.0
-    mu0_air = 18.27e-6
+    mu_ref_air = 1.827e-5
 
-    return mu0_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5
+    return mu_ref_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5
 end
 
 equations = CompressibleEulerEquations2D(1.4)

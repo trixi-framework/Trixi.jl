@@ -1575,6 +1575,44 @@ end
 
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
 end
+
+@testset "Sutherlands Law" begin
+    function mu(u, equations)
+        T_ref = 291.15
+    
+        R_specific_air = 287.052874
+        T = R_specific_air * Trixi.temperature(u, equations)
+    
+        C_air = 120.0
+        mu_ref_air = 1.827e-5
+    
+        return mu_ref_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5
+    end
+
+    function mu_control(u, equations, T_ref, R_specific, C, mu_ref)
+        T = R_specific * Trixi.temperature(u, equations)
+    
+        return mu_ref * (T_ref + C) / (T + C) * (T / T_ref)^1.5
+    end
+
+    # Dry air (values from Wikipedia: https://de.wikipedia.org/wiki/Sutherland-Modell)
+    T_ref = 291.15
+    C = 120.0 # Sutherland's constant
+    R_specific = 287.052874
+    mu_ref = 1.827e-5
+    prandtl_number() = 0.72
+    gamma = 1.4
+
+    equations = CompressibleEulerEquations2D(gamma)
+    equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
+                                                              Prandtl = prandtl_number())
+
+    # Flow at rest
+    u = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)
+
+    # Comparison value from https://www.engineeringtoolbox.com/air-absolute-kinematic-viscosity-d_601.html at 18°C
+    @test isapprox(mu_control(u, equations_parabolic, T_ref, R_specific, C, mu_ref), 1.803e-5, atol=5e-8)
+end
 end
 
 end #module
