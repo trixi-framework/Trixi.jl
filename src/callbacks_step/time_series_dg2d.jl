@@ -102,10 +102,6 @@ function get_elements_by_coordinates!(element_ids, coordinates,
             # Otherwise point is in the current element
             element_ids[index] = element
             found_elements += 1
-
-            if mesh.element_is_curved[element] && mesh.polydeg > 1
-                @warn "A time series point inside a curved element may contain errors"
-            end
         end
 
         # Exit loop if all elements have already been found
@@ -209,8 +205,20 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
                 corners[i, j] = mesh.corners[j, mesh.element_node_ids[i, element]]
             end
             unit_coordinates = invert_bilinear_interpolation(mesh, x, corners)
+
+            # Sanity check that the computed `unit_coordinates` indeed recover the desired point `x`
+            x_check = straight_side_quad_map(unit_coordinates[1], unit_coordinates[2], corners)
+            if !isapprox(x[1], x_check[1], atol = 1e-13) || !isapprox(x[2], x_check[2], atol = 1e-13)
+                error("failed to compute computational coordinates for the time series point $(x)")
+            end
         else # mesh.element_is_curved[element]
             unit_coordinates = invert_transfinite_interpolation(mesh, x, view(mesh.surface_curves, :, element))
+
+            # Sanity check that the computed `unit_coordinates` indeed recover the desired point `x`
+            x_check = transfinite_quad_map(unit_coordinates[1], unit_coordinates[2], view(mesh.surface_curves, :, element))
+            if !isapprox(x[1], x_check[1], atol = 1e-13) || !isapprox(x[2], x_check[2], atol = 1e-13)
+                error("failed to compute computational coordinates for the time series point $(x)")
+            end
         end
 
         # TODO: debug statment for removal
