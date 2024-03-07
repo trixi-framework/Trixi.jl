@@ -100,7 +100,8 @@ coordinates_min = (0.0, 0.0)
 coordinates_max = (20_000.0, 10_000.0)
 
 cells_per_dimension = (64, 32)
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                      periodicity = (true, false))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, warm_bubble_setup, solver,
                                     source_terms = warm_bubble_setup,

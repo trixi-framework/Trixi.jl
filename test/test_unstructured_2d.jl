@@ -610,6 +610,76 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "FDSBP (upwind): elixir_euler_source_terms_upwind.jl" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
+                                 "elixir_euler_source_terms_upwind.jl"),
+                        l2=[4.085391175504837e-5,
+                            7.19179253772227e-5,
+                            7.191792537723135e-5,
+                            0.00021775241532855398],
+                        linf=[0.0004054489124620808,
+                            0.0006164432358217731,
+                            0.0006164432358186644,
+                            0.001363103391379461],
+                        tspan=(0.0, 0.05),
+                        atol=1.0e-10)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "FDSBP (upwind): elixir_euler_source_terms_upwind.jl with LF splitting" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
+                                 "elixir_euler_source_terms_upwind.jl"),
+                        l2=[3.8300267071890586e-5,
+                            5.295846741663533e-5,
+                            5.295846741663526e-5,
+                            0.00017564759295593478],
+                        linf=[0.00018810716496542312,
+                            0.0003794187430412599,
+                            0.0003794187430412599,
+                            0.0009632958510650269],
+                        tspan=(0.0, 0.025),
+                        flux_splitting=splitting_lax_friedrichs,
+                        atol=1.0e-10)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "FDSBP (upwind): elixir_euler_free_stream_upwind.jl" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
+                                 "elixir_euler_free_stream_upwind.jl"),
+                        l2=[3.2114065566681054e-14,
+                            2.132488788134846e-14,
+                            2.106144937311659e-14,
+                            8.609642264224197e-13],
+                        linf=[3.354871935812298e-11,
+                            7.006478730531285e-12,
+                            1.148153794261475e-11,
+                            9.041265514042607e-10],
+                        tspan=(0.0, 0.05),
+                        atol=1.0e-10)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
