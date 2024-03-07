@@ -94,7 +94,7 @@ function get_elements_by_coordinates!(element_ids, coordinates,
     for index in 1:length(element_ids)
         # Compute the distance between the current point and all the bary centers.
         for element in eachelement(dg, cache)
-           distances[element] = norm(coordinates[:, index] .- bary_centers[:, element])
+            distances[element] = norm(coordinates[:, index] .- bary_centers[:, element])
         end
 
         # Locate the minimal distance as this gives the element containing the point
@@ -104,12 +104,14 @@ function get_elements_by_coordinates!(element_ids, coordinates,
     return element_ids
 end
 
-# Use the avaiable `node_coordinates` on each element to compute and save the barycenter.
+# Use the available `node_coordinates` on each element to compute and save the barycenter.
 @inline function calc_bary_centers!(bary_centers, dg, cache)
     n = nnodes(dg)
     for element in eachelement(dg, cache)
-        bary_centers[1, element] = sum(cache.elements.node_coordinates[1,:,:,element]) / n^2
-        bary_centers[2, element] = sum(cache.elements.node_coordinates[2,:,:,element]) / n^2
+        bary_centers[1, element] = sum(cache.elements.node_coordinates[1, :, :,
+                                                                       element]) / n^2
+        bary_centers[2, element] = sum(cache.elements.node_coordinates[2, :, :,
+                                                                       element]) / n^2
     end
     return nothing
 end
