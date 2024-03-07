@@ -70,6 +70,11 @@ function get_elements_by_coordinates!(element_ids, coordinates, mesh::TreeMesh, 
     return element_ids
 end
 
+# Elements on an `UnstructuredMesh2D` are possibly curved. Assume that each
+# element is convex, i.e., all interior angles are less than 180 degrees.
+# We use the barycenter of each element to determine if a given coordinate (x,y)
+# lies within said element. The shortest distance between the point and all the
+# barycenters "wins".
 function get_elements_by_coordinates!(element_ids, coordinates,
                                       mesh::UnstructuredMesh2D,
                                       dg, cache)
@@ -79,69 +84,34 @@ function get_elements_by_coordinates!(element_ids, coordinates,
 
     # Reset element ids - 0 indicates "not (yet) found"
     element_ids .= 0
-    found_elements = 0
 
-    # Iterate over all elements
-    for element in eachelement(dg, cache)
+    # Compute and save the barycentric coordinate on each element
+    bary_centers = zeros(eltype(mesh.corners), 2, mesh.n_elements)
+    distances = zeros(eltype(mesh.corners), mesh.n_elements)
+    calc_bary_centers!(bary_centers, dg, cache)
 
-        # Iterate over coordinates
-        for index in 1:length(element_ids)
-            # Skip coordinates for which an element has already been found
-            if element_ids[index] > 0
-                continue
-            end
-
-            # Construct point
-            x = SVector(ntuple(i -> coordinates[i, index], ndims(mesh)))
-
-            # Skip if point is not in the current element
-            if !is_point_in_quad(mesh, x, element)
-                continue
-            end
-
-            # Otherwise point is in the current element
-            element_ids[index] = element
-            found_elements += 1
+    # Iterate over coordinates
+    for index in 1:length(element_ids)
+        # Compute the distance between the current point and all the bary centers.
+        for element in eachelement(dg, cache)
+           distances[element] = norm(coordinates[:, index] .- bary_centers[:, element])
         end
 
-        # Exit loop if all elements have already been found
-        if found_elements == length(element_ids)
-            break
-        end
+        # Locate the minimal distance as this gives the element containing the point
+        element_ids[index] = argmin(distances)
     end
 
     return element_ids
 end
 
-# For the `UnstructuredMesh2D` this uses a simple method assuming a convex
-# quadrilateral. It simply checks that the point lies on the "correct" side
-# of each of the quadrilateral's edges (basically a ray casting strategy).
-# Does not account for element curvature.
-# OBS! One possibility for a more robust (and maybe faster) algorithm would
-# be to replace this function with `inpolygon` from PolygonOps.jl
-@inline function is_point_in_quad(mesh::UnstructuredMesh2D, point, element)
-    # Helper array for the current quadrilateral element
-    corners = zeros(eltype(mesh.corners), 2, 4)
-
-    # Grab the four corners
-    for j in 1:2, i in 1:4
-        # pull the (x,y) values of these corners out of the global corners array
-        corners[j, i] = mesh.corners[j, mesh.element_node_ids[i, element]]
+# Use the avaiable `node_coordinates` on each element to compute and save the barycenter.
+@inline function calc_bary_centers!(bary_centers, dg, cache)
+    n = nnodes(dg)
+    for element in eachelement(dg, cache)
+        bary_centers[1, element] = sum(cache.elements.node_coordinates[1,:,:,element]) / n^2
+        bary_centers[2, element] = sum(cache.elements.node_coordinates[2,:,:,element]) / n^2
     end
-
-    if cross_product_2d(corners[:, 2] .- corners[:, 1], point .- corners[:, 1]) > 0 &&
-       cross_product_2d(corners[:, 3] .- corners[:, 2], point .- corners[:, 2]) > 0 &&
-       cross_product_2d(corners[:, 4] .- corners[:, 3], point .- corners[:, 3]) > 0 &&
-       cross_product_2d(corners[:, 1] .- corners[:, 4], point .- corners[:, 4]) > 0
-        return true
-    else
-        return false
-    end
-end
-
-# 2D cross product
-@inline function cross_product_2d(u, v)
-    return u[1] * v[2] - u[2] * v[1]
+    return nothing
 end
 
 function get_elements_by_coordinates(coordinates, mesh, dg, cache)
@@ -211,7 +181,7 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
                                              corners)
             if !isapprox(x[1], x_check[1], atol = 1e-13) ||
                !isapprox(x[2], x_check[2], atol = 1e-13)
-                error("failed to compute computational coordinates for the time series point $(x)")
+                error("failed to compute computational coordinates for the time series point $(x), closet candidate was $(x_check)")
             end
         else # mesh.element_is_curved[element]
             unit_coordinates = invert_transfinite_interpolation(mesh, x,
@@ -223,13 +193,9 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
                                            view(mesh.surface_curves, :, element))
             if !isapprox(x[1], x_check[1], atol = 1e-13) ||
                !isapprox(x[2], x_check[2], atol = 1e-13)
-                error("failed to compute computational coordinates for the time series point $(x)")
+                error("failed to compute computational coordinates for the time series point $(x), closet candidate was $(x_check)")
             end
         end
-
-        # TODO: debug statment for removal
-        println("point ", x, " has unit coordinates ", unit_coordinates, " in element ",
-                element_ids[index])
 
         # Calculate interpolating polynomial for each dimension, making use of tensor product structure
         for d in 1:ndims(mesh)
