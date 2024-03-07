@@ -253,8 +253,7 @@ end
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{1},
                                                                 StructuredMesh{1}},
                                                     boundary_conditions::Union{NamedTuple,
-                                                                               NTuple{2,
-                                                                                      Any}})
+                                                                               Tuple})
     check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
                                                  boundary_conditions[2])
 end
@@ -262,8 +261,7 @@ end
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{2},
                                                                 StructuredMesh{2}},
                                                     boundary_conditions::Union{NamedTuple,
-                                                                               NTuple{4,
-                                                                                      Any}})
+                                                                               Tuple})
     check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
                                                  boundary_conditions[2])
     check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
@@ -273,8 +271,7 @@ end
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{3},
                                                                 StructuredMesh{3}},
                                                     boundary_conditions::Union{NamedTuple,
-                                                                               NTuple{6,
-                                                                                      Any}})
+                                                                               Tuple})
     check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
                                                  boundary_conditions[2])
     check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
