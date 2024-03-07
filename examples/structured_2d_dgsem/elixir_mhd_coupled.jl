@@ -35,7 +35,7 @@ cells_per_dimension = (32, 64)
 import Trixi.flux_nonconservative_powell
 function flux_nonconservative_powell(u_ll, u_rr,
                                      normal_direction_ll::AbstractVector,
-				     equations::IdealGlmMhdEquations2D)
+                                     equations::IdealGlmMhdEquations2D)
     flux_nonconservative_powell(u_ll, u_rr, normal_direction_ll, normal_direction_ll,
                                 equations)
 end
@@ -53,7 +53,8 @@ coordinates_min1 = (-1 / sin(pi / 4), -1 / sin(pi / 4))
 coordinates_max1 = (0.0, 1 / sin(pi / 4))
 mesh1 = StructuredMesh(cells_per_dimension,
                        coordinates_min1,
-                       coordinates_max1)
+                       coordinates_max1,
+                       periodicity = (false, true))
 
 coupling_function1 = (x, u, equations_other, equations_own) -> u
 boundary_conditions1 = (x_neg = BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
@@ -75,7 +76,8 @@ coordinates_min2 = (0.0, -1 / sin(pi / 4))
 coordinates_max2 = (1 / sin(pi / 4), 1 / sin(pi / 4))
 mesh2 = StructuredMesh(cells_per_dimension,
                        coordinates_min2,
-                       coordinates_max2)
+                       coordinates_max2,
+                       periodicity = (false, true))
 
 coupling_function2 = (x, u, equations_other, equations_own) -> u
 boundary_conditions2 = (x_neg = BoundaryConditionCoupled(1, (:end, :i_forward), Float64,
