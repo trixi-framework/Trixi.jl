@@ -132,10 +132,10 @@ function is_point_in_quad(mesh::UnstructuredMesh2D, point, element)
         corners[j, i] = mesh.corners[j, mesh.element_node_ids[i, element]]
     end
 
-    if cross_product(corners[:, 2] .- corners[:, 1], point .- corners[:, 1]) > 0 &&
-       cross_product(corners[:, 3] .- corners[:, 2], point .- corners[:, 2]) > 0 &&
-       cross_product(corners[:, 4] .- corners[:, 3], point .- corners[:, 3]) > 0 &&
-       cross_product(corners[:, 1] .- corners[:, 4], point .- corners[:, 4]) > 0
+    if cross_product_2d(corners[:, 2] .- corners[:, 1], point .- corners[:, 1]) > 0 &&
+       cross_product_2d(corners[:, 3] .- corners[:, 2], point .- corners[:, 2]) > 0 &&
+       cross_product_2d(corners[:, 4] .- corners[:, 3], point .- corners[:, 3]) > 0 &&
+       cross_product_2d(corners[:, 1] .- corners[:, 4], point .- corners[:, 4]) > 0
         return true
     else
         return false
@@ -143,7 +143,7 @@ function is_point_in_quad(mesh::UnstructuredMesh2D, point, element)
 end
 
 # 2D cross product
-function cross_product(u, v)
+@inline function cross_product_2d(u, v)
     return u[1] * v[2] - u[2] * v[1]
 end
 
@@ -245,7 +245,7 @@ function inverse_bilinear_interpolation(mesh::UnstructuredMesh2D, point, element
     p4x = mesh.corners[1, mesh.element_node_ids[4, element]]
     p4y = mesh.corners[2, mesh.element_node_ids[4, element]]
 
-    # Initial guess for the point
+    # Initial guess for the point (center of the element)
     s = 0.5
     t = 0.5
     for k in 1:7 # Newton's method should converge quickly
