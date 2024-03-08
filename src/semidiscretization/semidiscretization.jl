@@ -28,12 +28,6 @@ running in parallel with MPI.
     ndofsglobal(mesh, solver, cache)
 end
 
-"""
-    ndofsglobal(mesh, solver, cache)
-
-Return the global number of degrees of freedom associated with each scalar variable.
-Defaults to ndofs when there is no special implementation for parallel computations.
-"""
 @inline function ndofsglobal(mesh, solver, cache)
     ndofs(mesh, solver, cache)
 end
