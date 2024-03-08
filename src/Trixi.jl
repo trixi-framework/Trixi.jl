@@ -161,7 +161,7 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
        ShallowWaterEquationsQuasi1D,
-       LinearizedEulerEquations2D,
+       LinearizedEulerEquations1D, LinearizedEulerEquations2D,
        PolytropicEulerEquations2D,
        TrafficFlowLWREquations1D
 
