@@ -198,6 +198,36 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_time_series.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_time_series.jl"),
+                        l2=[
+                            9.44589994864801e-5,
+                            7.375567345161402e-5,
+                            8.469037537040469e-5,
+                            0.0001638067441092813,
+                        ],
+                        linf=[
+                            0.0006797328621439558,
+                            0.00048723709312858965,
+                            0.0006701229224337357,
+                            0.0011917195110209278,
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+    # Extra tests to make sure the `TimeSeriesCallback` made correct data
+    point_data_1 = time_series.affect!.point_data[1]
+    @test all(isapprox.(point_data_1[1:4],
+                        [1.9548629504179071, 1.9548895017660788,
+                            1.954889292850916, 3.8217607623030623]))
+end
+
 @trixi_testset "elixir_acoustics_gauss_wall.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gauss_wall.jl"),
                         l2=[0.029330394861252995, 0.029345079728907965,
