@@ -102,6 +102,8 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
         end
     end
 
+    println("MaxAbsP: ", abs_p, "\ndt: ", dt, "\n")
+
     println("Concluded stability polynomial optimization \n")
 
     return evaluate(gamma), dt

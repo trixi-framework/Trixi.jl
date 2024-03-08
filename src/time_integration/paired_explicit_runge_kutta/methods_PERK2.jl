@@ -23,7 +23,7 @@ function compute_a_coeffs(num_stage_evals, se_factors, mon_coeffs)
     return reverse(a_coeffs)
 end
 
-function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretization, tspan,
+function compute_PERK2_butcher_tableau(num_stages, eig_vals, tspan,
                                        bS, c_end)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
@@ -44,8 +44,6 @@ function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretizat
     dtmax = tspan[2] - tspan[1]
     dteps = 1e-9
 
-    eig_vals = eigvals(jacobian_ad_forward(semi))
-
     num_eig_vals, eig_vals = filter_eigvals(eig_vals, filter_thres)
 
     mon_coeffs, dt_opt = bisection(cons_order, num_eig_vals, num_stages, dtmax, dteps,
@@ -62,7 +60,7 @@ function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretizat
     return a_matrix, c
 end
 
-function compute_PERK2_Butcher_tableau(num_stages, base_path_mon_coeffs::AbstractString,
+function compute_PERK2_butcher_tableau(num_stages, base_path_mon_coeffs::AbstractString,
                                        bS, c_end)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
@@ -110,12 +108,12 @@ mutable struct PERK2 <: PERKSingle
     b1::Float64
     c_end::Float64
 
-    #Constructor that read the coefficients from the file
+    # Constructor that read the coefficients from the file
     function PERK2(num_stages, base_path_mon_coeffs::AbstractString, bS = 1.0,
                    c_end = 0.5)
         newPERK2 = new(num_stages)
 
-        newPERK2.a_matrix, newPERK2.c = compute_PERK2_Butcher_tableau(num_stages,
+        newPERK2.a_matrix, newPERK2.c = compute_PERK2_butcher_tableau(num_stages,
                                                                       base_path_mon_coeffs,
                                                                       bS, c_end)
 
@@ -125,13 +123,29 @@ mutable struct PERK2 <: PERKSingle
         return newPERK2
     end
 
-    #Constructor that calculate the coefficients with polynomial optimizer
+    # Constructor that calculate the coefficients with polynomial optimizer from a semidiscretization
     function PERK2(num_stages, tspan, semi::AbstractSemidiscretization, bS = 1.0,
+                   c_end = 0.5)
+        eig_vals = eigvals(jacobian_ad_forward(semi))
+        newPERK2 = new(num_stages)
+
+        newPERK2.a_matrix, newPERK2.c = compute_PERK2_butcher_tableau(num_stages,
+                                                                      eig_vals, tspan,
+                                                                      bS, c_end)
+
+        newPERK2.b1 = one(bS) - bS
+        newPERK2.bS = bS
+        newPERK2.c_end = c_end
+        return newPERK2
+    end
+
+    # Constructor that calculate the coefficients with polynomial optimizer from a list of eigenvalues
+    function PERK2(num_stages, tspan, eig_vals::Vector{ComplexF64}, bS = 1.0,
                    c_end = 0.5)
         newPERK2 = new(num_stages)
 
-        newPERK2.a_matrix, newPERK2.c = compute_PERK2_Butcher_tableau(num_stages,
-                                                                      semi, tspan,
+        newPERK2.a_matrix, newPERK2.c = compute_PERK2_butcher_tableau(num_stages,
+                                                                      eig_vals, tspan,
                                                                       bS, c_end)
 
         newPERK2.b1 = one(bS) - bS
