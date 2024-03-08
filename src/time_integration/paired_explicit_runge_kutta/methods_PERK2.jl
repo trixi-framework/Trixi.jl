@@ -59,9 +59,6 @@ function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretizat
     a_matrix[:, 1] -= A
     a_matrix[:, 2] = A
 
-    println("A matrix: ")
-    display(a_matrix)
-    println()
 
     return a_matrix, c
 end
