@@ -280,26 +280,28 @@ function prolong2boundaries!(cache, u,
                              mesh::UnstructuredMesh2D,
                              equations, surface_integral, dg::DG)
     @unpack boundaries = cache
+    @unpack element_id, element_side_id = boundaries
+    boundaries_u = boundaries.u
 
     @threaded for boundary in eachboundary(dg, cache)
-        element = boundaries.element_id[boundary]
-        side = boundaries.element_side_id[boundary]
+        element = element_id[boundary]
+        side = element_side_id[boundary]
 
         if side == 1
             for l in eachnode(dg), v in eachvariable(equations)
-                boundaries.u[v, l, boundary] = u[v, l, 1, element]
+                boundaries_u[v, l, boundary] = u[v, l, 1, element]
             end
         elseif side == 2
             for l in eachnode(dg), v in eachvariable(equations)
-                boundaries.u[v, l, boundary] = u[v, nnodes(dg), l, element]
+                boundaries_u[v, l, boundary] = u[v, nnodes(dg), l, element]
             end
         elseif side == 3
             for l in eachnode(dg), v in eachvariable(equations)
-                boundaries.u[v, l, boundary] = u[v, l, nnodes(dg), element]
+                boundaries_u[v, l, boundary] = u[v, l, nnodes(dg), element]
             end
         else # side == 4
             for l in eachnode(dg), v in eachvariable(equations)
-                boundaries.u[v, l, boundary] = u[v, 1, l, element]
+                boundaries_u[v, l, boundary] = u[v, 1, l, element]
             end
         end
     end
