@@ -19,6 +19,9 @@ end
     ndofsglobal(semi::AbstractSemidiscretization)
 
 Return the global number of degrees of freedom associated with each scalar variable.
+This is the same as [`ndofs`](@ref) for simulations running in serial or
+parallelized via threads. It will in general be different for simulations
+running in parallel with MPI.
 """
 @inline function ndofsglobal(semi::AbstractSemidiscretization)
     mesh, _, solver, cache = mesh_equations_solver_cache(semi)
