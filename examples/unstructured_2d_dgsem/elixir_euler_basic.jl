@@ -58,15 +58,11 @@ save_solution = SaveSolutionCallback(interval = 10,
 
 stepsize_callback = StepsizeCallback(cfl = 0.9)
 
-time_series = TimeSeriesCallback(semi, [(2.0, -0.5), (0.28, 1 / 3), (1.87, 2 / 3)];
-                                 interval = 10)
-
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_restart,
                         save_solution,
-                        time_series,
                         stepsize_callback)
 
 ###############################################################################
