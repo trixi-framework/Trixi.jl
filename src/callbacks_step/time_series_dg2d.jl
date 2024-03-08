@@ -109,12 +109,23 @@ function get_elements_by_coordinates!(element_ids, coordinates,
                                                            dg, mesh)
 
         # Get the candidate elements where the `point` might live
-        candidates = findall( abs.(minimum(distances) .- distances) .< 500 * eps(eltype(point)) )
+        candidates = findall(abs.(minimum(distances) .- distances) .<
+                             500 * eps(eltype(point)))
 
         # The minimal surface point is on a boundary so it plays no role which candidate
         # we use to grab it. So just use the first one
-        surface_point = SVector(cache.elements.node_coordinates[1, indices[candidates[1], 1], indices[candidates[1], 2], candidates[1]],
-                                cache.elements.node_coordinates[2, indices[candidates[1], 1], indices[candidates[1], 2], candidates[1]])
+        surface_point = SVector(cache.elements.node_coordinates[1,
+                                                                indices[candidates[1],
+                                                                        1],
+                                                                indices[candidates[1],
+                                                                        2],
+                                                                candidates[1]],
+                                cache.elements.node_coordinates[2,
+                                                                indices[candidates[1],
+                                                                        1],
+                                                                indices[candidates[1],
+                                                                        2],
+                                                                candidates[1]])
 
         # Compute the vector pointing from the current `point` toward the surface
         P = surface_point .- point
@@ -129,7 +140,7 @@ function get_elements_by_coordinates!(element_ids, coordinates,
         # Loop through all the element candidates until we find a vector from the barycenter
         # to the surface that points in the same direction as the current `point` vector.
         # This then gives us the correct element.
-        for element = 1:length(candidates)
+        for element in 1:length(candidates)
             bary_center = SVector(bary_centers[1, candidates[element]],
                                   bary_centers[2, candidates[element]])
             # Vector pointing from the barycenter toward the minimal `surface_point`
@@ -163,22 +174,24 @@ end
 # OBS! Could be made more accuracte if the `node_coordinates` were super-sampled
 # and reinterpolated onto a higher polynomial degree before this computation.
 function calc_minimum_surface_distance(point, node_coordinates,
-                                        dg, mesh::UnstructuredMesh2D)
+                                       dg, mesh::UnstructuredMesh2D)
     n = nnodes(dg)
     hmin2 = Inf * ones(eltype(mesh.corners), length(mesh))
     indices = zeros(Int, length(mesh), 2)
-    for k = 1:length(mesh)
+    for k in 1:length(mesh)
         # used to ensure that only boundary points are used
         on_surface = [false, false]
-        for j = 1:n
+        for j in 1:n
             on_surface[2] = (j == 1) || (j == n)
-            for i = 1:n
+            for i in 1:n
                 on_surface[1] = (i == 1) || (i == n)
                 if !any(on_surface)
                     continue
                 end
-                if sum((node_coordinates[:, i, j, k] - point) .* (node_coordinates[:, i, j, k] - point)) < hmin2[k]
-                    hmin2[k] = sum((node_coordinates[:, i, j, k] - point) .* (node_coordinates[:, i, j, k] - point))
+                if sum((node_coordinates[:, i, j, k] - point) .*
+                       (node_coordinates[:, i, j, k] - point)) < hmin2[k]
+                    hmin2[k] = sum((node_coordinates[:, i, j, k] - point) .*
+                                   (node_coordinates[:, i, j, k] - point))
                     indices[k, 1] = i
                     indices[k, 2] = j
                 end
@@ -187,7 +200,7 @@ function calc_minimum_surface_distance(point, node_coordinates,
     end
 
     return hmin2, indices
- end
+end
 
 function get_elements_by_coordinates(coordinates, mesh, dg, cache)
     element_ids = Vector{Int}(undef, size(coordinates, 2))
