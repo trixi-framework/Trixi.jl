@@ -46,6 +46,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback,
 ###############################################################################
 # run the simulation
 
+# Construct second order P-ERK method with 6 stages for 
+# given simulation setup
 ode_algorithm = PERK2(6, semi)
 
 sol = Trixi.solve(ode, ode_algorithm,
