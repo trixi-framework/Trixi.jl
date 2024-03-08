@@ -72,9 +72,13 @@ end
 
 # Elements on an `UnstructuredMesh2D` are possibly curved. Assume that each
 # element is convex, i.e., all interior angles are less than 180 degrees.
-# We use the barycenter of each element to determine if a given coordinate (x,y)
-# lies within said element. The shortest distance between the point and all the
-# barycenters "wins".
+# This routine computes the shortest distance from a given point to each element
+# surface in the mesh. These distances then indicate possible candidate elements.
+# From these candidates we (essentially) apply a ray casting strategy and identify
+# the element in which the point lies by comparing the ray formed by the point to
+# the nearest boundary to the rays cast by the candidate element barycenters to the
+# boundary. If these rays point in the same direction, then we have identified the
+# desired element location.
 function get_elements_by_coordinates!(element_ids, coordinates,
                                       mesh::UnstructuredMesh2D,
                                       dg, cache)
@@ -90,20 +94,50 @@ function get_elements_by_coordinates!(element_ids, coordinates,
     calc_bary_centers!(bary_centers, dg, cache)
 
     # Iterate over coordinates
+    distances = zeros(eltype(mesh.corners), mesh.n_elements)
+    indices = zeros(Int, mesh.n_elements, 2)
     for index in 1:length(element_ids)
-        point = SVector(coordinates[1, index], 
+        # Grab the current point for which the element needs found
+        point = SVector(coordinates[1, index],
                         coordinates[2, index])
-        
-        # Search for the element with minimal distance between the point
-        # we are interested in and the barycenter of the element.
-        element_ids[index] = argmin(eachelement(dg, cache)) do element
-            bary_center = SVector(bary_centers[1, element],
-                                  bary_centers[2, element])
-            # Compute the squared Euclidean distance between the point we are
-            # interested in and the barycenter of the element.
-            # We compute the squared norm to avoid computing computationally
-            # more expensive square roots.
-            sum(abs2, point - bary_center)
+
+        # Compute the minimum distance between the `point` and all the element surfaces
+        # saved into `distances`. The point in `node_coordinates` that gives said minimum
+        # distance on each element is saved in `indices`
+        distances, indices = calc_minimum_surface_distance(point,
+                                                           cache.elements.node_coordinates,
+                                                           dg, mesh)
+
+        # Get the candidate elements where the `point` might live
+        candidates = findall( abs.(minimum(distances) .- distances) .< 500 * eps(eltype(point)) )
+
+        # The minimal surface point is on a boundary so it plays no role which candidate
+        # we use to grab it. So just use the first one
+        surface_point = SVector(cache.elements.node_coordinates[1, indices[candidates[1], 1], indices[candidates[1], 2], candidates[1]],
+                                cache.elements.node_coordinates[2, indices[candidates[1], 1], indices[candidates[1], 2], candidates[1]])
+
+        # Compute the vector pointing from the current `point` toward the surface
+        P = surface_point .- point
+
+        # If the vector `P` is the zero vector then this `point` is at an element corner or
+        # on a surface. So any candidate element works, just use the first one
+        if sum(P .* P) < 500 * eps(eltype(point))
+            element_ids[index] = candidates[1]
+            continue
+        end
+
+        # Loop through all the element candidates until we find a vector from the barycenter
+        # to the surface that points in the same direction as the current `point` vector.
+        # This then gives us the correct element.
+        for element = 1:length(candidates)
+            bary_center = SVector(bary_centers[1, candidates[element]],
+                                  bary_centers[2, candidates[element]])
+            # Vector pointing from the barycenter toward the minimal `surface_point`
+            B = surface_point .- bary_center
+            if sum(P .* B) > zero(eltype(bary_center))
+                element_ids[index] = candidates[element]
+                break
+            end
         end
     end
 
@@ -121,6 +155,39 @@ end
     end
     return nothing
 end
+
+# Compute the shortest distance from a `point` to the surface of each element
+# using the available `node_coordinates`. Also return the index pair of this
+# minimum surface point location. We compute the squared norm to avoid
+# computing computationally more expensive square roots.
+# OBS! Could be made more accuracte if the `node_coordinates` were super-sampled
+# and reinterpolated onto a higher polynomial degree before this computation.
+function calc_minimum_surface_distance(point, node_coordinates,
+                                        dg, mesh::UnstructuredMesh2D)
+    n = nnodes(dg)
+    hmin2 = Inf * ones(eltype(mesh.corners), length(mesh))
+    indices = zeros(Int, length(mesh), 2)
+    for k = 1:length(mesh)
+        # used to ensure that only boundary points are used
+        on_surface = [false, false]
+        for j = 1:n
+            on_surface[2] = (j == 1) || (j == n)
+            for i = 1:n
+                on_surface[1] = (i == 1) || (i == n)
+                if !any(on_surface)
+                    continue
+                end
+                if sum((node_coordinates[:, i, j, k] - point) .* (node_coordinates[:, i, j, k] - point)) < hmin2[k]
+                    hmin2[k] = sum((node_coordinates[:, i, j, k] - point) .* (node_coordinates[:, i, j, k] - point))
+                    indices[k, 1] = i
+                    indices[k, 2] = j
+                end
+            end
+        end
+    end
+
+    return hmin2, indices
+ end
 
 function get_elements_by_coordinates(coordinates, mesh, dg, cache)
     element_ids = Vector{Int}(undef, size(coordinates, 2))
@@ -188,9 +255,8 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
             # Sanity check that the computed `unit_coordinates` indeed recover the desired point `x`
             x_check = straight_side_quad_map(unit_coordinates[1], unit_coordinates[2],
                                              corners)
-            if !isapprox(x[1], x_check[1], atol = 1e-13) ||
-               !isapprox(x[2], x_check[2], atol = 1e-13)
-                error("failed to compute computational coordinates for the time series point $(x), closest candidate was $(x_check)")
+            if !isapprox(x[1], x_check[1]) || !isapprox(x[2], x_check[2])
+                error("failed to compute computational coordinates for the time series point $(x), closet candidate was $(x_check)")
             end
         else # mesh.element_is_curved[element]
             unit_coordinates = invert_transfinite_interpolation(mesh, x,
@@ -200,9 +266,8 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
             # Sanity check that the computed `unit_coordinates` indeed recover the desired point `x`
             x_check = transfinite_quad_map(unit_coordinates[1], unit_coordinates[2],
                                            view(mesh.surface_curves, :, element))
-            if !isapprox(x[1], x_check[1], atol = 1e-13) ||
-               !isapprox(x[2], x_check[2], atol = 1e-13)
-                error("failed to compute computational coordinates for the time series point $(x), closest candidate was $(x_check)")
+            if !isapprox(x[1], x_check[1]) || !isapprox(x[2], x_check[2])
+                error("failed to compute computational coordinates for the time series point $(x), closet candidate was $(x_check)")
             end
         end
 
@@ -218,12 +283,12 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
 end
 
 # Use a Newton iteration to determine the computational coordinates
-# (xi, eta) of given (x,y) `point` that is given in physical coordinates
+# (xi, eta) of an (x,y) `point` that is given in physical coordinates
 # by inverting the transformation. For straight-sided elements this
 # amounts to inverting a bi-linear interpolation. For curved
 # elements we invert the transfinite interpolation with linear blending.
 # The residual function for the Newton iteration is
-#    r(xi,eta) = X(xi,eta) - point
+#    r(xi, eta) = X(xi, eta) - point
 # and the Jacobian entries are computed accordingly from either
 # `straight_side_quad_map_metrics` or `transfinite_quad_map_metrics`.
 # We exploit the 2x2 nature of the problem and directly compute the matrix
