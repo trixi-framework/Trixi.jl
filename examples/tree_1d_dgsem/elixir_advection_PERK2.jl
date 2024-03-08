@@ -46,9 +46,12 @@ callbacks = CallbackSet(summary_callback, analysis_callback,
 ###############################################################################
 # run the simulation
 
+# Define tspan to calculate maximum time step allowed for the bisection algorithm used in calculate polynomial coefficients in ODE algorithm
+tspan = [0.0, 1.0]
+
 # Construct second order P-ERK method with 6 stages for 
 # given simulation setup
-ode_algorithm = PERK2(6, semi)
+ode_algorithm = PERK2(6, tspan, semi)
 
 sol = Trixi.solve(ode, ode_algorithm,
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

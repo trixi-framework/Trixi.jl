@@ -3,27 +3,6 @@ using ECOS
 using Convex
 const MOI = Convex.MOI
 
-function read_in_eig_vals(path_to_eval_file)
-    # Declare and set to some value
-    num_eig_vals = -1
-    open(path_to_eval_file, "r") do eval_file
-        num_eig_vals = countlines(eval_file)
-    end
-    eig_vals = Array{Complex{Float64}}(undef, num_eig_vals)
-    line_index = 0
-    open(path_to_eval_file, "r") do eval_file
-        # Read till end of file
-        while !eof(eval_file)
-            # Read a new / next line for every iteration          
-            line_content = readline(eval_file)
-            eig_vals[line_index + 1] = parse(Complex{Float64}, line_content)
-            line_index += 1
-        end
-    end
-
-    return num_eig_vals, eig_vals
-end
-
 function filter_eigvals(eig_vals, threshold)
     filtered_eigvals_counter = 0
     filtered_eig_vals = Complex{Float64}[]
@@ -60,8 +39,8 @@ function polynoms(cons_order, num_stage_evals, num_eig_vals,
     return maximum(abs(pnoms))
 end
 
-function bisection(cons_order, num_eig_vals, num_stage_evals, dt_max, dt_eps, eig_vals)
-    dt_min = 0.0
+function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_vals)
+    dtmin = 0.0
     dt = -1.0
     abs_p = -1.0
 
@@ -84,8 +63,8 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dt_max, dt_eps, ei
 
     println("Start optimization of stability polynomial \n")
 
-    while dt_max - dt_min > dt_eps
-        dt = 0.5 * (dt_max + dt_min)
+    while dtmax - dtmin > dteps
+        dt = 0.5 * (dtmax + dtmin)
 
         for k in 1:num_stage_evals
             dt_k = dt^k
@@ -116,12 +95,10 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dt_max, dt_eps, ei
 
         abs_p = problem.optval
 
-        println("MaxAbsP: ", abs_p, "\ndt: ", dt, "\n")
-
         if abs_p < 1.0
-            dt_min = dt
+            dtmin = dt
         else
-            dt_max = dt
+            dtmax = dt
         end
     end
 

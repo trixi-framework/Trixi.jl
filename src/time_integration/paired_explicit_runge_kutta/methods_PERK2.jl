@@ -23,7 +23,7 @@ function compute_a_coeffs(num_stage_evals, se_factors, mon_coeffs)
     return reverse(a_coeffs)
 end
 
-function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretization,
+function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretization, tspan,
                                        bS, c_end)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
@@ -41,14 +41,14 @@ function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretizat
 
     cons_order = 2
     filter_thres = 1e-12
-    dtmax = 1.0
-    dt_eps = 1e-9
+    dtmax = tspan[2] - tspan[1]
+    dteps = 1e-9
 
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
     num_eig_vals, eig_vals = filter_eigvals(eig_vals, filter_thres)
 
-    mon_coeffs, dt_opt = bisection(cons_order, num_eig_vals, num_stages, dtmax, dt_eps,
+    mon_coeffs, dt_opt = bisection(cons_order, num_eig_vals, num_stages, dtmax, dteps,
                                    eig_vals)
     mon_coeffs = undo_normalization!(cons_order, num_stages, mon_coeffs)
 
@@ -58,7 +58,6 @@ function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretizat
 
     a_matrix[:, 1] -= A
     a_matrix[:, 2] = A
-
 
     return a_matrix, c
 end
@@ -86,7 +85,6 @@ function compute_PERK2_Butcher_tableau(num_stages, base_path_mon_coeffs::Abstrac
 
     a_matrix[:, 1] -= A
     a_matrix[:, 2] = A
-
 
     return a_matrix, c
 end
@@ -128,11 +126,12 @@ mutable struct PERK2 <: PERKSingle
     end
 
     #Constructor that calculate the coefficients with polynomial optimizer
-    function PERK2(num_stages, semi::AbstractSemidiscretization, bS = 1.0, c_end = 0.5)
+    function PERK2(num_stages, tspan, semi::AbstractSemidiscretization, bS = 1.0,
+                   c_end = 0.5)
         newPERK2 = new(num_stages)
 
         newPERK2.a_matrix, newPERK2.c = compute_PERK2_Butcher_tableau(num_stages,
-                                                                      semi,
+                                                                      semi, tspan,
                                                                       bS, c_end)
 
         newPERK2.b1 = one(bS) - bS
