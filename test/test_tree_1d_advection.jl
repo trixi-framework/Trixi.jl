@@ -81,6 +81,20 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_advection_PERK2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_PERK2.jl"),
+                        l2=[0.011662300515980219],
+                        linf=[0.01647256923710194])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 end # module
