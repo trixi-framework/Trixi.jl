@@ -103,7 +103,6 @@ time_series = TimeSeriesCallback(semi,
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
-                        save_solution,
                         time_series,
                         alive_callback)
 
