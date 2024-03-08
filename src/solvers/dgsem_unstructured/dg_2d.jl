@@ -95,49 +95,51 @@ function prolong2interfaces!(cache, u,
                              mesh::UnstructuredMesh2D,
                              equations, surface_integral, dg::DG)
     @unpack interfaces = cache
+    @unpack element_ids, element_side_ids = interfaces
+    interfaces_u = interfaces.u
 
     @threaded for interface in eachinterface(dg, cache)
-        primary_element = interfaces.element_ids[1, interface]
-        secondary_element = interfaces.element_ids[2, interface]
+        primary_element = element_ids[1, interface]
+        secondary_element = element_ids[2, interface]
 
-        primary_side = interfaces.element_side_ids[1, interface]
-        secondary_side = interfaces.element_side_ids[2, interface]
+        primary_side = element_side_ids[1, interface]
+        secondary_side = element_side_ids[2, interface]
 
         if primary_side == 1
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[1, v, i, interface] = u[v, i, 1, primary_element]
+                interfaces_u[1, v, i, interface] = u[v, i, 1, primary_element]
             end
         elseif primary_side == 2
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[1, v, i, interface] = u[v, nnodes(dg), i, primary_element]
+                interfaces_u[1, v, i, interface] = u[v, nnodes(dg), i, primary_element]
             end
         elseif primary_side == 3
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[1, v, i, interface] = u[v, i, nnodes(dg), primary_element]
+                interfaces_u[1, v, i, interface] = u[v, i, nnodes(dg), primary_element]
             end
         else # primary_side == 4
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[1, v, i, interface] = u[v, 1, i, primary_element]
+                interfaces_u[1, v, i, interface] = u[v, 1, i, primary_element]
             end
         end
 
         if secondary_side == 1
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[2, v, i, interface] = u[v, i, 1, secondary_element]
+                interfaces_u[2, v, i, interface] = u[v, i, 1, secondary_element]
             end
         elseif secondary_side == 2
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[2, v, i, interface] = u[v, nnodes(dg), i,
+                interfaces_u[2, v, i, interface] = u[v, nnodes(dg), i,
                                                      secondary_element]
             end
         elseif secondary_side == 3
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[2, v, i, interface] = u[v, i, nnodes(dg),
+                interfaces_u[2, v, i, interface] = u[v, i, nnodes(dg),
                                                      secondary_element]
             end
         else # secondary_side == 4
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[2, v, i, interface] = u[v, 1, i, secondary_element]
+                interfaces_u[2, v, i, interface] = u[v, 1, i, secondary_element]
             end
         end
     end
