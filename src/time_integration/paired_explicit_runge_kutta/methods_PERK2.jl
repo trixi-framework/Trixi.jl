@@ -31,9 +31,6 @@ function compute_PERK2_Butcher_tableau(num_stages, semi::AbstractSemidiscretizat
     for k in 2:num_stages
         c[k] = c_end * (k - 1) / (num_stages - 1)
     end
-    println("Timestep-split: ")
-    display(c)
-    println("\n")
     se_factors = bS * reverse(c[2:(end - 1)])
 
     # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
