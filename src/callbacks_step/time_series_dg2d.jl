@@ -156,6 +156,9 @@ function get_elements_by_coordinates!(element_ids, coordinates,
 end
 
 # Use the available `node_coordinates` on each element to compute and save the barycenter.
+# In essence, the barycenter is like an average where all the x and y node coordinates are
+# summed and then we divide by the total number of degrees of freedom on the element, i.e.,
+# the value of `n^2` in two spatial dimensions.
 @inline function calc_bary_centers!(bary_centers, dg, cache)
     n = nnodes(dg)
     @views for element in eachelement(dg, cache)
