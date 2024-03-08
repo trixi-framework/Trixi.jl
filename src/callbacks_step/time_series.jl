@@ -24,7 +24,8 @@ The real data type `RealT` and data type for solution variables `uEltype` defaul
 types used in the solver and the cache.
 
 !!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
+    This is an experimental feature and may change in future releases. Currently this callback
+    is only implemented for [`TreeMesh`](@ref) in 2D and [`UnstructuredMesh2D`](@ref).
 """
 mutable struct TimeSeriesCallback{RealT <: Real, uEltype <: Real, SolutionVariables,
                                   VariableNames, Cache}
