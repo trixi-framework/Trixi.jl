@@ -66,8 +66,8 @@ callbacks = CallbackSet(summary_callback,
                         alive_callback,
                         save_restart,
                         save_solution,
-                        stepsize_callback,
-                        time_series)
+                        time_series,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation

@@ -87,18 +87,24 @@ function get_elements_by_coordinates!(element_ids, coordinates,
 
     # Compute and save the barycentric coordinate on each element
     bary_centers = zeros(eltype(mesh.corners), 2, mesh.n_elements)
-    distances = zeros(eltype(mesh.corners), mesh.n_elements)
     calc_bary_centers!(bary_centers, dg, cache)
 
     # Iterate over coordinates
     for index in 1:length(element_ids)
-        # Compute the distance between the current point and all the bary centers.
-        for element in eachelement(dg, cache)
-            distances[element] = norm(coordinates[:, index] .- bary_centers[:, element])
+        point = SVector(coordinates[1, index], 
+                        coordinates[2, index])
+        
+        # Search for the element with minimal distance between the point
+        # we are interested in and the barycenter of the element.
+        element_ids[index] = argmin(eachelement(dg, cache)) do element
+            bary_center = SVector(bary_centers[1, element],
+                                  bary_centers[2, element])
+            # Compute the squared Euclidean distance between the point we are
+            # interested in and the barycenter of the element.
+            # We compute the squared norm to avoid computing computationally
+            # more expensive square roots.
+            sum(abs2, point - bary_center)
         end
-
-        # Locate the minimal distance as this gives the element containing the point
-        element_ids[index] = argmin(distances)
     end
 
     return element_ids
@@ -107,7 +113,7 @@ end
 # Use the available `node_coordinates` on each element to compute and save the barycenter.
 @inline function calc_bary_centers!(bary_centers, dg, cache)
     n = nnodes(dg)
-    for element in eachelement(dg, cache)
+    @views for element in eachelement(dg, cache)
         bary_centers[1, element] = sum(cache.elements.node_coordinates[1, :, :,
                                                                        element]) / n^2
         bary_centers[2, element] = sum(cache.elements.node_coordinates[2, :, :,
@@ -176,6 +182,7 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
                 # Pull the (x,y) values of the element corners from the global corners array
                 corners[i, j] = mesh.corners[j, mesh.element_node_ids[i, element]]
             end
+            # Compute coordinates in reference system
             unit_coordinates = invert_bilinear_interpolation(mesh, x, corners)
 
             # Sanity check that the computed `unit_coordinates` indeed recover the desired point `x`
@@ -183,7 +190,7 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
                                              corners)
             if !isapprox(x[1], x_check[1], atol = 1e-13) ||
                !isapprox(x[2], x_check[2], atol = 1e-13)
-                error("failed to compute computational coordinates for the time series point $(x), closet candidate was $(x_check)")
+                error("failed to compute computational coordinates for the time series point $(x), closest candidate was $(x_check)")
             end
         else # mesh.element_is_curved[element]
             unit_coordinates = invert_transfinite_interpolation(mesh, x,
@@ -195,7 +202,7 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
                                            view(mesh.surface_curves, :, element))
             if !isapprox(x[1], x_check[1], atol = 1e-13) ||
                !isapprox(x[2], x_check[2], atol = 1e-13)
-                error("failed to compute computational coordinates for the time series point $(x), closet candidate was $(x_check)")
+                error("failed to compute computational coordinates for the time series point $(x), closest candidate was $(x_check)")
             end
         end
 
@@ -241,6 +248,7 @@ end
         # Newton update that directly applies the inverse of the 2x2 Jacobian matrix
         inv_detJ = inv(J11 * J22 - J12 * J21)
 
+        # Update with explicitly inverted Jacobian
         xi = xi - inv_detJ * (J22 * r1 - J12 * r2)
         eta = eta - inv_detJ * (-J21 * r1 + J11 * r2)
 
@@ -270,6 +278,7 @@ end
         # Newton update that directly applies the inverse of the 2x2 Jacobian matrix
         inv_detJ = inv(J11 * J22 - J12 * J21)
 
+        # Update with explicitly inverted Jacobian
         xi = xi - inv_detJ * (J22 * r1 - J12 * r2)
         eta = eta - inv_detJ * (-J21 * r1 + J11 * r2)
 
