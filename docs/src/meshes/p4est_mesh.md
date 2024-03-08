@@ -256,7 +256,7 @@ By doing so, only nodesets with a label present in `boundary_symbols` are treate
 Other nodesets that could be used for diagnostics are not treated as external boundaries.
 Note that there is a leading colon `:` compared to the label in the `.inp` mesh file.
 This is required to turn the label into a [`Symbol`](https://docs.julialang.org/en/v1/manual/metaprogramming/#Symbols).
-**Important**: In JUlia, a symbol _cannot_ contain a hyphen/dash `-`, i.e., `:BC-1` is _not_ a valid symbol.
+**Important**: In Julia, a symbol _cannot_ contain a hyphen/dash `-`, i.e., `:BC-1` is _not_ a valid symbol.
 Keep this in mind when importing boundaries, you might have to convert hyphens/dashes `-` to underscores `_`, i.e., `BC_1`.
 
 A 2D example for this mesh, which is read-in for an unstructured mesh file created with `gmsh`, is presented in 
