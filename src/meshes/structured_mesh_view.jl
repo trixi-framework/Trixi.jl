@@ -21,7 +21,8 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
 
     # Calculate the domain boundaries.
     cells_per_dimension = index_max .- index_min .+ 1
-    deltas = (parent.mapping.coordinates_max .- parent.mapping.coordinates_min)./parent.cells_per_dimension
+    deltas = (parent.mapping.coordinates_max .- parent.mapping.coordinates_min) ./
+             parent.cells_per_dimension
     coordinates_min = parent.mapping.coordinates_min .+ deltas .* (index_min .- 1)
     coordinates_max = parent.mapping.coordinates_min .+ deltas .* index_max
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
@@ -31,9 +32,11 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
         mapping = coordinates2mapping(coordinates_min, coordinates_max)
         """
 
-    return StructuredMeshView{NDIMS, RealT}(parent, cells_per_dimension, mapping, mapping_as_string,
+    return StructuredMeshView{NDIMS, RealT}(parent, cells_per_dimension, mapping,
+                                            mapping_as_string,
                                             parent.current_filename,
-                                            index_min, index_max, parent.unsaved_changes)
+                                            index_min, index_max,
+                                            parent.unsaved_changes)
 
     # return StructuredMeshView{NDIMS, RealT}(parent, parent.mapping,
     #                                         parent.mapping_as_string,
@@ -86,7 +89,7 @@ function calc_node_coordinates!(node_coordinates, element,
     for j in eachnode(basis), i in eachnode(basis)
         # node_coordinates are the mapped reference node_coordinates
         node_coordinates[:, i, j, element] .= mapping(cell_x_offset + dx / 2 * nodes[i],
-                                                        cell_y_offset + dy / 2 * nodes[j])
-    end                 
+                                                      cell_y_offset + dy / 2 * nodes[j])
+    end
 end
 end # @muladd
