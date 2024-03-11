@@ -88,6 +88,7 @@ analysis_callback1 = AnalysisCallback(semi1, interval=100)
 analysis_callback2 = AnalysisCallback(semi2, interval=100)
 analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback1, analysis_callback2)
 
+analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
