@@ -20,20 +20,20 @@ cells_per_dimension = (64,)
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 # Linearized Euler: Eigensystem
-LinEuler_EigVals = [v_0 - c_0; v_0; v_0 + c_0]
-LinEuler_EigVecs = [-rho_0/c_0 1 rho_0/c_0;
+lin_euler_eigvals = [v_0 - c_0; v_0; v_0 + c_0]
+lin_euler_eigvecs = [-rho_0/c_0 1 rho_0/c_0;
                     1 0 1;
                     -rho_0*c_0 0 rho_0*c_0]
-LinEuler_EigVecs_inv = inv(LinEuler_EigVecs)
+lin_euler_eigvecs_inv = inv(lin_euler_eigvecs)
 
 # Trace back characteristics. 
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf, p.95
 function compute_char_initial_pos(x, t)
-    return SVector(x[1], x[1], x[1]) .- t * LinEuler_EigVals
+    return SVector(x[1], x[1], x[1]) .- t * lin_euler_eigvals
 end
 
 function compute_primal_sol(char_vars)
-    return LinEuler_EigVecs * char_vars
+    return lin_euler_eigvecs * char_vars
 end
 
 # Initial condition is in principle arbitrary, only periodicity is required
@@ -66,9 +66,10 @@ function initial_condition_char_vars(x, t, equations::LinearizedEulerEquations1D
 
     # Set up characteristic variables
     w = zeros(3)
+    t_0 = 0 # Assumes t_0 = 0
     for p in 1:3
-        w[p] = dot(LinEuler_EigVecs_inv[p, :],
-                   initial_condition_entropy_wave(x_char[p], 0, equations)) # Assumes t_0 = 0
+        u_char = initial_condition_entropy_wave(x_char[p], t_0, equations) 
+        w[p] = dot(lin_euler_eigvecs_inv[p, :], u_char)
     end
 
     return compute_primal_sol(w)
