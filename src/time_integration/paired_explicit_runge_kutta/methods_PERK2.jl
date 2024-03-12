@@ -11,7 +11,7 @@ abstract type PERK end
 abstract type PERKSingle <: PERK end
 
 function compute_a_coeffs(num_stage_evals, bc_factors, mon_coeffs)
-    a_coeffs = mon_coeffs
+    a_coeffs = copy(mon_coeffs)
 
     for stage in 1:(num_stage_evals - 2)
         a_coeffs[stage] /= bc_factors[stage]
