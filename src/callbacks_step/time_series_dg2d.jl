@@ -128,7 +128,7 @@ function get_elements_by_coordinates!(element_ids, coordinates,
                                                                 candidates[1]])
 
         # Compute the vector pointing from the current `point` toward the surface
-        P = surface_point .- point
+        P = surface_point - point
 
         # If the vector `P` is the zero vector then this `point` is at an element corner or
         # on a surface. In this case the choice of a candidate element is ambiguous and
@@ -146,7 +146,7 @@ function get_elements_by_coordinates!(element_ids, coordinates,
             bary_center = SVector(bary_centers[1, candidates[element]],
                                   bary_centers[2, candidates[element]])
             # Vector pointing from the barycenter toward the minimal `surface_point`
-            B = surface_point .- bary_center
+            B = surface_point - bary_center
             if sum(P .* B) > zero(eltype(bary_center))
                 element_ids[index] = candidates[element]
                 break
@@ -185,7 +185,7 @@ function calc_minimum_surface_distance(point, node_coordinates,
     indices = zeros(Int, length(mesh), 2)
     for k in 1:length(mesh)
         # used to ensure that only boundary points are used
-        on_surface = [false, false]
+        on_surface = MVector(false, false)
         for j in 1:n
             on_surface[2] = (j == 1) || (j == n)
             for i in 1:n
@@ -193,8 +193,11 @@ function calc_minimum_surface_distance(point, node_coordinates,
                 if !any(on_surface)
                     continue
                 end
-                if sum((node_coordinates[:, i, j, k] - point) .^ 2) < min_distance[k]
-                    min_distance[k] = sum((node_coordinates[:, i, j, k] - point) .^ 2)
+                node = SVector(node_coordinates[1, i, j, k],
+                               node_coordinates[2, i, j, k])
+                distance2 = sum(abs2, node - point)
+                if distance2 < min_distance[k]
+                    min_distance[k] = distance2
                     indices[k, 1] = i
                     indices[k, 2] = j
                 end
