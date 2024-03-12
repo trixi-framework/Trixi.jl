@@ -181,7 +181,7 @@ end
 function calc_minimum_surface_distance(point, node_coordinates,
                                        dg, mesh::UnstructuredMesh2D)
     n = nnodes(dg)
-    min_distance = Inf * ones(eltype(mesh.corners), length(mesh))
+    min_distance2 = Inf * ones(eltype(mesh.corners), length(mesh))
     indices = zeros(Int, length(mesh), 2)
     for k in 1:length(mesh)
         # used to ensure that only boundary points are used
@@ -196,8 +196,8 @@ function calc_minimum_surface_distance(point, node_coordinates,
                 node = SVector(node_coordinates[1, i, j, k],
                                node_coordinates[2, i, j, k])
                 distance2 = sum(abs2, node - point)
-                if distance2 < min_distance[k]
-                    min_distance[k] = distance2
+                if distance2 < min_distance2[k]
+                    min_distance2[k] = distance2
                     indices[k, 1] = i
                     indices[k, 2] = j
                 end
@@ -205,7 +205,7 @@ function calc_minimum_surface_distance(point, node_coordinates,
         end
     end
 
-    return min_distance_squared, indices
+    return min_distance2, indices
 end
 
 function get_elements_by_coordinates(coordinates, mesh, dg, cache)
