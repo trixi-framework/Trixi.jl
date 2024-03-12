@@ -96,6 +96,11 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
         throw(ArgumentError("`point_coordinates` must be a matrix of size n_points × ndims"))
     end
 
+    # create the output folder if it does not exist already
+    if mpi_isroot() && !isdir(output_directory)
+        mkpath(output_directory)
+    end
+
     # Transpose point_coordinates to our usual format [ndims, n_points]
     # Note: They are accepted in a different format to allow direct input from `readdlm`
     point_coordinates_ = permutedims(point_coordinates)
