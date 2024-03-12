@@ -174,14 +174,14 @@ end
 
 # Compute the shortest distance from a `point` to the surface of each element
 # using the available `node_coordinates`. Also return the index pair of this
-# minimum surface point location. We compute the squared norm to avoid
-# computing computationally more expensive square roots.
+# minimum surface point location. We compute and store in `min_distance`
+# the squared norm to avoid computing computationally more expensive square roots.
 # Note! Could be made more accurate if the `node_coordinates` were super-sampled
 # and reinterpolated onto a higher polynomial degree before this computation.
 function calc_minimum_surface_distance(point, node_coordinates,
                                        dg, mesh::UnstructuredMesh2D)
     n = nnodes(dg)
-    min_distance_squared = Inf * ones(eltype(mesh.corners), length(mesh))
+    min_distance = Inf * ones(eltype(mesh.corners), length(mesh))
     indices = zeros(Int, length(mesh), 2)
     for k in 1:length(mesh)
         # used to ensure that only boundary points are used
@@ -193,8 +193,8 @@ function calc_minimum_surface_distance(point, node_coordinates,
                 if !any(on_surface)
                     continue
                 end
-                if sum((node_coordinates[:, i, j, k] - point).^2) < min_distance_squared[k]
-                    min_distance_squared[k] = sum((node_coordinates[:, i, j, k] - point).^2)
+                if sum((node_coordinates[:, i, j, k] - point) .^ 2) < min_distance[k]
+                    min_distance[k] = sum((node_coordinates[:, i, j, k] - point) .^ 2)
                     indices[k, 1] = i
                     indices[k, 2] = j
                 end
