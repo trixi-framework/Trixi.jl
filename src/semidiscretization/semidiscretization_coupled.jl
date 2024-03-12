@@ -466,9 +466,7 @@ function allocate_coupled_boundary_condition(boundary_condition, direction, mesh
 end
 
 # In 2D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{
-                                                                                          2
-                                                                                          },
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2},
                                              direction, mesh, equations, dg::DGSEM)
     if direction in (1, 2)
         cell_size = size(mesh, 2)

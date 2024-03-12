@@ -53,14 +53,18 @@ coupling_function = (x, u, equations_other, equations_own) -> u
 # Define the coupled boundary conditions
 boundary_conditions1 = (
                         # Connect left boundary with right boundary of left mesh
-                        x_neg = BoundaryConditionCoupled(2, (:end, :i_forward), Float64, coupling_function),
-                        x_pos = BoundaryConditionCoupled(2, (:begin, :i_forward), Float64, coupling_function),
+                        x_neg = BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
+                                                         coupling_function),
+                        x_pos = BoundaryConditionCoupled(2, (:begin, :i_forward), Float64,
+                                                         coupling_function),
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
 boundary_conditions2 = (
                         # Connect left boundary with right boundary of left mesh
-                        x_neg = BoundaryConditionCoupled(1, (:end, :i_forward), Float64, coupling_function),
-                        x_pos = BoundaryConditionCoupled(1, (:begin, :i_forward), Float64, coupling_function),
+                        x_neg = BoundaryConditionCoupled(1, (:end, :i_forward), Float64,
+                                                         coupling_function),
+                        x_pos = BoundaryConditionCoupled(1, (:begin, :i_forward), Float64,
+                                                         coupling_function),
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
 
@@ -84,24 +88,25 @@ ode = semidiscretize(semi, (0.0, 1.0));
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback1 = AnalysisCallback(semi1, interval=100)
-analysis_callback2 = AnalysisCallback(semi2, interval=100)
+analysis_callback1 = AnalysisCallback(semi1, interval = 100)
+analysis_callback2 = AnalysisCallback(semi2, interval = 100)
 analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback1, analysis_callback2)
 
 analysis_interval = 100
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
-save_solution = SaveSolutionCallback(interval=100,
-                                     save_initial_solution=true,
-                                     save_final_solution=true,
-                                     solution_variables=cons2prim)
+save_solution = SaveSolutionCallback(interval = 100,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=1.6)
+stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation

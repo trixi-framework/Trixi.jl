@@ -260,7 +260,7 @@ end
 
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{2},
                                                                 StructuredMesh{2},
-								StructuredMeshView{2}},
+                                                                StructuredMeshView{2}},
                                                     boundary_conditions::Union{NamedTuple,
                                                                                Tuple})
     check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
