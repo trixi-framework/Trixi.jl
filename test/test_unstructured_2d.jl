@@ -221,11 +221,6 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
-    # Extra test to make sure the `TimeSeriesCallback` made correct data
-    point_data_1 = time_series.affect!.point_data[1]
-    @test all(isapprox.(point_data_1[1:4],
-                        [1.9548629504179071, 1.9548895017660788,
-                            1.954889292850916, 3.8217607623030623]))
 end
 
 @trixi_testset "elixir_acoustics_gauss_wall.jl" begin

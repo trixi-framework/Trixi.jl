@@ -600,6 +600,7 @@ end
 end
 
 @timed_testset "TimeSeriesCallback" begin
+    # Test the 2D TreeMesh version of the callback and some warnings
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "tree_2d_dgsem",
                                             "elixir_acoustics_gaussian_source.jl"),
@@ -615,6 +616,16 @@ end
     @test_nowarn show(stdout, time_series)
     @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval = -1)
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
+    # Test the 2D unstructured mesh version of the callback
+    @test_nowarn_mod trixi_include(@__MODULE__,
+                                   joinpath(examples_dir(), "unstructured_2d_dgsem",
+                                            "elixir_euler_time_series.jl"),
+                                   tspan = (0.0, 0.2))
+
+    point_data_1 = time_series.affect!.point_data[1]
+    @test all(isapprox.(point_data_1[1:4],
+                        [ 1.9548629504390056, 1.9548895017871935,
+                            1.9548892928720158, 3.821760762385351]))
 end
 
 @timed_testset "Consistency check for single point flux: CEMCE" begin
