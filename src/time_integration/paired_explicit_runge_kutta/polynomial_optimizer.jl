@@ -17,8 +17,9 @@ function filter_eigvals(eig_vals, threshold)
         end
     end
 
-    println("$filtered_eigvals_counter eigenvalue(s) are not passed on because they either are in magnitude smaller than $threshold, \n
-    have positive real parts, or have negative imaginary parts")
+    println("$filtered_eigvals_counter eigenvalue(s) are not passed on because " *
+            "they either are in magnitude smaller than $threshold, have positive " *
+            "real parts, or have negative imaginary parts.\n")
 
     return length(filtered_eig_vals), filtered_eig_vals
 end
