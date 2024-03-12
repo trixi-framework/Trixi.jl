@@ -22,8 +22,8 @@ mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 # Linearized Euler: Eigensystem
 lin_euler_eigvals = [v_0 - c_0; v_0; v_0 + c_0]
 lin_euler_eigvecs = [-rho_0/c_0 1 rho_0/c_0;
-                    1 0 1;
-                    -rho_0*c_0 0 rho_0*c_0]
+                     1 0 1;
+                     -rho_0*c_0 0 rho_0*c_0]
 lin_euler_eigvecs_inv = inv(lin_euler_eigvecs)
 
 # Trace back characteristics. 
@@ -68,7 +68,7 @@ function initial_condition_char_vars(x, t, equations::LinearizedEulerEquations1D
     w = zeros(3)
     t_0 = 0 # Assumes t_0 = 0
     for p in 1:3
-        u_char = initial_condition_entropy_wave(x_char[p], t_0, equations) 
+        u_char = initial_condition_entropy_wave(x_char[p], t_0, equations)
         w[p] = dot(lin_euler_eigvecs_inv[p, :], u_char)
     end
 
