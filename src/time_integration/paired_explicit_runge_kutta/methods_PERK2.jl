@@ -10,11 +10,11 @@ abstract type PERK end
 # Abstract base type for single/standalone P-ERK time integration schemes
 abstract type PERKSingle <: PERK end
 
-function compute_a_coeffs(num_stage_evals, se_factors, mon_coeffs)
+function compute_a_coeffs(num_stage_evals, bc_factors, mon_coeffs)
     a_coeffs = mon_coeffs
 
     for stage in 1:(num_stage_evals - 2)
-        a_coeffs[stage] /= se_factors[stage]
+        a_coeffs[stage] /= bc_factors[stage]
         for prev_stage in 1:(stage - 1)
             a_coeffs[stage] /= a_coeffs[prev_stage]
         end
@@ -31,7 +31,7 @@ function compute_PERK2_butcher_tableau(num_stages, eig_vals, tspan,
     for k in 2:num_stages
         c[k] = c_end * (k - 1) / (num_stages - 1)
     end
-    se_factors = bS * reverse(c[2:(end - 1)])
+    bc_factors = bS * reverse(c[2:(end - 1)])
 
     # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
     coeffs_max = num_stages - 2
@@ -52,7 +52,7 @@ function compute_PERK2_butcher_tableau(num_stages, eig_vals, tspan,
 
     num_mon_coeffs = length(mon_coeffs)
     @assert num_mon_coeffs == coeffs_max
-    A = compute_a_coeffs(num_stages, se_factors, mon_coeffs)
+    A = compute_a_coeffs(num_stages, bc_factors, mon_coeffs)
 
     a_matrix[:, 1] -= A
     a_matrix[:, 2] = A
@@ -68,7 +68,7 @@ function compute_PERK2_butcher_tableau(num_stages, base_path_mon_coeffs::Abstrac
     for k in 2:num_stages
         c[k] = c_end * (k - 1) / (num_stages - 1)
     end
-    se_factors = bS * reverse(c[2:(end - 1)])
+    bc_factors = bS * reverse(c[2:(end - 1)])
 
     # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
     coeffs_max = num_stages - 2
@@ -79,7 +79,7 @@ function compute_PERK2_butcher_tableau(num_stages, base_path_mon_coeffs::Abstrac
     path_mon_coeffs = base_path_mon_coeffs * "gamma_" * string(num_stages) * ".txt"
     num_mon_coeffs, mon_coeffs = read_file(path_mon_coeffs, Float64)
     @assert num_mon_coeffs == coeffs_max
-    A = compute_a_coeffs(num_stages, se_factors, mon_coeffs)
+    A = compute_a_coeffs(num_stages, bc_factors, mon_coeffs)
 
     a_matrix[:, 1] -= A
     a_matrix[:, 2] = A

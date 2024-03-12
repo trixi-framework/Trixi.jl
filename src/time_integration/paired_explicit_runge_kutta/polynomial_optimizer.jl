@@ -8,20 +8,23 @@ function filter_eigvals(eig_vals, threshold)
     filtered_eig_vals = Complex{Float64}[]
 
     for eig_val in eig_vals
-        if abs(eig_val) < threshold
+        # Filter out eigenvalues with positive real parts, those with negative imaginary parts due to eigenvalues' symmetry
+        # around real axis, or the eigenvalues that are too small.
+        if real(eig_val) > 0 || imag(eig_val) < 0 || abs(eig_val) < threshold
             filtered_eigvals_counter += 1
         else
             push!(filtered_eig_vals, eig_val)
         end
     end
 
-    println("$filtered_eigvals_counter eigenvalue(s) are not passed on because they are in magnitude smaller than $threshold \n")
+    println("$filtered_eigvals_counter eigenvalue(s) are not passed on because they either are in magnitude smaller than $threshold, \n
+    have positive real parts, or have negative imaginary parts")
 
     return length(filtered_eig_vals), filtered_eig_vals
 end
 
-function polynoms(cons_order, num_stage_evals, num_eig_vals,
-                  normalized_powered_eigvals_scaled, pnoms, gamma::Variable)
+function stability_polynomials(cons_order, num_stage_evals, num_eig_vals,
+                               normalized_powered_eigvals_scaled, pnoms, gamma::Variable)
     for i in 1:num_eig_vals
         pnoms[i] = 1.0
     end
@@ -38,6 +41,19 @@ function polynoms(cons_order, num_stage_evals, num_eig_vals,
 
     return maximum(abs(pnoms))
 end
+
+"""
+    bisection()
+
+The following structures and methods provide a simplified implementation to 
+discover optimally stable polynomial approximations of the exponential function. 
+These are designed for the one-step integration of initial value ordinary 
+and partial differential equations.
+
+- Ketcheson and Ahmadia (2012).
+Optimal stability polynomials for numerical integration of initial value problems
+[DOI: 10.2140/camcos.2012.7.247](https://doi.org/10.2140/camcos.2012.7.247)
+"""
 
 function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_vals)
     dtmin = 0.0
@@ -75,8 +91,9 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
         end
 
         # Use last optimal values for gamma in (potentially) next iteration
-        problem = minimize(polynoms(cons_order, num_stage_evals, num_eig_vals,
-                                    normalized_powered_eigvals_scaled, pnoms, gamma))
+        problem = minimize(stability_polynomials(cons_order, num_stage_evals, num_eig_vals,
+                                                 normalized_powered_eigvals_scaled, pnoms,
+                                                 gamma))
 
         Convex.solve!(problem,
                       # Parameters taken from default values for EiCOS
