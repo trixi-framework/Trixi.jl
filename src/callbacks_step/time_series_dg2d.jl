@@ -131,7 +131,9 @@ function get_elements_by_coordinates!(element_ids, coordinates,
         P = surface_point .- point
 
         # If the vector `P` is the zero vector then this `point` is at an element corner or
-        # on a surface. So any candidate element works, just use the first one
+        # on a surface. In this case the choice of a candidate element is ambiguous and
+        # we just use the first candidate. However, solutions might differ at discontinuous
+        # interfaces such that this choice may influence the result.
         if sum(P .* P) < 500 * eps(eltype(point))
             element_ids[index] = candidates[1]
             continue
@@ -174,12 +176,12 @@ end
 # using the available `node_coordinates`. Also return the index pair of this
 # minimum surface point location. We compute the squared norm to avoid
 # computing computationally more expensive square roots.
-# OBS! Could be made more accuracte if the `node_coordinates` were super-sampled
+# Note! Could be made more accurate if the `node_coordinates` were super-sampled
 # and reinterpolated onto a higher polynomial degree before this computation.
 function calc_minimum_surface_distance(point, node_coordinates,
                                        dg, mesh::UnstructuredMesh2D)
     n = nnodes(dg)
-    hmin2 = Inf * ones(eltype(mesh.corners), length(mesh))
+    min_distance_squared = Inf * ones(eltype(mesh.corners), length(mesh))
     indices = zeros(Int, length(mesh), 2)
     for k in 1:length(mesh)
         # used to ensure that only boundary points are used
@@ -191,10 +193,8 @@ function calc_minimum_surface_distance(point, node_coordinates,
                 if !any(on_surface)
                     continue
                 end
-                if sum((node_coordinates[:, i, j, k] - point) .*
-                       (node_coordinates[:, i, j, k] - point)) < hmin2[k]
-                    hmin2[k] = sum((node_coordinates[:, i, j, k] - point) .*
-                                   (node_coordinates[:, i, j, k] - point))
+                if sum((node_coordinates[:, i, j, k] - point).^2) < min_distance_squared[k]
+                    min_distance_squared[k] = sum((node_coordinates[:, i, j, k] - point).^2)
                     indices[k, 1] = i
                     indices[k, 2] = j
                 end
@@ -202,7 +202,7 @@ function calc_minimum_surface_distance(point, node_coordinates,
         end
     end
 
-    return hmin2, indices
+    return min_distance_squared, indices
 end
 
 function get_elements_by_coordinates(coordinates, mesh, dg, cache)

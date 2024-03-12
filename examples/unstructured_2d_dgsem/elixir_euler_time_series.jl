@@ -2,7 +2,7 @@
 # the `TimeSeriesCallback` on several gauge points. Many of the
 # gauge points are selected as "stress tests" for the element
 # identification, e.g., a gauge point that lies on an
-# element corner of a curvlinear mesh
+# element corner of a curvilinear mesh
 
 using OrdinaryDiffEq
 using Trixi
