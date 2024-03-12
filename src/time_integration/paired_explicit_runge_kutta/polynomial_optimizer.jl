@@ -25,20 +25,24 @@ end
 
 function stability_polynomials(cons_order, num_stage_evals, num_eig_vals,
                                normalized_powered_eigvals_scaled, pnoms, gamma::Variable)
+    # Initialize with zero'th order (z^0) coefficient
     for i in 1:num_eig_vals
         pnoms[i] = 1.0
     end
 
+    # First `cons_order` terms of the exponential
     for k in 1:cons_order
         for i in 1:num_eig_vals
             pnoms[i] += normalized_powered_eigvals_scaled[i, k]
         end
     end
 
+    # Contribution from free coefficients
     for k in (cons_order + 1):num_stage_evals
         pnoms += gamma[k - cons_order] * normalized_powered_eigvals_scaled[:, k]
     end
 
+    # For optimization only the maximum is relevant
     return maximum(abs(pnoms))
 end
 
@@ -46,8 +50,8 @@ end
     bisection()
 
 The following structures and methods provide a simplified implementation to 
-discover optimally stable polynomial approximations of the exponential function. 
-These are designed for the one-step integration of initial value ordinary 
+discover optimal stability polynomial for a given set of `eig_vals`
+These are designed for the one-step (i.e., Runge-Kutta methods) integration of initial value ordinary 
 and partial differential equations.
 
 - Ketcheson and Ahmadia (2012).
@@ -60,6 +64,7 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
     dt = -1.0
     abs_p = -1.0
 
+    # Construct stability polynomial for each eigenvalue
     pnoms = ones(Complex{Float64}, num_eig_vals, 1)
 
     # Init datastructure for results
@@ -82,6 +87,7 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
     while dtmax - dtmin > dteps
         dt = 0.5 * (dtmax + dtmin)
 
+        # Compute stability polynomial for current timestep
         for k in 1:num_stage_evals
             dt_k = dt^k
             for i in 1:num_eig_vals
@@ -118,9 +124,6 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
             dtmax = dt
         end
     end
-
-    println("MaxAbsP: ", abs_p, "\ndt: ", dt, "\n")
-
     println("Concluded stability polynomial optimization \n")
 
     return evaluate(gamma), dt

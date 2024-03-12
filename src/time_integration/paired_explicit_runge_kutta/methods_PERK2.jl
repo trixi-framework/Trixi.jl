@@ -108,7 +108,7 @@ mutable struct PERK2 <: PERKSingle
     b1::Float64
     c_end::Float64
 
-    # Constructor that read the coefficients from the file
+    # Constructor that reads the coefficients from a file
     function PERK2(num_stages, base_path_mon_coeffs::AbstractString, bS = 1.0,
                    c_end = 0.5)
         newPERK2 = new(num_stages)
@@ -123,7 +123,7 @@ mutable struct PERK2 <: PERKSingle
         return newPERK2
     end
 
-    # Constructor that calculate the coefficients with polynomial optimizer from a semidiscretization
+    # Constructor that calculates the coefficients with polynomial optimizer from a semidiscretization
     function PERK2(num_stages, tspan, semi::AbstractSemidiscretization, bS = 1.0,
                    c_end = 0.5)
         eig_vals = eigvals(jacobian_ad_forward(semi))
@@ -139,7 +139,7 @@ mutable struct PERK2 <: PERKSingle
         return newPERK2
     end
 
-    # Constructor that calculate the coefficients with polynomial optimizer from a list of eigenvalues
+    # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
     function PERK2(num_stages, tspan, eig_vals::Vector{ComplexF64}, bS = 1.0,
                    c_end = 0.5)
         newPERK2 = new(num_stages)
