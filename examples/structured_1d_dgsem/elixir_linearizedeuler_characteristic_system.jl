@@ -4,7 +4,7 @@ using LinearAlgebra: dot
 using Trixi
 
 ###############################################################################
-# semidiscretization of the 1 linearized Euler equations
+# semidiscretization of the linearized Euler equations
 
 rho_0 = 1.0
 v_0 = 1.0

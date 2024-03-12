@@ -12,7 +12,7 @@ Linearized euler equations in one space dimension. The equations are given by
 ```math
 \partial_t
 \begin{pmatrix}
-    \rho' \\ v_1' \\ \\ p'
+    \rho' \\ v_1' \\ p'
 \end{pmatrix}
 +
 \partial_x
@@ -21,11 +21,11 @@ Linearized euler equations in one space dimension. The equations are given by
 \end{pmatrix}
 =
 \begin{pmatrix}
-    0 \\ 0 \\ 0 \\ 0
+    0 \\ 0 \\ 0
 \end{pmatrix}
 ```
 The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and c is the speed of sound.
-The unknowns are the acoustic velocities ``v' = (v_1', v_2')``, the pressure ``p'`` and the density ``\rho'``.
+The unknowns are the acoustic velocity ``v_1'``, the pressure ``p'`` and the density ``\rho'``.
 """
 struct LinearizedEulerEquations1D{RealT <: Real} <:
        AbstractLinearizedEulerEquations{1, 3}
@@ -46,7 +46,7 @@ function LinearizedEulerEquations1D(v_mean_global::Real,
                                       rho_mean_global)
 end
 
-# Constructor with keywords (note the leading ';)
+# Constructor with keywords (note the leading ';')
 function LinearizedEulerEquations1D(; v_mean_global::Real,
                                     c_mean_global::Real, rho_mean_global::Real)
     return LinearizedEulerEquations1D(v_mean_global, c_mean_global,
