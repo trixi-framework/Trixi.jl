@@ -34,6 +34,38 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_dgsem")
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+    # Extra test to make sure the "TimeSeriesCallback" made correct data.
+    # Extracts data at all points from the first step of the time series and compares it to the 
+    # exact solution and an interpolated reference solution
+    point_data = [getindex(time_series.affect!.point_data[i], 1:5) for i in 1:3]
+    exact_data = [initial_condition_convergence_test(time_series.affect!.point_coordinates[:,
+                                                                                           i],
+                                                     time_series.affect!.time[1],
+                                                     equations) for i in 1:3]
+    ref_data = [
+        [
+            1.9053441545123802,
+            1.9053448755267233,
+            1.905344875526724,
+            1.9053448755267266,
+            3.6303259410202022,
+        ],
+        [
+            2.0956374376888744,
+            2.095637084878075,
+            2.0956370848780743,
+            2.095637084878072,
+            4.391698734498684,
+        ],
+        [
+            2.0946764789674774,
+            2.0946781952809355,
+            2.094678195280935,
+            2.0946781952809324,
+            4.3876634952412505,
+        ]]
+    @test point_data≈exact_data atol=1e-1
+    @test point_data ≈ ref_data
 end
 
 @trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
