@@ -533,9 +533,16 @@ function T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, t
     # TODO: Init?!
     boundary_names = fill(Symbol("---"), 2 * NDIMS, num_trees)
 
+    coords_ref = Vector{Cdouble}(undef, NDIMS)
+    coords_tree = Vector{Cdouble}(undef, NDIMS)
     for itree in 1:num_trees
-        # TODO fill tree_node_coordinates
-
+        for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
+            coords_ref[1] = nodes[i]
+            coords_ref[2] = nodes[j]
+            coords_ref[3] = nodes[k]
+            t8_geometry_evaluate(cmesh, itree, coords_ref, NDIMS, coords_tree)
+            tree_node_coordinates[:, i, j, k, itree] .= coords_tree
+        end
 
         # TODO: z-direction == radial directon in each tree?
         boundary_names[5, itree] = :inside
