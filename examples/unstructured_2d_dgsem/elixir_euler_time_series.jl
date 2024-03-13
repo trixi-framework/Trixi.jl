@@ -69,7 +69,7 @@ solver = DGSEM(polydeg = 6, surface_flux = flux_lax_friedrichs)
 ###############################################################################
 # Get the curved quad mesh from a file (downloads the file if not available locally)
 
-mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/b434e724e3972a9c4ee48d58c80cdcdb/raw/9a967f066bc5bf081e77ef2519b3918e40a964ed/mesh_multiple_flips.mesh",
+mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/b434e724e3972a9c4ee48d58c80cdcdb/raw/55c916cd8c0294a2d4a836e960dac7247b7c8ccf/mesh_multiple_flips.mesh",
                            joinpath(@__DIR__, "mesh_multiple_flips.mesh"))
 
 mesh = UnstructuredMesh2D(mesh_file, periodicity = true)
