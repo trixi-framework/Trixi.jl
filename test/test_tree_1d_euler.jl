@@ -30,6 +30,11 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+    # Extra test to make sure the "TimeSeriesCallback" made correct data.
+    # Extracts data at all points from the first step of the time series and compares it to the exact solution.
+    point_data = [getindex(time_series.affect!.point_data[i], 1:3) for i=1:3]
+    ref_data = [initial_condition_convergence_test(time_series.affect!.point_coordinates[i], time_series.affect!.time[1], equations) for i=1:3]
+    @test point_data ≈ ref_data atol=1e-6
 end
 
 @trixi_testset "elixir_euler_convergence_pure_fv.jl" begin

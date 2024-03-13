@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Creates cache for time series callback
-function create_cache_time_series(point_coordinates, mesh::TreeMesh{2}, dg, cache)
+function create_cache_time_series(point_coordinates, mesh::TreeMesh, dg, cache)
     # Determine element ids for point coordinates
     element_ids = get_elements_by_coordinates(point_coordinates, mesh, dg, cache)
 
@@ -119,6 +119,36 @@ function calc_interpolating_polynomials(coordinates, element_ids, mesh::TreeMesh
 end
 
 # Record the solution variables at each given point
+function record_state_at_points!(point_data, u, solution_variables,
+                                 n_solution_variables,
+                                 mesh::TreeMesh{1}, equations, dg::DG,
+                                 time_series_cache)
+    @unpack element_ids, interpolating_polynomials = time_series_cache
+    old_length = length(first(point_data))
+    new_length = old_length + n_solution_variables
+
+    # Loop over all points/elements that should be recorded
+    for index in 1:length(element_ids)
+        # Extract data array and element id
+        data = point_data[index]
+        element_id = element_ids[index]
+
+        # Make room for new data to be recorded
+        resize!(data, new_length)
+        data[(old_length + 1):new_length] .= zero(eltype(data))
+
+        # Loop over all nodes to compute their contribution to the interpolated values
+        for i in eachnode(dg)
+            u_node = solution_variables(get_node_vars(u, equations, dg, i,
+                                                      element_id), equations)
+
+            for v in 1:length(u_node)
+                data[old_length + v] += (u_node[v] * interpolating_polynomials[i, 1, index])
+            end
+        end
+    end
+end
+
 function record_state_at_points!(point_data, u, solution_variables,
                                  n_solution_variables,
                                  mesh::TreeMesh{2}, equations, dg::DG,
