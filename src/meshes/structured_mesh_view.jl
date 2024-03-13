@@ -5,6 +5,11 @@
 @muladd begin
 #! format: noindent
 
+"""
+    StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
+
+A view on a structured curved mesh.
+"""
 mutable struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
     parent::StructuredMesh{NDIMS, RealT}
     cells_per_dimension::NTuple{NDIMS, Int}
@@ -16,6 +21,16 @@ mutable struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
     unsaved_changes::Bool
 end
 
+"""
+    StructuredMeshView(parent; index_min, index_max)
+
+Create a StructuredMeshView on a StructuredMesh parent.
+
+# Arguments
+- `parent`: the parent StructuredMesh.
+- `index_min`: starting indices of the parent mesh.
+- `index_max`: ending indices of the parent mesh.
+"""
 function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
                             index_min = ntuple(_ -> 1, Val(NDIMS)),
                             index_max = size(parent)) where {NDIMS, RealT}
