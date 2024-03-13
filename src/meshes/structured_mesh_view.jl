@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
 
@@ -37,12 +41,6 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
                                             parent.current_filename,
                                             index_min, index_max,
                                             parent.unsaved_changes)
-
-    # return StructuredMeshView{NDIMS, RealT}(parent, parent.mapping,
-    #                                         parent.mapping_as_string,
-    #                                         parent.current_filename,
-    #                                         index_min, index_max,
-    #                                         parent.unsaved_changes)
 end
 
 # Check if mesh is periodic
