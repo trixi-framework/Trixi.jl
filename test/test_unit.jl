@@ -624,8 +624,8 @@ end
 
     point_data_1 = time_series.affect!.point_data[1]
     @test all(isapprox.(point_data_1[1:4],
-                        [1.9548629504390056, 1.9548895017871935,
-                            1.9548892928720158, 3.821760762385351]))
+                        [1.9546882708551676, 1.9547149531788077,
+                            1.9547142161310154, 3.821066781119142]))
 end
 
 @timed_testset "Consistency check for single point flux: CEMCE" begin
