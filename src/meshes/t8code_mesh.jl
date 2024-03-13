@@ -475,6 +475,76 @@ function T8codeMesh(meshfile::String, ndims; kwargs...)
     return T8codeMesh(cmesh; kwargs...)
 end
 
+"""
+T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
+                         polydeg, RealT=Float64,
+                         initial_refinement_level=0, unsaved_changes=true,
+                         p4est_partition_allow_for_coarsening=true)
+
+Construct a cubed spherical shell of given inner radius and thickness
+as `T8codeMesh` with `6 * trees_per_face_dimension^2 * layers` trees.
+
+The mesh will have two boundaries, `:inside` and `:outside`.
+
+# Arguments
+- `trees_per_face_dimension::Integer`: the number of trees in the first two local dimensions of
+                                       each face.
+num_levels         Number of trees per patch in longitudinal and latitudinal direction
+                                                          given as level of refinement: 4^num_levels.
+
+- `layers::Integer`: the number of trees in the third local dimension of each face, i.e., the number
+                     of layers of the shell.
+    
+- `inner_radius::Integer`: Radius of the inner side of the shell.
+- `thickness::Integer`: Thickness of the shell. The outer radius will be `inner_radius + thickness`.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+- `RealT::Type`: the type that should be used for coordinates.
+- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+
+"""
+function T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
+                              polydeg, RealT = Float64,
+                              initial_refinement_level = 0, unsaved_changes = true,
+                              p4est_partition_allow_for_coarsening = true)
+
+    # TODO: 3D only
+    NDIMS = 3
+
+    # TODO: is trees_per_face_dimension the same as num_levels?
+    cmesh = t8_cmesh_new_cubed_spherical_shell(inner_radius, thickness,
+                                               trees_per_face_dimension, layers, mpi_comm())
+
+    do_face_ghost = mpi_isparallel()
+    scheme = t8_scheme_new_default_cxx()
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
+                                   mpi_comm())
+
+    basis = LobattoLegendreBasis(RealT, polydeg)
+    nodes = basis.nodes
+
+    num_trees = t8_cmesh_get_num_trees(cmesh)
+
+    tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
+                                                    ntuple(_ -> length(nodes), NDIMS)...,
+                                                    num_trees)
+
+    # TODO: Init?!
+    boundary_names = fill(Symbol("---"), 2 * NDIMS, num_trees)
+
+    for itree in 1:num_trees
+        # TODO fill tree_node_coordinates
+
+
+        # TODO: z-direction == radial directon in each tree?
+        boundary_names[5, itree] = :inside
+        boundary_names[6, itree] = :outside
+    end
+
+    return T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes, boundary_names, "")
+end
+
 struct adapt_callback_passthrough
     adapt_callback::Function
     user_data::Any
