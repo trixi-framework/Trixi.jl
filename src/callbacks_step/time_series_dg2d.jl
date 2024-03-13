@@ -143,7 +143,8 @@ function record_state_at_points!(point_data, u, solution_variables,
                                                       element_id), equations)
 
             for v in 1:length(u_node)
-                data[old_length + v] += (u_node[v] * interpolating_polynomials[i, 1, index])
+                data[old_length + v] += (u_node[v] *
+                                         interpolating_polynomials[i, 1, index])
             end
         end
     end
@@ -176,6 +177,39 @@ function record_state_at_points!(point_data, u, solution_variables,
                 data[old_length + v] += (u_node[v]
                                          * interpolating_polynomials[i, 1, index]
                                          * interpolating_polynomials[j, 2, index])
+            end
+        end
+    end
+end
+
+function record_state_at_points!(point_data, u, solution_variables,
+                                 n_solution_variables,
+                                 mesh::TreeMesh{3}, equations, dg::DG,
+                                 time_series_cache)
+    @unpack element_ids, interpolating_polynomials = time_series_cache
+    old_length = length(first(point_data))
+    new_length = old_length + n_solution_variables
+
+    # Loop over all points/elements that should be recorded
+    for index in 1:length(element_ids)
+        # Extract data array and element id
+        data = point_data[index]
+        element_id = element_ids[index]
+
+        # Make room for new data to be recorded
+        resize!(data, new_length)
+        data[(old_length + 1):new_length] .= zero(eltype(data))
+
+        # Loop over all nodes to compute their contribution to the interpolated values
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            u_node = solution_variables(get_node_vars(u, equations, dg, i, j, k,
+                                                      element_id), equations)
+
+            for v in 1:length(u_node)
+                data[old_length + v] += (u_node[v]
+                                         * interpolating_polynomials[i, 1, index]
+                                         * interpolating_polynomials[j, 2, index]
+                                         * interpolating_polynomials[k, 3, index])
             end
         end
     end
