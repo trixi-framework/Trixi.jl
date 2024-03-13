@@ -201,18 +201,26 @@ end
 @trixi_testset "elixir_euler_time_series.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_time_series.jl"),
                         l2=[
-                            9.860036213913957e-5,
-                            7.767842271271052e-5,
-                            8.956109781622046e-5,
-                            0.0001771544151538529,
+                            6.984024099236519e-5,
+                            6.289022520363763e-5,
+                            6.550951878107466e-5,
+                            0.00016222767700879948,
                         ],
                         linf=[
-                            0.000656954971669732,
-                            0.000494381111073805,
-                            0.0006563610876975101,
-                            0.0011651838899400246,
+                            0.0005367823248620951,
+                            0.000671293180158461,
+                            0.0005656680962440319,
+                            0.0013910024779804075,
                         ],
-                        tspan=(0.0, 0.5))
+                        tspan=(0.0, 0.2),
+                        # With the default `maxiters = 1` in coverage tests,
+                        # there would be no time series to check against.
+                        coverage_override=(maxiters = 20,))
+    # Extra test that the `TimeSeries` callback creates reasonable data
+    point_data_1 = time_series.affect!.point_data[1]
+    @test all(isapprox.(point_data_1[1:4],
+                        [1.9546882708551676, 1.9547149531788077,
+                            1.9547142161310154, 3.821066781119142]))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

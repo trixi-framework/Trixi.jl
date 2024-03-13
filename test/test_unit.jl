@@ -616,16 +616,6 @@ end
     @test_nowarn show(stdout, time_series)
     @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval = -1)
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
-    # Test the 2D unstructured mesh version of the callback
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "unstructured_2d_dgsem",
-                                            "elixir_euler_time_series.jl"),
-                                   tspan = (0.0, 0.2))
-
-    point_data_1 = time_series.affect!.point_data[1]
-    @test all(isapprox.(point_data_1[1:4],
-                        [1.9546882708551676, 1.9547149531788077,
-                            1.9547142161310154, 3.821066781119142]))
 end
 
 @timed_testset "Consistency check for single point flux: CEMCE" begin
