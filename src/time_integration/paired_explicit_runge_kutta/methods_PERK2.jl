@@ -280,7 +280,7 @@ function solve!(integrator::PERK2Integrator)
             end
 
             # Higher stages
-            for stage in 3:(alg.num_stages)
+            for stage in 3:alg.num_stages
                 # Construct current state
                 @threaded for i in eachindex(integrator.du)
                     integrator.u_tmp[i] = integrator.u[i] +

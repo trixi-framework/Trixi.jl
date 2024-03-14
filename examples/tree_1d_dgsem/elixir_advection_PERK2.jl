@@ -60,5 +60,3 @@ sol = Trixi.solve(ode, ode_algorithm,
 # Print the timer summary
 summary_callback()
 
-# Show the error of the elixir
-analysis_callback(sol)
