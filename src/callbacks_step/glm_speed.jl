@@ -14,7 +14,7 @@ The `cfl` number should be set to the same value as for the time step size calcu
 `glm_scale` ensures that the GLM wave speed is lower than the fastest physical waves in the MHD
 solution and should thus be set to a value within the interval [0,1]. Note that `glm_scale = 0`
 deactivates the divergence cleaning.
-In case of coupling semidiscretizations, specify for which semi_index the divergence
+In case of coupled semidiscretizations, specify for which semi_index the divergence
 cleaning should be applied.
 """
 struct GlmSpeedCallback{RealT <: Real}
