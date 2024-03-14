@@ -53,7 +53,8 @@ cells_per_dimension = (8, 8)
 coordinates_min1 = (-1.0, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max1 = (0.0, 1.0) # maximum coordinates (max(x), max(y))
 
-mesh1 = StructuredMesh(cells_per_dimension, coordinates_min1, coordinates_max1)
+mesh1 = StructuredMesh(cells_per_dimension, coordinates_min1, coordinates_max1,
+                       periodicity = false)
 
 # Define the coupling functions
 coupling_function12 = (x, u, equations_other, equations_own) -> u
@@ -84,7 +85,8 @@ semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_converg
 coordinates_min2 = (0.0, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max2 = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
-mesh2 = StructuredMesh(cells_per_dimension, coordinates_min2, coordinates_max2)
+mesh2 = StructuredMesh(cells_per_dimension, coordinates_min2, coordinates_max2,
+                       periodicity = false)
 
 # Define the coupling functions
 coupling_function21 = (x, u, equations_other, equations_own) -> u
@@ -115,7 +117,8 @@ semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_converg
 coordinates_min3 = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max3 = (0.0, 0.0) # maximum coordinates (max(x), max(y))
 
-mesh3 = StructuredMesh(cells_per_dimension, coordinates_min3, coordinates_max3)
+mesh3 = StructuredMesh(cells_per_dimension, coordinates_min3, coordinates_max3,
+                       periodicity = false)
 
 # Define the coupling functions
 coupling_function34 = (x, u, equations_other, equations_own) -> u
@@ -146,7 +149,8 @@ semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition_converg
 coordinates_min4 = (0.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max4 = (1.0, 0.0) # maximum coordinates (max(x), max(y))
 
-mesh4 = StructuredMesh(cells_per_dimension, coordinates_min4, coordinates_max4)
+mesh4 = StructuredMesh(cells_per_dimension, coordinates_min4, coordinates_max4,
+                       periodicity = false)
 
 # Define the coupling functions
 coupling_function43 = (x, u, equations_other, equations_own) -> u
