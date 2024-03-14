@@ -540,7 +540,7 @@ function T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, t
             coords_ref[1] = nodes[i]
             coords_ref[2] = nodes[j]
             coords_ref[3] = nodes[k]
-            t8_geometry_evaluate(cmesh, itree, coords_ref, NDIMS, coords_tree)
+            t8_geometry_evaluate(cmesh, itree-1, coords_ref, 1, coords_tree)
             tree_node_coordinates[:, i, j, k, itree] .= coords_tree
         end
 
