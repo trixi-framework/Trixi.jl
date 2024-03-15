@@ -84,7 +84,7 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
     return interpolating_polynomials
 end
 
-# Record the solution variables at each given point
+# Record the solution variables at each given point for the 1D case
 function record_state_at_points!(point_data, u, solution_variables,
                                  n_solution_variables,
                                  mesh::TreeMesh{1}, equations, dg::DG,
@@ -116,6 +116,7 @@ function record_state_at_points!(point_data, u, solution_variables,
     end
 end
 
+# Record the solution variables at each given point for the 2D case
 function record_state_at_points!(point_data, u, solution_variables,
                                  n_solution_variables,
                                  mesh::TreeMesh{2},
@@ -148,6 +149,7 @@ function record_state_at_points!(point_data, u, solution_variables,
     end
 end
 
+# Record the solution variables at each given point for the 3D case
 function record_state_at_points!(point_data, u, solution_variables,
                                  n_solution_variables,
                                  mesh::TreeMesh{3}, equations, dg::DG,

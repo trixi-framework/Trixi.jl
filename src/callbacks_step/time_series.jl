@@ -23,8 +23,7 @@ After the last time step, the results are stored in an HDF5 file `filename` in d
 The real data type `RealT` and data type for solution variables `uEltype` default to the respective
 types used in the solver and the cache.
 
-Currently this callback is only implemented for [`TreeMesh`](@ref) in 2D
-and [`UnstructuredMesh2D`](@ref).
+Currently this callback is only implemented for [`TreeMesh`](@ref) and [`UnstructuredMesh2D`](@ref).
 """
 mutable struct TimeSeriesCallback{RealT <: Real, uEltype <: Real, SolutionVariables,
                                   VariableNames, Cache}
@@ -219,5 +218,5 @@ end
 
 include("time_series_dg.jl")
 include("time_series_dg_tree.jl")
-include("time_series_dg2d.jl")
+include("time_series_dg_unstructured.jl")
 end # @muladd

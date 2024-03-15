@@ -48,8 +48,8 @@ time_series = TimeSeriesCallback(semi,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution,
-                        stepsize_callback,
-                        time_series)
+                        time_series,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
