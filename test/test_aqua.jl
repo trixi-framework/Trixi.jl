@@ -20,7 +20,8 @@ include("test_trixi.jl")
     @test isnothing(check_no_stale_explicit_imports(Trixi,
                                                     ignore = (:derivative_operator,
                                                               :periodic_derivative_operator,
-                                                              :upwind_operators)))
+                                                              :upwind_operators,
+                                                              Symbol("@batch"))))
 end
 
 end #module

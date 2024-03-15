@@ -242,8 +242,10 @@ macro threaded(expr)
     # !!! danger "Heisenbug"
     #     Look at the comments for `wrap_array` when considering to change this macro.
 
+    # By using `Trixi.@batch` we allow users of Trixi.jl to use `@threaded` without having
+    # Polyester.jl in their namespace.
     return esc(quote
-                   Polyester.@batch $(expr)
+                   Trixi.@batch $(expr)
                end)
 end
 
