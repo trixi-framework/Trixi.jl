@@ -25,7 +25,10 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_dgsem")
                             0.032179231640894645,
                             0.032179231640895534,
                             0.0655408023333299,
-                        ])
+                        ],
+                        # With the default `maxiters = 1` in coverage tests,
+                        # there would be no time series to check against.
+                        coverage_override=(maxiters = 20,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -43,28 +46,10 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_dgsem")
                                                      time_series.affect!.time[1],
                                                      equations) for i in 1:3]
     ref_data = [
-        [
-            1.9053441545123802,
-            1.9053448755267233,
-            1.905344875526724,
-            1.9053448755267266,
-            3.6303259410202022,
-        ],
-        [
-            2.0956374376888744,
-            2.095637084878075,
-            2.0956370848780743,
-            2.095637084878072,
-            4.391698734498684,
-        ],
-        [
-            2.0946764789674774,
-            2.0946781952809355,
-            2.094678195280935,
-            2.0946781952809324,
-            4.3876634952412505,
-        ]]
-    @test point_data≈exact_data atol=1e-1
+        [2.0908436034061966, 2.0907469131413534, 2.090746913141344, 2.0907469131413516, 4.376022861751483],
+        [1.9121470846408657, 1.911738389880639, 1.9117383898806395, 1.9117383898806386, 3.639369160978031],
+        [1.8960587498057229, 1.896520160078096, 1.8965201600780932, 1.896520160078095, 3.614473843601274]]
+    @test point_data ≈ exact_data atol=1e-1
     @test point_data ≈ ref_data
 end
 

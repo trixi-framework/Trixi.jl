@@ -21,7 +21,10 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
                             1.6205433861493646e-7,
                             1.465427772462391e-7,
                             5.372255111879554e-7,
-                        ])
+                        ],
+                        # With the default `maxiters = 1` in coverage tests,
+                        # there would be no time series to check against.
+                        coverage_override=(maxiters = 20,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
