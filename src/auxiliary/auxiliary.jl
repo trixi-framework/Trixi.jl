@@ -346,20 +346,6 @@ function register_error_hints()
     return nothing
 end
 
-function read_file(file_path::AbstractString, data_type::Type = Float64)
-    @assert isfile(file_path) "Couldn't find file"
-    data = zeros(data_type, 0)
-    open(file_path, "r") do file
-        while !eof(file)
-            line_content = readline(file)
-            append!(data, parse(data_type, line_content))
-        end
-    end
-    num_lines = length(data)
-
-    return num_lines, data
-end
-
 """
     Trixi.download(src_url, file_path)
 

@@ -2,6 +2,8 @@
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+using DelimitedFiles
+
 @muladd begin
 #! format: noindent
 
@@ -78,7 +80,10 @@ function compute_PERK2_butcher_tableau(num_stages, base_path_mon_coeffs::Abstrac
     a_matrix[:, 1] = c[3:end]
 
     path_mon_coeffs = base_path_mon_coeffs * "gamma_" * string(num_stages) * ".txt"
-    num_mon_coeffs, mon_coeffs = read_file(path_mon_coeffs, Float64)
+    @assert isfile(path_mon_coeffs) "Couldn't find file"
+    mon_coeffs = readdlm(path_mon_coeffs, Float64)
+    num_mon_coeffs = size(mon_coeffs, 1)
+
     @assert num_mon_coeffs == coeffs_max
     A = compute_a_coeffs(num_stages, bc_factors, mon_coeffs)
 
@@ -281,7 +286,7 @@ function solve!(integrator::PERK2Integrator)
             end
 
             # Higher stages
-            for stage in 3:alg.num_stages
+            for stage in 3:(alg.num_stages)
                 # Construct current state
                 @threaded for i in eachindex(integrator.du)
                     integrator.u_tmp[i] = integrator.u[i] +
