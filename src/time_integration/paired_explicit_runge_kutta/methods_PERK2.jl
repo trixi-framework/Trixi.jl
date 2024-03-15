@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-# Abstract base type for both single/standalone and multi-level P-ERK time integration schemes
+# Abstract base type for both single/standalone and multi-level 
+P-ERK (Paired-Explicit Runge-Kutta) time integration schemes
 abstract type PERK end
 # Abstract base type for single/standalone P-ERK time integration schemes
 abstract type PERKSingle <: PERK end
