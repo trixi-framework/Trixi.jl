@@ -28,11 +28,11 @@ end
 # 2D volume integral contributions for `VolumeIntegralStrongForm`
 # OBS! This is the standard (not de-aliased) form of the volume integral.
 # So it is not provably stable for variable coefficients due to the the metric terms.
-@inline function calc_volume_integral!(du, u,
-                                       mesh::UnstructuredMesh2D,
-                                       nonconservative_terms::False, equations,
-                                       volume_integral::VolumeIntegralStrongForm,
-                                       dg::FDSBP, cache)
+function calc_volume_integral!(du, u,
+                               mesh::UnstructuredMesh2D,
+                               nonconservative_terms::False, equations,
+                               volume_integral::VolumeIntegralStrongForm,
+                               dg::FDSBP, cache)
     D = dg.basis # SBP derivative operator
     @unpack f_threaded = cache
     @unpack contravariant_vectors = cache.elements
