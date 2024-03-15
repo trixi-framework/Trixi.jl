@@ -471,7 +471,7 @@ end
 
 Calculate the barycentric weights for a given node distribution, i.e.,
 ```math
-w_j = \frac{1}{\prod_{k \neq j} \left( x_j - x_k \right )}
+w_j = \\frac{1}{ \\prod_{k \\neq j} \\left( x_j - x_k \\right ) }
 ```
 
 For details, see (especially Section 3)
@@ -519,7 +519,7 @@ reference interval ``[-1, 1]``.
 This returns all ``l_j(x)``, i.e., the Lagrange polynomials for each node ``x_j``.
 Thus, to obtain the interpolating polynomial ``p(x)`` at ``x``, one has to 
 multiply the Lagrange polynomials with the nodal values ``u_j`` and sum them up:
-``p(x) = \sum_{j=1}^{n} u_j l_j(x)``.
+``p(x) = \\sum_{j=1}^{n} u_j l_j(x)``.
 
 For details, see e.g. Section 2 of 
 - Jean-Paul Berrut and Lloyd N. Trefethen (2004).
