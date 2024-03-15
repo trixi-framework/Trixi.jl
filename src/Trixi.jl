@@ -22,7 +22,7 @@ using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, norm
                      UniformScaling, det
 using Printf: @printf, @sprintf, println
 using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!,
-                    rowvals, nzrange, nonzeros, spzeros
+                    rowvals, nzrange, nonzeros
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
@@ -32,10 +32,10 @@ using Reexport: @reexport
 using MPI: MPI
 
 using SciMLBase: CallbackSet, DiscreteCallback,
-                 ODEProblem, ODESolution, ODEFunction,
+                 ODEProblem, ODESolution,
                  SplitODEProblem
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
-                  AbstractODEIntegrator, init, step!, check_error,
+                  init, step!, check_error,
                   get_proposed_dt, set_proposed_dt!,
                   terminate!, remake, add_tstop!, has_tstop, first_tstop
 
@@ -53,11 +53,10 @@ using LoopVectorization: LoopVectorization, @turbo, indices
 using StaticArrayInterface: static_length # used by LoopVectorization
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
-using Polyester: Polyester, @batch # You know, the cheapest threads you can find...
+using Polyester: Polyester # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
 using T8code
-using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
 using Static: Static, One, True, False
@@ -66,7 +65,7 @@ using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
-using Triangulate: Triangulate, TriangulateIO, triangulate
+using Triangulate: Triangulate, TriangulateIO
 export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
@@ -84,9 +83,9 @@ const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,
-                                 AbstractNonperiodicDerivativeOperator, DerivativeOperator,
+                                 AbstractNonperiodicDerivativeOperator,
                                  AbstractPeriodicDerivativeOperator,
-                                 PeriodicDerivativeOperator, grid
+                                 grid
 import SummationByPartsOperators: integrate, semidiscretize,
                                   compute_coefficients, compute_coefficients!,
                                   left_boundary_weight, right_boundary_weight

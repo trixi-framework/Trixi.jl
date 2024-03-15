@@ -243,7 +243,7 @@ macro threaded(expr)
     #     Look at the comments for `wrap_array` when considering to change this macro.
 
     return esc(quote
-                   Trixi.@batch $(expr)
+                   Polyester.@batch $(expr)
                end)
 end
 
