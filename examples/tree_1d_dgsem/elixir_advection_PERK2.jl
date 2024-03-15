@@ -49,7 +49,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback,
 # Define tspan to calculate maximum time step allowed for the bisection algorithm used in calculate polynomial coefficients in ODE algorithm
 tspan = (0.0, 1.0)
 
-# Construct second order P-ERK method with 6 stages for 
+# Construct second order PERK method with 6 stages for 
 # given simulation setup
 ode_algorithm = PERK2(6, tspan, semi)
 

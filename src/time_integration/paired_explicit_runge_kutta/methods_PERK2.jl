@@ -8,7 +8,7 @@
 # Abstract base type for both single/standalone and multi-level 
 # PERK (Paired-Explicit Runge-Kutta) time integration schemes
 abstract type PERK end
-# Abstract base type for single/standalone P-ERK time integration schemes
+# Abstract base type for single/standalone PERK time integration schemes
 abstract type PERKSingle <: PERK end
 
 function compute_a_coeffs(num_stage_evals, bc_factors, mon_coeffs)
