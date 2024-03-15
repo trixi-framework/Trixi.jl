@@ -14,8 +14,13 @@ include("test_trixi.jl")
                   # in src/solvers/dgmulti/sbp.jl
                   piracies = (treat_as_own = [Trixi.StartUpDG.RefElemData,
                                   Trixi.StartUpDG.MeshData],))
-    @test isnothing(check_no_implicit_imports(Trixi, skip = (Core, Base, Trixi.P4est, Trixi.T8code, Trixi.EllipsisNotation)))
-    @test isnothing(check_no_stale_explicit_imports(Trixi, ignore = (:derivative_operator, :periodic_derivative_operator, :upwind_operators)))
+    @test isnothing(check_no_implicit_imports(Trixi,
+                                              skip = (Core, Base, Trixi.P4est, Trixi.T8code,
+                                                      Trixi.EllipsisNotation)))
+    @test isnothing(check_no_stale_explicit_imports(Trixi,
+                                                    ignore = (:derivative_operator,
+                                                              :periodic_derivative_operator,
+                                                              :upwind_operators)))
 end
 
 end #module
