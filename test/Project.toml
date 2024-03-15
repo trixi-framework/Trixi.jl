@@ -1,6 +1,7 @@
 [deps]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 FFMPEG = "c87230d0-a227-11e9-1b43-d7ebe4e7570a"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
@@ -25,6 +26,7 @@ Plots = "1.19"
 Printf = "1"
 Random = "1"
 Test = "1"
+DelimitedFiles = "1.9"
 
 [preferences.OrdinaryDiffEq]
 PrecompileAutoSpecialize = false
