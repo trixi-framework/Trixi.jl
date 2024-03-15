@@ -23,8 +23,8 @@ After the last time step, the results are stored in an HDF5 file `filename` in d
 The real data type `RealT` and data type for solution variables `uEltype` default to the respective
 types used in the solver and the cache.
 
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
+Currently this callback is only implemented for [`TreeMesh`](@ref) in 2D
+and [`UnstructuredMesh2D`](@ref).
 """
 mutable struct TimeSeriesCallback{RealT <: Real, uEltype <: Real, SolutionVariables,
                                   VariableNames, Cache}
@@ -94,6 +94,11 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
 
     if ndims(point_coordinates) != 2 || size(point_coordinates, 2) != ndims(mesh)
         throw(ArgumentError("`point_coordinates` must be a matrix of size n_points × ndims"))
+    end
+
+    # create the output folder if it does not exist already
+    if mpi_isroot() && !isdir(output_directory)
+        mkpath(output_directory)
     end
 
     # Transpose point_coordinates to our usual format [ndims, n_points]
