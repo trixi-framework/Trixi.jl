@@ -2,7 +2,7 @@
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-using DelimitedFiles
+using DelimitedFiles: readdlm
 
 @muladd begin
 #! format: noindent
