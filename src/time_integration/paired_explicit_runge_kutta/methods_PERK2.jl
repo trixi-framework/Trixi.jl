@@ -319,6 +319,7 @@ function solve!(integrator::PERK2Integrator)
                 if cb.condition(integrator.u, integrator.t, integrator)
                     cb.affect!(integrator)
                 end
+                return nothing
             end
         end
 

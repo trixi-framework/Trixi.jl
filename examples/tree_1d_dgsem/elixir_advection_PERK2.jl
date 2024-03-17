@@ -39,8 +39,12 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 2.5)
 
+alive_callback = AliveCallback(alive_interval = 1)
+
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback,
+callbacks = CallbackSet(summary_callback, 
+                        alive_callback,
+                        analysis_callback,
                         stepsize_callback)
 
 ###############################################################################
