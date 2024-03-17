@@ -198,6 +198,39 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_time_series.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_time_series.jl"),
+                        l2=[
+                            6.984024099236519e-5,
+                            6.289022520363763e-5,
+                            6.550951878107466e-5,
+                            0.00016222767700879948,
+                        ],
+                        linf=[
+                            0.0005367823248620951,
+                            0.000671293180158461,
+                            0.0005656680962440319,
+                            0.0013910024779804075,
+                        ],
+                        tspan=(0.0, 0.2),
+                        # With the default `maxiters = 1` in coverage tests,
+                        # there would be no time series to check against.
+                        coverage_override=(maxiters = 20,))
+    # Extra test that the `TimeSeries` callback creates reasonable data
+    point_data_1 = time_series.affect!.point_data[1]
+    @test all(isapprox.(point_data_1[1:4],
+                        [1.9546882708551676, 1.9547149531788077,
+                            1.9547142161310154, 3.821066781119142]))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_acoustics_gauss_wall.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gauss_wall.jl"),
                         l2=[0.029330394861252995, 0.029345079728907965,
@@ -600,6 +633,76 @@ end
                             1.8290174930157832e-11,
                             4.61017890529547e-11],
                         tspan=(0.0, 0.1),
+                        atol=1.0e-10)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "FDSBP (upwind): elixir_euler_source_terms_upwind.jl" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
+                                 "elixir_euler_source_terms_upwind.jl"),
+                        l2=[4.085391175504837e-5,
+                            7.19179253772227e-5,
+                            7.191792537723135e-5,
+                            0.00021775241532855398],
+                        linf=[0.0004054489124620808,
+                            0.0006164432358217731,
+                            0.0006164432358186644,
+                            0.001363103391379461],
+                        tspan=(0.0, 0.05),
+                        atol=1.0e-10)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "FDSBP (upwind): elixir_euler_source_terms_upwind.jl with LF splitting" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
+                                 "elixir_euler_source_terms_upwind.jl"),
+                        l2=[3.8300267071890586e-5,
+                            5.295846741663533e-5,
+                            5.295846741663526e-5,
+                            0.00017564759295593478],
+                        linf=[0.00018810716496542312,
+                            0.0003794187430412599,
+                            0.0003794187430412599,
+                            0.0009632958510650269],
+                        tspan=(0.0, 0.025),
+                        flux_splitting=splitting_lax_friedrichs,
+                        atol=1.0e-10)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "FDSBP (upwind): elixir_euler_free_stream_upwind.jl" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
+                                 "elixir_euler_free_stream_upwind.jl"),
+                        l2=[3.2114065566681054e-14,
+                            2.132488788134846e-14,
+                            2.106144937311659e-14,
+                            8.609642264224197e-13],
+                        linf=[3.354871935812298e-11,
+                            7.006478730531285e-12,
+                            1.148153794261475e-11,
+                            9.041265514042607e-10],
+                        tspan=(0.0, 0.05),
                         atol=1.0e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
