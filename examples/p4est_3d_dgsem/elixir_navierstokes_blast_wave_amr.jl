@@ -6,7 +6,7 @@ using Trixi
 # semidiscretization of the compressible Navier-Stokes equations
 
 prandtl_number() = 0.72
-mu(u, equations) = 6.25e-4
+mu(u, equations) = 6.25e-4 # equivalent to Re = 1600
 
 equations = CompressibleEulerEquations3D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu,
