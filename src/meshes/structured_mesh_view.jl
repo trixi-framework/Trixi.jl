@@ -37,6 +37,7 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
     @assert index_min <= index_max
     @assert all(index_min .> 0)
     @assert index_max <= size(parent)
+
     cells_per_dimension = index_max .- index_min .+ 1
     
     # Compute cells sizes `deltas`
