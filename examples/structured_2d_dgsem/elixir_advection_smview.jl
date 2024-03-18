@@ -4,7 +4,7 @@ using Trixi
 ###############################################################################
 # Coupled semidiscretization of two linear advection systems using converter functions
 # and mesh views for the semidiscretizations. First we define a parent mesh
-# for the entire physical domain, then we define the two mesh views on the parent.
+# for the entire physical domain, then we define the two mesh views on this parent.
 #
 # In this elixir, we have a square domain that is divided into a left and right.
 # On each half of the domain, a completely independent SemidiscretizationHyperbolic
