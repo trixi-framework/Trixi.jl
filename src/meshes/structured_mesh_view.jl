@@ -37,9 +37,9 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
     @assert index_min <= index_max
     @assert all(index_min .> 0)
     @assert index_max <= size(parent)
-
-    # Calculate the domain boundaries.
     cells_per_dimension = index_max .- index_min .+ 1
+    
+    # Compute cells sizes `deltas`
     deltas = (parent.mapping.coordinates_max .- parent.mapping.coordinates_min) ./
              parent.cells_per_dimension
     coordinates_min = parent.mapping.coordinates_min .+ deltas .* (index_min .- 1)
