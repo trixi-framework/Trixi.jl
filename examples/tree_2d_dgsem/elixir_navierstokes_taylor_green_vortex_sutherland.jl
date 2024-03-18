@@ -5,7 +5,6 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Navier-Stokes equations
 
-# TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
 
 # Use Sutherland's law for a temperature-dependent viscosity.

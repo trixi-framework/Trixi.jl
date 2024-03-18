@@ -5,7 +5,6 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Navier-Stokes equations
 
-# TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
 mu(u, equations) = 1.0 / 3.0 * 10^(-5) # equivalent to Re = 30,000
 
