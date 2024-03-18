@@ -364,18 +364,15 @@ BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indices,
-                                        CouplingFunction}
+mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indices}
     # NDIMST2M1 == NDIMS * 2 - 1
     # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
-    u_boundary::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-    other_semi_index::Int
-    other_orientation::Int
-    indices::Indices
-    coupling_converter::CouplingFunction
+    u_boundary        :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
+    other_semi_index  :: Int
+    other_orientation :: Int
+    indices           :: Indices
 
-    function BoundaryConditionCoupled(other_semi_index, indices, uEltype,
-                                      coupling_converter)
+    function BoundaryConditionCoupled(other_semi_index, indices, uEltype)
         NDIMS = length(indices)
         u_boundary = Array{uEltype, NDIMS * 2 - 1}(undef, ntuple(_ -> 0, NDIMS * 2 - 1))
 
@@ -387,11 +384,8 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indic
             other_orientation = 3
         end
 
-        new{NDIMS, NDIMS * 2 - 1, uEltype, typeof(indices), typeof(coupling_converter)}(u_boundary,
-                                                                                        other_semi_index,
-                                                                                        other_orientation,
-                                                                                        indices,
-                                                                                        coupling_converter)
+        new{NDIMS, NDIMS * 2 - 1, uEltype, typeof(indices)}(u_boundary, other_semi_index,
+                                                            other_orientation, indices)
     end
 end
 

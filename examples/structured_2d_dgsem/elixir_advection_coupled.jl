@@ -2,9 +2,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# Coupled semidiscretization of two linear advection systems using converter functions such that
-# the upper half of the domain is coupled periodically, while the lower half is not coupled
-# and any incoming wave is completely absorbed.
+# Coupled semidiscretization of two linear advection systems, which are connected periodically
 #
 # In this elixir, we have a square domain that is divided into a left half and a right half. On each
 # half of the domain, a completely independent SemidiscretizationHyperbolic is created for the
@@ -96,8 +94,8 @@ semi = SemidiscretizationCoupled(semi1, semi2)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 20.0
-ode = semidiscretize(semi, (0.0, 20.0));
+# Create ODE problem with time span from 0.0 to 2.0
+ode = semidiscretize(semi, (0.0, 2.0));
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
