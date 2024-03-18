@@ -51,6 +51,8 @@ mesh2 = StructuredMeshView(parent_mesh; index_min = (9, 1), index_max = (16, 16)
 coupling_function = (x, u, equations_other, equations_own) -> u
 
 # Define the coupled boundary conditions
+# The indices (:end, :i_forward) and (:begin, :i_forward) denote the interface indexing.
+# For a system with coupling in x and y see examples/structured_2d_dgsem/elixir_advection_coupled.jl.
 boundary_conditions1 = (
                         # Connect left boundary with right boundary of left mesh
                         x_neg = BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
