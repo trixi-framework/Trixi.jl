@@ -39,7 +39,7 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
     @assert index_max <= size(parent)
 
     cells_per_dimension = index_max .- index_min .+ 1
-    
+
     # Compute cells sizes `deltas`
     deltas = (parent.mapping.coordinates_max .- parent.mapping.coordinates_min) ./
              parent.cells_per_dimension
