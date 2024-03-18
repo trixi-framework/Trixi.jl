@@ -27,7 +27,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0));
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan);
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -50,11 +51,9 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-# Define tspan to calculate maximum time step allowed for the bisection algorithm used in calculate polynomial coefficients in ODE algorithm
-tspan = (0.0, 1.0)
-
-# Construct second order PERK method with 6 stages for 
-# given simulation setup
+# Construct second order PERK method with 6 stages for given simulation setup.
+# Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
+# in calculating the polynomial coefficients in the ODE algorithm.
 ode_algorithm = PERK2(6, tspan, semi)
 
 sol = Trixi.solve(ode, ode_algorithm,
