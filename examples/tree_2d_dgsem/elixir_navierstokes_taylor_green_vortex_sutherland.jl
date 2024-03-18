@@ -8,7 +8,11 @@ using Trixi
 # TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
 
-# Use Sutherland's law for a temperature-dependent viscosity
+# Use Sutherland's law for a temperature-dependent viscosity.
+# For details, see e.g. 
+# Frank M. White: Viscous Fluid Flow, 2nd Edition.
+# 1991, McGraw-Hill, ISBN, 0-07-069712-4
+# Pages 28 and 29.
 @inline function mu(u, equations)
     T_ref = 291.15
 
