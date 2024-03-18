@@ -7,7 +7,7 @@ using Trixi
 # for the entire physical domain, then we define the two mesh views on this parent.
 #
 # In this elixir, we have a square domain that is divided into left and right subdomains.
-# On each half of the domain, a completely independent SemidiscretizationHyperbolic
+# On each half of the domain, a completely independent `SemidiscretizationHyperbolic`
 # is created for the linear advection equations. The two systems are coupled in the
 # x-direction.
 # For a high-level overview, see also the figure below:
