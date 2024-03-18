@@ -42,7 +42,7 @@ stepsize_callback = StepsizeCallback(cfl = 2.5)
 alive_callback = AliveCallback(alive_interval = 1)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, 
+callbacks = CallbackSet(summary_callback,
                         alive_callback,
                         analysis_callback,
                         stepsize_callback)
