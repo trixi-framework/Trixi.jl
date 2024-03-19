@@ -115,16 +115,17 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 2000
 
-drag_coefficient = AnalysisSurfaceIntegral(semi, boundary_condition_slip_wall,
+force_boundary_names = [:AirfoilBottom, :AirfoilTop]
+drag_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
                                            DragCoefficient(sw_aoa(), sw_rho_inf(),
                                                            sw_U_inf(equations), sw_linf()))
 
-lift_coefficient = AnalysisSurfaceIntegral(semi, boundary_condition_slip_wall,
+lift_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
                                            LiftCoefficient(sw_aoa(), sw_rho_inf(),
                                                            sw_U_inf(equations), sw_linf()))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     output_directory = "analysis_results",
+                                     output_directory = "out",
                                      save_analysis = true,
                                      analysis_integrals = (drag_coefficient,
                                                            lift_coefficient))

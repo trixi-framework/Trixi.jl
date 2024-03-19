@@ -91,14 +91,14 @@ rho_inf = 1.4
 U_inf = 0.38
 linf = 1.0 # Diameter of circle
 
-drag_coefficient = AnalysisSurfaceIntegral(semi, boundary_condition_slip_wall,
+drag_coefficient = AnalysisSurfaceIntegral(semi, :x_neg,
                                            DragCoefficient(aoa, rho_inf, U_inf, linf))
 
-lift_coefficient = AnalysisSurfaceIntegral(semi, boundary_condition_slip_wall,
+lift_coefficient = AnalysisSurfaceIntegral(semi, :x_neg,
                                            LiftCoefficient(aoa, rho_inf, U_inf, linf))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     output_directory = "analysis_results",
+                                     output_directory = "out",
                                      save_analysis = true,
                                      analysis_integrals = (drag_coefficient,
                                                            lift_coefficient))
