@@ -17,6 +17,7 @@ mutable struct UnstructuredSortedBoundaryTypes{N, BCs <: NTuple{N, Any}}
     boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionDirichlet
     boundary_indices::NTuple{N, Vector{Int}} # integer vectors containing global boundary indices
     boundary_dictionary::Dict{Symbol, Any} # boundary conditions as set by the user in the elixir file
+    boundary_symbol_indices::Dict{Symbol, Vector{Int}} # integer vectors containing global boundary indices per boundary identifier
 end
 
 # constructor that "eats" the original boundary condition dictionary and sorts the information
@@ -28,10 +29,14 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::Dict, cache)
     n_boundary_types = length(boundary_condition_types)
     boundary_indices = ntuple(_ -> [], n_boundary_types)
 
+    # Initialize `boundary_symbol_indices` as an empty dictionary, filled later in `initialize!`
+    boundary_symbol_indices = Dict{Symbol, Vector{Int}}()
+
     container = UnstructuredSortedBoundaryTypes{n_boundary_types,
                                                 typeof(boundary_condition_types)}(boundary_condition_types,
                                                                                   boundary_indices,
-                                                                                  boundary_conditions)
+                                                                                  boundary_conditions,
+                                                                                  boundary_symbol_indices)
 
     initialize!(container, cache)
 end
@@ -96,6 +101,13 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
 
     # convert the work array with the boundary indices into a tuple
     boundary_types_container.boundary_indices = Tuple(_boundary_indices)
+
+    # Store boundary indices per symbol
+    for (symbol, _) in boundary_dictionary
+        indices = findall(x -> x === symbol, cache.boundaries.name)
+        # Store the indices in `boundary_symbol_indices`
+        boundary_types_container.boundary_symbol_indices[symbol] = sort!(indices)
+    end
 
     return boundary_types_container
 end

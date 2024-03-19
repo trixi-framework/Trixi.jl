@@ -20,20 +20,26 @@
 # parts of boundary that are of interest
 struct AnalysisSurfaceIntegral{Semidiscretization, Variable}
     semi::Semidiscretization # Semidiscretization of PDE used by the solver
-    boundary_index::Int # Index in boundary_condition_indices where quantity of interest is computed
+    indices::Vector{Int} # Indices in `boundary_condition_indices` where quantity of interest is computed
     variable::Variable # Quantity of interest, like lift or drag
-    function AnalysisSurfaceIntegral(semi, boundary_condition_type, variable)
-        # The bc list as ordered in digest_boundary_conditions
-        ordered_bc = semi.boundary_conditions.boundary_condition_types
 
-        # The set of all indices that gives the bc where the surface integral is to be computed
-        index = sort(findall(x -> x == boundary_condition_type, ordered_bc))
+    function AnalysisSurfaceIntegral(semi, boundary_symbol, variable)
+        @unpack boundary_symbol_indices = semi.boundary_conditions
+        indices = boundary_symbol_indices[boundary_symbol]
 
-        # digest_boundary_conditions clubs all indices with same boundary conditions into
-        # one. This is just checking that it is indeed the case for the next step.
-        @assert length(index) == 1
+        return new{typeof(semi), typeof(variable)}(semi, indices,
+                                                   variable)
+    end
 
-        return new{typeof(semi), typeof(variable)}(semi, index[1],
+    function AnalysisSurfaceIntegral(semi, boundary_symbols::Vector{Symbol}, variable)
+        @unpack boundary_symbol_indices = semi.boundary_conditions
+        indices = Vector{Int}()
+        for name in boundary_symbols
+            append!(indices, boundary_symbol_indices[name])
+        end
+        sort!(indices)
+
+        return new{typeof(semi), typeof(variable)}(semi, indices,
                                                    variable)
     end
 end
@@ -86,9 +92,7 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
-    @unpack semi, boundary_index, variable = surface_variable
-
-    indices = semi.boundary_conditions.boundary_indices[boundary_index]
+    @unpack semi, indices, variable = surface_variable
 
     surface_integral = zero(eltype(u))
     index_range = eachnode(dg)
