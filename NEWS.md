@@ -7,13 +7,8 @@ for human readability.
 ## Changes in the v0.7 lifecycle
 
 #### Added
+- Implementation of `TimeSeriesCallback` for curvilinear meshes on `UnstructuredMesh2D`.
 - Subcell local one-sided limiting support for nonlinear variables in 2D for `TreeMesh`
-
-#### Changed
-
-#### Deprecated
-
-#### Removed
 
 
 ## Changes when updating to v0.7 from v0.6.x
