@@ -92,7 +92,11 @@ end
     (; local_minmax, positivity) = limiter
     (; idp_bounds_delta_local) = limiter.cache
 
-    stride_size = div(128, sizeof(eltype(u))) # = n
+    # Note: Accessing the threaded memory vector `idp_bounds_delta_local` with
+    # `deviation = idp_bounds_delta_local[key][Threads.threadid()]` causes critical performance
+    # issues due to False Sharing. For more information see note in `check_bounds`.
+    # As a result, the total maximum deviation is saved in the entry with index `stride_size`.
+    stride_size = div(128, sizeof(eltype(u)))
 
     # Print errors to output file
     open("$output_directory/deviations.txt", "a") do f

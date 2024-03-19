@@ -386,8 +386,7 @@ end
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
                         coverage_override=(maxiters = 6,),
-                        save_errors=true,
-                        output_directory="out")
+                        save_errors=true)
     lines = readlines("out/deviations.txt")
     @test lines[1] == "# iter, simu_time, rho_min, rho_max"
     cmd = string(Base.julia_cmd())
