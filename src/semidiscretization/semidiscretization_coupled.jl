@@ -495,7 +495,7 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
     uEltype = eltype(boundary_condition)
     boundary_condition.u_boundary = Array{uEltype, 3}(undef, nvariables(equations),
                                                       nnodes(dg),
-                                                      cell_size)
+						      cell_size)
 end
 
 # In 2D for a p4est mesh.
@@ -561,7 +561,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
 
     mesh_own, equations_own, solver_own, cache_own = mesh_equations_solver_cache(semi)
 
-<<<<<<< HEAD
     mesh_other, equations_other, solver_other, cache_other = mesh_equations_solver_cache(other_semi_index,
                                                                                          1,
                                                                                          semi_coupled.semis...)
@@ -577,7 +576,8 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         cells = axes(mesh_other, 2)
     else # other_orientation == 2
         cells = axes(mesh_other, 1)
-=======
+    end
+
     if mesh isa P4estMesh
         linear_indices = LinearIndices((mesh.trees_per_dimension[1], mesh.trees_per_dimension[2]))
     else
@@ -596,7 +596,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         else # other_orientation == 2
             cells = axes(mesh, 1)
         end
->>>>>>> f2f682a527c5d9f340e3b96beb461f8968ad759f
     end
 
     # Copy solution data to the coupled boundary using "delayed indexing" with
@@ -605,10 +604,8 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
     j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
 
-<<<<<<< HEAD
     i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh_other, 1))
     j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh_other, 2))
-=======
     if mesh isa P4estMesh
         i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], mesh.trees_per_dimension[1])
         j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], mesh.trees_per_dimension[2])
@@ -616,7 +613,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh, 1))
         j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh, 2))
     end
->>>>>>> f2f682a527c5d9f340e3b96beb461f8968ad759f
 
     i_cell = i_cell_start
     j_cell = j_cell_start
@@ -627,7 +623,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         j_node = j_node_start
         element_id = linear_indices[i_cell, j_cell]
 
-<<<<<<< HEAD
         for element_id in eachnode(solver_other)
             x_other = get_node_coords(node_coordinates_other, equations_other,
                                       solver_other,
@@ -640,17 +635,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
 
             for i in eachindex(u_node_converted)
                 u_boundary[i, element_id, cell] = u_node_converted[i]
-=======
-        for i in eachnode(solver)
-            for v in 1:size(u, 1)
-                x = cache.elements.node_coordinates[:, i_node, j_node,
-                                                    linear_indices[i_cell, j_cell]]
-                converted_u = boundary_condition.coupling_converter(x,
-                                                                    u[:, i_node, j_node,
-                                                                      linear_indices[i_cell,
-                                                                                     j_cell]])
-                boundary_condition.u_boundary[v, i, cell] = converted_u[v]
->>>>>>> f2f682a527c5d9f340e3b96beb461f8968ad759f
             end
 
             i_node += i_node_step
