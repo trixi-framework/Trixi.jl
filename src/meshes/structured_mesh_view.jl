@@ -40,7 +40,7 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
 
     cells_per_dimension = index_max .- index_min .+ 1
 
-    # Compute cells sizes `deltas`
+    # Compute cell sizes `deltas`
     deltas = (parent.mapping.coordinates_max .- parent.mapping.coordinates_min) ./
              parent.cells_per_dimension
     # Calculate the domain boundaries.
