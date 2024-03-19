@@ -91,7 +91,7 @@ end
         @test errors.linf≈[
             0.00022262992334731724,
             0.00022262994922361834,
-        ] rtol=1.0e-4
+        ]
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
