@@ -72,6 +72,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
 
+    check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
+
     SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
                                  typeof(initial_condition),
                                  typeof(_boundary_conditions), typeof(source_terms),
@@ -208,6 +210,74 @@ end
 function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, solver,
                                     cache)
     throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
+end
+
+# No checks for these meshes yet available
+function check_periodicity_mesh_boundary_conditions(mesh::Union{P4estMesh,
+                                                                UnstructuredMesh2D,
+                                                                T8codeMesh,
+                                                                DGMultiMesh},
+                                                    boundary_conditions)
+end
+
+# No actions needed for periodic boundary conditions
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh,
+                                                                StructuredMesh},
+                                                    boundary_conditions::BoundaryConditionPeriodic)
+end
+
+function check_periodicity_mesh_boundary_conditions_x(mesh, x_neg, x_pos)
+    if isperiodic(mesh, 1) &&
+       (x_neg != BoundaryConditionPeriodic() ||
+        x_pos != BoundaryConditionPeriodic())
+        @error "For periodic mesh non-periodic boundary conditions in x-direction are supplied."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions_y(mesh, y_neg, y_pos)
+    if isperiodic(mesh, 2) &&
+       (y_neg != BoundaryConditionPeriodic() ||
+        y_pos != BoundaryConditionPeriodic())
+        @error "For periodic mesh non-periodic boundary conditions in y-direction are supplied."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions_z(mesh, z_neg, z_pos)
+    if isperiodic(mesh, 3) &&
+       (z_neg != BoundaryConditionPeriodic() ||
+        z_pos != BoundaryConditionPeriodic())
+        @error "For periodic mesh non-periodic boundary conditions in z-direction are supplied."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{1},
+                                                                StructuredMesh{1}},
+                                                    boundary_conditions::Union{NamedTuple,
+                                                                               Tuple})
+    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
+                                                 boundary_conditions[2])
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{2},
+                                                                StructuredMesh{2}},
+                                                    boundary_conditions::Union{NamedTuple,
+                                                                               Tuple})
+    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
+                                                 boundary_conditions[2])
+    check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
+                                                 boundary_conditions[4])
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{3},
+                                                                StructuredMesh{3}},
+                                                    boundary_conditions::Union{NamedTuple,
+                                                                               Tuple})
+    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
+                                                 boundary_conditions[2])
+    check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
+                                                 boundary_conditions[4])
+    check_periodicity_mesh_boundary_conditions_z(mesh, boundary_conditions[5],
+                                                 boundary_conditions[6])
 end
 
 function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
