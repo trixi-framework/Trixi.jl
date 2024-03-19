@@ -21,6 +21,8 @@ the [`CompressibleEulerEquations2D`](@ref).
 
 Fluid properties such as the dynamic viscosity ``\mu`` can be provided in any consistent unit system, e.g.,
 [``\mu``] = kg m⁻¹ s⁻¹.
+The viscosity ``\mu`` may be a constant or a function of the current state, e.g., 
+depending on temperature (Sutherland's law): ``\mu = \mu(T)``.
 
 The particular form of the compressible Navier-Stokes implemented is
 ```math
@@ -169,13 +171,14 @@ function flux(u, gradients, orientation::Integer,
     q1 = equations.kappa * dTdx
     q2 = equations.kappa * dTdy
 
-    # In the simplest case, `mu(u, equations)` returns just a constant but
+    # In the simplest cases, the user passed in `mu` or `mu()` 
+    # (which returns just a constant) but
     # more complex functions like Sutherland's law are possible.
     if equations.mu isa Real
         mu = equations.mu
+    else
         # The equations are equipped with a function that computes the dynamic viscosity mu
         # from the current state. 
-    else
         mu = equations.mu(u, equations)
     end
 
