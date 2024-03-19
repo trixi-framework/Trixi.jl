@@ -546,7 +546,15 @@ end
                             0.09772818519679008,
                             0.4311796171737692,
                         ], tspan=(0.0, 0.001))
-
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+    
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode) # Just a placeholder in this case
 
@@ -577,6 +585,15 @@ end
                         tspan=(0.0, 0.0001),
                         adapt_initial_condition=false,
                         adapt_initial_condition_only_refine=false)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode) # Just a placeholder in this case
