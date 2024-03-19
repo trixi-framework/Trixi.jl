@@ -23,6 +23,7 @@ Fluid properties such as the dynamic viscosity ``\mu`` can be provided in any co
 [``\mu``] = kg m⁻¹ s⁻¹.
 The viscosity ``\mu`` may be a constant or a function of the current state, e.g., 
 depending on temperature (Sutherland's law): ``\mu = \mu(T)``.
+In the latter case, the function `mu` needs to have the signature `mu(u, equations)`.
 
 The particular form of the compressible Navier-Stokes implemented is
 ```math
