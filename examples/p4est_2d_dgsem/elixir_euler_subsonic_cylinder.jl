@@ -27,7 +27,6 @@ volume_flux = flux_ranocha_turbo # FluxRotated(flux_chandrashekar) can also be u
 surface_flux = flux_lax_friedrichs
 
 polydeg = 3
-basis = LobattoLegendreBasis(polydeg)
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
