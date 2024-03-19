@@ -44,8 +44,8 @@ cells_per_dimension = (16, 16)
 parent_mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 # Create the two mesh views, each of which takes half of the parent mesh.
-mesh1 = StructuredMeshView(parent_mesh; index_min = (1, 1), index_max = (8, 16))
-mesh2 = StructuredMeshView(parent_mesh; index_min = (9, 1), index_max = (16, 16))
+mesh1 = StructuredMeshView(parent_mesh; indices_min = (1, 1), indices_max = (8, 16))
+mesh2 = StructuredMeshView(parent_mesh; indices_min = (9, 1), indices_max = (16, 16))
 
 # The coupling function is simply the identity, as we are dealing with two identical systems.
 coupling_function = (x, u, equations_other, equations_own) -> u

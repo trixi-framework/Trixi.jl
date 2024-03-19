@@ -16,36 +16,36 @@ mutable struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
     mapping::Any # Not relevant for performance
     mapping_as_string::String
     current_filename::String
-    index_min::NTuple{NDIMS, Int}
-    index_max::NTuple{NDIMS, Int}
+    indices_min::NTuple{NDIMS, Int}
+    indices_max::NTuple{NDIMS, Int}
     unsaved_changes::Bool
 end
 
 """
-    StructuredMeshView(parent; index_min, index_max)
+    StructuredMeshView(parent; indices_min, indices_max)
 
 Create a StructuredMeshView on a StructuredMesh parent.
 
 # Arguments
 - `parent`: the parent StructuredMesh.
-- `index_min`: starting indices of the parent mesh.
-- `index_max`: ending indices of the parent mesh.
+- `indices_min`: starting indices of the parent mesh.
+- `indices_max`: ending indices of the parent mesh.
 """
 function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
-                            index_min = ntuple(_ -> 1, Val(NDIMS)),
-                            index_max = size(parent)) where {NDIMS, RealT}
-    @assert index_min <= index_max
-    @assert all(index_min .> 0)
-    @assert index_max <= size(parent)
+                            indices_min = ntuple(_ -> 1, Val(NDIMS)),
+                            indices_max = size(parent)) where {NDIMS, RealT}
+    @assert indices_min <= indices_max
+    @assert all(indices_min .> 0)
+    @assert indices_max <= size(parent)
 
-    cells_per_dimension = index_max .- index_min .+ 1
+    cells_per_dimension = indices_max .- indices_min .+ 1
 
     # Compute cell sizes `deltas`
     deltas = (parent.mapping.coordinates_max .- parent.mapping.coordinates_min) ./
              parent.cells_per_dimension
     # Calculate the domain boundaries.
-    coordinates_min = parent.mapping.coordinates_min .+ deltas .* (index_min .- 1)
-    coordinates_max = parent.mapping.coordinates_min .+ deltas .* index_max
+    coordinates_min = parent.mapping.coordinates_min .+ deltas .* (indices_min .- 1)
+    coordinates_max = parent.mapping.coordinates_min .+ deltas .* indices_max
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
     mapping_as_string = """
         coordinates_min = $coordinates_min
@@ -56,7 +56,7 @@ function StructuredMeshView(parent::StructuredMesh{NDIMS, RealT};
     return StructuredMeshView{NDIMS, RealT}(parent, cells_per_dimension, mapping,
                                             mapping_as_string,
                                             parent.current_filename,
-                                            index_min, index_max,
+                                            indices_min, indices_max,
                                             parent.unsaved_changes)
 end
 
@@ -67,21 +67,21 @@ function isperiodic(mesh::StructuredMeshView)
 end
 
 function isperiodic(mesh::StructuredMeshView, dimension)
-    @unpack parent, index_min, index_max = mesh
+    @unpack parent, indices_min, indices_max = mesh
     return (isperiodic(parent, dimension) &&
-            index_min[dimension] == 1 &&
-            index_max[dimension] == size(parent, dimension))
+            indices_min[dimension] == 1 &&
+            indices_max[dimension] == size(parent, dimension))
 end
 
 @inline Base.ndims(::StructuredMeshView{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::StructuredMeshView{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 function Base.size(mesh::StructuredMeshView)
-    @unpack index_min, index_max = mesh
-    return index_max .- index_min .+ 1
+    @unpack indices_min, indices_max = mesh
+    return indices_max .- indices_min .+ 1
 end
 function Base.size(mesh::StructuredMeshView, i)
-    @unpack index_min, index_max = mesh
-    return index_max[i] - index_min[i] + 1
+    @unpack indices_min, indices_max = mesh
+    return indices_max[i] - indices_min[i] + 1
 end
 Base.axes(mesh::StructuredMeshView) = map(Base.OneTo, size(mesh))
 Base.axes(mesh::StructuredMeshView, i) = Base.OneTo(size(mesh, i))
